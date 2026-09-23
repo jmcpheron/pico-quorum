@@ -58,14 +58,14 @@ by file and location only.
 - Port 3000 on the Mac was yesterday's ATECC608-demo app in mainnet mode. If it is running, do
   not point the wallet or a browser at it by mistake.
 
-### Case (`case/`)
+### Case (`cad/console/`)
 - v0: `waveshare-13-pico-lcd-case-tomas-plass.stl` (CC BY-NC), both halves in one STL, printed
   and fits. Print inbox drop `20260905-193939-…`.
-- `gen.py` (CadQuery, `uv run --python 3.11 --with cadquery python case/gen.py`): measurements at
+- `gen.py` (CadQuery, `uv run --python 3.11 --with cadquery python cad/console/gen.py`): measurements at
   the top, `keycap()` press-fit caps (wrong idea, printed, rejected), `cap()` flanged caps for a
   future taller lid, and after `v05` arg: `straddle_cap()` + `grip_dome()`.
 - `tools/lid` cuts the v0 lid mesh (trimesh + manifold): button slot 4.5 → 7.7 mm, joystick hole
-  round 8.6 mm. Output `case/out/v0_lid_wide_slot.stl`.
+  round 8.6 mm. Output `cad/console/out/v0_lid_wide_slot.stl`.
 - Untested lid + 4 straddle caps + dome: print drop `20260905-214230-v05_lid_caps_dome_plate`.
   That work is on local branch `case-v05`, NOT on main, by Austin's instruction until tested.
 - Measured on the v0 lid STL: case 57×31×26 outer, lid plate 2.0 mm, screen window 30×27 at
@@ -112,12 +112,12 @@ The v06 cap work stayed stopped. On 2026-09-08 Austin asked for a case with the 
 covered, and one exists: Zez0000's remix of the v0 case on MakerWorld (model 3230142, CC BY-NC,
 released 2026-08-28). Same base as v0, rounded corners, 4 button caps and a joystick cap already
 modeled. Nothing else like it exists for the Pico-LCD-1.3 on Printables, Thingiverse, Thangs,
-Cults or from Waveshare. The 7 STLs are in `case/zez0000/` (base, lid, 4 caps, joystick cap).
+Cults or from Waveshare. The 7 STLs are in `cad/console/zez0000/` (base, lid, 4 caps, joystick cap).
 
 Austin printed the stock set. Caps looked right, but the lid and base would not snap together
 even with force. Measured on the STLs: each base tab carries a full-length half-round ridge 0.44 mm
 proud of the lid wall, zero end clearance, 106 mm of interference at once. `tools/zezbase` builds
-`case/zez0000/base_v3.stl` from the stock base: ridge removed, tab shaved to 0.1 mm side and
+`cad/console/zez0000/base_v3.stl` from the stock base: ridge removed, tab shaved to 0.1 mm side and
 0.25 mm end clearance, four 10 mm ridges (r 0.4, 0.25 mm proud) put back at x = +-16 so they land
 in the stock lid groove, plus an 8 x 1 x 1 mm pry notch at the rim, middle of the +y long side.
 Only the base changed; the stock lid and caps are used as is. v3 is unprinted.
@@ -128,7 +128,7 @@ Print inbox: full set requested in yellow PLA from AMS bay 2, one plate: drop
 `20260909-155436-base_v2` (superseded). The print Claude was told all this and waits for Austin.
 
 If v3 still fights: the ridge height is `RIDGE_PROUD` in `tools/zezbase` (0.25 now, stock 0.44).
-If it is loose: raise it, or lengthen `RIDGE_LEN`. Details in `case/README.md`.
+If it is loose: raise it, or lengthen `RIDGE_LEN`. Details in `cad/console/README.md`.
 
 ## Emulator (2026-09-11)
 
@@ -140,7 +140,7 @@ stub with `APP_URL = "/app"` is generated, and the server proxies `/app` to the 
 SharedArrayBuffer the page writes (so a `while True` still sees keys), the ST7789 SPI stream is
 captured into a 240x240 RGB565 frame (pixel exact), the SPI transfer time is modeled (24 MHz cap,
 38 ms a frame, `machine.freq(150e6, 150e6)` lifts it), timers are JS timers, heap 448 KB. The page
-(`emu/web/`) has an editor (CodeMirror), a REPL console, and the case from `case/zez0000/` STLs in
+(`emu/web/`) has an editor (CodeMirror), a REPL console, and the case from `cad/console/zez0000/` STLs in
 three.js (black base_v5, white lid_v4, grey joystick cap, green A, grey B/X, red Y) with the live
 screen as a texture; click the caps or use W A S D, space, numpad 9 6 3 . (labels in the 3D view). `tools/emu run|exec|key|keys|shot|
 log|state|reset|main` drive the page over SSE; `tools/emu headless MOD --wait --key --shot` needs no
@@ -154,15 +154,15 @@ heavily loaded when built (5x slower than node), so the page booted in 8 s; norm
 
 Austin's idea: the base prints bottom-down in black PETG, so lay white PETG in the first layers as
 a QR code on the underside. `tools/zezqr [TEXT] [base_vN]` (default the repo URL, base_v5) builds
-`case/zez0000/base_v5_qr_black.stl` + `base_v5_qr_white.stl` (same frame, z=0 on the bed) and
+`cad/console/zez0000/base_v5_qr_black.stl` + `base_v5_qr_white.stl` (same frame, z=0 on the bed) and
 `base_v5_qr.3mf` (one object, two parts, white part on extruder 2). 29 modules at 0.85 mm, 24.7 mm
 square, centred x -3.5 to miss the floor hole at x 12..15, white 0.6 mm deep in the 2.0 mm floor,
 mirrored so it reads from below. The script self-checks (module-for-module match, OpenCV decode).
 Printed 2026-09-11 from inbox drop `20260911-142041-base_v5_qr`: it worked and scans. Austin: proof
-done, parked; one day the vault address goes there, not now. Details in `case/README.md`.
+done, parked; one day the vault address goes there, not now. Details in `cad/console/README.md`.
 
 Bambu Studio 2.7 CLI gotchas, if you ever slice a two-part 3MF headless: it segfaults without a
-`Metadata/project_settings.config` (ours: `case/zez0000/p2s_petg_x2.project_settings.json`);
+`Metadata/project_settings.config` (ours: `cad/console/zez0000/p2s_petg_x2.project_settings.json`);
 the plate block needs `filament_maps` "1 1"; presets passed to `--load-settings`/`--load-filaments`
 must have `inherits` flattened or everything lands on filament 1; bed type must match the filament.
 
@@ -178,7 +178,7 @@ must have `inherits` flattened or everything lands on filament 1; bed type must 
 1. Joystick push-down on the board no longer registers; check the switch and `lcd.py` Keys.
 2. Run the fresh-chip provisioning path on a real blank ATECC608 and fix what breaks.
 3. Host the app somewhere with a persistent store so "go to a website" works off the LAN.
-4. Battery (PLAN.md step 4).
+4. Battery (PLAN-picowallet.md step 4).
 5. Case: print the yellow set (Austin says go to the print Claude), test the base_v3 snap and pry
    notch, check the ATECC608 breakout clears the rounded base. Tune `tools/zezbase` if needed.
 6. Case v1 (own design, battery pocket) only if Austin brings it up.
@@ -194,6 +194,6 @@ must have `inherits` flattened or everything lands on filament 1; bed type must 
 
 ## Where the notes are
 
-`README.md` (build guide), `buildlog/BUILDLOG.md` (dated, with mistakes), `PLAN.md`,
-`SOLDERING.md`, `case/README.md` + `case/BUTTONS.md` (measurements, cap research, decisions, Zez0000 rework),
+`picowallet.md` (build guide), `buildlog/BUILDLOG.md` (dated, with mistakes), `PLAN-picowallet.md`,
+`hardware/wiring/SOLDERING.md`, `cad/console/README.md` + `cad/console/BUTTONS.md` (measurements, cap research, decisions, Zez0000 rework),
 `reference/pi/README.md` (fresh-chip walkthrough on a Pi), `reference/ATECC608-demo-HANDOFF.md`.

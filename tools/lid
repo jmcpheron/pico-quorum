@@ -1,12 +1,12 @@
 #!/bin/sh
 # Cut the v0 lid (Tomáš Plass) for the v06 floating caps and joystick hat, then build one print
-# plate with the lid, 4 caps and the hat. Run case/gen.py v06 first.
+# plate with the lid, 4 caps and the hat. Run cad/console/gen.py v06 first.
 # Frame: the lid STL has its outer face at z=0 and the walls going +z (printed face down).
 # Lid face = PCB + 4.4, so mesh z = 4.4 - z_pcb. Underside at z=2.0; pockets go 1.0 deep.
 cd "$(dirname "$0")/.." || exit 1
 exec "$HOME/.local/bin/uv" run --python 3.11 --with trimesh --with manifold3d --with numpy --with scipy --with shapely --with networkx --with rtree python - <<'PY'
 import trimesh, numpy as np
-m = trimesh.load("case/waveshare-13-pico-lcd-case-tomas-plass.stl")
+m = trimesh.load("cad/console/waveshare-13-pico-lcd-case-tomas-plass.stl")
 parts = m.split(only_watertight=False)
 lid = [p for p in parts if p.bounds[1][0] < 0][0]
 base = [p for p in parts if p.bounds[0][0] > 0][0]
@@ -43,14 +43,14 @@ cuts.append(joy_pocket)
 cuts.append(box(53.0 + 0.4, 27.13 + 0.2, 12.0, -38.5, ROW_Y, 2.0 + 6.0 + 0.5))
 lid3 = trimesh.boolean.difference([lid2] + cuts, engine="manifold")
 assert lid3.is_watertight, "lid not watertight"
-lid3.export("case/out/v06_lid.stl"); base.export("case/out/v0_base.stl")
+lid3.export("cad/console/out/v06_lid.stl"); base.export("cad/console/out/v0_base.stl")
 print("lid: cavity opened 0.2/side x, 0.1/side y for the snap; 4 holes %.1f x %.1f at pitch %.2f, row centre y=%.1f, pocket %.1f wide x 22.8 x %.1f deep; joystick hole 8.6 round, pocket 11 dia clipped at the window; watertight" % (
     HOLE_ACROSS, HOLE_ALONG, PITCH, BTN_Y, pocket_x1 - pocket_x0, POCKET_DEPTH))
 
 # 3. one plate: lid as is (face down at z=0), caps and hat beside it
-caps = trimesh.load("case/out/v06_caps_x4.stl")
+caps = trimesh.load("cad/console/out/v06_caps_x4.stl")
 caps.apply_translation((-66 - caps.bounds[0][0], 52 - caps.bounds[0][1], -caps.bounds[0][2]))
 plate = trimesh.util.concatenate([lid3, caps])
-plate.export("case/out/v06d_lid_caps_plate.stl")
+plate.export("cad/console/out/v06d_lid_caps_plate.stl")
 print("plate: %.0f x %.0f x %.0f mm" % tuple(plate.extents))
 PY

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Draws buildlog/images/wiring-battery-atecc.svg, the perfboard wiring in SOLDERING.md: the ATECC608 on
+# Draws buildlog/images/wiring-battery-atecc.svg, the perfboard wiring in hardware/wiring/SOLDERING.md: the ATECC608 on
 # I2C0, an 18650 through a switch and a 1N5817 into VSYS with USB still usable, the battery gauge on
 # GP28, the optional TP4056 + DW01 charger. Run from the repo root: tools/wiring
 W, H = 1440, 900

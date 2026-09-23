@@ -20,8 +20,8 @@ From the home screen:
 
 Y always goes up one level, and from the top of the map or the tutorial it goes home.
 
-![the boot screen](buildlog/images/chipmap-00-boot.png)
-![the chip map](buildlog/images/chipmap-01-map.png)
+![the boot screen](../buildlog/images/chipmap-00-boot.png)
+![the chip map](../buildlog/images/chipmap-01-map.png)
 
 ## The header: where you are, and whether the wallet is armed
 
@@ -91,8 +91,8 @@ Keys on every menu: joystick up/down moves, A (or the joystick press) opens or d
 On the DATA grid the joystick moves in all four directions; on a slot page, left/right step to the
 neighbouring slots. Result screens dismiss with A.
 
-![the data grid](buildlog/images/chipmap-02-data-list.png)
-![slot 0](buildlog/images/chipmap-03-slot-0.png)
+![the data grid](../buildlog/images/chipmap-02-data-list.png)
+![slot 0](../buildlog/images/chipmap-03-slot-0.png)
 
 Each tile shows the slot number, its kind as an icon, its size, and one word: a fingerprint once a
 key is there, `hidden` in red while the config zone is still open, `empty` for a key slot with no
@@ -127,8 +127,8 @@ A permanent action goes through three gates, in this order:
 3. **The red screen.** `PERMANENT: cannot be undone`, an open padlock, exactly what is about to be
    sealed, and A held for **3 seconds** with a bar and a 3-2-1 countdown. Y cancels.
 
-![armed](buildlog/images/chipmap-12-armed.png)
-![the red screen while holding A](buildlog/images/chipmap-13-permanent-hold.png)
+![armed](../buildlog/images/chipmap-12-armed.png)
+![the red screen while holding A](../buildlog/images/chipmap-13-permanent-hold.png)
 
 ### The ceremonies
 
@@ -143,8 +143,8 @@ What happens after the hold is not a menu line. The chip does the permanent thin
 
 Each is under a second, drawn on the wallet's timer right after the chip answers.
 
-![sealed](buildlog/images/chipmap-14-sealed.png)
-![the grid after the lock](buildlog/images/chipmap-15-grid-sealed.png)
+![sealed](../buildlog/images/chipmap-14-sealed.png)
+![the grid after the lock](../buildlog/images/chipmap-15-grid-sealed.png)
 
 The yellow screen is the lighter version: what will change, `I2C address unchanged`, `config zone
 stays OPEN`, and A held for 1.5 s. Y shows the full diff; B cancels.
@@ -159,8 +159,8 @@ ALLOWED`, then **Why?** in plain words for this chip state, then the raw truth: 
 `execution error: not allowed in this state`. A on that screen shows the exact command: opcode,
 parameters, data, the answer bytes, round trip.
 
-![a refusal](buildlog/images/chipmap-10-refused.png)
-![the secret slot](buildlog/images/chipmap-18-secret-slot.png)
+![a refusal](../buildlog/images/chipmap-10-refused.png)
+![the secret slot](../buildlog/images/chipmap-18-secret-slot.png)
 
 In the LAB the same idea has one more layer. An answer screen gives the meaning in words and the
 bytes; when the answer is odd (`MAKE RANDOMNESS` on an unlocked chip returns `ffff0000` eight
@@ -186,9 +186,9 @@ and wins, so a reflashed Pico gets its scores back from the chip. A slot whose r
 keeps taking clear writes after that lock (datasheet; not yet seen on silicon), which is why the
 wording on the DATA lock screens says "clear writes only where the rules say Always".
 
-![the lab](buildlog/images/chipmap-07-lab.png)
-![the fixed random pattern](buildlog/images/chipmap-08-lab-random.png)
-![why it is weird](buildlog/images/chipmap-09-lab-why.png)
+![the lab](../buildlog/images/chipmap-07-lab.png)
+![the fixed random pattern](../buildlog/images/chipmap-08-lab-random.png)
+![why it is weird](../buildlog/images/chipmap-09-lab-why.png)
 
 What the real fresh ATECC608A answered on 2026-09-16 is in `UPSTREAM.md` section 3b. In short:
 it identifies itself, passes its self tests, hashes (matching the Pico's SHA-256) and reads its
@@ -213,20 +213,20 @@ Writing it again overwrites it again. So the wallet offers the write as a **reve
 5. `RESTORE SAVED CONFIG` is the same flow with the snapshot as the target. `COMPARE WITH SAVED`
    shows the diff without writing.
 
-![the diff before the write](buildlog/images/chipmap-05-write-diff.png)
-![after the write](buildlog/images/chipmap-06-write-done.png)
+![the diff before the write](../buildlog/images/chipmap-05-write-diff.png)
+![after the write](../buildlog/images/chipmap-06-write-done.png)
 
 After the lock a second reversible write appears: **WRITE A NOTE** on a clear data slot (with the
 wallet config, slots 12 and 13: 72 bytes, readable and writable in clear) puts 32 bytes of text
 there, reads them back, and can be overwritten as often as you like until the data zone is locked.
 `READ THE BYTES` shows what a readable slot holds.
 
-![the note](buildlog/images/chipmap-17-note.png)
+![the note](../buildlog/images/chipmap-17-note.png)
 
 The CONFIG page names what is on the chip: `CURRENT original bytes`, `wallet config`, or
 `modified` (a partial write, which RESTORE fixes), and whether a snapshot exists.
 
-![the config page](buildlog/images/chipmap-04-config-page.png)
+![the config page](../buildlog/images/chipmap-04-config-page.png)
 
 `LOCK CONFIG FOREVER` is offered only when the chip already holds the wallet table, so the old
 one-step "write + lock" is now two steps with a checkpoint you can undo in between.
@@ -250,11 +250,11 @@ signature on the Pico with the slot's public key (`p256.verify`). The result say
 VERIFIED`, shows r and s shortened, and, for a slot whose rules count signatures (slot 0 under the
 wallet config), reads counter 0 back: it climbs by one per signature and never comes down.
 
-![sign test](buildlog/images/chipmap-16-sign-test.png)
+![sign test](../buildlog/images/chipmap-16-sign-test.png)
 
 ## LEARN
 
-![the tutorial](buildlog/images/chipmap-11-learn.png)
+![the tutorial](../buildlog/images/chipmap-11-learn.png)
 
 Five chapters and a card on the colours. Each chapter is a card of text with its icon; A leads into
 the real screen and marks the chapter done for this boot.

@@ -4,7 +4,7 @@ A hardware wallet for one stablecoin, built from three off-the-shelf parts in an
 soldering. It shows your balance in dollars. When a website asks it to send money, it puts the
 amount and the recipient on its own screen and does nothing until you press the green button.
 
-![picowallet](buildlog/images/2026-09-05-18-hero-case-on-black.jpg)
+![picowallet](../buildlog/images/2026-09-05-18-hero-case-on-black.jpg)
 
 The main flow is deliberately narrow: one token (USDS), one vault contract, one key that lives in
 a secure element and never leaves it. An advanced hardware-signed call can recover other assets or
@@ -75,16 +75,16 @@ About $35. No soldering iron.
 
 ## 2. Print the case
 
-`case/waveshare-13-pico-lcd-case-tomas-plass.stl`: both halves in one file, PLA, 0.2 mm layers,
+`cad/console/waveshare-13-pico-lcd-case-tomas-plass.stl`: both halves in one file, PLA, 0.2 mm layers,
 no supports. Snaps together, micro-USB slot on the end, screen window, the four buttons and the
-joystick poke through. Keycaps and a joystick dome are in `case/out/` (PLA, 0.12 mm layers).
-`case/gen.py` regenerates them if your parts differ.
+joystick poke through. Keycaps and a joystick dome are in `cad/console/out/` (PLA, 0.12 mm layers).
+`cad/console/gen.py` regenerates them if your parts differ.
 
-![both halves on the printer](buildlog/images/2026-09-05-24-case-on-the-printer.jpg)
+![both halves on the printer](../buildlog/images/2026-09-05-24-case-on-the-printer.jpg)
 
 ## 3. Put it together
 
-![the stack: Pico on the LCD board, ATECC breakout in the gap](buildlog/images/2026-09-05-22-stack-with-atecc.jpg)
+![the stack: Pico on the LCD board, ATECC breakout in the gap](../buildlog/images/2026-09-05-22-stack-with-atecc.jpg)
 
 1. Plug the Pico into the LCD board's female header, component side toward the LCD, USB at the
    joystick end.
@@ -94,9 +94,9 @@ joystick poke through. Keycaps and a joystick dome are in `case/out/` (PLA, 0.12
    black into GND (pin 38). Left side: blue into GP4 (pin 6), yellow into GP5 (pin 7). Tug lightly.
 4. Jam the breakout into the gap between the two boards, wires flat.
 
-![ATECC608 breakout jammed in the gap](buildlog/images/2026-09-05-21-atecc-jammed-in-the-gap.jpg)
+![ATECC608 breakout jammed in the gap](../buildlog/images/2026-09-05-21-atecc-jammed-in-the-gap.jpg)
 
-`SOLDERING.md` has the pinout diagram and the soldered perfboard version, with an 18650 cell behind
+`hardware/wiring/SOLDERING.md` has the pinout diagram and the soldered perfboard version, with an 18650 cell behind
 a switch and a diode for running unplugged, and how to explore a fresh chip without changing it.
 
 ## 4. Flash the firmware
@@ -236,7 +236,7 @@ also has **Cancel on Pico**. Monitor `RecoveryStarted` events. See `SECURITY.md`
 
 ## The screens
 
-![SIGN? $69 USDS to atg.eth, green bar at A, red bar at Y](buildlog/images/2026-09-05-20-sign-screen-69-usds.jpg)
+![SIGN? $69 USDS to atg.eth, green bar at A, red bar at Y](../buildlog/images/2026-09-05-20-sign-screen-69-usds.jpg)
 
 **Boot:** a navy gradient, a chip die whose legs chase the rainbow while a step waits, an underline
 that fills as the steps complete, and a checklist with an icon per step: screen, wifi (joining,
@@ -258,7 +258,7 @@ So a board with a chip fresh from the bag says so at a glance.
 recipient name and address between them. Joystick down shows nonce, deadline, chain, vault and the
 digest the device computed.
 
-![details page: full address, amount in base units, nonce, deadline, vault, digest](buildlog/images/2026-09-05-23-details-screen.jpg)
+![details page: full address, amount in base units, nonce, deadline, vault, digest](../buildlog/images/2026-09-05-23-details-screen.jpg)
 
 ## Change it
 
@@ -272,7 +272,7 @@ digest the device computed.
   the keyboard on the buttons (W A S D, space, numpad 9 6 3 .); `tools/emu run NAME`, `key A`, `shot` drive it from a terminal
   (`emu/README.md`). To have an AI write for it, give it `emu/SKILL.md` and this repo; in Claude
   Code it is the `/pico-emu` skill. Then `./tools/push` and look.
-- **The case:** `case/gen.py`, CadQuery, every dimension is a named number at the top.
+- **The case:** `cad/console/gen.py`, CadQuery, every dimension is a named number at the top.
 - **The contract:** `app/packages/foundry/contracts/ChipAccount.sol`, with 34 tests.
 
 ## What is where
@@ -281,14 +281,14 @@ digest the device computed.
 |---|---|
 | `firmware/` | MicroPython for the Pico: `wallet.py` loop and screens, `atecc.py` chip driver, `signer.py`, `eip712.py` + `keccak.py` + `p256.py` pure-Python crypto, `lcd.py`, `net.py` |
 | `app/` | contracts, tests, site, relay |
-| `case/` | STLs, the generator, the measurements |
+| `cad/console/` | STLs, the generator, the measurements |
 | `emu/` | the virtual wallet: MicroPython in WebAssembly, `machine` shims, the case STLs in 3D, a CLI for bots |
 | `tools/` | `pico` console, `push` firmware, `qr` (QR of the vault for the screen), `emu` (the virtual wallet) |
 | `buildlog/` | dated notes and photos of what actually happened, including the mistakes |
 | `reference/` | the Pi signer this grew out of, with the fresh-chip guide; SeedSigner cap parts (MIT) |
-| `PLAN.md`, `SOLDERING.md` | the plan, and the wiring guide |
-| `CHIPMAP.md` | the chip explorer: the map, LEARN, the three classes and gates, the reversible config write, and how the code is laid out |
-| `TESTPLAN.md`, `UPSTREAM.md`, `UPSTREAM-ISSUE.md` | bring-up and test plan for a fresh chip and the battery; notes to send upstream (the config-table bug, flashing, what a fresh chip answers); the issue text, ready to paste |
+| `docs/PLAN-picowallet.md`, `hardware/wiring/SOLDERING.md` | the plan, and the wiring guide |
+| `docs/CHIPMAP.md` | the chip explorer: the map, LEARN, the three classes and gates, the reversible config write, and how the code is laid out |
+| `docs/TESTPLAN.md`, `docs/UPSTREAM.md`, `docs/UPSTREAM-ISSUE.md` | bring-up and test plan for a fresh chip and the battery; notes to send upstream (the config-table bug, flashing, what a fresh chip answers); the issue text, ready to paste |
 
 ## Trust model, short
 

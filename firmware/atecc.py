@@ -90,7 +90,7 @@ def decode_slot(cfg, slot):
 
 
 # The table above must make slot 0 a P-256 private key that GenKey may fill, or locking a chip with
-# it leaves the chip unable to ever hold the wallet key (that is the bug UPSTREAM.md describes).
+# it leaves the chip unable to ever hold the wallet key (that is the bug docs/UPSTREAM.md describes).
 # Checked here, at import, on the Pico, before any lock can happen.
 assert decode_slot(CONFIG, 0)["kind"] == "P256" and decode_slot(CONFIG, 0)["genKey"], "CONFIG does not make slot 0 a P-256 key slot"
 

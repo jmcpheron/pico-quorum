@@ -108,7 +108,7 @@ Calipers (Austin): 30.94 = case base width; 4.55 = tact switch body (4.5 mm squa
 
 ## Zez0000 case with caps (2026-09-08)
 
-`case/zez0000/`: [Raspberry Pi Pico 2 Case - Waveshare 1.3" LCD by Zez0000](https://makerworld.com/en/models/3230142-raspberry-pi-pico-2-case-waveshare-1-3-lcd),
+`cad/console/zez0000/`: [Raspberry Pi Pico 2 Case - Waveshare 1.3" LCD by Zez0000](https://makerworld.com/en/models/3230142-raspberry-pi-pico-2-case-waveshare-1-3-lcd),
 CC BY-NC, released 2026-08-28. A remix of the v0 case with 4 button caps and a joystick cap
 already modeled: same base, rounded corners, square lid holes. Found while looking for a case
 with the buttons and joystick covered. Parts: base 57x31x13, lid 57x31x15.6, button caps
@@ -122,7 +122,7 @@ Austin printed the set; lid and base would not click together even with force. M
 STLs: each base tab (53 x 2 mm, 2 mm above the rim) carries a full-length half-round ridge, r 0.5,
 0.44 mm proud of the lid's inner wall, with zero end clearance. The lid has a matching r 0.5
 groove centred 1.5 mm inside its mouth. That is 0.44 mm of interference along 106 mm at once.
-`tools/zezbase` builds `case/zez0000/base_v3.stl`: ridge removed, tab face shaved to 0.1 mm
+`tools/zezbase` builds `cad/console/zez0000/base_v3.stl`: ridge removed, tab face shaved to 0.1 mm
 clearance, tab ends 0.25 mm clearance, then four 10 mm ridges (r 0.4, 0.25 mm proud) at
 x = +-16 on each side, same height as the stock ridge so they land in the lid groove. Base only;
 the stock lid and caps stay. v3 adds an 8 x 1 x 1 mm pry notch in the outer wall at the rim, +y side, x centre. Print inbox drop `20260909-*-base_v3`; full set in yellow PLA requested.
@@ -132,7 +132,7 @@ the stock lid and caps stay. v3 adds an 8 x 1 x 1 mm pry notch in the outer wall
 The four Pico posts were 5.5 mm tall (floor z 2 to 7.5); Austin wants 3 mm, just enough to keep
 BOOTSEL and the underside parts off the floor. `tools/zezbase` now also removes a 2.5 mm slab of
 wall and post right above the floor and drops everything above it, so the USB slot, tabs, ridges
-and pry notch keep their positions relative to the Pico. Output `case/zez0000/base_v4.stl`,
+and pry notch keep their positions relative to the Pico. Output `cad/console/zez0000/base_v4.stl`,
 57 x 31 x 10.5 mm (was 13). Lid and caps unchanged. Print inbox drop `20260910-163347-base_v4`,
 PLA fit check, base only. Knobs: `POST_H` (3.0) in `tools/zezbase`; `DROP` follows from it.
 
@@ -140,7 +140,7 @@ PLA fit check, base only. Knobs: `POST_H` (3.0) in `tools/zezbase`; `DROP` follo
 
 The stock cap's square stem socket is 1.95 mm for the 1.87 mm stem (Austin's calipers) and would
 not push on. `tools/zezcap` opens it to 2.05 mm (`SOCKET`), same 1.8 mm depth, nothing else
-changed. Output `case/zez0000/joystick_cap_v2.stl`. Print inbox drop `20260910-181311-joystick_cap_v2`,
+changed. Output `cad/console/zez0000/joystick_cap_v2.stl`. Print inbox drop `20260910-181311-joystick_cap_v2`,
 on the PLA fit-check plate with base_v4.
 
 ### joystick_cap_v3 (2026-09-10): the v2 socket printed shut
@@ -167,7 +167,7 @@ Result 2026-09-10 evening: socket 2.00 mm is the winner on the 1.87 mm stem. 10 
 On the printed lid the four button holes sit 0.6 mm too far from the screen (the switch plunger
 is off-centre in each hole) and are a hair tight on the caps. `tools/zezlid` fills the stock
 holes, then cuts them 0.6 mm toward the screen (`SHIFT_X`) and 0.05 mm bigger per side (`GROW`).
-Inside recess untouched. Output `case/zez0000/lid_v2.stl`. Queued with a base_v4 reprint as a
+Inside recess untouched. Output `cad/console/zez0000/lid_v2.stl`. Queued with a base_v4 reprint as a
 full case.
 
 
@@ -177,18 +177,18 @@ lid_v2 printed with the holes lined up but tight, with print bumps catching the 
 Claude opened the holes 0.3 mm per side directly on its copy of the v2 mesh (`lid_v2_holes_p06.stl`
 on the Mac mini) and printed it in PETG. `tools/zezlid v3` makes the same part from source:
 GROW 0.35 instead of 0.05, holes 5.20 x 4.45 mm on the same centres, x -24.25..-19.05. Output
-`case/zez0000/lid_v3.stl`. Cap body is 4.30 x 3.56, so about 0.45 mm clearance per side.
+`cad/console/zez0000/lid_v3.stl`. Cap body is 4.30 x 3.56, so about 0.45 mm clearance per side.
 
 ### lid_v4 (2026-09-11): button holes halfway between v2 and v3
 
 v3 (0.3 mm extra per side) was too loose. `tools/zezlid v4` uses GROW 0.20, holes 4.90 x 4.15 mm,
-same centres. About 0.30 mm clearance per side on the 4.30 x 3.56 cap. Output `case/zez0000/lid_v4.stl`. Print inbox drop `20260911-100848-lid_v4`, PETG, print Claude told to go.
+same centres. About 0.30 mm clearance per side on the 4.30 x 3.56 cap. Output `cad/console/zez0000/lid_v4.stl`. Print inbox drop `20260911-100848-lid_v4`, PETG, print Claude told to go.
 
 ### base_v5 (2026-09-11): stiffer snap
 
 base_v4 snaps and holds but pries apart with a fingernail. `tools/zezbase v5` raises the four ridges
 from 0.25 to 0.50 mm proud (Austin: a quarter mm more) and fattens them from r 0.4 to r 0.5 so the
-neck on the tab stays about 1 mm wide. Everything else is v4. Output `case/zez0000/base_v5.stl`. Print inbox drop `20260911-181009-base_v5`, black PETG, print Claude told to go 2026-09-11.
+neck on the tab stays about 1 mm wide. Everything else is v4. Output `cad/console/zez0000/base_v5.stl`. Print inbox drop `20260911-181009-base_v5`, black PETG, print Claude told to go 2026-09-11.
 Unprinted. Note 0.50 is above the stock 0.44 that would not snap at all, but stock had 106 mm of
 ridge and this has 40 mm. If v5 will not close, try 0.40.
 
@@ -208,7 +208,7 @@ for module against the QR matrix, then decodes it with OpenCV.
 
 Bambu Studio 2.7 CLI notes, since the print Claude slices headless: the 3MF needs a
 `Metadata/project_settings.config` or the CLI segfaults on load (ours is
-`case/zez0000/p2s_petg_x2.project_settings.json`, a P2S 0.4 / 0.20 mm / PETG HF x2 export with
+`cad/console/zez0000/p2s_petg_x2.project_settings.json`, a P2S 0.4 / 0.20 mm / PETG HF x2 export with
 `filament_colour`, `filament_map`, 2x2 `flush_volumes_matrix`, textured PEI plate); the plate
 block needs `filament_maps` "1 1"; and `--load-settings`/`--load-filaments` must be given presets
 with `inherits` already resolved (flatten the JSON chain) or every part ends up on filament 1.
@@ -226,14 +226,14 @@ requested plain, no QR: print inbox drop `20260912-100725-base_v4`, black PETG.
 ## Official set (2026-09-12, evening)
 
 The case as it stands. Print these, nothing else, unless Austin says otherwise. One-file version
-with all seven parts laid out in print orientation: `case/zez0000/picowallet_case.stl`, built by
+with all seven parts laid out in print orientation: `cad/console/zez0000/picowallet_case.stl`, built by
 `tools/zezplate`. Black PETG, 0.20 mm, no brim. Base floor down, lid outer face down, caps flange down.
 
 | Part | File | Why |
 |---|---|---|
-| Base, Pico 2 W (micro-USB) | `case/zez0000/base_v6.stl` | ridges 0.30 mm proud; v4 (0.25) pulled apart by hand, v5 (0.50) would not fit |
-| Base, pink Pico (USB-C) | `case/zez0000/base_pink.stl` | base_v6 with the USB-end posts spread, a divot under the jack, wider slot. Fits perfectly (2026-09-12) |
-| Lid | `case/zez0000/lid_v5.stl` | v4 holes plus a 0.4 mm deeper cap pocket, so pressing the case no longer clicks buttons |
+| Base, Pico 2 W (micro-USB) | `cad/console/zez0000/base_v6.stl` | ridges 0.30 mm proud; v4 (0.25) pulled apart by hand, v5 (0.50) would not fit |
+| Base, pink Pico (USB-C) | `cad/console/zez0000/base_pink.stl` | base_v6 with the USB-end posts spread, a divot under the jack, wider slot. Fits perfectly (2026-09-12) |
+| Lid | `cad/console/zez0000/lid_v5.stl` | v4 holes plus a 0.4 mm deeper cap pocket, so pressing the case no longer clicks buttons |
 | Button caps | `button_cap_1..4.stl` (or `button_cap_x` / `button_cap_check`) | stock |
 | Joystick cap | `joystick_cap_v3_2.00.stl` | 2.00 socket fits the 1.87 stem |
 
@@ -243,7 +243,7 @@ There is no lid v6 or base v7. The QR-bottom base is a parked side experiment.
 
 v4 holds but can be pulled apart by hand; v5 (0.50 proud) would not fit. `tools/zezbase v6` is v4
 with the ridges 0.30 mm proud instead of 0.25, same r 0.4, same notch. Output
-`case/zez0000/base_v6.stl`. Print inbox drop `20260912-145004-base_v6`, black PETG, no brim (Austin: never brim these parts again). If it is still loose, 0.35 next; if tight, v4 stays official.
+`cad/console/zez0000/base_v6.stl`. Print inbox drop `20260912-145004-base_v6`, black PETG, no brim (Austin: never brim these parts again). If it is still loose, 0.35 next; if tight, v4 stays official.
 
 ### lid_v5 (2026-09-12): 0.4 mm more cap clearance
 
@@ -251,7 +251,7 @@ Pressing on the button side of the case clicks one or two buttons: the cap flang
 pocket ceiling with almost no gap to the switch plunger. `tools/zezlid v5` is lid_v4 with the
 cap-flange pocket inside (x -26.5..-18, y +-12.5) cut 0.4 mm deeper, so the plate over the button
 strip is 1.6 mm instead of 2.0 and the caps sit 0.4 mm further out. Outer face unchanged, still
-prints face down. Holes unchanged from v4. Output `case/zez0000/lid_v5.stl`. Print inbox drop `20260912-175600-lid_v5`, black PETG, no brim.
+prints face down. Holes unchanged from v4. Output `cad/console/zez0000/lid_v5.stl`. Print inbox drop `20260912-175600-lid_v5`, black PETG, no brim.
 Alternative if this is not enough: a 0.4 mm dimple in the cap underside where the plunger lands.
 
 ### base_pink (2026-09-12, night): base_v6 for the USB-C (pink) Pico

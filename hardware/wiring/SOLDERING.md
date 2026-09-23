@@ -1,16 +1,16 @@
 # Soldering: the perfboard build
 
-The no-solder build in the README wedges the ATECC's wires into the LCD board's header. This is
+The no-solder build in the [build guide](../../docs/picowallet.md) wedges the ATECC's wires into the LCD board's header. This is
 the permanent version: Pico and LCD on a perfboard, the ATECC608 soldered to the Pico's pin tails,
 and an 18650 cell behind a switch and a diode so the wallet runs unplugged but still programs
 and powers over USB.
 
-![wiring](buildlog/images/wiring-battery-atecc.svg)
+![wiring](../../buildlog/images/wiring-battery-atecc.svg)
 
 The same build without a charger on the board: a spring-loaded holder, and the cell is lifted out
 and charged elsewhere. Everything else is identical.
 
-![wiring, cell swapped out to charge](buildlog/images/wiring-battery-atecc-swap.svg)
+![wiring, cell swapped out to charge](../../buildlog/images/wiring-battery-atecc-swap.svg)
 
 (`tools/wiring` redraws both files.)
 
@@ -138,7 +138,7 @@ refuses with an explanation. In that state you can, from the wallet alone:
    fixed test pattern, `ffff0000` repeated, not random bytes; that is still the proof.
 
 From a laptop over the console the same things are `sig.status()`, `sig.config()`,
-`sig.random()`, `atecc.scan()`. When you are ready to commit the chip, the steps in the README
+`sig.random()`, `atecc.scan()`. When you are ready to commit the chip, the steps in the build guide
 ("Set up the chip") still apply; from the wallet it is `WRITE + LOCK CONFIG` on the chip page,
 then `NEW KEY` in slot 0, each behind a hold-A red screen once the flags are set.
 

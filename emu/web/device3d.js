@@ -1,4 +1,4 @@
-// The wallet in 3D: the real case STLs from case/zez0000 (black base, white lid, grey joystick
+// The wallet in 3D: the real case STLs from cad/console/zez0000 (black base, white lid, grey joystick
 // cap, green A, grey B and X, red Y), the LCD glass with the live framebuffer as a texture.
 // Orbit to look around, click the caps to press them.
 //

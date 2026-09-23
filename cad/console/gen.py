@@ -1,4 +1,4 @@
-"""picowallet case parts, parametric. Run: uv run --python 3.11 --with cadquery python case/gen.py
+"""picowallet case parts, parametric. Run: uv run --python 3.11 --with cadquery python cad/console/gen.py
 
 v1: loose caps for the four A/B/X/Y tact switches and a joystick dome, sized for the v0 lid
 (Tomáš Plass): 2.0 mm plate, one 4.5 x 21 mm slot for the buttons, 7.1 mm rotated-square hole for
@@ -92,7 +92,7 @@ def joystick_dome(stem_w=STEM_W_GUESS, stem_above=STEM_ABOVE_LID_GUESS, hole_d=9
 
 
 def export(shape, name):
-    cq.exporters.export(shape, f"case/out/{name}.stl")
+    cq.exporters.export(shape, f"cad/console/out/{name}.stl")
     bb = shape.val().BoundingBox()
     print(f"{name}.stl  {bb.xlen:.2f} x {bb.ylen:.2f} x {bb.zlen:.2f} mm")
 
@@ -119,7 +119,7 @@ if __name__ == "__main__" and not __import__("sys").argv[1:]:
 
 
 # ============================================================================================
-# v0.5: the v0 lid with a WIDER button slot (case/out/v0_lid_wide_slot.stl, cut by tools/lid)
+# v0.5: the v0 lid with a WIDER button slot (cad/console/out/v0_lid_wide_slot.stl, cut by tools/lid)
 # and caps that straddle each switch: side walls go down past the switch body through the slot,
 # a lip under the lid plate keeps the cap in, the ceiling rides on the plunger.
 #   z = 0 at the lid outer face, up is +. Lid plate 0..-2.0. Plunger top ≈ -0.25 (flush).

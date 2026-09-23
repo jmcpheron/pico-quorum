@@ -12,7 +12,7 @@ copies in `reference/seedsigner/`), revetuzo's 2.05 mm socket sticks, ALPS SKQU 
 
 Plan:
 1. Calipers on the assembled stack (list in README.md, "Numbers we need").
-2. `case/gen.py` (CadQuery): lid with holes + skirts, 4 caps, joystick dome, all parametric.
+2. `cad/console/gen.py` (CadQuery): lid with holes + skirts, 4 caps, joystick dome, all parametric.
 3. Print caps first, alone, in two clearances (+0.20 / +0.30 mm). Pick the one that drops in and
    doesn't rock. Same for the dome socket (+0.05 / +0.10 mm).
 4. Print the lid, assemble, click test, adjust flange-to-plunger gap.
@@ -46,7 +46,7 @@ The first test plate (press-fit keycaps) was the wrong answer. What Austin asked
 works: widen the lid's button slot, and make caps that go in from inside with a lip.
 
 - `tools/lid` cuts the v0 lid: button slot 4.5 → 7.7 mm wide, joystick diamond → 8.6 mm round.
-  Output `case/out/v0_lid_wide_slot.stl`. The base half is unchanged.
+  Output `cad/console/out/v0_lid_wide_slot.stl`. The base half is unchanged.
 - `gen.py straddle_cap()`: 7.3 mm across in the 7.7 slot, side walls go down past the switch body
   (cavity 5.3 mm, open at both ends because the buttons are only 5.17 mm apart), a 9.1 mm lip
   under the lid plate at 2.3–3.1 mm below the face, ceiling rides on the plunger. Top stands
@@ -77,7 +77,7 @@ Calipers (Austin), all above the LCD PCB top:
 
 So the switch body is below the lid underside (2.4): a cap does not need to straddle it. v06:
 
-- Lid (`tools/lid`, `case/out/v06_lid.stl`): fill the old slot and diamond, then four holes
+- Lid (`tools/lid`, `cad/console/out/v06_lid.stl`): fill the old slot and diamond, then four holes
   7.7 x 4.3 at 5.17 pitch with 0.87 mm bars between, a 1.0 mm pocket on the underside around
   them (9.2 x 21.6, out to the case wall), an 8.6 round joystick hole with an 11 mm pocket
   clipped 2 mm short of the screen window.

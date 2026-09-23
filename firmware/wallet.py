@@ -123,7 +123,7 @@ def draw_home():
     # top-left: which chain. Test money and real money must never look alike.
     if chain:
         d.text("mainnet" if chain.get("id") == 1 else (chain.get("name", "?").lower()[:8]), 4, 4, L.GREEN if chain.get("id") == 1 else L.YELLOW)
-    # top-middle: power. USB, or the cell voltage from the divider on GP28 (power.py, SOLDERING.md)
+    # top-middle: power. USB, or the cell voltage from the divider on GP28 (power.py, hardware/wiring/SOLDERING.md)
     pw = power.status()
     if pw["usb"] and not pw["percent"]:
         d.text("usb", 100, 4, L.GREY)
