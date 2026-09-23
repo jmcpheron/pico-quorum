@@ -1,0 +1,27 @@
+PicoQuorum
+https://github.com/jmcpheron/pico-quorum
+
+This repository is a fork of picowallet by Austin Griffith
+(https://github.com/austintgriffith/picowallet), MIT License, Copyright (c) 2026 Austin Griffith.
+The firmware (including the ATECC608 driver firmware/atecc.py), the emulator, the tools, the
+ChipAccount contracts and app, and the build notes in docs/ come from it. See LICENSE.
+
+It also includes or builds on:
+
+- ATECC608-demo (https://github.com/clawdbotatg/ATECC608-demo): the Raspberry Pi signer
+  picowallet grew out of, in reference/pi/.
+- Waveshare Pico 1.3 LCD case v0 by Tomáš Plass
+  (https://www.printables.com/model/1322102-waveshare-pico-13-lcd-case), CC BY-NC 4.0:
+  cad/console/waveshare-13-pico-lcd-case-tomas-plass.stl and parts cut from it. Non-commercial.
+- Raspberry Pi Pico 2 Case - Waveshare 1.3" LCD by Zez0000
+  (https://makerworld.com/en/models/3230142-raspberry-pi-pico-2-case-waveshare-1-3-lcd),
+  CC BY-NC: cad/console/zez0000/ and the parts reworked from it. Non-commercial.
+- SeedSigner enclosure parts (https://github.com/SeedSigner/seedsigner), MIT, with their own
+  copyright: reference/seedsigner/.
+- Scaffold-ETH 2 (https://scaffoldeth.io), MIT: app/.
+- MicroPython (https://micropython.org), MIT: the WebAssembly build the emulator runs, installed
+  from npm.
+
+PicoQuorum talks to Safe's deployed contracts (safe-smart-account v1.4.1 and the safe-modules
+passkey signer v0.2.1, by Safe Ecosystem Foundation) through its own minimal interfaces in
+contracts/src/interfaces/. No Safe source code is vendored here.

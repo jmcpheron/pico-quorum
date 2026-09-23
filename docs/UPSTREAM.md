@@ -289,3 +289,31 @@ and slot 0 passes the same check. Also README step 5 says "over USB, lock the co
 generate the key", but there is no USB command for that; the mechanism is the app's Setup page
 (or, on the fork, the wallet's own screens).
 ```
+
+## 7. Tracking upstream
+
+This repo is PicoQuorum now, but upstream fixes, especially to the chip driver, should keep
+flowing in. Once:
+
+```sh
+git remote add upstream https://github.com/austintgriffith/picowallet
+```
+
+Each time:
+
+```sh
+git fetch upstream
+git log --oneline HEAD..upstream/main       # what is new
+git merge upstream/main                     # on a branch, then check with tools/check
+```
+
+- Most paths merge on their own. The files that moved here in the PicoQuorum restructure moved in
+  a renames-only commit (`f18021b`), so git's rename detection follows upstream edits into
+  `docs/`, `hardware/wiring/SOLDERING.md` and `cad/console/`.
+- Upstream edits to `README.md` conflict with the PicoQuorum README. Upstream's README is
+  `docs/picowallet.md` here: carry the change over there and keep ours.
+- `firmware/atecc.py` is upstream's driver. Change it as little as possible so its fixes apply
+  cleanly; put PicoQuorum's needs in new modules (`safetx.py`, `webauthn.py`, `quorum.py`, …).
+- `firmware/wallet.py` is left alone for the same reason. The Safe app is `firmware/quorum.py`;
+  `main.py` picks it when `secrets.MODE == "safe"`.
+- The last upstream merge was `713cd28` (upstream `87c717c`).
