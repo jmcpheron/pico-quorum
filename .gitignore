@@ -8,3 +8,4 @@ emu/node_modules/
 emu/shots/
 emu/chip.json
 emu/sketches/.main.py
+tools/vectors/node_modules/

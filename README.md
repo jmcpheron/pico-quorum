@@ -1,4 +1,59 @@
-# picowallet
+# PicoQuorum
+
+A thumb-operated hardware signer for [Safe](https://safe.global) multisig wallets, with
+secure-element keys that plug in like guitar cables.
+
+Each signer holds a **key**: a ¼″ + 3.5 mm dual plug with a secure element in its handle. The
+key plugs into a **console**: a Pico 2 W with a screen, a paging dial, a guarded green **Sign**
+button and an easy red **Reject** button. The console fetches pending Safe transactions, decodes
+them into plain language, computes the Safe transaction hash itself, and only then asks the key
+to sign. The key is generated inside the chip and never leaves it.
+
+**Status: early design, testnet only.** Start with [`docs/KICKOFF.md`](docs/KICKOFF.md), a living
+draft with the goals, hardware plan, and open decisions.
+
+## What works so far
+
+- `firmware/safe_tx.py` computes the Safe (≥ 1.3.0) EIP-712 transaction hash on-device from the
+  raw fields, plus the 8-character verify code. It passes every vector in
+  [`test-vectors/`](test-vectors/), including real mainnet Safe transactions, on CPython and on
+  MicroPython 1.26:
+
+  ```sh
+  python3 test-vectors/run.py
+  ```
+
+- Everything inherited from picowallet: the ATECC608 driver and chip explorer, on-device
+  keccak/EIP-712, the screen and button UI, and the emulator.
+
+## Repo map
+
+| path | what |
+|---|---|
+| `docs/` | kickoff, [upstream tracking](docs/UPSTREAM-TRACKING.md); security model and ceremony to come |
+| `firmware/` | MicroPython: inherited wallet + `safe_tx.py` |
+| `test-vectors/` | Safe transactions with known-correct hashes, and their runners |
+| `hardware/` | key connector pinout, BOM, key PCB (drafts) |
+| `cad/` | console and key enclosures (empty for now) |
+| `contracts/` | Safe P-256 owner contract (to come) |
+| `tools/` | inherited scripts + `vectors/` generator |
+| `app/`, `case/`, `emu/`, `reference/`, `buildlog/` | inherited from picowallet, unchanged |
+
+## Credit
+
+Forked from **Austin Griffith's [picowallet](https://github.com/austintgriffith/picowallet)**
+(MIT), which proved a Pico can drive a secure element from MicroPython, rebuild an EIP-712 digest
+on-device, and sign a real mainnet transaction with a button press. See [`NOTICE`](NOTICE) for
+what is reused and [`docs/UPSTREAM-TRACKING.md`](docs/UPSTREAM-TRACKING.md) for upstream work
+(including its Trust M driver) that isn't merged yet.
+
+---
+
+> **Below this line is the inherited picowallet README.** It still describes the code in
+> `firmware/`, `app/`, `case/` and `emu/` accurately: a single-token (USDS) wallet with one
+> ATECC608 key and a `ChipAccount` vault. It is not the PicoQuorum design.
+
+## picowallet
 
 A hardware wallet for one stablecoin, built from three off-the-shelf parts in an evening, no
 soldering. It shows your balance in dollars. When a website asks it to send money, it puts the
