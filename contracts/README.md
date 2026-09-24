@@ -13,4 +13,5 @@ not a Safe). PicoQuorum contracts will go here.
       signer
 - [ ] Chain: Base, with the RIP-7212 P-256 precompile
 - [ ] Deterministic deployment addresses, checked against provisioning records
-- [ ] Whether to bring over upstream's `TrustMAttest` for on-chain proof of a genuine chip
+- [ ] Whether the owner contract should require `TrustMAttest` (in `app/packages/foundry`, from
+      upstream) as on-chain proof of a genuine chip

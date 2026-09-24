@@ -19,3 +19,7 @@ ALLOW_SOFT_KEY = False
 # home screen). All of it is permanent; leave both False on a wallet that holds value.
 ALLOW_LOCK = False     # lock the config zone (required before the chip will make a key), the data zone, or one slot
 ALLOW_GENKEY = False   # make a new key in a slot, replacing the one there
+# ATECC608 bus pins. GP4/GP5 is the wallet wiring; set these only for a board where those pins
+# are taken (a clone with something on GP5, say). Any two free GPIOs work.
+# ATECC_SDA = 4
+# ATECC_SCL = 5

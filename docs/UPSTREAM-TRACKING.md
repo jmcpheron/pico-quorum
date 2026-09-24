@@ -8,33 +8,45 @@ watching get recorded.
 
 | | commit | date |
 |---|---|---|
-| Last upstream commit in this repo | `87c717c` | 2026-09-13 |
+| Fork point | `87c717c` | 2026-09-13 |
 | Our picowallet work on top (chip map, config fix, wiring) | through `35c744c` | 2026-09-19 |
-| Upstream `main` last checked | `72539d5` | 2026-09-21 (checked 2026-09-24) |
+| Upstream merged through | `72539d5` | 2026-09-21 (merged 2026-09-24) |
 
-Not merged yet: 20 upstream commits, including:
+What the 2026-09-24 merge brought in: `firmware/trustm.py` (OPTIGA Trust M driver),
+`TrustMAttest.sol` and its test, the USB wallet (`usbwallet.py`, `main_usb.py`, `USB.md`,
+WebSerial in the app), `blockies.py`, `tools/check_config`, `CLEARSIGNING.md`, and emulator
+serial stdin.
 
-- **`firmware/trustm.py`**: OPTIGA Trust M driver (physical layer on GP4/GP5, IFX I2C link layer,
-  APDU session, lifecycle / metadata / factory-cert reads, CalcSign, GetRandom). This is the
-  Trust M option in `KICKOFF.md`.
-- **`TrustMAttest.sol`**: proves on chain that a P-256 key lives in a genuine Trust M (the Infineon
-  CA-signed factory cert checked with P256). This matters for the provisioning ceremony.
-- **`atecc.py` config-table fix** (`cba49a2`, `521c5ff`, `187db86`): upstream's own fix for the
-  shifted KeyConfig table that this fork found and fixed separately (`1526c95`, see
-  `../UPSTREAM.md` and `../UPSTREAM-ISSUE.md`). Expect a conflict here and prefer upstream's
-  table once it has been read back against a real chip.
-- USB wallet (`usbwallet.py`, WebSerial), `CLEARSIGNING.md` research notes (ERC-7730 clear signing
-  and more, relevant to the decoder).
+How the conflicts were resolved (keep this in mind on the next merge):
+
+- **`firmware/atecc.py`**: this fork's driver is the base (slot decoding, address scan, guarded
+  writes and locks that the chip map depends on). From upstream: `SDA`/`SCL` from `secrets.py`
+  and `make_i2c` (SoftI2C for non-hardware pin pairs), the `CONFIG` asserts and `CONFIG_SHA256`
+  fingerprint, config writes in batches of 8 words per wake (watchdog fix seen on silicon), and
+  `verify_config()`. The two `CONFIG` tables were already byte for byte identical.
+- **`firmware/signer.py`**: this fork's. `lock_config()` locks what is on the chip;
+  `provision()` writes the proven table, verifies it, then locks.
+- **`firmware/usbwallet.py`** (upstream's, adapted): its lock-config and setup ops call
+  `provision()` rather than `lock_config()`. The A press on its provisioning screen arms the
+  signer for that one action, since this fork refuses permanent actions unless armed.
+- **`firmware/wallet.py`**: this fork's splash WiFi join, wrapped in try/except for boards
+  without a WiFi chip (upstream's fix).
+- **`firmware/secrets.example.py`**, **`emu/web/worker.js`**, **`README.md`**: both sides kept.
+
+Checked after the merge: `tools/check_config` ok; `test-vectors` 9/9 on CPython and
+MicroPython; the emulator boots the WiFi wallet, the chip map and the USB wallet, and USB setup
+provisions a blank virtual chip; `forge test` 40/40, including TrustMAttest 6/6. Not checked:
+anything on real hardware, and `trustm.py` has not run against a Trust M in this repo.
 
 ## How to merge
 
 ```sh
 git remote add upstream https://github.com/austintgriffith/picowallet   # once
 git fetch upstream
-git log --oneline 87c717c..upstream/main          # what is new
-git diff 87c717c upstream/main -- firmware/atecc.py firmware/trustm.py firmware/keccak.py
+git log --oneline 72539d5..upstream/main          # what is new
+git diff 72539d5 upstream/main -- firmware/atecc.py firmware/trustm.py firmware/keccak.py
 git merge upstream/main                           # a merge commit, never a rebase
-python3 test-vectors/run.py                       # must still pass
+python3 test-vectors/run.py && python3 tools/check_config   # must still pass
 ```
 
 Then update the table above and add a line to the log below.
@@ -47,3 +59,4 @@ Then update the table above and add a line to the log below.
 ## Log
 
 - 2026-09-24: forked as PicoQuorum. Upstream checked at `72539d5`, nothing merged yet.
+- 2026-09-24: merged upstream through `72539d5` (20 commits); conflicts resolved as above.

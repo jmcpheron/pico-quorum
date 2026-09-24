@@ -19,10 +19,10 @@ The console fetches pending Safe transactions and decodes them into plain langua
 
 This project is forked from **Austin Griffith's [picowallet](https://github.com/austintgriffith/picowallet)** (MIT): a Pico 2 W, a Waveshare Pico-LCD-1.3 and a Microchip **ATECC608** secure element. That project proved a Pico can drive a secure element from MicroPython, rebuild an EIP-712 digest on-device, show a signing request, take a button press, and return a real P-256 signature that moved funds on Ethereum mainnet. Its code stays in this repo where it was (`firmware/`, `app/`, `case/`, `emu/`) until the PicoQuorum parts replace it.
 
-Since this fork was cut, upstream has added an **OPTIGA Trust M** driver (`firmware/trustm.py`: physical and link layers, APDU session, factory-certificate read, CalcSign) and a `TrustMAttest` contract that proves on chain that a P-256 key lives in a real Trust M. Neither is merged here yet; see [`UPSTREAM-TRACKING.md`](UPSTREAM-TRACKING.md).
+Upstream has since added an **OPTIGA Trust M** driver (`firmware/trustm.py`: physical and link layers, APDU session, factory-certificate read, CalcSign) and a `TrustMAttest` contract (`app/packages/foundry/contracts/`) that proves on chain that a P-256 key lives in a real Trust M. Both were merged here on 2026-09-24; see [`UPSTREAM-TRACKING.md`](UPSTREAM-TRACKING.md).
 
 - [x] Add upstream link, license check, and attribution to `README.md` and `NOTICE`
-- [ ] Keep the upstream secure-element drivers (`firmware/atecc.py` here now; `firmware/trustm.py` upstream, not yet merged) and change them as little as possible
+- [ ] Keep the upstream secure-element drivers (`firmware/atecc.py`, `firmware/trustm.py`) and change them as little as possible
 - [ ] Track upstream driver fixes (see [`UPSTREAM-TRACKING.md`](UPSTREAM-TRACKING.md))
 
 What's different here: a multisig-first design, on-device Safe transaction decoding and hash verification, plug-in keys, a physical console design, and a provisioning ceremony that locks keys before distribution.
@@ -59,7 +59,7 @@ What's different here: a multisig-first design, on-device Safe transaction decod
 |---|---|---|
 | Adafruit ATECC608 breakout (STEMMA QT) | Development now | What upstream uses; driver, chip explorer and provisioning flow already in `firmware/` |
 | Bare ATECC608 (2×3 mm UDFN or SOIC-8) on a custom key PCB | Real keys, option A | Same driver as development |
-| Adafruit Trust M breakout | Evaluation | Upstream `trustm.py` drives it (not merged here yet); upstream `TrustMAttest` proves the factory identity on chain |
+| Adafruit Trust M breakout | Evaluation | `firmware/trustm.py` (from upstream) drives it; `TrustMAttest` proves the factory identity on chain |
 | Bare Trust M (~3×3 mm) on a custom key PCB | Real keys, option B | Fits the plug handle on a board ~6–8 mm wide |
 
 - [ ] Choose the chip for real keys: ATECC608 or Trust M (and which variant / firmware version)
@@ -106,7 +106,7 @@ Design rules:
 
 ## Safe integration: firmware layers
 
-1. **Secure-element driver**, inherited from upstream: `firmware/atecc.py` now, `firmware/trustm.py` once merged.
+1. **Secure-element driver**, inherited from upstream: `firmware/atecc.py` and `firmware/trustm.py`.
 2. **Safe hash:** EIP-712 domain (chain ID and Safe address) plus the SafeTx struct, with Keccak computed on-device. Golden test vectors live in `test-vectors/`, and every change must pass all of them. *(Done: `firmware/safe_tx.py`.)*
 3. **Signature packaging** into the format the owner contract expects (WebAuthn-shaped or custom ERC-1271).
 4. **Transaction service client:** list pending transactions and post confirmations, with the API key kept in config.

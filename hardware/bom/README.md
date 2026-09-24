@@ -4,7 +4,7 @@
 
 - [ ] Raspberry Pi Pico 2 W (×2)
 - [ ] Adafruit ATECC608 breakout, STEMMA QT (×2–3), which the current firmware drives
-- [ ] Adafruit Trust M breakout (×2–3), for evaluating upstream's `trustm.py`
+- [ ] Adafruit Trust M breakout (×2–3), for evaluating `firmware/trustm.py`
 - [ ] Momentary push buttons, thumb-sized, in green and red (a few candidates to compare feel)
 - [ ] Flip-up switch cover or guard hardware
 - [ ] ¼″ stereo plugs (solder type) and ¼″ stereo switched jacks, with extras

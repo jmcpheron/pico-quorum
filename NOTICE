@@ -7,12 +7,15 @@ MIT License. See LICENSE.
 
 Fork point: upstream commit 87c717c (2026-09-13). Commits after it through 35c744c
 (chip map, config-table fix, wiring, snake) are Jason McPheron's own picowallet work,
-made before the project was renamed.
+made before the project was renamed. Upstream merged again through 72539d5
+(2026-09-24); see docs/UPSTREAM-TRACKING.md.
 
 Reused from picowallet, largely unchanged:
   firmware/atecc.py     ATECC608 driver (I2C, wake/retry, provisioning)
   firmware/keccak.py    pure-Python keccak256, used by firmware/safe_tx.py
   firmware/eip712.py    the pattern firmware/safe_tx.py follows
+  firmware/trustm.py    OPTIGA Trust M driver (merged from upstream 72539d5)
+  app/packages/foundry/contracts/TrustMAttest.sol   on-chain Trust M attestation
   emu/                  the MicroPython emulator and tools/emu
   and everything else in firmware/, app/, case/, reference/ and buildlog/
 

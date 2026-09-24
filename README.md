@@ -45,7 +45,7 @@ Forked from **Austin Griffith's [picowallet](https://github.com/austintgriffith/
 (MIT), which proved a Pico can drive a secure element from MicroPython, rebuild an EIP-712 digest
 on-device, and sign a real mainnet transaction with a button press. See [`NOTICE`](NOTICE) for
 what is reused and [`docs/UPSTREAM-TRACKING.md`](docs/UPSTREAM-TRACKING.md) for upstream work
-(including its Trust M driver) that isn't merged yet.
+(its Trust M driver and `TrustMAttest` are merged, through upstream `72539d5`).
 
 ---
 
@@ -172,7 +172,10 @@ The screen comes up, finds the chip on the bus, and shows "no key" until step 5.
 
 ## 5. Set up the chip (once)
 
-A fresh ATECC608 refuses to make a key until its config zone is locked, once, permanently. This
+A fresh ATECC608 refuses to make a key until its config zone is locked, once, permanently. **Before
+locking any chip run `python3 tools/check_config`** (proves the firmware's config table is the one on
+the working chip) and know that the firmware reads the chip back and refuses to lock on any
+mismatch; a chip was lost on 2026-09-15 before those checks existed (`buildlog/2026-09-15-config-table-bug.md`). This
 is normal; every chip in use is locked. Generate the final key before deploying the contract:
 
 1. In `firmware/secrets.py` temporarily set `ALLOW_LOCK = True` and `ALLOW_GENKEY = True`, then
@@ -334,14 +337,14 @@ digest the device computed.
 
 | path | what |
 |---|---|
-| `firmware/` | MicroPython for the Pico: `wallet.py` loop and screens, `atecc.py` chip driver, `signer.py`, `eip712.py` + `keccak.py` + `p256.py` pure-Python crypto, `lcd.py`, `net.py` |
+| `firmware/` | MicroPython for the Pico: `wallet.py` loop and screens (WiFi), `usbwallet.py` (USB, no radio, see `USB.md`), `atecc.py` chip driver, `signer.py`, `eip712.py` + `keccak.py` + `p256.py` pure-Python crypto, `blockies.py`, `lcd.py`, `net.py` |
 | `app/` | contracts, tests, site, relay |
 | `case/` | STLs, the generator, the measurements |
 | `emu/` | the virtual wallet: MicroPython in WebAssembly, `machine` shims, the case STLs in 3D, a CLI for bots |
 | `tools/` | `pico` console, `push` firmware, `qr` (QR of the vault for the screen), `emu` (the virtual wallet) |
 | `buildlog/` | dated notes and photos of what actually happened, including the mistakes |
 | `reference/` | the Pi signer this grew out of, with the fresh-chip guide; SeedSigner cap parts (MIT) |
-| `PLAN.md`, `SOLDERING.md` | the plan, and the wiring guide |
+| `PLAN.md`, `SOLDERING.md`, `USB.md` | the plan, the wiring guide, and the wallet over USB (air-gapped, no radio) |
 | `CHIPMAP.md` | the chip explorer: the map, LEARN, the three classes and gates, the reversible config write, and how the code is laid out |
 | `TESTPLAN.md`, `UPSTREAM.md`, `UPSTREAM-ISSUE.md` | bring-up and test plan for a fresh chip and the battery; notes to send upstream (the config-table bug, flashing, what a fresh chip answers); the issue text, ready to paste |
 
