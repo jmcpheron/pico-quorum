@@ -4,6 +4,9 @@ WIFI_PASS = "your-password"
 HOSTNAME = "picowallet"
 APP_URL = "http://<mac-lan-ip>:3001"
 DEVICE_NAME = "picowallet"
+# The PicoQuorum console (quorum.py): Safe's transaction service, or tools/quorum's simulated Safe
+# on the laptop (`tools/quorum ip` prints this line). QUORUM_API_KEY for api.safe.global, if set.
+QUORUM_URL = "http://<mac-lan-ip>:8787"
 
 # Passwordless MicroPython REPL on TCP/2323. Full signer control: isolated development only.
 ENABLE_NETWORK_CONSOLE = False

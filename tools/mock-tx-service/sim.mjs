@@ -6,12 +6,13 @@
 // Hashes come from viem, which shares no code with the console's firmware/safe_tx.py. So a
 // console confirmation that verifies here proves the console hashed the same fields it showed.
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { concat, decodeFunctionData, getAddress, hashTypedData, keccak256, parseAbi, recoverAddress, size } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { p256 } from "@noble/curves/p256";
 
 export const ROOT = new URL("../../", import.meta.url);
-const STATE_FILE = new URL("state.json", import.meta.url);
+const STATE_FILE = process.env.QUORUM_STATE || fileURLToPath(new URL("state.json", import.meta.url));
 export const ZERO = "0x0000000000000000000000000000000000000000";
 
 // The console's pinned config is the one source for the Safe and its names (it is JSON on purpose).

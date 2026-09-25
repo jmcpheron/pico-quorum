@@ -633,15 +633,6 @@ def approve(yes):
     start_timer()
 
 
-def short_err(e):
-    """An app error in the width of one status row: the usual OSErrors by name, the rest as repr."""
-    a = getattr(e, "args", ())
-    if isinstance(e, OSError) and a and isinstance(a[0], int):
-        return {-2: "dns: host not found", 104: "connection reset", 110: "timed out",
-                111: "connection refused", 113: "host unreachable"}.get(a[0], "OSError %d" % a[0])
-    return repr(e)[:23]
-
-
 def net_work():
     global state, dirty, last_announce, last_fetch, net_err
     if state in ("confirm", "working", "keys", "nochip") or secrets is None:
@@ -670,7 +661,7 @@ def net_work():
         if paired:
             poll_requests()
     except Exception as e:
-        net_err = short_err(e)
+        net_err = net.short_err(e)
         _log("net: %r" % e)
         say("app: " + net_err, 5)
     gc.collect()

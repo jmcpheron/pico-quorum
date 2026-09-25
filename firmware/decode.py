@@ -9,7 +9,8 @@
 #   review(tx, ctx) -> {"summary": "Send 1.5 ETH", "level": "ok" | "warn" | "red", "items": [...]}
 #
 # An item is a dict: title (one screen header), level, what (one line), and as needed amount,
-# to, frm (an address being replaced or moved from), text (the explanation), digest.
+# to and label (what that address is: "to", "new owner", "spender"...), frm and frm_label (an
+# address being replaced or moved from), text (the explanation), digest.
 # "red" is anything that can take the Safe away from its owners or pay out more than it shows:
 # owner, threshold, module, guard and handler changes, delegatecall, gas refunds, unlimited
 # approvals, and every call this file cannot decode.
@@ -38,6 +39,7 @@ SIGS = {
 }
 
 DONT = "Don't sign unless you were told exactly what to expect."
+AS_SAFE = "Runs this contract's code as the Safe itself: it could move everything and change the owners."
 
 
 def hx(b):
@@ -137,8 +139,8 @@ def calldata_digest(data):
 # ----------------------------------------------------------------------------- one call
 def _unknown(to, data, why=""):
     sel = hx(data[:4]) if len(data) >= 4 else hx(data)
-    return {"title": "UNKNOWN CALL", "level": "red", "what": "Unknown call", "to": to,
-            "text": (why + " " if why else "") + DONT + " Function %s, %d bytes of calldata; its digest is below." % (sel, len(data)),
+    return {"title": "UNKNOWN CALL", "level": "red", "what": "Unknown call", "to": to, "label": "contract",
+            "text": (why + " " if why else "") + DONT + " Function %s, %d bytes." % (sel, len(data)),
             "digest": hx(calldata_digest(data))}
 
 
@@ -146,35 +148,36 @@ def _self_call(sel, args, ctx):
     """The Safe calling itself: its own settings. Every one of these is red."""
     if sel == "0d582f13":
         owner, t = _addr(args, 0), _word(args, 1)
-        return {"title": "ADD OWNER", "level": "red", "what": "Add owner", "to": owner,
+        return {"title": "ADD OWNER", "level": "red", "what": "Add owner", "to": owner, "label": "new owner",
                 "text": "Adds this address as an owner, with a vote on everything the Safe does. Approvals needed becomes %d." % t}
     if sel == "f8dc5dd9":
         owner, t = _addr(args, 1), _word(args, 2)
-        return {"title": "REMOVE OWNER", "level": "red", "what": "Remove owner", "to": owner,
+        return {"title": "REMOVE OWNER", "level": "red", "what": "Remove owner", "to": owner, "label": "owner",
                 "text": "Removes this owner. Approvals needed becomes %d." % t}
     if sel == "e318b52b":
         old, new = _addr(args, 1), _addr(args, 2)
-        return {"title": "SWAP OWNER", "level": "red", "what": "Replace owner", "to": new, "frm": old,
+        return {"title": "SWAP OWNER", "level": "red", "what": "Replace owner", "to": new, "label": "new owner",
+                "frm": old, "frm_label": "replaces",
                 "text": "Removes one owner and puts the address below in its place, with the same vote."}
     if sel == "694e80c3":
         t = _word(args, 0)
-        return {"title": "THRESHOLD", "level": "red", "what": "Approvals needed: %d" % t,
+        return {"title": "THRESHOLD", "level": "red", "what": "Approvals needed: %d" % t, "amount": "%d NEEDED" % t,
                 "text": "Changes how many owners must approve every transaction from now on, to %d." % t}
     if sel == "610b5925":
-        return {"title": "ADD MODULE", "level": "red", "what": "Add module", "to": _addr(args, 0),
+        return {"title": "ADD MODULE", "level": "red", "what": "Add module", "to": _addr(args, 0), "label": "module",
                 "text": "This contract will be able to move funds and change owners WITHOUT any owner approval."}
     if sel == "e009cfde":
-        return {"title": "REMOVE MODULE", "level": "red", "what": "Remove module", "to": _addr(args, 1),
+        return {"title": "REMOVE MODULE", "level": "red", "what": "Remove module", "to": _addr(args, 1), "label": "module",
                 "text": "Turns off this module; it can no longer act for the Safe."}
     if sel == "e19a9dd9":
         g = _addr(args, 0)
         if g == ZERO:
             return {"title": "REMOVE GUARD", "level": "red", "what": "Remove guard",
                     "text": "Turns off the transaction guard; nothing checks transactions after this."}
-        return {"title": "SET GUARD", "level": "red", "what": "Set guard", "to": g,
+        return {"title": "SET GUARD", "level": "red", "what": "Set guard", "to": g, "label": "guard",
                 "text": "This contract will check, and can block, every future transaction. A broken guard can lock the Safe for good."}
     if sel == "f08a0323":
-        return {"title": "FALLBACK", "level": "red", "what": "Set fallback handler", "to": _addr(args, 0),
+        return {"title": "FALLBACK", "level": "red", "what": "Set fallback handler", "to": _addr(args, 0), "label": "handler",
                 "text": "This contract answers calls the Safe does not know itself, including checks of messages the Safe has signed."}
     return None
 
@@ -191,14 +194,14 @@ def _token_call(sel, to, args, ctx):
         sp, amt = _addr(args, 0), _word(args, 1)
         if amt >= UNLIMITED:
             return {"title": "APPROVE " + sym, "level": "red", "what": "Approve UNLIMITED " + sym, "amount": "UNLIMITED " + sym,
-                    "to": sp, "text": "The address below can take every %s this Safe holds, now and later, until someone revokes it.%s" % (sym, note)}
+                    "to": sp, "label": "spender", "text": "The address below can take every %s this Safe holds, now and later, until someone revokes it.%s" % (sym, note)}
         return {"title": "APPROVE " + sym, "level": "ok" if tok else "warn", "what": "Approve %s %s" % (units(amt, dec), sym),
-                "amount": "%s %s" % (units(amt, dec), sym), "to": sp,
+                "amount": "%s %s" % (units(amt, dec), sym), "to": sp, "label": "spender",
                 "text": "The address below may take up to this much from the Safe." + note}
     if sel == "23b872dd":
         src, dest, amt = _addr(args, 0), _addr(args, 1), _word(args, 2)
         return {"title": "MOVE " + sym, "level": "ok" if tok else "warn", "what": "Move %s %s" % (units(amt, dec), sym),
-                "amount": "%s %s" % (units(amt, dec), sym), "to": dest, "frm": src,
+                "amount": "%s %s" % (units(amt, dec), sym), "to": dest, "frm": src, "frm_label": "from",
                 "text": "Moves tokens out of another address that approved this Safe." + note}
     return None
 
@@ -211,7 +214,7 @@ def _call(to, value, data, ctx):
             return [{"title": "REJECTION", "level": "ok", "what": "On-chain rejection",
                      "text": "Does nothing. Once executed it uses up this transaction number, cancelling every other transaction waiting on it."}]
         if value == 0:
-            return [{"title": "EMPTY CALL", "level": "warn", "what": "Empty call", "to": to,
+            return [{"title": "EMPTY CALL", "level": "warn", "what": "Empty call", "to": to, "label": "address",
                      "text": "Sends nothing and calls nothing, unless the address is a contract."}]
         return [{"title": "SEND ETH", "level": "ok", "what": "Send %s ETH" % units(value, 18),
                  "amount": units(value, 18) + " ETH", "to": to}]
@@ -246,7 +249,7 @@ def _gas(tx, ctx):
         else:
             price = "%d raw units of the token %s" % (gp, token)
         return {"title": "GAS REFUND", "level": "red", "what": "Pays a gas refund",
-                "to": rr if rr != ZERO else None,
+                "to": rr if rr != ZERO else None, "label": "paid to",
                 "text": "Whoever executes this is paid by the Safe: %s for every unit of gas used, plus %d more units. Paid to %s." % (
                     price, base, "the address below" if rr != ZERO else "whoever sends it")}
     if base or stg or token != ZERO or rr != ZERO:
@@ -275,16 +278,15 @@ def review(tx, ctx):
             for iop, ito, ival, idata in calls:
                 if iop != CALL:
                     items.append({"title": "DELEGATECALL", "level": "red", "what": "Delegatecall inside a batch", "to": ito,
-                                  "text": "Runs this contract's code as the Safe itself. It can move every asset and change the owners. " + DONT})
+                                  "label": "contract", "text": AS_SAFE})
                 else:
                     items += _call(ito, ival, idata, ctx)
             summary = "Batch: %d action%s" % (len(calls), "" if len(calls) == 1 else "s")
         else:
             summary = "Unreadable batch"
     elif op == DELEGATECALL:
-        items.append({"title": "DELEGATECALL", "level": "red", "what": "Delegatecall", "to": to,
-                      "text": "Runs this contract's code as the Safe itself. It can move every asset and change the owners. " + DONT,
-                      "digest": hx(calldata_digest(data))})
+        items.append({"title": "DELEGATECALL", "level": "red", "what": "Delegatecall", "to": to, "label": "contract",
+                      "text": AS_SAFE, "digest": hx(calldata_digest(data))})
         summary = "Delegatecall"
     else:
         items += _call(to, value, data, ctx)
