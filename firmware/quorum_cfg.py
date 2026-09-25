@@ -13,6 +13,14 @@
 # other contract a transaction calls gets the unknown-contract alert. "Known" means pinned here,
 # never what the service or a block explorer says. The Uniswap addresses are Base mainnet's
 # (Permit2 is the same on every chain); check them again before the Base fork in rung 1.
+#
+# "signer" is how this key owns a Safe (webauthn.py): Safe's passkey signer, safe-modules passkey
+# v0.2.1, the same addresses on Base, Base Sepolia, OP and the Base fork. "proxyCode" is the
+# SafeWebAuthnSignerProxy creation code the factory deploys (its bytes 1653-2090), so the console
+# computes its own owner address. "verifiers" is the P-256 precompile at 0x100 first, then the Daimo
+# verifier as fallback (about 100k gas instead of 455k). It is part of the owner address: change it
+# and every key becomes a different owner, so it stays as it is. tools/vectors checks all of this
+# against the deployed factory.
 CFG = {
     "safes": [
         {"chainId": 31337, "address": "0x5afe00000000000000000000000000000000a11e", "name": "Family Safe"}
@@ -39,6 +47,12 @@ CFG = {
             "3593564c": ["execute(bytes,bytes[],uint256)", "Swap on Uniswap"],
             "24856bc3": ["execute(bytes,bytes[])", "Swap on Uniswap"]
         }]
+    },
+    "signer": {
+        "factory": "0x1d31f259ee307358a26dfb23eb365939e8641195",
+        "singleton": "0x4e27b51350e6c2083ee19011120f50dafec5ca50",
+        "verifiers": "0x0100c2b78104907f722dabac4c69f826a522b2754de4",
+        "proxyCode": "610100346100ad57601f6101b538819003918201601f19168301916001600160401b038311848410176100b2578084926080946040528339810103126100ad578051906001600160a01b03821682036100ad5760208101516040820151606090920151926001600160b01b03841684036100ad5760805260a05260c05260e05260405160ec90816100c98239608051816082015260a05181604d015260c051816027015260e0518160010152f35b600080fd5b634e487b7160e01b600052604160045260246000fdfe7f000000000000000000000000000000000000000000000000000000000000000060b63601527f000000000000000000000000000000000000000000000000000000000000000060a03601527f000000000000000000000000000000000000000000000000000000000000000036608001523660006080376000806056360160807f00000000000000000000000000000000000000000000000000000000000000005af43d600060803e60b1573d6080fd5b3d6080f3fea26469706673582212201660515548d15702d720bbc046b457ca85e941a4559ab9f9518488e4c82e5ee964736f6c634300081a0033"
     },
     "chains": {
         "1": "Ethereum",
