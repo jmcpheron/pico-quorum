@@ -10,6 +10,9 @@ changed.
 [change requests](#change-requests) checklist at the bottom straight in GitHub. I pull before every
 iteration and work through both.
 
+**Next: other screen sizes.** A plan for the six screens on order (0.96″ to 3.5″): the same flow
+reflowed per size, the code it needs, and questions for you. See [SCREENS.md](SCREENS.md).
+
 ## Iteration log
 
 ### Iteration 2 (2026-09-25): real type, a new theme, who's being called, the Safe version

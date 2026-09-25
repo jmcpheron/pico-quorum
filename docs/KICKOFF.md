@@ -122,6 +122,9 @@ On the dev console: A (top of the column, green bar) is Sign, held 2 s; Y (botto
 - [ ] 2.0″ 320×240 SPI LCD (Pico-compatible)
 - [ ] 2.8″ 320×240 (Pico-compatible; touch optional and probably unused)
 - [ ] Compare how readable long addresses are, how well QR codes scan, and power draw
+- [ ] Ordered 2026-09-24: a 6-pack of SPI panels (0.96″ 80×160 and 1.8″ 128×160 ST7735S; 2.0″, 2.4″ and
+  2.8″ 240×320 ST7789; 3.5″ 320×480 ST7796). How the approval flow reflows on each, and the order of
+  work: [quorum-ui/SCREENS.md](quorum-ui/SCREENS.md)
 
 ## Safe integration: firmware layers
 
