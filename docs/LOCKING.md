@@ -97,9 +97,11 @@ and the factory contents of the data slots.
 
 - [x] Owner address for slot 0's key = the factory's `getSigner` on Base Sepolia, Base, Ethereum
 - [x] A real chip signature (slot 2) passes Safe's passkey signer onchain on all three
-- [ ] A slot 0 signature passes onchain too (one count: 7 → 8)
-- [ ] The new console firmware on the board shows `0x2843…5E53` for "This key" (`tools/emu ship quorum`)
-- [ ] Rung 1 with the real Pico: approve on the fork, and it executes ([LADDER.md](LADDER.md))
+- [x] A slot 0 signature passes onchain too: the Pico's rung 1 approval (safeTxHash `0xdb29…0788`),
+      `isValidSignatureForSigner` = `0x1626ba7e` on Base Sepolia, Base and Ethereum. Counter 0 went
+      7 → 8 (2026-09-25).
+- [x] The new console firmware on the board computes `0x2843…5e53` for "This key" itself
+- [x] Rung 1 with the real Pico: approved on the fork, and it executed in 109,488 gas ([LADDER.md](LADDER.md))
 - [ ] Rung 2: api.safe.global accepts slot 0's confirmation on Base Sepolia, and `live exec` executes it
 - [ ] Then LOCK SLOT 0 from the chip map (`ALLOW_LOCK = True`, armed, hold A), and afterwards:
   - [ ] SlotLocked bit 0 is clear (bytes 88–89 = `fe ff`)

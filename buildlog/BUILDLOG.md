@@ -433,3 +433,37 @@ Gotchas:
   unless slot 10 is written first.
 - While the data zone is open, a plaintext PrivWrite can put a known key into any private slot.
   Only a slot lock stops that.
+
+## 2026-09-25 — rung 1 on the real Pico: the chip's approval executes on a real Safe
+
+The console with layer 3 (`firmware/webauthn.py`) went on the board with `tools/emu ship quorum`,
+and `main.py` wasn't touched. Behind it, `tools/quorum up` ran a real Safe 1.4.1 on an Anvil fork
+of Base (chain 31337, block 51760581): the Family Safe at `0xf77e…7666`.
+
+**The run:**
+- The Pico announced key `9fad2e82…` (slot 0). The laptop computed its signer proxy `0x2843…5E53`,
+  the board computed the same address itself, and the passkey factory's `getSigner` agreed.
+- The factory deployed the proxy on the fork and it became the third owner (2 of 3).
+- `tools/quorum demo` queued the stories. Jason opened **#0 Send 0.05 ETH** (Alice had signed) and
+  held A.
+  - The console posted a WebAuthn contract signature.
+  - The service checked it with the proxy's own `isValidSignature`.
+  - The Safe executed it: `execTransaction` in 109,488 gas, nonce 0 → 1.
+- The same slot 0 signature, checked against the real deployed signer on Base Sepolia, Base and
+  Ethereum with `isValidSignatureForSigner`, answered `0x1626ba7e` on all three. The s value was
+  low. Counter 0 went 7 → 8. Nothing locked.
+
+**Bug of the day:** the first attempt failed on memory, not on the chain. Jason had toured the chip
+map (the lock ceremony, the key's QR). After that, the console's biggest font (`qf_bold26.bin`,
+one 10.9 KB block, loaded on first use) no longer fit in the fragmented heap, and every redraw of
+a review page raised `MemoryError`.
+- The screen stopped updating, and #0 got rejected twice from a console that couldn't draw. The
+  rejects were console-only and never reached the Safe.
+- Fixed now by a fresh start plus loading both big fonts by hand. Fixed for good by `quorum.start()`
+  loading every font while the heap is whole.
+
+Gotchas:
+- The demo queue on the fork looks exactly like the simulated one, on purpose. The tells are the
+  Safe's address (`0xf77e…7666`), "This key" on the owners page, and the dashboard's "a real Safe
+  on the Anvil fork of Base".
+- The console fetches only from its home screen; on the chip map it doesn't poll.

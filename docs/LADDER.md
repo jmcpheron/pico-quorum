@@ -19,7 +19,7 @@ as things land, and link the evidence (a buildlog entry, an explorer link).
 | # | Rung | Where | Who signs | Status |
 |---|---|---|---|---|
 | 0 | **Simulated** | `tools/quorum serve`, no chain | Alice and Bob (simulated), the real Pico | ✅ 2026-09-24, the real Pico ([buildlog](../buildlog/BUILDLOG.md)) |
-| 1 | **Local fork** | `tools/quorum up`: Safe 1.4.1 on an Anvil fork of Base, chain 31337 | Alice and Bob, the chip | ✅ emulator (`tools/quorum e2e`) · ☐ real Pico |
+| 1 | **Local fork** | `tools/quorum up`: Safe 1.4.1 on an Anvil fork of Base, chain 31337 | Alice and Bob, the chip | ✅ emulator (`tools/quorum e2e`) · ✅ real Pico, 2026-09-25 ([buildlog](../buildlog/BUILDLOG.md)) |
 | 2 | **Base Sepolia** | testnet: the Safe web app and `api.safe.global` | your browser wallet, the chip | ☐ rehearsal with the emulator · ☐ real Pico |
 | 3 | **Base** | a few dollars | your browser wallet, the chip | ☐ |
 | 4 | **Ethereum mainnet** | a few dollars (base fee about 0.05 gwei in Sept 2026) | your browser wallet, the chip | ☐ |
@@ -56,7 +56,7 @@ web app: `live` opens a one-page form on 127.0.0.1 and the wallet shows the tran
 - [x] The chip's signature through the signer proxy, checked with `isValidSignature`, and the transaction executes (`e2e`, about 110k gas with the precompile)
 - [x] Refusals still hold on a real chain: the tampered transaction is never signed
 - [x] The live tools rehearsed against it: `live enroll`, `live rehearse`, and `live exec` through the wallet page
-- [ ] **The real Pico** (with you at the board):
+- [x] **The real Pico**, 2026-09-25 (with you at the board):
   1. `tools/quorum up`. It prints the `QUORUM_URL` line.
   2. Put that line in the board's `secrets.py`, then `tools/emu ship quorum`.
   3. The Pico announces, and its signer proxy becomes an owner.
