@@ -1,4 +1,4 @@
-// The USB wallet link: JSON lines to and from a picowallet (USB.md). Two transports with one shape:
+// The USB wallet link: JSON lines to and from a picowallet (docs/USB.md). Two transports with one shape:
 // WebSerialLink talks to a real board through the browser's serial API (Chrome, Edge), EmuLink
 // talks to the virtual wallet in the emulator (tools/emu, port 4242) so the whole flow can be tried
 // with no hardware. Both hand every reply back by message id.

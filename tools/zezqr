@@ -1,11 +1,11 @@
 #!/bin/sh
 # QR code inlaid in the bottom of the Zez0000 base for a two-colour AMS print.
 # Usage: tools/zezqr [TEXT] [base_vN]   (default text: the repo URL, base_v5)
-# Reads case/zez0000/base_vN.stl and writes, in the same frame (z=0 is the print bed):
-#   case/zez0000/base_vN_qr_black.stl  the base with the QR modules cut out of the bottom QR_H mm
-#   case/zez0000/base_vN_qr_white.stl  the QR modules, exactly filling those cuts (dark modules = white)
-#   case/zez0000/base_vN_qr.3mf        both as parts of one object, white part on filament 2
-#   case/zez0000/base_vN_qr_bottom.png the bottom view as printed, decoded back to check it scans
+# Reads cad/console/zez0000/base_vN.stl and writes, in the same frame (z=0 is the print bed):
+#   cad/console/zez0000/base_vN_qr_black.stl  the base with the QR modules cut out of the bottom QR_H mm
+#   cad/console/zez0000/base_vN_qr_white.stl  the QR modules, exactly filling those cuts (dark modules = white)
+#   cad/console/zez0000/base_vN_qr.3mf        both as parts of one object, white part on filament 2
+#   cad/console/zez0000/base_vN_qr_bottom.png the bottom view as printed, decoded back to check it scans
 # The QR is white on black, read from below. The black base is the light modules and the quiet zone.
 # The floor is 2.0 mm; the bottom flat is x +-26.2, y +-13.2 (2 mm rounded edge outside that); a
 # 3 x 2.3 mm hole sits at x 11.75..14.75, y -4.6..-2.3, so the QR is centred at x = -3.5.
@@ -19,7 +19,7 @@ QR_H = 0.60       # white inlay height: three 0.2 mm layers, floor is 2.0
 CX, CY = -3.5, 0  # QR centre on the bottom, clear of the floor hole on +x
 EC = "L"          # error correction; 29 modules for the repo URL at L and for a 0x address at M
 
-base = trimesh.load("case/zez0000/%s.stl" % BASE)
+base = trimesh.load("cad/console/zez0000/%s.stl" % BASE)
 cx, cy = (base.bounds[0][:2] + base.bounds[1][:2]) / 2
 base.apply_translation((-cx, -cy, 0))
 
@@ -45,8 +45,8 @@ white = trimesh.boolean.union(cells, engine="manifold")
 white = trimesh.boolean.intersection([white, base], engine="manifold")       # trims to z=0 and the fillet
 black = trimesh.boolean.difference([base, white], engine="manifold")
 assert white.is_watertight and black.is_watertight
-white.export("case/zez0000/%s_qr_white.stl" % BASE)
-black.export("case/zez0000/%s_qr_black.stl" % BASE)
+white.export("cad/console/zez0000/%s_qr_white.stl" % BASE)
+black.export("cad/console/zez0000/%s_qr_black.stl" % BASE)
 print("%s: %d modules of %.2f mm = %.1f mm square at (%.1f, %.1f), inlay %.1f mm tall, %d white cells, volumes white %.0f black %.0f mm3"
       % (TEXT, n, MOD, span, CX, CY, QR_H, int(m.sum()), white.volume, black.volume))
 
@@ -56,7 +56,7 @@ gx, gy = np.meshgrid((np.arange(W) + 0.5) / S - 28.5, (np.arange(H) + 0.5) / S -
 pts = np.stack([-gx.ravel(), -gy.ravel(), np.full(gx.size, QR_H / 2)], 1)   # view from below: x mirrored, y down
 inside = white.contains(pts).reshape(H, W)
 img = np.where(inside, 255, 0).astype(np.uint8)
-cv2.imwrite("case/zez0000/%s_qr_bottom.png" % BASE, img)
+cv2.imwrite("cad/console/zez0000/%s_qr_bottom.png" % BASE, img)
 # Module-by-module: in the bottom view column i is at image x = (28.5 - (CX + span/2 - (i + 0.5) * MOD)) * S, row j at y = (15.5 - (CY + span/2 - (j + 0.5) * MOD)) * S
 ii, jj = np.meshgrid(np.arange(n), np.arange(n))
 px = ((28.5 - (CX + span / 2 - (ii + 0.5) * MOD)) * S).astype(int); py = ((15.5 - (CY + span / 2 - (jj + 0.5) * MOD)) * S).astype(int)
@@ -105,9 +105,9 @@ rels = ('<?xml version="1.0" encoding="UTF-8"?>\n<Relationships xmlns="http://sc
         '<Relationship Target="/3D/3dmodel.model" Id="rel-1" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/></Relationships>')
 mrels = ('<?xml version="1.0" encoding="UTF-8"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
          '<Relationship Target="/3D/Objects/object_1.model" Id="rel-1" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/></Relationships>')
-with zipfile.ZipFile("case/zez0000/%s_qr.3mf" % BASE, "w", zipfile.ZIP_DEFLATED) as z:
+with zipfile.ZipFile("cad/console/zez0000/%s_qr.3mf" % BASE, "w", zipfile.ZIP_DEFLATED) as z:
     z.writestr("[Content_Types].xml", types); z.writestr("_rels/.rels", rels); z.writestr("3D/_rels/3dmodel.model.rels", mrels)
     z.writestr("3D/3dmodel.model", model); z.writestr("3D/Objects/object_1.model", objects); z.writestr("Metadata/model_settings.config", settings)
-    z.write("case/zez0000/p2s_petg_x2.project_settings.json", "Metadata/project_settings.config")   # P2S 0.4, 0.20 mm, PETG HF x2 (black, white); exported by Bambu Studio 2.7 CLI, without it the CLI crashes on load
-print("wrote case/zez0000/%s_qr_{black,white}.stl, %s_qr.3mf, %s_qr_bottom.png" % (BASE, BASE, BASE))
+    z.write("cad/console/zez0000/p2s_petg_x2.project_settings.json", "Metadata/project_settings.config")   # P2S 0.4, 0.20 mm, PETG HF x2 (black, white); exported by Bambu Studio 2.7 CLI, without it the CLI crashes on load
+print("wrote cad/console/zez0000/%s_qr_{black,white}.stl, %s_qr.3mf, %s_qr_bottom.png" % (BASE, BASE, BASE))
 PY

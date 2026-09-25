@@ -51,12 +51,26 @@ python3 test-vectors/run.py && python3 tools/check_config   # must still pass
 
 Then update the table above and add a line to the log below.
 
+- Most paths merge on their own. The files that moved in the PicoQuorum restructure moved in a
+  renames-only commit (`f18021b`), so git's rename detection follows upstream edits into `docs/`,
+  `hardware/wiring/SOLDERING.md` and `cad/console/` (upstream's `case/`).
+- Upstream edits to `README.md` conflict with the PicoQuorum README. Upstream's README is
+  `docs/picowallet.md` here: carry the change over there and keep ours.
+- A new Markdown file upstream adds at the root belongs in `docs/` here; move it and fix the links.
+- `firmware/atecc.py`, `firmware/trustm.py` and `firmware/wallet.py` are upstream's. Change them as
+  little as possible so their fixes apply cleanly; put PicoQuorum's needs in new modules (like
+  `safe_tx.py`).
+
 ## Files to watch
 
 `firmware/atecc.py`, `firmware/trustm.py`, `firmware/keccak.py`, `firmware/eip712.py`,
-`app/packages/foundry/contracts/TrustMAttest.sol`, `SECURITY.md`, `CLEARSIGNING.md`.
+`app/packages/foundry/contracts/TrustMAttest.sol`, `SECURITY.md`, `CLEARSIGNING.md` (both in
+`docs/` here).
 
 ## Log
 
 - 2026-09-24: forked as PicoQuorum. Upstream checked at `72539d5`, nothing merged yet.
 - 2026-09-24: merged upstream through `72539d5` (20 commits); conflicts resolved as above.
+- 2026-09-24: merged the PicoQuorum restructure (`picoquorum-rung1`: `docs/`, `hardware/wiring/`,
+  `cad/console/`). `USB.md` and `CLEARSIGNING.md` moved into `docs/`; upstream's README changes
+  carried into `docs/picowallet.md`.

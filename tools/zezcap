@@ -1,10 +1,10 @@
 #!/bin/sh
-# Rework the Zez0000 joystick cap (case/zez0000/joystick_cap.stl). The square stem socket in its
+# Rework the Zez0000 joystick cap (cad/console/zez0000/joystick_cap.stl). The square stem socket in its
 # bottom is 1.95 mm for a 1.87 mm stem and is too tight to push on. v2 opened it to 2.05.
 # v3 (2026-09-10): the v2 print closed up. The socket is in the first layer (flange on the bed) so the
 # mouth got squished shut, and its flat ceiling is a 2 mm bridge that sagged into the hole. v3 adds a
 # CHAMFER at the mouth and a self-supporting 45 degree pyramid roof instead of the flat ceiling.
-# Usage: tools/zezcap [socket_mm ...]   default 2.05 2.15 -> case/zez0000/joystick_cap_v3_<size>.stl
+# Usage: tools/zezcap [socket_mm ...]   default 2.05 2.15 -> cad/console/zez0000/joystick_cap_v3_<size>.stl
 cd "$(dirname "$0")/.." || exit 1
 SIZES="${*:-2.05 2.15}"
 exec "$HOME/.local/bin/uv" run --python 3.11 --with trimesh --with manifold3d --with numpy --with scipy --with shapely --with networkx --with rtree python - $SIZES <<'PY'
@@ -15,7 +15,7 @@ def sq(h, z):                       # 4 corners of a square of side h at height 
     return [(sx * h / 2, sy * h / 2, z) for sx in (1, -1) for sy in (1, -1)]
 
 for size in map(float, sys.argv[1:]):
-    cap = trimesh.load("case/zez0000/joystick_cap.stl")
+    cap = trimesh.load("cad/console/zez0000/joystick_cap.stl")
     cx, cy = (cap.bounds[0][:2] + cap.bounds[1][:2]) / 2
     cap.apply_translation((-cx, -cy, 0))
     shaft = trimesh.creation.box(extents=(size, size, DEPTH + 1.0)); shaft.apply_translation((0, 0, (DEPTH + 1.0) / 2 - 1.0))
@@ -23,7 +23,7 @@ for size in map(float, sys.argv[1:]):
     roof = trimesh.convex.convex_hull(np.array(sq(size, DEPTH - 0.01) + [(0, 0, DEPTH + size / 2)]))
     c3 = trimesh.boolean.difference([cap, shaft, mouth, roof], engine="manifold")
     assert c3.is_watertight, "cap not watertight"
-    out = "case/zez0000/joystick_cap_v3_%.2f.stl" % size
+    out = "cad/console/zez0000/joystick_cap_v3_%.2f.stl" % size
     c3.export(out)
     def w(z):                       # socket width at height z: the small square loop in the slice
         s = c3.section(plane_origin=[0, 0, z], plane_normal=[0, 0, 1]); p, _ = s.to_2D()

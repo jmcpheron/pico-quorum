@@ -1,7 +1,7 @@
 #!/bin/sh
 # Talk to the Pico over USB serial. The same mpremote commands as tools/pico, no WiFi console needed.
 #   tools/usb                      find the port and open the REPL (Ctrl-] to leave)
-#   tools/usb push                 copy every firmware/*.py (never secrets.example.py) and reset
+#   tools/usb push                 copy every firmware/*.py (never secrets.example.py) and *.bin, and reset
 #   tools/usb ls | exec 'print(1)' | cp firmware/x.py :x.py | run firmware/chipcheck.py
 # Port: $PICO_PORT, else the first /dev/ttyACM* (Linux) or /dev/cu.usbmodem* (macOS).
 # push is one mpremote session: no `resume`, so mpremote soft-resets first (the running module's
@@ -23,7 +23,9 @@ case "$1" in
       case "$f" in *secrets.example.py) continue;; esac
       set -- "$@" cp "$f" ":$(basename "$f")" +
     done
-    [ -f firmware/qr.bin ] && set -- "$@" cp firmware/qr.bin :qr.bin +
+    for f in firmware/*.bin; do         # qr.bin and the fonts (qf_*.bin)
+      [ -f "$f" ] && set -- "$@" cp "$f" ":$(basename "$f")" +
+    done
     set -- "$@" exec "import os
 if hasattr(os, 'sync'): os.sync()
 print('synced')"

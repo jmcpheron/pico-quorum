@@ -3,7 +3,7 @@
 Real MicroPython (the WebAssembly build of 1.26, the board runs 1.26.1) running the firmware in
 `firmware/` unchanged, with the `machine`/`network`/`requests` modules replaced by shims that talk
 to the page. The screen is captured from the ST7789 SPI stream, so what you see is the exact
-framebuffer. The device is drawn in 3D from the case STLs in `case/zez0000/`.
+framebuffer. The device is drawn in 3D from the case STLs in `cad/console/zez0000/`.
 
 ```
 tools/emu                 # start the server, open http://localhost:4242

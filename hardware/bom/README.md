@@ -1,18 +1,38 @@
-# bom
+# Parts
 
-## First parts order
+## The dev console (today)
 
-- [ ] Raspberry Pi Pico 2 W (×2)
-- [ ] Adafruit ATECC608 breakout, STEMMA QT (×2–3), which the current firmware drives
-- [ ] Adafruit Trust M breakout (×2–3), for evaluating `firmware/trustm.py`
-- [ ] Momentary push buttons, thumb-sized, in green and red (a few candidates to compare feel)
-- [ ] Flip-up switch cover or guard hardware
-- [ ] ¼″ stereo plugs (solder type) and ¼″ stereo switched jacks, with extras
-- [ ] 3.5 mm plugs (solder type) and 3.5 mm switched jacks, with extras
-- [ ] Rotary encoder with push switch
-- [ ] 2.0″ and 2.8″ 320×240 screens, one each to compare
-- [ ] Load-switch and ESD/TVS parts, or breakouts for prototyping
-- [ ] Status LEDs and assorted resistors and capacitors
+The picowallet hardware this repo forked. It runs everything in test ladder rung 1. Build guide:
+[docs/picowallet.md](../../docs/picowallet.md).
 
-Add part numbers, prices and links as they get picked. The inherited picowallet parts list is in
-the upstream half of [`../../README.md`](../../README.md).
+| part | ~price | source |
+|---|---|---|
+| Raspberry Pi Pico 2 W, **pre-soldered header** | $12 | Amazon `B0DRJXPPWL` (Freenove) or any Pico 2 W with headers |
+| Waveshare Pico-LCD-1.3 (240×240 IPS, joystick, A/B/X/Y) | $15 | Amazon `B092VVCBQP` |
+| Adafruit ATECC608 breakout, STEMMA QT | $6 | Adafruit 4314 |
+| STEMMA QT / JST-SH 4-pin cable, any ends | $1 to $8 | Amazon `B08HQ1VSVL`, or Adafruit 4209 (snip the pins off and strip) |
+| micro-USB cable, data not charge-only | | |
+
+About $35, no soldering. The case is in [cad/console](../../cad/console/README.md).
+
+For the soldered perfboard version with an 18650 cell (a protected cell or a DW01 board, a holder,
+an SPST switch, a 1N5817 Schottky, and an optional 2 × 100 kΩ + 100 nF battery gauge), see
+[hardware/wiring/SOLDERING.md](../wiring/SOLDERING.md#parts).
+
+## First order for the PicoQuorum console and keys
+
+From the [kickoff](../../docs/KICKOFF.md#first-parts-order). Nothing ordered yet.
+
+| part | qty | notes |
+|---|---|---|
+| Raspberry Pi Pico 2 W | 2 | |
+| Adafruit ATECC608 breakout, STEMMA QT | 2–3 | what the current firmware drives |
+| Adafruit Trust M breakout | 2–3 | evaluation for `firmware/trustm.py` (from upstream, not yet run on a chip here) |
+| Momentary push buttons, thumb-sized, green and red | a few of each | compare feel |
+| Flip-up switch cover or guard hardware | | Sign button guard |
+| ¼″ stereo plugs (solder type), ¼″ stereo switched jacks | extras | key connector: SDA, SCL, GND |
+| 3.5 mm plugs (solder type), 3.5 mm switched jacks | extras | key connector: VCC, spare, GND |
+| Rotary encoder with push switch | 1–2 | paging |
+| 2.0″ and 2.8″ 320×240 SPI screens | 1 each | compare |
+| Load switch and ESD/TVS parts, or breakouts | | key VCC current limit; SDA, SCL, VCC protection |
+| Status LEDs, assorted resistors and capacitors | | |

@@ -1,8 +1,8 @@
 #!/bin/sh
-# Rework the Zez0000 lid (case/zez0000/lid.stl): the four button holes sit 0.6 mm too far from the
+# Rework the Zez0000 lid (cad/console/zez0000/lid.stl): the four button holes sit 0.6 mm too far from the
 # screen on the printed part (2026-09-10 photo) and are a hair tight on the caps. v2 moves the holes
 # SHIFT_X toward the screen and opens them GROW on every side. The cap recess on the inside is
-# untouched (8.51 wide, the shifted flange still lands inside it). Output case/zez0000/lid_<v>.stl.
+# untouched (8.51 wide, the shifted flange still lands inside it). Output cad/console/zez0000/lid_<v>.stl.
 # Usage: tools/zezlid [v2|v3|v4|v5]. v5: v4 holes, and the cap-flange pocket inside is cut CLEAR mm deeper so
 # the plate over the button strip is 2.0 - CLEAR thick and the caps sit CLEAR further from the switch plungers
 # (pressing the case was clicking buttons, 2026-09-12). Outer face stays flat so it still prints face down.
@@ -15,7 +15,7 @@ V="${1:-v3}"; export V
 exec "$HOME/.local/bin/uv" run --python 3.11 --with trimesh --with manifold3d --with numpy --with scipy --with shapely --with networkx --with rtree python - <<'PY'
 import trimesh, numpy as np, os
 V = os.environ["V"]
-lid = trimesh.load("case/zez0000/lid.stl")
+lid = trimesh.load("cad/console/zez0000/lid.stl")
 cx, cy = (lid.bounds[0][:2] + lid.bounds[1][:2]) / 2
 lid.apply_translation((-cx, -cy, 0))
 SHIFT_X = 0.6                                  # toward the screen (+x)
@@ -35,7 +35,7 @@ if CLEAR:
     filled = trimesh.boolean.difference([filled, box(POCKET[0], POCKET[1], POCKET[2], POCKET[3], 2.0 - CLEAR, 2.5)], engine="manifold")
 l2 = trimesh.boolean.difference([filled] + cuts, engine="manifold")
 assert l2.is_watertight, "lid not watertight"
-l2.export("case/zez0000/lid_%s.stl" % V)
+l2.export("cad/console/zez0000/lid_%s.stl" % V)
 s = l2.section(plane_origin=[0, 0, 1.0], plane_normal=[0, 0, 1])
 holes = [np.array(l) for l in s.discrete if -27 < np.array(l)[:, 0].min() and np.array(l)[:, 0].max() < -15]
 for h in sorted(holes, key=lambda h: h[:, 1].min()):

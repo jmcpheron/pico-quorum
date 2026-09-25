@@ -22,10 +22,10 @@ Record: mpremote version `1.29.0`, MicroPython build on the Pico (step 2) `v1.26
 
 ## 1. Bench checks with nothing powered
 
-From `SOLDERING.md` sections 1 and 2, with the cell OUT and USB unplugged:
+From `hardware/wiring/SOLDERING.md` sections 1 and 2, with the cell OUT and USB unplugged:
 
 - [ ] Cable mapped by pad, not color: each bare wire beeps on exactly one of the breakout's VIN /
-      GND / SDA / SCL pads. Record the color for each pad (table in SOLDERING.md section 1).
+      GND / SDA / SCL pads. Record the color for each pad (table in hardware/wiring/SOLDERING.md section 1).
 - [ ] Continuity: VIN wire to pin 36, GND wire to pin 8, SDA wire to pin 6, SCL wire to pin 7.
 - [ ] No continuity pin 36 to pin 8 (3V3 to GND).
 - [ ] Diode mode across the Schottky: ~0.2 to 0.35 V one way, open the other. Band toward pin 39.

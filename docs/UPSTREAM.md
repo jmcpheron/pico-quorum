@@ -148,7 +148,7 @@ Read off it (2026-09-16, Adafruit 4314 breakout, run twice, output byte-identica
   chip shows `P256`; `atecc_sim.FRESH` should carry these factory bytes.
 - `random` is `ffff0000` repeated, identical on both runs. That is datasheet behaviour: before
   the config zone is locked, Random returns a fixed test pattern. The test plan expected it to
-  differ; corrected in TESTPLAN.md and SOLDERING.md.
+  differ; corrected in TESTPLAN.md and hardware/wiring/SOLDERING.md.
 - GenKey is refused (`status 0x0f`) on the unlocked zone even though the factory KeyConfig
   allows it, so the wallet says `no key` until the lock, as designed.
 - Wake 3 ms.
@@ -289,3 +289,8 @@ and slot 0 passes the same check. Also README step 5 says "over USB, lock the co
 generate the key", but there is no USB command for that; the mechanism is the app's Setup page
 (or, on the fork, the wallet's own screens).
 ```
+
+## 7. Tracking upstream
+
+The fork point, the merges, and how to merge the next one are in
+[UPSTREAM-TRACKING.md](UPSTREAM-TRACKING.md).

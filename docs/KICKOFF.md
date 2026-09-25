@@ -7,6 +7,23 @@
 
 A physical approval device for [Safe](https://safe.global) multisig wallets. Each signer holds a plug-in secure-element key; the console shows what a transaction does and signs only when you press Sign.
 
+## Status (2026-09-24)
+
+The hardware in this kickoff (plug-in keys, the console with its guarded button and dial) doesn't exist yet. Until
+it does, the **dev console** is the picowallet this repo forked: a Pico 2 W, a Waveshare Pico-LCD-1.3 (240×240,
+joystick, A/B/X/Y) and an Adafruit ATECC608 breakout. Its build guide is [picowallet.md](picowallet.md).
+
+| Layer | Where it lives | State |
+|---|---|---|
+| 1. Secure-element driver | `firmware/atecc.py` and `firmware/trustm.py` (upstream), `firmware/signer.py` | ATECC608 works; Trust M not yet run on a chip here |
+| 2. Safe hash | `firmware/safe_tx.py`, checked against `test-vectors/` | done |
+| 3. Signature packaging | `quorum.signature_for()` | raw P-256 r‖s for the simulation; the owner contract's format is still open |
+| 4. Transaction service client | `firmware/txservice.py`, against `tools/quorum`'s simulated Safe | started, simulated |
+| 5. Decoder and display | `firmware/decode.py` (checked by `test-vectors/`), `firmware/quorum.py`, `quorum_ui.py` | started: [walkthrough](quorum-ui/README.md) |
+| Contracts | `contracts/` | not started |
+
+[Test ladder](#test-ladder) rung 1 is the next milestone.
+
 ## What this is
 
 PicoQuorum is a physical approval device for Safe multisig accounts. Each signer holds a **key**: a chunky dual plug with a secure element in its handle (an ATECC608 today; the Infineon OPTIGA Trust M is still an option, see [Open decisions](#open-decisions)). The key plugs into a **console**: a Raspberry Pi Pico–based box with a screen, a paging dial, a guarded green **Sign** button and an easy red **Reject** button, both pressed with a thumb.
@@ -17,7 +34,7 @@ The console fetches pending Safe transactions and decodes them into plain langua
 
 ## Credit and upstream
 
-This project is forked from **Austin Griffith's [picowallet](https://github.com/austintgriffith/picowallet)** (MIT): a Pico 2 W, a Waveshare Pico-LCD-1.3 and a Microchip **ATECC608** secure element. That project proved a Pico can drive a secure element from MicroPython, rebuild an EIP-712 digest on-device, show a signing request, take a button press, and return a real P-256 signature that moved funds on Ethereum mainnet. Its code stays in this repo where it was (`firmware/`, `app/`, `case/`, `emu/`) until the PicoQuorum parts replace it.
+This project is forked from **Austin Griffith's [picowallet](https://github.com/austintgriffith/picowallet)** (MIT): a Pico 2 W, a Waveshare Pico-LCD-1.3 and a Microchip **ATECC608** secure element. That project proved a Pico can drive a secure element from MicroPython, rebuild an EIP-712 digest on-device, show a signing request, take a button press, and return a real P-256 signature that moved funds on Ethereum mainnet. Its code stays in this repo (`firmware/`, `app/`, `emu/`; its case in `cad/console/`, its notes in `docs/`) until the PicoQuorum parts replace it.
 
 Upstream has since added an **OPTIGA Trust M** driver (`firmware/trustm.py`: physical and link layers, APDU session, factory-certificate read, CalcSign) and a `TrustMAttest` contract (`app/packages/foundry/contracts/`) that proves on chain that a P-256 key lives in a real Trust M. Both were merged here on 2026-09-24; see [`UPSTREAM-TRACKING.md`](UPSTREAM-TRACKING.md).
 
@@ -66,7 +83,7 @@ What's different here: a multisig-first design, on-device Safe transaction decod
 - [ ] **Critical:** find out whether signing can be gated behind a PIN with attempt limiting. A portable key without one is a live key if stolen.
   - ATECC608: a slot can require prior authorization by a secret-derived key (CheckMac / auth key), and a monotonic counter can cap uses (LimitedUse). No built-in attempt lockout, so the limit would have to come from the counter.
   - Trust M: authorization-reference access conditions and a security event counter that throttles repeated failures.
-- [ ] Document the key-slot metadata and lock / lifecycle-state procedure for the chosen chip (the ATECC608 config lock is already documented in `CHIPMAP.md` and `TESTPLAN.md`)
+- [ ] Document the key-slot metadata and lock / lifecycle-state procedure for the chosen chip (for the ATECC608, the config, data and slot locks are already walked through in [CHIPMAP.md](CHIPMAP.md) and [TESTPLAN.md](TESTPLAN.md))
 
 ### Key connector: draft pinout
 
@@ -98,11 +115,16 @@ Design rules:
 - **Status LED:** blinks when a transaction is pending.
 - Optional: detect the flip cover opening as an "arm" signal.
 
+On the dev console: A (top of the column, green bar) is Sign, held 2 s; Y (bottom, red bar) is Reject; the joystick pages.
+
 ### Screen candidates
 
 - [ ] 2.0″ 320×240 SPI LCD (Pico-compatible)
 - [ ] 2.8″ 320×240 (Pico-compatible; touch optional and probably unused)
 - [ ] Compare how readable long addresses are, how well QR codes scan, and power draw
+- [ ] Ordered 2026-09-24: a 6-pack of SPI panels (0.96″ 80×160 and 1.8″ 128×160 ST7735S; 2.0″, 2.4″ and
+  2.8″ 240×320 ST7789; 3.5″ 320×480 ST7796). How the approval flow reflows on each, and the order of
+  work: [quorum-ui/SCREENS.md](quorum-ui/SCREENS.md)
 
 ## Safe integration: firmware layers
 
@@ -121,7 +143,7 @@ Design rules:
 
 ## Test ladder
 
-1. **Local:** an Anvil fork of Base on the laptop, plus a mock transaction service that implements only the endpoints the console uses. The console connects over home Wi-Fi. Milestone: a 1-of-1 Safe executes after a button press.
+1. **Local:** an Anvil fork of Base on the laptop, plus a mock transaction service that implements only the endpoints the console uses. The console connects over home Wi-Fi. The fork runs as chain 31337, so nothing signed on it is valid on real Base. Milestone: a 1-of-1 Safe executes after a button press.
 2. **Base Sepolia:** the real Safe web app and transaction service. Milestone: a 2-of-3 with one browser wallet and two consoles.
 3. **Base mainnet with pocket change:** a remote signer on their own Wi-Fi. Milestone: a real remote approval.
 
@@ -140,24 +162,26 @@ A 3-of-5 where no single technology holds more than two keys: a warm wallet (pro
 
 ## Repo layout
 
-The new directories sit beside the inherited picowallet code, which stays until it is replaced.
-
 ```
-docs/            kickoff, security model, provisioning ceremony, signer instructions
+docs/            kickoff, security model, provisioning ceremony, signer instructions, the picowallet notes
 hardware/
-  wiring/        console and key schematics, pinouts
+  wiring/        console and key schematics, pinouts (SOLDERING.md: the dev console's perfboard)
   bom/           parts lists and sourcing notes
   key-pcb/       key board design
 cad/
-  console/       enclosure, button guard or cover, jack bracket
+  console/       enclosure, button guard or cover, jack bracket (today: the dev console's case)
   key/           plug handle, end cap, label band
-firmware/        MicroPython (upstream driver plus Safe layers; safe_tx.py so far)
+firmware/        MicroPython (upstream drivers plus Safe layers; safe_tx.py so far)
 contracts/       signer contract, tests, deploy scripts (Foundry is in app/packages/foundry for now)
-tools/           mock transaction service, provisioning scripts, vector generator
+tools/           mock transaction service, provisioning scripts, vector generator, emulator and board tools
 test-vectors/    Safe transactions with known-correct hashes
-
-inherited from picowallet: app/ case/ emu/ reference/ buildlog/ and the root *.md files
 ```
+
+These live outside the kickoff layout:
+- `app/`: picowallet's Scaffold-ETH app for the single-owner vault, and `TrustMAttest`. Its Foundry package can't leave the workspace without breaking `yarn deploy`.
+- `emu/`: the virtual dev console.
+- `buildlog/`: dated notes and photos.
+- `reference/`: the Pi signer picowallet grew out of.
 
 ## First parts order
 
@@ -166,11 +190,11 @@ See [`hardware/bom/README.md`](../hardware/bom/README.md).
 ## Open decisions
 
 - [ ] Secure element for real keys: ATECC608 (driver here) vs Trust M (driver and on-chain attestation upstream)
-- [ ] WebAuthn-shaped signatures vs. a custom ERC-1271 signer
+- [ ] WebAuthn-shaped signatures vs. a custom ERC-1271 signer (first choice: Safe's passkey signer)
 - [ ] Whether a PIN/authorization is feasible on the chosen chip
 - [ ] Screen size
 - [ ] Button choice and layout (beside the screen vs. below it)
 - [ ] Flip cover vs. guard fence
 - [ ] Printed vs. aluminum enclosure
 - [ ] Faceplate name: "PicoQuorum" or just "Quorum"
-- [ ] When to prune the inherited single-token code (`app/` ChipAccount/USDS, Waveshare `case/`)
+- [ ] When to prune the inherited single-token code (`app/` ChipAccount/USDS, the Waveshare case in `cad/console/`)

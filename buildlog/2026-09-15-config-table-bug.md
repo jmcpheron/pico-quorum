@@ -28,4 +28,4 @@ The wallet's setup flow now refuses to lock a chip whose config does not read ba
 Lesson: a permanent operation gets a read-back check, no exceptions. The WiFi wallet's chip was
 provisioned by the Pi with cryptoauthlib and is fine.
 
-Next chip: the second Adafruit breakout. Same wiring card, `USB.md` setup flow.
+Next chip: the second Adafruit breakout. Same wiring card, `docs/USB.md` setup flow.

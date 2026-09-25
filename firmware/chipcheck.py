@@ -1,4 +1,4 @@
-# Read-only chip report for the test plan (TESTPLAN.md). Touches nothing permanent: it scans the
+# Read-only chip report for the test plan (docs/TESTPLAN.md). Touches nothing permanent: it scans the
 # bus, wakes the chip, reads the config zone, decodes the slot table, pulls one random block, and
 # prints it all in a form you can paste into notes. Run at the REPL: `import chipcheck`, or from a
 # laptop: `tools/usb run firmware/chipcheck.py`.

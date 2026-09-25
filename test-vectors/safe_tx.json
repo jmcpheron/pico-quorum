@@ -6,6 +6,15 @@
       "description": "Send 1.5 ETH to Alice on Base",
       "chainId": 8453,
       "safe": "0x1111111111111111111111111111111111111111",
+      "expect": {
+        "summary": "Send 1.5 ETH",
+        "items": [
+          [
+            "SEND ETH",
+            "ok"
+          ]
+        ]
+      },
       "tx": {
         "to": "0x000000000000000000000000000000000000a11c",
         "value": "1500000000000000000",
@@ -26,6 +35,15 @@
       "description": "Same send on Base Sepolia: the chain ID alone must change the hash",
       "chainId": 84532,
       "safe": "0x1111111111111111111111111111111111111111",
+      "expect": {
+        "summary": "Send 1.5 ETH",
+        "items": [
+          [
+            "SEND ETH",
+            "ok"
+          ]
+        ]
+      },
       "tx": {
         "to": "0x000000000000000000000000000000000000a11c",
         "value": "1500000000000000000",
@@ -46,6 +64,15 @@
       "description": "Send 1.5 USDC (6 decimals) to Bob",
       "chainId": 8453,
       "safe": "0x5afe000000000000000000000000000000005afe",
+      "expect": {
+        "summary": "Send 1.5 USDC",
+        "items": [
+          [
+            "SEND USDC",
+            "ok"
+          ]
+        ]
+      },
       "tx": {
         "to": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
         "value": "0",
@@ -66,6 +93,19 @@
       "description": "Batch via MultiSendCallOnly 1.4.1 (operation 1, delegatecall)",
       "chainId": 8453,
       "safe": "0x5afe000000000000000000000000000000005afe",
+      "expect": {
+        "summary": "Batch: 2 actions",
+        "items": [
+          [
+            "SEND ETH",
+            "ok"
+          ],
+          [
+            "SEND USDC",
+            "ok"
+          ]
+        ]
+      },
       "tx": {
         "to": "0x9641d764fc13c8b624c04430c7356c1c7c8102e2",
         "value": "0",
@@ -86,6 +126,19 @@
       "description": "Nonzero safeTxGas, baseGas, gasPrice, gasToken and refundReceiver (a red-screen case)",
       "chainId": 8453,
       "safe": "0x1111111111111111111111111111111111111111",
+      "expect": {
+        "summary": "Send 0.000000000000000001 ETH",
+        "items": [
+          [
+            "SEND ETH",
+            "ok"
+          ],
+          [
+            "GAS REFUND",
+            "red"
+          ]
+        ]
+      },
       "tx": {
         "to": "0x000000000000000000000000000000000000a11c",
         "value": "1",
@@ -106,6 +159,15 @@
       "description": "Safe calls itself: addOwnerWithThreshold(Bob, 2) (a red-screen case)",
       "chainId": 84532,
       "safe": "0x1111111111111111111111111111111111111111",
+      "expect": {
+        "summary": "Add owner",
+        "items": [
+          [
+            "ADD OWNER",
+            "red"
+          ]
+        ]
+      },
       "tx": {
         "to": "0x1111111111111111111111111111111111111111",
         "value": "0",
@@ -126,6 +188,15 @@
       "description": "Large value and nonce, to catch uint256 encoding mistakes",
       "chainId": 1,
       "safe": "0x5afe000000000000000000000000000000005afe",
+      "expect": {
+        "summary": "Send 57,896,044,618,658,097,711,785,492,504,343,953,926,634,992,332,820,282,019,728.792003956564832313 ETH",
+        "items": [
+          [
+            "SEND ETH",
+            "ok"
+          ]
+        ]
+      },
       "tx": {
         "to": "0x0000000000000000000000000000000000000b0b",
         "value": "57896044618658097711785492504343953926634992332820282019728792003956564832313",
@@ -140,6 +211,238 @@
       },
       "domainSeparator": "0x51f0cecac713786a544ffda6ccb720ac5ab50711ccf7998ae2138c938933622e",
       "safeTxHash": "0xa2201c7df723c859431e76f24cce5b19b3549b7e23a1c441eb41c513babd2b04"
+    },
+    {
+      "name": "threshold-change",
+      "description": "Safe calls itself: changeThreshold(1) (a red-screen case)",
+      "chainId": 84532,
+      "safe": "0x1111111111111111111111111111111111111111",
+      "expect": {
+        "summary": "Approvals needed: 1",
+        "items": [
+          [
+            "THRESHOLD",
+            "red"
+          ]
+        ]
+      },
+      "tx": {
+        "to": "0x1111111111111111111111111111111111111111",
+        "value": "0",
+        "data": "0x694e80c30000000000000000000000000000000000000000000000000000000000000001",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "4"
+      },
+      "domainSeparator": "0xd9085f9a9fcfa4cd05738cd1f6a1409ed6b382015306fcb78c8e0ac906d5487f",
+      "safeTxHash": "0x5d4296b6a841e62fbd8c7d07259fbe12584823d372662ca0bf907c0917616422"
+    },
+    {
+      "name": "unknown-call",
+      "description": "A call decode.py has no decoder for: it must say so, in red",
+      "chainId": 8453,
+      "safe": "0x5afe000000000000000000000000000000005afe",
+      "expect": {
+        "summary": "Unknown call",
+        "items": [
+          [
+            "UNKNOWN CALL",
+            "red"
+          ]
+        ]
+      },
+      "tx": {
+        "to": "0x000000000000000000000000000000000000a11c",
+        "value": "0",
+        "data": "0x379607f50000000000000000000000000000000000000000000000000000000000000007",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "9"
+      },
+      "domainSeparator": "0x3a81f42a358fa4254161febf8ac8cbd0deb574e0a5ed46935befa88b0f3ea8dd",
+      "safeTxHash": "0xb9f9a1054114eb39b6271f3aa365e3c77691abcec5ff8a91456d8a5980955ed2"
+    },
+    {
+      "name": "unlimited-approve",
+      "description": "USDC approve(Bob, max uint256): the spender can take everything, forever",
+      "chainId": 8453,
+      "safe": "0x5afe000000000000000000000000000000005afe",
+      "expect": {
+        "summary": "Approve UNLIMITED USDC",
+        "items": [
+          [
+            "APPROVE USDC",
+            "red"
+          ]
+        ]
+      },
+      "tx": {
+        "to": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "value": "0",
+        "data": "0x095ea7b30000000000000000000000000000000000000000000000000000000000000b0bffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "10"
+      },
+      "domainSeparator": "0x3a81f42a358fa4254161febf8ac8cbd0deb574e0a5ed46935befa88b0f3ea8dd",
+      "safeTxHash": "0x57ddfe3dc3b42bb0b9484cdb87b1c92dbb2e9c88bfe63edd6d98f5cdf8b7071f"
+    },
+    {
+      "name": "delegatecall-unknown",
+      "description": "Delegatecall to a contract that is not a known batcher",
+      "chainId": 8453,
+      "safe": "0x5afe000000000000000000000000000000005afe",
+      "expect": {
+        "summary": "Delegatecall",
+        "items": [
+          [
+            "DELEGATECALL",
+            "red"
+          ]
+        ]
+      },
+      "tx": {
+        "to": "0x0000000000000000000000000000000000000b0b",
+        "value": "0",
+        "data": "0x379607f50000000000000000000000000000000000000000000000000000000000000007",
+        "operation": 1,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "11"
+      },
+      "domainSeparator": "0x3a81f42a358fa4254161febf8ac8cbd0deb574e0a5ed46935befa88b0f3ea8dd",
+      "safeTxHash": "0xd9edf4770a62e1a19e0465db4aeb92852b778fe06e0abc67a80e0aa4593ad661"
+    },
+    {
+      "name": "rejection",
+      "description": "The Safe app's on-chain rejection: an empty call from the Safe to itself",
+      "chainId": 84532,
+      "safe": "0x1111111111111111111111111111111111111111",
+      "expect": {
+        "summary": "On-chain rejection",
+        "items": [
+          [
+            "REJECTION",
+            "ok"
+          ]
+        ]
+      },
+      "tx": {
+        "to": "0x1111111111111111111111111111111111111111",
+        "value": "0",
+        "data": "0x",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "5"
+      },
+      "domainSeparator": "0xd9085f9a9fcfa4cd05738cd1f6a1409ed6b382015306fcb78c8e0ac906d5487f",
+      "safeTxHash": "0x53803024d05601a5ea06c1d99e26e09ddacaeb9a7f618166f31e023df5e5d9d2"
+    },
+    {
+      "name": "uniswap-approve",
+      "description": "USDC approve(Uniswap Permit2, 500): a known spender, a bounded amount",
+      "chainId": 8453,
+      "safe": "0x5afe000000000000000000000000000000005afe",
+      "expect": {
+        "summary": "Approve 500 USDC",
+        "items": [
+          [
+            "APPROVE USDC",
+            "ok"
+          ]
+        ]
+      },
+      "tx": {
+        "to": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "value": "0",
+        "data": "0x095ea7b3000000000000000000000000000000000022d473030f116ddee9f6b43ac78ba3000000000000000000000000000000000000000000000000000000001dcd6500",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "12"
+      },
+      "domainSeparator": "0x3a81f42a358fa4254161febf8ac8cbd0deb574e0a5ed46935befa88b0f3ea8dd",
+      "safeTxHash": "0x0c8341ae7be959811affb41669f251d0b73155d8a0de5300980877a1fd070bb5"
+    },
+    {
+      "name": "uniswap-swap",
+      "description": "A call the pinned Uniswap Router knows by name but decode.py cannot read in detail: yellow",
+      "chainId": 8453,
+      "safe": "0x5afe000000000000000000000000000000005afe",
+      "expect": {
+        "summary": "Swap on Uniswap",
+        "items": [
+          [
+            "CONTRACT CALL",
+            "warn"
+          ]
+        ]
+      },
+      "tx": {
+        "to": "0x6ff5693b99212da76ad316178a184ab56d299b43",
+        "value": "100000000000000000",
+        "data": "0x3593564c000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000006ab13b8000000000000000000000000000000000000000000000000000000000000000020b000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000002123400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000025678000000000000000000000000000000000000000000000000000000000000",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "13"
+      },
+      "domainSeparator": "0x3a81f42a358fa4254161febf8ac8cbd0deb574e0a5ed46935befa88b0f3ea8dd",
+      "safeTxHash": "0x43986d4be9b988130918711530220c9ac68ddf2f77f1644e3e672f29935c3220"
+    },
+    {
+      "name": "sim-send",
+      "description": "The simulated Safe (chain 31337, tools/quorum): send 0.05 ETH to Bob",
+      "chainId": 31337,
+      "safe": "0x5afe00000000000000000000000000000000a11e",
+      "expect": {
+        "summary": "Send 0.05 ETH",
+        "items": [
+          [
+            "SEND ETH",
+            "ok"
+          ]
+        ]
+      },
+      "tx": {
+        "to": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+        "value": "50000000000000000",
+        "data": "0x",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "0"
+      },
+      "domainSeparator": "0x10799ac08b47f96f89e48e6401aacf6fc8810ee5eca03e0dbc737b7628ae1641",
+      "safeTxHash": "0x488643d3241e665c1094ae3504041f20e150495dcd50d9bac309402b0092afa5"
     },
     {
       "name": "real-0",

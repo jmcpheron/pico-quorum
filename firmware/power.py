@@ -1,4 +1,4 @@
-# Battery and USB state for the perfboard build (SOLDERING.md): an 18650 behind a switch and a
+# Battery and USB state for the perfboard build (hardware/wiring/SOLDERING.md): an 18650 behind a switch and a
 # Schottky diode into VSYS, and a 100k/100k divider from the switched battery side to GP28 so the
 # wallet can show the cell voltage. Everything here is optional: with nothing wired, or the switch
 # off, GP28 sits between 0 and about 1 V (a floating pin, or the Schottky's reverse leakage from

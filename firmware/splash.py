@@ -9,6 +9,7 @@ import theme as T
 import icons as I
 
 lcd = None
+TITLE = "picowallet"   # the app that boots sets its own name (quorum.py: "picoquorum")
 rows = []           # [key, text, color], drawn in ORDER
 ORDER = ("screen", "wifi", "chip", "app")
 ICON = {"screen": "screen", "wifi": "wifi", "chip": "chip", "app": "app"}
@@ -84,7 +85,7 @@ def draw():
         right = T.C[T.RAINBOW[(_frame + 15 - i) % 7]] if _waiting or _frame < 40 else T.C["dim"]
         d.fill_rect(cx - 33, y, 9, 3, left)
         d.fill_rect(cx + 24, y, 9, 3, right)
-    d.center_text("picowallet", 76, L.WHITE, 2)
+    d.center_text(TITLE, 76, L.WHITE, 2)
     done = sum(1 for r in rows if r[2] == L.GREEN)
     d.fill_rect(40, 96, 160, 3, T.C["ink"])
     d.fill_rect(40, 96, 40 * done, 3, T.C["learn"])

@@ -1,7 +1,10 @@
-# key-pcb
+# Key PCB
 
-The tiny board in the key handle: the secure element, a decoupling cap, and an optional glow LED
-behind a translucent window. It has to fit a board about 6–8 mm wide.
+Not started. The tiny board in the key handle: the secure element, a decoupling cap, and an
+optional glow LED behind a translucent window, on a board about 6–8 mm wide. The pinout, power
+sequencing and protection rules are in the kickoff:
+[Key connector](../../docs/KICKOFF.md#key-connector-draft-pinout) and
+[Secure element](../../docs/KICKOFF.md#secure-element).
 
 ## Open
 

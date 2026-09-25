@@ -28,7 +28,7 @@ const STATIC = [
   ["/vendor/three/addons/", join(EMU, "node_modules/three/examples/jsm")],
   ["/vendor/three/", join(EMU, "node_modules/three/build")],
   ["/vendor/codemirror/", join(EMU, "node_modules/codemirror")],
-  ["/stl/", join(ROOT, "case/zez0000")],
+  ["/stl/", join(ROOT, "cad/console/zez0000")],
 ];
 
 const CHIP_FILE = join(EMU, "chip.json");   // the virtual ATECC608's state (gitignored)

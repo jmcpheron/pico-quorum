@@ -1,6 +1,6 @@
 # picowallet over USB. No radio. The wallet never asks for anything: the website pushes one JSON
 # line down the USB serial port, the wallet shows it, the person presses A or Y, the wallet
-# answers one JSON line. Protocol in USB.md. Screens, signer and EIP-712 code are the same as the
+# answers one JSON line. Protocol in docs/USB.md. Screens, signer and EIP-712 code are the same as the
 # WiFi wallet; only the transport differs.
 #
 # Two ways to run it. run() is for the board: it owns stdin in a loop that never returns, so the

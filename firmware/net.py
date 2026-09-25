@@ -86,6 +86,15 @@ def _accept(ls):
     os.dupterm(conn, 0)
 
 
+def short_err(e):
+    """A network error in the width of one status row: the usual OSErrors by name, the rest as repr."""
+    a = getattr(e, "args", ())
+    if isinstance(e, OSError) and a and isinstance(a[0], int):
+        return {-2: "dns: host not found", 104: "connection reset", 110: "timed out",
+                111: "connection refused", 113: "host unreachable"}.get(a[0], "OSError %d" % a[0])
+    return repr(e)[:23]
+
+
 def poll_accept():
     """Call from a timer tick. The socket-accept callback needs a free scheduler slot, which a busy
     timer can starve; polling here means a connection can never get stuck in the backlog."""

@@ -144,12 +144,12 @@ dropped. Those bytes are KeyConfig for slots 0-7, so every one of them decoded t
 key". Locking a fresh chip with it (README step 5, the Setup page button) would have made slot 0
 unable to ever hold a P-256 key, permanently. It never bit anyone because the lock path has never
 run on a fresh chip. Fixed by copying the Pi's bytes; with the real table only slots 0, 2 and 7
-are P-256 private keys, not 0-7 as the old handoff said. Notes for upstream in `UPSTREAM.md`.
+are P-256 private keys, not 0-7 as the old handoff said. Notes for upstream in `docs/UPSTREAM.md`.
 
-Also on the branch: `SOLDERING.md` with the perfboard wiring (chip on GP4/GP5/GND 8/3V3 36, an
+Also on the branch: `hardware/wiring/SOLDERING.md` with the perfboard wiring (chip on GP4/GP5/GND 8/3V3 36, an
 18650 behind a switch and a Schottky into VSYS, 100k/100k divider to GP28 for a gauge),
 `power.py` for the gauge, a read-only `chipcheck.py` report, `tools/usb` for deploying over USB
-serial, and `TESTPLAN.md` for the next session.
+serial, and `docs/TESTPLAN.md` for the next session.
 
 Lesson from the emulator: a top-level `raise SystemExit` in a module you `import` at the
 MicroPython REPL soft-reboots the board. `chipcheck.py` runs inside a function now.
@@ -157,7 +157,7 @@ MicroPython REPL soft-reboots the board. `chipcheck.py` runs inside a function n
 ## 2026-09-16 — a fresh chip, read only
 
 The perfboard build's first session with the chip: an Adafruit ATECC608 breakout (4314) on the
-Pico's pin tails per `SOLDERING.md` (VIN 36, GND 8, SDA 6, SCL 7), the 18650 holder, switch,
+Pico's pin tails per `hardware/wiring/SOLDERING.md` (VIN 36, GND 8, SDA 6, SCL 7), the 18650 holder, switch,
 Schottky and divider wired as well, no cell in the holder, USB only. Firmware: branch
 `claude/pico-wallet-signing-keys-uyr7mc` with upstream `main` (`87c717c`) merged in first,
 MicroPython v1.26.1 (2025-09-11), deployed with `tools/usb push` from the Mac on
@@ -266,11 +266,11 @@ Gotchas:
 - A hard reset drops the USB port for over 10 s; anything scripted must wait for
   `/dev/cu.usbmodem*` before the next mpremote call.
 - Random before the lock is a fixed pattern, and the factory table already types slots 0 to 2 as
-  P-256: two things the emulator's chip model does not do. Both in `UPSTREAM.md` for `atecc_sim.py`.
+  P-256: two things the emulator's chip model does not do. Both in `docs/UPSTREAM.md` for `atecc_sim.py`.
 
 Not done today, on purpose: config lock, GenKey, data-zone lock, slot lock. The chip leaves this
 session exactly as it arrived. Not done for lack of a cell: TESTPLAN phase 5. Next: the battery
-phase when a cell is here; `TESTPLAN.md` phase 6 when the vault deployment is planned.
+phase when a cell is here; `docs/TESTPLAN.md` phase 6 when the vault deployment is planned.
 
 ## 2026-09-17 — the map, the ceremony, and the chip is sealed
 
@@ -282,7 +282,7 @@ ASCII art at import (the first draw of a screen paid 8 ms per icon before that).
 `show()` is 46 ms and the busiest screen draws in about 70 ms. Two new actions: SIGN TEST on a key
 slot (sign, verify on the Pico, read counter 0) and WRITE A NOTE on a clear data slot. Two guards
 before the lock: `CONFIG` is checked at import for a P-256 slot 0, and `lock_config()` reads the
-zone back and refuses unless the table matches and slot 0 decodes right. `CHIPMAP.md` has it all.
+zone back and refuses unless the table matches and slot 0 decodes right. `docs/CHIPMAP.md` has it all.
 
 Then the finale on the one chip, flags flipped in `secrets.py` and pushed. Jason at the device,
 me reading the chip from the laptop between steps:
@@ -311,7 +311,7 @@ Decisions today:
 - The data zone stays open; the note in slot 12 and the OTP wait for that decision.
 - Slot 7 is where a brought key would go (PrivWrite, encrypted against the write-only secret in
   slot 4); a seed phrase via SLIP-10 nist256p1 is the idea. Not built.
-- The upstream issue has its silicon evidence now (UPSTREAM.md section 1 and the draft at the end).
+- The upstream issue has its silicon evidence now (docs/UPSTREAM.md section 1 and the draft at the end).
 
 Gotchas:
 - My checkpoint script ended with a reset and rebooted the wallet under Jason's hands. Pause the
@@ -323,7 +323,7 @@ Gotchas:
 Later the same evening: the red screen's doomed key went cyan at double size, the one thing on
 that screen that is not red ("this is the unique thing that's going to be deleted"). Jason made
 a fourth key with it (`9fad2e82`), then SIGN TEST twice: SIGNATURE VERIFIED both times and counter 0
-went 1, 2, on the screen and from the laptop. `UPSTREAM-ISSUE.md` is the short version for Austin.
+went 1, 2, on the screen and from the laptop. `docs/UPSTREAM-ISSUE.md` is the short version for Austin.
 
 Not done today, on purpose: LOCK SLOT 0, LOCK DATA ZONE, PrivWrite, the note in slot 12, slot 2.
 Flags back to False and pushed.
