@@ -379,7 +379,8 @@ def draw_nochip():
     d.fill_rect(0, 0, 240, 26, L.RED)
     d.center_text("NO CHIP", 5, L.WHITE, 2)
     y = 50
-    for line in ("no ATECC608 answered", "on I2C (GP4 SDA, GP5 SCL)", "", "the account is the",
+    import atecc
+    for line in ("no ATECC608 answered", "on I2C (GP%d SDA, GP%d SCL)" % (atecc.SDA, atecc.SCL), "", "the account is the",
                  "chip's key, so there", "is no account here", "", "wire the chip, then", "press A to look again"):
         d.center_text(line, y, L.WHITE if line else L.BLACK)
         y += 16
@@ -756,7 +757,10 @@ def start():
     w = network.WLAN(network.STA_IF)
     if secrets and not w.isconnected() and not net.tried:
         # boot.py already waited on the wallet Pico; a board that got wallet.py by hand, or the emulator, did not
-        net.connect(progress=lambda ms: splash.spin("wifi", ("join " + SSID)[:12] + " A skips") or bool(keys.pressed()))
+        try:
+            net.connect(progress=lambda ms: splash.spin("wifi", ("join " + SSID)[:12] + " A skips") or bool(keys.pressed()))
+        except Exception as e:
+            print("wifi:", e)   # a board without a WiFi chip still runs the wallet; home screen says "no wifi"
     splash.wifi_row(w, SSID if secrets else "")
     splash.step("app", APP_HOST[:20] if APP_HOST else "none", L.GREY)
     splash_until = time.ticks_add(time.ticks_ms(), 1500)

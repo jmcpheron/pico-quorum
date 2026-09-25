@@ -11,8 +11,23 @@
 #   forever; the chip refuses GenKey and Sign until it is. Locking the DATA zone opens reads and ends
 #   clear-text writes except where WriteConfig says Always; GenKey stays allowed where the table says so. A single slot can also be locked for
 #   good (KeyConfig.Lockable), after which nothing can replace the key in it.
-from machine import I2C, Pin
+from machine import I2C, SoftI2C, Pin
 import time
+
+# Bus pins. secrets.py may set ATECC_SDA / ATECC_SCL; the default is the wallet's GP4/GP5. A pair
+# that is a hardware I2C0/I2C1 pair (SDA on 0,4,8,.. / 2,6,10,..; SCL the next pin up) uses the
+# peripheral, anything else is bit-banged at 100 kHz, which this chip does not mind.
+try:
+    import secrets as _s
+    SDA, SCL = int(getattr(_s, "ATECC_SDA", 4)), int(getattr(_s, "ATECC_SCL", 5))
+except ImportError:
+    SDA, SCL = 4, 5
+
+
+def make_i2c(sda, scl, freq):
+    if scl == sda + 1 and sda % 4 in (0, 2):
+        return I2C(0 if sda % 4 == 0 else 1, sda=Pin(sda), scl=Pin(scl), freq=freq)
+    return SoftI2C(sda=Pin(sda), scl=Pin(scl), freq=freq)
 
 ADDR = 0x60
 KNOWN_ADDRS = (0x60, 0x35, 0x6A, 0x58, 0x36, 0x59)   # Adafruit breakout, Trust&Go/TrustFLEX parts, others seen in the wild
@@ -39,9 +54,10 @@ def explain(code):
 #   slot 2   P-256 private key, external sign, GenKey allowed
 #   slot 7   P-256 private key, external sign, GenKey + encrypted PrivWrite, lockable
 #   slots 11, 14, 15  P-256 public keys; 5, 10 AES keys; the rest plain data
-# An earlier copy of this table in the firmware had an extra row of 0xFF and lost the last row,
-# which typed slots 0-7 as "not an ECC key". Locking a chip with that would have left it unable
-# to ever hold a wallet key. Never edit these bytes by hand; regenerate them from cryptoauthlib.
+# The same bytes as reference/pi/provision.py, copied by program on 2026-09-15 after a hand-copied
+# table bricked a chip (upstream and this fork each found and fixed that separately; the two fixed
+# tables are identical). Never edit these bytes by hand: see the fingerprint below and
+# tools/check_config.
 CONFIG = bytes([
     0x01, 0x23, 0x00, 0x00, 0x00, 0x00, 0x60, 0x00, 0x04, 0x05, 0x06, 0x07, 0xEE, 0x01, 0x01, 0x00,
     0xC0, 0x00, 0xA1, 0x00, 0xAF, 0x2F, 0xC4, 0x44, 0x87, 0x20, 0xC4, 0xF4, 0x8F, 0x0F, 0x0F, 0x0F,
@@ -52,6 +68,19 @@ CONFIG = bytes([
     0x33, 0x00, 0x1C, 0x00, 0x13, 0x00, 0x1C, 0x00, 0x3C, 0x00, 0x3A, 0x10, 0x1C, 0x00, 0x33, 0x00,
     0x1C, 0x00, 0x1C, 0x00, 0x38, 0x00, 0x30, 0x00, 0x3C, 0x00, 0x3C, 0x00, 0x32, 0x00, 0x30, 0x00,
 ])
+# Bytes 96-127 are KeyConfig for slots 0-15, two bytes each: slot 0 must be 0x0033 (P-256 private
+# key, GenKey allowed). An earlier copy of this table had a spare row of 0xFF at byte 96, which
+# pushed every KeyConfig one slot block down; a chip locked with that can never make a P-256 key
+# (2026-09-15, serial 0123597b4f22a25eee). These checks stop that class of mistake.
+assert len(CONFIG) == 128
+assert CONFIG[96:98] == b"\x33\x00", "slot 0 KeyConfig must be 0x0033 at byte 96"
+assert CONFIG[20:22] == b"\xAF\x2F", "slot 0 SlotConfig must be 0x2FAF at byte 20 (GenKey allowed, secret)"
+# The table's fingerprint. A hand edit changes it and the module refuses to import, so nothing can
+# lock a chip with an unreviewed table. To change the table on purpose: run tools/check_config,
+# read the diff it prints, then update this hash and the reference in the same commit.
+import hashlib as _hl
+CONFIG_SHA256 = "c759db6c849668ed53957ded37264023479dfca9b719af4e22d087a1d8a7eacf"
+assert _hl.sha256(CONFIG).digest().hex() == CONFIG_SHA256, "CONFIG table changed: see tools/check_config"
 
 KEY_TYPE = {4: "P256", 6: "AES", 7: "DATA"}
 
@@ -124,9 +153,9 @@ class AteccError(Exception):
     status = None       # the chip's status byte when it answered with one, else None (transport)
 
 
-def scan(sda=4, scl=5, freq=100_000):
+def scan(sda=None, scl=None, freq=100_000):
     """Every I2C address that answers. A sleeping ATECC does not ACK, so wake the bus first."""
-    i2c = I2C(0, sda=Pin(sda), scl=Pin(scl), freq=freq)
+    i2c = make_i2c(SDA if sda is None else sda, SCL if scl is None else scl, freq)
     try:
         i2c.writeto(0, b"\x00")
     except OSError:
@@ -136,9 +165,10 @@ def scan(sda=4, scl=5, freq=100_000):
 
 
 class ATECC608:
-    def __init__(self, sda=4, scl=5, addr=None, freq=100_000):
+    def __init__(self, sda=None, scl=None, addr=None, freq=100_000):
         """addr None: use 0x60 if it answers, else the first known ATECC address on the bus."""
-        self.i2c = I2C(0, sda=Pin(sda), scl=Pin(scl), freq=freq)
+        sda, scl = (SDA if sda is None else sda), (SCL if scl is None else scl)
+        self.i2c = make_i2c(sda, scl, freq)
         if addr is None:
             found = scan(sda, scl, freq)
             addr = ADDR if ADDR in found or not found else next((a for a in KNOWN_ADDRS if a in found), found[0])
@@ -147,17 +177,23 @@ class ATECC608:
 
     # --- transport ---------------------------------------------------------
     def wake(self):
-        try:
-            self.i2c.writeto(0, b"\x00")  # SDA held low long enough to count as the wake token
-        except OSError:
-            pass
-        time.sleep_ms(2)
-        for _ in range(3):
+        # Three rounds: the chip may still be finishing a sleep or idle command when the first wake
+        # token lands, and a chip that was already awake answers nothing. Put it to sleep and try
+        # again rather than fail on the first miss.
+        for attempt in range(3):
             try:
-                if self.i2c.readfrom(self.addr, 4) == WAKE_OK:
-                    return
+                self.i2c.writeto(0, b"\x00")  # SDA held low long enough to count as the wake token
             except OSError:
-                time.sleep_ms(2)
+                pass
+            time.sleep_ms(3)
+            for _ in range(3):
+                try:
+                    if self.i2c.readfrom(self.addr, 4) == WAKE_OK:
+                        return
+                except OSError:
+                    time.sleep_ms(2)
+            self.sleep()
+            time.sleep_ms(10)
         raise AteccError("no wake response")
 
     def sleep(self):
@@ -338,19 +374,30 @@ class ATECC608:
             raise AteccError("config zone is locked: it can never be written again")
         if cfg[16] != before[16]:
             raise AteccError("refusing to change the I2C address byte (0x%02x -> 0x%02x)" % (before[16], cfg[16]))
-        self.wake()
-        try:
-            for word in range(32):
-                if word < 4 or word == 21:
-                    continue
-                self.command(OP_WRITE, 0x00, word, cfg[word * 4:word * 4 + 4], resp_len=1, wait_ms=30)
-        finally:
-            self.sleep()
-        after = self.read_config_all()
-        bad = [i for i in range(128) if (16 <= i < 84 or i >= 88) and after[i] != cfg[i]]
-        if bad:
-            raise AteccError("readback differs at %d bytes (first at byte %d)" % (len(bad), bad[0]))
+        # In batches of 8 words with a fresh wake each: the chip's watchdog puts it to sleep 1.3 s
+        # after a wake, and 27 writes at ~35 ms each run right up to that (upstream, seen on silicon).
+        words = [w for w in range(32) if w >= 4 and w != 21]
+        for i in range(0, len(words), 8):
+            self.wake()
+            try:
+                for word in words[i:i + 8]:
+                    self.command(OP_WRITE, 0x00, word, cfg[word * 4:word * 4 + 4], resp_len=1, wait_ms=30)
+            finally:
+                self.sleep()
+                time.sleep_ms(5)
+        after = self.verify_config(cfg)
         return sum(1 for i in range(128) if before[i] != after[i])
+
+    def verify_config(self, cfg=CONFIG):
+        """Read the config zone back and compare every writable byte (16-83, 88-127). Raises with the
+        count and the first bad offset; returns the 128 bytes read. Run it before any lock: a lock
+        over a wrong table is forever."""
+        got = self.read_config_all()
+        bad = [i for i in range(128) if (16 <= i < 84 or i >= 88) and got[i] != cfg[i]]
+        if bad:
+            raise AteccError("config differs at %d bytes (first: byte %d is 0x%02x, wanted 0x%02x)"
+                             % (len(bad), bad[0], got[bad[0]], cfg[bad[0]]))
+        return got
 
     def lock_config(self, expect=CONFIG):
         """PERMANENT. Lock the config zone (no CRC check, mode 0x80). Before sending the Lock it reads

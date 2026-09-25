@@ -1,0 +1,106 @@
+// Writes test-vectors/safe_tx.json. The expected hashes come from viem's hashTypedData and
+// hashDomain, an implementation that shares no code with firmware/safe_tx.py. Never generate
+// expected values with the firmware itself: a vector that checks the code against itself
+// proves nothing.
+//
+//   cd tools/vectors && npm install && npm run gen
+import { readFileSync, writeFileSync } from "node:fs";
+import { encodeFunctionData, encodePacked, hashDomain, hashTypedData, parseAbi, size, concat } from "viem";
+
+const types = {
+  SafeTx: [
+    { name: "to", type: "address" },
+    { name: "value", type: "uint256" },
+    { name: "data", type: "bytes" },
+    { name: "operation", type: "uint8" },
+    { name: "safeTxGas", type: "uint256" },
+    { name: "baseGas", type: "uint256" },
+    { name: "gasPrice", type: "uint256" },
+    { name: "gasToken", type: "address" },
+    { name: "refundReceiver", type: "address" },
+    { name: "nonce", type: "uint256" },
+  ],
+};
+
+const ZERO = "0x0000000000000000000000000000000000000000";
+const SAFE_A = "0x1111111111111111111111111111111111111111"; // made-up Safe addresses
+const SAFE_B = "0x5afe000000000000000000000000000000005afe";
+const ALICE = "0x000000000000000000000000000000000000a11c";
+const BOB = "0x0000000000000000000000000000000000000b0b";
+const USDC_BASE = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913";
+const MULTISEND_CALL_ONLY_141 = "0x9641d764fc13c8b624c04430c7356c1c7c8102e2";
+
+const erc20 = parseAbi(["function transfer(address to, uint256 amount)"]);
+const safeAbi = parseAbi(["function addOwnerWithThreshold(address owner, uint256 _threshold)"]);
+const multiSendAbi = parseAbi(["function multiSend(bytes transactions)"]);
+
+const tx = (o) => ({
+  to: ZERO, value: 0n, data: "0x", operation: 0, safeTxGas: 0n, baseGas: 0n, gasPrice: 0n,
+  gasToken: ZERO, refundReceiver: ZERO, nonce: 0n, ...o,
+});
+
+// One MultiSend entry: operation (1) to (20) value (32) dataLength (32) data
+const packed = (to, value, data) =>
+  encodePacked(["uint8", "address", "uint256", "uint256", "bytes"], [0, to, value, BigInt(size(data)), data]);
+
+const transferData = encodeFunctionData({ abi: erc20, functionName: "transfer", args: [BOB, 1_500_000n] });
+const multiSendData = encodeFunctionData({
+  abi: multiSendAbi,
+  functionName: "multiSend",
+  args: [concat([packed(ALICE, 10n ** 16n, "0x"), packed(USDC_BASE, 0n, transferData)])],
+});
+
+const cases = [
+  ["eth-send-base", "Send 1.5 ETH to Alice on Base", 8453, SAFE_A,
+    tx({ to: ALICE, value: 1_500_000_000_000_000_000n, nonce: 0n })],
+  ["eth-send-base-sepolia", "Same send on Base Sepolia: the chain ID alone must change the hash", 84532, SAFE_A,
+    tx({ to: ALICE, value: 1_500_000_000_000_000_000n, nonce: 0n })],
+  ["erc20-transfer", "Send 1.5 USDC (6 decimals) to Bob", 8453, SAFE_B,
+    tx({ to: USDC_BASE, data: transferData, nonce: 7n })],
+  ["multisend-delegatecall", "Batch via MultiSendCallOnly 1.4.1 (operation 1, delegatecall)", 8453, SAFE_B,
+    tx({ to: MULTISEND_CALL_ONLY_141, data: multiSendData, operation: 1, nonce: 8n })],
+  ["gas-refund", "Nonzero safeTxGas, baseGas, gasPrice, gasToken and refundReceiver (a red-screen case)", 8453, SAFE_A,
+    tx({ to: ALICE, value: 1n, safeTxGas: 60000n, baseGas: 21000n, gasPrice: 1_000_000_000n,
+         gasToken: USDC_BASE, refundReceiver: BOB, nonce: 42n })],
+  ["add-owner", "Safe calls itself: addOwnerWithThreshold(Bob, 2) (a red-screen case)", 84532, SAFE_A,
+    tx({ to: SAFE_A, data: encodeFunctionData({ abi: safeAbi, functionName: "addOwnerWithThreshold", args: [BOB, 2n] }),
+         nonce: 3n })],
+  ["big-nonce", "Large value and nonce, to catch uint256 encoding mistakes", 1, SAFE_B,
+    tx({ to: BOB, value: 2n ** 255n + 12345n, nonce: 2n ** 64n + 1n })],
+];
+
+const vectors = cases.map(([name, description, chainId, safe, m]) => {
+  const domain = { chainId, verifyingContract: safe };
+  return {
+    name, description, chainId, safe,
+    tx: Object.fromEntries(Object.entries(m).map(([k, v]) => [k, typeof v === "bigint" ? v.toString() : v])),
+    domainSeparator: hashDomain({ domain, types: { EIP712Domain: [
+      { name: "chainId", type: "uint256" }, { name: "verifyingContract", type: "address" }] } }),
+    safeTxHash: hashTypedData({ domain, types, primaryType: "SafeTx", message: m }),
+  };
+});
+
+// Real executed transactions (fetch-real.mjs). Two independent sources must agree: the hash
+// Safe's service published and viem's hash of the same fields.
+const real = JSON.parse(readFileSync(new URL("real-safe-txs.json", import.meta.url), "utf8"));
+real.forEach((r, i) => {
+  const m = { ...r.tx, value: BigInt(r.tx.value), safeTxGas: BigInt(r.tx.safeTxGas), baseGas: BigInt(r.tx.baseGas),
+              gasPrice: BigInt(r.tx.gasPrice), nonce: BigInt(r.tx.nonce) };
+  const domain = { chainId: r.chainId, verifyingContract: r.safe };
+  const h = hashTypedData({ domain, types, primaryType: "SafeTx", message: m });
+  if (h.toLowerCase() !== r.safeTxHash.toLowerCase()) throw new Error(`viem disagrees with Safe service on ${r.transactionHash}`);
+  vectors.push({
+    name: `real-${i}`, description: `Executed on chain ${r.chainId}, tx ${r.transactionHash}; hash from Safe's transaction service`,
+    chainId: r.chainId, safe: r.safe, tx: r.tx,
+    domainSeparator: hashDomain({ domain, types: { EIP712Domain: [
+      { name: "chainId", type: "uint256" }, { name: "verifyingContract", type: "address" }] } }),
+    safeTxHash: r.safeTxHash,
+  });
+});
+
+const out = {
+  source: "viem hashTypedData (tools/vectors/gen.mjs), real-* also Safe transaction service; Safe >= 1.3.0 EIP-712 domain {chainId, verifyingContract}",
+  vectors,
+};
+writeFileSync(new URL("../../test-vectors/safe_tx.json", import.meta.url), JSON.stringify(out, null, 2) + "\n");
+console.log(`wrote ${vectors.length} vectors`);
