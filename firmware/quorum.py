@@ -54,7 +54,7 @@ state = "boot"      # boot | home | review | hold | working | result | owners | 
 slots_ui = None
 qx = qy = ""
 me = ""             # this key's owner address, lowercase (see my_owner)
-ctx = None          # decode.context: the pinned names plus THIS KEY
+ctx = None          # decode.context: the pinned names plus "This key"
 info = {}           # the service's view of the Safe: nonce, threshold, owners
 queue = []          # entries (see entry()), lowest nonce first
 cache = {}          # safeTxHash -> entry, so each transaction is hashed and decoded once
@@ -114,7 +114,7 @@ def read_key():
         qx = qy = ""
         _log("no key: %r" % e)
     me = my_owner()
-    ctx = decode.context(CFG, SAFE_ADDR, {me: "THIS KEY"} if me else None)
+    ctx = decode.context(CFG, SAFE_ADDR, {me: "This key"} if me else None)
     cache.clear()
     last_announce = 0
 
@@ -186,10 +186,24 @@ def waiting(e):
     return not e["why"] and not signed_by_me(e) and e["h"] not in declined
 
 
+def safe_version():
+    """The Safe's version as the service reports it ("1.4.1", "1.3.0+L2"), and whether this
+    console's hash is right for it: safe_tx.py follows the EIP-712 domain of Safe 1.3.0 and later."""
+    v = str(info.get("version") or "")
+    try:
+        nums = tuple(int(x) for x in v.split("+")[0].split(".")[:3])
+    except ValueError:
+        nums = ()
+    return v, nums >= (1, 3, 0)
+
+
 def can_sign(e):
     """(True, "") or (False, why not). Seeing every page is checked separately."""
     if e["why"]:
         return False, "refused"
+    v, ok = safe_version()
+    if v and not ok:
+        return False, "old Safe v%s" % v
     if not qx:
         return False, "no key in the chip"
     if me not in owners():
@@ -246,7 +260,11 @@ def net_work():
 
 # ----------------------------------------------------------------------------- review and sign
 def pages_of(e):
-    items = [("item", i) for i in range(len(e["r"]["items"]))]
+    items = []
+    for i, it in enumerate(e["r"]["items"]):
+        items.append(("item", i))
+        if it.get("digest"):
+            items.append(("calldata", i))    # the raw call, on a page of its own
     if e["why"]:
         return [("refused", 0)] + items
     return [("summary", 0)] + items + [("verify", 0)]
@@ -277,13 +295,13 @@ def press_sign():
     global state, hold_t0, page, dirty
     ok, why = can_sign(cur)
     if not ok:
-        say("can't sign: " + why)
+        say("Can't sign: " + why)
         return
     left = unseen()
     if left:
         page = left[0]
         seen.add(page)
-        say("every page first: %d more" % len(left))
+        say("See every page first \u00b7 %d more" % len(left))
         return
     state, hold_t0, dirty = "hold", time.ticks_ms(), True
 
@@ -297,7 +315,7 @@ def hold_tick():
             dirty = True        # the bar fills ten times a second
     else:
         state = "review"
-        say("let go early: not signed")
+        say("Let go early \u00b7 not signed")
 
 
 def signature_for(e, r, s):
@@ -310,7 +328,7 @@ def sign_it():
     global state, result, dirty
     e = cur
     state = "working"
-    U.draw_working(sys.modules[__name__], "SIGNING", "the chip signs the hash computed here")
+    U.draw_working(sys.modules[__name__], "Signing", "The chip signs the hash computed here")
     timer.deinit()
     try:
         t0 = time.ticks_ms()
@@ -318,7 +336,7 @@ def sign_it():
         _log("signed #%d in %d ms" % (e["n"], time.ticks_diff(time.ticks_ms(), t0)))
         post(e, signature_for(e, r, s))
     except Exception as ex:
-        result = (False, "NOT SIGNED", ["the chip said:", repr(ex)[:80]])
+        result = (False, "Not signed", ["The chip said:", repr(ex)[:80]])
         _log("sign: %r" % ex)
     state, dirty = "result", True
     start_timer()
@@ -326,7 +344,7 @@ def sign_it():
 
 def post(e, signature):
     global result, unsent
-    U.draw_working(sys.modules[__name__], "SENDING", "to the transaction service")
+    U.draw_working(sys.modules[__name__], "Sending", "To the transaction service")
     try:
         ok, detail = svc.confirm(e["h"], signature)
     except Exception as ex:
@@ -334,16 +352,16 @@ def post(e, signature):
     if ok:
         unsent = None
         have, need = len(e["conf"]) + 1, threshold()
-        lines = ["#%d %s" % (e["n"], e["r"]["summary"]), "approvals now %d of %d" % (have, need)]
+        lines = ["#%d %s" % (e["n"], e["r"]["summary"]), "Approvals now %d of %d" % (have, need)]
         if have >= need:
-            lines += ["ready to execute: the", "proposer's wallet sends it"]
+            lines += ["Ready \u00b7 the proposer executes it"]
         else:
-            lines += ["waiting for %d more" % (need - have)]
-        result = (True, "SIGNED", lines)
+            lines += ["Waiting for %d more" % (need - have)]
+        result = (True, "Signed", lines)
         _log("confirmed #%d" % e["n"])
     else:
         unsent = (e, signature)
-        result = (False, "NOT SENT", ["signed, but the service said:", detail[:90], "", "A = send again, B = back"])
+        result = (False, "Not sent", ["Signed, but the service said:", detail[:90]])
         _log("confirm #%d refused: %s" % (e["n"], detail))
 
 
@@ -352,7 +370,7 @@ def reject():
     e = cur
     declined.add(e["h"])
     state, dirty = "home", True
-    say("rejected #%d on this console" % e["n"])
+    say("Rejected #%d on this console" % e["n"])
     if svc:
         timer.deinit()
         try:
@@ -475,6 +493,7 @@ def start_timer():
 def start():
     global d, keys, svc, dirty, splash_until
     splash.TITLE = "picoquorum"
+    U.use(getattr(secrets, "QUORUM_THEME", "dark") if secrets else "dark")
     d = splash.begin()
     keys = L.Keys()
     splash.step("chip", "probing i2c...", L.GREY)

@@ -11,3 +11,4 @@ emu/sketches/.main.py
 tools/vectors/node_modules/
 tools/mock-tx-service/node_modules/
 tools/mock-tx-service/state.json
+tools/fonts/src/

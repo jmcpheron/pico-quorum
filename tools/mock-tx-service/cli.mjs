@@ -1,7 +1,7 @@
 // tools/quorum: run and drive the simulated Safe.
 //   serve [--port 8787]            the mock transaction service + dashboard, in the foreground
 //   demo                           fresh Safe with the standard queue (scenarios.mjs DEMO)
-//   reset [scenario ...]           fresh Safe (registered consoles stay owners), then those scenarios
+//   reset [scenario ...] [--version 1.3.0]   fresh Safe (registered consoles stay owners), then those
 //   propose SCENARIO [--by bob]    queue one story; `scenarios` lists them
 //   confirm NONCE|HASH --as alice  a co-signer confirms
 //   status                         the Safe, its owners and the queue
@@ -44,7 +44,7 @@ function lanIp() {
 async function status() {
   const st = await call("/sim/state");
   const name = (a) => (st.owners.find((o) => o.address.toLowerCase() === a.toLowerCase()) || {}).name || a.slice(0, 10);
-  console.log(`${st.name} ${st.address}  chain ${st.chainId}  nonce ${st.nonce}  ${st.threshold} of ${st.owners.length}`);
+  console.log(`${st.name} ${st.address}  v${st.version}  chain ${st.chainId}  nonce ${st.nonce}  ${st.threshold} of ${st.owners.length}`);
   for (const o of st.owners) console.log(`  owner ${o.name.padEnd(9)} ${o.address}  ${o.kind === "p256" ? "P-256, " + o.device : "ECDSA"}`);
   const pending = st.txs.filter((t) => !t.isExecuted && Number(t.nonce) >= st.nonce);
   console.log(pending.length ? "queue:" : "queue: empty");
@@ -63,7 +63,7 @@ if (cmd === "serve") {
   await call("/sim/reset", { demo: true });
   await status();
 } else if (cmd === "reset") {
-  await call("/sim/reset", { scenarios: words });
+  await call("/sim/reset", { scenarios: words, version: opt("--version") });
   await status();
 } else if (cmd === "propose") {
   const out = await call("/sim/propose", { scenario: words[0], by: opt("--by") });

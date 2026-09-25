@@ -46,6 +46,11 @@ def check_decode(vectors):
         if keccak256(sig.encode())[:4].hex() != sel:
             print("FAIL  selector %s is not %s" % (sel, sig))
             failed += 1
+    for a, (name, logo, calls) in quorum_cfg.CFG["contracts"].items():
+        for sel, (sig, what) in calls.items():
+            if keccak256(sig.encode())[:4].hex() != sel:
+                print("FAIL  %s selector %s is not %s" % (name, sel, sig))
+                failed += 1
     n = 0
     for v in vectors:
         got = decode.review(v["tx"], decode.context(quorum_cfg.CFG, v["safe"]))

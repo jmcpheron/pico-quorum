@@ -34,13 +34,16 @@ const BOB = "0x0000000000000000000000000000000000000b0b";
 const USDC_BASE = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913";
 const MULTISEND_CALL_ONLY_141 = "0x9641d764fc13c8b624c04430c7356c1c7c8102e2";
 const SIM_SAFE = "0x5afe00000000000000000000000000000000a11e"; // firmware/quorum_cfg.py's simulated Safe
-const SIM_BOB = "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc";  // anvil account 2, BOB in quorum_cfg.py
+const SIM_BOB = "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc";  // anvil account 2, Bob in quorum_cfg.py
+const UNI_ROUTER = "0x6ff5693b99212da76ad316178a184ab56d299b43"; // quorum_cfg.py's Uniswap Router (Base)
+const PERMIT2 = "0x000000000022d473030f116ddee9f6b43ac78ba3";
 
 const erc20 = parseAbi(["function transfer(address to, uint256 amount)"]);
 const erc20Approve = parseAbi(["function approve(address spender, uint256 amount)"]);
 const safeAbi = parseAbi(["function addOwnerWithThreshold(address owner, uint256 _threshold)",
                           "function changeThreshold(uint256 _threshold)"]);
 const claimAbi = parseAbi(["function claim(uint256 id)"]); // a function decode.py does not know
+const routerAbi = parseAbi(["function execute(bytes commands, bytes[] inputs, uint256 deadline)"]);
 const multiSendAbi = parseAbi(["function multiSend(bytes transactions)"]);
 
 const tx = (o) => ({
@@ -107,6 +110,14 @@ const cases = [
   ["rejection", "The Safe app's on-chain rejection: an empty call from the Safe to itself", 84532, SAFE_A,
     tx({ to: SAFE_A, nonce: 5n }),
     { summary: "On-chain rejection", items: [ok("REJECTION")] }],
+  ["uniswap-approve", "USDC approve(Uniswap Permit2, 500): a known spender, a bounded amount", 8453, SAFE_B,
+    tx({ to: USDC_BASE, data: encodeFunctionData({ abi: erc20Approve, functionName: "approve", args: [PERMIT2, 500_000_000n] }),
+         nonce: 12n }),
+    { summary: "Approve 500 USDC", items: [ok("APPROVE USDC")] }],
+  ["uniswap-swap", "A call the pinned Uniswap Router knows by name but decode.py cannot read in detail: yellow", 8453, SAFE_B,
+    tx({ to: UNI_ROUTER, value: 100_000_000_000_000_000n, nonce: 13n,
+         data: encodeFunctionData({ abi: routerAbi, functionName: "execute", args: ["0x0b00", ["0x1234", "0x5678"], 1790000000n] }) }),
+    { summary: "Swap on Uniswap", items: [["CONTRACT CALL", "warn"]] }],
   ["sim-send", "The simulated Safe (chain 31337, tools/quorum): send 0.05 ETH to Bob", 31337, SIM_SAFE,
     tx({ to: SIM_BOB, value: 50_000_000_000_000_000n, nonce: 0n }),
     { summary: "Send 0.05 ETH", items: [ok("SEND ETH")] }],

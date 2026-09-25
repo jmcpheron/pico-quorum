@@ -10,7 +10,9 @@
 #
 # An item is a dict: title (one screen header), level, what (one line), and as needed amount,
 # to and label (what that address is: "to", "new owner", "spender"...), frm and frm_label (an
-# address being replaced or moved from), text (the explanation), digest.
+# address being replaced or moved from), text (the explanation), and for calls nobody decoded
+# selector, size and digest (ERC-8213's calldata digest, to compare with what the proposer sent).
+# Items that call a contract carry it as "contract"; identify() says whether it is a known one.
 # "red" is anything that can take the Safe away from its owners or pay out more than it shows:
 # owner, threshold, module, guard and handler changes, delegatecall, gas refunds, unlimited
 # approvals, and every call this file cannot decode.
@@ -86,11 +88,29 @@ def context(cfg, safe, names=None):
     batchers = {}
     for a, n in cfg["batchers"].items():
         batchers[a.lower()] = n
-    return {"safe": safe.lower(), "book": book, "tokens": tokens, "batchers": batchers}
+    contracts = {}
+    for a, k in cfg.get("contracts", {}).items():
+        contracts[a.lower()] = k
+    return {"safe": safe.lower(), "book": book, "tokens": tokens, "batchers": batchers, "contracts": contracts}
 
 
 def name(ctx, a):
     return ctx["book"].get(a.lower())
+
+
+def identify(ctx, a):
+    """(name, logo, known) for an address: this Safe, a pinned contract, or a name from the
+    address book (people have no logo). (None, None, False) for anything else."""
+    a = a.lower()
+    if a == ctx["safe"]:
+        return "This Safe", "safe", True
+    k = ctx["contracts"].get(a)
+    if k:
+        return k[0], k[1], True
+    n = ctx["book"].get(a)
+    if n:
+        return n, None, True
+    return None, None, False
 
 
 # ----------------------------------------------------------------------------- ABI words
@@ -140,7 +160,7 @@ def calldata_digest(data):
 def _unknown(to, data, why=""):
     sel = hx(data[:4]) if len(data) >= 4 else hx(data)
     return {"title": "UNKNOWN CALL", "level": "red", "what": "Unknown call", "to": to, "label": "contract",
-            "text": (why + " " if why else "") + DONT + " Function %s, %d bytes." % (sel, len(data)),
+            "text": (why + " " if why else "") + DONT, "selector": sel, "size": len(data), "contract": to,
             "digest": hx(calldata_digest(data))}
 
 
@@ -226,9 +246,16 @@ def _call(to, value, data, ctx):
     except ValueError as e:
         return [_unknown(to, data, "Could not read it (%s)." % e)]
     if it is None:
-        return [_unknown(to, data)]
+        k = ctx["contracts"].get(to)
+        call = k[2].get(sel) if k else None
+        if not call:
+            return [_unknown(to, data)]
+        it = {"title": "CONTRACT CALL", "level": "warn", "what": call[1], "to": to, "label": "contract",
+              "text": "Known contract, but this call isn't decoded here. Confirm what it does with the proposer.",
+              "selector": hx(data[:4]), "size": len(data), "digest": hx(calldata_digest(data))}
+    it["contract"] = to
     if value:
-        it["text"] = (it.get("text", "") + " Also sends %s ETH to %s." % (units(value, 18), to)).strip()
+        it["text"] = (it.get("text", "") + " Also sends %s ETH with the call." % units(value, 18)).strip()
         if it["level"] == "ok":
             it["level"] = "warn"
     return [it]
@@ -286,7 +313,8 @@ def review(tx, ctx):
             summary = "Unreadable batch"
     elif op == DELEGATECALL:
         items.append({"title": "DELEGATECALL", "level": "red", "what": "Delegatecall", "to": to, "label": "contract",
-                      "text": AS_SAFE, "digest": hx(calldata_digest(data))})
+                      "text": AS_SAFE, "selector": hx(data[:4]), "size": len(data), "contract": to,
+                      "digest": hx(calldata_digest(data))})
         summary = "Delegatecall"
     else:
         items += _call(to, value, data, ctx)
@@ -294,4 +322,5 @@ def review(tx, ctx):
     g = _gas(tx, ctx)
     if g:
         items.append(g)
-    return {"summary": summary, "level": worst(items), "items": items}
+    # the contract the Safe calls first (a token, the batch helper, itself), for the header
+    return {"summary": summary, "level": worst(items), "items": items, "contract": to if data else None}

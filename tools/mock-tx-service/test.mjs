@@ -34,8 +34,8 @@ for t in json.load(sys.stdin):
 }
 
 // The pinned names match the simulated signers' keys.
-check(BOOK.ALICE === PEOPLE.alice.address && BOOK.BOB === PEOPLE.bob.address, "quorum_cfg.py ALICE and BOB are anvil accounts 1 and 2");
-check(BOOK.CAROL === privateKeyToAccount("0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6").address,
+check(BOOK.Alice === PEOPLE.alice.address && BOOK.Bob === PEOPLE.bob.address, "quorum_cfg.py ALICE and BOB are anvil accounts 1 and 2");
+check(BOOK.Carol === privateKeyToAccount("0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6").address,
   "quorum_cfg.py CAROL is anvil account 3");
 
 // Every scenario: the served fields hash the same in viem and in the firmware.

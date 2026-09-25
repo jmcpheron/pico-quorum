@@ -70,8 +70,9 @@ const routes = [
   ["POST", /^\/sim\/reset$/, async (m, q, b) => {
     const devices = st.owners.filter((o) => o.kind === "p256");
     st = fresh();
+    if (b.version) st.version = String(b.version);      // e.g. "1.3.0+L2", "1.5.0", or an old "1.1.1"
     if (b.keepDevices !== false) for (const d of devices) registerDevice(st, { name: d.device, qx: d.qx, qy: d.qy });
-    say(st, "reset: a fresh Safe, nonce 0, 2 of " + st.owners.length);
+    say(st, `reset: a fresh Safe v${st.version}, nonce 0, 2 of ${st.owners.length}`);
     for (const name of b.demo ? DEMO : b.scenarios || []) await run(st, name);
     return [200, { ok: true }];
   }],

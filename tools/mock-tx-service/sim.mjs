@@ -24,7 +24,7 @@ export const CFG = loadCfg();
 export const BOOK = Object.fromEntries(Object.entries(CFG.book).map(([a, n]) => [n, getAddress(a)]));  // name -> address
 
 // The simulated co-signers: anvil's well-known test accounts 1 and 2, which quorum_cfg.py names
-// ALICE and BOB. Never real keys.
+// Alice and Bob. Never real keys.
 export const PEOPLE = {
   alice: privateKeyToAccount("0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"),
   bob: privateKeyToAccount("0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a"),
@@ -56,8 +56,8 @@ export function safeTxHash(chainId, safe, f) {
 export function fresh() {
   const s = CFG.safes[0];
   return {
-    chainId: s.chainId, address: getAddress(s.address), name: s.name, nonce: 0, threshold: 2,
-    owners: [{ address: PEOPLE.alice.address, name: "ALICE", kind: "eoa" }, { address: PEOPLE.bob.address, name: "BOB", kind: "eoa" }],
+    chainId: s.chainId, address: getAddress(s.address), name: s.name, nonce: 0, threshold: 2, version: "1.4.1",
+    owners: [{ address: PEOPLE.alice.address, name: "Alice", kind: "eoa" }, { address: PEOPLE.bob.address, name: "Bob", kind: "eoa" }],
     txs: [], log: [], clock: 0,
   };
 }
@@ -102,7 +102,7 @@ export function registerDevice(st, { name, qx, qy }) {
   const address = p256Owner(qx, qy);
   let o = st.owners.find((o) => o.address === address);
   if (!o) {
-    o = { address, name: "THIS KEY", kind: "p256", device: name, qx, qy };
+    o = { address, name: "This key", kind: "p256", device: name, qx, qy };
     st.owners.push(o);
     say(st, `${name} joined as an owner: P-256 key ${qx.slice(2, 10)}.. -> ${address} (now ${st.threshold} of ${st.owners.length})`);
   } else {
@@ -237,7 +237,7 @@ export function apiSafe(st) {
   return {
     address: st.address, nonce: st.nonce, threshold: st.threshold, owners: st.owners.map((o) => o.address),
     masterCopy: "0x41675C099F32341bf84BFc5382aF534df5C7461a", modules: [], fallbackHandler: ZERO, guard: ZERO,
-    version: "1.4.1",
+    version: st.version || "1.4.1",
   };
 }
 

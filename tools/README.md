@@ -11,4 +11,7 @@ PicoQuorum additions:
   serving Safe's transaction-service endpoints on the laptop, with two simulated co-signers. It
   also regenerates the screenshot walkthrough in [`../docs/quorum-ui/`](../docs/quorum-ui/).
 
+- [`fonts/`](fonts/): renders the console's anti-aliased fonts (Atkinson Hyperlegible, OFL) into
+  `firmware/qf_*.bin`; `firmware/fonts.py` draws them
+
 Still to come: provisioning scripts.

@@ -31,7 +31,8 @@ const STORIES = [
   ["owner", DEMO, ["keys down,down,A", "shot 12-owner-summary", "key down", "shot 13-owner-red-page", "key down",
     "hold A", "wait 2300", "release A", "wait 100", "shot 14-owner-let-go-early", "frozen-hold 2000", "shot 15-owner-hold-red"]],
   ["lie", DEMO, ["keys down,down,down,A", "shot 16-lie-refused", "key down", "shot 17-lie-claimed", "key A", "shot 18-lie-cant-sign"]],
-  ["unknown", DEMO, ["keys down,down,down,down,A", "shot 19-unknown-summary", "key down", "shot 20-unknown-red-page"]],
+  ["unknown", DEMO, ["keys down,down,down,down,A", "shot 19-unknown-summary", "key down", "shot 20-unknown-red-page",
+    "key down", "shot 20b-unknown-calldata"]],
   ["reject", DEMO, ["key A", "key Y", "wait 200", "shot 21-reject-home"]],
   ["reds", ["refund", "delegate-unknown", "threshold", "wrong-safe"], [
     "shot 22-reds-home", "key A", "key down", "key down", "shot 23-refund-red-page", "key B",
@@ -42,6 +43,16 @@ const STORIES = [
   ["owners", DEMO, ["key B", "shot 30-owners"]],
   ["chip", DEMO, ["key X", "wait 400", "shot 31-chip-map"]],
   ["offline", null, ["shot 32-no-service"]],
+  ["identity", ["send-usdc", "uniswap-approve", "uniswap-swap", "batch", "unknown-call"], [
+    "shot 37-identity-home", "key A", "shot 38-identity-usdc-summary",
+    "keys B,down,A", "key down", "shot 39-identity-uniswap-spender",
+    "keys B,down,A", "shot 40-identity-uniswap-swap-summary", "key down", "shot 41-identity-uniswap-swap-page",
+    "keys B,down,A", "shot 42-identity-safe-multisend"]],
+  ["v150", ["send-eth"], ["shot 43-version-1.5.0"], { version: "1.5.0" }],
+  ["v130", ["send-eth"], ["key B", "shot 44-version-1.3.0-L2-owners"], { version: "1.3.0+L2" }],
+  ["vold", ["send-eth"], ["shot 45-version-too-old", "key A", "shot 46-version-too-old-summary"], { version: "1.1.1" }],
+  ["light", DEMO, ["exec import quorum_ui; quorum_ui.use('light'); quorum.dirty = True", "shot 33-light-home", "key A", "shot 34-light-summary",
+    "keys B,down,down,A,down", "shot 35-light-red-page", "key down", "shot 36-light-verify"]],
 ];
 
 function args(steps) {
@@ -83,10 +94,10 @@ for (let i = 0; ; i++) {
 }
 
 let failed = 0;
-for (const [name, queue, steps] of STORIES) {
+for (const [name, queue, steps, opts = {}] of STORIES) {
   if (only.length && !only.includes(name)) continue;
   for (const f of readdirSync(OUT)) if (steps.some((s) => s === `shot ${f.replace(/\.png$/, "")}`)) rmSync(join(OUT, f));
-  if (queue) await post("/sim/reset", { scenarios: queue, keepDevices: false });
+  if (queue) await post("/sim/reset", { scenarios: queue, keepDevices: false, version: opts.version });
   const chip = join(tmp, "chip.json");
   copyFileSync(new URL("emu-chip.json", import.meta.url), chip);
   const app = queue ? BASE : "http://localhost:1";      // "offline": nothing answers

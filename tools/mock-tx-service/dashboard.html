@@ -50,7 +50,7 @@ async function draw() {
   $("queue").innerHTML = pending.length ? pending.map((t) => {
     const cells = st.owners.map((o) => {
       const c = t.confirmations.some((c) => c.owner === o.address);
-      const btn = !c && o.kind === "eoa" && ["ALICE", "BOB"].includes(o.name)
+      const btn = !c && o.kind === "eoa" && ["Alice", "Bob"].includes(o.name)
         ? ` <button onclick="post('/sim/confirm',{ref:'${t.safeTxHash}',as:'${o.name.toLowerCase()}'})">sign</button>` : "";
       return `<span class="${c ? "yes" : "no"}">${c ? "✓" : "·"} ${esc(o.name)}</span>${btn}`;
     }).join("&nbsp; ");

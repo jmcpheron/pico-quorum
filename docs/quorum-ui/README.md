@@ -12,49 +12,94 @@ iteration and work through both.
 
 ## Iteration log
 
+### Iteration 2 (2026-09-25): real type, a new theme, who's being called, the Safe version
+
+You asked:
+- Is the blocky text necessary? **It isn't a choice we made.** MicroPython's framebuffer only has
+  an 8×8 font, and everything bigger was those pixels drawn 2, 3 or 4 times larger.
+- Try a clearer theme that uses the resolution.
+- Show a Safe or Uniswap icon for verified contracts, and an alert for custom ones.
+- Show the Safe version.
+
+What changed:
+- **Real, anti-aliased type.** The font is
+  [Atkinson Hyperlegible](https://www.brailleinstitute.org/freefont/) from the Braille Institute,
+  made so that 0/O, 1/l/I and similar pairs can't be confused. That matters on a device whose
+  whole job is getting people to compare addresses.
+  - A sans for words, a mono for addresses and hashes, seven sizes.
+  - They're rendered on the laptop (`tools/fonts/gen.py`) into 34 KB of glyph files, and the Pico
+    draws them in C with 16 shades of anti-aliasing (`firmware/fonts.py`).
+  - SIL Open Font License, credited in `NOTICE`.
+- **A new theme.** Near-black and neutral instead of navy and neon, with colour kept for meaning:
+  green = sign, red = danger, amber = caution, blue = what's at stake.
+  - Rounded cards, sentence case, and small uppercase labels over big headlines.
+  - Buttons are shown as **key badges** (Ⓐ Ⓑ Ⓧ Ⓨ) next to what they do, instead of arrows.
+  - There's also a **light theme**, set with `QUORUM_THEME = "light"` in `secrets.py`. Compare
+    them in [section 11](#11-the-light-theme).
+- **Who's being called** ([section 10](#10-whos-being-called)):
+  - A contract the console knows shows its logo and "known": Safe's own contracts, USDC, Uniswap's
+    router and Permit2.
+  - Any other contract gets a ⚠ "Unknown contract" alert, in the header and on the page.
+  - This shows in the queue rows, on the summary header, and in each page's header.
+  - "Known" means pinned on the console in `quorum_cfg.py`, never what the service or a block
+    explorer claims.
+  - The logos are coloured monograms drawn on the device, not copies of anyone's artwork.
+- **The Safe version** ([section 12](#12-the-safe-version)):
+  - A pill on the home screen and the owners page, and the verify page names the hash rules it used.
+  - The console's hash is right for Safe 1.3.0 and later (1.3.0, 1.4.1, 1.5.0 all share it). An
+    older Safe turns the pill red, and the console refuses to sign.
+- **Smaller fixes:**
+  - Calls nobody decoded get a second page, **Calldata**: the function selector, its size, and the
+    digest to compare.
+  - The refused page compares the two hashes on two short lines.
+  - The approvals line is one row: `1 of 2 ● Alice ○ Bob ○ You`.
+
+| Before (iteration 1) | After |
+|---|---|
+| <img src="shots/iter1/01-home.png"> | <img src="shots/01-home.png"> |
+| <img src="shots/iter1/02-approve-summary.png"> | <img src="shots/02-approve-summary.png"> |
+| <img src="shots/iter1/13-owner-red-page.png"> | <img src="shots/13-owner-red-page.png"> |
+| <img src="shots/iter1/11-batch-verify.png"> | <img src="shots/11-batch-verify.png"> |
+| <img src="shots/iter1/16-lie-refused.png"> | <img src="shots/16-lie-refused.png"> |
+
+**Questions for you:**
+1. **Dark or light?** Dark is the default.
+2. **Which contracts should be known?** Today: Safe MultiSend, USDC, Uniswap Router and Permit2.
+   The list lives in `quorum_cfg.py` and is easy to extend: Aave, Cowswap, ENS, the tokens you
+   hold…
+3. **Real logos?** The monograms are a stand-in. Real logos would be small bitmaps pinned the same
+   way, but their licences need checking first.
+4. **Uniswap swaps are yellow.** The router is known, but its `execute` call isn't decoded yet
+   (the swap's path and amounts). Worth decoding next, or is yellow plus "confirm with the
+   proposer" enough for now?
+
 ### Iteration 1 (2026-09-24): the first pass
 
-**What's built:**
-- **The queue:** the whole queue on one screen.
-- **Review:** a summary page, one page per thing the transaction does (each call of a batch
-  gets its own page), and red pages for anything that can take the Safe away from its owners.
-- **Verify:** a page with the hash's last 8 characters to read out over the phone.
-- **Signing:** hold A to sign, but only after every page has been seen.
-- **Refusal:** the console refuses outright when the service lies.
-- **On the laptop:** a 2-of-3 Safe with two simulated co-signers. It checks the chip's P-256
-  signature independently and "executes" once there are enough approvals.
+- **The queue**, a **summary** page, one page per thing the transaction does, **red pages**, the
+  **verify** page, and **hold A to sign** after seeing every page.
+- The console **refuses outright** when the service lies about the hash or the Safe.
+- A simulated 2-of-3 Safe on the laptop checks the chip's P-256 signature independently.
+- Open questions from then:
+  - Y rejects on this console only. Should it also offer the Safe's on-chain rejection?
+  - Hold times: 2 s normally, 3 s for red.
+  - The 8-character verify code.
+  - B = back.
+  - Unknown tokens are yellow.
 
-**Not yet:**
+**Not yet (both iterations):**
 - No chain, and no Safe contracts.
-- The signature is the chip's raw r‖s. How it gets packaged for the Safe (WebAuthn signer or
-  ERC-1271) is still open.
+- The signature is the chip's raw r‖s; how it gets packaged for the Safe is still open.
 - This key's owner address is a stand-in, `keccak(qx‖qy)`.
-- Not yet run on the real Pico. That's the next step, with you at the device.
-
-**Questions for you** (answer inline, in a PR comment, or in the change requests):
-1. **Reject.** Y declines on this console only: the row shows NO, and the laptop logs it. Nothing
-   goes to the Safe. Should Y also offer to sign an *on-chain rejection*? That's the Safe's real
-   "no": an empty transaction that uses up the same number.
-2. **Hold times.** 2 s normally, 3 s when any page is red. Too short, too long?
-3. **The verify code** is the hash's last 8 characters, big (the Safe app's convention and the
-   kickoff's). The full hash and its blockie sit right under it, because 8 characters alone can be
-   ground out by an attacker. Enough, or should the whole hash be the big thing?
-4. **Buttons.**
-   - Home: A open, B owners, X chip map (LAB and snake are still in there).
-   - Review: A sign, Y reject, B back, stick to page.
-
-   Does B = back feel right, with Y reserved for reject?
-5. **Unknown tokens** (a transfer of a token not in the list) are **yellow**, not red, with the
-   amount in raw units. Should they be red?
+- Not yet run on the real Pico. That's next, with you at the device.
 
 ## The setup
 
 | | |
 |---|---|
-| **Safe** | FAMILY SAFE, `0x5afe…a11e`, on chain 31337 (LOCAL: nothing signed here is valid on a real chain) |
-| **Owners** | ALICE and BOB (simulated, on the laptop) and THIS KEY (the chip), 2 of 3 must approve |
-| **Buttons** | A (top, green) SIGN · B back / owners · X chip map · Y (bottom, red) REJECT · stick: pages |
-| **Pinned** | the Safe, the chain, the names, the tokens and the batch contract live on the console (`firmware/quorum_cfg.py`). The transaction service is not trusted for any of it |
+| **Safe** | Family Safe, `0x5afe…a11e`, v1.4.1, on chain 31337 (Local: nothing signed here is valid on a real chain) |
+| **Owners** | Alice and Bob (simulated, on the laptop) and This key (the chip), 2 of 3 must approve |
+| **Buttons** | A (top, green) sign · B back / owners · X chip map · Y (bottom, red) reject · stick: pages |
+| **Pinned** | the Safe, the chain, the names, the known contracts and tokens live on the console (`firmware/quorum_cfg.py`); the transaction service is not trusted for any of it |
 
 The demo queue: Alice sends ETH, a batch, Bob adds a stranger as an owner, a transaction the
 service lies about, and a call nobody can decode.
@@ -63,13 +108,12 @@ service lies about, and a call nobody can decode.
 
 <img src="shots/01-home.png" width="48%">
 
-- The top strip is the chain: orange for LOCAL, blue for Base, purple for Base Sepolia.
-- **Rows:**
-  - `1/2` is approvals so far.
-  - Red rows with `!` have at least one red page.
-  - `REFUSED` rows can't be signed at all.
-  - `YOU` means this key has signed; `NO` means it was rejected here.
-- The footer shows which key is in the chip and whether the Safe counts it as an owner.
+- **Top row:** the chain, the Safe's version, and whether the console reached the service.
+- **Each row:**
+  - An icon for who it calls: → for a plain transfer, a logo for a known contract, ⚠ for an
+    unknown one, ✕ when refused.
+  - `1/2` is the approvals so far.
+  - A red or amber edge marks a row with red or yellow pages.
 - The Pico's LED blinks while anything waits for this key.
 
 ## 2. A first approval: Alice sends Carol 0.05 ETH
@@ -77,29 +121,29 @@ service lies about, and a call nobody can decode.
 | | |
 |---|---|
 | <img src="shots/02-approve-summary.png"> | <img src="shots/03-approve-send.png"> |
-| **A on the row: the summary.** What it does, who has approved, and what your approval would do ("yours makes 2 of 2: ready"). SIGN is grey: 1 of 3 pages seen. | **Down: what it does.** The amount, the name from the address book, and the full address in 4-character chunks. The name is a hint; the address is what's signed. |
+| **A on the row: the summary.** What it does and who has approved: filled dot = signed, blue = you. It also says what your approval would do. SIGN is grey: 1 of 3 pages seen. | **Down: what it does.** The amount, the name from the address book, and the full address in 4-character chunks. The name is a hint; the address is what's signed. |
 | <img src="shots/04-approve-every-page-first.png"> | <img src="shots/05-approve-hold.png"> |
 | **A before the last page** jumps to the page you haven't seen and says why. This is the verify page: the hash was computed *here* from the fields on the pages before. Its last 8 characters are what you'd read to the proposer on a call. | **Hold A.** The bar fills over 2 s. Let go and nothing is signed. |
 | <img src="shots/06-approve-signed.png"> | <img src="shots/07-approve-home-after.png"> |
-| **Signed.** The chip signed the hash, and the laptop checked the P-256 signature against this key and counted it. 2 of 2, so the simulated Safe executes. | **Back home:** #0 is gone and the queue moves on to #1. |
+| **Signed.** The chip signed the hash, and the laptop checked the P-256 signature against this key. 2 of 2, so the simulated Safe executes it. | **Back home:** #0 is gone and the queue moves on. |
 
 ## 3. A batch: two payments in one transaction
 
 | | |
 |---|---|
 | <img src="shots/08-batch-summary.png"> | <img src="shots/09-batch-call-1.png"> |
-| The summary lists every call. The batch contract (MultiSendCallOnly) is on the console's list, so its delegatecall is not a red flag. | Each call gets its own page… |
+| The header shows it goes through **Safe MultiSend**, a known contract, so its delegatecall isn't a red flag. The summary lists every call. | Each call gets its own page… |
 | <img src="shots/10-batch-call-2.png"> | <img src="shots/11-batch-verify.png"> |
-| …with token amounts in the token's real decimals. | The one hash covers the whole batch. |
+| …with token amounts in the token's real decimals, and the token contract in the header. | One hash covers the whole batch. |
 
 ## 4. A red screen: Bob adds a stranger as an owner
 
 | | |
 |---|---|
 | <img src="shots/12-owner-summary.png"> | <img src="shots/13-owner-red-page.png"> |
-| Red text on the summary, and a banner: 1 red page, read it. | **The red page** is red all over. The thing at stake (the address that would get a vote) is in cyan, like the thing lost on the chip map's red PERMANENT screen. |
+| The Safe is calling **itself** (its settings). The new owner is flagged unknown, and there's a banner: 1 red page, read it. | **The red page** is red all over. The thing at stake (the address that would get a vote) is in blue. |
 | <img src="shots/14-owner-let-go-early.png"> | <img src="shots/15-owner-hold-red.png"> |
-| A red transaction needs **3 s**. Letting go at 2.3 s signs nothing. | The hold box says why it's longer. |
+| A red transaction needs **3 s**. Letting go at 2.3 s signs nothing. | The hold card says why it's longer. |
 
 ## 5. The service lies
 
@@ -109,7 +153,7 @@ stranger*. A console that signed the hash it was handed would approve the theft.
 | | |
 |---|---|
 | <img src="shots/16-lie-refused.png"> | <img src="shots/17-lie-claimed.png"> |
-| **REFUSED.** The console hashed the fields itself and got a different hash. Both are shown. | Down shows what the service *claims*, marked as a claim. |
+| **Refused.** The console hashed the fields itself and got a different hash. Both are shown. | Down shows what the service *claims*, marked as a claim. |
 | <img src="shots/18-lie-cant-sign.png"> | |
 | A does nothing but say why. Y (reject) still works. | |
 
@@ -118,14 +162,16 @@ stranger*. A console that signed the hash it was handed would approve the theft.
 | | |
 |---|---|
 | <img src="shots/19-unknown-summary.png"> | <img src="shots/20-unknown-red-page.png"> |
-| Anything the console can't decode is red. | The function selector, the contract, and the calldata digest (ERC-8213), so it can be compared with what the proposer says they sent. |
+| **⚠ Unknown contract** in the header, and the headline in red. | The contract, flagged, in full. |
+| <img src="shots/20b-unknown-calldata.png"> | |
+| **Calldata:** the function selector, the size, and the calldata digest (ERC-8213), to compare with what the proposer says they sent. | |
 
 ## 7. Rejecting
 
 <img src="shots/21-reject-home.png" width="48%">
 
-Y on any review page: instant, no hold. The row shows `NO`, and the laptop's log says who rejected
-it. It is not sent to the Safe (question 1 above).
+Y on any review page: instant, no hold. The row shows `Rejected`, and the laptop's log says who
+rejected it. It isn't sent to the Safe (iteration 1's question 1).
 
 ## 8. More red screens
 
@@ -134,7 +180,7 @@ it. It is not sent to the Safe (question 1 above).
 | <img src="shots/22-reds-home.png"> | <img src="shots/23-refund-red-page.png"> |
 | A queue of the other red cases. | **A gas refund:** the Safe would pay whoever executes it, in USDC here, to an unknown address. |
 | <img src="shots/24-delegatecall-red-page.png"> | <img src="shots/25-threshold-red-page.png"> |
-| **Delegatecall** to a contract that isn't the known batch contract: it would run as the Safe. | **Threshold change** to 1: any one owner could then move everything. |
+| **Delegatecall** to an unknown contract: it would run as the Safe. | **Threshold change** to 1: any one owner could then move everything. |
 | <img src="shots/26-wrong-safe-refused.png"> | |
 | A transaction for a **different Safe** slipped into this one's queue: refused. | |
 
@@ -147,12 +193,44 @@ it. It is not sent to the Safe (question 1 above).
 | <img src="shots/29-conflict-rejection-page.png"> | |
 | The Safe's on-chain rejection, explained. | |
 
-## 10. The rest
+## 10. Who's being called
+
+A queue of known contracts: a USDC transfer, a USDC approval for Uniswap, a Uniswap swap, and a
+Safe batch.
+
+| | |
+|---|---|
+| <img src="shots/37-identity-home.png"> | <img src="shots/38-identity-usdc-summary.png"> |
+| Each row's logo says which contract it calls. | **Header:** $ USDC, known. The recipient comes from the address book. |
+| <img src="shots/39-identity-uniswap-spender.png"> | <img src="shots/40-identity-uniswap-swap-summary.png"> |
+| An approval where the **spender** is a known contract (Uniswap Permit2): its logo and "known" next to the full address. | **A known contract, a call not decoded yet:** Uniswap's router. Yellow, not red: the contract is known, but the console can't show the swap's amounts. |
+| <img src="shots/41-identity-uniswap-swap-page.png"> | <img src="shots/42-identity-safe-multisend.png"> |
+| It says so, and asks you to confirm with the proposer. It also sends 0.1 ETH. | **Safe's own MultiSend** in the header of a batch. Compare the ⚠ **Unknown contract** in [section 6](#6-a-call-nobody-described). |
+
+## 11. The light theme
+
+The same screens with `QUORUM_THEME = "light"`.
+
+| | |
+|---|---|
+| <img src="shots/33-light-home.png"> | <img src="shots/34-light-summary.png"> |
+| <img src="shots/35-light-red-page.png"> | <img src="shots/36-light-verify.png"> |
+
+## 12. The Safe version
+
+| | |
+|---|---|
+| <img src="shots/43-version-1.5.0.png"> | <img src="shots/44-version-1.3.0-L2-owners.png"> |
+| **Safe v1.5.0** on the home screen. | **v1.3.0+L2** (how the service reports an L2 Safe) on the owners page. |
+| <img src="shots/45-version-too-old.png"> | <img src="shots/46-version-too-old-summary.png"> |
+| **An old Safe (v1.1.1)** turns the pill red… | …and the console won't sign: before 1.3.0 the hash covered different fields. |
+
+## 13. The rest
 
 | | |
 |---|---|
 | <img src="shots/30-owners.png"> | <img src="shots/31-chip-map.png"> |
-| **B from home:** the owners, in full. | **X from home:** the chip map, as before. LAB and snake are inside, and Y comes back. |
+| **B from home:** the owners in full, the Safe's version, and this key. | **X from home:** the chip map, as before, with LAB and snake inside. Y comes back. It keeps its own look for now. |
 | <img src="shots/32-no-service.png"> | |
 | **No service:** the error and the URL it tried. Everything local still works. | |
 
@@ -161,6 +239,7 @@ it. It is not sent to the Safe (question 1 above).
 ```sh
 tools/quorum serve                 # the simulated Safe + a dashboard at http://localhost:8787
 tools/quorum demo                  # the demo queue
+tools/quorum reset uniswap-swap batch --version 1.5.0
 EMU_APP=http://localhost:8787 tools/emu run quorum    # the console in the emulator, talking to it
 tools/quorum confirm 1 --as bob    # a co-signer approves #1
 tools/quorum status                # who has signed what
@@ -168,10 +247,14 @@ tools/quorum shots                 # regenerate every picture on this page
 ```
 
 On the Pico, `secrets.py` gets `QUORUM_URL = "http://<this Mac's LAN IP>:8787"` (`tools/quorum ip`
-prints the line).
+prints the line) and, if you like, `QUORUM_THEME = "light"`.
 
 ## Change requests
 
 Edit this list on GitHub: add a line, tick one off, or write under it. Each iteration starts here.
 
+- [x] Is the blocky text necessary? No: real anti-aliased type now (iteration 2)
+- [x] A clearer theme that uses the resolution (iteration 2: dark, plus a light option)
+- [x] Show Safe or Uniswap icons for known contracts, an alert for unknown ones (iteration 2)
+- [x] Show the Safe version (iteration 2)
 - [ ] (add yours)

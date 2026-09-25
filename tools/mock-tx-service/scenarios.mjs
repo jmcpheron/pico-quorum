@@ -8,6 +8,7 @@ const USDC = Object.keys(CFG.tokens)[0];
 const MULTISEND = Object.keys(CFG.batchers)[0];                   // MultiSendCallOnly 1.4.1
 const STRANGER = "0xdead00000000000000000000000000000000beef";    // in no address book
 const MYSTERY = "0xc0ffee254729296a45a3885639ac7e10f9d54979";     // a contract nobody described
+const [PERMIT2, UNI_ROUTER] = Object.entries(CFG.contracts).filter(([, k]) => k[1] === "uniswap").map(([a]) => a);
 const OTHER_SAFE = "0x5afe00000000000000000000000000000000bad0";
 
 const erc20 = parseAbi(["function transfer(address to, uint256 amount)"]);
@@ -15,6 +16,8 @@ const safeAbi = parseAbi(["function addOwnerWithThreshold(address owner, uint256
                           "function changeThreshold(uint256 _threshold)"]);
 const multiSendAbi = parseAbi(["function multiSend(bytes transactions)"]);
 const mystery = parseAbi(["function claim(uint256 id)"]);
+const erc20Approve = parseAbi(["function approve(address spender, uint256 amount)"]);
+const router = parseAbi(["function execute(bytes commands, bytes[] inputs, uint256 deadline)"]);
 
 const usdc = (to, amount) => encodeFunctionData({ abi: erc20, functionName: "transfer", args: [to, parseUnits(amount, 6)] });
 const entry = (to, value, data) =>
@@ -24,19 +27,28 @@ const entry = (to, value, data) =>
 export const SCENARIOS = {
   "send-eth": {
     about: "Alice sends 0.05 ETH to Carol, and signs it", by: "alice", sign: true,
-    build: () => [{ to: BOOK.CAROL, value: parseEther("0.05") }],
+    build: () => [{ to: BOOK.Carol, value: parseEther("0.05") }],
   },
   "send-usdc": {
     about: "Bob sends 250 USDC to Savings, and signs it", by: "bob", sign: true,
-    build: () => [{ to: USDC, data: usdc(BOOK.SAVINGS, "250") }],
+    build: () => [{ to: USDC, data: usdc(BOOK.Savings, "250") }],
   },
   batch: {
     about: "Alice batches 0.01 ETH to Carol and 100 USDC to Bob (MultiSendCallOnly), and signs it", by: "alice", sign: true,
     build: () => [{
       to: MULTISEND, operation: 1,
       data: encodeFunctionData({ abi: multiSendAbi, functionName: "multiSend",
-        args: [concat([entry(BOOK.CAROL, parseEther("0.01"), "0x"), entry(USDC, 0n, usdc(BOOK.BOB, "100"))])] }),
+        args: [concat([entry(BOOK.Carol, parseEther("0.01"), "0x"), entry(USDC, 0n, usdc(BOOK.Bob, "100"))])] }),
     }],
+  },
+  "uniswap-approve": {
+    about: "Alice lets Uniswap's Permit2 spend up to 500 USDC (a known contract), and signs it", by: "alice", sign: true,
+    build: () => [{ to: USDC, data: encodeFunctionData({ abi: erc20Approve, functionName: "approve", args: [PERMIT2, parseUnits("500", 6)] }) }],
+  },
+  "uniswap-swap": {
+    about: "Bob swaps 0.1 ETH on Uniswap's router: a known contract, a call it can't read in detail (yellow)", by: "bob", sign: true,
+    build: () => [{ to: UNI_ROUTER, value: parseEther("0.1"),
+      data: encodeFunctionData({ abi: router, functionName: "execute", args: ["0x0b00", ["0x1234", "0x5678"], 1790000000n] }) }],
   },
   "add-owner": {
     about: "Bob adds a stranger as a fourth owner (red), and signs it", by: "bob", sign: true,
@@ -48,7 +60,7 @@ export const SCENARIOS = {
   },
   refund: {
     about: "A send to Carol that also pays a USDC gas refund to a stranger (red)", by: "alice", sign: true,
-    build: () => [{ to: BOOK.CAROL, value: parseEther("0.01"), baseGas: 50000n, gasPrice: 1000n, gasToken: USDC, refundReceiver: STRANGER }],
+    build: () => [{ to: BOOK.Carol, value: parseEther("0.01"), baseGas: 50000n, gasPrice: 1000n, gasToken: USDC, refundReceiver: STRANGER }],
   },
   "unknown-call": {
     about: "Bob calls a contract the console has no decoder for (red)", by: "bob", sign: true,
@@ -60,15 +72,15 @@ export const SCENARIOS = {
   },
   tampered: {
     about: "The service shows 0.05 ETH to Carol but asks for a signature over 5 ETH to a stranger", by: "alice", sign: false,
-    build: () => [{ to: BOOK.CAROL, value: parseEther("0.05") }, { lie: { to: STRANGER, value: parseEther("5").toString() } }],
+    build: () => [{ to: BOOK.Carol, value: parseEther("0.05") }, { lie: { to: STRANGER, value: parseEther("5").toString() } }],
   },
   "wrong-safe": {
     about: "The service slips in a transaction for a different Safe", by: "alice", sign: false,
-    build: () => [{ to: BOOK.CAROL, value: parseEther("1") }, { reportSafe: OTHER_SAFE }],
+    build: () => [{ to: BOOK.Carol, value: parseEther("1") }, { reportSafe: OTHER_SAFE }],
   },
   conflict: {
     about: "Two proposals for the same number: Alice sends 1 ETH to Carol, Bob proposes to reject it", by: "alice", sign: true,
-    build: () => [{ to: BOOK.CAROL, value: parseEther("1") }],
+    build: () => [{ to: BOOK.Carol, value: parseEther("1") }],
     then: { by: "bob", sign: true, build: (safe) => [{ to: safe }] },
   },
 };
