@@ -1,0 +1,202 @@
+From f6d8566952978e7d791c23908761d8f2e90e4f45 Mon Sep 17 00:00:00 2001
+From: Jason McPheron <jason.mcpheron@gmail.com>
+Date: Fri, 25 Sep 2026 00:29:08 -0700
+Subject: [PATCH] fix: keep EIP-1271 contract signatures when rebuilding a
+ queued tx (GS021)
+
+createExistingTx (web) and addSignaturesToTx (mobile) added every confirmation from the
+Transaction Service as a plain signature: staticPart = the whole stored signature, dynamicPart
+= ''. A contract owner's confirmation (a nested Safe, a passkey signer) is stored as
+{owner}{offset = 65}{00}{length}{data}, so it was concatenated whole with its offset still at 65.
+With two or more signatures that offset points inside the static part and the Safe reverts with
+GS021 in simulation and execution.
+
+toSafeSignature (packages/utils) turns a stored confirmation back into an EthSafeSignature,
+as a contract signature with just its data when v = 0, so buildSignatureBytes re-points it.
+The test uses a real Base Sepolia transaction (a passkey owner and an EOA) and checks the
+rebuilt bytes against the signatures the Safe executed.
+
+Refs #3673
+---
+ .../src/services/tx/tx-sender/create.ts       |  9 +--
+ apps/web/src/services/tx/tx-sender/create.ts  |  9 +--
+ .../utils/__tests__/safeTransaction.test.ts   | 62 +++++++++++++++++++
+ packages/utils/src/utils/safeTransaction.ts   | 38 +++++++++++-
+ 4 files changed, 102 insertions(+), 16 deletions(-)
+ create mode 100644 packages/utils/src/utils/__tests__/safeTransaction.test.ts
+
+diff --git a/apps/mobile/src/services/tx/tx-sender/create.ts b/apps/mobile/src/services/tx/tx-sender/create.ts
+index 8ad21f3..9772a2a 100644
+--- a/apps/mobile/src/services/tx/tx-sender/create.ts
++++ b/apps/mobile/src/services/tx/tx-sender/create.ts
+@@ -4,6 +4,7 @@ import extractTxInfo from '@/src/services/tx/extractTx'
+ import { createConnectedWallet } from '../../web3'
+ import { SafeInfo } from '@/src/types/address'
+ import type { SafeTransaction, SafeTransactionDataPartial } from '@safe-global/types-kit'
++import { toSafeSignature } from '@safe-global/utils/utils/safeTransaction'
+ import { getSafeSDK } from '@/src/hooks/coreSDK/safeCoreSDK'
+ import { TransactionDetails } from '@safe-global/store/gateway/AUTO_GENERATED/transactions'
+ 
+@@ -39,13 +40,7 @@ export const createTx = async (txParams: SafeTransactionDataPartial, nonce?: num
+  */
+ export const addSignaturesToTx = (safeTx: SafeTransaction, signatures: Record<string, string>): void => {
+   Object.entries(signatures).forEach(([signer, data]) => {
+-    safeTx.addSignature({
+-      signer,
+-      data,
+-      staticPart: () => data,
+-      dynamicPart: () => '',
+-      isContractSignature: false,
+-    })
++    safeTx.addSignature(toSafeSignature(signer, data))
+   })
+ }
+ 
+diff --git a/apps/web/src/services/tx/tx-sender/create.ts b/apps/web/src/services/tx/tx-sender/create.ts
+index 95dd682..e66262c 100644
+--- a/apps/web/src/services/tx/tx-sender/create.ts
++++ b/apps/web/src/services/tx/tx-sender/create.ts
+@@ -1,6 +1,7 @@
+ import type { TransactionDetails } from '@safe-global/store/gateway/AUTO_GENERATED/transactions'
+ import { getReadOnlyGnosisSafeContract } from '@/services/contracts/safeContracts'
+ import { SENTINEL_ADDRESS } from '@safe-global/utils/utils/constants'
++import { toSafeSignature } from '@safe-global/utils/utils/safeTransaction'
+ import type { Chain } from '@safe-global/store/gateway/AUTO_GENERATED/chains'
+ import { getTransactionDetails } from '@/utils/transactions'
+ import type { AddOwnerTxParams, RemoveOwnerTxParams, SwapOwnerTxParams } from '@safe-global/protocol-kit'
+@@ -131,13 +132,7 @@ export const createExistingTx = async (
+   // Create a tx and add pre-approved signatures
+   const safeTx = await createTx(txParams, txParams.nonce, scope)
+   Object.entries(signatures).forEach(([signer, data]) => {
+-    safeTx.addSignature({
+-      signer,
+-      data,
+-      staticPart: () => data,
+-      dynamicPart: () => '',
+-      isContractSignature: false,
+-    })
++    safeTx.addSignature(toSafeSignature(signer, data))
+   })
+ 
+   return safeTx
+diff --git a/packages/utils/src/utils/__tests__/safeTransaction.test.ts b/packages/utils/src/utils/__tests__/safeTransaction.test.ts
+new file mode 100644
+index 0000000..b0b0479
+--- /dev/null
++++ b/packages/utils/src/utils/__tests__/safeTransaction.test.ts
+@@ -0,0 +1,62 @@
++import { buildSignatureBytes } from '@safe-global/protocol-kit'
++import { toSafeSignature } from '../safeTransaction'
++
++// A 2-of-3 Safe 1.5.0 on Base Sepolia whose owners include a passkey signer
++// (SafeWebAuthnSignerProxy): the two confirmations of one transaction exactly as the Transaction
++// Service returns them, and the signatures that execTransaction was called with, as logged by the
++// Safe's SafeMultiSigTransaction event, in Base Sepolia tx
++// 0xb8ee9c98c966d24a85b115c1979c060e2cad9fd752d473ba25235df827c88c61.
++const EOA_OWNER = '0x61D24DE770314Eab9c267E47A968FC556744637F'
++const EOA_SIGNATURE =
++  '0x563ed80a02c26378c6e435965a83537e0abffa228e031985c49cd0c49ee679a444b456ba282f1c649f6c42eda2ce3b7b5e0d1f4abb70710668bee4112cf7d4251b'
++const CONTRACT_OWNER = '0x2843705391b7E2cf06b0b964b532Ad9891535E53'
++const CONTRACT_SIGNATURE =
++  '0x0000000000000000000000002843705391b7e2cf06b0b964b532ad9891535e530000000000000000000000000000000000000000000000000000000000000041000000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000e01592af237339799bc1ad499c97113f8b0f43a3f24d3eaf6743e5197def02e8ce5dd4d876a23ecd47a175a54aabffe604429544c56f525a466ffe1afe08751cbc00000000000000000000000000000000000000000000000000000000000000251ce2fbdf9e8baac998faa0e9023dde852b71b79b0d43a3d5192818be47991ba805000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000015226f726967696e223a227069636f71756f72756d220000000000000000000000'
++const EXECUTED_SIGNATURES =
++  '0x0000000000000000000000002843705391b7e2cf06b0b964b532ad9891535e53000000000000000000000000000000000000000000000000000000000000008200563ed80a02c26378c6e435965a83537e0abffa228e031985c49cd0c49ee679a444b456ba282f1c649f6c42eda2ce3b7b5e0d1f4abb70710668bee4112cf7d4251b0000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000e01592af237339799bc1ad499c97113f8b0f43a3f24d3eaf6743e5197def02e8ce5dd4d876a23ecd47a175a54aabffe604429544c56f525a466ffe1afe08751cbc00000000000000000000000000000000000000000000000000000000000000251ce2fbdf9e8baac998faa0e9023dde852b71b79b0d43a3d5192818be47991ba805000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000015226f726967696e223a227069636f71756f72756d220000000000000000000000'
++
++describe('toSafeSignature', () => {
++  it('keeps an EOA signature as it is', () => {
++    const signature = toSafeSignature(EOA_OWNER, EOA_SIGNATURE)
++
++    expect(signature.isContractSignature).toBe(false)
++    expect(signature.staticPart()).toBe(EOA_SIGNATURE)
++    expect(signature.dynamicPart()).toBe('')
++  })
++
++  it('turns a stored contract signature into a contract signature with only its data', () => {
++    const signature = toSafeSignature(CONTRACT_OWNER, CONTRACT_SIGNATURE)
++
++    expect(signature.isContractSignature).toBe(true)
++    // 65-byte static part + 32-byte length word are dropped, the rest is the EIP-1271 data
++    expect(signature.data).toBe(`0x${CONTRACT_SIGNATURE.slice(2 + 2 * (65 + 32))}`)
++  })
++
++  it('lays out an EOA and a contract signature the way the Safe executed them', () => {
++    const bytes = buildSignatureBytes([
++      toSafeSignature(EOA_OWNER, EOA_SIGNATURE),
++      toSafeSignature(CONTRACT_OWNER, CONTRACT_SIGNATURE),
++    ])
++
++    expect(bytes.toLowerCase()).toBe(EXECUTED_SIGNATURES.toLowerCase())
++  })
++
++  it('points the contract signature past every static part', () => {
++    const bytes = buildSignatureBytes([
++      toSafeSignature(EOA_OWNER, EOA_SIGNATURE),
++      toSafeSignature(CONTRACT_OWNER, CONTRACT_SIGNATURE),
++    ])
++    // the contract owner sorts first, so its offset is the second word of the signature bytes
++    const offset = parseInt(bytes.slice(2 + 64, 2 + 128), 16)
++
++    expect(offset).toBe(2 * 65)
++  })
++
++  it('leaves a v = 0 signature it cannot parse as a plain signature', () => {
++    const truncated = CONTRACT_SIGNATURE.slice(0, CONTRACT_SIGNATURE.length - 64)
++    const signature = toSafeSignature(CONTRACT_OWNER, truncated)
++
++    expect(signature.isContractSignature).toBe(false)
++    expect(signature.staticPart()).toBe(truncated)
++  })
++})
+diff --git a/packages/utils/src/utils/safeTransaction.ts b/packages/utils/src/utils/safeTransaction.ts
+index 1b1d8d1..7a60c88 100644
+--- a/packages/utils/src/utils/safeTransaction.ts
++++ b/packages/utils/src/utils/safeTransaction.ts
+@@ -1,5 +1,5 @@
+-import type { SafeTransaction, SafeTransactionData, SafeVersion } from '@safe-global/types-kit'
+-import { calculateSafeTransactionHash } from '@safe-global/protocol-kit'
++import type { SafeSignature, SafeTransaction, SafeTransactionData, SafeVersion } from '@safe-global/types-kit'
++import { calculateSafeTransactionHash, EthSafeSignature } from '@safe-global/protocol-kit'
+ import type { Chain } from '@safe-global/store/gateway/AUTO_GENERATED/chains'
+ 
+ /**
+@@ -87,3 +87,37 @@ export const getNestedExecTransactionHashFromInfo = ({
+     txData,
+   })
+ }
++
++const STATIC_PART_HEX_LENGTH = 65 * 2
++
++/**
++ * Turns a confirmation as the Transaction Service returns it back into a Core SDK signature.
++ *
++ * An owner that is a contract (a nested Safe, or a passkey signer such as SafeWebAuthnSignerProxy)
++ * confirms with an EIP-1271 contract signature: a 65-byte static part `{owner}{offset}{00}`
++ * followed by `{length}{signature data}`, stored with the offset pointing right after its own
++ * static part. Added to a SafeTransaction as a plain signature, it is concatenated whole and keeps
++ * that offset, which points inside the static part as soon as there are two or more signatures,
++ * so the Safe reverts with GS021. Added as a contract signature, `buildSignatureBytes` lays it out.
++ */
++export const toSafeSignature = (signer: string, signature: string): SafeSignature => {
++  const hex = signature.startsWith('0x') ? signature.slice(2) : signature
++  const isContractSignature = hex.length > STATIC_PART_HEX_LENGTH && hex.slice(128, 130) === '00'
++
++  if (isContractSignature) {
++    const offset = Number.parseInt(hex.slice(64, 128), 16) * 2
++    const length = Number.parseInt(hex.slice(offset, offset + 64), 16) * 2
++    const data = hex.slice(offset + 64, offset + 64 + length)
++
++    if (
++      Number.isSafeInteger(offset) &&
++      offset >= STATIC_PART_HEX_LENGTH &&
++      Number.isSafeInteger(length) &&
++      data.length === length
++    ) {
++      return new EthSafeSignature(signer, `0x${data}`, true)
++    }
++  }
++
++  return new EthSafeSignature(signer, signature)
++}
+-- 
+2.50.1 (Apple Git-155)
+
