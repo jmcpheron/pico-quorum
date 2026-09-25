@@ -17,9 +17,9 @@ joystick, A/B/X/Y) and an Adafruit ATECC608 breakout. Its build guide is [picowa
 |---|---|---|
 | 1. Secure-element driver | `firmware/atecc.py` and `firmware/trustm.py` (upstream), `firmware/signer.py` | ATECC608 works; Trust M not yet run on a chip here |
 | 2. Safe hash | `firmware/safe_tx.py`, checked against `test-vectors/` | done |
-| 3. Signature packaging | | not started |
-| 4. Transaction service client | | not started |
-| 5. Decoder and display | | not started |
+| 3. Signature packaging | `quorum.signature_for()` | raw P-256 r‖s for the simulation; the owner contract's format is still open |
+| 4. Transaction service client | `firmware/txservice.py`, against `tools/quorum`'s simulated Safe | started, simulated |
+| 5. Decoder and display | `firmware/decode.py` (checked by `test-vectors/`), `firmware/quorum.py`, `quorum_ui.py` | started: [walkthrough](quorum-ui/README.md) |
 | Contracts | `contracts/` | not started |
 
 [Test ladder](#test-ladder) rung 1 is the next milestone.

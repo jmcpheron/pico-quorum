@@ -1,0 +1,106 @@
+// tools/quorum shots: every screen in docs/quorum-ui/README.md, captured from the emulator running
+// the real firmware against the simulated Safe. Same input, same pixels: the Safe starts fresh
+// for each story, and the console's chip is emu-chip.json (a virtual ATECC608 with a throwaway key
+// in slot 0; copied per story, so the file never changes). Runs its own mock on port 8799 with
+// its own state, so a session on 8787 is left alone.
+import { spawn, spawnSync } from "node:child_process";
+import { copyFileSync, mkdirSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { DEMO } from "./scenarios.mjs";
+
+const ROOT = fileURLToPath(new URL("../../", import.meta.url));
+const OUT = join(ROOT, "docs", "quorum-ui", "shots");
+const PORT = 8799;
+const BASE = `http://localhost:${PORT}`;
+const tmp = mkdtempSync(join(tmpdir(), "quorum-shots-"));
+const only = process.argv.slice(3);      // tools/quorum shots [story ...]
+
+// A step is a string: "key A", "keys down,down,A", "hold A", "release A", "wait MS", "shot NAME",
+// "exec CODE", or "frozen-hold MS" (the hold overlay drawn at MS in, with the timer stopped so the
+// bar is the same every run; the page goes back to normal after the shot).
+const STORIES = [
+  ["home", DEMO, ["shot 01-home"]],
+  ["approve", DEMO, [
+    "key A", "shot 02-approve-summary", "key down", "shot 03-approve-send", "key A", "shot 04-approve-every-page-first",
+    "frozen-hold 1000", "shot 05-approve-hold", "hold A", "wait 2300", "release A", "wait 800", "shot 06-approve-signed",
+    "key A", "wait 1500", "shot 07-approve-home-after"]],
+  ["batch", DEMO, ["keys down,A", "shot 08-batch-summary", "key down", "shot 09-batch-call-1", "key down", "shot 10-batch-call-2",
+    "key down", "shot 11-batch-verify"]],
+  ["owner", DEMO, ["keys down,down,A", "shot 12-owner-summary", "key down", "shot 13-owner-red-page", "key down",
+    "hold A", "wait 2300", "release A", "wait 100", "shot 14-owner-let-go-early", "frozen-hold 2000", "shot 15-owner-hold-red"]],
+  ["lie", DEMO, ["keys down,down,down,A", "shot 16-lie-refused", "key down", "shot 17-lie-claimed", "key A", "shot 18-lie-cant-sign"]],
+  ["unknown", DEMO, ["keys down,down,down,down,A", "shot 19-unknown-summary", "key down", "shot 20-unknown-red-page"]],
+  ["reject", DEMO, ["key A", "key Y", "wait 200", "shot 21-reject-home"]],
+  ["reds", ["refund", "delegate-unknown", "threshold", "wrong-safe"], [
+    "shot 22-reds-home", "key A", "key down", "key down", "shot 23-refund-red-page", "key B",
+    "keys down,A", "key down", "shot 24-delegatecall-red-page", "key B",
+    "keys down,A", "key down", "shot 25-threshold-red-page", "key B",
+    "keys down,A", "shot 26-wrong-safe-refused"]],
+  ["conflict", ["conflict"], ["shot 27-conflict-home", "key A", "shot 28-conflict-summary", "keys B,down,A,down", "shot 29-conflict-rejection-page"]],
+  ["owners", DEMO, ["key B", "shot 30-owners"]],
+  ["chip", DEMO, ["key X", "wait 400", "shot 31-chip-map"]],
+  ["offline", null, ["shot 32-no-service"]],
+];
+
+function args(steps) {
+  const out = [];
+  for (const s of steps) {
+    const [k, ...rest] = s.split(" ");
+    const v = rest.join(" ");
+    if (k === "key") out.push("--key", v, "--wait", "250");
+    else if (k === "keys") for (const x of v.split(",")) out.push("--key", x, "--wait", "250");
+    else if (k === "hold" || k === "release" || k === "wait" || k === "exec") out.push("--" + k, v);
+    else if (k === "shot") out.push("--wait", "150", "--shot", join(OUT, v + ".png"));
+    else if (k === "frozen-hold") {
+      out.push("--exec", `import time, quorum_ui; quorum.timer.deinit(); quorum.msg = ""; quorum.state = "hold"; quorum.hold_t0 = time.ticks_add(time.ticks_ms(), -${v}); quorum_ui.draw(quorum)`);
+      out.push("--shot", "@next");
+      out.push("--exec", `quorum.state = "review"; quorum.dirty = True; quorum.start_timer()`);
+    } else throw new Error("bad step " + s);
+  }
+  // "@next" takes the name of the shot that follows the frozen hold
+  for (let i = 0; i < out.length; i++) {
+    if (out[i] !== "@next") continue;
+    const j = out.indexOf("--shot", i + 1);
+    out[i] = out[j + 1];
+    out.splice(j - 2, 4);      // drop the following "--wait 150 --shot NAME": the frozen one replaces it
+  }
+  return out;
+}
+
+async function post(path, body) {
+  const r = await fetch(BASE + path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  if (!r.ok) throw new Error(`${path}: ${r.status}`);
+}
+
+mkdirSync(OUT, { recursive: true });
+const server = spawn(process.execPath, [join(ROOT, "tools/mock-tx-service/server.mjs"), "--port", String(PORT)],
+  { env: { ...process.env, QUORUM_STATE: join(tmp, "state.json") }, stdio: "ignore" });
+for (let i = 0; ; i++) {
+  try { await fetch(BASE + "/sim/state"); break; } catch { if (i > 40) throw new Error("mock did not start"); }
+  await new Promise((r) => setTimeout(r, 100));
+}
+
+let failed = 0;
+for (const [name, queue, steps] of STORIES) {
+  if (only.length && !only.includes(name)) continue;
+  for (const f of readdirSync(OUT)) if (steps.some((s) => s === `shot ${f.replace(/\.png$/, "")}`)) rmSync(join(OUT, f));
+  if (queue) await post("/sim/reset", { scenarios: queue, keepDevices: false });
+  const chip = join(tmp, "chip.json");
+  copyFileSync(new URL("emu-chip.json", import.meta.url), chip);
+  const app = queue ? BASE : "http://localhost:1";      // "offline": nothing answers
+  const r = spawnSync(process.execPath, [join(ROOT, "emu/headless.mjs"), "quorum", "--app", app, "--chip", chip, "--quiet",
+    "--wait", "3000", ...args(steps)], { cwd: join(ROOT, "emu"), encoding: "utf8" });
+  const shots = (r.stdout.match(/\[shot\]/g) || []).length;
+  const bad = r.status !== 0 || /Traceback/.test(r.stdout + r.stderr);
+  console.log(`${bad ? "FAIL" : "ok  "}  ${name.padEnd(9)} ${shots} shots`);
+  if (bad) {
+    failed++;
+    console.log((r.stdout + r.stderr).split("\n").filter((l) => !l.startsWith("[shot]")).slice(-15).join("\n"));
+  }
+}
+server.kill();
+rmSync(tmp, { recursive: true, force: true });
+console.log(failed ? `${failed} stories failed` : `shots in ${OUT}`);
+process.exit(failed ? 1 : 0);
