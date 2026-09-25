@@ -191,6 +191,7 @@ See [`hardware/bom/README.md`](../hardware/bom/README.md).
 
 - [ ] Secure element for real keys: ATECC608 (driver here) vs Trust M (driver and on-chain attestation upstream)
 - [ ] WebAuthn-shaped signatures vs. a custom ERC-1271 signer (first choice: Safe's passkey signer)
+  - Keep the format reusable by Hegotá frame transactions; see [Hegotá watch](HEGOTA-WATCH.md)
 - [ ] Whether a PIN/authorization is feasible on the chosen chip
 - [ ] Screen size
 - [ ] Button choice and layout (beside the screen vs. below it)
