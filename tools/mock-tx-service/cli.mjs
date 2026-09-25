@@ -16,6 +16,12 @@
 //   shots                          regenerate docs/quorum-ui/shots with the emulator (shots.mjs)
 import { execSync, spawn, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
+// The repo's .env (gitignored; .env.example is the template): the Safe API key and optional RPCs.
+// A variable already set in the shell wins.
+const ENV_FILE = fileURLToPath(new URL("../../.env", import.meta.url));
+if (existsSync(ENV_FILE)) process.loadEnvFile(ENV_FILE);
 
 const [cmd = "status", ...rest] = process.argv.slice(2);
 const opt = (k, d) => (rest.includes(k) ? rest[rest.indexOf(k) + 1] : d);
@@ -117,6 +123,11 @@ async function doctor() {
   }
   const ip = lanIp();
   line(!!ip, `LAN address ${ip || "none"} (the Pico reaches the service here)`);
+  const ignored = spawnSync("git", ["check-ignore", "-q", ENV_FILE]).status === 0;
+  line(!existsSync(ENV_FILE) || ignored, `.env ${existsSync(ENV_FILE) ? (ignored ? "present, gitignored" : "present and NOT gitignored") : "absent"}`,
+    "add .env to .gitignore before putting anything in it");
+  line(!!process.env.SAFE_API_KEY, `Safe API key ${process.env.SAFE_API_KEY ? "set" : "not set"} (live on Base Sepolia, Base, Ethereum)`,
+    "put SAFE_API_KEY=... in .env (from developer.safe.global)");
   process.exit(bad ? 1 : 0);
 }
 

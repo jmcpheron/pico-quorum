@@ -69,9 +69,9 @@ web app: `live` opens a one-page form on 127.0.0.1 and the wallet shows the tran
 - [ ] A browser wallet (MetaMask, Rabby…) with some Base Sepolia ETH, from the Superchain faucet
       (console.optimism.io/faucet), Coinbase's CDP faucet, or Sepolia ETH bridged over.
 - [ ] A Safe API key from developer.safe.global:
-  - For the tools: `~/.config/picoquorum/safe-api-key`, outside the repo, chmod 600 (or `SAFE_API_KEY`
-    in the environment). Save it without it landing in your shell history:
-    `mkdir -p ~/.config/picoquorum && read -rs "k?Safe API key: " && printf '%s\n' "$k" > ~/.config/picoquorum/safe-api-key && chmod 600 ~/.config/picoquorum/safe-api-key && unset k`
+  - For the tools: `SAFE_API_KEY=` in the repo's `.env`, which is gitignored (copy `.env.example`;
+    `tools/quorum doctor` says whether it's set without showing it). Paste it in with your editor,
+    not on the command line, so it doesn't land in your shell history.
   - For the Pico: `QUORUM_API_KEY` in the board's own `secrets.py`, set at the switch to this rung.
     The board's copy isn't the same file as `firmware/secrets.py`, so add the line; don't copy the
     laptop's file over it.

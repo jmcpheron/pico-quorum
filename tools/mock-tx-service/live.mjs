@@ -25,13 +25,13 @@
 // Foundry keystore (~/.foundry/keystores) after you type yes (--yes skips that on Base Sepolia,
 // never on Base or Ethereum). Either way the terminal first shows the destination, the value, what it does and
 // the estimated cost, and every send is logged in live.json.
-// The Safe API key (developer.safe.global) goes to the service as a bearer token: SAFE_API_KEY, else
-// the first line of ~/.config/picoquorum/safe-api-key (outside the repo, chmod 600). Without one
-// the service allows only a few thousand requests a month.
+// The Safe API key (developer.safe.global) goes to the service as a bearer token: SAFE_API_KEY, from
+// the repo's gitignored .env (cli.mjs loads it) or the shell. Without one the service allows only
+// a few thousand requests a month.
 import { spawn, spawnSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
-import { homedir, tmpdir } from "node:os";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
@@ -72,8 +72,7 @@ function die(msg) {
   process.exit(1);
 }
 
-const KEY_FILE = join(homedir(), ".config", "picoquorum", "safe-api-key");
-const API_KEY = process.env.SAFE_API_KEY || (existsSync(KEY_FILE) ? readFileSync(KEY_FILE, "utf8").trim().split("\n")[0] : "");
+const API_KEY = (process.env.SAFE_API_KEY || "").trim();
 
 const link = (n, kind, x) => (n.explorer ? `${n.explorer}/${kind}/${x}` : x);
 
@@ -83,7 +82,7 @@ const keep = (live) => writeFileSync(LIVE_FILE, JSON.stringify(live, null, 2) + 
 function net() {
   const name = opt("--chain");
   if (!CHAINS[name]) die(`--chain ${Object.keys(CHAINS).join(" | ")}`);
-  if (name !== "local" && !API_KEY) console.error(`(no Safe API key in SAFE_API_KEY or ${KEY_FILE}: the service allows a few thousand requests a month without one)`);
+  if (name !== "local" && !API_KEY) console.error("(no SAFE_API_KEY in .env: the service allows a few thousand requests a month without one)");
   const c = CHAINS[name];
   return { name, ...c, pub: createPublicClient({ chain: c.chain, transport: http(c.rpc) }) };
 }
