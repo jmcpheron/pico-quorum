@@ -22,8 +22,6 @@ import decode
 import quorum_cfg
 import txservice
 import webauthn
-gc.collect()        # the chip UI modules are big; compile them on a clean heap (as wallet.py does)
-import slots as SL
 import splash
 import quorum_ui as U
 try:
@@ -56,7 +54,8 @@ sig = None          # the signer backend (the chip)
 svc = None          # txservice.Service
 timer = None
 state = "boot"      # boot | home | review | hold | working | result | owners | chip | nochip
-slots_ui = None
+slots_ui = None     # the chip map, while it is open (chip_ui)
+_chip_mods = ()     # the modules it loaded, dropped again when it closes
 qx = qy = ""
 me = ""             # this key's owner address, lowercase (see my_owner)
 ctx = None          # decode.context: the pinned names plus "This key"
@@ -140,7 +139,30 @@ def probe_chip():
     if state == "nochip":
         state = "boot"
     read_key()
-    slots_ui = SL.SlotsUI(d, sig, key_changed)
+
+
+def chip_ui():
+    """The chip map (slots.py and the screens it imports), loaded on the first X and dropped on the
+    way back home. It is about 80 KB of source compiled on the Pico; loaded at start it left the
+    heap in pieces too small for HTTPS: with 116 KB free, no 8 KB block was left, and every call to
+    api.safe.global failed with OSError 12 (2026-09-25, on the board)."""
+    global slots_ui, _chip_mods
+    if slots_ui is None:
+        before = set(sys.modules)
+        gc.collect()
+        import slots
+        slots_ui = slots.SlotsUI(d, sig, key_changed)
+        _chip_mods = tuple(m for m in sys.modules if m not in before)
+    return slots_ui
+
+
+def chip_done():
+    global slots_ui, _chip_mods
+    slots_ui = None
+    for m in _chip_mods:
+        sys.modules.pop(m, None)
+    _chip_mods = ()
+    gc.collect()
 
 
 def fingerprint():
@@ -412,7 +434,7 @@ def handle(k):
         elif k == BACK:
             state = "owners"
         elif k in ("X", "press"):
-            slots_ui.open("zones")
+            chip_ui().open("zones")
             state = "chip"
         dirty = True
     elif state == "owners":
@@ -471,6 +493,7 @@ def tick(t):
         if state == "chip":
             if slots_ui.tick(pressed, keys) == "home":
                 state, dirty = "home", True
+                chip_done()
             pressed = ()
         for k in pressed:
             handle(k)
