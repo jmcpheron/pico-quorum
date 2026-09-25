@@ -10,7 +10,7 @@
 # fields decode.py puts on the screen, with the chain and Safe pinned in quorum_cfg.py. If the
 # service's safeTxHash or Safe differs, the transaction is REFUSED and cannot be signed. The chip
 # signs the hash computed here, never a string the service sent: wrapped as a WebAuthn assertion
-# (webauthn.py), because on chain this key owns the Safe through Safe's passkey signer.
+# (webauthn.py), because onchain this key owns the Safe through Safe's passkey signer.
 #
 #   import lcd; import quorum; quorum.start()      (main.py does this)
 import sys, time, machine, network, gc
@@ -32,7 +32,9 @@ except ImportError:
     secrets = None
 
 CFG = quorum_cfg.CFG
-SAFE = CFG["safes"][0]
+# The Safe this console signs for: QUORUM_SAFE in secrets.py (a Safe on Base Sepolia or Base, made
+# in the Safe web app), else the pinned Family Safe on the laptop. Pinned on the device either way.
+SAFE = (getattr(secrets, "QUORUM_SAFE", None) if secrets else None) or CFG["safes"][0]
 CHAIN = SAFE["chainId"]
 SAFE_ADDR = SAFE["address"].lower()
 BASE = (getattr(secrets, "QUORUM_URL", None) or getattr(secrets, "APP_URL", None)) if secrets else None
@@ -40,6 +42,8 @@ NAME = getattr(secrets, "DEVICE_NAME", "picoquorum") if secrets else "picoquorum
 SSID = getattr(secrets, "WIFI_SSID", "") if secrets else ""
 SOFT_OK = bool(getattr(secrets, "ALLOW_SOFT_KEY", False)) if secrets else False
 POLL_MS = int(getattr(secrets, "QUORUM_POLL_S", 3) if secrets else 3) * 1000
+IDLE_POLL_MS = int(getattr(secrets, "QUORUM_IDLE_POLL_S", 120) if secrets else 120) * 1000
+IDLE_AFTER_MS = 10 * 60 * 1000
 HOLD_MS, HOLD_RED_MS = 2000, 3000       # A held this long to sign; longer when any page is red
 
 # Keys by role. The console's own controls (a guarded Sign button, a paging dial) remap here.
@@ -72,6 +76,7 @@ net_ok = False
 net_err = "starting"
 last_poll = 0
 last_announce = 0
+last_activity = 0   # the last key press or change in the queue (see poll_every)
 _snap = None
 splash_until = 0
 msg = ""
@@ -218,9 +223,18 @@ def conflicts(e):
 
 
 # ----------------------------------------------------------------------------- the service
+def poll_every():
+    """How often to ask the service. The real one counts requests against an API key's monthly
+    quota, so after 10 quiet minutes the console asks only every QUORUM_IDLE_POLL_S; a key press or
+    a change in the queue brings it back to QUORUM_POLL_S."""
+    if time.ticks_diff(time.ticks_ms(), last_activity) > IDLE_AFTER_MS:
+        return max(POLL_MS, IDLE_POLL_MS)
+    return POLL_MS
+
+
 def net_work():
     """One poll: the Safe, then its queue. Runs with the timer stopped."""
-    global net_ok, net_err, info, queue, last_poll, last_announce, dirty, sel, _snap
+    global net_ok, net_err, info, queue, last_poll, last_announce, last_activity, dirty, sel, _snap
     last_poll = time.ticks_ms()
     if svc is None:
         net_ok, net_err = False, "no QUORUM_URL in secrets.py"
@@ -255,6 +269,7 @@ def net_work():
             tuple((e["h"], len(e["conf"])) for e in queue))
     if snap != _snap:
         _snap, dirty = snap, True
+        last_activity = time.ticks_ms()
     gc.collect()
 
 
@@ -437,20 +452,22 @@ def led_tick():
 
 
 def tick(t):
-    global _busy, _n, dirty, state, splash_until, msg
+    global _busy, _n, dirty, state, splash_until, msg, last_activity
     if _busy:
         return
     _busy = True
     try:
         _n += 1
         net.poll_accept()
-        if state in ("home", "boot") and (last_poll == 0 or time.ticks_diff(time.ticks_ms(), last_poll) >= POLL_MS):
+        if state in ("home", "boot") and (last_poll == 0 or time.ticks_diff(time.ticks_ms(), last_poll) >= poll_every()):
             timer.deinit()      # no timer events pile up while HTTP and hashing block
             try:
                 net_work()
             finally:
                 start_timer()
         pressed = keys.pressed()
+        if pressed:
+            last_activity = time.ticks_ms()
         if state == "chip":
             if slots_ui.tick(pressed, keys) == "home":
                 state, dirty = "home", True
@@ -492,7 +509,7 @@ def start_timer():
 
 
 def start():
-    global d, keys, svc, dirty, splash_until
+    global d, keys, svc, dirty, splash_until, last_activity
     splash.TITLE = "picoquorum"
     U.use(getattr(secrets, "QUORUM_THEME", "dark") if secrets else "dark")
     d = splash.begin()
@@ -513,6 +530,7 @@ def start():
     if BASE:
         svc = txservice.Service(BASE, txservice.checksum(SAFE_ADDR), getattr(secrets, "QUORUM_API_KEY", None))
     splash_until = time.ticks_add(time.ticks_ms(), 1500)
+    last_activity = time.ticks_ms()
     dirty = True
     start_timer()
 

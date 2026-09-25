@@ -5,8 +5,10 @@
 //
 // With --chain RPC the Safe is real: a Safe 1.4.1 on the Anvil fork at RPC (chain.mjs), which
 // tools/quorum up starts. The queue still lives here, as it does in Safe's transaction service.
+// --manual-exec: never execute at threshold, as the real service never does; `tools/quorum live
+// exec --chain local` does it, the way it will on Base Sepolia.
 //
-//   node tools/mock-tx-service/server.mjs [--port 8787] [--chain http://127.0.0.1:8545]
+//   node tools/mock-tx-service/server.mjs [--port 8787] [--chain http://127.0.0.1:8545 [--manual-exec]]
 //   (or: tools/quorum serve, tools/quorum up)
 import { createServer } from "node:http";
 import { readFileSync } from "node:fs";
@@ -24,7 +26,7 @@ if (RPC) {
   chain = new Chain(RPC);
   stateFile("chain-state.json");
   const s = await chain.setup();
-  useChain(chain);
+  useChain(chain, { manualExec: argv.includes("--manual-exec") });
   st = fresh();                // the queue starts empty; the Safe is whatever the fork holds
   await chain.refresh(st);
   say(st, `forked Safe ready at block ${s.block}: ${s.eth} ETH, ${s.usdc} USDC, P-256 precompile ${s.precompile ? "yes" : "no (the Daimo verifier stands in)"}`);

@@ -77,10 +77,10 @@ try {
   const [send, lie] = st.txs;
   const mine = send?.confirmations.find((c) => c.owner === me?.address);
   check(!!mine && mine.signatureType === "CONTRACT_SIGNATURE", "#0 has the console's contract signature");
-  check(send?.isExecuted && send.isSuccessful && /^0x[0-9a-f]{64}$/.test(send.transactionHash || ""), `#0 executed on chain: ${send?.transactionHash}`);
+  check(send?.isExecuted && send.isSuccessful && /^0x[0-9a-f]{64}$/.test(send.transactionHash || ""), `#0 executed onchain: ${send?.transactionHash}`);
   const receipt = send?.transactionHash ? await chain.getTransactionReceipt({ hash: send.transactionHash }) : null;
   check(receipt?.status === "success" && getAddress(receipt.to) === SAFE, `the receipt: execTransaction on the Safe, ${receipt?.gasUsed} gas`);
-  check(Number(await chain.readContract({ address: SAFE, abi: SAFE_ABI, functionName: "nonce" })) === 1, "the Safe's nonce on chain is 1");
+  check(Number(await chain.readContract({ address: SAFE, abi: SAFE_ABI, functionName: "nonce" })) === 1, "the Safe's nonce onchain is 1");
   check((await chain.getBalance({ address: BOOK.Carol })) - carol0 === parseEther("0.05"), "Carol has exactly 0.05 ETH more");
   check(lie && !lie.isExecuted && !lie.confirmations.some((c) => c.owner === me?.address), "the tampered #1 got no signature from the console");
   check(!/blind signing/.test(log), "no blind signature was attempted");

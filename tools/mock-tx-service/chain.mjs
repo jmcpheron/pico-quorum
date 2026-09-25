@@ -139,6 +139,7 @@ export class Chain {
       if ((await this.usdc()) !== FUND_USDC) throw new Error("could not give the Safe USDC (has FiatToken's storage layout changed?)");
     }
     this.snapshot = await this.test.snapshot();
+    this.fromBlock = await this.pub.getBlockNumber();
     return {
       safe: this.safe, block: await this.pub.getBlockNumber(), precompile: this.precompile, swept: this.swept,
       eth: formatEther(await this.pub.getBalance({ address: this.safe })), usdc: formatUnits(await this.usdc(), 6),
@@ -168,6 +169,23 @@ export class Chain {
     st.version = version + (st.masterCopy === getAddress(SAFE_141.singleton) ? "+L2" : "");
     st.chain = { rpc: this.rpc, block: Number(await this.pub.getBlockNumber()), precompile: this.precompile,
                  eth: formatEther(await this.pub.getBalance({ address: this.safe })), usdc: formatUnits(await this.usdc(), 6) };
+    await this.indexExecuted(st);
+  }
+
+  // Transactions someone else executed (tools/quorum live exec, cast): found by the Safe's own
+  // ExecutionSuccess/Failure events, as Safe's transaction service indexes them.
+  async indexExecuted(st) {
+    const behind = st.txs.filter((t) => !t.isExecuted && Number(t.nonce) < st.nonce && t.trueHash === t.safeTxHash);
+    if (!behind.length) return;
+    const logs = await this.pub.getLogs({ address: this.safe, events: SAFE_ABI.filter((x) => x.type === "event"),
+                                          fromBlock: this.fromBlock ?? "earliest" });
+    for (const t of behind) {
+      const l = logs.find((l) => l.args.txHash === t.trueHash);
+      if (!l) continue;
+      Object.assign(t, { isExecuted: true, executionDate: new Date().toISOString(), transactionHash: l.transactionHash,
+                         isSuccessful: l.eventName === "ExecutionSuccess", revert: null, ready: false });
+      say(st, `#${t.nonce} ${t.scenario} was executed onchain by someone else: tx ${l.transactionHash.slice(0, 12)}..`);
+    }
   }
 
   async enroll(st, o) {
@@ -227,5 +245,6 @@ export class Chain {
     if (this.snapshot === null) return;
     await this.test.revert({ id: this.snapshot });
     this.snapshot = await this.test.snapshot();
+    this.fromBlock = await this.pub.getBlockNumber();
   }
 }

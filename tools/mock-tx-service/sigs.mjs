@@ -25,11 +25,12 @@ export function p256Owner(signer, qx, qy) {
                               bytecode: concat(["0x" + signer.proxyCode, args]) });
 }
 
-// One owner's confirmation, as posted to the service. -> {kind: "ecdsa"} or {kind: "contract",
+// One owner's confirmation, as posted to the service. -> {kind: "ecdsa"}, {kind: "approved"}, or {kind: "contract",
 // owner, data, authenticatorData, clientDataFields, r, s}; throws on anything else.
 export function parse(signature) {
   const n = size(signature);
-  if (n === 65 && hexToBytes(signature)[64] >= 27) return { kind: "ecdsa" };
+  if (n === 65 && hexToBytes(signature)[64] >= 27) return { kind: "ecdsa" };      // 31/32: eth_sign
+  if (n === 65 && hexToBytes(signature)[64] === 1) return { kind: "approved" };   // approveHash onchain
   if (n < 97 || hexToBytes(signature)[64] !== 0) throw new Error(`not an ECDSA (65 bytes) or contract (v = 0) signature, ${n} bytes`);
   const owner = getAddress(slice(signature, 12, 32));
   const offset = Number(BigInt(slice(signature, 32, 64)));

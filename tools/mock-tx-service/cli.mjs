@@ -1,9 +1,11 @@
 // tools/quorum: run and drive the Family Safe, simulated or on an Anvil fork of Base.
 //   serve [--port 8787]            the mock transaction service + dashboard, in the foreground
-//   up [--refork]                  a real Safe: anvil forking Base (127.0.0.1:8545) + the service on
-//                                  it, in the foreground; Ctrl-C stops both (chain.mjs, fork.mjs)
+//   up [--refork] [--manual-exec]  a real Safe: anvil forking Base (127.0.0.1:8545) + the service on
+//                                  it, in the foreground; Ctrl-C stops both (chain.mjs, fork.mjs).
+//                                  --manual-exec: nothing executes until `live exec --chain local`
 //   e2e                            the console on the emulator approves on the fork (e2e.mjs)
 //   doctor                         is everything here that up, e2e and the tests need
+//   live key|enroll|status|rehearse|exec   the console's key on Base Sepolia, Base or Ethereum (live.mjs, docs/LADDER.md)
 //   demo                           fresh Safe with the standard queue (scenarios.mjs DEMO)
 //   reset [scenario ...] [--version 1.3.0]   fresh Safe (registered consoles stay owners), then those
 //   propose SCENARIO [--by bob]    queue one story; `scenarios` lists them
@@ -72,7 +74,8 @@ async function up() {
   console.log(`anvil: forking Base at block ${block} (${FORK_RPC}) as chain 31337 on 127.0.0.1:${port}`);
   const anvil = await startAnvil(port, block);
   const svc = spawn(process.execPath, [new URL("server.mjs", import.meta.url).pathname, "--chain", anvil.url,
-                                       "--port", String(process.env.QUORUM_PORT || 8787)], { stdio: "inherit" });
+                                       "--port", String(process.env.QUORUM_PORT || 8787),
+                                       ...(rest.includes("--manual-exec") ? ["--manual-exec"] : [])], { stdio: "inherit" });
   const ip = lanIp();
   if (ip) console.log(`for the Pico's secrets.py:  QUORUM_URL = "http://${ip}:${process.env.QUORUM_PORT || 8787}"`);
   const stop = () => {
@@ -125,6 +128,8 @@ if (cmd === "serve") {
   await import("./e2e.mjs");
 } else if (cmd === "doctor") {
   await doctor();
+} else if (cmd === "live") {
+  await import("./live.mjs");
 } else if (cmd === "demo") {
   await call("/sim/reset", { demo: true });
   await status();
@@ -151,6 +156,6 @@ if (cmd === "serve") {
 } else if (cmd === "shots") {
   await import("./shots.mjs");
 } else {
-  console.error("usage: tools/quorum serve | up [--refork] | e2e | doctor | demo | reset [scenario..] | propose SCENARIO [--by bob] | confirm NONCE --as alice | status | log [N] | scenarios | ip | shots");
+  console.error("usage: tools/quorum serve | up [--refork] [--manual-exec] | e2e | doctor | live key|enroll|status|rehearse|exec | demo | reset [scenario..] | propose SCENARIO [--by bob] | confirm NONCE --as alice | status | log [N] | scenarios | ip | shots");
   process.exit(2);
 }

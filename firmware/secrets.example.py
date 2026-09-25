@@ -4,9 +4,17 @@ WIFI_PASS = "your-password"
 HOSTNAME = "picowallet"
 APP_URL = "http://<mac-lan-ip>:3001"
 DEVICE_NAME = "picowallet"
-# The PicoQuorum console (quorum.py): Safe's transaction service, or tools/quorum's simulated Safe
-# on the laptop (`tools/quorum ip` prints this line). QUORUM_API_KEY for api.safe.global, if set.
+# The PicoQuorum console (quorum.py). On the laptop: tools/quorum's Family Safe, simulated or on
+# the Anvil fork (`tools/quorum ip` or `tools/quorum up` prints this line).
 QUORUM_URL = "http://<mac-lan-ip>:8787"
+# A real Safe (docs/LADDER.md): Safe's transaction service, the Safe itself, and an API key from
+# developer.safe.global. The key's quota is monthly, so poll gently: every QUORUM_POLL_S seconds,
+# and every QUORUM_IDLE_POLL_S after 10 minutes with no key press and no change in the queue.
+# QUORUM_URL = "https://api.safe.global/tx-service/basesep"      # or .../tx-service/base
+# QUORUM_API_KEY = "..."
+# QUORUM_SAFE = {"chainId": 84532, "address": "0x...", "name": "Test Safe"}
+# QUORUM_POLL_S = 20
+# QUORUM_IDLE_POLL_S = 120
 QUORUM_THEME = "dark"   # or "light"
 
 # Passwordless MicroPython REPL on TCP/2323. Full signer control: isolated development only.

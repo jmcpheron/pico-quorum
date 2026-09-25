@@ -62,9 +62,11 @@ export function safeTxHash(chainId, safe, f) {
 
 // ----------------------------------------------------------------------------- the backend
 let chain = null;       // chain.mjs's Chain while the Safe is the forked one, else simulated
+let autoExec = true;    // false: like Safe's real service, never execute; tools/quorum live exec does
 
-export function useChain(c) {
+export function useChain(c, { manualExec = false } = {}) {
   chain = c;
+  autoExec = !manualExec;
 }
 
 // ----------------------------------------------------------------------------- state
@@ -243,16 +245,21 @@ export async function execute(st) {
     const t = st.txs.find((t) => !t.isExecuted && Number(t.nonce) === st.nonce && t.trueHash === t.safeTxHash &&
                                  t.safe === st.address && t.confirmations.length >= st.threshold);
     if (!t) return;
+    if (chain && !autoExec) {
+      if (!t.ready) say(st, `#${t.nonce} ${t.scenario} has ${t.confirmations.length} of ${st.threshold}: ready for tools/quorum live exec --chain local ${t.nonce}`);
+      t.ready = true;
+      return;
+    }
     if (chain) {
       const r = await chain.execute(st, t);
       if (!r.ok) {
-        if (t.revert !== r.reason) say(st, `#${t.nonce} ${t.scenario} has ${t.confirmations.length} of ${st.threshold} but would revert on chain: ${r.reason}`);
+        if (t.revert !== r.reason) say(st, `#${t.nonce} ${t.scenario} has ${t.confirmations.length} of ${st.threshold} but would revert onchain: ${r.reason}`);
         t.revert = r.reason;
         return;
       }
       Object.assign(t, { isExecuted: true, executionDate: stamp(st), transactionHash: r.hash, isSuccessful: r.success, revert: null });
       await chain.refresh(st);
-      say(st, `EXECUTED #${t.nonce} ${t.scenario} on chain: tx ${r.hash.slice(0, 12)}.., ${r.gasUsed} gas${r.success ? "" : ", but the Safe says the call FAILED"}. ` +
+      say(st, `EXECUTED #${t.nonce} ${t.scenario} onchain: tx ${r.hash.slice(0, 12)}.., ${r.gasUsed} gas${r.success ? "" : ", but the Safe says the call FAILED"}. ` +
         `Now ${st.threshold} of ${st.owners.length}, nonce ${st.nonce}`);
       continue;
     }
@@ -317,6 +324,7 @@ export function apiList(st, q) {
   if (q.get("executed") === "false") r = r.filter((t) => !t.isExecuted);
   if (q.get("executed") === "true") r = r.filter((t) => t.isExecuted);
   if (q.has("nonce__gte")) r = r.filter((t) => Number(t.nonce) >= Number(q.get("nonce__gte")));
+  if (q.has("nonce")) r = r.filter((t) => Number(t.nonce) === Number(q.get("nonce")));
   r = [...r].sort((a, b) => (q.get("ordering") === "-nonce" ? -1 : 1) * (Number(a.nonce) - Number(b.nonce)));
   const limit = Number(q.get("limit") || 20);
   return { count: r.length, next: null, previous: null, results: r.slice(0, limit).map((t) => apiTx(st, t)) };

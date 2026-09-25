@@ -14,7 +14,10 @@
 # [signature, what the call does]}]. A contract on it gets its logo and "known" on screen; any
 # other contract a transaction calls gets the unknown-contract alert. "Known" means pinned here,
 # never what the service or a block explorer says. The Uniswap addresses are Base mainnet's
-# (Permit2 is the same on every chain); check them again before the Base fork in rung 1.
+# (Permit2 is the same on every chain). The other USDCs are Circle's on Base Sepolia and Ethereum,
+# for the live rungs (docs/LADDER.md).
+# The lists are flat, not per chain: an address means the same thing on every chain here. Make
+# them per chain before adding a chain where that is not true.
 #
 # "signer" is how this key owns a Safe (webauthn.py): Safe's passkey signer, safe-modules passkey
 # v0.2.1, the same addresses on Base, Base Sepolia, OP and the Base fork. "proxyCode" is the
@@ -34,7 +37,9 @@ CFG = {
         "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65": "Savings"
     },
     "tokens": {
-        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": ["USDC", 6]
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": ["USDC", 6],
+        "0x036cbd53842c5426634e7929541ec2318f3dcf7e": ["USDC", 6],
+        "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48": ["USDC", 6]
     },
     "batchers": {
         "0x9641d764fc13c8b624c04430c7356c1c7c8102e2": "MultiSendCallOnly 1.4.1",
@@ -44,6 +49,8 @@ CFG = {
         "0x9641d764fc13c8b624c04430c7356c1c7c8102e2": ["Safe MultiSend", "safe", {}],
         "0x40a2accbd92bca938b02010e17a5b8929b49130d": ["Safe MultiSend", "safe", {}],
         "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": ["USDC", "usdc", {}],
+        "0x036cbd53842c5426634e7929541ec2318f3dcf7e": ["USDC", "usdc", {}],
+        "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48": ["USDC", "usdc", {}],
         "0x000000000022d473030f116ddee9f6b43ac78ba3": ["Uniswap Permit2", "uniswap", {}],
         "0x6ff5693b99212da76ad316178a184ab56d299b43": ["Uniswap Router", "uniswap", {
             "3593564c": ["execute(bytes,bytes[],uint256)", "Swap on Uniswap"],
