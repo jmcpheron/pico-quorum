@@ -11,7 +11,7 @@ upstream, `tools/quorum live exec` executes instead.
 |---|---|
 | [ISSUE.md](ISSUE.md) | The issue, ready to paste: title plus body in their bug-report template. The reproduction script is inlined in a `<details>` block |
 | [PR.md](PR.md) | The pull request, ready to paste: their PR template, with the Mermaid summary they require for AI-authored PRs and the CLA line. Replace `#ISSUE` with the issue number |
-| [repro/](repro/) | `repro.mjs`, the self-contained reproduction: Anvil fork of Base Sepolia, throwaway keys, protocol-kit's own `buildSignatureBytes` for both layouts. It also prints the test fixtures (`--fixture`) |
+| [repro/](repro/) | `repro.mjs`, the self-contained reproduction ([how to run it](repro/README.md)): Anvil fork of Base Sepolia, throwaway keys, protocol-kit's own `buildSignatureBytes` for both layouts. It also prints the test fixtures (`--fixture`) |
 | [0001-fix-keep-EIP-1271-contract-signatures-when-rebuildin.patch](0001-fix-keep-EIP-1271-contract-signatures-when-rebuildin.patch) | The fix and its test, one commit made with `git format-patch` against their `dev` at `5717e3a` |
 
 ## Before submitting: privacy

@@ -108,6 +108,10 @@ const test = createTestClient({ chain, mode: "anvil", transport: http(RPC) });
 const wallet = createWalletClient({ chain, transport: http(RPC) });
 const sha = (b) => createHash("sha256").update(b).digest();
 
+// Everything below is undone at the end (anvil snapshot/revert), so the script can run again on
+// the same fork and give the same output.
+const snapshot = await test.snapshot();
+
 // A throwaway account that pays for the setup on the fork.
 const payer = privateKeyToAccount(keccak256(toHex("gs021 repro: payer")));
 await test.setBalance({ address: payer.address, value: 10n ** 20n });
@@ -220,11 +224,16 @@ async function scenario(name, owners, threshold, confirm) {
 }
 
 console.log(`fork of Base Sepolia at ${RPC}, block ${await pub.getBlockNumber()}`);
-const results = [
-  await scenario("2-of-2 EOA + passkey", [eoa, after], 2, [eoa, after]),
-  await scenario("3-of-3 passkey + EOA + passkey", [before, eoa, after], 3, [before, eoa, after]),
-  await scenario("1-of-2 control", [before, eoa], 1, [before, eoa]),
-];
+let results;
+try {
+  results = [
+    await scenario("2-of-2 EOA + passkey", [eoa, after], 2, [eoa, after]),
+    await scenario("3-of-3 passkey + EOA + passkey", [before, eoa, after], 3, [before, eoa, after]),
+    await scenario("1-of-2 control", [before, eoa], 1, [before, eoa]),
+  ];
+} finally {
+  await test.revert({ id: snapshot });     // leave the fork as it was
+}
 if (FIXTURE) console.log("\nFIXTURE " + JSON.stringify(results.map((r) => ({ name: r.name, threshold: r.threshold, confirmations: r.confirmations, executed: r.executed.logged }))));
 ```
 
