@@ -149,6 +149,8 @@ def chip_ui():
     global slots_ui, _chip_mods
     if slots_ui is None:
         before = set(sys.modules)
+        if svc:
+            svc.release()       # the HTTPS reserve makes room for compiling the chip map
         gc.collect()
         import slots
         slots_ui = slots.SlotsUI(d, sig, key_changed)
@@ -163,6 +165,8 @@ def chip_done():
         sys.modules.pop(m, None)
     _chip_mods = ()
     gc.collect()
+    if svc:
+        svc.hold()
 
 
 def fingerprint():

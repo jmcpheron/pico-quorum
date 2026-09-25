@@ -8,10 +8,16 @@
 #   s.pending(nonce) -> [transaction, ...] oldest nonce first
 #   s.confirm(safe_tx_hash, signature) -> (ok, detail)
 from binascii import hexlify
+import gc
 import requests
 from keccak import keccak256
 
 TIMEOUT = 5
+# HTTPS needs one buffer of about 16 KB in a single piece. The console's heap fragments as it
+# decodes and draws: on the board, after a review, 154 KB were free but no block over 8 KB, and the
+# confirmation's POST failed with OSError 12 (2026-09-25). So an https Service holds one block this
+# size from the start and lets go of it only for the length of each call.
+RESERVE = 32 * 1024
 
 
 def checksum(a):
@@ -30,26 +36,50 @@ class Service:
         self.base = base.rstrip("/")
         self.safe = safe
         self.headers = {"Authorization": "Bearer " + api_key} if api_key else {}
+        self._room = None
+        self.hold()
+
+    def hold(self):
+        """Take the reserve back (https only). Quietly does without if it no longer fits."""
+        if self._room is None and self.base.startswith("https"):
+            gc.collect()
+            try:
+                self._room = bytearray(RESERVE)
+            except MemoryError:
+                self._room = None
+
+    def release(self):
+        """Give the reserve back to the heap, for an HTTPS call or anything else that needs room."""
+        self._room = None
+        gc.collect()
 
     def _get(self, path):
-        r = requests.get(self.base + path, headers=self.headers, timeout=TIMEOUT)
+        self.release()
         try:
-            if r.status_code != 200:
-                raise ServiceError("HTTP %d" % r.status_code)
-            return r.json()
+            r = requests.get(self.base + path, headers=self.headers, timeout=TIMEOUT)
+            try:
+                if r.status_code != 200:
+                    raise ServiceError("HTTP %d" % r.status_code)
+                return r.json()
+            finally:
+                r.close()
         finally:
-            r.close()
+            self.hold()
 
     def _post(self, path, body):
-        r = requests.post(self.base + path, json=body, headers=self.headers, timeout=TIMEOUT)
+        self.release()
         try:
+            r = requests.post(self.base + path, json=body, headers=self.headers, timeout=TIMEOUT)
             try:
-                out = r.json()
-            except ValueError:
-                out = {}
-            return r.status_code, out
+                try:
+                    out = r.json()
+                except ValueError:
+                    out = {}
+                return r.status_code, out
+            finally:
+                r.close()
         finally:
-            r.close()
+            self.hold()
 
     def safe_info(self):
         return self._get("/api/v1/safes/%s/" % self.safe)
