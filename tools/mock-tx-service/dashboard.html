@@ -1,10 +1,10 @@
 <!doctype html>
-<!-- The simulated Safe, live: owners, the queue and who has confirmed what. Served at / by server.mjs. -->
+<!-- The Family Safe, live (simulated, or real on the Anvil fork): owners, the queue and who has confirmed what. Served at / by server.mjs. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Simulated Safe</title>
+<title>Family Safe</title>
 <style>
   :root { --bg: #0f1115; --panel: #181b22; --ink: #e8e8ea; --dim: #8a8f98; --ok: #3ecf6e; --red: #ff5a5a; --warn: #f5c542; --line: #262a33; }
   body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 ui-monospace, Menlo, monospace; }
@@ -42,9 +42,11 @@ let st = null;
 async function draw() {
   st = await (await fetch("/sim/state")).json();
   $("title").textContent = st.name;
-  $("sub").textContent = `${st.address} · chain ${st.chainId} · nonce ${st.nonce}`;
+  const c = st.chain;
+  $("sub").textContent = `${st.address} · chain ${st.chainId} · v${st.version} · nonce ${st.nonce} · ` +
+    (c ? `a real Safe on the Anvil fork of Base, block ${c.block} · ${(+c.eth).toFixed(4)} ETH · ${(+c.usdc).toLocaleString()} USDC · P-256 precompile ${c.precompile ? "yes" : "no"}` : "simulated, no chain");
   $("quorum").textContent = `${st.threshold} of ${st.owners.length} must approve`;
-  $("owners").innerHTML = st.owners.map((o) => `<tr><td>${esc(o.name)}</td><td>${o.address}</td><td class="dim">${o.kind === "p256" ? "P-256 key on " + esc(o.device) : "ECDSA (simulated)"}</td></tr>`).join("");
+  $("owners").innerHTML = st.owners.map((o) => `<tr><td>${esc(o.name)}</td><td>${o.address}</td><td class="dim">${o.kind === "p256" ? "P-256 key on " + esc(o.device) + " (its signer proxy)" : "ECDSA" + (st.chain ? "" : " (simulated)")}</td></tr>`).join("");
   if (!$("scenario").options.length) $("scenario").innerHTML = Object.entries(st.scenarios).map(([k, v]) => `<option value="${k}" title="${esc(v)}">${k}</option>`).join("");
   const pending = st.txs.filter((t) => !t.isExecuted && Number(t.nonce) >= st.nonce);
   $("queue").innerHTML = pending.length ? pending.map((t) => {
@@ -56,10 +58,11 @@ async function draw() {
     }).join("&nbsp; ");
     const lie = t.trueHash !== t.safeTxHash ? ` <span class="lie">service lies about the hash</span>` : t.safe !== st.address ? ` <span class="lie">other Safe</span>` : "";
     const dec = t.declined.length ? ` <span class="lie">rejected on ${esc(t.declined.join(", "))}</span>` : "";
-    return `<tr><td>#${t.nonce}</td><td>${esc(t.scenario)}${lie}${dec}<div class="dim">${t.safeTxHash.slice(0, 18)}…${t.safeTxHash.slice(-8)}</div></td><td>${t.confirmations.length}/${st.threshold}</td><td>${cells}</td></tr>`;
+    const rev = t.revert ? ` <span class="lie">would revert: ${esc(t.revert)}</span>` : "";
+    return `<tr><td>#${t.nonce}</td><td>${esc(t.scenario)}${lie}${dec}${rev}<div class="dim">${t.safeTxHash.slice(0, 18)}…${t.safeTxHash.slice(-8)}</div></td><td>${t.confirmations.length}/${st.threshold}</td><td>${cells}</td></tr>`;
   }).join("") : `<tr><td class="dim">nothing waiting</td></tr>`;
   const done = st.txs.filter((t) => t.isExecuted).reverse();
-  $("done").innerHTML = done.map((t) => `<tr><td>#${t.nonce}</td><td>${esc(t.scenario)}</td><td class="dim">${t.confirmations.map((c) => esc((st.owners.find((o) => o.address === c.owner) || {}).name || c.owner.slice(0, 8))).join(", ")}</td></tr>`).join("") || `<tr><td class="dim">none yet</td></tr>`;
+  $("done").innerHTML = done.map((t) => `<tr><td>#${t.nonce}</td><td>${esc(t.scenario)}${st.chain ? `<div class="dim">tx ${t.transactionHash}${t.isSuccessful === false ? ' <span class="lie">the call failed</span>' : ""}</div>` : ""}</td><td class="dim">${t.confirmations.map((c) => esc((st.owners.find((o) => o.address === c.owner) || {}).name || c.owner.slice(0, 8))).join(", ")}</td></tr>`).join("") || `<tr><td class="dim">none yet</td></tr>`;
   $("log").textContent = st.log.slice(-40).reverse().join("\n");
 }
 $("propose").onclick = () => post("/sim/propose", { scenario: $("scenario").value });
