@@ -512,6 +512,13 @@ def start():
     global d, keys, svc, dirty, splash_until, last_activity
     splash.TITLE = "picoquorum"
     U.use(getattr(secrets, "QUORUM_THEME", "dark") if secrets else "dark")
+    # Every font now, while the heap is whole. They are loaded on first use otherwise, and bold26
+    # alone is one 10.9 KB block: after a tour of the chip map the heap was too fragmented for it,
+    # and every redraw of a review page failed with MemoryError (2026-09-25, on the board).
+    import fonts
+    for name in fonts.FILES:
+        fonts.get(name)
+    gc.collect()
     d = splash.begin()
     keys = L.Keys()
     splash.step("chip", "probing i2c...", L.GREY)
