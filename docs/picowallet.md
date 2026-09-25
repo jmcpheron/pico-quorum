@@ -117,7 +117,10 @@ The screen comes up, finds the chip on the bus, and shows "no key" until step 5.
 
 ## 5. Set up the chip (once)
 
-A fresh ATECC608 refuses to make a key until its config zone is locked, once, permanently. This
+A fresh ATECC608 refuses to make a key until its config zone is locked, once, permanently. **Before
+locking any chip run `python3 tools/check_config`** (proves the firmware's config table is the one on
+the working chip) and know that the firmware reads the chip back and refuses to lock on any
+mismatch; a chip was lost on 2026-09-15 before those checks existed (`buildlog/2026-09-15-config-table-bug.md`). This
 is normal; every chip in use is locked. Generate the final key before deploying the contract:
 
 1. In `firmware/secrets.py` temporarily set `ALLOW_LOCK = True` and `ALLOW_GENKEY = True`, then
@@ -279,14 +282,14 @@ digest the device computed.
 
 | path | what |
 |---|---|
-| `firmware/` | MicroPython for the Pico: `wallet.py` loop and screens, `atecc.py` chip driver, `signer.py`, `eip712.py` + `keccak.py` + `p256.py` pure-Python crypto, `lcd.py`, `net.py` |
+| `firmware/` | MicroPython for the Pico: `wallet.py` loop and screens (WiFi), `usbwallet.py` (USB, no radio, see `docs/USB.md`), `atecc.py` chip driver, `signer.py`, `eip712.py` + `keccak.py` + `p256.py` pure-Python crypto, `blockies.py`, `lcd.py`, `net.py` |
 | `app/` | contracts, tests, site, relay |
 | `cad/console/` | STLs, the generator, the measurements |
 | `emu/` | the virtual wallet: MicroPython in WebAssembly, `machine` shims, the case STLs in 3D, a CLI for bots |
 | `tools/` | `pico` console, `push` firmware, `qr` (QR of the vault for the screen), `emu` (the virtual wallet) |
 | `buildlog/` | dated notes and photos of what actually happened, including the mistakes |
 | `reference/` | the Pi signer this grew out of, with the fresh-chip guide; SeedSigner cap parts (MIT) |
-| `docs/PLAN-picowallet.md`, `hardware/wiring/SOLDERING.md` | the plan, and the wiring guide |
+| `docs/PLAN-picowallet.md`, `hardware/wiring/SOLDERING.md`, `docs/USB.md` | the plan, the wiring guide, and the wallet over USB (air-gapped, no radio) |
 | `docs/CHIPMAP.md` | the chip explorer: the map, LEARN, the three classes and gates, the reversible config write, and how the code is laid out |
 | `docs/TESTPLAN.md`, `docs/UPSTREAM.md`, `docs/UPSTREAM-ISSUE.md` | bring-up and test plan for a fresh chip and the battery; notes to send upstream (the config-table bug, flashing, what a fresh chip answers); the issue text, ready to paste |
 

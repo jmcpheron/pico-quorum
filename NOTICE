@@ -3,8 +3,16 @@ https://github.com/jmcpheron/pico-quorum
 
 This repository is a fork of picowallet by Austin Griffith
 (https://github.com/austintgriffith/picowallet), MIT License, Copyright (c) 2026 Austin Griffith.
-The firmware (including the ATECC608 driver firmware/atecc.py), the emulator, the tools, the
-ChipAccount contracts and app, and the build notes in docs/ come from it. See LICENSE.
+The firmware (including the ATECC608 driver firmware/atecc.py and the OPTIGA Trust M driver
+firmware/trustm.py), the emulator, the tools, the ChipAccount and TrustMAttest contracts and app,
+and the build notes in docs/ come from it. See LICENSE.
+
+Fork point: upstream commit 87c717c (2026-09-13). Commits after it through 35c744c (chip map,
+config-table fix, wiring, snake) are Jason McPheron's own picowallet work, made before the project
+was renamed. Upstream merged again through 72539d5 (2026-09-24); see docs/UPSTREAM-TRACKING.md.
+
+New in PicoQuorum: firmware/safe_tx.py, test-vectors/, tools/vectors/, and the PicoQuorum docs in
+docs/, hardware/, cad/ and contracts/.
 
 It also includes or builds on:
 
@@ -21,7 +29,3 @@ It also includes or builds on:
 - Scaffold-ETH 2 (https://scaffoldeth.io), MIT: app/.
 - MicroPython (https://micropython.org), MIT: the WebAssembly build the emulator runs, installed
   from npm.
-
-PicoQuorum talks to Safe's deployed contracts (safe-smart-account v1.4.1 and the safe-modules
-passkey signer v0.2.1, by Safe Ecosystem Foundation) through its own minimal interfaces in
-contracts/src/interfaces/. No Safe source code is vendored here.

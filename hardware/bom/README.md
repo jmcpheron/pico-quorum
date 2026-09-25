@@ -26,7 +26,8 @@ From the [kickoff](../../docs/KICKOFF.md#first-parts-order). Nothing ordered yet
 | part | qty | notes |
 |---|---|---|
 | Raspberry Pi Pico 2 W | 2 | |
-| Adafruit Trust M breakout | 2–3 | evaluation; no MicroPython driver yet |
+| Adafruit ATECC608 breakout, STEMMA QT | 2–3 | what the current firmware drives |
+| Adafruit Trust M breakout | 2–3 | evaluation for `firmware/trustm.py` (from upstream, not yet run on a chip here) |
 | Momentary push buttons, thumb-sized, green and red | a few of each | compare feel |
 | Flip-up switch cover or guard hardware | | Sign button guard |
 | ¼″ stereo plugs (solder type), ¼″ stereo switched jacks | extras | key connector: SDA, SCL, GND |

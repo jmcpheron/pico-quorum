@@ -1,30 +1,32 @@
 # PicoQuorum: Project Kickoff
 
+> **Living draft.** The design is still changing. Edit this file as decisions get made, and move
+> settled decisions out of "Open decisions" with a one-line reason.
+
 **Repo:** https://github.com/jmcpheron/pico-quorum
 
-A thumb-operated hardware signer for [Safe](https://safe.global) multisig wallets, with secure-element keys that plug in like guitar cables.
+A physical approval device for [Safe](https://safe.global) multisig wallets. Each signer holds a plug-in secure-element key; the console shows what a transaction does and signs only when you press Sign.
 
-## Status (2026-09-22)
+## Status (2026-09-24)
 
-The hardware in the kickoff (plug-in keys, the console with its guarded button and dial) doesn't exist yet. Until
+The hardware in this kickoff (plug-in keys, the console with its guarded button and dial) doesn't exist yet. Until
 it does, the **dev console** is the picowallet this repo forked: a Pico 2 W, a Waveshare Pico-LCD-1.3 (240×240,
 joystick, A/B/X/Y) and an Adafruit ATECC608 breakout. Its build guide is [picowallet.md](picowallet.md).
-On the dev console, holding **A** for 2 s signs, **Y** rejects, and the joystick pages.
 
 | Layer | Where it lives | State |
 |---|---|---|
-| 1. Secure-element driver | `firmware/atecc.py` (upstream), behind the backends in `firmware/signer.py` | works; a Trust M backend would be one more class in `signer.py` |
-| 2. Safe hash | `firmware/safetx.py`, checked against `test-vectors/safe-tx/` | rung 1 |
-| 3. Signature packaging | `firmware/webauthn.py`: WebAuthn-shaped, for Safe's passkey signer | rung 1 |
-| 4. Transaction service client | `firmware/quorum.py`; the mock service is `tools/mock-tx-service/` | rung 1 (mock only) |
-| 5. Decoder and display | `firmware/decode.py`, `firmware/quorum.py` | rung 1 |
-| Contracts | `contracts/`: Foundry, fork tests against Safe's deployed contracts on Base | rung 1 |
+| 1. Secure-element driver | `firmware/atecc.py` and `firmware/trustm.py` (upstream), `firmware/signer.py` | ATECC608 works; Trust M not yet run on a chip here |
+| 2. Safe hash | `firmware/safe_tx.py`, checked against `test-vectors/` | done |
+| 3. Signature packaging | | not started |
+| 4. Transaction service client | | not started |
+| 5. Decoder and display | | not started |
+| Contracts | `contracts/` | not started |
 
-[Test ladder](#test-ladder) rung 1 is the current milestone.
+[Test ladder](#test-ladder) rung 1 is the next milestone.
 
 ## What this is
 
-PicoQuorum is a physical approval device for Safe multisig accounts. Each signer holds a **key**: a chunky dual plug with a secure element in its handle. The key plugs into a **console**: a Raspberry Pi Pico–based box with a screen, a paging dial, a guarded green **Sign** button and an easy red **Reject** button, both pressed with a thumb.
+PicoQuorum is a physical approval device for Safe multisig accounts. Each signer holds a **key**: a chunky dual plug with a secure element in its handle (an ATECC608 today; the Infineon OPTIGA Trust M is still an option, see [Open decisions](#open-decisions)). The key plugs into a **console**: a Raspberry Pi Pico–based box with a screen, a paging dial, a guarded green **Sign** button and an easy red **Reject** button, both pressed with a thumb.
 
 The console fetches pending Safe transactions and decodes them into plain language. It computes the Safe transaction hash itself, and only then asks the key to sign. Each private key is generated inside its chip, never leaves it, and never exists as a seed phrase.
 
@@ -32,25 +34,20 @@ The console fetches pending Safe transactions and decodes them into plain langua
 
 ## Credit and upstream
 
-This project is a fork of **Austin Griffith's** [picowallet](https://github.com/austintgriffith/picowallet): a Pico 2 W, a Waveshare Pico-LCD-1.3, and a Microchip **ATECC608** secure element. picowallet proved several things:
+This project is forked from **Austin Griffith's [picowallet](https://github.com/austintgriffith/picowallet)** (MIT): a Pico 2 W, a Waveshare Pico-LCD-1.3 and a Microchip **ATECC608** secure element. That project proved a Pico can drive a secure element from MicroPython, rebuild an EIP-712 digest on-device, show a signing request, take a button press, and return a real P-256 signature that moved funds on Ethereum mainnet. Its code stays in this repo (`firmware/`, `app/`, `emu/`; its case in `cad/console/`, its notes in `docs/`) until the PicoQuorum parts replace it.
 
-- A Pico can drive an ATECC608 from MicroPython.
-- It can rebuild an EIP-712 digest on the device from the same fields it shows.
-- It can take a button press and return a real P-256 signature from a key generated inside the chip.
-- It moved real money on Ethereum mainnet through its audited `ChipAccount` vault.
+Upstream has since added an **OPTIGA Trust M** driver (`firmware/trustm.py`: physical and link layers, APDU session, factory-certificate read, CalcSign) and a `TrustMAttest` contract (`app/packages/foundry/contracts/`) that proves on chain that a P-256 key lives in a real Trust M. Both were merged here on 2026-09-24; see [`UPSTREAM-TRACKING.md`](UPSTREAM-TRACKING.md).
 
-An earlier draft of this kickoff credited a "Pico + Trust M" project. That was wrong: upstream uses an ATECC608 and has no Trust M code.
-
-- [x] Add upstream link, license check (MIT, © 2026 Austin Griffith, kept in `LICENSE`), and attribution to `README.md` and `NOTICE`
-- [x] Upstream driver: `firmware/atecc.py` is upstream's own driver, in-tree because this repo is a fork. Change it as little as possible. The one real fix, the config table, is written up for Austin in [UPSTREAM.md](UPSTREAM.md).
-- [ ] Track upstream driver fixes ([UPSTREAM.md](UPSTREAM.md), "Tracking upstream")
+- [x] Add upstream link, license check, and attribution to `README.md` and `NOTICE`
+- [ ] Keep the upstream secure-element drivers (`firmware/atecc.py`, `firmware/trustm.py`) and change them as little as possible
+- [ ] Track upstream driver fixes (see [`UPSTREAM-TRACKING.md`](UPSTREAM-TRACKING.md))
 
 What's different here: a multisig-first design, on-device Safe transaction decoding and hash verification, plug-in keys, a physical console design, and a provisioning ceremony that locks keys before distribution.
 
 ## Goals
 
 - Sign real Safe transactions with a secure-element key, verified onchain
-- Compute the Safe EIP-712 transaction hash on-device from the same fields shown on screen. **Never blind-sign a digest.**
+- Compute the Safe EIP-712 transaction hash on-device from the same fields shown on screen. **Never blind-sign a digest.** (Started: `firmware/safe_tx.py`, checked by `test-vectors/`.)
 - Show layperson-friendly transaction details, warnings, and verification codes
 - Poll Safe's transaction service over Wi-Fi, so a remote signer only needs the console and their key
 - Provision, test, and lock keys in a documented ceremony before handing them out
@@ -77,13 +74,16 @@ What's different here: a multisig-first design, on-device Safe transaction decod
 
 | Option | Use | Notes |
 |---|---|---|
-| Adafruit ATECC608 breakout (4314) | Development now | Driver in-tree (`firmware/atecc.py`), a virtual one in the emulator. Three P-256 key slots (0, 2, 7) under the wallet config. No factory certificate on this part. |
-| Adafruit Trust M breakout | Evaluation | Has an Infineon factory certificate. No MicroPython driver yet. |
-| Bare Trust M on a custom key PCB | Real keys | ~3×3 mm chip on a board ~6–8 mm wide, fits in the plug handle |
+| Adafruit ATECC608 breakout (STEMMA QT) | Development now | What upstream uses; driver, chip explorer and provisioning flow already in `firmware/` |
+| Bare ATECC608 (2×3 mm UDFN or SOIC-8) on a custom key PCB | Real keys, option A | Same driver as development |
+| Adafruit Trust M breakout | Evaluation | `firmware/trustm.py` (from upstream) drives it; `TrustMAttest` proves the factory identity on chain |
+| Bare Trust M (~3×3 mm) on a custom key PCB | Real keys, option B | Fits the plug handle on a board ~6–8 mm wide |
 
-- [ ] Choose which Trust M variant and firmware version to standardize on
-- [ ] **Critical:** find out whether authorization access conditions can gate signing behind a PIN with attempt limiting. A portable key without one is a live key if stolen. Ask this of both chips: the Trust M's authorization-reference access conditions, and the ATECC608's `ReqAuth`/`AuthKey` slot rules plus its monotonic counters.
-- [ ] Document the key-slot metadata and lifecycle-state locking procedure. For the ATECC608, the config, data and slot locks are already walked through in [CHIPMAP.md](CHIPMAP.md).
+- [ ] Choose the chip for real keys: ATECC608 or Trust M (and which variant / firmware version)
+- [ ] **Critical:** find out whether signing can be gated behind a PIN with attempt limiting. A portable key without one is a live key if stolen.
+  - ATECC608: a slot can require prior authorization by a secret-derived key (CheckMac / auth key), and a monotonic counter can cap uses (LimitedUse). No built-in attempt lockout, so the limit would have to come from the counter.
+  - Trust M: authorization-reference access conditions and a security event counter that throttles repeated failures.
+- [ ] Document the key-slot metadata and lock / lifecycle-state procedure for the chosen chip (for the ATECC608, the config, data and slot locks are already walked through in [CHIPMAP.md](CHIPMAP.md) and [TESTPLAN.md](TESTPLAN.md))
 
 ### Key connector: draft pinout
 
@@ -125,9 +125,9 @@ On the dev console: A (top of the column, green bar) is Sign, held 2 s; Y (botto
 
 ## Safe integration: firmware layers
 
-1. **Secure-element driver**, inherited from upstream (`firmware/atecc.py`) and reached through `firmware/signer.py`.
-2. **Safe hash:** EIP-712 domain (chain ID and Safe address) plus the SafeTx struct, with Keccak computed on-device. Golden test vectors live in `test-vectors/`, and every change must pass all of them (`tools/check`).
-3. **Signature packaging** into the format the owner contract expects (WebAuthn-shaped for Safe's passkey signer; custom ERC-1271 only if that path fails).
+1. **Secure-element driver**, inherited from upstream: `firmware/atecc.py` and `firmware/trustm.py`.
+2. **Safe hash:** EIP-712 domain (chain ID and Safe address) plus the SafeTx struct, with Keccak computed on-device. Golden test vectors live in `test-vectors/`, and every change must pass all of them. *(Done: `firmware/safe_tx.py`.)*
+3. **Signature packaging** into the format the owner contract expects (WebAuthn-shaped or custom ERC-1271).
 4. **Transaction service client:** list pending transactions and post confirmations, with the API key kept in config.
 5. **Decoder and display:** plain-language actions, warnings, and verification pages.
 
@@ -135,7 +135,7 @@ On the dev console: A (top of the column, green bar) is Sign, held 2 s; Y (botto
 
 - **Summary:** Safe nickname; chain name with a color band; short Safe address; nonce shown as "transaction #N"; approval status such as "1 of 3 so far, you'd be #2"; who has signed, using a local address book.
 - **Action:** plain English ("Send 1.5 ETH to …"). Token amounts use proper decimals from a built-in token list. Known addresses show address-book names. Unknown addresses appear in 4-character chunks with a first-time-recipient flag. Batched actions are unpacked one per page.
-- **Warnings (red screens):** owner add, remove, or swap; threshold change; module or guard changes; delegatecall; nonzero gas-refund fields; undecodable calls (you should be told exactly what to expect).
+- **Warnings (red screens):** owner add, remove, or swap; threshold change; module or guard changes; delegatecall; nonzero gas-refund fields; undecodable calls ("Don't sign unless you were told exactly what to expect").
 - **Verify:** the last 8 characters of the Safe transaction hash in large type, for phone-call confirmation. Also three QR codes: the full hash, the signature (for air-gapped fallback), and the owner address (for setup).
 
 ## Test ladder
@@ -146,7 +146,7 @@ On the dev console: A (top of the column, green bar) is Sign, held 2 s; Y (botto
 
 ## Provisioning ceremony (outline)
 
-1. Verify each chip's factory certificate (Trust M), and discard any failures.
+1. Verify each chip's factory identity (Infineon certificate for Trust M; Microchip Trust&Go certificate or the serial number for ATECC608), and discard any failures.
 2. Generate a signing key in an application key slot, and have the factory identity key sign a statement binding that key to the chip.
 3. **Test before locking:** create a throwaway testnet Safe, sign with every key, and run a rotation drill.
 4. Lock the key-slot metadata and advance the chip's lifecycle state. This is irreversible.
@@ -168,39 +168,30 @@ hardware/
 cad/
   console/       enclosure, button guard or cover, jack bracket (today: the dev console's case)
   key/           plug handle, end cap, label band
-firmware/        MicroPython (upstream-derived driver plus Safe layers)
-contracts/       Foundry project: signer setup, fork tests, deploy scripts
-tools/           mock transaction service, provisioning scripts, emulator and board tools
+firmware/        MicroPython (upstream drivers plus Safe layers; safe_tx.py so far)
+contracts/       signer contract, tests, deploy scripts (Foundry is in app/packages/foundry for now)
+tools/           mock transaction service, provisioning scripts, vector generator, emulator and board tools
 test-vectors/    Safe transactions with known-correct hashes
 ```
 
 These live outside the kickoff layout:
-- `app/`: picowallet's Scaffold-ETH app for the single-owner vault. Its Foundry package can't leave the workspace without breaking `yarn deploy`.
+- `app/`: picowallet's Scaffold-ETH app for the single-owner vault, and `TrustMAttest`. Its Foundry package can't leave the workspace without breaking `yarn deploy`.
 - `emu/`: the virtual dev console.
 - `buildlog/`: dated notes and photos.
 - `reference/`: the Pi signer picowallet grew out of.
 
 ## First parts order
 
-- Raspberry Pi Pico 2 W (×2)
-- Adafruit Trust M breakout (×2–3)
-- Momentary push buttons, thumb-sized, in green and red (a few candidates to compare feel)
-- Flip-up switch cover or guard hardware
-- ¼″ stereo plugs (solder type) and ¼″ stereo switched jacks, with extras
-- 3.5 mm plugs (solder type) and 3.5 mm switched jacks, with extras
-- Rotary encoder with push switch
-- 2.0″ and 2.8″ 320×240 screens, one each to compare
-- Load-switch and ESD/TVS parts, or breakouts for prototyping
-- Status LEDs and assorted resistors and capacitors
-
-The dev console's parts are in [hardware/bom](../hardware/bom/README.md).
+See [`hardware/bom/README.md`](../hardware/bom/README.md).
 
 ## Open decisions
 
-- [ ] WebAuthn-shaped signatures vs. a custom ERC-1271 signer (rung 1 tries Safe's passkey signer, v0.2.1)
-- [ ] Whether a PIN/authorization is feasible on the Trust M (and on the ATECC608)
+- [ ] Secure element for real keys: ATECC608 (driver here) vs Trust M (driver and on-chain attestation upstream)
+- [ ] WebAuthn-shaped signatures vs. a custom ERC-1271 signer (first choice: Safe's passkey signer)
+- [ ] Whether a PIN/authorization is feasible on the chosen chip
 - [ ] Screen size
 - [ ] Button choice and layout (beside the screen vs. below it)
 - [ ] Flip cover vs. guard fence
 - [ ] Printed vs. aluminum enclosure
 - [ ] Faceplate name: "PicoQuorum" or just "Quorum"
+- [ ] When to prune the inherited single-token code (`app/` ChipAccount/USDS, the Waveshare case in `cad/console/`)
