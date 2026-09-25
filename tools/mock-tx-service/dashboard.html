@@ -1,0 +1,71 @@
+<!doctype html>
+<!-- The simulated Safe, live: owners, the queue and who has confirmed what. Served at / by server.mjs. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulated Safe</title>
+<style>
+  :root { --bg: #0f1115; --panel: #181b22; --ink: #e8e8ea; --dim: #8a8f98; --ok: #3ecf6e; --red: #ff5a5a; --warn: #f5c542; --line: #262a33; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 ui-monospace, Menlo, monospace; }
+  main { max-width: 920px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 18px; margin: 0 0 4px; } .dim { color: var(--dim); }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; margin: 12px 0; }
+  table { width: 100%; border-collapse: collapse; } td, th { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .yes { color: var(--ok); } .no { color: var(--dim); } .lie { color: var(--red); font-weight: bold; }
+  button, select { background: #232733; color: var(--ink); border: 1px solid #333a48; border-radius: 6px; padding: 3px 8px; font: inherit; cursor: pointer; }
+  pre { white-space: pre-wrap; margin: 0; max-height: 320px; overflow: auto; color: var(--dim); }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+</style>
+</head>
+<body>
+<main>
+  <h1 id="title">Simulated Safe</h1>
+  <div class="dim" id="sub"></div>
+  <section><div class="row"><b>Owners</b><span class="dim" id="quorum"></span></div><table id="owners"></table></section>
+  <section>
+    <div class="row"><b>Queue</b>
+      <select id="scenario"></select><button id="propose">propose</button>
+      <button id="demo">reset to demo queue</button>
+    </div>
+    <table id="queue"></table>
+  </section>
+  <section><b>Executed</b><table id="done"></table></section>
+  <section><b>Log</b><pre id="log"></pre></section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const post = (path, body) => fetch(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).then(draw);
+let st = null;
+
+async function draw() {
+  st = await (await fetch("/sim/state")).json();
+  $("title").textContent = st.name;
+  $("sub").textContent = `${st.address} · chain ${st.chainId} · nonce ${st.nonce}`;
+  $("quorum").textContent = `${st.threshold} of ${st.owners.length} must approve`;
+  $("owners").innerHTML = st.owners.map((o) => `<tr><td>${esc(o.name)}</td><td>${o.address}</td><td class="dim">${o.kind === "p256" ? "P-256 key on " + esc(o.device) : "ECDSA (simulated)"}</td></tr>`).join("");
+  if (!$("scenario").options.length) $("scenario").innerHTML = Object.entries(st.scenarios).map(([k, v]) => `<option value="${k}" title="${esc(v)}">${k}</option>`).join("");
+  const pending = st.txs.filter((t) => !t.isExecuted && Number(t.nonce) >= st.nonce);
+  $("queue").innerHTML = pending.length ? pending.map((t) => {
+    const cells = st.owners.map((o) => {
+      const c = t.confirmations.some((c) => c.owner === o.address);
+      const btn = !c && o.kind === "eoa" && ["ALICE", "BOB"].includes(o.name)
+        ? ` <button onclick="post('/sim/confirm',{ref:'${t.safeTxHash}',as:'${o.name.toLowerCase()}'})">sign</button>` : "";
+      return `<span class="${c ? "yes" : "no"}">${c ? "✓" : "·"} ${esc(o.name)}</span>${btn}`;
+    }).join("&nbsp; ");
+    const lie = t.trueHash !== t.safeTxHash ? ` <span class="lie">service lies about the hash</span>` : t.safe !== st.address ? ` <span class="lie">other Safe</span>` : "";
+    const dec = t.declined.length ? ` <span class="lie">rejected on ${esc(t.declined.join(", "))}</span>` : "";
+    return `<tr><td>#${t.nonce}</td><td>${esc(t.scenario)}${lie}${dec}<div class="dim">${t.safeTxHash.slice(0, 18)}…${t.safeTxHash.slice(-8)}</div></td><td>${t.confirmations.length}/${st.threshold}</td><td>${cells}</td></tr>`;
+  }).join("") : `<tr><td class="dim">nothing waiting</td></tr>`;
+  const done = st.txs.filter((t) => t.isExecuted).reverse();
+  $("done").innerHTML = done.map((t) => `<tr><td>#${t.nonce}</td><td>${esc(t.scenario)}</td><td class="dim">${t.confirmations.map((c) => esc((st.owners.find((o) => o.address === c.owner) || {}).name || c.owner.slice(0, 8))).join(", ")}</td></tr>`).join("") || `<tr><td class="dim">none yet</td></tr>`;
+  $("log").textContent = st.log.slice(-40).reverse().join("\n");
+}
+$("propose").onclick = () => post("/sim/propose", { scenario: $("scenario").value });
+$("demo").onclick = () => post("/sim/reset", { demo: true });
+draw();
+setInterval(draw, 2000);
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "name": "pico-quorum-mock-tx-service",
+  "private": true,
+  "type": "module",
+  "description": "A simulated Safe and a mock of Safe's transaction service, for the console (tools/quorum)",
+  "scripts": { "serve": "node server.mjs", "test": "node test.mjs" },
+  "dependencies": { "@noble/curves": "1.9.1", "viem": "2.56.8" }
+}
