@@ -327,3 +327,78 @@ went 1, 2, on the screen and from the laptop. `docs/UPSTREAM-ISSUE.md` is the sh
 
 Not done today, on purpose: LOCK SLOT 0, LOCK DATA ZONE, PrivWrite, the note in slot 12, slot 2.
 Flags back to False and pushed.
+
+## 2026-09-24 — the Safe console on the Pico: the chip approves its first Safe transactions
+
+The PicoQuorum console (branch `quorum-ui`) ran on the real board for the first time. Its code is
+`firmware/quorum.py`, `quorum_ui.py`, `decode.py` and `txservice.py`, with the new
+anti-aliased fonts. On the other end was `tools/quorum`, a simulated 2-of-3 Safe on the Mac:
+Family Safe, chain 31337, at `192.168.4.25:8787`, with Alice and Bob as simulated co-signers.
+Screens and flows are in `docs/quorum-ui/README.md`.
+
+**The board as found:**
+- MicroPython 1.26.1 (`RPI_PICO2_W`), `main.py` = the WiFi wallet.
+- Chip: config locked, data zone open, key in slot 0 = `9fad2e82`, unchanged since 09-17.
+- Heap is 457 KB in all:
+
+  | Loaded | Free |
+  |---|---|
+  | after boot (boot.py had already drawn the splash, so the framebuffer was in) | 300 KB |
+  | with `wallet` imported | 198 KB |
+  | with the boot animations' fonts and drawing code | 206 KB |
+
+  That's room enough for the console.
+
+**What changed on the board:**
+- Backed up `main.py`, `slot.txt`, `snake.hi`/`snake.top` and the config snapshot.
+- Appended `QUORUM_URL = "http://192.168.4.25:8787"` to `secrets.py`; nothing else in it touched.
+- `tools/emu ship bootfx`, then `tools/emu ship quorum`. Both are one-off runs; `main.py` was not
+  changed.
+- Newer `net.py` and `splash.py` came along. They're still compatible with the old wallet.
+
+**The boot screen options** (`emu/sketches/bootfx.py`, GIFs in `docs/quorum-ui/boot/`), timed on
+the chip:
+
+| Option | Average frame | Worst frame |
+|---|---|---|
+| quorum | 54 ms | 81 ms |
+| plug in | 61 ms | 97 ms |
+| checklist | 67 ms | 84 ms |
+| hash rain | 115 ms | 150 ms |
+
+`show()` alone is 46 ms of every frame, so the push to the panel, not the drawing, sets the
+pace. Hash rain runs at about half its GIF's speed.
+
+**The session.** The Pico joined WiFi, announced its P-256 key and became the Safe's third
+owner (stand-in owner address `0x3EC9…74A7`). Jason at the device, times PDT:
+
+| Time | # | Transaction | On the Pico | The Safe |
+|---|---|---|---|---|
+| 20:33 | 0 | Alice: 0.05 ETH to Carol | rejected (Y), reopened, held A 2 s | P-256 verified, low s, 2 of 2, executed |
+| 20:34 | 1 | Alice: batch via Safe MultiSend (0.01 ETH, 100 USDC) | signed | verified, executed |
+| 20:34 | 3 | Bob: add a stranger as an owner (red) | rejected | still 1 of 2 |
+| 20:34 | 2 | Alice: approve 500 USDC to Uniswap Permit2 | signed | verified, executed; nonce now 3 |
+| — | 4 | The service lies about the hash | refused on the device | nothing ever posted |
+| 20:35 | 5 | Bob: call an unknown contract (red) | rejected | still 1 of 2 |
+
+Every signature came from the ATECC608, over a hash the Pico computed itself from the fields it
+showed. The Mac checked each one independently: viem's hash, and `@noble/curves` P-256 against
+the key the Pico announced. The lying transaction never got a signature. Had the Pico signed the
+hash the service reported, the mock would have logged it as blind signing.
+
+Decisions today:
+- `main.py` stays the wallet for now; the console runs one-off until it's chosen as the boot app.
+- `QUORUM_URL` stays in the board's `secrets.py`.
+
+Gotchas:
+- A rejection on the console isn't a rejection on the Safe. #3 (the owner change) now blocks the
+  queue at nonce 3, so #4 and #5 could never execute until #3 is signed or replaced by an on-chain
+  rejection. That's iteration 1's open question about what Y should do, now shown on hardware.
+- The mock server had been started before the day's changes (new names, the Uniswap scenarios,
+  the Safe version), so it answered with old code. Restart `tools/quorum serve` after editing
+  `tools/mock-tx-service/`.
+- `tools/emu ship quorum` reports "blocking loop" because `quorum.start()` joins WiFi for up to
+  12 s before returning. The console was fine; it just outlasted ship's short watch.
+
+Not done today, on purpose: making `quorum` the boot app (`main.py`), any lock on the chip, the
+on-chain rejection, and a real chain.
