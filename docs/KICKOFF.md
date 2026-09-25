@@ -88,6 +88,11 @@ Design rules:
 - I2C pull-ups live on the console side.
 - Both jacks mount on one rigid bracket or PCB. One plug on the key gets slight float so it self-aligns.
 
+The first prototype parts are mono ¼″ jacks and plugs, so the prototype uses **Rev P**: the ¼″ plug
+is all ground plus insertion detect through the jack's tip switch, and the 3.5 mm plug carries VCC,
+SDA and SCL. See [`hardware/wiring/README.md`](../hardware/wiring/README.md#prototype-pinout-rev-p),
+which also has the prototype GPIO map and build stages.
+
 ### Controls
 
 - **Sign:** momentary push button on a green panel, with a raised guard or flip-up cover so it's hard to press by accident. Hold for ~2 s while an on-screen progress bar fills.
@@ -161,13 +166,17 @@ inherited from picowallet: app/ case/ emu/ reference/ buildlog/ and the root *.m
 
 ## First parts order
 
-See [`hardware/bom/README.md`](../hardware/bom/README.md).
+Ordered 2026-09-24: a 6-screen SPI TFT kit, EC11 encoders, soft-touch stomp switches for Sign and
+Reject, mono ¼″ jacks and pancake plugs, 3.5 mm jacks and plugs, and 18650 contacts. What each is
+for, what to check on arrival, and what's still needed are in
+[`hardware/bom/README.md`](../hardware/bom/README.md).
 
 ## Open decisions
 
 - [ ] Secure element for real keys: ATECC608 (driver here) vs Trust M (driver and on-chain attestation upstream)
 - [ ] WebAuthn-shaped signatures vs. a custom ERC-1271 signer
 - [ ] Whether a PIN/authorization is feasible on the chosen chip
+- [ ] Key pinout: Rev P (mono ¼″, all ground plus detect) or the draft TRS pinout
 - [ ] Screen size
 - [ ] Button choice and layout (beside the screen vs. below it)
 - [ ] Flip cover vs. guard fence
