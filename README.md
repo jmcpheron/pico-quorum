@@ -54,16 +54,17 @@ What works so far:
   driver and `TrustMAttest` contract, on-device keccak/EIP-712, the screen and button UI, the USB
   wallet, and the emulator.
 
-The [test ladder](docs/KICKOFF.md#test-ladder) is next:
+Next is the [test ladder](docs/LADDER.md), which tracks each step:
 - rung 1 with the real Pico on the fork
-- then Base Sepolia with the Safe web app
-- then Base mainnet with a few dollars
+- Base Sepolia with the Safe web app
+- Base with a few dollars
+- then Ethereum mainnet
 
 ## Layout
 
 | path | what |
 |---|---|
-| `docs/` | [kickoff](docs/KICKOFF.md), [upstream tracking](docs/UPSTREAM-TRACKING.md), and picowallet's notes: [build guide](docs/picowallet.md), [security model](docs/SECURITY.md), [chip map](docs/CHIPMAP.md), [test plan](docs/TESTPLAN.md), [USB wallet](docs/USB.md), [clear signing](docs/CLEARSIGNING.md) |
+| `docs/` | [kickoff](docs/KICKOFF.md), [test ladder](docs/LADDER.md), [upstream tracking](docs/UPSTREAM-TRACKING.md), and picowallet's notes: [build guide](docs/picowallet.md), [security model](docs/SECURITY.md), [chip map](docs/CHIPMAP.md), [test plan](docs/TESTPLAN.md), [USB wallet](docs/USB.md), [clear signing](docs/CLEARSIGNING.md) |
 | `hardware/` | `wiring/` ([perfboard build](hardware/wiring/SOLDERING.md)), `bom/`, `key-pcb/` |
 | `cad/` | `console/` (today the dev console's case, generators and measurements), `key/` |
 | `firmware/` | MicroPython for the Pico: `safe_tx.py` (new), and picowallet's `wallet.py`, `usbwallet.py`, `atecc.py`, `trustm.py`, `signer.py` and crypto |

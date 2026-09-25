@@ -23,7 +23,7 @@ joystick, A/B/X/Y) and an Adafruit ATECC608 breakout. Its build guide is [picowa
 | Contracts | none of our own | Safe 1.4.1 and Safe's passkey signer, both deployed and audited |
 
 [Test ladder](#test-ladder) rung 1 runs on the laptop (`tools/quorum up`, and `tools/quorum e2e`
-with the emulator). Next: the real Pico on the fork, then rung 2.
+with the emulator). Next: the real Pico on the fork, then rung 2. Progress: [LADDER.md](LADDER.md).
 
 ## What this is
 
@@ -144,9 +144,13 @@ On the dev console: A (top of the column, green bar) is Sign, held 2 s; Y (botto
 
 ## Test ladder
 
+Tracked in [LADDER.md](LADDER.md): each rung's status, the commands, the evidence, and the checklist
+before real money.
+
 1. **Local:** an Anvil fork of Base on the laptop, plus a mock transaction service that implements only the endpoints the console uses (`tools/quorum up`). The console connects over home Wi-Fi. The fork runs as chain 31337, so nothing signed on it is valid on real Base. Milestone: a Safe executes after a button press. *(Done with the emulator's chip, `tools/quorum e2e`; the real Pico is next.)*
 2. **Base Sepolia:** the real Safe web app and transaction service. Milestone: a 2-of-3 with one browser wallet and two consoles.
 3. **Base mainnet with pocket change:** a remote signer on their own Wi-Fi. Milestone: a real remote approval.
+4. **Ethereum mainnet with pocket change:** the same approval on L1. The passkey signer, the P-256 precompile (Fusaka) and Safe's service are all there, and an execution costs about a cent at 2026 gas.
 
 ## Provisioning ceremony (outline)
 

@@ -53,8 +53,13 @@ tools/quorum propose refund --by bob
 tools/quorum confirm 2 --as alice
 tools/quorum status | log
 tools/quorum shots [story..]  # docs/quorum-ui/shots, from the emulator (own simulated Safe on 8799)
+tools/quorum live key|enroll|status|rehearse|exec --chain local|basesep|base|eth   # real chains (live.mjs)
 node tools/mock-tx-service/test.mjs
 ```
+
+The live chains, and how far each one has got, are in [docs/LADDER.md](../../docs/LADDER.md).
+`live` never holds a private key. It sends through your browser wallet (`wallet.html`, served on
+127.0.0.1), or with `--account` from a Foundry keystore.
 
 ## The forked Safe (`up`)
 
