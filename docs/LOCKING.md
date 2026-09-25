@@ -106,9 +106,13 @@ and the factory contents of the data slots.
       executed it: Safe `0xEDED…0a43` #1, [tx](https://sepolia.basescan.org/tx/0xe719116d86a019098679ba9b7d5e5263fed8c6fc4cd7181f573b4b3fa3860fde)
       (2026-09-25). The Pico signed, but its own POST failed on memory (OSError 12), so its held
       signature was posted from the laptop unchanged. The firmware fix is in `txservice.py`.
+- [x] `ALLOW_GENKEY = False` on the board before the lock. Slot 0's menu has NEW KEY beside LOCK
+      SLOT, and one slip would replace the enrolled key and then seal the wrong one.
 - [ ] Then LOCK SLOT 0 from the chip map (`ALLOW_LOCK = True`, armed, hold A), and afterwards:
   - [ ] SlotLocked bit 0 is clear (bytes 88–89 = `fe ff`)
-  - [ ] the public key is unchanged: `9fad2e82…`
-  - [ ] NEW KEY on slot 0 is refused
-  - [ ] a signature still verifies onchain (counter + 1)
+  - [ ] the public key is unchanged: `9fad2e82…`, so the sealed key is the enrolled owner `0x2843…5E53`
+  - [ ] a new signature still verifies onchain (counter + 1)
   - [ ] `ALLOW_LOCK` back to False
+  - Not done on purpose: asking the chip for a NEW KEY on slot 0 to watch it refuse. If the lock
+    had somehow not taken, that test would itself replace the key. The SlotLocked bit and two
+    datasheets are the evidence instead.
