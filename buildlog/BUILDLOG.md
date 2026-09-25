@@ -515,3 +515,10 @@ Gotchas:
   console's home screen. Cosmetic.
 - MicroPython doesn't flush a file until it is closed. A one-line `open(...).write(...)` backup came
   out 0 bytes.
+
+**Later the same evening: the Pico alone.** With the reserve and the 15 s timeout, every poll in a
+three-minute watch succeeded. Jason proposed #2 (0.000067 ETH back to his MetaMask). The Pico
+fetched it from api.safe.global, showed it, and signed after the hold (154 ms). It posted the
+confirmation itself (`confirmed #2`), and `live exec` executed it:
+[tx](https://sepolia.basescan.org/tx/0xa046bd0c4289c9c8e75bb75aca40b6a09afea4c5f446f80e24c5fb6a393d9daf),
+Safe nonce 3. Counter 0: 13. Slot 0 still `9fad2e82…`, unlocked.

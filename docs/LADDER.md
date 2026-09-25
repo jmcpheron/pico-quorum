@@ -20,7 +20,7 @@ as things land, and link the evidence (a buildlog entry, an explorer link).
 |---|---|---|---|---|
 | 0 | **Simulated** | `tools/quorum serve`, no chain | Alice and Bob (simulated), the real Pico | ✅ 2026-09-24, the real Pico ([buildlog](../buildlog/BUILDLOG.md)) |
 | 1 | **Local fork** | `tools/quorum up`: Safe 1.4.1 on an Anvil fork of Base, chain 31337 | Alice and Bob, the chip | ✅ emulator (`tools/quorum e2e`) · ✅ real Pico, 2026-09-25 ([buildlog](../buildlog/BUILDLOG.md)) |
-| 2 | **Base Sepolia** | testnet: the Safe web app and `api.safe.global` | your browser wallet, the chip | ✅ rehearsal with the emulator · ✅ real Pico's approval accepted and executed · ☐ the Pico's own HTTPS POST |
+| 2 | **Base Sepolia** | testnet: the Safe web app and `api.safe.global` | your browser wallet, the chip | ✅ rehearsal with the emulator · ✅ real Pico, end to end over HTTPS, 2026-09-25 ([buildlog](../buildlog/BUILDLOG.md)) |
 | 3 | **Base** | a few dollars | your browser wallet, the chip | ☐ |
 | 4 | **Ethereum mainnet** | a few dollars (base fee about 0.05 gwei in Sept 2026) | your browser wallet, the chip | ☐ |
 
