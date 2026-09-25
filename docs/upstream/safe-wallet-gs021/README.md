@@ -105,10 +105,19 @@ Add to this as it comes in: date, chain, what was seen, links.
   and [#2](https://sepolia.basescan.org/tx/0xa046bd0c4289c9c8e75bb75aca40b6a09afea4c5f446f80e24c5fb6a393d9daf)
   are the Pico's approvals.
 
-### Base mainnet
+### 2026-09-25, Base mainnet
 
-_To come with rung 3:_
-- the same failure on mainnet
-- the web app's version
-- the in-app simulation link
-- the execution tx
+- **The Safe.** [`0xDebDE58b3ed0867d19285f6C8B0d81AdBC326Da9`](https://basescan.org/address/0xDebDE58b3ed0867d19285f6C8B0d81AdBC326Da9):
+  Safe 1.5.0 L2, 2-of-3.
+  - Owners: MetaMask `0x61D2…637F`, the Pico's `SafeWebAuthnSignerProxy` `0x2843…5E53`
+    (deployed on Base in [0xe5e8ad92…](https://basescan.org/tx/0xe5e8ad92e571fe4b66927d5d0ce079b4f22ec3f0bc498e2b0d4fcc230f030dab)),
+    and `0xb78e…AdBD8`.
+- **Two confirmations, both accepted.** #0 (`safeTxHash 0x4c1e4f18…cef63ad6`) sends 0.000001 ETH:
+  - `0xb78e…` confirmed with an EOA signature (65 bytes).
+  - The Pico posted its contract signature itself: `api.safe.global/tx-service/base` stored it as
+    `CONTRACT_SIGNATURE`, 385 bytes.
+- **Reproduced again,** simulating `execTransaction` at block 51784275, with #0 pending:
+  - Safe{Wallet}'s layout (450 bytes, contract signature offset 65): **GS021**.
+  - The fixed layout (450 bytes, offset 130): **OK**.
+- **Still to capture:** the web app's Execute screen on mainnet (screenshot), its simulation link,
+  the app version, and the execution tx.
