@@ -16,6 +16,11 @@
 //                       the console on the emulator, with its throwaway virtual chip (live key --emu),
 //                       against the real service: it opens the first transaction waiting for it, pages
 //                       through, holds A, and the service's answer is printed. The spike before the Pico.
+//   live pico --chain C [--safe 0x..] [--name NAME]
+//                       point the Pico's console at chain C: the board's secrets.py gets that chain's
+//                       service and its pinned Safe (QUORUM_URL, QUORUM_SAFE), the old file is kept as
+//                       secrets.bak, and the console restarts. The API key and everything else stay.
+//                       --chain local: tools/quorum on this Mac (the fork or the simulation), no QUORUM_SAFE.
 //   --chain local       the rehearsal against tools/quorum up --manual-exec (the fork, anvil's account 0;
 //                       --browser uses the wallet page there too, with a wallet pointed at the fork)
 //
@@ -397,6 +402,57 @@ async function rehearse() {
   console.log(`next: tools/quorum live exec --chain ${n.name} ${mine[0].nonce}`);
 }
 
-const cmds = { key, enroll, status, exec, rehearse };
-if (!cmds[sub]) die("usage: tools/quorum live key | enroll | status | rehearse | exec   (see tools/mock-tx-service/live.mjs)");
+// ----------------------------------------------------------------------------- pico
+async function pico() {
+  const name = opt("--chain");
+  if (!CHAINS[name]) die(`--chain ${Object.keys(CHAINS).join(" | ")}`);
+  const n = CHAINS[name];
+  let url, safeLine = null;
+  if (name === "local") {
+    const ip = spawnSync("ipconfig", ["getifaddr", "en0"], { encoding: "utf8" }).stdout.trim();
+    if (!ip) die("no LAN address on en0 for the Pico to reach this Mac");
+    url = `http://${ip}:${process.env.QUORUM_PORT || 8787}`;
+  } else {
+    const safe = theSafe({ ...n, name });
+    const label = opt("--name") || saved().names?.[name] || `${n.chain.name} Safe`;
+    const live = saved();
+    live.names = { ...live.names, [name]: label };
+    keep(live);
+    url = n.service;
+    safeLine = `QUORUM_SAFE = ${JSON.stringify({ chainId: n.chain.id, address: safe.toLowerCase(), name: label })}`;
+  }
+  const lines = [`QUORUM_URL = ${JSON.stringify(url)}`, ...(safeLine ? [safeLine] : [])];
+  console.log(`the Pico's console, to ${n.chain.name}:\n  ${lines.join("\n  ")}`);
+  const code = `import os
+new = ${JSON.stringify(lines.join("\n"))}
+with open('secrets.py') as f:
+    old = f.read()
+with open('secrets.bak', 'w') as f:
+    f.write(old)
+keep = [l for l in old.split(chr(10)) if l.split('=')[0].strip() not in ('QUORUM_URL', 'QUORUM_SAFE') and not l.startswith('# Base Sepolia (docs/LADDER.md')]
+while keep and not keep[-1].strip():
+    keep.pop()
+with open('secrets.py', 'w') as f:
+    f.write(chr(10).join(keep) + chr(10) + '# the network, written by tools/quorum live pico' + chr(10) + new + chr(10))
+if hasattr(os, 'sync'): os.sync()
+print('WROTE', len(old), '->', os.stat('secrets.py')[6], 'bytes; the old file is secrets.bak')`;
+  let r = spawnSync(`${ROOT}tools/usb`, ["exec", code], { encoding: "utf8" });
+  const wrote = (r.stdout || "").match(/WROTE .*/);
+  if (!wrote) die(`the board did not take it:\n${r.stdout}${r.stderr}`);
+  console.log("  " + wrote[0]);
+  console.log("restarting the console...");
+  r = spawnSync(`${ROOT}tools/emu`, ["ship", "quorum"], { encoding: "utf8", timeout: 180000 });
+  if (!/running quorum/.test(r.stdout + r.stderr)) die(`the restart did not report back:\n${(r.stdout + r.stderr).slice(-600)}`);
+  const check = "import quorum; print('NOW', quorum.CHAIN, quorum.SAFE_ADDR, quorum.SAFE.get('name'), quorum.BASE, 'net', quorum.net_ok, quorum.net_err, 'nonce', quorum.info.get('nonce'), 'me-owner', quorum.me in quorum.owners())";
+  for (let i = 0; i < 12; i++) {
+    await new Promise((res) => setTimeout(res, 5000));
+    r = spawnSync(`${ROOT}tools/usb`, ["exec", check], { encoding: "utf8" });
+    const now = (r.stdout || "").match(/NOW .*/);
+    if (now && / net True /.test(now[0])) return console.log("  " + now[0]);
+    if (i === 11) console.log("  " + (now ? now[0] : "no answer from the board") + "\n  (still joining WiFi or the service? it keeps trying)");
+  }
+}
+
+const cmds = { key, enroll, status, exec, rehearse, pico };
+if (!cmds[sub]) die("usage: tools/quorum live key | enroll | status | rehearse | exec | pico   (see tools/mock-tx-service/live.mjs)");
 await cmds[sub]();

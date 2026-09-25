@@ -36,7 +36,8 @@ class Service:
     def __init__(self, base, safe, api_key=None):
         self.base = base.rstrip("/")
         self.safe = safe
-        self.headers = {"Authorization": "Bearer " + api_key} if api_key else {}
+        # the API key goes only to Safe's own service over HTTPS, never to a laptop on the LAN
+        self.headers = {"Authorization": "Bearer " + api_key} if api_key and self.base.startswith("https") else {}
         self.timeout = TIMEOUT_TLS if self.base.startswith("https") else TIMEOUT
         self._room = None
         self.hold()
