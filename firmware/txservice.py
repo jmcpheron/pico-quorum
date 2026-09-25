@@ -12,7 +12,8 @@ import gc
 import requests
 from keccak import keccak256
 
-TIMEOUT = 5
+TIMEOUT = 5            # the laptop's service, plain HTTP on the LAN
+TIMEOUT_TLS = 15       # api.safe.global: a full TLS handshake on the Pico each call, 1-2 s, sometimes over 5
 # HTTPS needs one buffer of about 16 KB in a single piece. The console's heap fragments as it
 # decodes and draws: on the board, after a review, 154 KB were free but no block over 8 KB, and the
 # confirmation's POST failed with OSError 12 (2026-09-25). So an https Service holds one block this
@@ -36,6 +37,7 @@ class Service:
         self.base = base.rstrip("/")
         self.safe = safe
         self.headers = {"Authorization": "Bearer " + api_key} if api_key else {}
+        self.timeout = TIMEOUT_TLS if self.base.startswith("https") else TIMEOUT
         self._room = None
         self.hold()
 
@@ -56,7 +58,7 @@ class Service:
     def _get(self, path):
         self.release()
         try:
-            r = requests.get(self.base + path, headers=self.headers, timeout=TIMEOUT)
+            r = requests.get(self.base + path, headers=self.headers, timeout=self.timeout)
             try:
                 if r.status_code != 200:
                     raise ServiceError("HTTP %d" % r.status_code)
@@ -69,7 +71,7 @@ class Service:
     def _post(self, path, body):
         self.release()
         try:
-            r = requests.post(self.base + path, json=body, headers=self.headers, timeout=TIMEOUT)
+            r = requests.post(self.base + path, json=body, headers=self.headers, timeout=self.timeout)
             try:
                 try:
                     out = r.json()

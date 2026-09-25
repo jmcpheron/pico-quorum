@@ -467,3 +467,51 @@ Gotchas:
   Safe's address (`0xf77e…7666`), "This key" on the owners page, and the dashboard's "a real Safe
   on the Anvil fork of Base".
 - The console fetches only from its home screen; on the chip map it doesn't poll.
+
+## 2026-09-25 — rung 2: the chip's approval on Base Sepolia, accepted by Safe's own service
+
+**Setup:**
+- Jason's MetaMask (`0x61D2…637F`, Base Sepolia ETH from a faucet) paid for two `createSigner`
+  calls through `tools/quorum live enroll`: the emulator's key (`0xaA87…77b3`) and the Pico's slot 0
+  (`0x2843…5E53`).
+- In the Safe web app he made a 2-of-3 Safe with those three owners: `0xEDEDC0063B23A309f4cAdA5e1225Ef21D8A30a43`.
+  It's Safe 1.5.0 L2, and its code and fallback handler match safe-deployments.
+- The Safe API key is in the repo's gitignored `.env`. With it the service allows 50,000 requests
+  a month, against 5,000 without.
+
+**Rehearsal: the emulator.**
+- Jason proposed #0 (0.0001 ETH) in the web app and signed it with MetaMask.
+- `live rehearse` ran the console on the emulator against api.safe.global. It showed #0, signed it,
+  and the service took the contract signature: 2 of 2.
+- `live exec` sent `execTransaction` through MetaMask:
+  [tx](https://sepolia.basescan.org/tx/0x1b2adb3e8a860ab0c8802aaa4af48a13260b4b42749a9e53a135e846d4f370d8).
+  - The trace: the Safe's part was 105,584 gas, with the P-256 precompile (3,450) doing the check.
+  - The rest of the 270k was MetaMask. Jason's account is an EIP-7702 smart account (MetaMask's
+    DeleGator), so MetaMask relayed the call through its DelegationManager with fee hooks.
+
+**The real Pico:**
+- Two memory fixes first:
+  - The chip map now loads only on X. At start it had left no block over 8 KB, and TLS failed with
+    OSError 12.
+  - An HTTPS reserve.
+- The console then read the Safe straight from api.safe.global.
+- Jason proposed #1 and the Pico showed it with the hash verified. He held A and the chip signed in
+  155 ms, but the POST failed with OSError 12: after the review the heap was in pieces again (154 KB
+  free, nothing over 8 KB).
+- The console kept the signature. It was copied off the board and checked against the Pico's proxy
+  on Base Sepolia (`isValidSignature` = `0x1626ba7e`), then posted unchanged from the laptop. The
+  service answered **201**.
+- `live exec`: [tx](https://sepolia.basescan.org/tx/0xe719116d86a019098679ba9b7d5e5263fed8c6fc4cd7181f573b4b3fa3860fde),
+  `ExecutionSuccess`, nonce 2.
+- That completes the slot 0 checklist's last gate before the lock (docs/LOCKING.md).
+
+**Fixes on the board for the Pico's own POST:**
+- `txservice.py` holds a 32 KB block from the start and frees it only during each HTTPS call.
+- HTTPS calls get a 15 s timeout: a full TLS handshake on the Pico takes 1–2 s, sometimes more than
+  the LAN's 5 s.
+
+Gotchas:
+- The Safe web app with a 1.5.0 Safe: the version pill `Safe v1.5.0+L2` runs into "Synced" on the
+  console's home screen. Cosmetic.
+- MicroPython doesn't flush a file until it is closed. A one-line `open(...).write(...)` backup came
+  out 0 bytes.
