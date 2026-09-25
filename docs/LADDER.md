@@ -103,7 +103,34 @@ the rehearsal Safe as an owner.
 
 ## Rung 3: Base, a few dollars
 
-Same steps as rung 2 with `--chain base` and `QUORUM_URL = ".../tx-service/base"`.
+Same steps as rung 2 with `--chain base` and `QUORUM_URL = ".../tx-service/base"`. The plan
+(2026-09-25):
+
+1. [x] **The signer.** `tools/quorum live enroll --chain base` for the sealed slot 0 key, owner
+   `0x2843…5E53`. The deploy is paid from MetaMask, about $0.002:
+   [tx](https://basescan.org/tx/0xe5e8ad92e571fe4b66927d5d0ce079b4f22ec3f0bc498e2b0d4fcc230f030dab).
+2. [ ] **The Safe.** Jason creates it in app.safe.global on **Base**:
+   - owners: MetaMask `0x61D2…637F`, the Pico `0x2843…5E53`, and his other wallet `0x1289…f2DA`
+   - threshold 2
+   - **Not the emulator's key**, which is public.
+   The Safe: [`0xDebDE58b3ed0867d19285f6C8B0d81AdBC326Da9`](https://basescan.org/address/0xDebDE58b3ed0867d19285f6C8B0d81AdBC326Da9).
+   Its owners are MetaMask, the Pico and `0xb78e…AdBD8` (an EOA, not the `0x1289…` in the plan;
+   Jason to confirm it's his).
+3. [x] **The check** (2026-09-25): Safe 1.5.0 L2, whose singleton and handler match safe-deployments
+   for 8453. 2 of 3, nonce 0, no guard, no modules. `live status --chain base --safe 0x…`, plus the version, owners, threshold,
+   modules and guard read onchain, and the singleton and handler matched against safe-deployments.
+4. [ ] **Funding.** A small amount of ETH to the Safe, about $1.
+5. [ ] **The Pico switches to Base:**
+   - the Sepolia settings kept on the board as `secrets_basesep.py`
+   - `QUORUM_URL = ".../tx-service/base"`, `QUORUM_SAFE` for chain 8453
+   - the same API key
+6. [ ] **One approval:**
+   - Propose a small send in the web app and sign it with MetaMask.
+   - The Pico approves over HTTPS.
+   - Try Execute in the web app. Expect GS021, and capture it for
+     [upstream](upstream/safe-wallet-gs021/): a screenshot, the simulation link, the app version.
+   - Then `live exec --chain base`.
+7. [ ] **The milestone:** the same with the Pico on another Wi-Fi (a phone hotspot will do).
 
 **Costs.** About $5 of ETH on Base in your wallet is plenty. Each of these is a fraction of a cent:
 signer 110k gas, a Safe 310k, an execution 110k.

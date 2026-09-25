@@ -257,7 +257,14 @@ async function enroll() {
     to: CFG.signer.factory, value: 0n, data: encodeFunctionData({ abi: PASSKEY_ABI, functionName: "createSigner", args }),
     what: `Deploy the signer proxy for key ${k.qx.slice(2, 10)}: Safe's passkey factory createSigner, making ${k.owner}. Moves no funds.`,
   });
-  if (!(await n.pub.getCode({ address: k.owner }))) die(`sent (${receipt.transactionHash}) but no code at ${k.owner} yet`);
+  // A public RPC is several servers behind a load balancer, and the one that answers getCode can be
+  // a block behind the one that returned the receipt (seen on mainnet.base.org), so ask a few times.
+  let code;
+  for (let i = 0; i < 10 && !code; i++) {
+    code = await n.pub.getCode({ address: k.owner });
+    if (!code) await new Promise((r) => setTimeout(r, 1500));
+  }
+  if (!code) die(`sent (${receipt.transactionHash}) but no code at ${k.owner} after 15 s: check ${link(n, "address", k.owner)}`);
   console.log(`deployed: ${link(n, "tx", receipt.transactionHash)}\nowner to add in the Safe web app: ${k.owner}`);
 }
 
