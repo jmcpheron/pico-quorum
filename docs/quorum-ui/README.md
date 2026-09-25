@@ -13,6 +13,21 @@ iteration and work through both.
 **Next: other screen sizes.** A plan for the six screens on order (0.96″ to 3.5″): the same flow
 reflowed per size, the code it needs, and questions for you. See [SCREENS.md](SCREENS.md).
 
+## Boot screen options
+
+Four ideas for what the console shows while it starts. Each one is the real firmware drawing code
+(`emu/sketches/bootfx.py`), captured frame by frame at the firmware's 50 ms tick
+(`tools/bootgifs`). Try them in the emulator with `tools/emu run bootfx`; A cycles through them.
+
+| | |
+|---|---|
+| <img src="boot/quorum.gif"> | <img src="boot/plugin.gif"> |
+| **1. Quorum.** Three owners swirl in and link up. Two vote, the check pops in: 2 of 3, ready. The end frame is the logo: three nodes, two filled. On the device each boot step (screen, WiFi, chip, the Safe) could light a node, so the animation *is* the progress. | **2. Plug in.** The dual-plug key slides into the console's jack, there's a spark, and its light turns green. It shows the key's fingerprint. It could play for real whenever a key is inserted, not only at boot. |
+| <img src="boot/hashrain.gif"> | <img src="boot/checklist.gif"> |
+| **3. Hash rain.** Falling hex settles into the name, then the Safe and its quorum. The most "crypto", and the least about what the device does. | **4. Checklist.** The practical one: each real boot step ticks off (screen, WiFi, the chip and its key, the Safe) with a progress bar. It's today's boot screen, redone in the new style. |
+
+They can be combined: **1 or 2 as the first second, then 4 while WiFi joins.** Which do you like?
+
 ## Iteration log
 
 ### Iteration 2 (2026-09-25): real type, a new theme, who's being called, the Safe version

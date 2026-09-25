@@ -1,0 +1,33 @@
+#!/bin/sh
+# Capture the boot screen options in emu/sketches/bootfx.py as GIFs in docs/quorum-ui/boot/.
+#   tools/bootgifs [option ...]          (default: all of them)
+# Each frame is drawn by the sketch itself in the emulator (render(option, i)), saved as a PNG,
+# and the PNGs become a GIF at the firmware's 50 ms tick, the last frame held 1.5 s.
+cd "$(dirname "$0")/.." || exit 1
+[ -d emu/node_modules ] || (cd emu && npm install --silent) || exit 1
+out=docs/quorum-ui/boot
+tmp=$(mktemp -d)
+mkdir -p "$out"
+opts="$*"
+[ -n "$opts" ] || opts="quorum plugin hashrain checklist"
+for o in $opts; do
+  n=$(sed -n "s/.*\"$o\": \([0-9]*\).*/\1/p" emu/sketches/bootfx.py | head -1)
+  set -- --quiet --exec "bootfx.stop()"
+  i=0
+  while [ "$i" -lt "$n" ]; do
+    set -- "$@" --exec "bootfx.render('$o', $i)" --shot "$tmp/$o-$(printf %03d "$i").png"
+    i=$((i + 1))
+  done
+  (cd emu && node headless.mjs bootfx "$@" >/dev/null) || { echo "$o: emulator failed" >&2; exit 1; }
+  uv run --quiet --python 3.11 --with pillow python - "$tmp" "$o" "$out/$o.gif" <<'PY'
+import glob, sys
+from PIL import Image
+tmp, name, dst = sys.argv[1:]
+frames = [Image.open(p).convert("RGB").resize((360, 360), Image.LANCZOS) for p in sorted(glob.glob("%s/%s-*.png" % (tmp, name)))]
+pal = frames[-1].quantize(colors=128, method=Image.Quantize.MEDIANCUT)
+q = [f.quantize(palette=pal, dither=Image.Dither.NONE) for f in frames]
+q[0].save(dst, save_all=True, append_images=q[1:], duration=[50] * (len(q) - 1) + [1500], loop=0, optimize=True, disposal=1)
+print("%-10s %d frames -> %s" % (name, len(q), dst))
+PY
+done
+rm -rf "$tmp"
