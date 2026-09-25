@@ -46,7 +46,7 @@ export const SCENARIOS = {
     build: () => [{ to: USDC, data: encodeFunctionData({ abi: erc20Approve, functionName: "approve", args: [PERMIT2, parseUnits("500", 6)] }) }],
   },
   "uniswap-swap": {
-    about: "Bob swaps 0.1 ETH on Uniswap's router: a known contract, a call it can't read in detail (yellow)", by: "bob", sign: true,
+    about: "Bob swaps 0.1 ETH on Uniswap's router: a known contract, a call it can't read in detail (yellow). The commands are made up, so on the fork it can never execute (GS013)", by: "bob", sign: true,
     build: () => [{ to: UNI_ROUTER, value: parseEther("0.1"),
       data: encodeFunctionData({ abi: router, functionName: "execute", args: ["0x0b00", ["0x1234", "0x5678"], 1790000000n] }) }],
   },
@@ -93,7 +93,7 @@ export async function run(st, name, by) {
   for (const step of [sc, sc.then].filter(Boolean)) {
     const [fields, extra = {}] = step.build(st.address);
     const who = (step === sc && by) || step.by;
-    const tx = propose(st, { ...fields, ...(nonce !== undefined ? { nonce } : {}) }, { proposer: who, scenario: name, ...extra });
+    const tx = await propose(st, { ...fields, ...(nonce !== undefined ? { nonce } : {}) }, { proposer: who, scenario: name, ...extra });
     nonce = tx.nonce;
     if (step.sign) await signAs(st, who, tx);
     out.push(tx);

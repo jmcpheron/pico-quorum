@@ -4,8 +4,10 @@
 # CFG is written as JSON on purpose (double quotes, no True/None, no trailing commas):
 # tools/mock-tx-service reads this same file, so the simulated Safe and the console agree.
 #
-# Chain 31337 is the simulated Safe (tools/quorum). The token and batcher addresses are Base
-# mainnet's, so the same list fits the Anvil fork of Base in the test ladder's rung 1.
+# Chain 31337 is the Family Safe on the laptop (tools/quorum): simulated, or a real Safe 1.4.1 on
+# an Anvil fork of Base (tools/quorum up). The address is the one Safe's proxy factory gives that
+# Safe on any fork of Base (owners Alice and Bob, threshold 2, salt "PicoQuorum Family Safe"), so
+# both agree; chain.mjs checks it. The token and batcher addresses are Base mainnet's, as on the fork.
 # Names are hints: every screen that shows one also shows the full address.
 #
 # "contracts" is the console's own list of contracts it recognises: [name, logo, {selector:
@@ -23,7 +25,7 @@
 # against the deployed factory.
 CFG = {
     "safes": [
-        {"chainId": 31337, "address": "0x5afe00000000000000000000000000000000a11e", "name": "Family Safe"}
+        {"chainId": 31337, "address": "0xf77e6235ea5ce79d6d823b332276cac99ea77666", "name": "Family Safe"}
     ],
     "book": {
         "0x70997970c51812dc3a010c7d01b50e0d17dc79c8": "Alice",

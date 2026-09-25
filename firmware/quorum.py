@@ -9,7 +9,8 @@
 # Trust: the service is not trusted. Each transaction is rehashed here (safe_tx.py) from the same
 # fields decode.py puts on the screen, with the chain and Safe pinned in quorum_cfg.py. If the
 # service's safeTxHash or Safe differs, the transaction is REFUSED and cannot be signed. The chip
-# signs the hash computed here, never a string the service sent.
+# signs the hash computed here, never a string the service sent: wrapped as a WebAuthn assertion
+# (webauthn.py), because on chain this key owns the Safe through Safe's passkey signer.
 #
 #   import lcd; import quorum; quorum.start()      (main.py does this)
 import sys, time, machine, network, gc
@@ -20,7 +21,7 @@ import safe_tx
 import decode
 import quorum_cfg
 import txservice
-from keccak import keccak256
+import webauthn
 gc.collect()        # the chip UI modules are big; compile them on a clean heap (as wallet.py does)
 import slots as SL
 import splash
@@ -96,13 +97,12 @@ def _log(s):
 
 # ----------------------------------------------------------------------------- the key
 def my_owner():
-    """This key's stand-in owner address: keccak(qx || qy)[12:]. A P-256 key cannot own a Safe by
-    itself; on chain it will sit behind a signer contract (docs/KICKOFF.md, open decisions), and
-    this becomes that contract's address. The simulation uses the same rule."""
+    """This key's owner address: the SafeWebAuthnSignerProxy the passkey factory deploys for it,
+    computed here from the key and the pinned factory (webauthn.owner_address). The simulated and
+    the forked Safe use the same rule, and the factory's getSigner agrees (test-vectors)."""
     if not qx:
         return ""
-    h = keccak256(bytes.fromhex(qx[2:]) + bytes.fromhex(qy[2:]))
-    return decode.hx(h[12:])
+    return webauthn.owner_address(qx, qy, CFG["signer"])
 
 
 def read_key():
@@ -318,10 +318,10 @@ def hold_tick():
         say("Let go early \u00b7 not signed")
 
 
-def signature_for(e, r, s):
-    """Layer 3 goes here. The simulation takes the chip's raw r || s over the safeTxHash; the Safe
-    owner contract (WebAuthn signer or ERC-1271, not chosen yet) will want its own packaging."""
-    return "0x%064x%064x" % (r, s)
+def signature_for(e, ad, fields, r, s):
+    """Layer 3: the confirmation as the transaction service stores it, a contract signature from
+    this key's signer proxy carrying the WebAuthn assertion."""
+    return decode.hx(webauthn.contract_signature(me, ad, fields, r, s))
 
 
 def sign_it():
@@ -332,9 +332,10 @@ def sign_it():
     timer.deinit()
     try:
         t0 = time.ticks_ms()
-        r, s = sig.sign(bytes.fromhex(e["mine"][2:]))    # checked equal to the service's hash in entry()
+        ad, fields, digest = webauthn.assertion(e["mine"])    # e["mine"]: checked equal to the service's hash in entry()
+        r, s = sig.sign(digest)
         _log("signed #%d in %d ms" % (e["n"], time.ticks_diff(time.ticks_ms(), t0)))
-        post(e, signature_for(e, r, s))
+        post(e, signature_for(e, ad, fields, r, s))
     except Exception as ex:
         result = (False, "Not signed", ["The chip said:", repr(ex)[:80]])
         _log("sign: %r" % ex)
