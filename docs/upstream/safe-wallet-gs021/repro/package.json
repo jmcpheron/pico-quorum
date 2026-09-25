@@ -1,0 +1,8 @@
+{
+  "name": "safe-wallet-gs021-repro",
+  "private": true,
+  "type": "module",
+  "description": "Reproduces Safe{Wallet}'s GS021 with EIP-1271 contract-owner confirmations on a local fork, with throwaway keys",
+  "scripts": { "repro": "node repro.mjs" },
+  "dependencies": { "@noble/curves": "1.9.1", "@safe-global/protocol-kit": "8.0.7", "viem": "2.56.8" }
+}

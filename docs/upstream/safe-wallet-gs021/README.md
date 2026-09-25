@@ -9,8 +9,9 @@ upstream, `tools/quorum live exec` executes instead.
 
 | File | What |
 |---|---|
-| [ISSUE.md](ISSUE.md) | The issue, ready to paste: title plus body in their bug-report template |
-| [PR.md](PR.md) | The pull request, ready to paste: their PR template, with the Mermaid summary they require for AI-authored PRs and the CLA line |
+| [ISSUE.md](ISSUE.md) | The issue, ready to paste: title plus body in their bug-report template. The reproduction script is inlined in a `<details>` block |
+| [PR.md](PR.md) | The pull request, ready to paste: their PR template, with the Mermaid summary they require for AI-authored PRs and the CLA line. Replace `#ISSUE` with the issue number |
+| [repro/](repro/) | `repro.mjs`, the self-contained reproduction: Anvil fork of Base Sepolia, throwaway keys, protocol-kit's own `buildSignatureBytes` for both layouts. It also prints the test fixtures (`--fixture`) |
 | [0001-fix-keep-EIP-1271-contract-signatures-when-rebuildin.patch](0001-fix-keep-EIP-1271-contract-signatures-when-rebuildin.patch) | The fix and its test, one commit made with `git format-patch` against their `dev` at `5717e3a` |
 
 ## Before submitting: privacy
@@ -19,7 +20,8 @@ ISSUE.md, PR.md and the patch name no personal address, Safe or transaction. The
 fixture comes from throwaway keys on a local fork. Keep it that way:
 
 - [ ] **Screenshots:** attach only the redacted copies in `temp-safe-screenshots/redacted/` (local
-  and gitignored). They were made from macOS text recognition and checked by running it again: no
+  and gitignored). There are four from the desktop browser, and `20`–`23` from a mobile browser.
+  The mobile ones are the web app on a phone, not Safe's mobile app. They were made from macOS text recognition and checked by running it again: no
   address, ENS name or timestamp is left, and no identicon either. Look them over once more before
   uploading.
 - [ ] **No Tenderly link.** The in-app simulation link is public and shows the Safe and both
@@ -68,11 +70,30 @@ git push -u origin fix/contract-signatures-existing-tx
 If `git am` doesn't apply cleanly because `dev` has moved on, `git am --3way` usually does. The
 change is small, so it can also be redone by hand: the helper and its test, plus two call sites.
 
+**Review, 2026-09-25.** A review of the drafts led to:
+- narrowing the claim to a threshold of 2 or more (with a 1-of-2 control that works)
+- keeping observed results, code analysis and untested scope apart
+- a self-contained reproduction
+- exact mobile scope
+- the parser's rule stated and tested: it reads the encoded offset, requires it past the static
+  part, and requires the data to run exactly to the end
+- tests for both signer orders, multiple contract signatures, unchanged eth_sign and v = 1, and
+  malformed input
+- the wording fixes
+
+All adopted. The Safe.sol link now points at the GS021 check itself (L306-L316); the suggested
+range stopped short of it.
+
 What's been verified so far:
 - On a private fork of Base Sepolia: the fixture Safe (throwaway keys) reverts with GS021 in the web
   app's layout and executes in the fixed one.
+- On a fresh fork with `repro/repro.mjs`:
+  - a 2-of-2 (EOA, contract) and a 3-of-3 (contract, EOA, contract) revert with GS021 in the
+    current layout, and execute in the fixed one: `ExecutionSuccess`, the recipient paid, and the
+    logged bytes equal the fixed layout
+  - a 1-of-2 control works both ways
 - Locally, on a focused install:
-- The 5 new unit tests pass in a node environment.
+- The 11 unit tests pass in a node environment.
 - Prettier is clean.
 
 **Not yet run:**
