@@ -1,13 +1,13 @@
 # PicoQuorum
 
-A thumb-operated hardware signer for [Safe](https://safe.global) multisig wallets, with
-secure-element keys that plug in like guitar cables.
+A physical approval device for [Safe](https://safe.global) multisig wallets. Each signer holds a
+plug-in secure-element key; the console shows what a transaction does and signs only when you
+press Sign.
 
-Each signer holds a **key**: a ¼″ + 3.5 mm dual plug with a secure element in its handle. The
-key plugs into a **console**: a Pico 2 W with a screen, a paging dial, a guarded green **Sign**
-button and an easy red **Reject** button. The console fetches pending Safe transactions, decodes
-them into plain language, computes the Safe transaction hash itself, and only then asks the key
-to sign. The key is generated inside the chip and never leaves it.
+The **key** is a ¼″ + 3.5 mm dual plug with a secure element in its handle. It plugs into a
+**console**: a Pico 2 W with a screen, a paging dial, a guarded green **Sign** button and an easy
+red **Reject** button. The console fetches pending Safe transactions, decodes them into plain
+language, computes the Safe transaction hash itself, and only then asks the key to sign. The key is generated inside the chip and never leaves it.
 
 **Status: early design, testnet only.** Start with [`docs/KICKOFF.md`](docs/KICKOFF.md), a living
 draft with the goals, hardware plan, and open decisions.

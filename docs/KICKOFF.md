@@ -5,7 +5,7 @@
 
 **Repo:** https://github.com/jmcpheron/pico-quorum
 
-A thumb-operated hardware signer for [Safe](https://safe.global) multisig wallets, with secure-element keys that plug in like guitar cables.
+A physical approval device for [Safe](https://safe.global) multisig wallets. Each signer holds a plug-in secure-element key; the console shows what a transaction does and signs only when you press Sign.
 
 ## What this is
 
