@@ -80,7 +80,12 @@ ATECC508A complete datasheet (DS20005927A), and cryptoauthlib. Confidence is hig
 Not verified on silicon: the Lock error code for a refused lock, CountMatch before the data lock,
 and the factory contents of the data slots.
 
-### Recommendation
+### Decision (2026-09-25)
+
+Slot 0 only, after rung 2. **Done:** slot 0 is sealed and the data zone is still open. Slot 2 is
+the scratch key and slot 7 is free. The next chips get their own config and a full ceremony.
+
+### Recommendation (as written before the decision)
 
 - **Lock slot 0 only, and only after the ladder has proven it.**
   - Leave the data zone open on this chip. Its lock buys nothing for the multisig, and it springs
@@ -108,11 +113,12 @@ and the factory contents of the data slots.
       signature was posted from the laptop unchanged. The firmware fix is in `txservice.py`.
 - [x] `ALLOW_GENKEY = False` on the board before the lock. Slot 0's menu has NEW KEY beside LOCK
       SLOT, and one slip would replace the enrolled key and then seal the wrong one.
-- [ ] Then LOCK SLOT 0 from the chip map (`ALLOW_LOCK = True`, armed, hold A), and afterwards:
-  - [ ] SlotLocked bit 0 is clear (bytes 88–89 = `fe ff`)
-  - [ ] the public key is unchanged: `9fad2e82…`, so the sealed key is the enrolled owner `0x2843…5E53`
-  - [ ] a new signature still verifies onchain (counter + 1)
-  - [ ] `ALLOW_LOCK` back to False
+- [x] **LOCK SLOT 0**, 2026-09-25: from the chip map, armed, held A: KEY SEALED. Afterwards:
+  - [x] SlotLocked bytes 88–89 = `fe ff` (bit 0 clear). Config still locked (`00`), data zone still open (`55`).
+  - [x] the public key is unchanged, `9fad2e82…da78e178…` byte for byte: the sealed key is the enrolled owner `0x2843…5E53`
+  - [x] a new signature after the lock (counter 14) passes `isValidSignatureForSigner` on Base
+        Sepolia, Base and Ethereum, and the Pico's own proxy's `isValidSignature` on Base Sepolia
+  - [x] `ALLOW_LOCK` and `ALLOW_GENKEY` both False on the board
   - Not done on purpose: asking the chip for a NEW KEY on slot 0 to watch it refuse. If the lock
     had somehow not taken, that test would itself replace the key. The SlotLocked bit and two
     datasheets are the evidence instead.

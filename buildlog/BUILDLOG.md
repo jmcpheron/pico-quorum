@@ -522,3 +522,22 @@ fetched it from api.safe.global, showed it, and signed after the hold (154 ms). 
 confirmation itself (`confirmed #2`), and `live exec` executed it:
 [tx](https://sepolia.basescan.org/tx/0xa046bd0c4289c9c8e75bb75aca40b6a09afea4c5f446f80e24c5fb6a393d9daf),
 Safe nonce 3. Counter 0: 13. Slot 0 still `9fad2e82…`, unlocked.
+
+## 2026-09-25 — slot 0 sealed
+
+The last gate in docs/LOCKING.md was rung 2, now passed, so Jason locked slot 0 on the board.
+- Before: `ALLOW_GENKEY` was set to False, because NEW KEY sits beside LOCK SLOT in slot 0's menu.
+- The lock: X → DATA → slot 0 → `! LOCK SLOT FOREVER`, armed with B+Y, hold A. **KEY SEALED.**
+
+**Checked from the laptop right after:**
+- SlotLocked bytes 88–89 = `fe ff`: slot 0 locked, the others open. The config zone is still
+  locked, and the data zone is still open by design (CountMatch in slot 10 stays unsprung).
+- The public key read back byte for byte as the enrolled one. The sealed key is Safe owner
+  `0x2843705391b7E2cf06b0b964b532Ad9891535E53` on every chain.
+- The chip still signs. A new WebAuthn signature (counter 13 → 14) passed the passkey factory's
+  `isValidSignatureForSigner` on Base Sepolia, Base and Ethereum, and the deployed proxy's own
+  `isValidSignature` on Base Sepolia.
+- `ALLOW_LOCK` and `ALLOW_GENKEY` are both back to False on the board.
+
+Not done on purpose: asking the chip for a NEW KEY on slot 0 to watch it refuse. If the lock had
+not taken, that test would have replaced the key.
