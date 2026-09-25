@@ -69,9 +69,13 @@ web app: `live` opens a one-page form on 127.0.0.1 and the wallet shows the tran
 - [ ] A browser wallet (MetaMask, Rabby…) with some Base Sepolia ETH, from the Superchain faucet
       (console.optimism.io/faucet), Coinbase's CDP faucet, or Sepolia ETH bridged over.
 - [ ] A Safe API key from developer.safe.global:
-  - `export SAFE_API_KEY=…` in your shell for the tools.
-  - `QUORUM_API_KEY` in the board's `secrets.py`.
-  - Never in the repo. Without a key the service allows 2 requests a second and 5,000 a month.
+  - For the tools: `~/.config/picoquorum/safe-api-key`, outside the repo, chmod 600 (or `SAFE_API_KEY`
+    in the environment). Save it without it landing in your shell history:
+    `mkdir -p ~/.config/picoquorum && read -rs "k?Safe API key: " && printf '%s\n' "$k" > ~/.config/picoquorum/safe-api-key && chmod 600 ~/.config/picoquorum/safe-api-key && unset k`
+  - For the Pico: `QUORUM_API_KEY` in the board's own `secrets.py`, set at the switch to this rung.
+    The board's copy isn't the same file as `firmware/secrets.py`, so add the line; don't copy the
+    laptop's file over it.
+  - Never in the repo or a chat. Without a key the service allows 2 requests a second and 5,000 a month.
 
 **Rehearsal: the emulator's throwaway key.** No hardware, and it settles the biggest unknown, whether
 `api.safe.global` takes the console's confirmation.
