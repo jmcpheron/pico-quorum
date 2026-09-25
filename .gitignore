@@ -18,3 +18,7 @@ tools/fonts/src/
 
 # secrets for the laptop tools (tools/quorum): never committed; .env.example is the template
 .env
+
+# local scratch: screenshots with personal addresses, macOS metadata
+temp-safe-screenshots/
+.DS_Store

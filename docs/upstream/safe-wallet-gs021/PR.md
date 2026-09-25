@@ -1,4 +1,5 @@
 <!--
+PRIVACY: names no personal address or transaction; the test fixture is made from throwaway keys.
 Paste-ready pull request for safe-global/safe-wallet-monorepo, from the fork's branch
 fix/contract-signatures-existing-tx into dev. Follows their .github/PULL_REQUEST_TEMPLATE.md.
 Before opening: replace #ISSUE with the issue number, and put "Fixes #ISSUE" in the commit message
@@ -27,8 +28,8 @@ When a queued transaction has a confirmation from a contract owner and at least 
 ## How to test it
 
 - **Unit:** `yarn workspace @safe-global/utils test src/utils/__tests__/safeTransaction.test.ts`.
-  - The fixtures are a real Base Sepolia transaction's two confirmations, exactly as the Transaction Service returns them: an EOA and a `SafeWebAuthnSignerProxy`.
-  - The test checks that the rebuilt signature bytes equal what the Safe executed, as logged by its `SafeMultiSigTransaction` event.
+  - The fixtures are two confirmations, in the form the Transaction Service returns them, for a 2-of-2 Safe 1.5.0 made from throwaway keys: an EOA and a `SafeWebAuthnSignerProxy`.
+  - The test checks that the rebuilt signature bytes equal what that Safe executed with on a local fork of Base Sepolia, as logged by its `SafeMultiSigTransaction` event. Laid out the old way, the same call reverted with GS021.
 - **Manual:**
   1. Use a Safe with an EOA and a contract owner, threshold 2.
   2. Propose with the EOA in Safe{Wallet}.

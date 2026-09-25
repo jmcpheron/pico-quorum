@@ -1,4 +1,4 @@
-From f6d8566952978e7d791c23908761d8f2e90e4f45 Mon Sep 17 00:00:00 2001
+From 6897dd2dff891984ba3d06b20671cb40b05c0fa7 Mon Sep 17 00:00:00 2001
 From: Jason McPheron <jason.mcpheron@gmail.com>
 Date: Fri, 25 Sep 2026 00:29:08 -0700
 Subject: [PATCH] fix: keep EIP-1271 contract signatures when rebuilding a
@@ -13,16 +13,17 @@ GS021 in simulation and execution.
 
 toSafeSignature (packages/utils) turns a stored confirmation back into an EthSafeSignature,
 as a contract signature with just its data when v = 0, so buildSignatureBytes re-points it.
-The test uses a real Base Sepolia transaction (a passkey owner and an EOA) and checks the
-rebuilt bytes against the signatures the Safe executed.
+The test uses the two confirmations of a 2-of-2 Safe 1.5.0 made from throwaway keys (an EOA
+and a passkey signer) and checks the rebuilt bytes against the signatures that Safe executed
+with on a local fork of Base Sepolia.
 
 Refs #3673
 ---
  .../src/services/tx/tx-sender/create.ts       |  9 +--
  apps/web/src/services/tx/tx-sender/create.ts  |  9 +--
- .../utils/__tests__/safeTransaction.test.ts   | 62 +++++++++++++++++++
- packages/utils/src/utils/safeTransaction.ts   | 38 +++++++++++-
- 4 files changed, 102 insertions(+), 16 deletions(-)
+ .../utils/__tests__/safeTransaction.test.ts   | 64 +++++++++++++++++++
+ packages/utils/src/utils/safeTransaction.ts   | 38 ++++++++++-
+ 4 files changed, 104 insertions(+), 16 deletions(-)
  create mode 100644 packages/utils/src/utils/__tests__/safeTransaction.test.ts
 
 diff --git a/apps/mobile/src/services/tx/tx-sender/create.ts b/apps/mobile/src/services/tx/tx-sender/create.ts
@@ -81,26 +82,26 @@ index 95dd682..e66262c 100644
    return safeTx
 diff --git a/packages/utils/src/utils/__tests__/safeTransaction.test.ts b/packages/utils/src/utils/__tests__/safeTransaction.test.ts
 new file mode 100644
-index 0000000..b0b0479
+index 0000000..c45dbc5
 --- /dev/null
 +++ b/packages/utils/src/utils/__tests__/safeTransaction.test.ts
-@@ -0,0 +1,62 @@
+@@ -0,0 +1,64 @@
 +import { buildSignatureBytes } from '@safe-global/protocol-kit'
 +import { toSafeSignature } from '../safeTransaction'
 +
-+// A 2-of-3 Safe 1.5.0 on Base Sepolia whose owners include a passkey signer
-+// (SafeWebAuthnSignerProxy): the two confirmations of one transaction exactly as the Transaction
-+// Service returns them, and the signatures that execTransaction was called with, as logged by the
-+// Safe's SafeMultiSigTransaction event, in Base Sepolia tx
-+// 0xb8ee9c98c966d24a85b115c1979c060e2cad9fd752d473ba25235df827c88c61.
-+const EOA_OWNER = '0x61D24DE770314Eab9c267E47A968FC556744637F'
++// A 2-of-2 Safe 1.5.0 whose owners are an EOA and a passkey signer (SafeWebAuthnSignerProxy), both
++// made from throwaway keys, on a local fork of Base Sepolia. The two confirmations are in the form
++// the Transaction Service returns them. EXECUTED_SIGNATURES is what the Safe's
++// SafeMultiSigTransaction event logged when execTransaction ran with them on that fork. Laid out
++// the old way (both confirmations as plain signatures) the same call reverted with GS021.
++const EOA_OWNER = '0x27d0D792caa1d3667bc712062498A4b5BB89A43E'
 +const EOA_SIGNATURE =
-+  '0x563ed80a02c26378c6e435965a83537e0abffa228e031985c49cd0c49ee679a444b456ba282f1c649f6c42eda2ce3b7b5e0d1f4abb70710668bee4112cf7d4251b'
-+const CONTRACT_OWNER = '0x2843705391b7E2cf06b0b964b532Ad9891535E53'
++  '0xf956ce839c6ea4d257b7252385e0d66ce7f55a67e7078cc3658748a20a2141246a9f075af7cb2ed805269c59c186be73c618d6fb98bae2599aad634b261d6ef71b'
++const CONTRACT_OWNER = '0x4D5Df238e4aBe5b6945BF416460F510D25155E91'
 +const CONTRACT_SIGNATURE =
-+  '0x0000000000000000000000002843705391b7e2cf06b0b964b532ad9891535e530000000000000000000000000000000000000000000000000000000000000041000000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000e01592af237339799bc1ad499c97113f8b0f43a3f24d3eaf6743e5197def02e8ce5dd4d876a23ecd47a175a54aabffe604429544c56f525a466ffe1afe08751cbc00000000000000000000000000000000000000000000000000000000000000251ce2fbdf9e8baac998faa0e9023dde852b71b79b0d43a3d5192818be47991ba805000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000015226f726967696e223a227069636f71756f72756d220000000000000000000000'
++  '0x0000000000000000000000004D5Df238e4aBe5b6945BF416460F510D25155E910000000000000000000000000000000000000000000000000000000000000041000000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000e0aa4549af91aeb4163d2e3127870720ed72f412b8c1263459ff0fd8f6abfc172f79018848a69f1b520fb94944cdf3cbc9e14beb80c18ca0cd8c2a78342035e4d600000000000000000000000000000000000000000000000000000000000000251ce2fbdf9e8baac998faa0e9023dde852b71b79b0d43a3d5192818be47991ba805000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000015226f726967696e223a227069636f71756f72756d220000000000000000000000'
 +const EXECUTED_SIGNATURES =
-+  '0x0000000000000000000000002843705391b7e2cf06b0b964b532ad9891535e53000000000000000000000000000000000000000000000000000000000000008200563ed80a02c26378c6e435965a83537e0abffa228e031985c49cd0c49ee679a444b456ba282f1c649f6c42eda2ce3b7b5e0d1f4abb70710668bee4112cf7d4251b0000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000e01592af237339799bc1ad499c97113f8b0f43a3f24d3eaf6743e5197def02e8ce5dd4d876a23ecd47a175a54aabffe604429544c56f525a466ffe1afe08751cbc00000000000000000000000000000000000000000000000000000000000000251ce2fbdf9e8baac998faa0e9023dde852b71b79b0d43a3d5192818be47991ba805000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000015226f726967696e223a227069636f71756f72756d220000000000000000000000'
++  '0xf956ce839c6ea4d257b7252385e0d66ce7f55a67e7078cc3658748a20a2141246a9f075af7cb2ed805269c59c186be73c618d6fb98bae2599aad634b261d6ef71b0000000000000000000000004d5df238e4abe5b6945bf416460f510d25155e910000000000000000000000000000000000000000000000000000000000000082000000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000e0aa4549af91aeb4163d2e3127870720ed72f412b8c1263459ff0fd8f6abfc172f79018848a69f1b520fb94944cdf3cbc9e14beb80c18ca0cd8c2a78342035e4d600000000000000000000000000000000000000000000000000000000000000251ce2fbdf9e8baac998faa0e9023dde852b71b79b0d43a3d5192818be47991ba805000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000015226f726967696e223a227069636f71756f72756d220000000000000000000000'
 +
 +describe('toSafeSignature', () => {
 +  it('keeps an EOA signature as it is', () => {
@@ -133,8 +134,10 @@ index 0000000..b0b0479
 +      toSafeSignature(EOA_OWNER, EOA_SIGNATURE),
 +      toSafeSignature(CONTRACT_OWNER, CONTRACT_SIGNATURE),
 +    ])
-+    // the contract owner sorts first, so its offset is the second word of the signature bytes
-+    const offset = parseInt(bytes.slice(2 + 64, 2 + 128), 16)
++    // signatures are sorted by owner; the contract owner's static part holds its offset in its second word
++    const slot = EOA_OWNER.toLowerCase() < CONTRACT_OWNER.toLowerCase() ? 1 : 0
++    const start = 2 + 2 * (65 * slot + 32)
++    const offset = parseInt(bytes.slice(start, start + 64), 16)
 +
 +    expect(offset).toBe(2 * 65)
 +  })

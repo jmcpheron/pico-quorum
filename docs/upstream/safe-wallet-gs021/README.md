@@ -13,6 +13,24 @@ upstream, `tools/quorum live exec` executes instead.
 | [PR.md](PR.md) | The pull request, ready to paste: their PR template, with the Mermaid summary they require for AI-authored PRs and the CLA line |
 | [0001-fix-keep-EIP-1271-contract-signatures-when-rebuildin.patch](0001-fix-keep-EIP-1271-contract-signatures-when-rebuildin.patch) | The fix and its test, one commit made with `git format-patch` against their `dev` at `5717e3a` |
 
+## Before submitting: privacy
+
+ISSUE.md, PR.md and the patch name no personal address, Safe or transaction. The patch's test
+fixture comes from throwaway keys on a local fork. Keep it that way:
+
+- [ ] **Screenshots:** attach only the redacted copies in `temp-safe-screenshots/redacted/` (local
+  and gitignored). They were made from macOS text recognition and checked by running it again: no
+  address, ENS name or timestamp is left, and no identicon either. Look them over once more before
+  uploading.
+- [ ] **No Tenderly link.** The in-app simulation link is public and shows the Safe and both
+  signatures.
+- [ ] **Nothing from the evidence log below.** It names personal addresses and Safes, which is fine
+  in this private repo but not upstream.
+- [ ] **Commit author.** The patch carries `Jason McPheron <jason.mcpheron@gmail.com>` as author,
+  and that shows on the PR. To use GitHub's private address instead, run
+  `git commit --amend --reset-author` after setting `git config user.email <id>+jmcpheron@users.noreply.github.com`.
+  The id is in GitHub → Settings → Emails.
+
 ## Status
 
 - [ ] Issue opened on safe-global/safe-wallet-monorepo: #____
@@ -50,7 +68,10 @@ git push -u origin fix/contract-signatures-existing-tx
 If `git am` doesn't apply cleanly because `dev` has moved on, `git am --3way` usually does. The
 change is small, so it can also be redone by hand: the helper and its test, plus two call sites.
 
-What's been verified so far, locally, on a focused install:
+What's been verified so far:
+- On a private fork of Base Sepolia: the fixture Safe (throwaway keys) reverts with GS021 in the web
+  app's layout and executes in the fixed one.
+- Locally, on a focused install:
 - The 5 new unit tests pass in a node environment.
 - Prettier is clean.
 
@@ -80,7 +101,7 @@ The full install on the fork covers all three.
   `buildSignatureBytes` lay contract signatures out correctly (offsets past all the static parts).
   The web app just never marks them as contract signatures.
 
-## Evidence log
+## Evidence log (private: names personal addresses, don't paste upstream)
 
 Add to this as it comes in: date, chain, what was seen, links.
 
@@ -119,5 +140,20 @@ Add to this as it comes in: date, chain, what was seen, links.
 - **Reproduced again,** simulating `execTransaction` at block 51784275, with #0 pending:
   - Safe{Wallet}'s layout (450 bytes, contract signature offset 65): **GS021**.
   - The fixed layout (450 bytes, offset 130): **OK**.
-- **Still to capture:** the web app's Execute screen on mainnet (screenshot), its simulation link,
-  the app version, and the execution tx.
+- **The web app on mainnet** showed "Simulation failed" in Safe Shield and "Cannot estimate", then
+  *This transaction will most likely fail… GS021*. Clicking Execute gave *Could not submit the
+  transaction. Error code GS021*.
+  - Four screenshots, before, during and after, are in `temp-safe-screenshots/` (local only), with
+    redacted copies in `redacted/`.
+  - Tenderly simulation (public link, private use only):
+    https://dashboard.tenderly.co/public/safe/safe-apps/simulator/7afa3560-c7f6-44df-a583-f2b1e560fe46
+- **Still to capture:** the app version and the execution tx.
+
+### 2026-09-25, a private fork of Base Sepolia: the public fixture
+
+- **The Safe.** Throwaway keys: EOA `0x27d0D792…A43E` and passkey signer `0x4D5Df238…5E91`, which
+  own a fresh 2-of-2 Safe 1.5.0 at `0x28EB931d…7A71` on an Anvil fork (block 47295478). None of it
+  is on a public chain.
+- **The result.** The web app's layout (450 bytes) reverts with GS021. The fixed layout (450 bytes)
+  executes (`ExecutionSuccess`), and the `SafeMultiSigTransaction` event logs exactly those bytes.
+  That is the patch's test fixture.
