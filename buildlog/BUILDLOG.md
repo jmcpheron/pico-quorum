@@ -402,3 +402,34 @@ Gotchas:
 
 Not done today, on purpose: making `quorum` the boot app (`main.py`), any lock on the chip, the
 on-chain rejection, and a real chain.
+
+## 2026-09-25 — the chip, read before deciding on any lock
+
+A read-only look at the one chip (`0123f3acfd2a826bee`) before any more locks. The analysis and
+the decision are in [docs/LOCKING.md](../docs/LOCKING.md).
+
+**What I did to the board:** the console's timer was paused around each read and restarted, and
+the screen stayed where it was. Nothing was written. The reads were the config zone, the lock
+bytes, both counters, and each P-256 slot's public key (GenKey in public mode).
+
+**What the chip holds:**
+- The config zone has been locked since 09-17. The data zone is open and no slot is locked.
+- The config matches the wallet table exactly. Byte 52 differs only because it is counter 0,
+  which reads 7. That table turned out to be cryptoauthlib's `test_ecc608_configdata`.
+- Keys: slot 0 `9fad2e82…` (lockable, LimitedUse), slot 2 `82004df5…` (not lockable), slot 7
+  empty.
+- Config byte 18 = `0xA1`: the 608A's CountMatch is on, with its limit in slot 10, which was never
+  written.
+
+**Checked onchain, free and read only:**
+- The owner addresses the console computes, `0x2843…5E53` for slot 0 and `0x3ca6…594F` for slot 2,
+  equal the passkey factory's `getSigner` on Base Sepolia, Base and Ethereum.
+- Slot 2 signed the WebAuthn digest of a test safeTxHash. `isValidSignatureForSigner` answered
+  `0x1626ba7e` on all three chains, for both the high-s signature as the chip made it and the
+  low-s one. A wrong-hash control answered `0x00000000`. Counter 0 didn't move.
+
+Gotchas:
+- A data-zone lock would make slot 10's unknown bytes the permanent cap on slot 0's signatures,
+  unless slot 10 is written first.
+- While the data zone is open, a plaintext PrivWrite can put a known key into any private slot.
+  Only a slot lock stops that.

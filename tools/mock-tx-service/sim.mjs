@@ -1,18 +1,26 @@
-// The simulated Safe behind tools/quorum: its owners, threshold and nonce, the queue of
-// transactions, and the checks a real Safe makes on each confirmation. No chain: when a
-// transaction has enough confirmations it "executes" here (the nonce moves on, owner and
-// threshold changes take effect), the way the proposer's wallet would execute it for real.
+// The Safe behind tools/quorum: its owners, threshold and nonce, the queue of transactions, and
+// the checks a real Safe makes on each confirmation. Two backends share this file:
+//   - simulated (the default): no chain. When a transaction has enough confirmations it
+//     "executes" here (the nonce moves on, owner and threshold changes take effect), the way the
+//     proposer's wallet would execute it for real.
+//   - forked (useChain, tools/quorum up): the Safe is a real Safe 1.4.1 on an Anvil fork of Base
+//     (chain.mjs). Owners, threshold and nonce are read from it, contract signatures are checked
+//     with isValidSignature, and at threshold execTransaction runs for real.
+// Either way the queue lives here, as it does in Safe's transaction service.
 //
 // Hashes come from viem, which shares no code with the console's firmware/safe_tx.py. So a
 // console confirmation that verifies here proves the console hashed the same fields it showed.
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { concat, decodeFunctionData, getAddress, hashTypedData, keccak256, parseAbi, recoverAddress, size } from "viem";
+import { concat, decodeFunctionData, getAddress, hashTypedData, keccak256, parseAbi, recoverAddress } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { p256 } from "@noble/curves/p256";
+import * as sigs from "./sigs.mjs";
 
 export const ROOT = new URL("../../", import.meta.url);
-const STATE_FILE = process.env.QUORUM_STATE || fileURLToPath(new URL("state.json", import.meta.url));
+let STATE_FILE = process.env.QUORUM_STATE || fileURLToPath(new URL("state.json", import.meta.url));
+export function stateFile(name) {        // the forked Safe keeps its queue apart from the simulated one
+  if (!process.env.QUORUM_STATE) STATE_FILE = fileURLToPath(new URL(name, import.meta.url));
+}
 export const ZERO = "0x0000000000000000000000000000000000000000";
 
 // The console's pinned config is the one source for the Safe and its names (it is JSON on purpose).
@@ -50,6 +58,15 @@ export function safeTxHash(chainId, safe, f) {
   const message = { ...f, value: BigInt(f.value), safeTxGas: BigInt(f.safeTxGas), baseGas: BigInt(f.baseGas),
                     gasPrice: BigInt(f.gasPrice), nonce: BigInt(f.nonce), data: f.data || "0x" };
   return hashTypedData({ domain: { chainId, verifyingContract: safe }, types: TYPES, primaryType: "SafeTx", message });
+}
+
+// ----------------------------------------------------------------------------- the backend
+let chain = null;       // chain.mjs's Chain while the Safe is the forked one, else simulated
+let autoExec = true;    // false: like Safe's real service, never execute; tools/quorum live exec does
+
+export function useChain(c, { manualExec = false } = {}) {
+  chain = c;
+  autoExec = !manualExec;
 }
 
 // ----------------------------------------------------------------------------- state
@@ -91,11 +108,11 @@ export function nameOf(st, a) {
 }
 
 // ----------------------------------------------------------------------------- the console's key
-// A P-256 key cannot be a Safe owner by itself; on chain it will sit behind a signer contract
-// (WebAuthn signer or a custom ERC-1271, still open in docs/KICKOFF.md). Until then the owner
-// address is keccak(qx || qy)[12:], the same stand-in the console computes for itself.
+// A P-256 key cannot be a Safe owner by itself. It owns the Safe through the SafeWebAuthnSignerProxy
+// the passkey factory deploys for it (quorum_cfg.py "signer"), and that proxy's address is the
+// owner, computed the same way the console computes it for itself (firmware/webauthn.py).
 export function p256Owner(qx, qy) {
-  return getAddress("0x" + keccak256(concat([qx, qy])).slice(-40));
+  return sigs.p256Owner(CFG.signer, qx, qy);
 }
 
 export function registerDevice(st, { name, qx, qy }) {
@@ -104,11 +121,28 @@ export function registerDevice(st, { name, qx, qy }) {
   if (!o) {
     o = { address, name: "This key", kind: "p256", device: name, qx, qy };
     st.owners.push(o);
-    say(st, `${name} joined as an owner: P-256 key ${qx.slice(2, 10)}.. -> ${address} (now ${st.threshold} of ${st.owners.length})`);
+    say(st, `${name} joined as an owner: P-256 key ${qx.slice(2, 10)}.. -> signer ${address} (now ${st.threshold} of ${st.owners.length})`);
   } else {
     o.device = name;
   }
   return o;
+}
+
+// registerDevice, and on the fork the owner made real: the signer proxy deployed and added to the Safe.
+export async function joinDevice(st, dev) {
+  const o = registerDevice(st, dev);
+  if (chain) await chain.enroll(st, o);
+  return o;
+}
+
+// A fresh Safe: on the fork, the chain goes back to how setup left it.
+export async function freshSafe() {
+  const st = fresh();
+  if (chain) {
+    await chain.reset();
+    await chain.refresh(st);
+  }
+  return st;
 }
 
 // ----------------------------------------------------------------------------- the queue
@@ -118,7 +152,7 @@ export function nextNonce(st) {
 
 // fields: the SafeTx fields. opts: proposer (alice|bob), sign (the proposer confirms),
 // lie (fields the service reports a hash for, instead of the ones it shows), reportSafe, scenario.
-export function propose(st, fields, opts = {}) {
+export async function propose(st, fields, opts = {}) {
   const f = { value: "0", data: "0x", operation: 0, safeTxGas: "0", baseGas: "0", gasPrice: "0", gasToken: ZERO,
               refundReceiver: ZERO, nonce: nextNonce(st), ...fields };
   for (const k of ["value", "safeTxGas", "baseGas", "gasPrice", "nonce"]) f[k] = String(f[k]);
@@ -133,6 +167,7 @@ export function propose(st, fields, opts = {}) {
     confirmations: [], isExecuted: false, executionDate: null, transactionHash: null,
     scenario: opts.scenario || "", declined: [],
   };
+  if (chain) await chain.checkHash(st, f, trueHash);
   st.txs.push(tx);
   say(st, `${nameOf(st, by.address)} proposed #${tx.nonce} ${opts.scenario || ""} ${reported.slice(0, 10)}..` +
     (opts.lie ? "  (the service LIES: the hash is for other fields)" : "") + (opts.reportSafe ? "  (reported for another Safe)" : ""));
@@ -151,37 +186,49 @@ export async function signAs(st, who, tx) {
 }
 
 // Check one signature the way the Safe would at execution (against the hash of the fields),
-// then record it. 65 bytes: ECDSA by an owner. 64 bytes: r || s from a P-256 owner.
+// then record it. ECDSA (65 bytes) by an owner, or a contract signature (v = 0) from an owner
+// contract: a console's signer proxy, checked off chain here (WebAuthn, sigs.mjs) or by the proxy
+// itself on the fork (isValidSignature), which is what Safe's transaction service does.
 export async function confirm(st, tx, signature) {
-  const n = size(signature);
-  if (n === 65) {
+  let p;
+  try {
+    p = sigs.parse(signature);
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+  if (p.kind === "ecdsa") {
     const a = await recoverAddress({ hash: tx.trueHash, signature });
     const owner = st.owners.find((o) => o.address === a);
     if (!owner) return { ok: false, error: `signer ${a} is not an owner` };
     return record(st, tx, owner, "EOA", signature, "ECDSA");
   }
-  if (n !== 64) return { ok: false, error: `a signature is 64 (P-256 r||s) or 65 (ECDSA) bytes, not ${n}` };
-  const sig = p256.Signature.fromCompact(signature.slice(2));
-  for (const o of st.owners.filter((o) => o.kind === "p256")) {
-    const pub = "04" + o.qx.slice(2) + o.qy.slice(2);
-    if (p256.verify(sig, tx.trueHash.slice(2), pub, { prehash: false, lowS: false })) {
-      const note = `P-256 verified, ${sig.hasHighS() ? "HIGH s (a contract may refuse it)" : "low s"}`;
-      return record(st, tx, o, "CONTRACT_SIGNATURE", signature, note);
-    }
-    if (tx.trueHash !== tx.safeTxHash && p256.verify(sig, tx.safeTxHash.slice(2), pub, { prehash: false, lowS: false })) {
-      say(st, `!! ${o.device} signed the hash the service reported for #${tx.nonce}, not the fields it showed: blind signing`);
-      return { ok: false, error: "signature is for the reported hash, not the transaction's fields" };
-    }
+  const owner = st.owners.find((o) => o.address === p.owner);
+  if (!owner) return { ok: false, error: `signer ${p.owner} is not an owner` };
+  const why = await contractCheck(owner, tx.trueHash, p);
+  if (!why) {
+    const note = chain ? "the signer proxy's isValidSignature said yes" : `WebAuthn P-256 verified, ${sigs.highS(p.s) ? "high s" : "low s"}`;
+    return record(st, tx, owner, "CONTRACT_SIGNATURE", signature, note);
   }
-  return { ok: false, error: "no P-256 owner made this signature over this transaction" };
+  if (tx.trueHash !== tx.safeTxHash && !(await contractCheck(owner, tx.safeTxHash, p))) {
+    say(st, `!! ${owner.device || owner.name} signed the hash the service reported for #${tx.nonce}, not the fields it showed: blind signing`);
+    return { ok: false, error: "signature is for the reported hash, not the transaction's fields" };
+  }
+  return { ok: false, error: `${owner.name}'s signature does not verify over this transaction: ${why}` };
 }
 
-function record(st, tx, owner, type, signature, note) {
+// "" when owner's contract signature p is valid for hash, else why not.
+async function contractCheck(owner, hash, p) {
+  if (chain) return (await chain.isValidSignature(owner.address, hash, p.data)) ? "" : "isValidSignature refused it";
+  if (owner.kind !== "p256") return "not a console key this simulation knows";
+  return sigs.checkWebAuthn(hash, p, owner.qx, owner.qy);
+}
+
+async function record(st, tx, owner, type, signature, note) {
   if (tx.isExecuted) return { ok: false, error: "already executed" };
   if (tx.confirmations.some((c) => c.owner === owner.address)) return { ok: false, error: `${owner.name} already confirmed` };
   tx.confirmations.push({ owner: owner.address, submissionDate: stamp(st), transactionHash: null, signature, signatureType: type });
   say(st, `${owner.name} confirmed #${tx.nonce} (${note}): ${tx.confirmations.length} of ${st.threshold}`);
-  execute(st);
+  await execute(st);
   return { ok: true, owner: owner.address, name: owner.name };
 }
 
@@ -191,12 +238,31 @@ export function decline(st, tx, by) {
 }
 
 // Execute whatever is ready, in nonce order, as the proposer's wallet would. Other transactions
-// at the same nonce can never run after that; the service drops them from the queue.
-export function execute(st) {
+// at the same nonce can never run after that; the service drops them from the queue. On the fork
+// this is execTransaction for real; one that would revert stays in the queue with the reason.
+export async function execute(st) {
   for (;;) {
     const t = st.txs.find((t) => !t.isExecuted && Number(t.nonce) === st.nonce && t.trueHash === t.safeTxHash &&
                                  t.safe === st.address && t.confirmations.length >= st.threshold);
     if (!t) return;
+    if (chain && !autoExec) {
+      if (!t.ready) say(st, `#${t.nonce} ${t.scenario} has ${t.confirmations.length} of ${st.threshold}: ready for tools/quorum live exec --chain local ${t.nonce}`);
+      t.ready = true;
+      return;
+    }
+    if (chain) {
+      const r = await chain.execute(st, t);
+      if (!r.ok) {
+        if (t.revert !== r.reason) say(st, `#${t.nonce} ${t.scenario} has ${t.confirmations.length} of ${st.threshold} but would revert onchain: ${r.reason}`);
+        t.revert = r.reason;
+        return;
+      }
+      Object.assign(t, { isExecuted: true, executionDate: stamp(st), transactionHash: r.hash, isSuccessful: r.success, revert: null });
+      await chain.refresh(st);
+      say(st, `EXECUTED #${t.nonce} ${t.scenario} onchain: tx ${r.hash.slice(0, 12)}.., ${r.gasUsed} gas${r.success ? "" : ", but the Safe says the call FAILED"}. ` +
+        `Now ${st.threshold} of ${st.owners.length}, nonce ${st.nonce}`);
+      continue;
+    }
     t.isExecuted = true;
     t.executionDate = stamp(st);
     t.transactionHash = keccak256(concat([t.trueHash, "0x01"]));
@@ -236,8 +302,8 @@ function apply(st, t) {
 export function apiSafe(st) {
   return {
     address: st.address, nonce: st.nonce, threshold: st.threshold, owners: st.owners.map((o) => o.address),
-    masterCopy: "0x41675C099F32341bf84BFc5382aF534df5C7461a", modules: [], fallbackHandler: ZERO, guard: ZERO,
-    version: st.version || "1.4.1",
+    masterCopy: st.masterCopy || "0x41675C099F32341bf84BFc5382aF534df5C7461a", modules: [],
+    fallbackHandler: st.fallbackHandler || ZERO, guard: ZERO, version: st.version || "1.4.1",
   };
 }
 
@@ -248,7 +314,7 @@ export function apiTx(st, t) {
   return {
     ...out, executionDate: t.executionDate, submissionDate: t.submissionDate, modified: t.submissionDate,
     transactionHash: t.transactionHash, safeTxHash: t.safeTxHash, proposer: t.proposer,
-    isExecuted: t.isExecuted, isSuccessful: t.isExecuted ? true : null, confirmationsRequired: st.threshold,
+    isExecuted: t.isExecuted, isSuccessful: t.isExecuted ? t.isSuccessful ?? true : null, confirmationsRequired: st.threshold,
     confirmations: t.confirmations, trusted: true, dataDecoded: null,
   };
 }
@@ -258,6 +324,7 @@ export function apiList(st, q) {
   if (q.get("executed") === "false") r = r.filter((t) => !t.isExecuted);
   if (q.get("executed") === "true") r = r.filter((t) => t.isExecuted);
   if (q.has("nonce__gte")) r = r.filter((t) => Number(t.nonce) >= Number(q.get("nonce__gte")));
+  if (q.has("nonce")) r = r.filter((t) => Number(t.nonce) === Number(q.get("nonce")));
   r = [...r].sort((a, b) => (q.get("ordering") === "-nonce" ? -1 : 1) * (Number(a.nonce) - Number(b.nonce)));
   const limit = Number(q.get("limit") || 20);
   return { count: r.length, next: null, previous: null, results: r.slice(0, limit).map((t) => apiTx(st, t)) };

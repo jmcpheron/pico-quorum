@@ -1,13 +1,13 @@
-// The same vectors under real MicroPython 1.26 (WebAssembly, from emu/), so safe_tx.py and
-// decode.py are known to run on the Pico and not only on CPython.
+// The same vectors under real MicroPython 1.26 (WebAssembly, from emu/), so safe_tx.py,
+// decode.py and webauthn.py are known to run on the Pico and not only on CPython.
 //   (cd emu && npm install) && node test-vectors/run-micropython.mjs
 import { readFileSync } from "node:fs";
 import { loadMicroPython } from "../emu/node_modules/@micropython/micropython-webassembly-pyscript/micropython.mjs";
 
 const root = new URL("..", import.meta.url);
 const mp = await loadMicroPython({ stdout: (l) => console.log(l) });
-for (const f of ["keccak.py", "safe_tx.py", "decode.py", "quorum_cfg.py"]) mp.FS.writeFile("/" + f, readFileSync(new URL("firmware/" + f, root)));
-mp.FS.writeFile("/safe_tx.json", readFileSync(new URL("test-vectors/safe_tx.json", root)));
+for (const f of ["keccak.py", "safe_tx.py", "decode.py", "quorum_cfg.py", "webauthn.py"]) mp.FS.writeFile("/" + f, readFileSync(new URL("firmware/" + f, root)));
+for (const f of ["safe_tx.json", "webauthn.json", "webauthn_check.py"]) mp.FS.writeFile("/" + f, readFileSync(new URL("test-vectors/" + f, root)));
 mp.runPython(`
 import sys, json, safe_tx
 vs = json.load(open("/safe_tx.json"))["vectors"]
@@ -37,6 +37,9 @@ for v in vs:
     bad += not ok
     print("pass" if ok else "FAIL", "decode", v["name"], got["summary"][:40])
 print("decode: %d expectations, %d selectors" % (n, len(decode.SIGS)))
+
+import webauthn_check
+bad += webauthn_check.check("/webauthn.json")
 _failed = bad
 `);
 process.exit(mp.globals.get("_failed") ? 1 : 0);

@@ -419,7 +419,7 @@
       "name": "sim-send",
       "description": "The simulated Safe (chain 31337, tools/quorum): send 0.05 ETH to Bob",
       "chainId": 31337,
-      "safe": "0x5afe00000000000000000000000000000000a11e",
+      "safe": "0xf77e6235ea5ce79d6d823b332276cac99ea77666",
       "expect": {
         "summary": "Send 0.05 ETH",
         "items": [
@@ -441,8 +441,8 @@
         "refundReceiver": "0x0000000000000000000000000000000000000000",
         "nonce": "0"
       },
-      "domainSeparator": "0x10799ac08b47f96f89e48e6401aacf6fc8810ee5eca03e0dbc737b7628ae1641",
-      "safeTxHash": "0x488643d3241e665c1094ae3504041f20e150495dcd50d9bac309402b0092afa5"
+      "domainSeparator": "0xba8be2fa127aa0f742ff885afa85c194e29e5b6e849796ceacf7cf4ed7c0bba9",
+      "safeTxHash": "0x1e0dc3c2f22dc2fa12f91c65593096b9f8b8b070163dbecf150c4b952b52563a"
     },
     {
       "name": "real-0",

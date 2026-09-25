@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-# Check firmware/safe_tx.py against every vector in test-vectors/, and firmware/decode.py against
-# each vector's "expect" (what the screen must say about it). Exit 1 on any mismatch.
+# Check firmware/safe_tx.py against every vector in test-vectors/, firmware/decode.py against
+# each vector's "expect" (what the screen must say about it), and firmware/webauthn.py against
+# webauthn.json (the chip signature packed for the Safe). Exit 1 on any mismatch.
 #   python3 test-vectors/run.py
 import json
 import os
@@ -12,6 +13,7 @@ import safe_tx  # noqa: E402
 import decode  # noqa: E402
 import quorum_cfg  # noqa: E402
 from keccak import keccak256  # noqa: E402
+import webauthn_check  # noqa: E402
 
 
 def hx(b):
@@ -37,7 +39,9 @@ def main():
             print("      domain   got %s\n               want %s" % (dom, v["domainSeparator"]))
             print("      hash     got %s\n               want %s" % (hx(h), v["safeTxHash"]))
     print("%d/%d vectors pass" % (len(vectors) - failed, len(vectors)))
-    return 1 if failed + check_decode(vectors) else 0
+    failed += check_decode(vectors)
+    failed += webauthn_check.check(os.path.join(HERE, "webauthn.json"))
+    return 1 if failed else 0
 
 
 def check_decode(vectors):

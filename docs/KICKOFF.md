@@ -7,7 +7,7 @@
 
 A physical approval device for [Safe](https://safe.global) multisig wallets. Each signer holds a plug-in secure-element key; the console shows what a transaction does and signs only when you press Sign.
 
-## Status (2026-09-24)
+## Status (2026-09-25)
 
 The hardware in this kickoff (plug-in keys, the console with its guarded button and dial) doesn't exist yet. Until
 it does, the **dev console** is the picowallet this repo forked: a Pico 2 W, a Waveshare Pico-LCD-1.3 (240×240,
@@ -17,12 +17,13 @@ joystick, A/B/X/Y) and an Adafruit ATECC608 breakout. Its build guide is [picowa
 |---|---|---|
 | 1. Secure-element driver | `firmware/atecc.py` and `firmware/trustm.py` (upstream), `firmware/signer.py` | ATECC608 works; Trust M not yet run on a chip here |
 | 2. Safe hash | `firmware/safe_tx.py`, checked against `test-vectors/` | done |
-| 3. Signature packaging | `quorum.signature_for()` | raw P-256 r‖s for the simulation; the owner contract's format is still open |
-| 4. Transaction service client | `firmware/txservice.py`, against `tools/quorum`'s simulated Safe | started, simulated |
+| 3. Signature packaging | `firmware/webauthn.py` | done: a WebAuthn assertion for Safe's passkey signer (safe-modules v0.2.1), checked against the deployed contracts (`test-vectors/webauthn.json`) |
+| 4. Transaction service client | `firmware/txservice.py`, against `tools/quorum`: simulated, or a real Safe on an Anvil fork of Base | working on the fork; next, `api.safe.global` |
 | 5. Decoder and display | `firmware/decode.py` (checked by `test-vectors/`), `firmware/quorum.py`, `quorum_ui.py` | started: [walkthrough](quorum-ui/README.md) |
-| Contracts | `contracts/` | not started |
+| Contracts | none of our own | Safe 1.4.1 and Safe's passkey signer, both deployed and audited |
 
-[Test ladder](#test-ladder) rung 1 is the next milestone.
+[Test ladder](#test-ladder) rung 1 runs on the laptop (`tools/quorum up`, and `tools/quorum e2e`
+with the emulator). Next: the real Pico on the fork, then rung 2. Progress: [LADDER.md](LADDER.md).
 
 ## What this is
 
@@ -66,7 +67,7 @@ What's different here: a multisig-first design, on-device Safe transaction decod
 |---|---|
 | **Key** | A ¼″ stereo plug and a 3.5 mm plug, rigidly joined. The different sizes mean it only goes in one way, and it can't rotate, so the label always faces up. Inside: the secure element on a tiny PCB, a decoupling cap, and an optional glow LED behind a translucent window. |
 | **Console** | Pico 2 W (preferred for secure boot), screen, rotary encoder, momentary Sign and Reject buttons, latching power switch, status LED, and a dual key socket with insertion detection. |
-| **Safe side** | A Safe on Base, with each key registered as an owner through a P-256 signer contract. Try Safe's audited WebAuthn/passkey signer path first; fall back to a custom ERC-1271 signer. |
+| **Safe side** | A Safe on Base, with each key an owner through its own SafeWebAuthnSignerProxy (Safe's audited passkey signer). The console signs a WebAuthn assertion whose challenge is the safeTxHash it computed. |
 
 ## Hardware
 
@@ -130,7 +131,7 @@ On the dev console: A (top of the column, green bar) is Sign, held 2 s; Y (botto
 
 1. **Secure-element driver**, inherited from upstream: `firmware/atecc.py` and `firmware/trustm.py`.
 2. **Safe hash:** EIP-712 domain (chain ID and Safe address) plus the SafeTx struct, with Keccak computed on-device. Golden test vectors live in `test-vectors/`, and every change must pass all of them. *(Done: `firmware/safe_tx.py`.)*
-3. **Signature packaging** into the format the owner contract expects (WebAuthn-shaped or custom ERC-1271).
+3. **Signature packaging** into the format the owner contract expects: a WebAuthn assertion inside a Safe contract signature. *(Done: `firmware/webauthn.py`.)*
 4. **Transaction service client:** list pending transactions and post confirmations, with the API key kept in config.
 5. **Decoder and display:** plain-language actions, warnings, and verification pages.
 
@@ -143,9 +144,13 @@ On the dev console: A (top of the column, green bar) is Sign, held 2 s; Y (botto
 
 ## Test ladder
 
-1. **Local:** an Anvil fork of Base on the laptop, plus a mock transaction service that implements only the endpoints the console uses. The console connects over home Wi-Fi. The fork runs as chain 31337, so nothing signed on it is valid on real Base. Milestone: a 1-of-1 Safe executes after a button press.
+Tracked in [LADDER.md](LADDER.md): each rung's status, the commands, the evidence, and the checklist
+before real money.
+
+1. **Local:** an Anvil fork of Base on the laptop, plus a mock transaction service that implements only the endpoints the console uses (`tools/quorum up`). The console connects over home Wi-Fi. The fork runs as chain 31337, so nothing signed on it is valid on real Base. Milestone: a Safe executes after a button press. *(Done with the emulator's chip, `tools/quorum e2e`; the real Pico is next.)*
 2. **Base Sepolia:** the real Safe web app and transaction service. Milestone: a 2-of-3 with one browser wallet and two consoles.
 3. **Base mainnet with pocket change:** a remote signer on their own Wi-Fi. Milestone: a real remote approval.
+4. **Ethereum mainnet with pocket change:** the same approval on L1. The passkey signer, the P-256 precompile (Fusaka) and Safe's service are all there, and an execution costs about a cent at 2026 gas.
 
 ## Provisioning ceremony (outline)
 
@@ -190,8 +195,8 @@ See [`hardware/bom/README.md`](../hardware/bom/README.md).
 ## Open decisions
 
 - [ ] Secure element for real keys: ATECC608 (driver here) vs Trust M (driver and on-chain attestation upstream)
-- [ ] WebAuthn-shaped signatures vs. a custom ERC-1271 signer (first choice: Safe's passkey signer)
-  - Keep the format reusable by Hegotá frame transactions; see [Hegotá watch](HEGOTA-WATCH.md)
+- [x] WebAuthn-shaped signatures vs. a custom ERC-1271 signer: Safe's passkey signer, one SafeWebAuthnSignerProxy per key, verifiers = the P-256 precompile then Daimo. No contract of our own. (Safe's unreleased native P-256 owners could replace the proxy later; the packaging is all in `webauthn.py`.)
+  - Keep the format reusable by Hegotá frame transactions; see [Hegotá watch](HEGOTA-WATCH.md). A WebAuthn assertion is what a P-256 validation frame would check too, so the chip signs nothing new.
 - [ ] Whether a PIN/authorization is feasible on the chosen chip
 - [ ] Screen size
 - [ ] Button choice and layout (beside the screen vs. below it)

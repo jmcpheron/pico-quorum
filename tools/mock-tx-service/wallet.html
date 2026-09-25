@@ -1,0 +1,123 @@
+<!doctype html>
+<!-- tools/quorum live: one transaction handed to the browser's wallet (EIP-1193). Served on 127.0.0.1
+     by live.mjs, which fills /tx and waits for the hash on /sent. The wallet shows it and asks. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Send with your wallet</title>
+<style>
+  :root { --bg: #f6f6f4; --panel: #ffffff; --ink: #16181d; --dim: #666b75; --line: #e2e2de; --go: #1f8f4e; --go-ink: #fff; --bad: #c0392b; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0f1115; --panel: #181b22; --ink: #e8e8ea; --dim: #8a8f98; --line: #262a33; --go: #3ecf6e; --go-ink: #07140c; --bad: #ff6b5e; }
+  }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 -apple-system, system-ui, sans-serif; }
+  main { max-width: 640px; margin: 0 auto; padding: 24px 16px; }
+  h1 { font-size: 20px; margin: 0 0 4px; } .dim { color: var(--dim); }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin: 14px 0; }
+  dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 10px 0 0; }
+  dt { color: var(--dim); } dd { margin: 0; font-family: ui-monospace, Menlo, monospace; font-size: 13px; overflow-wrap: anywhere; }
+  button { font: inherit; font-weight: 600; border-radius: 8px; padding: 10px 16px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; }
+  button.go { background: var(--go); color: var(--go-ink); border-color: var(--go); }
+  button:disabled { opacity: .45; cursor: default; }
+  details pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; max-height: 200px; overflow: auto; }
+  .bad { color: var(--bad); } .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  a { color: inherit; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Send with your wallet</h1>
+  <div class="dim">From <code>tools/quorum live</code>. Your wallet shows the transaction again and asks before anything is sent.</div>
+  <section>
+    <div id="what">Loading…</div>
+    <dl id="fields"></dl>
+    <details><summary class="dim">Call data</summary><pre id="data"></pre></details>
+  </section>
+  <section>
+    <div class="row">
+      <button id="connect">Connect wallet</button>
+      <button id="switch" hidden>Switch network</button>
+      <button id="send" class="go" disabled>Send from wallet</button>
+    </div>
+    <p id="status" class="dim"></p>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const eth = window.ethereum;
+let tx, account;
+const say = (msg, bad) => { $("status").textContent = msg; $("status").className = bad ? "bad" : "dim"; };
+const hex = (n) => "0x" + Number(n).toString(16);
+
+async function load() {
+  tx = await (await fetch("/tx")).json();
+  $("what").textContent = tx.what;
+  const ether = Number(BigInt(tx.value)) / 1e18;
+  const rows = [["Network", `${tx.chainName} (${tx.chainId})`], ["To", tx.to], ["Value", `${ether} ETH`],
+                ["Data", `${(tx.data.length - 2) / 2} bytes`]];
+  $("fields").innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd></dd>`).join("");
+  [...$("fields").querySelectorAll("dd")].forEach((dd, i) => (dd.textContent = rows[i][1]));
+  $("data").textContent = tx.data;
+  if (!eth) say("No wallet in this browser. Open this page where MetaMask, Rabby or another wallet extension is installed.", true);
+}
+
+async function check() {
+  const id = parseInt(await eth.request({ method: "eth_chainId" }), 16);
+  const right = id === tx.chainId;
+  $("switch").hidden = right;
+  $("switch").textContent = `Switch to ${tx.chainName}`;
+  $("send").disabled = !right || !account;
+  say(right ? `Connected: ${account}` : `Your wallet is on chain ${id}. Switch it to ${tx.chainName}.`, !right);
+}
+
+$("connect").onclick = async () => {
+  if (!eth) return say("No wallet in this browser.", true);
+  try {
+    [account] = await eth.request({ method: "eth_requestAccounts" });
+    $("connect").textContent = "Connected";
+    $("connect").disabled = true;
+    await check();
+    eth.on?.("chainChanged", check);
+    eth.on?.("accountsChanged", (a) => { account = a[0]; check(); });
+  } catch (e) { say(e.message, true); }
+};
+
+$("switch").onclick = async () => {
+  try {
+    await eth.request({ method: "wallet_switchEthereumChain", params: [{ chainId: hex(tx.chainId) }] });
+  } catch (e) {
+    if (e.code !== 4902) return say(e.message, true);
+    await eth.request({ method: "wallet_addEthereumChain", params: [{ chainId: hex(tx.chainId), chainName: tx.chainName,
+      rpcUrls: [tx.rpc], nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 }, blockExplorerUrls: tx.explorer ? [tx.explorer] : [] }] });
+  }
+  await check();
+};
+
+$("send").onclick = async () => {
+  $("send").disabled = true;
+  say("Waiting for your wallet…");
+  try {
+    const p = { from: account, to: tx.to, data: tx.data, value: tx.value };
+    if (tx.gas) p.gas = tx.gas;
+    const hash = await eth.request({ method: "eth_sendTransaction", params: [p] });
+    await fetch("/sent", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ hash }) });
+    $("status").className = "dim";
+    $("status").innerHTML = "Sent. The terminal is waiting for it to land. ";
+    if (tx.explorer) {
+      const a = document.createElement("a");
+      a.href = `${tx.explorer}/tx/${hash}`;
+      a.textContent = "See it on the explorer";
+      a.target = "_blank";
+      $("status").append(a);
+    } else $("status").append(hash);
+  } catch (e) {
+    $("send").disabled = false;
+    say(e.message, true);
+  }
+};
+
+load();
+</script>
+</body>
+</html>

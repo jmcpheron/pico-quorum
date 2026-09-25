@@ -11,4 +11,7 @@ emu/sketches/.main.py
 tools/vectors/node_modules/
 tools/mock-tx-service/node_modules/
 tools/mock-tx-service/state.json
+tools/mock-tx-service/chain-state.json
+tools/mock-tx-service/fork.json
+tools/mock-tx-service/live.json
 tools/fonts/src/

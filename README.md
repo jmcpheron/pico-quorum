@@ -35,18 +35,36 @@ What works so far:
   python3 test-vectors/run.py
   ```
 
+- **The console** (`firmware/quorum.py`, `quorum_ui.py`, `decode.py`, `txservice.py`):
+  - It polls the transaction service, decodes each transaction into plain language with red pages
+    for the dangerous ones, and refuses any transaction whose hash or Safe the service lies about.
+  - It signs with the chip after you hold A. See the [screenshot walkthrough](docs/quorum-ui/README.md).
+  - It ran on the real Pico on 2026-09-24.
+- **The chip as a Safe owner** (`firmware/webauthn.py`):
+  - Each key owns the Safe through Safe's audited passkey signer.
+  - The console computes its own owner address, and signs a WebAuthn assertion over the safeTxHash
+    it computed itself.
+  - This is checked against the deployed contracts on Base Sepolia.
+- **A real Safe on the laptop:**
+  - `tools/quorum up` runs a Safe 1.4.1 on an Anvil fork of Base. The chip's approvals execute
+    there.
+  - `tools/quorum e2e` runs a whole approval with the emulator, no hardware
+    ([details](tools/mock-tx-service/README.md)).
 - Everything inherited from picowallet: the ATECC608 driver and chip explorer, the OPTIGA Trust M
   driver and `TrustMAttest` contract, on-device keccak/EIP-712, the screen and button UI, the USB
   wallet, and the emulator.
 
-The next milestone is [test ladder](docs/KICKOFF.md#test-ladder) rung 1: a 1-of-1 Safe on a local
-fork of Base that executes a transaction after a button press.
+Next is the [test ladder](docs/LADDER.md), which tracks each step:
+- rung 1 with the real Pico on the fork
+- Base Sepolia with the Safe web app
+- Base with a few dollars
+- then Ethereum mainnet
 
 ## Layout
 
 | path | what |
 |---|---|
-| `docs/` | [kickoff](docs/KICKOFF.md), [upstream tracking](docs/UPSTREAM-TRACKING.md), [Hegotá watch](docs/HEGOTA-WATCH.md), and picowallet's notes: [build guide](docs/picowallet.md), [security model](docs/SECURITY.md), [chip map](docs/CHIPMAP.md), [test plan](docs/TESTPLAN.md), [USB wallet](docs/USB.md), [clear signing](docs/CLEARSIGNING.md) |
+| `docs/` | [kickoff](docs/KICKOFF.md), [test ladder](docs/LADDER.md), [locking the chip](docs/LOCKING.md), [upstream tracking](docs/UPSTREAM-TRACKING.md), [Hegotá watch](docs/HEGOTA-WATCH.md), and picowallet's notes: [build guide](docs/picowallet.md), [security model](docs/SECURITY.md), [chip map](docs/CHIPMAP.md), [test plan](docs/TESTPLAN.md), [USB wallet](docs/USB.md), [clear signing](docs/CLEARSIGNING.md) |
 | `hardware/` | `wiring/` ([perfboard build](hardware/wiring/SOLDERING.md)), `bom/`, `key-pcb/` |
 | `cad/` | `console/` (today the dev console's case, generators and measurements), `key/` |
 | `firmware/` | MicroPython for the Pico: `safe_tx.py` (new), and picowallet's `wallet.py`, `usbwallet.py`, `atecc.py`, `trustm.py`, `signer.py` and crypto |

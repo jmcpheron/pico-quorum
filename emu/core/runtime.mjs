@@ -7,6 +7,7 @@
 //   opts.keys             Int32Array, one slot per KEY_ORDER entry, 1 = held. Shared with the UI.
 //   opts.files            { name: string | Uint8Array } written to the root of the flash
 //   opts.appUrl           what secrets.APP_URL should be (the wallet app)
+//   opts.secrets          more lines for secrets.py (Python), after the generated ones
 //   opts.http(method, url, body, headersJson, timeoutMs) -> { status, text, headers }  (sync)
 //   opts.onFrame(rgb565BigEndian Uint8Array 240*240*2)   after every full lcd.show()
 //   opts.onStdout(line)   one line of Python output, no newline
@@ -199,7 +200,7 @@ export async function createDevice(opts) {
   for (const name of SHIMS) FS.writeFile(`/lib/${name}.py`, opts.shims[name]);
   FS.writeFile("/lib/_bootstrap.py", opts.shims._bootstrap);
   for (const [name, data] of Object.entries(opts.files || {})) writeFile(name, data);
-  writeFile("secrets.py", secretsPy(opts.appUrl || "http://localhost:3001"));
+  writeFile("secrets.py", secretsPy(opts.appUrl || "http://localhost:3001") + (opts.secrets || ""));
   // A fixed throwaway software key, so the virtual wallet's address survives reboots and a vault
   // deployed against it on anvil keeps working across runs. Never a real key.
   writeFile("key.bin", Uint8Array.from({ length: 32 }, (_, i) => i + 1));

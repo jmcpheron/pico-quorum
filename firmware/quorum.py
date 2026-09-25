@@ -9,7 +9,8 @@
 # Trust: the service is not trusted. Each transaction is rehashed here (safe_tx.py) from the same
 # fields decode.py puts on the screen, with the chain and Safe pinned in quorum_cfg.py. If the
 # service's safeTxHash or Safe differs, the transaction is REFUSED and cannot be signed. The chip
-# signs the hash computed here, never a string the service sent.
+# signs the hash computed here, never a string the service sent: wrapped as a WebAuthn assertion
+# (webauthn.py), because onchain this key owns the Safe through Safe's passkey signer.
 #
 #   import lcd; import quorum; quorum.start()      (main.py does this)
 import sys, time, machine, network, gc
@@ -20,7 +21,7 @@ import safe_tx
 import decode
 import quorum_cfg
 import txservice
-from keccak import keccak256
+import webauthn
 gc.collect()        # the chip UI modules are big; compile them on a clean heap (as wallet.py does)
 import slots as SL
 import splash
@@ -31,7 +32,9 @@ except ImportError:
     secrets = None
 
 CFG = quorum_cfg.CFG
-SAFE = CFG["safes"][0]
+# The Safe this console signs for: QUORUM_SAFE in secrets.py (a Safe on Base Sepolia or Base, made
+# in the Safe web app), else the pinned Family Safe on the laptop. Pinned on the device either way.
+SAFE = (getattr(secrets, "QUORUM_SAFE", None) if secrets else None) or CFG["safes"][0]
 CHAIN = SAFE["chainId"]
 SAFE_ADDR = SAFE["address"].lower()
 BASE = (getattr(secrets, "QUORUM_URL", None) or getattr(secrets, "APP_URL", None)) if secrets else None
@@ -39,6 +42,8 @@ NAME = getattr(secrets, "DEVICE_NAME", "picoquorum") if secrets else "picoquorum
 SSID = getattr(secrets, "WIFI_SSID", "") if secrets else ""
 SOFT_OK = bool(getattr(secrets, "ALLOW_SOFT_KEY", False)) if secrets else False
 POLL_MS = int(getattr(secrets, "QUORUM_POLL_S", 3) if secrets else 3) * 1000
+IDLE_POLL_MS = int(getattr(secrets, "QUORUM_IDLE_POLL_S", 120) if secrets else 120) * 1000
+IDLE_AFTER_MS = 10 * 60 * 1000
 HOLD_MS, HOLD_RED_MS = 2000, 3000       # A held this long to sign; longer when any page is red
 
 # Keys by role. The console's own controls (a guarded Sign button, a paging dial) remap here.
@@ -71,6 +76,7 @@ net_ok = False
 net_err = "starting"
 last_poll = 0
 last_announce = 0
+last_activity = 0   # the last key press or change in the queue (see poll_every)
 _snap = None
 splash_until = 0
 msg = ""
@@ -96,13 +102,12 @@ def _log(s):
 
 # ----------------------------------------------------------------------------- the key
 def my_owner():
-    """This key's stand-in owner address: keccak(qx || qy)[12:]. A P-256 key cannot own a Safe by
-    itself; on chain it will sit behind a signer contract (docs/KICKOFF.md, open decisions), and
-    this becomes that contract's address. The simulation uses the same rule."""
+    """This key's owner address: the SafeWebAuthnSignerProxy the passkey factory deploys for it,
+    computed here from the key and the pinned factory (webauthn.owner_address). The simulated and
+    the forked Safe use the same rule, and the factory's getSigner agrees (test-vectors)."""
     if not qx:
         return ""
-    h = keccak256(bytes.fromhex(qx[2:]) + bytes.fromhex(qy[2:]))
-    return decode.hx(h[12:])
+    return webauthn.owner_address(qx, qy, CFG["signer"])
 
 
 def read_key():
@@ -218,9 +223,18 @@ def conflicts(e):
 
 
 # ----------------------------------------------------------------------------- the service
+def poll_every():
+    """How often to ask the service. The real one counts requests against an API key's monthly
+    quota, so after 10 quiet minutes the console asks only every QUORUM_IDLE_POLL_S; a key press or
+    a change in the queue brings it back to QUORUM_POLL_S."""
+    if time.ticks_diff(time.ticks_ms(), last_activity) > IDLE_AFTER_MS:
+        return max(POLL_MS, IDLE_POLL_MS)
+    return POLL_MS
+
+
 def net_work():
     """One poll: the Safe, then its queue. Runs with the timer stopped."""
-    global net_ok, net_err, info, queue, last_poll, last_announce, dirty, sel, _snap
+    global net_ok, net_err, info, queue, last_poll, last_announce, last_activity, dirty, sel, _snap
     last_poll = time.ticks_ms()
     if svc is None:
         net_ok, net_err = False, "no QUORUM_URL in secrets.py"
@@ -255,6 +269,7 @@ def net_work():
             tuple((e["h"], len(e["conf"])) for e in queue))
     if snap != _snap:
         _snap, dirty = snap, True
+        last_activity = time.ticks_ms()
     gc.collect()
 
 
@@ -318,10 +333,10 @@ def hold_tick():
         say("Let go early \u00b7 not signed")
 
 
-def signature_for(e, r, s):
-    """Layer 3 goes here. The simulation takes the chip's raw r || s over the safeTxHash; the Safe
-    owner contract (WebAuthn signer or ERC-1271, not chosen yet) will want its own packaging."""
-    return "0x%064x%064x" % (r, s)
+def signature_for(e, ad, fields, r, s):
+    """Layer 3: the confirmation as the transaction service stores it, a contract signature from
+    this key's signer proxy carrying the WebAuthn assertion."""
+    return decode.hx(webauthn.contract_signature(me, ad, fields, r, s))
 
 
 def sign_it():
@@ -332,9 +347,10 @@ def sign_it():
     timer.deinit()
     try:
         t0 = time.ticks_ms()
-        r, s = sig.sign(bytes.fromhex(e["mine"][2:]))    # checked equal to the service's hash in entry()
+        ad, fields, digest = webauthn.assertion(e["mine"])    # e["mine"]: checked equal to the service's hash in entry()
+        r, s = sig.sign(digest)
         _log("signed #%d in %d ms" % (e["n"], time.ticks_diff(time.ticks_ms(), t0)))
-        post(e, signature_for(e, r, s))
+        post(e, signature_for(e, ad, fields, r, s))
     except Exception as ex:
         result = (False, "Not signed", ["The chip said:", repr(ex)[:80]])
         _log("sign: %r" % ex)
@@ -436,20 +452,22 @@ def led_tick():
 
 
 def tick(t):
-    global _busy, _n, dirty, state, splash_until, msg
+    global _busy, _n, dirty, state, splash_until, msg, last_activity
     if _busy:
         return
     _busy = True
     try:
         _n += 1
         net.poll_accept()
-        if state in ("home", "boot") and (last_poll == 0 or time.ticks_diff(time.ticks_ms(), last_poll) >= POLL_MS):
+        if state in ("home", "boot") and (last_poll == 0 or time.ticks_diff(time.ticks_ms(), last_poll) >= poll_every()):
             timer.deinit()      # no timer events pile up while HTTP and hashing block
             try:
                 net_work()
             finally:
                 start_timer()
         pressed = keys.pressed()
+        if pressed:
+            last_activity = time.ticks_ms()
         if state == "chip":
             if slots_ui.tick(pressed, keys) == "home":
                 state, dirty = "home", True
@@ -491,7 +509,7 @@ def start_timer():
 
 
 def start():
-    global d, keys, svc, dirty, splash_until
+    global d, keys, svc, dirty, splash_until, last_activity
     splash.TITLE = "picoquorum"
     U.use(getattr(secrets, "QUORUM_THEME", "dark") if secrets else "dark")
     d = splash.begin()
@@ -512,6 +530,7 @@ def start():
     if BASE:
         svc = txservice.Service(BASE, txservice.checksum(SAFE_ADDR), getattr(secrets, "QUORUM_API_KEY", None))
     splash_until = time.ticks_add(time.ticks_ms(), 1500)
+    last_activity = time.ticks_ms()
     dirty = True
     start_timer()
 

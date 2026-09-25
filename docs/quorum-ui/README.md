@@ -30,6 +30,29 @@ They can be combined: **1 or 2 as the first second, then 4 while WiFi joins.** W
 
 ## Iteration log
 
+### Iteration 3 (2026-09-25): the signature and the owner are real
+
+No new screens. What the chip signs, and who it signs as, are now what a real Safe checks:
+- **This key's owner address** is its **signer proxy**: Safe's audited passkey signer
+  (safe-modules passkey v0.2.1), which the factory deploys at an address fixed by the key. The
+  console computes it itself (`firmware/webauthn.py`), and the deployed factory agrees
+  (`test-vectors/webauthn.json`).
+- **The signature** is a WebAuthn assertion over the safeTxHash computed on the console, packed as
+  the Safe's contract signature. The chip signs `sha256(authenticatorData ‖ sha256(clientDataJSON))`,
+  all of it built on the device. No blind signing.
+- **The Family Safe** now sits at `0xf77e…7666`: the address Safe's factory gives it on a fork of
+  Base. The same console runs against a real Safe 1.4.1 there (`tools/quorum up`, see
+  [`tools/mock-tx-service/README.md`](../../tools/mock-tx-service/README.md)), and
+  `tools/quorum e2e` has the emulator's chip approve a transaction that then executes for real.
+
+Screens that changed, only where an address shows: the Safe's identicon and address on the queue,
+and "This key" on the owners page.
+
+| Before (iteration 2) | After |
+|---|---|
+| <img src="shots/iter2/01-home.png"> | <img src="shots/01-home.png"> |
+| <img src="shots/iter2/30-owners.png"> | <img src="shots/30-owners.png"> |
+
 ### Iteration 2 (2026-09-25): real type, a new theme, who's being called, the Safe version
 
 You asked:
@@ -104,18 +127,15 @@ What changed:
   - B = back.
   - Unknown tokens are yellow.
 
-**Not yet (both iterations):**
-- No chain, and no Safe contracts.
-- The signature is the chip's raw r‖s; how it gets packaged for the Safe is still open.
-- This key's owner address is a stand-in, `keccak(qx‖qy)`.
-- Not yet run on the real Pico. That's next, with you at the device.
+**Not yet (iterations 1 and 2):** no chain and no Safe contracts, the chip's raw r‖s as the
+signature, and a stand-in owner address. Iteration 3 made all three real.
 
 ## The setup
 
 | | |
 |---|---|
-| **Safe** | Family Safe, `0x5afe…a11e`, v1.4.1, on chain 31337 (Local: nothing signed here is valid on a real chain) |
-| **Owners** | Alice and Bob (simulated, on the laptop) and This key (the chip), 2 of 3 must approve |
+| **Safe** | Family Safe, `0xf77e…7666`, v1.4.1, on chain 31337 (Local: nothing signed here is valid on a real chain) |
+| **Owners** | Alice and Bob (simulated, on the laptop) and This key (the chip, through its signer proxy), 2 of 3 must approve |
 | **Buttons** | A (top, green) sign · B back / owners · X chip map · Y (bottom, red) reject · stick: pages |
 | **Pinned** | the Safe, the chain, the names, the known contracts and tokens live on the console (`firmware/quorum_cfg.py`); the transaction service is not trusted for any of it |
 

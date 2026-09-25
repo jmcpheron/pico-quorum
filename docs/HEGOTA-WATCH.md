@@ -31,9 +31,11 @@ BLOCKHASH from storage. At most these nudge gas costs.
 
 ## What this changes now
 
-Nothing for rungs 1 and 2: a Safe with a P-256 owner, submitted by a browser wallet. But the
-owner contract's signature format is still [open](KICKOFF.md#open-decisions). Pick one that a
-frame-transaction validation frame could reuse without the key signing anything new.
+Nothing for rungs 1 and 2: a Safe with a P-256 owner, submitted by a browser wallet
+([LADDER.md](LADDER.md)). The owner contract's signature format has since been chosen
+(2026-09-25): a WebAuthn assertion over the safeTxHash, checked by Safe's passkey signer
+(`firmware/webauthn.py`). A validation frame can check that same assertion, so the key would sign
+nothing new.
 
 ## Sources
 
