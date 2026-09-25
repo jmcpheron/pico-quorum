@@ -104,11 +104,12 @@ Same steps as rung 2 with `--chain base` and `QUORUM_URL = ".../tx-service/base"
 **Costs.** About $5 of ETH on Base in your wallet is plenty. Each of these is a fraction of a cent:
 signer 110k gas, a Safe 310k, an execution 110k.
 
-**Before any real money, on the board:**
+**Before any real money, on the board** (and the chip: [LOCKING.md](LOCKING.md)):
 - [ ] `ENABLE_NETWORK_CONSOLE = False`. The network console is a passwordless REPL, and it can sign.
 - [ ] `ALLOW_GENKEY = False` and `ALLOW_LOCK = False`.
 - [ ] Don't make a new key in slot 0 while it owns a Safe. The owner address comes from the key, so
-      a new key is a new owner, and the old one is gone. Decide whether to lock slot 0.
+      a new key is a new owner, and the old one is gone. The plan is to lock slot 0 (only) once rung 2
+      has proven it: [LOCKING.md](LOCKING.md).
 - [ ] The Safe keeps a second owner that isn't the chip: your wallet. Losing the Pico must not lose
       the funds.
 
