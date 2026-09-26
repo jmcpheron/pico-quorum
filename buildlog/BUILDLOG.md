@@ -639,3 +639,6 @@ Branch `firmware-production`. The walkthrough with every new screen is in
 - **Back to Base:** `live pico --chain base`. `tools/fw verify`: pinned, TLS verified, watchdog on,
   counter 17, all flags off.
 - **Small fix:** `live pico` piled up its own comment line on every switch.
+- **Power cycle** (Jason unplugged and replugged it). Reset cause 1 (power-on). The console came
+  up by itself in 7 s: pin ok, watchdog on, home on the Base Safe, TLS verified, counter still 17,
+  so nothing was signed outside the console.
