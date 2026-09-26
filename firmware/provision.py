@@ -26,6 +26,7 @@ import p256
 
 TABLE = chipcfg.QUORUM_V1
 HOLD_MS = 3000
+ARM_MS = 3000
 PERMANENT = ("C3", "C6", "C9")
 TITLES = {"C1": "Pre-flight", "C2": "Write quorum v1", "C3": "Lock the config", "C4": "Make the key",
           "C5": "Test signatures", "C6": "Seal slot 0", "C7": "Owner address", "C8": "Record + zero fill",
@@ -319,6 +320,7 @@ class UI:
         self.result = None      # (step, ok, checks, message) after a run
         self.hold = None
         self.armhold = None
+        self.armnote = 0        # ticks when B+Y were let go before the arm took: "let go early" for a moment
         self.released = True    # A let go since the last result was dismissed: only then can a hold start
         self.dirty = True
 
@@ -336,11 +338,15 @@ class UI:
         if self.keys.held("B") and self.keys.held("Y"):
             if self.armhold is None:
                 self.armhold = time.ticks_ms()
-            elif time.ticks_diff(time.ticks_ms(), self.armhold) > 3000:
+            elif time.ticks_diff(time.ticks_ms(), self.armhold) > ARM_MS:
                 S.arm()
-                self.armhold, self.dirty = None, True
+                self.armhold = None
+            self.dirty = True       # the arm bar fills while they are held
             return None
-        self.armhold = None
+        if self.armhold is not None:
+            self.armhold, self.armnote, self.dirty = None, time.ticks_ms(), True
+        if self.armnote and time.ticks_diff(time.ticks_ms(), self.armnote) > 1500:
+            self.armnote, self.dirty = 0, True
         if self.result:
             if "A" in pressed or "Y" in pressed:
                 self.result, self.dirty = None, True
@@ -438,7 +444,14 @@ class UI:
         if c.counter is not None:
             d.text("counter 0: %d" % c.counter, 4, y, self.p["muted"])
         why = self.need(st) if st not in ("C10", "other") else ""
-        if why:
+        if self.armhold is not None:
+            frac = min(1, time.ticks_diff(time.ticks_ms(), self.armhold) / ARM_MS)
+            d.text("arming: keep holding B+Y", 4, 186, self.p["accent"])
+            d.fill_rect(4, 198, 232, 6, self.p["dim"])
+            d.fill_rect(4, 198, int(232 * frac), 6, self.p["accent"])
+        elif self.armnote:
+            d.text("let go early: not armed", 4, 190, self.p["bad"])
+        elif why:
             y = self.lines(why, 190, self.p["bad"])
         elif st in PERMANENT or st == "C4":
             left = S.armed()
