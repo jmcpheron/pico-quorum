@@ -361,7 +361,7 @@ def draw_home(q):
     if q.outside:
         rrect(d, 6, 190, 228, 24, 5, "warn_bg")
         warn_sign(d, 18, 202, 8)
-        txt(d, fit("%d signed outside this console" % q.outside, 200, "sans12"),
+        txt(d, fit("key used %d\u00d7 outside this console" % q.outside, 200, "sans12"),
             30, 196, "sans12", "warn_text", "warn_bg")
     footer_hints(d, q, (("A", "Open"), ("B", "Owners"), ("X", "Device")))
     d.show()
@@ -666,7 +666,7 @@ def draw_owners(q):
     version_pill(d, q, M, 193)
     k = "this key " + (q.fingerprint() or "none")
     if q.counter is not None:
-        k += " \u00b7 sig #%d" % q.counter
+        k += " \u00b7 use #%d" % q.counter
     txt_r(d, k, 230, 195, "sans12", "faint")
     footer_hints(d, q, (("B", "Back"),))
     d.show()
@@ -753,7 +753,7 @@ def draw_device(q):
                                          chips.PROFILE_SHORT.get(q.profile, q.profile or "-"))),
             ("Key", q.fingerprint() or "none"),
             ("Pin", "ok" if q.pin_ok and q.EXPECT else ("dev: none" if q.pin_ok else "FAIL")),
-            ("Signatures", "#%d" % q.counter if q.counter is not None else "not counted"),
+            ("Key uses", "#%d" % q.counter if q.counter is not None else "not counted"),
             ("Service", ("%s \u00b7 %d req" % (q.svc.tls, q.svc.requests)) if q.svc else "none"),
             ("Polls", "%d s / %d s idle" % (q.POLL_MS // 1000, q.IDLE_POLL_MS // 1000)),
             ("Memory", "%d KB free" % (gc.mem_free() // 1024))]

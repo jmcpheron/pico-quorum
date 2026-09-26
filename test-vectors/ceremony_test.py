@@ -78,7 +78,7 @@ def walk(rev):
     import webauthn, quorum_cfg
     check(c.owner() == webauthn.owner_address("0x%064x" % x, "0x%064x" % y, quorum_cfg.CFG["signer"]),
           "%s: the owner shown at C7 is the key's passkey signer" % rev)
-    check(sim.counters[0] == 5, "%s: counter 0 = %d: C5's two test signatures, C6's before and after the seal, C9's" % (rev, sim.counters[0]))
+    check(sim.counters[0] >= 5, "%s: counter 0 = %d: C5's two test signatures, C6's two, C9's, and the public-key reads after the data lock" % (rev, sim.counters[0]))
     return c
 
 
@@ -169,9 +169,19 @@ def case_console():
     owner = webauthn.owner_address("0x%064x" % x, "0x%064x" % y, quorum_cfg.CFG["signer"])
     Q = T.fresh(expect={"serial": T.SERIAL, "slot": 0, "owner": owner, "locked": True})
     check(Q.state == "home" and Q.pin_ok, "the console accepts the quorum v1 chip it is pinned to")
-    check(Q.row["limitedUse"] and not Q.row["intSign"] and Q.counter == 0, "slot 0 reads as LimitedUse, external sign only, counter 0")
+    check(Q.row["limitedUse"] and not Q.row["intSign"] and Q.counter == sim.counters[0] == 1,
+          "slot 0 reads as LimitedUse, external sign only; the count is 1, the boot's own public-key read")
+    check(Q.outside == 0, "first boot on the sealed chip: no uses flagged (its own public-key read is not one)")
+    Q = T.fresh(expect={"serial": T.SERIAL, "slot": 0, "owner": owner, "locked": True}, keep=True)
+    check(Q.outside == 0 and Q.pin_ok, "a reboot: still none flagged, though the boot read the key again")
+    before = sim.counters[0]
     T.serve(Q, [T.tx(Q, 0)])
-    check(T.sign(Q, Q.queue[0], 2100) and Q.counter == 1, "it signs with it, and the count goes to 1")
+    check(T.sign(Q, Q.queue[0], 2100) and sim.counters[0] == before + 1 and Q.counter == before + 1 and Q.outside == 0,
+          "a signature: exactly one use (the slot is sealed, so the check before it reads only the serial), none flagged")
+    sim.counters[0] += 1                    # something else on the bus uses the key
+    sim.save()
+    Q = T.fresh(expect={"serial": T.SERIAL, "slot": 0, "owner": owner, "locked": True}, keep=True)
+    check(Q.outside == 1, "a use the console did not make: flagged at the next boot")
 
 
 def case_dual():

@@ -348,6 +348,13 @@ class Chip:
             # public key of the stored key: needs a key and KeyConfig.PubInfo
             if slot not in self.keys or not self.key_cfg(slot) & 2:
                 raise _Fail(STATUS_EXEC)
+            if self.data_locked() and self.slot_cfg(slot) & 0x20:
+                # seen on silicon (chip 2, quorum v1): once the data zone is locked, a public-key
+                # read counts as a use of a LimitedUse key; chip 1 (data zone open) never counted it
+                if self.counters[0] >= COUNTER_MAX:
+                    raise _Fail(STATUS_EXEC)
+                self.counters[0] += 1
+                self.save()
         x, y = p256.pubkey(self.keys[slot])
         return self._data(x.to_bytes(32, "big") + y.to_bytes(32, "big"))
 

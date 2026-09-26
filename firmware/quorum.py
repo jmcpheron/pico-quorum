@@ -94,7 +94,8 @@ profile = ""        # which config the chip holds: quorum-v1, legacy-test, facto
 chip = None         # its entry in chips.json: name and theme (chips.py; cosmetic only)
 pin_ok = False      # the chip, slot and owner match QUORUM_EXPECT (always True on a dev board without one)
 pin_why = ""
-counter = None      # the chip's signature counter (counter 0) when the slot has LimitedUse, else None
+counter = None      # the chip's key-use counter (counter 0) when the slot has LimitedUse, else None
+boot_count = None   # counter 0 as found at boot, before this console used the key itself
 outside = 0         # signatures the chip made since this console last looked, not made by it
 truncated = False   # the queue did not fit in memory: only the first few are shown
 polls = 0           # since the Safe's info was last fetched
@@ -163,6 +164,13 @@ def probe_chip():
         sig.slot = int(EXPECT.get("slot", 0))   # the pin names the slot; slot.txt does not count
     if state in ("nochip", "pinfail"):
         state = "boot"
+    global boot_count
+    try:
+        # before reading the key: on a chip with its data zone locked (quorum v1) a public-key
+        # read counts as a use of a LimitedUse key too (seen on chip 2, 2026-09-26)
+        boot_count = sig.chip.counter(0) if sig.name == "atecc608" else None
+    except Exception:
+        boot_count = None
     read_key()
     check_pin()
     if not pin_ok and (PROD or EXPECT):
@@ -228,7 +236,10 @@ def store_counter(n):
 
 
 def check_counter():
-    """At start: has the chip signed anything since this console last did? An audit hint, not a
+    """At start: has the key been used since this console last did? Counter 0 counts every use
+    of a LimitedUse key: signatures, and on a quorum v1 chip (data zone locked) public-key reads
+    too. So the count found at boot, before this console read the key itself, is the one compared
+    with the saved one; the saved one is then the count after its own reads. An audit hint, not a
     lock: anyone on the chip's bus can raise the counter, but nobody can lower it."""
     global counter, outside
     try:
@@ -238,14 +249,15 @@ def check_counter():
         qlog.write("counter: %r" % e)
     if counter is None:
         return
-    what, n = policy.counter_check(stored_counter(), counter)
+    found = boot_count if boot_count is not None else counter
+    what, n = policy.counter_check(stored_counter(), found)
     if what == "outside":
         outside = n
-        qlog.write("counter %d: %d signature%s outside this console" % (counter, n, "" if n == 1 else "s"))
+        qlog.write("counter %d: %d use%s of the key outside this console" % (found, n, "" if n == 1 else "s"))
     elif what == "backwards":
-        qlog.write("counter %d is below the saved %s: another chip, or the file was changed" % (counter, stored_counter()))
+        qlog.write("counter %d is below the saved %s: another chip, or the file was changed" % (found, stored_counter()))
     elif what == "first":
-        qlog.write("counter %d: first look" % counter)
+        qlog.write("counter %d: first look" % found)
     store_counter(counter)
 
 
@@ -507,11 +519,14 @@ def signature_for(e, ad, fields, r, s):
 
 
 def same_chip():
-    """Right before a signature: the chip on the bus is still the one read at start (serial and
-    the slot's public key, read again from the chip itself, not from a cache)."""
+    """Right before a signature: the chip on the bus is still the one read at start. Its serial,
+    read again from the chip; and the slot's public key too unless the slot is locked (a locked
+    slot's key cannot change, and on a quorum v1 chip each read of it is a use of the key)."""
     if sig.name != "atecc608":
         return True
     s = "".join("%02x" % b for b in sig.chip.serial())
+    if row and row.get("locked"):
+        return s == serial
     x, y = sig.chip.pubkey(sig.slot)
     return s == serial and "0x%064x" % x == qx and "0x%064x" % y == qy
 
@@ -527,13 +542,13 @@ def sign_it():
     try:
         if not pin_ok or (EXPECT and sig.slot != int(EXPECT.get("slot", 0))):
             raise Exception("the key no longer matches the pin")
-        if not same_chip():
-            raise Exception("the chip or its key changed since start")
-        t0 = time.ticks_ms()
-        c0 = read_counter()
+        c0 = read_counter()         # first: before anything this console does with the key
         if c0 is not None and counter is not None and c0 != counter:
             outside += c0 - counter
             qlog.write("counter %d before signing, %d expected: %d outside this console" % (c0, counter, c0 - counter))
+        if not same_chip():
+            raise Exception("the chip or its key changed since start")
+        t0 = time.ticks_ms()
         ad, fields, digest = webauthn.assertion(e["mine"])    # e["mine"]: checked equal to the service's hash in entry()
         r, s = sig.sign(digest)
         counter = read_counter()
@@ -567,7 +582,7 @@ def post(e, signature):
         else:
             lines += ["Waiting for %d more" % (need - have)]
         if counter is not None:
-            lines += ["Chip signature #%d" % counter]
+            lines += ["Key use #%d" % counter]
         result = (True, "Signed", lines)
         need_info = True
         _log("confirmed #%d" % e["n"])

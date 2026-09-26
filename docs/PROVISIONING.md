@@ -23,8 +23,12 @@ ceremony image.
   - A PIN's rules can only be tested after the irreversible data lock.
   - See [the PIN variant](#the-pin-variant-costed-not-chosen) below. Revisit it with the Trust M,
     which does lock out.
-- **A signature counter.** LimitedUse on slot 0 ties every signature to counter 0, which the
+- **A key-use counter.** LimitedUse on slot 0 ties every use of the key to counter 0, which the
   console shows. CountMatch is off, so the only cap is the counter's own maximum of 2,097,151.
+  - On silicon (chip 2), once the data zone is locked, a public-key read (GenKey mode 0) counts as a
+    use too; before the lock, and on chip 1, it did not.
+  - The console accounts for its own reads: it takes the count before it reads the key, and before
+    a signature it re-reads only the serial of a sealed slot. Only uses it didn't make are flagged.
 - **One key, sealed.** Slots 1-15 are dead. There is no spare key: a second key in the same chip
   would fail with the first, and recovery is the Safe's other owners.
 

@@ -703,3 +703,17 @@ The Safe's nonce is 1.
   - 4-byte writes into secret slots before the data lock: refused. A 32-byte write at a slot's
     partial last block works instead.
   - Chips 3-5 get the same ceremony (build `c5226e9` or later), with no probing.
+- **C10:** sealed. Counter 0 read 7, where the ceremony's signatures account for 5. After a restart
+  with nothing signed, it read 8.
+  - **Found:** on this chip, once the data zone is locked, a public-key read (GenKey mode 0) counts
+    as a use of the LimitedUse key. Tested directly: counter 8, one public-key read, 9; Info
+    KeyValid, still 9. Chip 1 (data zone open) never counted them, and the datasheet reading in
+    PROVISIONING.md said GenKey ignores LimitedUse. Every extra count came from the ceremony and
+    console re-reading the key.
+  - **Fix:** the console takes the count before it reads the key, both at boot and before
+    signing. It re-reads only the serial of a sealed slot before a signature. The number is
+    relabelled "key use #N". The virtual chip counts public-key reads after the data lock.
+  - Tests: ceremony 78, console 77. With a sealed chip: boots and a signature raise nothing, and a
+    use from outside is flagged.
+- `tools/fw allow off`, restart. Chip 2 boots the console in light, "Not pinned" (it is not an
+  owner yet).

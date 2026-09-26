@@ -308,7 +308,8 @@ def case_sign():
     check(body["signature"] == Q.signature_for(e, ad, fields, r, s) and e["h"] in url, "the posted confirmation is that signature, for that hash")
     check(Q.counter == 6 and c.counters[0] == 6, "counter 5 -> 6 after one signature")
     check(open("counter-%s.txt" % SERIAL).read() == "6", "the new count is saved")
-    check(any("Chip signature #6" in l for l in Q.result[2]), "the result screen shows chip signature #6")
+    check(any("Key use #6" in l for l in Q.result[2]), "the result screen shows key use #6")
+    Q.row = dict(Q.row, locked=False)       # an unlocked slot: its key is read again before signing
     c.keys[0] = p256.rand_scalar()          # another key in slot 0 while the console runs
     before = len(SVC.posted)
     Q.unsent = (Q.queue[1], "0xold")
@@ -316,6 +317,10 @@ def case_sign():
           "the chip's key changed since start: not signed")
     check(Q.unsent is None, "and no older signature is offered for sending again")
     c.keys[0] = key0
+    Q.row = dict(Q.row, locked=True)
+    c.cfg[12] ^= 1                          # a sealed slot: another chip (another serial) is caught
+    check(not sign(Q, Q.queue[1], 3100) and "changed" in Q.result[2][1], "a different chip swapped in while running: not signed")
+    c.cfg[12] ^= 1
     red = Q.queue[1]
     check(red["r"]["level"] == "red" and not red["why"], "an unknown call is red but signable")
     check(not sign(Q, red, 2500), "red, held 2.5 s: nothing signed")
