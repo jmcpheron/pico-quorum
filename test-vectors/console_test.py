@@ -32,6 +32,7 @@ def check(ok, what):
 class Resp:
     def __init__(self, code, body):
         self.status_code, self.body = code, body
+        self.content = json.dumps(body).encode()
 
     def json(self):
         if isinstance(self.body, Exception):
@@ -109,6 +110,10 @@ class Clock:
     def gmtime(self, *a):
         import time
         return time.gmtime(*a)
+
+    def time(self):
+        import time
+        return time.time()
 
 
 class Timer:
@@ -437,6 +442,45 @@ def case_chips():
     check(len(J.load(open("chips.json"))) == 1, "and is written whole again")
 
 
+def case_unsent():
+    """A signature the service did not take survives a restart and goes out after the next boot;
+    a lost HTTPS reserve restarts the console, but only on home."""
+    chip()
+    Q = fresh()
+    t = tx(Q, 0)
+    serve(Q, [t])
+    real_post = SVC.post
+    SVC.post = lambda url, json=None, headers=None, timeout=None: (_ for _ in ()).throw(OSError(12))
+    try:
+        check(not sign(Q, Q.queue[0], 2100) and Q.unsent and "unsent.json" in os.listdir(), "OSError 12 on the confirmation: kept in RAM and on flash")
+    finally:
+        SVC.post = real_post
+    Q = fresh(keep=True)                    # a restart (the RAM copy is gone)
+    serve(Q, [t])
+    check(SVC.posted and t["safeTxHash"] in SVC.posted[-1][0] and "unsent.json" not in os.listdir(),
+          "after the restart, the first good poll sends the saved signature and forgets it")
+    with open("unsent.json", "w") as f:
+        f.write('{"h": "0x' + "ab" * 32 + '", "n": 9, "sig": "0x00"}')
+    Q = fresh(keep=True)
+    n = len(SVC.posted)
+    serve(Q, [t])
+    check(len(SVC.posted) == n and "unsent.json" not in os.listdir(), "a saved signature whose transaction left the queue is dropped, not sent")
+    resets = []
+    Q.machine.reset = lambda: resets.append(1)
+    for f in ("restart.txt",):
+        if f in os.listdir():
+            os.remove(f)
+    Q.svc.lost = True
+    Q.open_entry(Q.queue[0])
+    Q._busy = False
+    Q.tick(None)
+    check(not resets, "the reserve lost during a review: no restart")
+    Q.state = "home"
+    Q._busy = False
+    Q.tick(None)
+    check(resets == [1] and "restart" in open("log.txt").read(), "back on home: the console restarts, and says why in log.txt")
+
+
 def case_watchdog():
     import machine
     try:
@@ -457,7 +501,7 @@ def case_watchdog():
 
 
 def main():
-    for case in (case_pin, case_refusals, case_sign, case_service, case_production, case_chips, case_watchdog):
+    for case in (case_pin, case_refusals, case_sign, case_service, case_production, case_chips, case_unsent, case_watchdog):
         print("--", case.__name__[5:])
         try:
             case()

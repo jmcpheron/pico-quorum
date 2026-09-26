@@ -59,6 +59,7 @@ class Service:
         self.requests = 0                # since boot, for the device screen (the real service has a monthly quota)
         self.floor = floor
         self._ctx = None
+        self.lost = False
         https = self.base.startswith("https")
         if not https:
             self.tls = "plain"
@@ -78,13 +79,17 @@ class Service:
         self.hold()
 
     def hold(self):
-        """Take the reserve back (https only). Quietly does without if it no longer fits."""
+        """Take the reserve back (https only). If it no longer fits, `lost` says so: the heap has
+        split where the reserve was, and the console restarts at its next quiet moment (quorum.py)
+        rather than fail every call from then on (seen on the board, 2026-09-26)."""
         if self._room is None and self.base.startswith("https"):
             gc.collect()
             try:
                 self._room = bytearray(RESERVE)
+                self.lost = False
             except MemoryError:
                 self._room = None
+                self.lost = True
 
     def release(self):
         """Give the reserve back to the heap, for an HTTPS call or anything else that needs room."""
@@ -107,35 +112,36 @@ class Service:
             return requests.get(self.base + path, headers=self.headers, timeout=self.timeout)
         return requests.post(self.base + path, json=body, headers=self.headers, timeout=self.timeout)
 
-    def _get(self, path):
+    def _fetch(self, method, path, body=None):
+        """(status, body bytes). The reserve is lent for the call and taken back before anything
+        is parsed: what the console keeps from a response must not land where the reserve goes."""
         self.release()
         self.requests += 1
         try:
-            r = self._call("GET", path)
+            r = self._call(method, path, body)
             try:
-                if r.status_code != 200:
-                    raise ServiceError("HTTP %d" % r.status_code)
-                return r.json()
+                return r.status_code, r.content
             finally:
                 r.close()
+                r = None
         finally:
             self.hold()
 
+    def _get(self, path):
+        import json
+        status, data = self._fetch("GET", path)
+        if status != 200:
+            raise ServiceError("HTTP %d" % status)
+        return json.loads(data)
+
     def _post(self, path, body):
-        self.release()
-        self.requests += 1
+        import json
+        status, data = self._fetch("POST", path, body)
         try:
-            r = self._call("POST", path, body)
-            try:
-                try:
-                    out = r.json()
-                except ValueError:
-                    out = {}
-                return r.status_code, out
-            finally:
-                r.close()
-        finally:
-            self.hold()
+            out = json.loads(data)
+        except ValueError:
+            out = {}
+        return status, out
 
     def safe_info(self):
         return self._get("/api/v1/safes/%s/" % self.safe)

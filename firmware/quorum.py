@@ -102,6 +102,7 @@ polls = 0           # since the Safe's info was last fetched
 need_info = True
 _txs_seen = None
 fails = 0           # ticks in a row that raised
+saved_checked = False   # send_saved() ran after this boot
 net_ok = False
 net_err = "starting"
 last_poll = 0
@@ -459,6 +460,8 @@ def net_work():
                     del cache[h]
             declined = set(h for h in declined if h in live)
             net_ok, net_err = True, ""
+            if not saved_checked:
+                send_saved()
         except Exception as ex:
             net_ok, net_err = False, net.short_err(ex)
             _log("service: %r" % ex)
@@ -585,6 +588,57 @@ def sign_it():
     start_timer()
 
 
+UNSENT_FILE = "unsent.json"
+
+
+def save_unsent(e, signature):
+    """A signature the service did not take: kept on flash (it is public once posted anyway), so a
+    restart does not lose it; sent_saved() tries it again first thing after the next boot."""
+    import json
+    try:
+        with open(UNSENT_FILE, "w") as f:
+            json.dump({"h": e["h"], "n": e["n"], "sig": signature}, f)
+    except OSError as ex:
+        qlog.write("unsent not saved: %r" % ex)
+
+
+def clear_unsent(h=None):
+    import json, os
+    try:
+        if h is not None and json.load(open(UNSENT_FILE))["h"] != h:
+            return
+        os.remove(UNSENT_FILE)
+    except (OSError, ValueError, KeyError):
+        pass
+
+
+def send_saved():
+    """At the first good poll after a boot: a saved signature goes out while the heap is whole.
+    Dropped once sent, or once its transaction is no longer in the queue (executed or replaced)."""
+    import json
+    global saved_checked
+    saved_checked = True
+    try:
+        s = json.load(open(UNSENT_FILE))
+    except (OSError, ValueError):
+        return
+    if s["h"] not in [e["h"] for e in queue]:
+        qlog.write("saved signature for #%s dropped: no longer queued" % s.get("n"))
+        clear_unsent()
+        return
+    try:
+        ok, detail = svc.confirm(s["h"], s["sig"])
+    except Exception as ex:
+        ok, detail = False, net.short_err(ex)
+    if ok:
+        qlog.write("confirmed #%s (the saved signature, after a restart)" % s.get("n"))
+        say("Sent the saved signature for #%s" % s.get("n"), 6)
+        clear_unsent()
+        globals()["need_info"] = True
+    else:
+        qlog.write("saved signature for #%s refused: %s" % (s.get("n"), detail[:80]))
+
+
 def post(e, signature):
     global result, unsent, need_info
     U.draw_working(sys.modules[__name__], "Sending", "To the transaction service")
@@ -595,6 +649,7 @@ def post(e, signature):
         ok, detail = False, net.short_err(ex)
     if ok:
         unsent = None
+        clear_unsent(e["h"])
         have, need = len(e["conf"]) + 1, threshold()
         lines = ["#%d %s" % (e["n"], e["r"]["summary"]), "Approvals now %d of %d" % (have, need)]
         if have >= need:
@@ -609,6 +664,7 @@ def post(e, signature):
         qlog.write("confirmed #%d" % e["n"])
     else:
         unsent = (e, signature)
+        save_unsent(e, signature)
         result = (False, "Not sent", ["Signed, but the service said:", detail[:90]])
         _log("confirm #%d refused: %s" % (e["n"], detail))
         qlog.write("confirm #%d refused: %s" % (e["n"], detail[:80]))
@@ -620,6 +676,7 @@ def reject():
     declined.add(e["h"])
     if unsent and unsent[0]["h"] == e["h"]:
         unsent = None
+    clear_unsent(e["h"])
     state, dirty = "home", True
     say("Rejected #%d on this console" % e["n"])
     if svc and svc.sim:
@@ -727,6 +784,8 @@ def tick(t):
         if msg and time.ticks_diff(msg_until, time.ticks_ms()) <= 0:
             msg, dirty = "", True
         led_tick()
+        if svc and svc.lost and state == "home":
+            restart_for_memory()
         if dirty:
             dirty = False
             if state == "boot" and splash_until:
@@ -760,6 +819,27 @@ def crashed(e):
         U.draw_crashed(sys.modules[__name__], repr(e))
     except Exception:
         pass
+
+
+def restart_for_memory():
+    """The HTTPS reserve could not be taken back after a call: the heap has split, and every call
+    from here would fail with OSError 12. Only on the home screen (never mid-review or signing):
+    note it, keep any unsent signature (it is on flash already), and start again with a whole heap."""
+    import os
+    try:
+        last = int(open("restart.txt").read())
+    except (OSError, ValueError):
+        last = 0
+    now = time.time()
+    if 0 < now - last < 600:
+        return                  # at most one such restart every 10 minutes
+    try:
+        with open("restart.txt", "w") as f:
+            f.write(str(now))
+    except OSError:
+        pass
+    qlog.write("restart: the HTTPS reserve could not be taken back (heap in pieces)")
+    machine.reset()
 
 
 def outside_seen():
