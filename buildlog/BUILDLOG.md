@@ -724,3 +724,8 @@ The Safe's nonce is 1.
   read).
 - **Chip 2's state:** quorum v1, sealed, key `e199b2d7…`, owner `0x99ed…6b88`, counter 13, not
   yet an owner of any Safe.
+- **Enrolled on Base:** chip 2's signer proxy was deployed with the passkey factory's
+  `createSigner` ([tx](https://basescan.org/tx/0x113273caa009c8211e05408521767ef5e01db590f776791f81a82fa24f73931e)).
+  `0x99eD…6b88` now has code on Base. The factory on Ethereum mainnet has the same code and gives
+  the same address; chip 2 is not deployed there yet (only when a Safe there needs it). Not yet an
+  owner of any Safe.
