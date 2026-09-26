@@ -80,6 +80,17 @@ ATECC508A complete datasheet (DS20005927A), and cryptoauthlib. Confidence is hig
 Not verified on silicon: the Lock error code for a refused lock, CountMatch before the data lock,
 and the factory contents of the data slots.
 
+### Chip #2 and later: quorum v1
+
+Fresh chips don't get this table. They get quorum v1: one sealed signing key, slots 1-15 dead,
+CountMatch off, and each zone locked against a CRC the chip checks. The ceremony is in the ceremony
+image. See [PROVISIONING.md](PROVISIONING.md).
+
+Chip #1 stays as it is. The console pins it with `QUORUM_EXPECT = {"serial": "0123f3acfd2a826bee",
+"slot": 0, "owner": "0x2843705391b7E2cf06b0b964b532Ad9891535E53", "locked": True}` (`tools/fw pin`).
+The chip map no longer writes the test table or locks a zone without a CRC. Its data zone stays
+open: no CountMatch trap is sprung.
+
 ### Decision (2026-09-25)
 
 Slot 0 only, after rung 2. **Done:** slot 0 is sealed and the data zone is still open. Slot 2 is

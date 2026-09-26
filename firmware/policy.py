@@ -16,9 +16,9 @@ def expect_check(expect, serial, slot, row, owner):
         return False, "no QUORUM_EXPECT in secrets.py"
     want = str(expect.get("serial", "")).lower()
     if not want or serial.lower() != want:
-        return False, "chip %s, expected %s" % (serial or "none", want or "?")
+        return False, "another chip is in the board"
     if int(expect.get("slot", -1)) != slot:
-        return False, "slot %d, expected %s" % (slot, expect.get("slot"))
+        return False, "not the pinned slot"
     if row is None:
         return False, "no slot table"
     if row.get("kind") != "P256" or not row.get("extSign"):
@@ -27,7 +27,7 @@ def expect_check(expect, serial, slot, row, owner):
         return False, "slot %d is not locked" % slot
     want_owner = str(expect.get("owner", "")).lower()
     if not owner or owner.lower() != want_owner:
-        return False, "key's owner %s, expected %s" % (owner or "none", want_owner or "?")
+        return False, "its owner is not the pinned one"
     return True, ""
 
 

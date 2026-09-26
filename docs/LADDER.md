@@ -136,8 +136,17 @@ Same steps as rung 2 with `--chain base` and `QUORUM_URL = ".../tx-service/base"
 signer 110k gas, a Safe 310k, an execution 110k.
 
 **Before any real money, on the board** (and the chip: [LOCKING.md](LOCKING.md)):
-- [ ] `ENABLE_NETWORK_CONSOLE = False`. The network console is a passwordless REPL, and it can sign.
-- [ ] `ALLOW_GENKEY = False` and `ALLOW_LOCK = False`.
+- [ ] The production image, `tools/fw push console`. It boots straight into the console, and
+      nothing else on the board can sign or touch the chip. `tools/fw verify` should be all green,
+      and the build id shows on Device (X).
+- [ ] A backup from `tools/fw backup`, copied somewhere outside the repo (it holds `secrets.py`).
+- [ ] The pin, `tools/fw pin`: the chip's serial, slot 0 locked, owner `0x2843…5E53`. The console
+      signs nothing else.
+- [ ] TLS verified: Device (X) says `verified`. `tools/fw measure tls` passed on the board.
+- [ ] The watchdog tested once: the board resets itself on a hang, and `log.txt` says so.
+- [ ] `ENABLE_NETWORK_CONSOLE = False`. The network console is a passwordless REPL, and it can sign
+      (the production image ignores it anyway).
+- [ ] `ALLOW_GENKEY = False` and `ALLOW_LOCK = False` (ignored by the production image too).
 - [ ] Don't make a new key in slot 0 while it owns a Safe. The owner address comes from the key, so
       a new key is a new owner, and the old one is gone. The plan is to lock slot 0 (only) once rung 2
       has proven it: [LOCKING.md](LOCKING.md).
@@ -165,8 +174,13 @@ Same steps with `--chain eth` and `QUORUM_URL = ".../tx-service/eth"`.
   `tools/quorum live exec`.
 - **The signer proxy must be deployed before the console confirms.** The service checks the
   signature with an `eth_call` to it. `live enroll` does the deploy.
-- **Service quota.** The console polls every `QUORUM_POLL_S` seconds, then every
-  `QUORUM_IDLE_POLL_S` (default 120) after 10 quiet minutes. Each poll is 2 requests.
+- **Service quota.** 50,000 requests a month with an API key, 5,000 without.
+  - Over HTTPS with a key, the console polls every 20 s, then every 600 s after 10 quiet minutes.
+    Without a key it is 60 s / 1800 s. `QUORUM_POLL_S` and `QUORUM_IDLE_POLL_S` override these.
+  - A poll is one request: the Safe's owners and nonce are fetched every 5th poll, when the queue
+    changes, and after a confirmation.
+  - That comes to about 12,000 a month with an hour of active use a day. Device (X) counts the
+    requests since boot.
 - **Rejecting on the console doesn't reject on the Safe.** Y only hides the transaction on that
   console, and the queue stays blocked at that nonce until someone replaces it. Rejecting it on the
   Safe itself would need its own proposal.
@@ -180,7 +194,11 @@ Same steps with `--chain eth` and `QUORUM_URL = ".../tx-service/eth"`.
 
 - Should Y also offer to propose the Safe's own rejection (a zero-value self-call at the same
   nonce)?
-- Which slot, and when to lock it: slot 0 as it is now, or a fresh key in a dedicated slot for real
-  money?
+- ~~Which slot, and when to lock it?~~ Slot 0, sealed (LOCKING.md). Fresh chips get quorum v1 and
+  its ceremony ([PROVISIONING.md](PROVISIONING.md)).
+- Owner, threshold and module changes stay signable with the 3 s red hold; the chip swap needs
+  `swapOwner`. Refuse them on the Pico instead, or ask for the 4-hex verify code?
+- The console reads the Safe's owners and threshold from the service. Should it check them onchain
+  over an RPC too? It would need its own pinned certificate.
 - Is a browser-wallet executor enough for rung 3 and up, or does the console want to execute too
   (it would need gas money on a hot key)?

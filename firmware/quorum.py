@@ -181,7 +181,7 @@ def check_pin():
     if EXPECT:
         pin_ok, pin_why = policy.expect_check(EXPECT, serial, sig.slot, row, me)
     elif PROD:
-        pin_ok, pin_why = False, "not pinned: no QUORUM_EXPECT in secrets.py"
+        pin_ok, pin_why = False, "secrets.py has no QUORUM_EXPECT"
     else:
         pin_ok, pin_why = True, ""      # a development board without a pin signs as before
     qlog.write("pin %s: chip %s slot %d owner %s%s" % ("ok" if pin_ok else "FAIL", serial or sig.name, sig.slot, me or "none",

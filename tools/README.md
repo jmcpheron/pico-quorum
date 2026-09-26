@@ -17,4 +17,16 @@ PicoQuorum additions:
 - [`fonts/`](fonts/): renders the console's anti-aliased fonts (Atkinson Hyperlegible, OFL) into
   `firmware/qf_*.bin`; `firmware/fonts.py` draws them
 
-Still to come: provisioning scripts.
+- `fw` ([`board/fw.mjs`](board/fw.mjs)): the Pico as a production device, over USB.
+  - `build console|ceremony` makes an image from `firmware/manifest.json`.
+  - `backup` copies every file on the board, each checked by SHA-256, into `backups/` (gitignored).
+  - `verify [--baseline]` is read-only: files, flags, the console's live state, and the chip.
+  - `pin` writes `QUORUM_EXPECT` from the chip itself.
+  - `push console|ceremony` backs up first, shows the plan and asks for a typed yes. Then it enters
+    maintenance, copies, checks every hash, and deletes stale files.
+  - Also `restore`, `logs`, and `measure tls` (run on the board from RAM).
+  - `tools/usb push` no longer copies `secrets.py`, and refuses a production board.
+- `check_config`: both ATECC608 tables, the legacy test table and quorum v1, with quorum v1 decoded
+  again from the datasheet's bit tables. `--summary SNAPSHOT` prints a fresh chip's config CRC.
+- [`board/shots.mjs`](board/shots.mjs): the walkthrough in
+  [`../docs/firmware-production/`](../docs/firmware-production/).

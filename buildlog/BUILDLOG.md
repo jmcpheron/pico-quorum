@@ -541,3 +541,40 @@ The last gate in docs/LOCKING.md was rung 2, now passed, so Jason locked slot 0 
 
 Not done on purpose: asking the chip for a NEW KEY on slot 0 to watch it refuse. If the lock had
 not taken, that test would have replaced the key.
+
+## 2026-09-26 — the production console, and quorum v1 for fresh chips
+
+Branch `firmware-production`. The walkthrough with every new screen is in
+[docs/firmware-production/](../docs/firmware-production/).
+
+**The console image.**
+- `firmware/manifest.json` lists exactly what goes on the board. `main_console.py` boots straight
+  into the console, and B at power-up gives maintenance.
+- The legacy wallet, the USB wallet, the demos and the chip map are out of the image.
+- In this image:
+  - `QUORUM_EXPECT` pins the chip, slot and owner, checked at start and before each signature.
+  - Counter 0 is shown and checked for signatures made outside the console.
+  - A delegatecall to a contract that isn't pinned is refused.
+  - HTTPS checks the certificate against three pinned roots.
+  - There is a deadline watchdog, `log.txt`, and a crashed state.
+  - The `ALLOW_*` flags, the software key and the WiFi REPL are ignored.
+- `tools/fw` builds, backs up, pushes, verifies, pins and restores, checking every hash.
+
+**Quorum v1** is PicoQuorum's own ATECC608 table ([docs/PROVISIONING.md](../docs/PROVISIONING.md)).
+- Slot 0 is the only key: external Sign only, LimitedUse, no PrivWrite, sealed after GenKey.
+- Slots 1-15 are dead, CountMatch is off, and there is no IO protection.
+- Both zone locks carry the CRC the chip checks.
+- The ceremony (C1-C10) runs on the virtual chip, on a 608A and a 608B, with a reboot after every
+  step.
+
+**Mistakes:**
+- The first `tools/fw backup` read files over `mpremote resume` while the board's console was
+  running. Something the console printed landed inside the transfer: mpremote failed to parse
+  `atecc.py`'s bytes, and a minute later the Pico's USB serial stopped answering, even to a raw
+  write. It needs a replug. Nothing was written to the board. `tools/fw` now pauses whatever app
+  runs (and holds the watchdog off) while it reads, then resumes it.
+- `atecc.decode_slot` had decoded WriteConfig wrong since the fork: `wc >> 1` indexing is right only
+  for `0000`. The chip map labelled slot 0 "pubinvalid" when it is "never". Only `== "clear"` was
+  ever acted on, so nothing wrong was done with it.
+- MicroPython strings have no `ljust`. The OTP record would have raised at C8 on the board; the
+  ceremony's dry run caught it.

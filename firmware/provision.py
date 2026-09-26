@@ -164,14 +164,14 @@ class Ceremony:
         cfg = self.cfg
         rnd = c.random()
         checks = [("answers at 0x60", c.addr == 0x60),
-                  ("revision %s %s" % (self.revision, chipcfg.REVISIONS.get(self.revision, "?")), self.revision in chipcfg.REVISIONS
+                  ("rev %s %s" % (self.revision, chipcfg.REVISIONS.get(self.revision, "?")), self.revision in chipcfg.REVISIONS
                    and self.revision == "".join("%02x" % b for b in cfg[4:8])),
-                  ("both zones unlocked (55 55)", cfg[86] == 0x55 and cfg[87] == 0x55),
+                  ("zones unlocked (55 55)", cfg[86] == 0x55 and cfg[87] == 0x55),
                   ("no slot locked (FF FF)", cfg[88] == 0xFF and cfg[89] == 0xFF),
                   ("I2C address byte C0", cfg[16] == 0xC0),
-                  ("Random: the unlocked pattern", rnd == bytes([0xFF, 0xFF, 0, 0]) * 8),
+                  ("Random: unlocked pattern", rnd == bytes([0xFF, 0xFF, 0, 0]) * 8),
                   ("self-test passes", c.selftest() == 0),
-                  ("factory table (%s)" % self.profile, self.profile == "factory")]
+                  ("table: %s" % self.profile, self.profile == "factory")]
         ok = all(k for _, k in checks)
         if ok:
             self.sig.save_snapshot()
@@ -190,8 +190,8 @@ class Ceremony:
         cfg = self.chip.read_config_all()
         live = self.chip.random() != bytes([0xFF, 0xFF, 0, 0]) * 8
         s0 = atecc.decode_slot(cfg, 0)
-        checks = [("config zone locked (byte 87 = 00)", cfg[87] == 0x00), ("still quorum v1", chipcfg.identify(cfg) == "quorum-v1"),
-                  ("Random is live", live), ("slot 0: P-256, GenKey, ext sign only", s0["kind"] == "P256" and s0["genKey"] and s0["extSign"] and not s0["intSign"])]
+        checks = [("config locked (87 = 00)", cfg[87] == 0x00), ("still quorum v1", chipcfg.identify(cfg) == "quorum-v1"),
+                  ("Random is live", live), ("slot 0: P-256, ext sign", s0["kind"] == "P256" and s0["genKey"] and s0["extSign"] and not s0["intSign"])]
         return all(k for _, k in checks), checks, msg
 
     def c4(self):
@@ -223,7 +223,7 @@ class Ceremony:
             refused = False
         except atecc.AteccError:
             refused = True
-        checks = [("plain digest verifies", plain), ("WebAuthn assertion verifies", wa),
+        checks = [("plain digest verifies", plain), ("WebAuthn digest verifies", wa),
                   ("counter %d -> %d" % (before, after), after == before + 2), ("Sign on slot 1 refused", refused)]
         return all(k for _, k in checks), checks, "LimitedUse counts every signature"
 
@@ -231,14 +231,14 @@ class Ceremony:
         before = self.chip.pubkey(0)
         msg = self.sig.lock_slot(0)
         cfg = self.chip.read_config_all()
-        checks = [("slot 0 locked (88-89 = FE FF)", cfg[88] == 0xFE and cfg[89] == 0xFF),
+        checks = [("slot 0 locked (FE FF)", cfg[88] == 0xFE and cfg[89] == 0xFF),
                   ("same public key", self.chip.pubkey(0) == before),
-                  ("signs and verifies", self._sign_ok(hashlib.sha256(b"sealed").digest()))]
+                  ("signs + verifies", self._sign_ok(hashlib.sha256(b"sealed").digest()))]
         return all(k for _, k in checks), checks, msg
 
     def c7(self):
         self.owner_seen = True
-        return True, [("key %s" % self.fingerprint(), True), ("owner %s" % self.owner(), True)], "compare it on the laptop before enrolling"
+        return True, [("key %s" % self.fingerprint(), True)], "owner %s. Compare it on the laptop before enrolling." % self.owner()
 
     def c8(self):
         import image
@@ -269,9 +269,9 @@ class Ceremony:
             frozen = False
         except atecc.AteccError:
             frozen = True
-        checks = [("data zone locked (byte 86 = 00)", cfg[86] == 0x00), ("OTP holds the record", otp == self.record),
+        checks = [("data locked (86 = 00)", cfg[86] == 0x00), ("OTP holds the record", otp == self.record),
                   ("slot 1 unreadable", secret), ("OTP frozen", frozen),
-                  ("signs and verifies, fully locked", self._sign_ok(hashlib.sha256(b"locked").digest()))]
+                  ("signs + verifies, sealed", self._sign_ok(hashlib.sha256(b"locked").digest()))]
         return all(k for _, k in checks), checks, msg
 
     def c10(self):
@@ -282,7 +282,7 @@ class Ceremony:
                   ("slot 0 sealed", self.slot0["locked"]),
                   ("record matches this key", chipcfg.record_matches(rec, x, y)),
                   ("counter %s" % self.counter, True),
-                  ("ALLOW_LOCK/GENKEY: set both False", not (S.flag("ALLOW_LOCK") or S.flag("ALLOW_GENKEY")))]
+                  ("ALLOW_* back to False", not (S.flag("ALLOW_LOCK") or S.flag("ALLOW_GENKEY")))]
         return all(k for _, k in checks[:3]), checks, "owner %s" % self.owner()
 
 
@@ -359,8 +359,12 @@ class UI:
         d.show()
 
     def lines(self, s, y, color, width=29):
-        import lcd as L
-        words, line = s.split(), ""
+        words, line = [], ""
+        for w in s.split():
+            while len(w) > width:           # an address: in pieces that fit
+                words.append(w[:width])
+                w = w[width:]
+            words.append(w)
         for w in words:
             if len(line) + len(w) + 1 > width:
                 self.d.text(line, 4, y, color)
@@ -394,7 +398,7 @@ class UI:
             return
         st = c.step()
         n = int(st[1:]) if st[0] == "C" else 0
-        d.text("step %s of C10: %s" % (st, TITLES[st]) if n else TITLES[st], 4, 34, L.YELLOW if st in PERMANENT else L.WHITE)
+        d.text("%s/10 %s" % (st, TITLES[st]) if n else TITLES[st], 4, 34, L.YELLOW if st in PERMANENT else L.WHITE)
         for i in range(1, 11):
             d.fill_rect(4 + (i - 1) * 23, 48, 20, 4, L.GREEN if i < n else (L.YELLOW if i == n else L.DARK))
         y = self.lines(WHAT[st], 60, L.WHITE)
