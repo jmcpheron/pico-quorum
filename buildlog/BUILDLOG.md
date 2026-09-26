@@ -602,3 +602,25 @@ Branch `firmware-production`. The walkthrough with every new screen is in
   - 114 KB free after polling, largest block 10.7 KB, the 32 KB reserve back after every call.
   - badssl.com refused on the certificate itself: expired, wrong host (CN mismatch), self-signed,
     untrusted root.
+
+**The production console on the board, 2026-09-26.**
+- **Pin:** `tools/fw pin` read chip #1 and computed owner `0x2843…5E53` on the laptop, equal to
+  the enrolled one (live.json), then wrote `QUORUM_EXPECT`.
+- **Push:** `tools/fw push console` (build `20464b0`) took a fresh backup, copied 28 files
+  (compiled `.mpy`, `main.py`, the roots, `build.py`), deleted the 36 legacy files, and checked
+  every hash.
+- **Mistake:** the push's "is it back?" probe right after the reset sent Ctrl-C (every mpremote
+  command does) while `main.py` was still starting. `quorum` never finished importing, so the
+  console never started (it left no log, and no watchdog was running).
+  - Fixed: after a reset, `tools/fw` waits for the port and then leaves the board alone for 30 s.
+  - `tools/fw restart` does that plus `verify`.
+  - The flag read now executes the file itself, instead of a `secrets` module the running app had
+    imported before the pin was written.
+- **After the restart:**
+  - home on the Base Safe, pinned, watchdog on
+  - TLS `verified`, connected, this key an owner
+  - counter 16 (first look), 67 KB free
+- **The queue:** #0 "Send 0.000001 ETH", 2 of 2, signed by this key. That is the GS021 evidence
+  transaction, still waiting for `live exec`.
+- **Log:** boot, pin ok, counter, watchdog on. The reset cause is 3 even for `machine.reset()`: on
+  the RP2350 it goes through the watchdog.

@@ -18,6 +18,7 @@
 //   restore DIR [--exact] [--secrets]   a backup back onto the board (secrets.py only with --secrets;
 //                            --exact also deletes files that are not in the backup)
 //   measure tls              runs tools/board/measure_tls.py on the board, in RAM only
+//   restart                  machine.reset(), hands off for 30 s while the console starts, then verify
 //
 // Port: $PICO_PORT, else the first /dev/cu.usbmodem* (mac) or /dev/ttyACM* (linux).
 import { spawnSync } from "node:child_process";
@@ -139,18 +140,19 @@ function boardId() {
 // The WiFi password and the API key show only as <set>.
 const FLAGS_PY = `import json
 try:
-    import secrets as _s
+    _s = {}
+    exec(open("secrets.py").read(), _s)      # the file as it is now, not a module the app imported earlier
     _o = {}
-    for _k in dir(_s):
+    for _k in _s:
         if _k.startswith("_"):
             continue
-        _v = getattr(_s, _k)
+        _v = _s[_k]
         if _v is None or isinstance(_v, (bool, int)) or _k in ("QUORUM_URL", "QUORUM_SAFE", "QUORUM_EXPECT", "QUORUM_THEME", "WIFI_SSID", "HOSTNAME", "DEVICE_NAME"):
             _o[_k] = _v
         else:
             _o[_k] = "<set>"
     print("FLAGS:" + json.dumps(_o))
-except ImportError:
+except OSError:
     print("FLAGS:null")`;
 
 // What the running console knows about itself (production image, or a dev board running quorum).
@@ -348,10 +350,24 @@ async function enterMaintenance() {
   await waitForBoard();
 }
 
+// Out of maintenance: a reset, then hands off. Anything mpremote sends starts with Ctrl-C, and
+// while boot.py and main.py are still running that interrupts them: the first push's check did
+// exactly that, and the console never started (2026-09-26). So: wait for the port, then 30 s.
 async function leaveMaintenance() {
   run("import os\ntry:\n    os.remove('maint')\nexcept OSError:\n    pass\nif hasattr(os, 'sync'): os.sync()\nprint('LEFT')");
+  await restartHandsOff();
+}
+
+async function restartHandsOff(settle = 30000) {
   mp(["exec", "import machine; machine.reset()"], { timeout: 8000 });
-  await waitForBoard();
+  const t0 = Date.now();
+  await sleep(3000);
+  while (!serialPorts().includes(port())) {
+    if (Date.now() - t0 > 30000) die("the board did not come back on USB");
+    await sleep(500);
+  }
+  console.log(`restarted; leaving it alone for ${settle / 1000} s while boot.py and the console start`);
+  await sleep(settle);
 }
 
 // Copy [local, remote] pairs with whatever runs paused (in maintenance nothing does; a legacy
@@ -404,7 +420,6 @@ async function push(image) {
   removeOnBoard(stale);
   console.log(`copied ${copy.length}, deleted ${stale.length}, every hash checked. Restarting out of maintenance...`);
   await leaveMaintenance();
-  await sleep(15000);
   await verify();
 }
 
@@ -496,6 +511,7 @@ const cmds = {
   push: () => push(argv[1] || die("push console|ceremony")),
   restore: () => restore(argv[1]),
   measure: () => measure(argv[1]),
+  restart: async () => { await restartHandsOff(); await verify(); },
 };
 if (!cmds[cmd]) die("usage: tools/fw build IMAGE | backup | verify [--baseline] | logs | pin | push IMAGE | restore DIR [--exact] [--secrets] | measure tls");
 await cmds[cmd]();
