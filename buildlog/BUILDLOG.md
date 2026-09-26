@@ -671,3 +671,11 @@ The Safe's nonce is 1.
   laptop: lock bytes `55 00`, still quorum v1, Random live.
 - **UI:** the first arm showed no feedback while B+Y were held, so a bar was added, plus "let go
   early: not armed" (build `d7c3493`).
+- **C4:** GenKey made key `e199b2d7…` in slot 0; KeyValid, the public key reads back, GenKey on
+  slot 1 refused. The owner was computed on the laptop and confirmed by the passkey factory's
+  `getSigner` on Base and Base Sepolia: `0x99eDACCAd92537B9146dD0804635bC6dEF7f6b88`.
+- **C5:** a plain digest and a WebAuthn assertion both signed and verified on the Pico; Sign on
+  slot 1 refused.
+- **C6:** slot 0 sealed, SlotLocked `fe ff`, the same key read back. Counter 0 = 4: C5's two test
+  signatures, plus one before and one after the seal.
+- **UI:** B+Y arm in either order, and a full bar waits for the let-go (build `2eaca51`).
