@@ -717,3 +717,10 @@ The Safe's nonce is 1.
     use from outside is flagged.
 - `tools/fw allow off`, restart. Chip 2 boots the console in light, "Not pinned" (it is not an
   owner yet).
+- **First boot of the fix: 3 uses flagged, all explained by the log.** One was the laptop's
+  deliberate public-key read (the test above). Two were "Check again" presses on the pin-fail screen
+  (the two `pin FAIL` lines at +199 s and +201 s), each re-reading the key. Fixed: the console saves
+  the count after a re-check. Build `63e5041`: the next boot flags nothing (count 12 → 13, its own
+  read).
+- **Chip 2's state:** quorum v1, sealed, key `e199b2d7…`, owner `0x99ed…6b88`, counter 13, not
+  yet an owner of any Safe.
