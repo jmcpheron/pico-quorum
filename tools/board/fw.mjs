@@ -176,7 +176,8 @@ if q:
     o = {"image": image.IMAGE, "build": image.BUILD, "state": q.state, "me": q.me, "serial": q.serial, "slot": q.sig.slot if q.sig else None,
          "pin_ok": q.pin_ok, "pin_why": q.pin_why, "counter": q.counter, "outside": q.outside, "net_ok": q.net_ok, "net_err": q.net_err,
          "chain": q.CHAIN, "safe": q.SAFE_ADDR, "tls": q.svc.tls if q.svc else None, "requests": q.svc.requests if q.svc else None,
-         "queue": len(q.queue), "owner": q.me in q.owners(), "free": gc.mem_free()}
+         "queue": len(q.queue), "owner": q.me in q.owners(), "free": gc.mem_free(), "qx": q.qx, "qy": q.qy,
+         "locked": bool(q.row and q.row.get("locked")), "kind": q.row.get("kind") if q.row else None}
     try:
         import watch
         o["watchdog"] = watch.running()
@@ -467,10 +468,20 @@ async function restore(dir) {
 }
 
 // ----------------------------------------------------------------------------- pin
+// The running console already read the chip at boot: its serial and key are used when it is up,
+// so pinning reads nothing new from the chip (on a sealed quorum v1 chip every public-key read
+// is a use of the key, which the console would flag as not its own).
 async function pin() {
-  pause();
-  const chip = tagged(run(CHIP_PY), "CHIP");
-  unpause();
+  const live = tagged(run(LIVE_PY), "LIVE");
+  let chip;
+  if (live && live.serial && live.qx) {
+    const rev = tagged(run("import atecc, json\nprint('REV:' + json.dumps(''.join('%02x' % b for b in atecc.ATECC608().revision())))"), "REV");
+    chip = { serial: live.serial, revision: rev, qx: live.qx, qy: live.qy, slot0: { kind: live.kind, locked: live.locked } };
+  } else {
+    pause();
+    chip = tagged(run(CHIP_PY), "CHIP");
+    unpause();
+  }
   const owner = await ownerOf(chip.qx, chip.qy);
   const livePath = join(ROOT, "tools/mock-tx-service/live.json");
   const known = existsSync(livePath) ? JSON.parse(readFileSync(livePath, "utf8")).key : null;
