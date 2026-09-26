@@ -746,8 +746,11 @@ def draw_device(q):
     d.fill(c("bg"))
     txt(d, "Device", M, 4, "bold18")
     txt_r(d, image.IMAGE + " " + image.BUILD, 230, 9, "sans12", "muted")
-    rows = [("Chip", (q.serial or (q.sig.name if q.sig else "none"))[:20]),
-            ("Slot", "%d%s" % (q.sig.slot if q.sig else -1, " locked" if q.row and q.row.get("locked") else "")),
+    import chips
+    name = q.chip["name"] + " \u00b7 " if q.chip else ""
+    rows = [("Chip", (name + (q.serial[-8:] if q.serial else (q.sig.name if q.sig else "none")))[:22]),
+            ("Slot", "%d%s \u00b7 %s" % (q.sig.slot if q.sig else -1, " locked" if q.row and q.row.get("locked") else "",
+                                         chips.PROFILE_SHORT.get(q.profile, q.profile or "-"))),
             ("Key", q.fingerprint() or "none"),
             ("Pin", "ok" if q.pin_ok and q.EXPECT else ("dev: none" if q.pin_ok else "FAIL")),
             ("Signatures", "#%d" % q.counter if q.counter is not None else "not counted"),

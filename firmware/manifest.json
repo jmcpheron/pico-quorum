@@ -3,7 +3,7 @@
   "images": {
     "console": {
       "main": "main_console.py",
-      "files": ["atecc.py", "blockies.py", "boot.py", "decode.py", "fonts.py", "icons.py", "image.py", "keccak.py",
+      "files": ["atecc.py", "blockies.py", "boot.py", "chipcfg.py", "chips.py", "decode.py", "fonts.py", "icons.py", "image.py", "keccak.py",
                 "lcd.py", "main_console.py", "net.py", "p256.py", "policy.py", "qf_bold14.bin", "qf_bold18.bin",
                 "qf_bold26.bin", "qf_mono13.bin", "qf_monob28.bin", "qf_sans12.bin", "qf_sans14.bin", "qlog.py",
                 "quorum.py", "quorum_cfg.py", "quorum_ui.py", "safe_tx.py", "signer.py", "splash.py", "theme.py",
@@ -13,11 +13,11 @@
     "ceremony": {
       "main": "main_ceremony.py",
       "files": ["atecc.py", "boot.py", "ceremony.py", "chipapp.py", "chipcfg.py", "chipmap.py", "icons.py", "image.py",
-                "keccak.py", "lcd.py", "learn.py", "main_ceremony.py", "net.py", "p256.py", "provision.py", "qrcode.py",
+                "keccak.py", "lcd.py", "learn.py", "main_ceremony.py", "net.py", "p256.py", "provision.py", "qrcode.py", "chips.py",
                 "quorum_cfg.py", "signer.py", "slots.py", "snakelab.py", "splash.py", "theme.py", "webauthn.py"]
     }
   },
   "preserve": ["secrets.py", "secrets_*.py", "secrets.bak", "slot.txt", "snapshot-*.bin", "counter-*.txt", "log.txt",
-               "log.1.txt", "error.log", "snake.hi", "snake.top", "maint"],
+               "log.1.txt", "error.log", "snake.hi", "snake.top", "maint", "chips.json"],
   "flag": ["key.bin", "key*.bin"]
 }

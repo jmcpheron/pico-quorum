@@ -25,6 +25,7 @@ import image
 import policy
 import qlog
 import watch
+import chips
 import signer as S
 import safe_tx
 import decode
@@ -89,6 +90,8 @@ unsent = None       # (entry, signature) when the service did not take it: A tri
 declined = set()    # safeTxHashes rejected on this console
 serial = ""         # the chip's serial number
 row = None          # atecc.decode_slot for the signing slot (None on a software key)
+profile = ""        # which config the chip holds: quorum-v1, legacy-test, factory, unknown (chipcfg.identify)
+chip = None         # its entry in chips.json: name and theme (chips.py; cosmetic only)
 pin_ok = False      # the chip, slot and owner match QUORUM_EXPECT (always True on a dev board without one)
 pin_why = ""
 counter = None      # the chip's signature counter (counter 0) when the slot has LimitedUse, else None
@@ -169,15 +172,23 @@ def probe_chip():
 def check_pin():
     """Is the chip in the board the one QUORUM_EXPECT pins, with the key it pins? Reads the chip's
     own config zone, so it works on chip #1's test table and on quorum v1 alike."""
-    global serial, row, pin_ok, pin_why
-    serial, row = "", None
+    global serial, row, pin_ok, pin_why, profile, chip
+    serial, row, profile, chip = "", None, "", None
     if sig.name == "atecc608":
         try:
             import atecc
+            import chipcfg
             serial = sig.serial()
-            row = atecc.decode_slot(sig.config(), sig.slot)
+            cfg = sig.config()
+            row = atecc.decode_slot(cfg, sig.slot)
+            profile = chipcfg.identify(cfg)
         except Exception as e:
             pin_why = "chip: %r" % e
+        chip, new = chips.seen(serial, profile or None)
+        if chip:
+            U.use(chip["theme"])            # which chip is in, at a glance: chip 1 dark, chip 2 light
+            if new:
+                qlog.write("new chip %s: %s, %s, theme %s" % (serial, chip["name"], profile, chip["theme"]))
     if EXPECT:
         pin_ok, pin_why = policy.expect_check(EXPECT, serial, sig.slot, row, me)
     elif PROD:
@@ -755,7 +766,8 @@ def start():
         splash.step("chip", "none on i2c", L.RED)
     else:
         pinned = " \u00b7 pinned" if EXPECT and pin_ok else (" \u00b7 PIN FAIL" if not pin_ok else "")
-        splash.step("chip", "key %s%s" % (fingerprint() or "none", pinned), L.RED if not qx or not pin_ok else L.GREEN)
+        name = (chip["name"] + " \u00b7 ") if chip else ""
+        splash.step("chip", "%s%s%s" % (name, fingerprint() or "no key", pinned), L.RED if not qx or not pin_ok else L.GREEN)
         check_counter()
     w = network.WLAN(network.STA_IF)
     if secrets and not w.isconnected() and not net.tried:

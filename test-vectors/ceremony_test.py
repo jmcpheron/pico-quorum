@@ -72,6 +72,9 @@ def walk(rev):
     rec = chipcfg.record_decode(bytes(sim.otp))
     x, y = p256.pubkey(sim.keys[0])
     check(chipcfg.record_matches(rec, x, y) and rec["owner"] == c.owner(), "%s: the OTP record names this key and its owner" % rev)
+    import chips
+    e = chips.load().get(c.serial) or {}
+    check(e.get("profile") == "quorum-v1" and e.get("owner") == c.owner(), "%s: chips.json has it as quorum v1, with its owner" % rev)
     import webauthn, quorum_cfg
     check(c.owner() == webauthn.owner_address("0x%064x" % x, "0x%064x" % y, quorum_cfg.CFG["signer"]),
           "%s: the owner shown at C7 is the key's passkey signer" % rev)

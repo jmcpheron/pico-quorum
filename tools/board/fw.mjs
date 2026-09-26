@@ -19,6 +19,8 @@
 //                            --exact also deletes files that are not in the backup)
 //   measure tls              runs tools/board/measure_tls.py on the board, in RAM only
 //   restart                  machine.reset(), hands off for 30 s while the console starts, then verify
+//   chips                    the chips this board has seen (chips.json): number, name, theme, what they hold
+//   allow on|off             ALLOW_LOCK and ALLOW_GENKEY in the board's secrets.py, for the ceremony only
 //
 // Port: $PICO_PORT, else the first /dev/cu.usbmodem* (mac) or /dev/ttyACM* (linux).
 import { spawnSync } from "node:child_process";
@@ -170,6 +172,12 @@ if q:
         o["watchdog"] = watch.running()
     except ImportError:
         pass
+    if q.chip:
+        o["chip"] = "%s (%s, %s)" % (q.chip["name"], q.profile, q.chip["theme"])
+c = sys.modules.get("chipapp")
+if c and not o:
+    o = {"image": "ceremony", "chip": "%s (%s, %s)" % (c.chip["name"], c.profile, c.chip["theme"]) if c.chip else None,
+         "serial": c.sig.serial() if c.sig and c.sig.name == "atecc608" else None}
 print("LIVE:" + json.dumps(o))`;
 
 // The chip itself: serial, slot 0's public key, the lock bytes and counter 0. Read-only.
@@ -480,6 +488,54 @@ print('WROTE', os.stat('secrets.py')[6])`;
   console.log(run(code).match(/WROTE.*/)[0] + " bytes; restart the console (unplug and plug in) to use it");
 }
 
+// ----------------------------------------------------------------------------- chips, allow
+function chipsList() {
+  const d = tagged(run("import json\ntry:\n    print('CHIPS:' + open('chips.json').read())\nexcept OSError:\n    print('CHIPS:{}')"), "CHIPS");
+  const rows = Object.entries(d).sort((a, b) => a[1].n - b[1].n);
+  if (!rows.length) return console.log("no chips.json on the board yet (the console or the ceremony image writes it at boot)");
+  for (const [serial, e] of rows)
+    console.log(`${e.name.padEnd(8)} ${serial}  ${(e.theme || "").padEnd(5)}  ${(e.profile || "?").padEnd(11)}${e.owner ? "  owner " + e.owner : ""}`);
+}
+
+// Rewrite some NAME = value lines of the board's secrets.py (the old file kept as secrets.bak).
+function setSecrets(lines, tag) {
+  const names = lines.map((l) => l.split("=")[0].trim());
+  const code = `import os
+new = ${JSON.stringify(lines.join("\n"))}
+names = ${JSON.stringify(names)}
+with open('secrets.py') as f:
+    old = f.read()
+with open('secrets.bak', 'w') as f:
+    f.write(old)
+keep = [l for l in old.split(chr(10)) if l.split('=')[0].strip() not in names and not l.startswith('# ${tag}')]
+while keep and not keep[-1].strip():
+    keep.pop()
+with open('secrets.py', 'w') as f:
+    f.write(chr(10).join(keep) + chr(10) + '# ${tag}' + chr(10) + new + chr(10))
+if hasattr(os, 'sync'): os.sync()
+print('WROTE', os.stat('secrets.py')[6])`;
+  return run(code).match(/WROTE.*/)[0];
+}
+
+async function allow(onOff) {
+  if (onOff !== "on" && onOff !== "off") die("allow on|off");
+  const v = onOff === "on" ? "True" : "False";
+  const flags = tagged(run(FLAGS_PY), "FLAGS") || {};
+  if (onOff === "on" && flags.QUORUM_EXPECT) {
+    const chip = tagged(run(CHIP_SERIAL_PY), "SERIAL");
+    if (chip === String(flags.QUORUM_EXPECT.serial).toLowerCase())
+      die(`the chip on the bus is the pinned one (${chip}): the ALLOW flags are for a fresh chip's ceremony, not this one`);
+  }
+  console.log(`the board's secrets.py gets ALLOW_LOCK = ${v}, ALLOW_GENKEY = ${v}` +
+    (onOff === "on" ? " (the ceremony image honours them; the console image ignores them)" : ""));
+  if (!(await ask("The old secrets.py is kept as secrets.bak."))) die("nothing changed");
+  console.log(setSecrets([`ALLOW_LOCK = ${v}`, `ALLOW_GENKEY = ${v}`], "the ceremony flags, written by tools/fw allow") + " bytes");
+  console.log("restart the board for it to take effect: tools/fw restart");
+}
+
+const CHIP_SERIAL_PY = `import atecc, json
+print("SERIAL:" + json.dumps("".join("%02x" % b for b in atecc.ATECC608().serial())))`;
+
 // ----------------------------------------------------------------------------- measure
 // One script with the roots and vhttp.py inlined, run from RAM after a soft reset (the app on the
 // board stops; boot.py joins WiFi again). Nothing is written to flash. Unplug and replug afterwards
@@ -512,6 +568,8 @@ const cmds = {
   restore: () => restore(argv[1]),
   measure: () => measure(argv[1]),
   restart: async () => { await restartHandsOff(); await verify(); },
+  chips: () => chipsList(),
+  allow: () => allow(argv[1]),
 };
-if (!cmds[cmd]) die("usage: tools/fw build IMAGE | backup | verify [--baseline] | logs | pin | push IMAGE | restore DIR [--exact] [--secrets] | measure tls");
+if (!cmds[cmd]) die("usage: tools/fw build IMAGE | backup | verify [--baseline] | logs | pin | push IMAGE | restore DIR [--exact] [--secrets] | restart | chips | allow on|off | measure tls");
 await cmds[cmd]();

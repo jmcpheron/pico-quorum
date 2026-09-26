@@ -72,6 +72,30 @@ reasoning, and the runbook.
 
 The steps not shown (C2, C4 to C10 before they run, C8's result) are in [shots/](shots/).
 
+## Which chip is in: chip 1 dark, chip 2 light
+
+The board keeps an index of every chip it has seen, `chips.json` (`firmware/chips.py`). Every push
+keeps it.
+- **At each boot**, both images read the chip's serial and which config it holds: fresh from the
+  factory, Microchip's test table (chip #1), or quorum v1.
+- **A new chip** gets the next number and the next theme: chip 1 dark, chip 2 light, then dark
+  again.
+- **The console** draws in that theme and names the chip on the boot screen and on Device.
+- **The ceremony image** uses a light palette for a light chip, and its banner says whether the
+  chip is fresh.
+- **C10** records the sealed chip's owner address in the index.
+- `tools/fw chips` lists the index.
+
+It is cosmetic. What gets signed is decided by the pin (`QUORUM_EXPECT`), read from the chip itself.
+Chip 2 on a board pinned to chip 1 is named and drawn light, and refused all the same.
+
+| | |
+|---|---|
+| <img src="shots/82-ceremony-banner-chip2-light.png" width="240"> | <img src="shots/85-ceremony-C6-light.png" width="240"> |
+| **The ceremony image with the fresh chip:** chip 2, fresh, light. | **A permanent step in chip 2's colours.** |
+| <img src="shots/86-console-chip2-light-home.png" width="240"> | <img src="shots/87-console-chip2-light-device.png" width="240"> |
+| **The console on chip 2**, light. | **Device:** chip 2, slot 0 locked, quorum v1. |
+
 ## Tests behind these screens
 
 | Suite | Checks |

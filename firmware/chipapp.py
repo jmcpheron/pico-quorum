@@ -9,16 +9,46 @@ import splash
 import signer as S
 
 d = keys = sig = ui = prov = timer = None
+chip = None         # this chip's entry in chips.json (name, theme): which chip is in, at a glance
+profile = ""
 _busy = False
+STATE = {"factory": "FRESH: ready for PROVISION", "quorum-v1": "sealed or in progress: quorum v1",
+         "legacy-test": "test table (chip #1 style)", "unknown": "unknown table"}
+
+
+def identify():
+    """The chip on the bus: register it (chips.py) and say what it holds (chipcfg.identify)."""
+    global chip, profile
+    chip, profile = None, ""
+    if sig is None or sig.name != "atecc608":
+        return
+    try:
+        import chipcfg
+        import chips
+        profile = chipcfg.identify(sig.config())
+        chip, new = chips.seen(sig.serial(), profile)
+    except Exception as e:
+        print("chip:", e)
 
 
 def banner():
-    d.fill(L.BLACK)
-    d.center_text("CEREMONY IMAGE", 60, L.YELLOW, 2)
-    y = 100
-    for line in ("Not a signing console:", "no Safe, no service.", "", "A: PROVISION a fresh chip", "   (quorum v1)",
-                 "X: the chip map"):
-        d.center_text(line, y, L.WHITE)
+    import provision
+    p = provision.palette(chip["theme"] if chip else "dark")
+    d.fill(p["bg"])
+    d.center_text("CEREMONY IMAGE", 40, p["accent"], 2)
+    y = 70
+    for line in ("Not a signing console:", "no Safe, no service."):
+        d.center_text(line, y, p["fg"])
+        y += 12
+    y += 10
+    if chip:
+        d.center_text("%s  %s" % (chip["name"].upper(), sig.serial()[-8:]), y, p["accent"], 1)
+        d.center_text(STATE.get(profile, profile), y + 14, p["ok"] if profile == "factory" else p["fg"])
+    else:
+        d.center_text("NO CHIP on the bus", y, p["bad"])
+    y += 44
+    for line in ("A: PROVISION (quorum v1)", "X: the chip map"):
+        d.center_text(line, y, p["fg"])
         y += 14
     d.show()
 
@@ -40,9 +70,9 @@ def tick(t):
             if ui.tick(pressed, keys) == "home":
                 ui = None
                 banner()
-        elif "A" in pressed:
+        elif "A" in pressed and chip is not None:
             import provision
-            prov = provision.UI(d, keys, sig)
+            prov = provision.UI(d, keys, sig, chip["theme"])
             prov.draw()
         elif "X" in pressed:
             import slots
@@ -67,6 +97,7 @@ def start():
     d = splash.begin()
     keys = L.Keys()
     sig = S.load(soft=False)
+    identify()
     banner()
     start_timer()
 

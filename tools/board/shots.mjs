@@ -79,6 +79,29 @@ py(`C.secrets(lock=False); import provision; c2, S2, P2 = C.ceremony()
 C.fresh_chip(); c2, S2, P2 = C.ceremony(); c2.run("C1"); c2.run("C2")
 ui = P2.UI(splash.begin(), K(), c2.sig); ui.dirty = True; ui.draw()`);
 shot("80-ceremony-C3-not-allowed");
-py(`import chipapp; chipapp.d = splash.begin(); chipapp.banner()`);
+py(`import chipapp; chipapp.d = splash.begin(); chipapp.sig = c.sig; chipapp.identify(); chipapp.banner()`);
 shot("81-ceremony-image-banner");
+
+// Which chip is in: chips.json already knows chip #1 (dark), so the fresh virtual chip is chip 2 (light)
+py(`import json
+with open("chips.json", "w") as f:
+    json.dump({"0123f3acfd2a826bee": {"n": 1, "name": "chip 1", "theme": "dark", "profile": "legacy-test", "first": 0}}, f)
+C.secrets(); C.fresh_chip(); c, S, P = C.ceremony()
+chipapp.sig = c.sig; chipapp.identify(); chipapp.banner()`);
+shot("82-ceremony-banner-chip2-light");
+py(`ui = P.UI(splash.begin(), K(), c.sig, chipapp.chip["theme"]); ui.dirty = True; ui.draw()`);
+shot("83-ceremony-C1-light");
+py(`S.arm(); ui.result = ("C1",) + ui.c.run("C1"); ui.dirty = True; ui.draw()`);
+shot("84-ceremony-C1-result-light");
+py(`for st in ("C2", "C3", "C4", "C5"):
+    S.arm(); ui.c.run(st)
+ui.result = None; ui.dirty = True; ui.draw()`);
+shot("85-ceremony-C6-light");
+py(`atecc_sim.provision_v1()
+Q = T.fresh(expect=None, prod=False)
+T.serve(Q, [T.tx(Q, 0, value=10**15)])
+Q.U.draw(Q)`);
+shot("86-console-chip2-light-home");
+py(`Q.state = "device"; Q.U.draw(Q)`);
+shot("87-console-chip2-light-device");
 dev.dispose();

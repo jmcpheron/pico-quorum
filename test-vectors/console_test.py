@@ -402,6 +402,36 @@ def case_production():
     check(Q.state == "crashed", "A does nothing on the crashed screen")
 
 
+def case_chips():
+    """chips.json: each chip seen gets a number and a theme (1 dark, 2 light); the console uses it."""
+    import quorum_ui
+    if "chips.json" in os.listdir():
+        os.remove("chips.json")
+    chip()
+    Q = fresh()
+    check(Q.chip and Q.chip["name"] == "chip 1" and Q.chip["theme"] == "dark" and Q.profile == "legacy-test",
+          "the first chip seen: chip 1, dark, test table")
+    check(quorum_ui.T == quorum_ui.THEMES["dark"], "the console draws chip 1 in the dark theme")
+    c = atecc_sim.chip()
+    c.cfg[8:13] = bytes([0x42, 0x42, 0x42, 0x42, 0xEE])      # another chip on the bus
+    c.save()
+    Q = fresh(expect=None, prod=False)
+    check(Q.chip["name"] == "chip 2" and Q.chip["theme"] == "light", "a second chip: chip 2, light")
+    check(quorum_ui.T == quorum_ui.THEMES["light"], "the console draws chip 2 in the light theme")
+    Q = fresh(expect={"serial": SERIAL, "slot": 0, "owner": owner_of(0), "locked": True})
+    check(Q.state == "pinfail" and Q.chip["name"] == "chip 2", "chip 2 on a board pinned to chip 1: named, and still refused by the pin")
+    c.cfg[8:13] = bytes.fromhex(SERIAL[8:])
+    c.save()
+    Q = fresh()
+    check(Q.chip["name"] == "chip 1" and quorum_ui.T == quorum_ui.THEMES["dark"] and Q.pin_ok, "chip 1 back: chip 1 again, dark, pinned")
+    with open("chips.json", "w") as f:
+        f.write("{not json")
+    Q = fresh()
+    check(Q.chip["name"] == "chip 1" and Q.pin_ok, "a damaged chips.json starts over and changes nothing about the pin")
+    import json as J
+    check(len(J.load(open("chips.json"))) == 1, "and is written whole again")
+
+
 def case_watchdog():
     import machine
     try:
@@ -422,7 +452,7 @@ def case_watchdog():
 
 
 def main():
-    for case in (case_pin, case_refusals, case_sign, case_service, case_production, case_watchdog):
+    for case in (case_pin, case_refusals, case_sign, case_service, case_production, case_chips, case_watchdog):
         print("--", case.__name__[5:])
         try:
             case()

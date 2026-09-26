@@ -140,8 +140,16 @@ It runs on the ceremony image: `tools/fw push ceremony`.
 - On the device, A on the banner opens PROVISION.
 - The step comes from the chip's own state, so a reboot at any point resumes where the chip is.
 
-Before any step, set `ALLOW_LOCK = True` and `ALLOW_GENKEY = True` on the board. Permanent steps
-also need the B+Y arm (held 3 s, lasts 60 s) and A held for 3 s.
+**Getting the board ready:**
+1. `tools/fw push ceremony --pinned-chip-ok`, with the `ALLOW_*` flags still False and the old chip
+   still on.
+2. Unplug, swap the chip, plug in. The banner names the new chip ("CHIP 2 … FRESH"), in its light
+   colours (`chips.json`).
+3. Only then run `tools/fw allow on` and `tools/fw restart`. `allow on` refuses while the pinned
+   chip is on the bus.
+4. After C10, run `tools/fw allow off`.
+
+Permanent steps also need the B+Y arm (held 3 s, lasts 60 s) and A held for 3 s.
 
 | Step | What | Checks | Permanent? |
 |---|---|---|---|

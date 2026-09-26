@@ -288,6 +288,8 @@ class Ceremony:
         otp = self.chip.read_otp(0) + self.chip.read_otp(1)
         rec = chipcfg.record_decode(otp)
         x, y = self.key
+        import chips
+        chips.seen(self.serial, "quorum-v1", owner=self.owner(), sealed=rec["date"] if rec else None)
         checks = [("quorum v1, locked 00/00", self.profile == "quorum-v1" and self.config_locked and self.data_locked),
                   ("slot 0 sealed", self.slot0["locked"]),
                   ("record matches this key", chipcfg.record_matches(rec, x, y)),
@@ -297,11 +299,22 @@ class Ceremony:
 
 
 # ----------------------------------------------------------------------------- the screen
+def palette(theme):
+    """The ceremony's colours: dark (chip 1's) or light (chip 2's), from chips.json."""
+    import lcd as L
+    if theme == "light":
+        return {"bg": L.color(255, 255, 255), "fg": L.color(0, 0, 0), "accent": L.color(0, 70, 170),
+                "muted": L.color(100, 100, 100), "ok": L.color(0, 125, 0), "bad": L.color(200, 0, 0),
+                "dim": L.color(215, 215, 215)}
+    return {"bg": L.BLACK, "fg": L.WHITE, "accent": L.YELLOW, "muted": L.GREY, "ok": L.GREEN, "bad": L.RED, "dim": L.DARK}
+
+
 class UI:
     """framebuf's 8 px font on the plain LCD: 29 characters a line."""
 
-    def __init__(self, d, keys, sig):
+    def __init__(self, d, keys, sig, theme="dark"):
         self.d, self.keys = d, keys
+        self.p = palette(theme)
         self.c = Ceremony(sig)
         self.result = None      # (step, ok, checks, message) after a run
         self.hold = None
@@ -367,9 +380,9 @@ class UI:
     def busy(self, st):
         import lcd as L
         d = self.d
-        d.fill(L.BLACK)
-        d.center_text(st + " " + TITLES[st], 100, L.YELLOW, 2)
-        d.center_text("working...", 130, L.WHITE)
+        d.fill(self.p["bg"])
+        d.center_text(st + " " + TITLES[st], 100, self.p["accent"], 2)
+        d.center_text("working...", 130, self.p["fg"])
         d.show()
 
     def lines(self, s, y, color, width=29):
@@ -396,45 +409,45 @@ class UI:
             return
         self.dirty = False
         d, c = self.d, self.c
-        d.fill(L.BLACK)
-        d.text("PROVISION quorum v1", 4, 4, L.YELLOW)
-        d.text("%s %s" % (c.serial, chipcfg.REVISIONS.get(c.revision, c.revision)[-4:]), 4, 16, L.GREY)
+        d.fill(self.p["bg"])
+        d.text("PROVISION quorum v1", 4, 4, self.p["accent"])
+        d.text("%s %s" % (c.serial, chipcfg.REVISIONS.get(c.revision, c.revision)[-4:]), 4, 16, self.p["muted"])
         if self.result:
             st, ok, checks, msg = self.result
-            d.text("%s %s: %s" % (st, TITLES[st], "OK" if ok else "STOPPED"), 4, 34, L.GREEN if ok else L.RED)
+            d.text("%s %s: %s" % (st, TITLES[st], "OK" if ok else "STOPPED"), 4, 34, self.p["ok"] if ok else self.p["bad"])
             y = 50
             for label, good in checks:
-                d.text(("ok " if good else "NO ") + label[:26], 4, y, L.GREEN if good else L.RED)
+                d.text(("ok " if good else "NO ") + label[:26], 4, y, self.p["ok"] if good else self.p["bad"])
                 y += 11
-            y = self.lines(msg, y + 6, L.WHITE)
-            d.text("A: continue", 4, 226, L.WHITE)
+            y = self.lines(msg, y + 6, self.p["fg"])
+            d.text("A: continue", 4, 226, self.p["fg"])
             d.show()
             return
         st = c.step()
         n = int(st[1:]) if st[0] == "C" else 0
-        d.text("%s/10 %s" % (st, TITLES[st]) if n else TITLES[st], 4, 34, L.YELLOW if st in PERMANENT else L.WHITE)
+        d.text("%s/10 %s" % (st, TITLES[st]) if n else TITLES[st], 4, 34, self.p["accent"] if st in PERMANENT else self.p["fg"])
         for i in range(1, 11):
-            d.fill_rect(4 + (i - 1) * 23, 48, 20, 4, L.GREEN if i < n else (L.YELLOW if i == n else L.DARK))
-        y = self.lines(WHAT[st], 60, L.WHITE)
+            d.fill_rect(4 + (i - 1) * 23, 48, 20, 4, self.p["ok"] if i < n else (self.p["accent"] if i == n else self.p["dim"]))
+        y = self.lines(WHAT[st], 60, self.p["fg"])
         y += 6
         if st in PERMANENT:
-            y = self.lines("PERMANENT. It cannot be undone.", y, L.RED)
+            y = self.lines("PERMANENT. It cannot be undone.", y, self.p["bad"])
         if c.key:
-            d.text("key " + c.fingerprint(), 4, y + 4, L.GREY)
+            d.text("key " + c.fingerprint(), 4, y + 4, self.p["muted"])
             y += 15
         if c.counter is not None:
-            d.text("counter 0: %d" % c.counter, 4, y, L.GREY)
+            d.text("counter 0: %d" % c.counter, 4, y, self.p["muted"])
         why = self.need(st) if st not in ("C10", "other") else ""
         if why:
-            y = self.lines(why, 190, L.RED)
+            y = self.lines(why, 190, self.p["bad"])
         elif st in PERMANENT or st == "C4":
             left = S.armed()
-            d.text("armed %ds" % left if left else "", 4, 196, L.GREEN)
+            d.text("armed %ds" % left if left else "", 4, 196, self.p["ok"])
             if self.hold is not None:
                 frac = min(1, time.ticks_diff(time.ticks_ms(), self.hold) / HOLD_MS)
-                d.fill_rect(4, 208, int(232 * frac), 6, L.RED)
-            d.text("hold A 3 s to do it", 4, 216, L.WHITE)
+                d.fill_rect(4, 208, int(232 * frac), 6, self.p["bad"])
+            d.text("hold A 3 s to do it", 4, 216, self.p["fg"])
         else:
-            d.text("A: do it", 4, 216, L.WHITE)
-        d.text("Y: back   B+Y 3 s: arm", 4, 228, L.GREY)
+            d.text("A: do it", 4, 216, self.p["fg"])
+        d.text("Y: back   B+Y 3 s: arm", 4, 228, self.p["muted"])
         d.show()
