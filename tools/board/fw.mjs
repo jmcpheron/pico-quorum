@@ -486,12 +486,21 @@ async function pin() {
   const livePath = join(ROOT, "tools/mock-tx-service/live.json");
   const known = existsSync(livePath) ? JSON.parse(readFileSync(livePath, "utf8")).key : null;
   const expect = { serial: chip.serial, slot: 0, owner, locked: chip.slot0.locked };
+  // The board may pin several chips: this one is added (or its entry replaced); --only keeps it alone.
+  const flags = tagged(run(FLAGS_PY), "FLAGS") || {};
+  const had = flags.QUORUM_EXPECT ? (Array.isArray(flags.QUORUM_EXPECT) ? flags.QUORUM_EXPECT : [flags.QUORUM_EXPECT]) : [];
+  const others = has("--only") ? [] : had.filter((p) => String(p.serial).toLowerCase() !== chip.serial);
+  const list = [...others, expect];
   console.log(`chip ${chip.serial} (revision ${chip.revision}), slot 0: ${chip.slot0.kind}, ${chip.slot0.locked ? "locked" : "NOT locked"}, key ${chip.qx.slice(2, 10)}`);
   console.log(`owner computed here: ${owner}`);
   if (known?.owner) console.log(`owner enrolled (live.json): ${known.owner} ${known.owner.toLowerCase() === owner.toLowerCase() ? "= same" : "!! DIFFERENT"}`);
   if (!chip.slot0.locked) console.log("!! slot 0 is not locked: the console will refuse it unless the pin says locked: False");
-  const line = `QUORUM_EXPECT = ${JSON.stringify(expect).replace(/true/g, "True").replace(/false/g, "False")}`;
-  console.log(`\nthe board's secrets.py gets:\n  ${line}`);
+  const py = (o) => JSON.stringify(o).replace(/true/g, "True").replace(/false/g, "False");
+  const line = `QUORUM_EXPECT = [\n${list.map((p) => "    " + py(p) + ",").join("\n")}\n]`;
+  console.log(`\npinned chips after this (${list.length}):`);
+  for (const p of list) console.log(`  ${p.serial}  slot ${p.slot}  owner ${p.owner}${p.serial === chip.serial ? "  <- this chip" : ""}`);
+  if (others.length < had.length - (had.some((p) => String(p.serial).toLowerCase() === chip.serial) ? 1 : 0))
+    console.log(`  (--only: ${had.length - others.length} other pinned chip(s) dropped)`);
   if (!(await ask("The old secrets.py is kept as secrets.bak."))) die("nothing changed");
   const code = `import os
 new = ${JSON.stringify(line)}
@@ -499,11 +508,22 @@ with open('secrets.py') as f:
     old = f.read()
 with open('secrets.bak', 'w') as f:
     f.write(old)
-keep = [l for l in old.split(chr(10)) if l.split('=')[0].strip() != 'QUORUM_EXPECT' and not l.startswith('# the pinned chip')]
+keep = []
+skip = False
+for l in old.split(chr(10)):
+    if l.split('=')[0].strip() == 'QUORUM_EXPECT':
+        skip = l.rstrip().endswith('[')        # a list over several lines: drop to its closing bracket
+        continue
+    if skip:
+        skip = l.strip() != ']'
+        continue
+    if l.startswith('# the pinned chip'):
+        continue
+    keep.append(l)
 while keep and not keep[-1].strip():
     keep.pop()
 with open('secrets.py', 'w') as f:
-    f.write(chr(10).join(keep) + chr(10) + '# the pinned chip, written by tools/fw pin' + chr(10) + new + chr(10))
+    f.write(chr(10).join(keep) + chr(10) + '# the pinned chips, written by tools/fw pin' + chr(10) + new + chr(10))
 if hasattr(os, 'sync'): os.sync()
 print('WROTE', os.stat('secrets.py')[6])`;
   console.log(run(code).match(/WROTE.*/)[0] + " bytes; restart the console (unplug and plug in) to use it");
@@ -544,8 +564,9 @@ async function allow(onOff) {
   const flags = tagged(run(FLAGS_PY), "FLAGS") || {};
   if (onOff === "on" && flags.QUORUM_EXPECT) {
     const chip = tagged(run(CHIP_SERIAL_PY), "SERIAL");
-    if (chip === String(flags.QUORUM_EXPECT.serial).toLowerCase())
-      die(`the chip on the bus is the pinned one (${chip}): the ALLOW flags are for a fresh chip's ceremony, not this one`);
+    const pinned = Array.isArray(flags.QUORUM_EXPECT) ? flags.QUORUM_EXPECT : [flags.QUORUM_EXPECT];
+    if (pinned.some((p) => String(p.serial).toLowerCase() === chip))
+      die(`the chip on the bus is a pinned one (${chip}): the ALLOW flags are for a fresh chip's ceremony, not this one`);
   }
   console.log(`the board's secrets.py gets ALLOW_LOCK = ${v}, ALLOW_GENKEY = ${v}` +
     (onOff === "on" ? " (the ceremony image honours them; the console image ignores them)" : ""));

@@ -8,6 +8,22 @@ def is_address(a):
     return isinstance(a, str) and len(a) == 42 and a[:2] in ("0x", "0X") and all(c in HEX for c in a[2:].lower())
 
 
+def pins(expect):
+    """secrets.QUORUM_EXPECT as a list: one pinned chip (a dict) or several (a list of them)."""
+    if not expect:
+        return []
+    return [p for p in (expect if isinstance(expect, (list, tuple)) else [expect]) if isinstance(p, dict)]
+
+
+def pick(pinned, serial):
+    """The pinned entry for the chip with this serial, or None: the board may pin several chips,
+    and at boot the one on the bus says which entry applies."""
+    for p in pinned:
+        if serial and str(p.get("serial", "")).lower() == serial.lower():
+            return p
+    return None
+
+
 def expect_check(expect, serial, slot, row, owner):
     """Is this the chip, slot and key the board was pinned to (secrets.QUORUM_EXPECT)?
     expect: {"serial", "slot", "owner", "locked"}; row: atecc.decode_slot for the slot (None on a

@@ -2,7 +2,7 @@
 # main.py of the dual image (tools/fw push dual), for while a new chip is being set up. The board
 # carries both the console and the ceremony and runs the one the chip on the bus needs, read at
 # every boot:
-#   the pinned chip (secrets.QUORUM_EXPECT)          -> the console, production rules
+#   a pinned chip (secrets.QUORUM_EXPECT, one or a list) -> the console, production rules
 #   a fresh chip, or a quorum v1 chip not yet sealed -> the ceremony (provision.py)
 #   anything else, or no chip                        -> the console (it says Not pinned / No chip)
 # Once the new chip is sealed, enrolled and pinned, the board goes back to the console image.
@@ -28,6 +28,8 @@ def which():
         exp = getattr(secrets, "QUORUM_EXPECT", None)
     except ImportError:
         exp = None
+    import policy
+    pinned = policy.pins(exp)
     try:
         import atecc
         import chipcfg
@@ -37,7 +39,7 @@ def which():
         profile = chipcfg.identify(cfg)
     except Exception:
         return "console", "", ""
-    if exp and serial == str(exp.get("serial", "")).lower():
+    if policy.pick(pinned, serial):
         return "console", serial, profile
     if profile == "factory" or (profile == "quorum-v1" and cfg[86] != 0x00):
         return "ceremony", serial, profile

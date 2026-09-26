@@ -709,7 +709,7 @@ def draw_pinfail(q):
     exp = q.EXPECT or {}
     d.fill(c("bg"))
     mark(d, False, 120, 36, 18)
-    txt_c(d, "Not the pinned key" if q.EXPECT else "Not pinned", 60, "bold18")
+    txt_c(d, "Not the pinned key" if q.EXPECT else ("Not a pinned chip" if q.EXPECTS else "Not pinned"), 60, "bold18")
     txt_c(d, fit(q.pin_why or "", 224, "sans14"), 84, "sans14", "bad")
     y = 110
     rows = (("chip", q.serial[-8:] or "none", str(exp.get("serial", ""))[-8:] or "-"),
@@ -723,7 +723,7 @@ def draw_pinfail(q):
         txt(d, fit(a, 88, "mono13"), 64, y, "mono13", "text" if a == b else "bad")
         txt(d, fit(b, 80, "mono13"), 156, y, "mono13", "text")
         y += 18
-    txt_c(d, "Nothing will be signed." if q.EXPECT else "tools/fw pin writes the pin.", 190, "sans14", "muted")
+    txt_c(d, "Nothing will be signed." if q.EXPECT else "tools/fw pin adds this chip.", 190, "sans14", "muted")
     footer_hints(d, q, (("A", "Check again"),))
     d.show()
 

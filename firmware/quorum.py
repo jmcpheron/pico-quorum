@@ -7,8 +7,8 @@
 # build, chip, pin, signature counter. The chip map is not part of this image (tools/fw push
 # ceremony has it), so nothing reachable from here can make, switch or lock a key.
 #
-# Pinned: secrets.QUORUM_EXPECT names the chip's serial, the slot and the owner address its key
-# must produce. The production image (image.PRODUCTION) signs nothing until they all match, and
+# Pinned: secrets.QUORUM_EXPECT names each chip this board may use (one, or a list): its serial,
+# the slot and the owner address its key must produce. At boot the chip on the bus picks its entry. The production image (image.PRODUCTION) signs nothing until they all match, and
 # the check runs again right before every signature.
 #
 # Trust: the service is not trusted. Each transaction is rehashed here (safe_tx.py) from the same
@@ -51,7 +51,8 @@ CHAIN = SAFE["chainId"]
 SAFE_ADDR = SAFE["address"].lower()
 BASE = (getattr(secrets, "QUORUM_URL", None) or getattr(secrets, "APP_URL", None)) if secrets else None
 API_KEY = getattr(secrets, "QUORUM_API_KEY", None) if secrets else None
-EXPECT = getattr(secrets, "QUORUM_EXPECT", None) if secrets else None
+EXPECTS = policy.pins(getattr(secrets, "QUORUM_EXPECT", None) if secrets else None)
+EXPECT = None       # the entry for the chip on the bus (probe_chip), from EXPECTS
 NAME = getattr(secrets, "DEVICE_NAME", "picoquorum") if secrets else "picoquorum"
 SSID = getattr(secrets, "WIFI_SSID", "") if secrets else ""
 SOFT_OK = not PROD and bool(getattr(secrets, "ALLOW_SOFT_KEY", False) if secrets else False)
@@ -161,6 +162,13 @@ def probe_chip():
     if sig.name != "atecc608" and not SOFT_OK:
         state = "nochip"
         return
+    global EXPECT
+    EXPECT = None
+    if EXPECTS and sig.name == "atecc608":
+        try:
+            EXPECT = policy.pick(EXPECTS, sig.serial())
+        except Exception:
+            EXPECT = None
     if EXPECT:
         sig.slot = int(EXPECT.get("slot", 0))   # the pin names the slot; slot.txt does not count
     if state in ("nochip", "pinfail"):
@@ -174,7 +182,7 @@ def probe_chip():
         boot_count = None
     read_key()
     check_pin()
-    if not pin_ok and (PROD or EXPECT):
+    if not pin_ok and (PROD or EXPECTS):
         state = "pinfail"
 
 
@@ -200,6 +208,8 @@ def check_pin():
                 qlog.write("new chip %s: %s, %s, theme %s" % (serial, chip["name"], profile, chip["theme"]))
     if EXPECT:
         pin_ok, pin_why = policy.expect_check(EXPECT, serial, sig.slot, row, me)
+    elif EXPECTS:
+        pin_ok, pin_why = False, "this chip is not one of the %d pinned" % len(EXPECTS)
     elif PROD:
         pin_ok, pin_why = False, "secrets.py has no QUORUM_EXPECT"
     else:

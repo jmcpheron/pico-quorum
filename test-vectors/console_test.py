@@ -442,6 +442,22 @@ def case_chips():
     check(len(J.load(open("chips.json"))) == 1, "and is written whole again")
 
 
+def case_multi():
+    """Several pinned chips: the one on the bus picks its entry at boot; any other is refused."""
+    chip()
+    mine = {"serial": SERIAL, "slot": 0, "owner": owner_of(0), "locked": True}
+    other = {"serial": "0123aaaaaaaaaaaaee", "slot": 0, "owner": "0x" + "11" * 20, "locked": True}
+    Q = fresh(expect=[other, mine])
+    check(Q.state == "home" and Q.pin_ok and Q.EXPECT["serial"] == SERIAL, "two chips pinned: this one finds its entry and signs")
+    serve(Q, [tx(Q, 0)])
+    check(sign(Q, Q.queue[0], 2100), "and a signature goes through")
+    Q = fresh(expect=[other])
+    check(Q.state == "pinfail" and "not one of the 1 pinned" in Q.pin_why, "a list without this chip: refused")
+    bad = dict(mine, owner=owner_of(2))
+    Q = fresh(expect=[other, bad])
+    check(Q.state == "pinfail" and "owner" in Q.pin_why, "its entry with the wrong owner: refused all the same")
+
+
 def case_unsent():
     """A signature the service did not take survives a restart and goes out after the next boot;
     a lost HTTPS reserve restarts the console, but only on home."""
@@ -501,7 +517,7 @@ def case_watchdog():
 
 
 def main():
-    for case in (case_pin, case_refusals, case_sign, case_service, case_production, case_chips, case_unsent, case_watchdog):
+    for case in (case_pin, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_watchdog):
         print("--", case.__name__[5:])
         try:
             case()
