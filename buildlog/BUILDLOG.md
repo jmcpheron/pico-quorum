@@ -679,3 +679,14 @@ The Safe's nonce is 1.
 - **C6:** slot 0 sealed, SlotLocked `fe ff`, the same key read back. Counter 0 = 4: C5's two test
   signatures, plus one before and one after the seal.
 - **UI:** B+Y arm in either order, and a full bar waits for the let-go (build `2eaca51`).
+- **C7:** the Pico showed `0x99edaccad92537b9146dd0804635bc6def7f6b88`, the same as the laptop
+  and the factory.
+- **C8 stopped: the third unknown, settled on silicon.** Before the data lock, the chip refuses
+  4-byte writes (`0x0F`) into these secret, never-write slots. It accepts 32-byte writes, including
+  one that starts at a slot's last, partial block (bytes 32-35 of slots 1-7, bytes 64-71 of slots
+  9-15), presumably keeping the bytes that fit.
+  - Probed from the laptop with zeros only, the same bytes C8 writes. The OTP zone was not touched:
+    C8 stops before the record.
+  - Fix: C8 writes whole 32-byte blocks, the last one at the tail. The virtual chip now refuses
+    4-byte writes into those slots before the data lock, as this chip does. The data-CRC lock
+    at C9 checks that the tails really hold zeros, and refuses (locking nothing) if not.

@@ -73,11 +73,10 @@ def write_record_and_fill(sig, record, table):
     """REVERSIBLE until the data lock (it can be written again, never read back before it): zeros into
     every slot that is not a private key, the 64-byte record into the OTP zone. -> the data CRC."""
     for n, b in chipcfg.zero_slots(table).items():
-        full, tail = atecc.SLOT_BYTES[n] // 32, atecc.SLOT_BYTES[n] % 32
-        for blk in range(full):
-            sig.chip.write_data(n, blk, b[blk * 32:blk * 32 + 32])
-        for w in range(tail // 4):
-            sig.chip.write_data(n, full, b[full * 32 + w * 4:full * 32 + w * 4 + 4], word=w)
+        # whole 32-byte blocks, the last one starting at the slot's tail (the chip keeps what fits):
+        # 4-byte writes into these secret slots are refused before the data lock (chip 2, silicon)
+        for blk in range((atecc.SLOT_BYTES[n] + 31) // 32):
+            sig.chip.write_data(n, blk, (b[blk * 32:blk * 32 + 32] + bytes(32))[:32])
     sig.chip.write_otp(0, record[:32])
     sig.chip.write_otp(1, record[32:64])
     return chipcfg.data_summary(table, chipcfg.zero_slots(table), record)

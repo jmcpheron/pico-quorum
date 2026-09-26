@@ -236,13 +236,16 @@ class Chip:
                 # only where WriteConfig says Always, and never a locked slot.
                 slot, block, word = (p2 >> 3) & 0xF, p2 >> 8, p2 & 7 if n == 4 else 0
                 off = block * 32 + word * 4
-                if off + n > SLOT_BYTES[slot]:
+                if off >= SLOT_BYTES[slot] or (n == 4 and off + n > SLOT_BYTES[slot]):
                     raise _Fail(STATUS_PARSE)
                 if not self.config_locked() or self.key_cfg(slot) & 1 or self.slot_locked(slot):
                     raise _Fail(STATUS_EXEC)
                 if self.data_locked() and self.slot_cfg(slot) >> 12:
                     raise _Fail(STATUS_EXEC)
-                self.slot_data(slot)[off:off + n] = data
+                if n == 4 and not self.data_locked() and self.slot_cfg(slot) >> 12:
+                    raise _Fail(STATUS_EXEC)      # seen on silicon: no 4-byte writes into these slots before the data lock
+                n = min(n, SLOT_BYTES[slot] - off)  # a 32-byte write at the last, partial block keeps what fits
+                self.slot_data(slot)[off:off + n] = data[:n]
                 self.save()
                 return self._status(STATUS_OK)
             if p1 & 3 == 1:

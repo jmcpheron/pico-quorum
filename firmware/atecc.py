@@ -328,7 +328,10 @@ class ATECC608:
         data zone is locked. The 4-byte form reaches the last 4 bytes of a 36- or 72-byte slot."""
         if len(data) not in (4, 32) or (len(data) == 32 and word):
             raise ValueError("32 bytes at a block, or 4 at a word")
-        if block * 32 + word * 4 + len(data) > SLOT_BYTES[slot]:
+        # A 32-byte write may start at a slot's last, partial block (the tail of a 36- or 72-byte
+        # slot): the chip keeps the bytes that fit. Seen on silicon (chip 2, 2026-09-26), where
+        # 4-byte writes into a secret slot were refused before the data lock.
+        if block * 32 + word * 4 >= SLOT_BYTES[slot] or (len(data) == 4 and block * 32 + word * 4 + 4 > SLOT_BYTES[slot]):
             raise ValueError("block %d word %d is past the end of slot %d" % (block, word, slot))
         self.run(OP_WRITE, 0x82 if len(data) == 32 else 0x02, (block << 8) | (slot << 3) | word, bytes(data), resp_len=1, wait_ms=30)
 
