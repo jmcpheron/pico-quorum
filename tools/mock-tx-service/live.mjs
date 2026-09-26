@@ -444,7 +444,7 @@ print('WROTE', len(old), '->', os.stat('secrets.py')[6], 'bytes; the old file is
   // A production image (tools/fw push) starts the console itself at power-up: a reset is the
   // restart. A development board gets the console shipped and started, as before.
   const main = spawnSync(`${ROOT}tools/usb`, ["exec", "print('MAIN', open('main.py').read()[:60])"], { encoding: "utf8" }).stdout || "";
-  if (/picoquorum-image: console/.test(main)) {
+  if (/picoquorum-image: (console|dual)/.test(main)) {
     // then hands off for 30 s: any mpremote command starts with Ctrl-C, which would stop the
     // console mid-start (tools/fw restart, 2026-09-26)
     spawnSync(`${ROOT}tools/usb`, ["exec", "import machine; machine.reset()"], { encoding: "utf8", timeout: 10000 });
