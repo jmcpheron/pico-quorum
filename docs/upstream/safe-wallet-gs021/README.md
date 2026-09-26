@@ -12,35 +12,65 @@ upstream, `tools/quorum live exec` executes instead.
 | [ISSUE.md](ISSUE.md) | The issue, ready to paste: title plus body in their bug-report template. The reproduction script is inlined in a `<details>` block |
 | [PR.md](PR.md) | The pull request, ready to paste: their PR template, with the Mermaid summary they require for AI-authored PRs and the CLA line. Replace `#ISSUE` with the issue number |
 | [repro/](repro/) | `repro.mjs`, the self-contained reproduction ([how to run it](repro/README.md)): Anvil fork of Base Sepolia, throwaway keys, protocol-kit's own `buildSignatureBytes` for both layouts. It also prints the test fixtures (`--fixture`) |
-| [0001-fix-keep-EIP-1271-contract-signatures-when-rebuildin.patch](0001-fix-keep-EIP-1271-contract-signatures-when-rebuildin.patch) | The fix and its test, one commit made with `git format-patch` against their `dev` at `5717e3a` |
+| [0001-fix-keep-EIP-1271-contract-signatures-when-rebuildin.patch](0001-fix-keep-EIP-1271-contract-signatures-when-rebuildin.patch) | The fix and its test, one commit made with `git format-patch` against their `dev` at `5717e3a`. This is the pre-review version; see [Status](#status) for what was submitted |
 
 ## Before submitting: privacy
 
 ISSUE.md, PR.md and the patch name no personal address, Safe or transaction. The patch's test
 fixture comes from throwaway keys on a local fork. Keep it that way:
 
-- [ ] **Screenshots:** attach only the redacted copies in `temp-safe-screenshots/redacted/` (local
+- [x] **Screenshots:** attach only the redacted copies in `temp-safe-screenshots/redacted/` (local
   and gitignored). There are four from the desktop browser, and `20`–`23` from a mobile browser.
   The mobile ones are the web app on a phone, not Safe's mobile app. They were made from macOS text recognition and checked by running it again: no
   address, ENS name or timestamp is left, and no identicon either. Look them over once more before
   uploading.
-- [ ] **No Tenderly link.** The in-app simulation link is public and shows the Safe and both
-  signatures.
-- [ ] **Nothing from the evidence log below.** It names personal addresses and Safes, which is fine
-  in this private repo but not upstream.
-- [ ] **Commit author.** The patch carries `Jason McPheron <jason.mcpheron@gmail.com>` as author,
+  - Submitted: one image on #8808, a tight crop of `SCR-20260925-jtap-redacted.png` showing only
+    the two GS021 messages and "Cannot estimate". It shows no Safe name, address or clock.
+  - Before posting any of the others: the full desktop shots still show the Safe name
+    ("PicoQuorum Base"), and the mobile ones show the phone's clock in the status bar.
+- [x] **No Tenderly link.** The in-app simulation link is public and shows the Safe and both
+  signatures. Checked in the issue, the PR and the commit message: none. The PR mentions the
+  Tenderly simulation only as a feature.
+- [x] **Nothing from the evidence log below.** It names personal addresses and Safes, which is fine
+  in this private repo but not upstream. The issue, PR and commit message were scanned for its
+  addresses and tx hashes: none.
+- [x] **Commit author.** The patch carries `Jason McPheron <jason.mcpheron@gmail.com>` as author,
   and that shows on the PR. To use GitHub's private address instead, run
   `git commit --amend --reset-author` after setting `git config user.email <id>+jmcpheron@users.noreply.github.com`.
-  The id is in GitHub → Settings → Emails.
+  The id is in GitHub → Settings → Emails. Kept the gmail address (decided 2026-09-25).
 
 ## Status
 
-- [ ] Issue opened on safe-global/safe-wallet-monorepo: #____
-- [ ] Fork `jmcpheron/safe-wallet-monorepo`, branch `fix/contract-signatures-existing-tx` from `dev`
-- [ ] Patch applied, with "Fixes #____" added to the commit message
-- [ ] Full install; the utils, web and mobile tests, type-check and lint pass on the fork
-- [ ] CLA read (https://safe.global/cla)
-- [ ] PR opened from the fork: #____
+- [x] Issue opened on safe-global/safe-wallet-monorepo: [#8808](https://github.com/safe-global/safe-wallet-monorepo/issues/8808)
+- [x] Fork `jmcpheron/safe-wallet-monorepo`, branch `fix/contract-signatures-existing-tx` from `dev`
+  at `004b061`
+- [x] Patch applied, with "Fixes #8808" added to the commit message: commit `07a9717`
+- [x] Full install; the utils, web and mobile tests, type-check and lint pass on the fork (details
+  under "What's been verified so far" below)
+- [ ] CLA read (https://safe.global/cla). The page is a 404, and it's the same link the CLA
+  workflows in other safe-global repos use. The PR's CLA line says so rather than confirming
+  agreement; a maintainer may ask about it.
+- [x] PR opened from the fork: [#8809](https://github.com/safe-global/safe-wallet-monorepo/pull/8809), 2026-09-25
+
+**What was submitted differs from these drafts.** The versions on GitHub are the reference:
+- **The commit:**
+  - `toSafeSignature`'s doc comment and the test file's header are cut to one line each, since
+    their AGENTS.md asks for one-line comments
+  - one call-site test per app (web `ts-sender.test.ts`, mobile `create.test.ts`), each failing
+    without the fix
+  - `Fixes #8808`, and a `Co-Authored-By: Claude` trailer
+- **The issue:** the re-run block is noted, the fix paragraph updated, #1952 added under Related,
+  and one screenshot attached.
+- **The PR:**
+  - `#8808` filled in, and the call-site tests described
+  - two blast-radius bullets: `validateTxSignatures` now skips contract signatures, and gas
+    estimation and Tenderly get the corrected bytes
+  - risks updated, and the CLA note
+
+**Waiting on:**
+- A maintainer to approve CI. All 16 workflows were `action_required` when the PR opened, as
+  expected for a first-time contributor.
+- Review.
 
 ## Working on the fork
 
@@ -92,16 +122,19 @@ What's been verified so far:
     current layout, and execute in the fixed one: `ExecutionSuccess`, the recipient paid, and the
     logged bytes equal the fixed layout
   - a 1-of-2 control works both ways
-- Locally, on a focused install:
-- The 11 unit tests pass in a node environment.
-- Prettier is clean.
-
-**Not yet run:**
-- the package's default jsdom test environment
-- the web and mobile test suites
-- type-check and lint
-
-The full install on the fork covers all three.
+- Locally, on a focused install: the 11 unit tests pass in a node environment, and Prettier is
+  clean.
+- On the fork, with a full install (2026-09-25):
+  - **utils:** all 81 suites (1467 tests) pass in the default jsdom environment, including the 11
+    new ones. Lint, type-check (TS 7) and Prettier are clean.
+  - **mobile:** `verify --changed` passes: type-check, lint, Prettier and the 364 related tests.
+  - **web:** type-check, lint and Prettier pass, and so do the tx, speed-up, queued-simulation and
+    confirm-tx suites (113 tests). `verify:changed` runs 7039 related tests: 3 timed out in two
+    `spaces/Policies` form suites that don't touch this code, and both suites pass on their own
+    (34/34).
+  - **Call-site tests:** both fail with the call-site change reverted, and pass with it.
+- `repro/repro.mjs` was re-run at block 47307399 with the same results. A second run on the same
+  fork is identical, and `--fixture` matches the committed test data byte for byte.
 
 ## How we know
 
