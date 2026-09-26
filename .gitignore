@@ -22,3 +22,7 @@ tools/fonts/src/
 # local scratch: screenshots with personal addresses, macOS metadata
 temp-safe-screenshots/
 .DS_Store
+
+# tools/fw: board backups (they hold the board's secrets.py) and built images
+backups/
+build/
