@@ -26,3 +26,6 @@ temp-safe-screenshots/
 # tools/fw: board backups (they hold the board's secrets.py) and built images
 backups/
 build/
+
+# chips/: the local datasheet of every ATECC608 (CHIPS.md); stays on this Mac
+chips/
