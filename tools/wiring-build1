@@ -1,0 +1,310 @@
+#!/usr/bin/env python3
+# Draws hardware/wiring/build1-wiring.svg, the Build 1 bench wiring in hardware/wiring/BUILD1.md: a Pico 2 W,
+# a 2.0" ST7789 240x320 screen, an EC11 knob, the two key jacks (3.5 mm and 2.5 mm TRRS), and the
+# ATECC608 key soldered to the two plugs. PINS below is the one pin table; BUILD1.md, hardware/HANDOFF.md
+# and firmware/bench1.py must agree with it, and `tools/wiring-build1 --check` says whether they do.
+# Run from the repo root: tools/wiring-build1
+import re, sys
+
+# (part, contact, signal, GPIO or rail, physical header pin)
+PINS = [
+    ("screen", "VCC", "3.3 V", "3V3", 36),
+    ("screen", "GND", "ground", "GND", 13),
+    ("screen", "DIN", "SPI1 MOSI", "GP11", 15),
+    ("screen", "CLK", "SPI1 SCK", "GP10", 14),
+    ("screen", "CS", "chip select", "GP9", 12),
+    ("screen", "DC", "data/command", "GP8", 11),
+    ("screen", "RST", "reset", "GP12", 16),
+    ("screen", "BL", "backlight PWM", "GP13", 17),
+    ("knob", "A", "encoder A", "GP2", 4),
+    ("knob", "B", "encoder B", "GP3", 5),
+    ("knob", "C", "encoder common", "GND", 3),
+    ("knob", "SW1", "push", "GP1", 2),
+    ("knob", "SW2", "push, other side", "GND", 3),
+    ("J1", "T", "SDA", "GP4", 6),
+    ("J1", "R1", "SCL", "GP5", 7),
+    ("J1", "R2", "DETECT", "GP7", 10),
+    ("J1", "S", "ground", "GND", 8),
+    ("J2", "T", "KEY VCC", "GP6", 9),
+    ("J2", "R1", "KEY RST", "GP26", 31),
+    ("J2", "R2", "KEY ID", "GP27", 32),
+    ("J2", "S", "ground", "GND", 8),
+]
+RESERVED = {"GP15": 20, "GP17": 22, "GP19": 25, "GP21": 27, "GP28": 34}
+
+W, H = 1440, 1000
+MONO = "ui-monospace, Menlo, Consolas, monospace"
+RED, BLK, BLU, YEL, GRN, PUR, GREY = "#b3261e", "#222", "#1f5fbf", "#c99a00", "#2a8c4a", "#6a3fbf", "#666"
+ORG, TEAL, MAG = "#d2691e", "#138a8a", "#9b3d8f"
+out = []
+def add(s): out.append(s)
+def text(x, y, s, size=11, color="#222", anchor="start", bold=False):
+    add('<text x="%s" y="%s" font-size="%s" text-anchor="%s" fill="%s" font-weight="%s" font-family="%s">%s</text>'
+        % (x, y, size, anchor, color, "bold" if bold else "normal", MONO, s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")))
+def wire(pts, color, width=2.5, dash=False):
+    d = " ".join(("M" if i == 0 else "L") + "%s %s" % p for i, p in enumerate(pts))
+    add('<path d="%s" fill="none" stroke="%s" stroke-width="%s" stroke-linejoin="round" stroke-linecap="round"%s/>'
+        % (d, color, width, ' stroke-dasharray="7 5"' if dash else ""))
+def dot(x, y, color): add('<circle cx="%s" cy="%s" r="4" fill="%s"/>' % (x, y, color))
+def rect(x, y, w, h, fill, stroke="#333", rx=4, sw=1.5, dash=False):
+    add('<rect x="%s" y="%s" width="%s" height="%s" rx="%s" fill="%s" stroke="%s" stroke-width="%s"%s/>'
+        % (x, y, w, h, rx, fill, stroke, sw, ' stroke-dasharray="6 4"' if dash else ""))
+def pad(x, y): add('<rect x="%s" y="%s" width="10" height="10" fill="#e8c27a" stroke="#333"/>' % (x - 5, y - 5))
+
+PX, PY, PW, PH = 620, 150, 240, 440
+LX, RX = PX + 8, PX + PW - 8
+def ly(n): return PY + 25 + (n - 1) * 20        # left column, pins 1..20
+def ry(n): return PY + 25 + (40 - n) * 20       # right column, pins 40..21
+def py(n): return ly(n) if n <= 20 else ry(n)
+def pin(part, contact): return next(p for p in PINS if p[0] == part and p[1] == contact)
+
+
+def build():
+    add('<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d">' % (W, H, W, H))
+    add('<rect width="%d" height="%d" fill="#fbfbf8"/>' % (W, H))
+    text(24, 32, "PicoQuorum Build 1: Pico 2 W + 2.0\" ST7789 240x320 + EC11 knob + key jacks (3.5 mm and 2.5 mm TRRS), ATECC608 key", 16, bold=True)
+    text(24, 52, "Pico 2 W seen from the top, USB up. Numbers are physical header pins. A dot joins wires; wires that cross without a dot do not touch.", 11, GREY)
+    text(24, 68, "All power is 3.3 V from pin 36. Nothing here goes to VBUS (40) or VSYS (39). The pin table in hardware/wiring/BUILD1.md is the same one.", 11, GREY)
+
+    # ----------------------------------------------------------------------------- Pico
+    rect(PX, PY, PW, PH, "#2e7d4f", "#1b4d31", 8, 2)
+    rect(PX + PW / 2 - 26, PY - 18, 52, 26, "#bbb", "#777", 3)
+    text(PX + PW / 2, PY - 1, "micro-USB", 9, "#333", "middle")
+    text(PX + PW / 2, PY - 25, "programming and power", 9.5, GREY, "middle")
+    rect(PX + PW / 2 - 28, 320, 56, 56, "#111", "#111", 2); text(PX + PW / 2, 352, "RP2350", 10, "#ddd", "middle")
+    rect(PX + PW / 2 - 24, 455, 48, 30, "#777", "#444", 2); text(PX + PW / 2, 474, "CYW43", 9, "#eee", "middle")
+    text(PX + PW / 2, 505, "GP23-25, GP29:", 9, "#d8f0e0", "middle"); text(PX + PW / 2, 517, "the radio's. Never.", 9, "#d8f0e0", "middle")
+    LEFT = {1: "GP0", 2: "GP1", 3: "GND", 4: "GP2", 5: "GP3", 6: "GP4", 7: "GP5", 8: "GND", 9: "GP6", 10: "GP7", 11: "GP8", 12: "GP9",
+            13: "GND", 14: "GP10", 15: "GP11", 16: "GP12", 17: "GP13", 18: "GND", 19: "GP14", 20: "GP15"}
+    RIGHT = {40: "VBUS", 39: "VSYS", 38: "GND", 37: "3V3_EN", 36: "3V3 OUT", 35: "ADC_VREF", 34: "GP28", 33: "AGND", 32: "GP27", 31: "GP26",
+             30: "RUN", 29: "GP22", 28: "GND", 27: "GP21", 26: "GP20", 25: "GP19", 24: "GP18", 23: "GND", 22: "GP17", 21: "GP16"}
+    color = {"3V3": RED, "GND": BLK, "GP11": PUR, "GP10": PUR, "GP9": PUR, "GP8": PUR, "GP12": PUR, "GP13": GRN,
+             "GP2": TEAL, "GP3": TEAL, "GP1": TEAL, "GP4": BLU, "GP5": YEL, "GP7": GRN, "GP6": ORG, "GP26": MAG, "GP27": MAG}
+    used = {}
+    for part, contact, sig, gp, n in PINS:
+        used[n] = color[gp]
+    def draw_pin(x, y, n, name, right):
+        if n in used:
+            add('<circle cx="%s" cy="%s" r="5" fill="%s" stroke="#333"/>' % (x, y, used[n]))
+        elif name in RESERVED:
+            add('<circle cx="%s" cy="%s" r="5" fill="#2e7d4f" stroke="#e8e0b0" stroke-width="2" stroke-dasharray="2 2"/>' % (x, y))
+        else:
+            add('<circle cx="%s" cy="%s" r="5" fill="#e8e0b0" stroke="#333"/>' % (x, y))
+        lab = "%s %d" % (name, n) if right else "%d %s" % (n, name)
+        text(x + (-11 if right else 11), y + 4, lab, 10 if n in used else 9, "#fff" if n in used else "#cfe6d6", "end" if right else "start", n in used)
+    for n, name in LEFT.items():
+        draw_pin(LX, ly(n), n, name, False)
+    for n, name in RIGHT.items():
+        draw_pin(RX, ry(n), n, name, True)
+
+    BX, BW = 200, 150               # the column of parts on the left
+    PE = BX + BW + 5                # where their wires leave
+
+    # ----------------------------------------------------------------------------- knob
+    KY0, KY1 = 170, 262
+    rect(BX, KY0, BW, KY1 - KY0, "#3a3a3a", "#111", 8, 2)
+    add('<circle cx="%s" cy="%s" r="26" fill="#777" stroke="#222" stroke-width="2"/>' % (BX + 45, (KY0 + KY1) / 2))
+    add('<circle cx="%s" cy="%s" r="11" fill="#bbb" stroke="#222"/>' % (BX + 45, (KY0 + KY1) / 2))
+    text(BX + 45, KY0 - 8, "EC11 knob (bare, 5 lugs)", 11, "#111", "start", True)
+    rows = [("SW1", "SW1", 2), ("C+SW2", "C", 3), ("A", "A", 4), ("B", "B", 5)]
+    for label, contact, n in rows:
+        y = ly(n)
+        pad(BX + BW, y); text(BX + BW - 10, y + 4, label, 9, "#fff", "end", True)
+        wire([(PE, y), (LX, y)], BLK if contact == "C" else TEAL)
+    text(PE + 12, ly(2) - 6, "SW1 (push) -> GP1, pin 2", 10, TEAL, bold=True)
+    text(PE + 12, ly(3) - 6, "C and SW2 -> GND, pin 3", 10, BLK, bold=True)
+    text(PE + 12, ly(4) - 6, "A -> GP2, pin 4", 10, TEAL, bold=True)
+    text(PE + 12, ly(5) - 6, "B -> GP3, pin 5", 10, TEAL, bold=True)
+    text(BX - 10, KY0 + 18, "3 lugs one side: A, C, B", 9, GREY, "end")
+    text(BX - 10, KY0 + 31, "2 lugs other side: SW", 9, GREY, "end")
+    text(BX - 10, KY0 + 44, "C is the middle of the 3", 9, GREY, "end")
+    text(BX - 10, KY0 + 57, "internal pull-ups: no resistors", 9, GREY, "end")
+    text(BX - 10, KY0 + 70, "KY-040 board instead? + to 3V3", 9, GREY, "end")
+
+    # ----------------------------------------------------------------------------- jacks
+    JY0, JY1 = 266, 364
+    rect(BX, JY0, BW, JY1 - JY0, "#262626", "#111", 6, 2)
+    text(BX + 8, JY0 + 20, "J1", 11, "#fff", "start", True)
+    text(BX + 8, JY0 + 34, "J2", 11, "#ffd9b8", "start", True)
+    text(BX - 10, JY0 + 12, "J1: 3.5 mm TRRS jack", 9.5, "#111", "end", True)
+    text(BX - 10, JY0 + 25, "J2: 2.5 mm TRRS jack", 9.5, "#8a4a12", "end", True)
+    text(BX - 10, JY0 + 38, "lugs found by meter,", 9, GREY, "end")
+    text(BX - 10, JY0 + 51, "step 1 in BUILD1.md", 9, GREY, "end")
+    jrows = [("J1 T", "J1", "T"), ("J1 R1", "J1", "R1"), ("J1+J2 S", "J1", "S"), ("J2 T", "J2", "T"), ("J1 R2", "J1", "R2")]
+    for label, part, contact in jrows:
+        _, _, sig, gp, n = pin(part, contact)
+        y = ly(n)
+        pad(BX + BW, y); text(BX + BW - 10, y + 4, label, 9, "#fff", "end", True)
+        wire([(PE, y), (LX, y)], color[gp], 3 if gp == "GP6" else 2.5)
+    text(PE + 12, ly(6) - 6, "J1 tip: SDA -> GP4, pin 6", 10, BLU, bold=True)
+    text(PE + 12, ly(7) - 6, "J1 ring 1: SCL -> GP5, pin 7", 10, "#9a7600", bold=True)
+    text(PE + 12, ly(8) - 6, "J1 + J2 sleeves -> GND, pin 8", 10, BLK, bold=True)
+    text(PE + 12, ly(9) - 6, "J2 tip: KEY VCC <- GP6, pin 9", 10, ORG, bold=True)
+    text(PE + 12, ly(10) - 6, "J1 ring 2: DETECT -> GP7, pin 10", 10, GRN, bold=True)
+    # J2 ring 1 / ring 2 leave from the left side and go round everything to GP26 / GP27
+    YID, YRST = 336, 354
+    for label, y in (("J2 R2", YID), ("J2 R1", YRST)):
+        pad(BX, y); text(BX + 10, y + 4, label, 9, "#ffd9b8", "start", True)
+    B_RST, B_ID = 616, 630
+    wire([(BX - 5, YRST), (44, YRST), (44, B_RST), (RX + 20, B_RST), (RX + 20, ry(31)), (RX, ry(31))], MAG)
+    wire([(BX - 5, YID), (30, YID), (30, B_ID), (RX + 34, B_ID), (RX + 34, ry(32)), (RX, ry(32))], MAG, 2.5, dash=True)
+    text(PE + 20, B_RST - 6, "J2 ring 1: KEY RST -> GP26, pin 31 (Trust M key; an ATECC key leaves it open)", 9.5, MAG, bold=True)
+    text(PE + 20, B_ID + 16, "J2 ring 2: KEY ID -> GP27, pin 32 (ADC1; open on every Build 1 key, dashed = optional)", 9.5, MAG)
+
+    # ----------------------------------------------------------------------------- screen
+    SY0, SY1 = 368, 548
+    rect(BX, SY0, BW, SY1 - SY0, "#1b1b1b", "#111", 6, 2)
+    rect(BX + 14, SY0 + 16, 88, 120, "#27496d", "#555", 2)
+    text(BX + 58, SY0 + 70, "2.0\"", 12, "#fff", "middle", True); text(BX + 58, SY0 + 86, "240x320", 9, "#dde", "middle")
+    text(BX + 58, SY0 + 100, "ST7789", 9, "#dde", "middle")
+    text(BX + 8, SY1 - 20, "go by the printed", 8.5, "#ccc"); text(BX + 8, SY1 - 8, "labels, not order", 8.5, "#ccc")
+    for contact in ("DC", "CS", "GND", "CLK", "DIN", "RST", "BL"):
+        _, _, sig, gp, n = pin("screen", contact)
+        y = ly(n)
+        pad(BX + BW, y); text(BX + BW - 10, y + 4, contact, 9, "#fff", "end", True)
+        wire([(PE, y), (LX, y)], color[gp])
+        text(PE + 12, y - 5, "%s -> %s, pin %d" % (contact, gp if gp != "GND" else "GND", n), 9.5, color[gp] if gp != "GP5" else "#9a7600", bold=True)
+    text(BX - 10, SY0 + 30, "some boards print", 9, GREY, "end")
+    text(BX - 10, SY0 + 43, "SDA for DIN and", 9, GREY, "end")
+    text(BX - 10, SY0 + 56, "SCL for CLK: that is", 9, GREY, "end")
+    text(BX - 10, SY0 + 69, "SPI, not the I2C bus", 9, GREY, "end")
+    VY = ly(19)
+    pad(BX + BW, VY); text(BX + BW - 10, VY + 4, "VCC", 9, "#fff", "end", True)
+    wire([(PE, VY), (PE + 8, VY), (PE + 8, 672), (RX + 56, 672), (RX + 56, ry(36)), (RX, ry(36))], RED)
+    text(PE + 20, 690, "screen VCC -> 3V3 OUT, pin 36. 3.3 V, never VBUS / 5 V", 10, RED, bold=True)
+    text(PE + 12, VY - 5, "VCC -> 3V3, pin 36 (under the board)", 9.5, RED, bold=True)
+
+    # ----------------------------------------------------------------------------- right-hand notes, one per pin row
+    NX = RX + 72
+    text(NX, ry(36) + 4, "36 3V3 OUT: screen VCC", 10, RED, bold=True)
+    text(NX, ry(34) + 4, "34 GP28: reserved, battery sense (hardware/wiring/SOLDERING.md)", 9.5, GREY)
+    text(NX, ry(32) + 4, "32 GP27: KEY ID, J2 ring 2", 10, MAG, bold=True)
+    text(NX, ry(31) + 4, "31 GP26: KEY RST, J2 ring 1", 10, MAG, bold=True)
+    text(NX, ry(27) + 4, "27 GP21: reserved, Y = Reject", 9.5, GREY)
+    text(NX, ry(25) + 4, "25 GP19: reserved, X", 9.5, GREY)
+    text(NX, ry(22) + 4, "22 GP17: reserved, B", 9.5, GREY)
+    text(LX - 14, ly(20) + 4, "reserved, A = Sign: GP15, pin 20", 9.5, GREY, "end")
+    text(NX, ry(29) + 4, "free: GP0, GP14, GP16, GP18, GP20, GP22", 9.5, "#2e7d4f")
+    text(NX, 186, "dashed ring on the board = reserved pin, leave it free", 9.5, GREY)
+
+    # ----------------------------------------------------------------------------- the key
+    KX0 = 24
+    text(KX0, 718, "The key, Build 1: the ATECC608 STEMMA breakout on a cut STEMMA QT cable, soldered to two plugs", 13, "#111", "start", True)
+    text(KX0, 734, "Map each cable wire to the breakout's VIN / GND / SDA / SCL pads with a meter first (hardware/wiring/SOLDERING.md, section 1).", 9.5, GREY)
+    SEG = {"S": 430, "R2": 485, "R1": 535, "T": 590}
+    def plug(y, name, sub, tipw):
+        x0 = 380
+        rect(x0 - 70, y - 14, 70, 28, "#555", "#222", 6)     # handle
+        text(x0 - 35, y + 4, "handle", 8.5, "#eee", "middle")
+        edges = [(400, 460, "S"), (460, 510, "R2"), (510, 560, "R1"), (560, 620, "T")]
+        for a, b, s in edges:
+            rect(a, y - 9, b - a - 3, 18, "#d9d9d9" if s != "S" else "#bdbdbd", "#555", 2, 1)
+            text((a + b - 3) / 2, y + 4, s, 9, "#222", "middle", True)
+        add('<polygon points="620,%s 620,%s %s,%s" fill="#d9d9d9" stroke="#555"/>' % (y - 9, y + 9, 620 + tipw, y))
+        text(640 + tipw, y - 2, name, 11, "#111", "start", True)
+        text(640 + tipw, y + 12, sub, 9, GREY)
+    P1Y, P2Y = 770, 930
+    plug(P1Y, "P1: 3.5 mm TRRS plug", "goes in J1", 16)
+    plug(P2Y, "P2: 2.5 mm TRRS plug", "goes in J2", 12)
+    # breakout between the plugs
+    rect(400, 812, 220, 76, "#1e5aa8", "#123a70", 8, 2)
+    text(510, 846, "ATECC608 breakout", 11, "#fff", "middle", True)
+    text(510, 860, "(answers at 0x60)", 9, "#dbe7ff", "middle")
+    text(510, 874, "own pull-ups to VIN", 9, "#dbe7ff", "middle")
+    for name, x in (("GND", SEG["S"]), ("SCL", SEG["R1"]), ("SDA", SEG["T"])):
+        pad(x, 812); text(x + 8, 826, name, 8.5, "#fff", "start", True)
+    for name, x in (("GND", SEG["S"]), ("VIN", SEG["T"])):
+        pad(x, 888); text(x + 8, 884, name, 8.5, "#fff", "start", True)
+    wire([(SEG["T"], P1Y + 9), (SEG["T"], 807)], BLU)
+    wire([(SEG["R1"], P1Y + 9), (SEG["R1"], 807)], YEL)
+    wire([(SEG["S"], P1Y + 9), (SEG["S"], 807)], BLK)
+    wire([(SEG["R2"], P1Y + 9), (SEG["R2"], 792), (SEG["S"], 792)], GRN); dot(SEG["S"], 792, BLK)
+    wire([(SEG["S"], 893), (SEG["S"], P2Y - 9)], BLK)
+    wire([(SEG["T"], 893), (SEG["T"], P2Y - 9)], ORG, 3)
+    for s in ("R2", "R1"):
+        wire([(SEG[s], P2Y - 9), (SEG[s], P2Y - 22)], MAG, 1.5, dash=True)
+    text(80, 792, "P1 ring 2 jumpered to P1 sleeve:", 9.5, GRN, "start", True)
+    text(80, 805, "that is how the console sees", 9.5, GRN); text(80, 818, "a key (DETECT reads low)", 9.5, GRN)
+    text(80, 870, "split the GND wire:", 9.5, BLK, "start", True)
+    text(80, 883, "both sleeves are ground", 9.5, BLK)
+    text(80, 910, "P2 rings: nothing on an ATECC key.", 9.5, MAG)
+    text(80, 923, "Trust M key: ring 1 = its RST pad", 9.5, MAG)
+    text(80, 956, "optional: 100 nF across VIN-GND at the plug", 9.5, GREY)
+
+    # ----------------------------------------------------------------------------- rules box
+    RX0, RY0 = 800, 700
+    rect(RX0, RY0, 616, 282, "#fff4f2", RED, 6, 1.5)
+    text(RX0 + 14, RY0 + 24, "Rules that prevent damage", 13, RED, "start", True)
+    lines = [
+        "1. Screen VCC is 3.3 V (pin 36). Not VBUS, not 5 V.",
+        "2. Key power (GP6) is OFF before a plug goes in or comes out.",
+        "   Every plug tip wipes past every jack contact, sleeve included:",
+        "   a live GP6 on J2's tip gets shorted to ground on the way in.",
+        "   The firmware turns GP6 on only after DETECT has read low",
+        "   for 200 ms, and off the moment it goes high.",
+        "3. Never plug the key into a phone, laptop or audio jack.",
+        "   Those drive the tip and put mic bias on a ring.",
+        "4. No 18650 without a PROTECTED TP4056 (the DW01 kind).",
+        "   Build 1 runs on USB; the cell is a later build.",
+        "5. Config lock and data lock on the ATECC are permanent.",
+        "   Build 1 only reads the chip. ALLOW_LOCK stays False.",
+        "6. Meter SDA/SCL/VIN/GND at the plugs before the first plug-in.",
+    ]
+    y = RY0 + 46
+    for line in lines:
+        text(RX0 + 14, y, line, 10, "#3a1410" if not line.startswith("   ") else "#6b3b36"); y += 17
+
+    add("</svg>")
+    return "\n".join(out) + "\n"
+
+
+def check():
+    """Compare PINS with the tables in BUILD1.md and HANDOFF.md and the constants in firmware/bench1.py."""
+    bad = 0
+    want = {(p, c): (gp, n) for p, c, s, gp, n in PINS}
+    for path in ("hardware/wiring/BUILD1.md", "hardware/HANDOFF.md"):
+        got = {}
+        part = None
+        for line in open(path):
+            m = re.match(r"<!-- pins: (\w+) -->", line.strip())
+            if m:
+                part = m.group(1); continue
+            if not part:
+                continue
+            if not line.startswith("|"):
+                part = None; continue
+            cells = [c.strip().strip("*`") for c in line.strip().strip("|").split("|")]
+            if line.startswith("|---") or cells[0] in ("contact", "part, contact"):
+                continue
+            key = tuple(cells[0].split(" ", 1)) if part == "summary" else (part, cells[0])
+            got[key] = (cells[2], int(cells[3]))
+        for k in sorted(set(want) | set(got)):
+            if want.get(k) != got.get(k):
+                print("%s %s %s: table says %s, PINS says %s" % (path, k[0], k[1], got.get(k), want.get(k))); bad += 1
+    src = open("firmware/bench1.py").read()
+    consts = dict((k, int(v)) for k, v in re.findall(r"^([A-Z_]+) = (\d+)\b", src, re.M))
+    expect = {"SCR_DC": "GP8", "SCR_CS": "GP9", "SCR_SCK": "GP10", "SCR_MOSI": "GP11", "SCR_RST": "GP12", "SCR_BL": "GP13",
+              "ENC_A": "GP2", "ENC_B": "GP3", "ENC_SW": "GP1", "KEY_SDA": "GP4", "KEY_SCL": "GP5", "KEY_PWR": "GP6",
+              "KEY_DETECT": "GP7", "KEY_RST": "GP26", "KEY_ID": "GP27"}
+    gps = {gp for p, c, s, gp, n in PINS}
+    for name, gp in expect.items():
+        assert gp in gps, gp
+        if consts.get(name) != int(gp[2:]):
+            print("bench1.py %s = %s, PINS says %s" % (name, consts.get(name), gp)); bad += 1
+    # the physical pin numbers follow from the GPIO numbers; catch a typo in PINS itself
+    phys = {0: 1, 1: 2, 2: 4, 3: 5, 4: 6, 5: 7, 6: 9, 7: 10, 8: 11, 9: 12, 10: 14, 11: 15, 12: 16, 13: 17, 14: 19, 15: 20,
+            16: 21, 17: 22, 18: 24, 19: 25, 20: 26, 21: 27, 22: 29, 26: 31, 27: 32, 28: 34}
+    for p, c, s, gp, n in PINS:
+        if gp.startswith("GP") and phys[int(gp[2:])] != n:
+            print("PINS %s %s: %s is pin %d, not %d" % (p, c, gp, phys[int(gp[2:])], n)); bad += 1
+        if gp == "GND" and n not in (3, 8, 13, 18, 23, 28, 33, 38):
+            print("PINS %s %s: pin %d is not a GND" % (p, c, n)); bad += 1
+    print("pins agree" if not bad else "%d mismatches" % bad)
+    return bad
+
+
+if __name__ == "__main__":
+    if "--check" in sys.argv:
+        sys.exit(1 if check() else 0)
+    open("hardware/wiring/build1-wiring.svg", "w").write(build())
+    print("wrote hardware/wiring/build1-wiring.svg")

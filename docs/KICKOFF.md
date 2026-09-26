@@ -25,6 +25,9 @@ joystick, A/B/X/Y) and an Adafruit ATECC608 breakout. Its build guide is [picowa
 [Test ladder](#test-ladder) rung 1 runs on the laptop (`tools/quorum up`, and `tools/quorum e2e`
 with the emulator). Next: the real Pico on the fork, then rung 2. Progress: [LADDER.md](LADDER.md).
 
+Build 1, the first console with the real parts (2.0″ screen, knob, a 3.5 mm + 2.5 mm TRRS key jack pair, an
+ATECC608 stand-in key), is on the bench: [hardware/HANDOFF.md](../hardware/HANDOFF.md).
+
 ## What this is
 
 PicoQuorum is a physical approval device for Safe multisig accounts. Each signer holds a **key**: a chunky dual plug with a secure element in its handle (an ATECC608 today; the Infineon OPTIGA Trust M is still an option, see [Open decisions](#open-decisions)). The key plugs into a **console**: a Raspberry Pi Pico–based box with a screen, a paging dial, a guarded green **Sign** button and an easy red **Reject** button, both pressed with a thumb.
@@ -96,6 +99,9 @@ What's different here: a multisig-first design, on-device Safe transaction decod
 | 3.5 mm | Tip | VCC (3.3 V, console-switched) |
 | 3.5 mm | Ring | Spare |
 | 3.5 mm | Sleeve | GND |
+
+Build 1 tries a 3.5 mm + 2.5 mm TRRS pair instead (8 contacts: DETECT, key RST and an ID line fit):
+[hardware/wiring/BUILD1.md](../hardware/wiring/BUILD1.md).
 
 Design rules:
 

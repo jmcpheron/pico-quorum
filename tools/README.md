@@ -14,6 +14,9 @@ PicoQuorum additions:
   - `e2e` runs one approval end to end on the fork with the emulator.
   - It also regenerates the screenshot walkthrough in [`../docs/quorum-ui/`](../docs/quorum-ui/).
 
+- `wiring-build1`: draws [`../hardware/wiring/build1-wiring.svg`](../hardware/wiring/build1-wiring.svg);
+  `--check` compares its pin table with BUILD1.md, hardware/HANDOFF.md and `firmware/bench1.py`
+
 - [`fonts/`](fonts/): renders the console's anti-aliased fonts (Atkinson Hyperlegible, OFL) into
   `firmware/qf_*.bin`; `firmware/fonts.py` draws them
 
