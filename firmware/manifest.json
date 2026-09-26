@@ -15,6 +15,17 @@
       "files": ["atecc.py", "boot.py", "ceremony.py", "chipapp.py", "chipcfg.py", "chipmap.py", "icons.py", "image.py",
                 "keccak.py", "lcd.py", "learn.py", "main_ceremony.py", "net.py", "p256.py", "provision.py", "qrcode.py", "chips.py",
                 "quorum_cfg.py", "signer.py", "slots.py", "snakelab.py", "splash.py", "theme.py", "webauthn.py"]
+    },
+    "dual": {
+      "main": "main_dual.py",
+      "files": ["atecc.py", "blockies.py", "boot.py", "ca_amazon_root1.bin", "ca_amazon_root3.bin",
+                "ca_starfield_g2.bin", "ceremony.py", "chipapp.py", "chipcfg.py", "chipmap.py", "chips.py",
+                "decode.py", "fonts.py", "icons.py", "image.py", "keccak.py", "lcd.py", "learn.py",
+                "main_dual.py", "net.py", "p256.py", "policy.py",
+                "provision.py", "qf_bold14.bin", "qf_bold18.bin", "qf_bold26.bin", "qf_mono13.bin", "qf_monob28.bin",
+                "qf_sans12.bin", "qf_sans14.bin", "qlog.py", "qrcode.py", "quorum.py", "quorum_cfg.py",
+                "quorum_ui.py", "safe_tx.py", "signer.py", "slots.py", "snakelab.py", "splash.py", "theme.py",
+                "txservice.py", "vhttp.py", "watch.py", "webauthn.py"]
     }
   },
   "preserve": ["secrets.py", "secrets_*.py", "secrets.bak", "slot.txt", "snapshot-*.bin", "counter-*.txt", "log.txt",

@@ -141,8 +141,15 @@ It runs on the ceremony image: `tools/fw push ceremony`.
 - The step comes from the chip's own state, so a reboot at any point resumes where the chip is.
 
 **Getting the board ready:**
-1. `tools/fw push ceremony --pinned-chip-ok`, with the `ALLOW_*` flags still False and the old chip
-   still on.
+1. `tools/fw push dual`, with the `ALLOW_*` flags still False and the old chip still on. The dual
+   image holds both the console and the ceremony. At every boot it reads the chip on the bus:
+   - the pinned chip boots the console, under production rules
+   - a fresh chip, or a quorum v1 chip whose data zone is still open, boots the ceremony
+   - anything else boots the console, which shows Not pinned or No chip
+
+   So you can swap chips back and forth during the provisioning. Once the new chip is sealed,
+   enrolled and pinned, the board goes back to `tools/fw push console`.
+   (`tools/fw push ceremony --pinned-chip-ok` is the ceremony alone.)
 2. Unplug, swap the chip, plug in. The banner names the new chip ("CHIP 2 … FRESH"), in its light
    colours (`chips.json`).
 3. Only then run `tools/fw allow on` and `tools/fw restart`. `allow on` refuses while the pinned

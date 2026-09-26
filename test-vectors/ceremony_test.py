@@ -174,6 +174,61 @@ def case_console():
     check(T.sign(Q, Q.queue[0], 2100) and Q.counter == 1, "it signs with it, and the count goes to 1")
 
 
+def case_dual():
+    """The dual image picks the console or the ceremony from the chip on the bus, at every boot."""
+    import quorum_cfg, webauthn
+
+    def boot(expect=None):
+        secrets()
+        with open("secrets.py", "a") as f:
+            if expect:
+                f.write("QUORUM_EXPECT = %r\n" % expect)
+        with open("build.py", "w") as f:
+            f.write('IMAGE = "dual"\nBUILD = "test"\nDATE = 0\n')
+        for m in ("build", "image", "main_dual"):
+            sys.modules.pop(m, None)
+        import main_dual
+        return main_dual
+    atecc_sim.provision(0)                  # chip 1: the test table, pinned
+    atecc_sim.chip().cfg[88] &= 0xFE
+    x, y = p256.pubkey(atecc_sim.chip().keys[0])
+    serial = "".join("%02x" % b for b in bytes(atecc_sim.chip().cfg[0:4]) + bytes(atecc_sim.chip().cfg[8:13]))
+    pin = {"serial": serial, "slot": 0, "owner": webauthn.owner_address("0x%064x" % x, "0x%064x" % y, quorum_cfg.CFG["signer"]), "locked": True}
+    D = boot(pin)
+    check(D.which()[0] == "console", "dual, the pinned chip: the console")
+    import image
+    check(image.PRODUCTION, "dual: the console's production rules unless the ceremony is chosen")
+    def fresh_other():
+        fresh_chip()
+        atecc_sim.chip().cfg[8:13] = bytes([0x42, 0x42, 0x42, 0x42, 0xEE])   # a real fresh chip has its own serial
+        atecc_sim.chip().save()
+    fresh_other()
+    D = boot(pin)
+    w = D.which()
+    check(w[0] == "ceremony" and w[2] == "factory", "dual, a fresh chip: the ceremony")
+    D = boot(None)
+    c, S, P = ceremony()
+    for st in ("C1", "C2", "C3"):
+        run(c, st)
+    check(D.which()[0] == "ceremony", "dual, a quorum v1 chip half way (data zone open): the ceremony again")
+    atecc_sim.provision_v1()
+    check(D.which()[0] == "console", "dual, a sealed quorum v1 chip, not pinned yet: the console (it says Not pinned)")
+    atecc_sim.present = False
+    try:
+        check(D.which()[0] == "console", "dual, no chip: the console (it says No chip)")
+    finally:
+        atecc_sim.present = True
+    fresh_other()
+    D = boot(pin)
+    D.run()
+    import signer, chipapp
+    image = sys.modules["image"]
+    check(not image.PRODUCTION and signer.flag("ALLOW_LOCK") and "chipapp" in sys.modules and chipapp.profile == "factory",
+          "dual, run() on a fresh chip: the ceremony app, with ALLOW_* honoured")
+    chipapp.stop()
+    os.remove("build.py")
+
+
 def case_ui():
     """Every step's screen draws (the ceremony image's own framebuf text)."""
     import splash, provision
@@ -204,7 +259,7 @@ def case_ui():
 
 
 def main():
-    for case in (case_full, case_seal_gate, case_refusals, case_console, case_ui):
+    for case in (case_full, case_seal_gate, case_refusals, case_console, case_dual, case_ui):
         print("--", case.__name__[5:])
         try:
             case()
