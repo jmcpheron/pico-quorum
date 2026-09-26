@@ -39,5 +39,12 @@ def extend(ms):
         _deadline = d
 
 
+def hold(ms):
+    """Set the deadline to exactly ms from now, shorter too: tools/fw pauses the console for a
+    backup with hold(600000) and puts it back to a normal tick's 5 s with hold(5000)."""
+    global _deadline
+    _deadline = time.ticks_add(time.ticks_ms(), ms)
+
+
 def running():
     return _wdt is not None

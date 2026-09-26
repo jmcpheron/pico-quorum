@@ -1,0 +1,22 @@
+{
+  "about": "Exactly what each firmware image puts on the board (tools/fw push). main is copied to :main.py. test-vectors/manifest.mjs checks that each list is the import closure of boot.py plus its main, that the console holds nothing else that can use the chip, and that no image carries secrets. preserve: files the board keeps across pushes (never copied, never deleted). flag: files a push asks about before deleting.",
+  "images": {
+    "console": {
+      "main": "main_console.py",
+      "files": ["atecc.py", "blockies.py", "boot.py", "decode.py", "fonts.py", "icons.py", "image.py", "keccak.py",
+                "lcd.py", "main_console.py", "net.py", "p256.py", "policy.py", "qf_bold14.bin", "qf_bold18.bin",
+                "qf_bold26.bin", "qf_mono13.bin", "qf_monob28.bin", "qf_sans12.bin", "qf_sans14.bin", "qlog.py",
+                "quorum.py", "quorum_cfg.py", "quorum_ui.py", "safe_tx.py", "signer.py", "splash.py", "theme.py",
+                "txservice.py", "watch.py", "webauthn.py"]
+    },
+    "ceremony": {
+      "main": "main_ceremony.py",
+      "files": ["atecc.py", "boot.py", "ceremony.py", "chipapp.py", "chipmap.py", "icons.py", "image.py", "lcd.py",
+                "learn.py", "main_ceremony.py", "net.py", "p256.py", "qrcode.py", "signer.py", "slots.py",
+                "snakelab.py", "splash.py", "theme.py"]
+    }
+  },
+  "preserve": ["secrets.py", "secrets_*.py", "secrets.bak", "slot.txt", "snapshot-*.bin", "counter-*.txt", "log.txt",
+               "log.1.txt", "error.log", "snake.hi", "snake.top", "maint"],
+  "flag": ["key.bin", "key*.bin"]
+}
