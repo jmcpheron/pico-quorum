@@ -90,9 +90,11 @@ def _walk(d):
                     if not b:
                         break
                     h.update(b)
-            out.append([p, st[6], binascii.hexlify(h.digest()).decode()])
+            print("FILE:" + json.dumps([p, st[6], binascii.hexlify(h.digest()).decode()]))
+            out.append(p)
     return out
-print("FILES:" + json.dumps(_walk("")))`;
+_walk("")
+print("FILESDONE")`;
 
 // Whatever app runs on its timer (the console, the legacy wallet, the ceremony's chip map) is paused
 // while files are read: anything it prints lands in the middle of mpremote's transfer, and the
@@ -110,6 +112,8 @@ for _n in ("quorum", "wallet", "chipapp"):
     if _m and getattr(_m, "timer", None) and hasattr(_m, "stop"):
         _m.stop()
         _p.append(_n)
+        if getattr(_m, "svc", None):
+            _m.svc.release()      # the console's 32 KB HTTPS reserve, lent to the tool while it reads
 print("PAUSED:" + json.dumps(_p))`;
 let paused = null;
 function pause() {
@@ -119,7 +123,10 @@ function unpause() {
   if (!paused || !paused.length) return (paused = null);
   run(`import sys
 for _n in ${JSON.stringify(paused)}:
-    sys.modules[_n].start_timer()
+    _m = sys.modules[_n]
+    if getattr(_m, "svc", None):
+        _m.svc.hold()
+    _m.start_timer()
 try:
     import watch
     watch.hold(5000)
@@ -130,8 +137,11 @@ print("RESUMED")`);
   paused = null;
 }
 
+// One line per file: a running console leaves too little heap for one JSON of them all (2026-09-26).
 function boardFiles(opts) {
-  return tagged(run(LIST_PY, opts), "FILES").map(([name, size, sha]) => ({ name, size, sha }));
+  const out = run(LIST_PY, opts);
+  if (!/FILESDONE/.test(out)) die(`the file listing did not finish:\n${out.slice(-600)}`);
+  return out.split(/\r?\n/).filter((l) => l.startsWith("FILE:")).map((l) => JSON.parse(l.slice(5))).map(([name, size, sha]) => ({ name, size, sha }));
 }
 
 function boardId() {
@@ -172,7 +182,7 @@ if q:
         o["watchdog"] = watch.running()
     except ImportError:
         pass
-    if q.chip:
+    if getattr(q, "chip", None):
         o["chip"] = "%s (%s, %s)" % (q.chip["name"], q.profile, q.chip["theme"])
 c = sys.modules.get("chipapp")
 if c and not o:
