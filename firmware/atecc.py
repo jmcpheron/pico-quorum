@@ -85,6 +85,17 @@ assert _hl.sha256(CONFIG).digest().hex() == CONFIG_SHA256, "CONFIG table changed
 KEY_TYPE = {4: "P256", 6: "AES", 7: "DATA"}
 
 
+def write_policy(wc):
+    """SlotConfig.WriteConfig (the top 4 bits) as the Write command reads it (datasheet table
+    "WriteConfig bits, Write command"): 0000 Always, 0001 PubInvalid, 001x Never, 10xx Never,
+    x1xx Encrypt. An earlier decode indexed a table with wc >> 1, which was right only for 0000."""
+    if wc & 4:
+        return "encrypted"
+    if wc & 8 or wc & 2:
+        return "never"
+    return "pubinvalid" if wc & 1 else "clear"
+
+
 def decode_slot(cfg, slot):
     """What the config zone says about one slot. cfg = all 128 config bytes.
     kind: P256 (private key), PUB (P-256 public key), AES, DATA, or ? (reserved type)."""
@@ -96,19 +107,19 @@ def decode_slot(cfg, slot):
     if ktype == 4 and not private:
         kind = "PUB"
     wc = sc >> 12
-    write_policy = ("clear", "pubinvalid", "never", "never", "encrypted", "encrypted", "never", "never")[wc >> 1]
     return {
         "slot": slot,
         "kind": kind,
         "bytes": SLOT_BYTES[slot],
         "private": private,
-        "clearWrite": write_policy,       # the Write command on this slot: clear, encrypted, pubinvalid, never
+        "clearWrite": write_policy(wc),   # the Write command on this slot: clear, encrypted, pubinvalid, never
         "encRead": bool(sc & 0x40),       # reads come out encrypted
         "pubInfo": bool(kc & 2),          # private key: its public half may be read out
         "lockable": bool(kc & 0x20),      # this slot can be locked on its own, forever
         "reqRandom": bool(kc & 0x40),
         "reqAuth": bool(kc & 0x80),
         "isSecret": bool(sc & 0x80),
+        "noMac": bool(sc & 0x10),
         "extSign": private and bool(sc & 1),        # may sign digests handed in from outside
         "intSign": private and bool(sc & 2),
         "limitedUse": bool(sc & 0x20),              # every use counts against counter 0
@@ -131,7 +142,8 @@ def diff_config(cur, new):
     slots = []
     for n in range(16):
         a, b = decode_slot(cur, n), decode_slot(new, n)
-        fields = [(k, a[k], b[k]) for k in ("kind", "extSign", "genKey", "privWrite", "pubInfo", "lockable", "isSecret", "clearWrite") if a[k] != b[k]]
+        fields = [(k, a[k], b[k]) for k in ("kind", "extSign", "intSign", "genKey", "privWrite", "pubInfo", "lockable", "isSecret",
+                                            "clearWrite", "limitedUse", "reqAuth", "noMac") if a[k] != b[k]]
         if fields:
             slots.append((n, fields))
     return {"bytes": changed, "slots": slots, "addrChanges": cur[16] != new[16]}
@@ -309,15 +321,23 @@ class ATECC608:
         """32 bytes of a data slot. Refused until the config zone is locked, and per the slot's rules."""
         return self.run(OP_READ, 0x82, (block << 8) | (slot << 3), resp_len=32, wait_ms=2)
 
-    def write_data(self, slot, block, data):
-        """Write 32 bytes into a data slot in clear (Write zone 2). Allowed once the config zone is
-        locked and while the data zone is open, where the slot's rules say clear writes are ok.
-        Overwriting again is allowed, so this is reversible until the data zone is locked."""
-        if len(data) != 32:
-            raise ValueError("32 bytes at a time")
-        if block * 32 + 32 > SLOT_BYTES[slot]:
-            raise ValueError("block %d is past the end of slot %d" % (block, slot))
-        self.run(OP_WRITE, 0x82, (block << 8) | (slot << 3), bytes(data), resp_len=1, wait_ms=30)
+    def write_data(self, slot, block, data, word=0):
+        """Write 32 bytes (or 4, at `word` of the block) into a data slot in clear (Write zone 2).
+        Allowed once the config zone is locked and while the data zone is open, where the slot's
+        rules say clear writes are ok. Overwriting again is allowed, so this is reversible until the
+        data zone is locked. The 4-byte form reaches the last 4 bytes of a 36- or 72-byte slot."""
+        if len(data) not in (4, 32) or (len(data) == 32 and word):
+            raise ValueError("32 bytes at a block, or 4 at a word")
+        if block * 32 + word * 4 + len(data) > SLOT_BYTES[slot]:
+            raise ValueError("block %d word %d is past the end of slot %d" % (block, word, slot))
+        self.run(OP_WRITE, 0x82 if len(data) == 32 else 0x02, (block << 8) | (slot << 3) | word, bytes(data), resp_len=1, wait_ms=30)
+
+    def write_otp(self, block, data):
+        """Write 32 bytes of the OTP zone (blocks 0 and 1) in clear. Only while the data zone is open:
+        its lock freezes the OTP zone for good."""
+        if len(data) != 32 or block not in (0, 1):
+            raise ValueError("32 bytes, block 0 or 1")
+        self.run(OP_WRITE, 0x81, block << 3, bytes(data), resp_len=1, wait_ms=30)
 
     def read_config_word(self, word):
         """4 bytes of the config zone (word 4 holds the I2C address byte)."""
@@ -399,8 +419,10 @@ class ATECC608:
                              % (len(bad), bad[0], got[bad[0]], cfg[bad[0]]))
         return got
 
-    def lock_config(self, expect=CONFIG):
-        """PERMANENT. Lock the config zone (no CRC check, mode 0x80). Before sending the Lock it reads
+    def lock_config(self, expect=CONFIG, summary=None):
+        """PERMANENT. Lock the config zone. With summary (the CRC of the 128 bytes the zone must hold,
+        chipcfg.config_summary) the chip itself refuses unless its zone matches it byte for byte,
+        mode 0x00; without it, no CRC check, mode 0x80 (how chip #1 was locked). Before sending the Lock it reads
         the zone back and refuses if it is already locked, if the table on the chip differs from
         `expect` in the writable bytes (16-83, 88-127; pass None to lock any table), or if slot 0
         does not decode as a P-256 private key with GenKey allowed. A chip locked with such a table
@@ -415,12 +437,14 @@ class ATECC608:
         s0 = decode_slot(cfg, 0)
         if s0["kind"] != "P256" or not s0["genKey"]:
             raise AteccError("refusing to lock: slot 0 would be %s with genkey %s, not a P-256 key slot" % (s0["kind"], "allowed" if s0["genKey"] else "forbidden"))
-        self.run(OP_LOCK, 0x80, 0x0000, resp_len=1, wait_ms=35)
+        self.run(OP_LOCK, 0x80 if summary is None else 0x00, 0x0000 if summary is None else summary, resp_len=1, wait_ms=35)
         if not self.lock_state()["configLocked"]:
             raise AteccError("lock command returned but the zone is still unlocked")
 
-    def lock_data(self):
-        """PERMANENT. Lock the data (and OTP) zone, mode 0x81: reads of slots and OTP begin, and clear
+    def lock_data(self, summary=None):
+        """PERMANENT. Lock the data (and OTP) zone. With summary (chipcfg.data_summary: the CRC of every
+        slot that is not a private key, then the OTP zone) the chip refuses unless what it holds
+        matches, mode 0x01; without, mode 0x81. After it: reads of slots and OTP begin, and clear
         writes stay only where SlotConfig.WriteConfig says Always (slots 12 and 13 in the wallet config;
         datasheet, not yet seen on silicon). GenKey keeps working on slots whose config allows it."""
         st = self.lock_state()
@@ -428,7 +452,7 @@ class ATECC608:
             raise AteccError("lock the config zone first")
         if st["dataLocked"]:
             raise AteccError("data zone is already locked")
-        self.run(OP_LOCK, 0x81, 0x0000, resp_len=1, wait_ms=35)
+        self.run(OP_LOCK, 0x81 if summary is None else 0x01, 0x0000 if summary is None else summary, resp_len=1, wait_ms=35)
         if not self.lock_state()["dataLocked"]:
             raise AteccError("lock command returned but the data zone is still unlocked")
 

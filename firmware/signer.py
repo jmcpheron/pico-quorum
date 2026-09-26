@@ -318,13 +318,9 @@ class ChipSigner:
         return "config zone locked"
 
     def provision(self):
-        """The app's lock-config command: write the wallet config, then lock it. PERMANENT."""
-        if not _allowed("ALLOW_LOCK"):
-            raise Exception(_refused("lock"))
-        self.write_config()
-        self.chip.lock_config()
-        self._slots = None
-        return "config zone written and locked"
+        """The legacy app's lock-config command. Retired: a fresh chip gets quorum v1 through the
+        ceremony (provision.py), zone by zone, each lock checked by the chip against a CRC."""
+        raise Exception("provisioning is the ceremony now: the PROVISION screen (docs/PROVISIONING.md)")
 
     def lock_data(self):
         if not _allowed("ALLOW_LOCK"):
