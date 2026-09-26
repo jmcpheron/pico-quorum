@@ -9,6 +9,7 @@
 #   s.confirm(safe_tx_hash, signature) -> (ok, detail)
 from binascii import hexlify
 import gc
+import sys
 import requests
 from keccak import keccak256
 from policy import is_sim
@@ -20,6 +21,7 @@ TIMEOUT_TLS = 15       # api.safe.global: a full TLS handshake on the Pico each 
 # confirmation's POST failed with OSError 12 (2026-09-25). So an https Service holds one block this
 # size from the start and lets go of it only for the length of each call.
 RESERVE = 32 * 1024
+ON_BOARD = sys.platform == "rp2"     # the emulator's `requests` is the host's curl, which checks certificates itself
 
 
 def checksum(a):
@@ -34,12 +36,27 @@ class ServiceError(Exception):
 
 
 class Service:
-    def __init__(self, base, safe, api_key=None):
+    def __init__(self, base, safe, api_key=None, verify=True, floor=0):
+        """verify: check the server's certificate against the pinned roots (vhttp.py). Only a
+        development board may turn it off (QUORUM_TLS_VERIFY = False); the production image cannot.
+        floor: the build's date; the clock is never trusted below it."""
         self.base = base.rstrip("/")
         self.safe = safe
         self.sim = is_sim(self.base)     # tools/quorum on the laptop: its /sim endpoints exist
         self.requests = 0                # since boot, for the device screen (the real service has a monthly quota)
-        self.tls = "plain" if self.sim else "unverified"
+        self.floor = floor
+        self._ctx = None
+        https = self.base.startswith("https")
+        if not https:
+            self.tls = "plain"
+        elif not ON_BOARD:
+            self.tls = "host"
+        elif verify:
+            import vhttp
+            self._ctx = vhttp.context()      # now, while the heap is whole
+            self.tls = "verified"
+        else:
+            self.tls = "UNVERIFIED"
         # the API key goes only to Safe's own service over HTTPS, never to a laptop on the LAN
         self.headers = {"Authorization": "Bearer " + api_key} if api_key and self.base.startswith("https") else {}
         self.timeout = TIMEOUT_TLS if self.base.startswith("https") else TIMEOUT
@@ -60,11 +77,20 @@ class Service:
         self._room = None
         gc.collect()
 
+    def _call(self, method, path, body=None):
+        if self._ctx is not None:
+            import vhttp
+            vhttp.clock(self.floor)
+            return vhttp.request(method, self.base + path, self._ctx, body=body, headers=self.headers, timeout=self.timeout)
+        if method == "GET":
+            return requests.get(self.base + path, headers=self.headers, timeout=self.timeout)
+        return requests.post(self.base + path, json=body, headers=self.headers, timeout=self.timeout)
+
     def _get(self, path):
         self.release()
         self.requests += 1
         try:
-            r = requests.get(self.base + path, headers=self.headers, timeout=self.timeout)
+            r = self._call("GET", path)
             try:
                 if r.status_code != 200:
                     raise ServiceError("HTTP %d" % r.status_code)
@@ -78,7 +104,7 @@ class Service:
         self.release()
         self.requests += 1
         try:
-            r = requests.post(self.base + path, json=body, headers=self.headers, timeout=self.timeout)
+            r = self._call("POST", path, body)
             try:
                 try:
                     out = r.json()

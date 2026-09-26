@@ -16,6 +16,12 @@ QUORUM_URL = "http://<mac-lan-ip>:8787"
 # QUORUM_POLL_S = 20
 # QUORUM_IDLE_POLL_S = 120
 QUORUM_THEME = "dark"   # or "light"
+# The console pins which chip, slot and key it signs with (tools/fw pin writes this line). The
+# production image signs nothing without it, or when the chip in the board doesn't match.
+# QUORUM_EXPECT = {"serial": "0123...", "slot": 0, "owner": "0x...", "locked": True}
+# HTTPS certificates are checked against the roots in firmware/ca_*.bin. A development board may
+# turn that off; the production image ignores this.
+# QUORUM_TLS_VERIFY = True
 
 # Passwordless MicroPython REPL on TCP/2323. Full signer control: isolated development only.
 ENABLE_NETWORK_CONSOLE = False

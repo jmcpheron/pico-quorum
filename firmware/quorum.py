@@ -750,7 +750,8 @@ def start():
     if UNCONFIGURED:
         state = "unconfigured"
     elif BASE:
-        svc = txservice.Service(BASE, txservice.checksum(SAFE_ADDR), API_KEY)
+        verify = PROD or bool(getattr(secrets, "QUORUM_TLS_VERIFY", True))
+        svc = txservice.Service(BASE, txservice.checksum(SAFE_ADDR), API_KEY, verify=verify, floor=image.DATE)
     splash_until = time.ticks_add(time.ticks_ms(), 1500)
     last_activity = time.ticks_ms()
     dirty = True
