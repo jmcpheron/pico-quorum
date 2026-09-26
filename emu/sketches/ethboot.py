@@ -1,0 +1,294 @@
+# Boot screen, take 2: a 3-of-5 quorum that becomes the Ethereum diamond. A replays, X stops.
+#   tools/emu run ethboot                       watch it in the emulator
+#   tools/bootgifs --sketch ethboot star        capture it as a GIF for docs/quorum-ui/v2/
+#
+#   1. Five owners on a star, all amber: ready to sign.
+#   2. Three sign (the top, then the two legs) and turn Ethereum blue. Their lines close into
+#      the tall triangle the star's top and legs make.
+#   3. That triangle is one face of a pyramid seen head-on. The camera pulls back and up, the
+#      pyramid turns, and an inverted pyramid rises underneath. Together they are the Ethereum
+#      diamond, spinning on its axis.
+#   4. It slows into the logo's own pose, a corner toward us, and the name comes up.
+#
+# Every frame is a function of its number (render("star", i)), like emu/sketches/bootfx.py, so
+# the GIFs are exact. The diamond is ten 3D points turned and projected each frame, then drawn as
+# flat filled triangles (framebuf.poly, in C), back faces dropped and the rest painted far to near:
+# at most four triangles a frame.
+import math
+from array import array
+from machine import Timer
+import lcd as L
+import fonts as F
+import quorum_ui as U
+
+d = L.LCD()
+keys = L.Keys()
+OPTIONS = ("star",)
+FRAMES = {"star": 150}
+T = U.THEMES["dark"]
+BG, INK, MUTED = T["bg"], T["text"], T["muted"]
+WAIT = T["warn"]                    # amber: an owner who can sign and hasn't yet
+ETH = (122, 146, 255)               # signed; Ethereum's periwinkle, lifted for a dark screen
+ETH_DARK, ETH_LIGHT = (30, 36, 92), (218, 226, 255)      # the diamond's shading runs between
+timer = None
+n = 0
+
+
+def ease(t):
+    t = 0.0 if t < 0 else 1.0 if t > 1 else t
+    return 1 - (1 - t) ** 3
+
+
+def smooth(t):
+    t = 0.0 if t < 0 else 1.0 if t > 1 else t
+    return t * t * (3 - 2 * t)
+
+
+def span(i, a, b):
+    return 0.0 if i <= a else 1.0 if i >= b else (i - a) / (b - a)
+
+
+def mix(a, b, t):
+    return (int(a[0] + (b[0] - a[0]) * t), int(a[1] + (b[1] - a[1]) * t), int(a[2] + (b[2] - a[2]) * t))
+
+
+def col(rgb):
+    return L.color(*rgb)
+
+
+def center(s, y, font, fg, bg=BG):
+    F.text(d, s, (240 - F.width(s, font)) // 2, y, font, fg, bg)
+
+
+def thick(x0, y0, x1, y1, rgb, t=3):
+    c = col(rgb)
+    for k in range(-(t // 2), t - t // 2):
+        d.line(x0 + k, y0, x1 + k, y1, c)
+        d.line(x0, y0 + k, x1, y1 + k, c)
+
+
+def node(x, y, r, rgb):
+    d.ellipse(x, y, r, r, col(rgb), True)
+
+
+# ----------------------------------------------------------------------------- the star
+# Five owners at the points of a star, numbered clockwise from the top. The quorum is the top and
+# the two legs: a tall "golden" triangle, 36 degrees at the apex.
+SX, SY, SR = 120, 116, 92
+STAR = [(int(SX + SR * math.cos(math.radians(-90 + 72 * k))),
+         int(SY + SR * math.sin(math.radians(-90 + 72 * k)))) for k in range(5)]
+STROKE = (0, 2, 4, 1, 3, 0)         # the star in one stroke
+DRAW0, DRAW1 = 2, 18                # the stroke's frames; each owner appears as the pen reaches them
+SIGN_AT = {0: 22, 3: 31, 2: 40}     # who signs, and on which frame: top, left leg, right leg
+TOP, LEFT, RIGHT = STAR[0], STAR[3], STAR[2]
+
+
+def born_at(k):
+    return DRAW0 + (DRAW1 - DRAW0) * STROKE.index(k) / 5
+
+
+def draw_star(i):
+    gone = smooth(span(i, 46, 58))              # the two who didn't sign fade away
+    line = mix(BG, WAIT, 0.32 * (1 - gone))
+    t = span(i, DRAW0, DRAW1) * 5               # the stroke, one edge after another
+    for e in range(5):
+        f = t - e
+        if f <= 0 or gone >= 1:
+            break
+        (x0, y0), (x1, y1) = STAR[STROKE[e]], STAR[STROKE[e + 1]]
+        f = min(1.0, f)
+        thick(x0, y0, int(x0 + (x1 - x0) * f), int(y0 + (y1 - y0) * f), line, 2)
+    # the quorum's edges, drawn as each leg signs, and the base once all three have
+    for (a, b, at) in ((TOP, LEFT, SIGN_AT[3]), (TOP, RIGHT, SIGN_AT[2]), (LEFT, RIGHT, SIGN_AT[2] + 2)):
+        f = ease(span(i, at, at + 6))
+        if f > 0:
+            thick(a[0], a[1], int(a[0] + (b[0] - a[0]) * f), int(a[1] + (b[1] - a[1]) * f), ETH, 3)
+    fill = smooth(span(i, 48, 57))              # the triangle fills in: the pyramid's front face
+    if fill > 0:
+        draw_diamond(0.0, fill)
+    for k, (x, y) in enumerate(STAR):
+        born = ease(span(i, born_at(k), born_at(k) + 5))
+        if born <= 0:
+            continue
+        at = SIGN_AT.get(k)
+        if at is None:
+            if gone < 1:
+                node(x, y, int(9 * born), mix(BG, WAIT, 1 - gone))
+            continue
+        q = span(i, at, at + 9)
+        if 0 < q < 1:                           # a ring goes out as it signs
+            rr = int(12 + 18 * q)
+            ring = col(mix(BG, ETH, 1 - q))
+            d.ellipse(x, y, rr, rr, ring)
+            d.ellipse(x, y, rr + 1, rr + 1, ring)
+        if i < at:                              # ready and waiting: a slow breath
+            rgb = mix(WAIT, (255, 226, 150), 0.5 + 0.5 * math.sin(i * 0.45 + k))
+        else:
+            rgb = mix(WAIT, ETH, span(i, at, at + 3))
+        node(x, y, int((9 + (3 if at <= i < at + 3 else 0)) * born), rgb)
+
+
+def counter(i):
+    signed = sum(1 for at in SIGN_AT.values() if i >= at)
+    out = 1 - span(i, 56, 62)
+    if out <= 0:
+        return
+    if signed == 0:
+        s, rgb = "3 of 5 to sign", mix(BG, MUTED, span(i, 8, 16))
+    elif signed < 3:
+        s, rgb = "%d of 3 signed" % signed, mix(BG, INK, out)
+    else:
+        s, rgb = "3 of 5 · quorum", mix(BG, ETH, out)
+    center(s, 214, "sans14", rgb)
+
+
+# ----------------------------------------------------------------------------- the diamond
+# Model units: the top pyramid's apex at y = -1 and its square base at y = 0, half-side s (y points
+# down, as on the screen). Below, after a gap, the inverted pyramid: the same square at y = GAP and
+# its point at y = FOOT. Its top is open and never drawn, so from above the gap between the two is
+# the same square outline shifted down: an even band at every angle, and at a corner-on pose the
+# logo's V. s starts at the star triangle's proportions, so the face seen head-on at the start is
+# exactly that triangle, and widens a little to the logo's.
+S0 = (RIGHT[0] - LEFT[0]) / 2 / (LEFT[1] - TOP[1])      # half base / height of the star triangle
+S1, GAP, FOOT = 0.37, 0.12, 0.97
+EL = math.radians(30)               # how far above the diamond the camera ends up
+K1, OY1 = 82, 86                    # the logo: pixels per unit, and where y = 0 lands
+LIGHT = (-0.55, -0.55, 0.63)        # from the upper left, toward the viewer
+_l = math.sqrt(sum(v * v for v in LIGHT))
+LIGHT = tuple(v / _l for v in LIGHT)
+
+
+def box(s, y):
+    """The four corners of a square of half-side s at height y, front edge first (z toward us)."""
+    return [(-s, y, s), (s, y, s), (s, y, -s), (-s, y, -s)]
+
+
+def draw_diamond(u, alpha=1.0, yaw=0.0, el=0.0, chev=None, chev_alpha=0.0, pts=None):
+    """The diamond at zoom u (0 = the star's triangle filling the screen, 1 = the logo).
+    chev is how far below its place the inverted pyramid is (None: not there yet)."""
+    s = S0 + (S1 - S0) * u
+    k0 = LEFT[1] - TOP[1]
+    k = k0 + (K1 - k0) * u                                              # pixels per unit
+    ox, oy = 120, LEFT[1] + (OY1 - LEFT[1]) * u                         # where y = 0 lands
+    cy, sy = math.cos(yaw), math.sin(yaw)
+    ce, se = math.cos(el), math.sin(el)
+
+    def view(p):
+        x, y, z = p
+        x, z = x * cy + z * sy, -x * sy + z * cy                        # turn about the axis
+        return x, y * ce + z * se, -y * se + z * ce                     # from a little above
+
+    tris = []
+    top, base = (0.0, -1.0, 0.0), box(s, 0.0)
+    for j in range(4):
+        tris.append(((top, base[j], base[(j + 1) % 4]), (0.0, -0.3, 0.0), alpha, 1))
+    if chev is not None:
+        rim, foot = box(s, GAP + chev), (0.0, FOOT + chev, 0.0)
+        for j in range(4):
+            tris.append(((rim[j], rim[(j + 1) % 4], foot), (0.0, GAP + 0.4 + chev, 0.0), chev_alpha, 0))
+    polys = []
+    for (tri, inside, a, layer) in tris:
+        v = [view(p) for p in tri]
+        ux, uy, uz = v[1][0] - v[0][0], v[1][1] - v[0][1], v[1][2] - v[0][2]
+        wx, wy, wz = v[2][0] - v[0][0], v[2][1] - v[0][1], v[2][2] - v[0][2]
+        nx, ny, nz = uy * wz - uz * wy, uz * wx - ux * wz, ux * wy - uy * wx
+        c = view(inside)
+        if nx * (v[0][0] - c[0]) + ny * (v[0][1] - c[1]) + nz * (v[0][2] - c[2]) < 0:
+            nx, ny, nz = -nx, -ny, -nz              # point it out of the solid
+        m = math.sqrt(nx * nx + ny * ny + nz * nz) or 1.0
+        if nz / m < 0.02:
+            continue                                # facing away, or edge-on
+        lit = max(0.0, (nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2]) / m)
+        rgb = mix(ETH_DARK, ETH_LIGHT, 0.12 + 0.88 * lit)
+        if a < 1:                                   # fade in through the diamond's own dark blue
+            rgb = mix(mix(BG, ETH_DARK, min(1.0, 2 * a)), rgb, a)
+        polys.append((layer * 10 + (v[0][2] + v[1][2] + v[2][2]) / 3, v, rgb))
+    polys.sort(key=lambda p: p[0])                  # the bottom pyramid first, then far to near
+    for (_, v, rgb) in polys:
+        xy = array("h", [0] * 6)
+        for j in range(3):
+            xy[2 * j] = int(ox + v[j][0] * k)
+            xy[2 * j + 1] = int(oy + v[j][1] * k)
+        d.poly(0, 0, xy, col(rgb), True)
+    if pts:                                         # the signers, riding the corners they became
+        r, rgb = pts
+        for p in (top, base[0], base[1]):
+            x, y, _ = view(p)
+            node(int(ox + x * k), int(oy + y * k), r, rgb)
+
+
+# ----------------------------------------------------------------------------- the turn
+# The spin speeds up as the camera pulls back, runs, and slows to a stop at 45 + 90n degrees: a
+# corner toward us, the logo's own pose. A square pyramid looks the same every 90 degrees, so on
+# the device it can spin for as long as the boot takes and still land there.
+SPIN0, SPIN1, SLOW0, SLOW1 = 58, 74, 124, 146
+TURNS = 2
+SPEED = (45 + 90 * TURNS) / ((SPIN1 - SPIN0) / 2 + (SLOW0 - SPIN1) + (SLOW1 - SLOW0) / 2)
+
+
+def yaw_at(i):
+    """Degrees a frame rise from 0 to SPEED, hold, and fall back to 0; this is their sum."""
+    if i <= SPIN0:
+        return 0.0
+    a = min(i, SPIN1) - SPIN0
+    deg = SPEED * a * a / (2 * (SPIN1 - SPIN0))
+    if i > SPIN1:
+        deg += SPEED * (min(i, SLOW0) - SPIN1)
+    if i > SLOW0:
+        b = min(i, SLOW1) - SLOW0
+        deg += SPEED * (b - b * b / (2 * (SLOW1 - SLOW0)))
+    return math.radians(deg)
+
+
+def draw_star_to_eth(i):
+    d.fill(col(BG))
+    counter(i)
+    if i < 58:
+        draw_star(i)
+        return
+    u = smooth(span(i, 58, 98))
+    rise = smooth(span(i, 74, 98))
+    nodes = 1 - span(i, 60, 80)
+    draw_diamond(u, 1.0, yaw_at(i), EL * u, 0.5 * (1 - rise) if rise > 0 else None, rise,
+                 (int(9 * nodes), ETH) if nodes > 0.1 else None)
+    t = ease(span(i, 100, 116))                     # the name
+    if t > 0:
+        yy = int(172 + 12 * (1 - t))
+        center("PicoQuorum", yy, "bold26", mix(BG, INK, t))
+        center("3 of 5 · ready", yy + 34, "sans14", mix(BG, MUTED, t))
+
+
+DRAW = {"star": draw_star_to_eth}
+
+
+def render(name, i):
+    DRAW[name](i)
+    d.show()
+
+
+# ----------------------------------------------------------------------------- live
+def tick(_):
+    global n
+    for k in keys.pressed():
+        if k == "A":
+            n = 0
+        elif k == "X":
+            stop()
+            return
+    render("star", min(n, FRAMES["star"] - 1))
+    n += 1
+    if n > FRAMES["star"] + 30:          # hold the last frame a moment, then play it again
+        n = 0
+
+
+def start():
+    global timer
+    timer = Timer(period=50, mode=Timer.PERIODIC, callback=tick)
+
+
+def stop():
+    if timer:
+        timer.deinit()
+
+
+start()
