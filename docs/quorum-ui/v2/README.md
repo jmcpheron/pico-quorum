@@ -14,7 +14,8 @@ there is where this one starts.
 1. **The boot screen** (this iteration): a 3-of-5 star whose quorum becomes the Ethereum diamond.
 2. **Wire it to the real boot.** Each signature is a real boot step finishing, and the spin
    covers the slow ones (see [On the device](#on-the-device)).
-3. **Type.** Try three or four font pairings on the real screen as a specimen page, then pick one.
+3. **Type.** Five candidate sets on a specimen card and on six real screens: see
+   [FONTS.md](FONTS.md). Waiting on your pick.
 4. **Colour and graphics.** Bring the boot screen's palette and shapes into the approval screens:
    the home screen, the approvals row, and the moment of signing.
 5. **Every screen, redone,** with before/after pairs like the v1 walkthrough.
@@ -141,4 +142,6 @@ Edit this list on GitHub: add a line, tick one off, or write under it. Each iter
 
 - [x] A new boot screen: a 3-of-5 star, the top and legs sign, the triangle becomes the top of a
       rotating Ethereum diamond (iteration 1)
+- [x] Fonts: candidates side by side on real screens ([FONTS.md](FONTS.md))
+- [ ] Pick a font set (FONTS.md, question 1)
 - [ ] (add yours)

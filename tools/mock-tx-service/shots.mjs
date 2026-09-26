@@ -11,11 +11,18 @@ import { fileURLToPath } from "node:url";
 import { DEMO } from "./scenarios.mjs";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
-const OUT = join(ROOT, "docs", "quorum-ui", "shots");
+const SHOTS = join(ROOT, "docs", "quorum-ui", "shots");
 const PORT = 8799;
 const BASE = `http://localhost:${PORT}`;
 const tmp = mkdtempSync(join(tmpdir(), "quorum-shots-"));
-const only = process.argv.slice(3);      // tools/quorum shots [story ...]
+// tools/quorum shots [story ...], or tools/quorum shots --fonts inter,plex: FONT_STORIES in each
+// candidate font set (tools/fonts/gen.py --try) into docs/quorum-ui/v2/fonts/SET/
+let only = process.argv.slice(3);
+let fontsets = [null];
+if (only[0] === "--fonts") {
+  fontsets = only[1].split(",");
+  only = only.slice(2);
+}
 
 // A step is a string: "key A", "keys down,down,A", "hold A", "release A", "wait MS", "shot NAME",
 // "exec CODE", or "frozen-hold MS" (the hold overlay drawn at MS in, with the timer stopped so the
@@ -55,7 +62,16 @@ const STORIES = [
     "keys B,down,down,A,down", "shot 35-light-red-page", "key down", "shot 36-light-verify"]],
 ];
 
-function args(steps) {
+// A few screens that show every size of type, for comparing font sets (docs/quorum-ui/v2/FONTS.md).
+const FONT_STORIES = [
+  ["home", DEMO, ["shot 01-home"]],
+  ["approve", DEMO, ["key A", "shot 02-approve-summary", "key down", "shot 03-approve-send"]],
+  ["batch", DEMO, ["keys down,A", "key down", "key down", "key down", "shot 11-batch-verify"]],
+  ["owner", DEMO, ["keys down,down,A", "key down", "shot 13-owner-red-page"]],
+  ["lie", DEMO, ["keys down,down,down,A", "shot 16-lie-refused"]],
+];
+
+function args(steps, OUT) {
   const out = [];
   for (const s of steps) {
     const [k, ...rest] = s.split(" ");
@@ -80,12 +96,19 @@ function args(steps) {
   return out;
 }
 
-async function post(path, body) {
-  const r = await fetch(BASE + path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+async function post(path, body, retry = true) {
+  let r;
+  try {
+    r = await fetch(BASE + path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  } catch (e) {
+    // a story's emulator run outlasts the server's 5 s keep-alive, so the pooled connection may
+    // have just been closed under us: once more, on a new one
+    if (!retry) throw e;
+    return post(path, body, false);
+  }
   if (!r.ok) throw new Error(`${path}: ${r.status}`);
 }
 
-mkdirSync(OUT, { recursive: true });
 const server = spawn(process.execPath, [join(ROOT, "tools/mock-tx-service/server.mjs"), "--port", String(PORT)],
   { env: { ...process.env, QUORUM_STATE: join(tmp, "state.json") }, stdio: "ignore" });
 for (let i = 0; ; i++) {
@@ -94,24 +117,30 @@ for (let i = 0; ; i++) {
 }
 
 let failed = 0;
-for (const [name, queue, steps, opts = {}] of STORIES) {
-  if (only.length && !only.includes(name)) continue;
-  for (const f of readdirSync(OUT)) if (steps.some((s) => s === `shot ${f.replace(/\.png$/, "")}`)) rmSync(join(OUT, f));
-  if (queue) await post("/sim/reset", { scenarios: queue, keepDevices: false, version: opts.version });
-  const chip = join(tmp, "chip.json");
-  copyFileSync(new URL("emu-chip.json", import.meta.url), chip);
-  const app = queue ? BASE : "http://localhost:1";      // "offline": nothing answers
-  const r = spawnSync(process.execPath, [join(ROOT, "emu/headless.mjs"), "quorum", "--app", app, "--chip", chip, "--quiet",
-    "--wait", "3000", ...args(steps)], { cwd: join(ROOT, "emu"), encoding: "utf8" });
-  const shots = (r.stdout.match(/\[shot\]/g) || []).length;
-  const bad = r.status !== 0 || /Traceback/.test(r.stdout + r.stderr);
-  console.log(`${bad ? "FAIL" : "ok  "}  ${name.padEnd(9)} ${shots} shots`);
-  if (bad) {
-    failed++;
-    console.log((r.stdout + r.stderr).split("\n").filter((l) => !l.startsWith("[shot]")).slice(-15).join("\n"));
+for (const fontset of fontsets) {
+  const OUT = fontset ? join(ROOT, "docs", "quorum-ui", "v2", "fonts", fontset) : SHOTS;
+  mkdirSync(OUT, { recursive: true });
+  for (let [name, queue, steps, opts = {}] of fontset ? FONT_STORIES : STORIES) {
+    if (only.length && !only.includes(name)) continue;
+    if (fontset) steps = [`exec import fonts; fonts.use('${fontset}'); quorum.dirty = True`, "wait 300", ...steps];
+    for (const f of readdirSync(OUT)) if (steps.some((s) => s === `shot ${f.replace(/\.png$/, "")}`)) rmSync(join(OUT, f));
+    if (queue) await post("/sim/reset", { scenarios: queue, keepDevices: false, version: opts.version });
+    const chip = join(tmp, "chip.json");
+    copyFileSync(new URL("emu-chip.json", import.meta.url), chip);
+    const app = queue ? BASE : "http://localhost:1";      // "offline": nothing answers
+    const r = spawnSync(process.execPath, [join(ROOT, "emu/headless.mjs"), "quorum", "--app", app, "--chip", chip, "--quiet",
+      "--wait", "3000", ...args(steps, OUT)], { cwd: join(ROOT, "emu"), encoding: "utf8" });
+    const shots = (r.stdout.match(/\[shot\]/g) || []).length;
+    const bad = r.status !== 0 || /Traceback/.test(r.stdout + r.stderr);
+    console.log(`${bad ? "FAIL" : "ok  "}  ${(fontset ? fontset + " " : "") + name.padEnd(9)} ${shots} shots`);
+    if (bad) {
+      failed++;
+      console.log((r.stdout + r.stderr).split("\n").filter((l) => !l.startsWith("[shot]")).slice(-15).join("\n"));
+    }
   }
+  console.log(`shots in ${OUT}`);
 }
 server.kill();
 rmSync(tmp, { recursive: true, force: true });
-console.log(failed ? `${failed} stories failed` : `shots in ${OUT}`);
+if (failed) console.log(`${failed} stories failed`);
 process.exit(failed ? 1 : 0);
