@@ -659,3 +659,15 @@ and 4-byte writes into the secret slots' tails.
 MetaMask and chip 1), executed with `live exec`:
 [tx](https://basescan.org/tx/0x1b682d376629601808c21cf52cbaddb6e17f57779ef1affd81222c50f1262abb).
 The Safe's nonce is 1.
+
+**C1-C3 on chip 2:**
+- **C1:** all 8 checks passed, including SelfTest on an unlocked chip (not seen on silicon
+  before). The factory table matches the known Adafruit dump except the serial and read-only byte
+  14. It is an ATECC608A (`6002`). Snapshot saved.
+- **C2:** the laptop computed config CRC `2232` from the pulled snapshot
+  (`tools/check_config --summary`). The Pico showed `2232` after writing quorum v1.
+- **C3:** the CRC-checked config lock (mode `0x00`, summary `2232`) was **accepted by the chip**.
+  That settles the summary's byte order (`crc[0] | crc[1] << 8`) on silicon. Read from the
+  laptop: lock bytes `55 00`, still quorum v1, Random live.
+- **UI:** the first arm showed no feedback while B+Y were held, so a bar was added, plus "let go
+  early: not armed" (build `d7c3493`).
