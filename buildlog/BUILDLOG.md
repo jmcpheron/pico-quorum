@@ -690,3 +690,16 @@ The Safe's nonce is 1.
   - Fix: C8 writes whole 32-byte blocks, the last one at the tail. The virtual chip now refuses
     4-byte writes into those slots before the data lock, as this chip does. The data-CRC lock
     at C9 checks that the tails really hold zeros, and refuses (locking nothing) if not.
+- **C8 (again), with the tail fix:** all green, data CRC `b10e`.
+- **C9:** the CRC-checked data lock (mode `0x01`, summary `b10e`) was **accepted by the chip**.
+  Lock bytes `00 00`. That settles the last two silicon questions: the tails took the zeros, and
+  the data CRC is every slot that is not a private key, then the OTP zone. The laptop recomputed
+  `b10e` from the record independently.
+- **The OTP record:** quorum v1, `01230e6b8fa23e70ee`, slot 0, owner `0x99ed…6b88`, 2026-09-26
+  05:46:37 UTC, build `c5226e9`, counter 4. Its key hash matches `e199b2d7…`.
+- **Every silicon unknown from PROVISIONING.md is now answered.**
+  - The config CRC summary's byte order: `crc[0] | crc[1] << 8`.
+  - The data CRC's layout: as documented.
+  - 4-byte writes into secret slots before the data lock: refused. A 32-byte write at a slot's
+    partial last block works instead.
+  - Chips 3-5 get the same ceremony (build `c5226e9` or later), with no probing.
