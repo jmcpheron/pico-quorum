@@ -429,7 +429,7 @@ with open('secrets.py') as f:
     old = f.read()
 with open('secrets.bak', 'w') as f:
     f.write(old)
-keep = [l for l in old.split(chr(10)) if l.split('=')[0].strip() not in ('QUORUM_URL', 'QUORUM_SAFE') and not l.startswith('# Base Sepolia (docs/LADDER.md')]
+keep = [l for l in old.split(chr(10)) if l.split('=')[0].strip() not in ('QUORUM_URL', 'QUORUM_SAFE') and not l.startswith('# Base Sepolia (docs/LADDER.md') and not l.startswith('# the network, written by')]
 while keep and not keep[-1].strip():
     keep.pop()
 with open('secrets.py', 'w') as f:

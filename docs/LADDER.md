@@ -136,17 +136,21 @@ Same steps as rung 2 with `--chain base` and `QUORUM_URL = ".../tx-service/base"
 signer 110k gas, a Safe 310k, an execution 110k.
 
 **Before any real money, on the board** (and the chip: [LOCKING.md](LOCKING.md)):
-- [ ] The production image, `tools/fw push console`. It boots straight into the console, and
+- [x] The production image, `tools/fw push console`. It boots straight into the console, and
       nothing else on the board can sign or touch the chip. `tools/fw verify` should be all green,
-      and the build id shows on Device (X).
+      and the build id shows on Device (X). *Build `20464b0`, 2026-09-26.*
 - [ ] A backup from `tools/fw backup`, copied somewhere outside the repo (it holds `secrets.py`).
-- [ ] The pin, `tools/fw pin`: the chip's serial, slot 0 locked, owner `0x2843…5E53`. The console
+      *Taken 2026-09-26 (`backups/025997e61befcde3/`); the copy outside the repo is still to do.*
+- [x] The pin, `tools/fw pin`: the chip's serial, slot 0 locked, owner `0x2843…5E53`. The console
       signs nothing else.
-- [ ] TLS verified: Device (X) says `verified`. `tools/fw measure tls` passed on the board.
-- [ ] The watchdog tested once: the board resets itself on a hang, and `log.txt` says so.
-- [ ] `ENABLE_NETWORK_CONSOLE = False`. The network console is a passwordless REPL, and it can sign
+- [x] TLS verified: Device (X) says `verified`. On the board, the compiled image from a mount
+      passed 8 of 8 verified polls, and badssl.com's four bad certificates were refused on the
+      certificate itself (buildlog 2026-09-26).
+- [x] The watchdog tested once: the board resets itself on a hang, and `log.txt` says so.
+      *Interrupts off for 12 s: it reset, and the console came back by itself.*
+- [x] `ENABLE_NETWORK_CONSOLE = False`. The network console is a passwordless REPL, and it can sign
       (the production image ignores it anyway).
-- [ ] `ALLOW_GENKEY = False` and `ALLOW_LOCK = False` (ignored by the production image too).
+- [x] `ALLOW_GENKEY = False` and `ALLOW_LOCK = False` (ignored by the production image too).
 - [ ] Don't make a new key in slot 0 while it owns a Safe. The owner address comes from the key, so
       a new key is a new owner, and the old one is gone. The plan is to lock slot 0 (only) once rung 2
       has proven it: [LOCKING.md](LOCKING.md).

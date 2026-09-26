@@ -624,3 +624,18 @@ Branch `firmware-production`. The walkthrough with every new screen is in
   transaction, still waiting for `live exec`.
 - **Log:** boot, pin ok, counter, watchdog on. The reset cause is 3 even for `machine.reset()`: on
   the RP2350 it goes through the watchdog.
+
+**The production console's first real approval, Base Sepolia, 2026-09-26.**
+- **Watchdog:** interrupts off for 12 s over USB. The board reset itself, and the console came back
+  by itself (a second boot in `log.txt`: pin ok, watchdog on).
+- **Approval:**
+  1. `live pico --chain basesep`, then Jason proposed #4 (0.0000067 ETH) in the Safe web app and
+     signed with MetaMask.
+  2. The Pico fetched it over verified TLS. Jason paged through and held A. The log says
+     `signed #4 … counter 17`, `confirmed #4`, with real timestamps now that NTP has set the clock.
+  3. `live exec` checked both confirmations onchain and executed:
+     [tx](https://sepolia.basescan.org/tx/0x52c6d35fd2dde9b63fe65a7de4b9df2016de0551b178d19a4ae0fc20d170cd1b).
+     The Safe's nonce is 5.
+- **Back to Base:** `live pico --chain base`. `tools/fw verify`: pinned, TLS verified, watchdog on,
+  counter 17, all flags off.
+- **Small fix:** `live pico` piled up its own comment line on every switch.
