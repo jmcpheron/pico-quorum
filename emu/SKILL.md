@@ -55,7 +55,13 @@ box on the page) also writes a `main.py` that imports the module; refused on the
 wallet Pico's WiFi console instead (no reset there; the old copy's `stop()` is called). The page
 has the same: a device picker in the top bar and the ⇪ send to Pico button (⚡ flash MicroPython
 when a bootloader board is picked). Never change `main.py` on the wallet Pico unless asked.
-Firmware that should ship for good goes in `firmware/` and through `tools/push`.
+
+The wallet Pico is headed for the production image: `firmware/manifest.json` lists exactly what
+goes on it, and `tools/fw` (backup, push console, verify, pin, logs, restore) is the only way
+firmware reaches it for good, every file hash-checked. `ship` refuses a board whose `main.py`
+carries `# picoquorum-image:` unless `--force`; a ship there would copy past the manifest, and its
+soft reset leaves the console's watchdog unfed. `tools/usb push` refuses it too, and never copies
+`secrets.py` anywhere.
 
 ## The hardware, as seen from Python
 

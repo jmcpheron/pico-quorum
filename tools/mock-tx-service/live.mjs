@@ -441,8 +441,16 @@ print('WROTE', len(old), '->', os.stat('secrets.py')[6], 'bytes; the old file is
   if (!wrote) die(`the board did not take it:\n${r.stdout}${r.stderr}`);
   console.log("  " + wrote[0]);
   console.log("restarting the console...");
-  r = spawnSync(`${ROOT}tools/emu`, ["ship", "quorum"], { encoding: "utf8", timeout: 180000 });
-  if (!/running quorum/.test(r.stdout + r.stderr)) die(`the restart did not report back:\n${(r.stdout + r.stderr).slice(-600)}`);
+  // A production image (tools/fw push) starts the console itself at power-up: a reset is the
+  // restart. A development board gets the console shipped and started, as before.
+  const main = spawnSync(`${ROOT}tools/usb`, ["exec", "print('MAIN', open('main.py').read()[:60])"], { encoding: "utf8" }).stdout || "";
+  if (/picoquorum-image: console/.test(main)) {
+    spawnSync(`${ROOT}tools/usb`, ["exec", "import machine; machine.reset()"], { encoding: "utf8", timeout: 10000 });
+    await new Promise((res) => setTimeout(res, 20000));
+  } else {
+    r = spawnSync(`${ROOT}tools/emu`, ["ship", "quorum"], { encoding: "utf8", timeout: 180000 });
+    if (!/running quorum/.test(r.stdout + r.stderr)) die(`the restart did not report back:\n${(r.stdout + r.stderr).slice(-600)}`);
+  }
   const check = "import quorum; print('NOW', quorum.CHAIN, quorum.SAFE_ADDR, quorum.SAFE.get('name'), quorum.BASE, 'net', quorum.net_ok, quorum.net_err, 'nonce', quorum.info.get('nonce'), 'me-owner', quorum.me in quorum.owners())";
   for (let i = 0; i < 12; i++) {
     await new Promise((res) => setTimeout(res, 5000));

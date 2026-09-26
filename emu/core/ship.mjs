@@ -48,10 +48,10 @@ export async function ship(name, opts = {}) {
 
   for (let i = 0; i < 20 && lock.busy; i++) await new Promise((r) => setTimeout(r, 500));
   lock.busy = true;
-  try { return await doShip(name, file, src, port, target, !!opts.boot); } finally { lock.busy = false; }
+  try { return await doShip(name, file, src, port, target, !!opts.boot, !!opts.force); } finally { lock.busy = false; }
 }
 
-async function doShip(name, file, src, port, target, boot) {
+async function doShip(name, file, src, port, target, boot, force) {
   // USB: soft reset first (kills the old module's timers; raw-REPL reset skips main.py), then copy,
   // then run, all without another reset: a reset right after a copy can lose the write on LittleFS.
   // WiFi wallet: a soft reset would rerun boot.py and drop the console, so no reset there; runCode
@@ -61,6 +61,11 @@ async function doShip(name, file, src, port, target, boot) {
   if (ls.code !== 0) return { ok: false, port, error: "cannot talk to the Pico at " + port, lines: lines(ls.out) };
   const have = ls.out.includes("'lcd.py'");
   const mainNow = (ls.out.match(/MAIN:\s*(.*)/) || [])[1] || "";
+  // A board with a production image (tools/fw push) is managed by tools/fw: a ship would copy a
+  // module and its imports past the manifest, and its soft reset leaves the console's watchdog
+  // unfed, so the board resets 8 s later in the middle of whatever runs.
+  if (/picoquorum-image:/.test(mainNow) && !force)
+    return { ok: false, port, error: "this board runs a production image (tools/fw push): use tools/fw, or ship --force on purpose", lines: [] };
   let bootNote = "";
   if (boot) {
     if (target === "wifi" || /wallet/.test(mainNow)) bootNote = "main.py left alone: this looks like the wallet Pico";
