@@ -314,8 +314,9 @@ def draw_home(q):
             txt_c(d, "No service", 150, "bold18")
             txt_c(d, q.net_err[:30], 174, "sans14", "muted")
             txt_c(d, (q.BASE or "")[:34], 192, "mono13", "faint")
-    top = max(0, min(q.sel - 3, len(q.queue) - 4))
-    for i in range(top, min(len(q.queue), top + 4)):
+    n = 3 if q.outside else 4        # the outside-signatures warning takes the fourth row
+    top = max(0, min(q.sel - (n - 1), len(q.queue) - n))
+    for i in range(top, min(len(q.queue), top + n)):
         e = q.queue[i]
         lvl = "red" if e["why"] else e["r"]["level"]
         sel = i == q.sel
@@ -346,7 +347,12 @@ def draw_home(q):
             st, sc = "%d/%d" % (len(e["conf"]), q.threshold()), "muted"
         txt_r(d, st, 226, y + 4, "sans12", sc, fill)
         y += 28
-    footer_hints(d, q, (("A", "Open"), ("B", "Owners"), ("X", "Chip")))
+    if q.outside:
+        rrect(d, 6, 190, 228, 24, 5, "warn_bg")
+        warn_sign(d, 18, 202, 8)
+        txt(d, fit("%d signature%s made outside this console" % (q.outside, "" if q.outside == 1 else "s"), 200, "sans12"),
+            30, 196, "sans12", "warn_text", "warn_bg")
+    footer_hints(d, q, (("A", "Open"), ("B", "Owners"), ("X", "Device")))
     d.show()
 
 
@@ -647,7 +653,10 @@ def draw_owners(q):
             y += 14
         y += 7
     version_pill(d, q, M, 193)
-    txt_r(d, "this key " + (q.fingerprint() or "none"), 230, 195, "sans12", "faint")
+    k = "this key " + (q.fingerprint() or "none")
+    if q.counter is not None:
+        k += " \u00b7 sig #%d" % q.counter
+    txt_r(d, k, 230, 195, "sans12", "faint")
     footer_hints(d, q, (("B", "Back"),))
     d.show()
 
@@ -665,10 +674,83 @@ def draw_nochip(q):
     d.show()
 
 
+def notice(q, ok, title, lines, hints=()):
+    """A plain page: a mark, a title and a few lines. The states where the console signs nothing."""
+    d = q.d
+    d.fill(c("bg"))
+    mark(d, ok, 120, 44, 20)
+    txt_c(d, title, 72, "bold26")
+    y = 110
+    for k, s in enumerate(lines):
+        for line in F.wrap(s, 220, "sans14"):
+            if y > 200:
+                break
+            txt_c(d, line, y, "sans14", "text" if k == 0 else "muted")
+            y += 18
+    if hints:
+        footer_hints(d, q, hints)
+    d.show()
+
+
+def draw_pinfail(q):
+    exp = q.EXPECT or {}
+    lines = [q.pin_why or "This chip is not the pinned one.",
+             "chip %s slot %d" % (q.serial or "?", q.sig.slot if q.sig else -1),
+             "this key's owner " + short(q.me) if q.me else "no key read",
+             "pinned " + short(str(exp.get("owner", ""))) if exp.get("owner") else "QUORUM_EXPECT is not set",
+             "Nothing will be signed."]
+    notice(q, False, "Not the pinned key" if q.EXPECT else "Not pinned", lines, (("A", "Check again"),))
+
+
+def draw_unconfigured(q):
+    notice(q, False, "No Safe", ["secrets.py has no QUORUM_SAFE.", "This console signs for one pinned Safe;",
+                                "set it over USB (tools/fw config)."])
+
+
+def draw_crashed(q, why=""):
+    import image
+    notice(q, False, "Stopped", ["The console failed %d times in a row and signs nothing now." % q.fails,
+                                why[:60], "build " + image.BUILD, "B restarts it; error.log has the details."],
+           (("B", "Restart"),))
+
+
+def draw_device(q):
+    import image, gc
+    d = q.d
+    d.fill(c("bg"))
+    txt(d, "Device", M, 4, "bold18")
+    txt_r(d, image.IMAGE + " " + image.BUILD, 230, 9, "sans12", "muted")
+    rows = [("Chip", (q.serial or (q.sig.name if q.sig else "none"))[:20]),
+            ("Slot", "%d%s" % (q.sig.slot if q.sig else -1, " locked" if q.row and q.row.get("locked") else "")),
+            ("Key", q.fingerprint() or "none"),
+            ("Pin", "ok" if q.pin_ok and q.EXPECT else ("dev: none" if q.pin_ok else "FAIL")),
+            ("Signatures", "#%d" % q.counter if q.counter is not None else "not counted"),
+            ("Service", ("%s \u00b7 %d req" % (q.svc.tls, q.svc.requests)) if q.svc else "none"),
+            ("Polls", "%d s / %d s idle" % (q.POLL_MS // 1000, q.IDLE_POLL_MS // 1000)),
+            ("Memory", "%d KB free" % (gc.mem_free() // 1024))]
+    y = 32
+    for k, v in rows:
+        txt(d, k, M, y, "sans14", "muted")
+        txt_r(d, v, 230, y, "mono13", "bad" if v == "FAIL" else "text")
+        y += 20
+    if q.net_err and not q.net_ok:
+        txt(d, fit("Last error: " + q.net_err, 220, "sans12"), M, y + 2, "sans12", "warn")
+    footer_hints(d, q, (("B", "Back"),))
+    d.show()
+
+
 def draw(q):
     s = q.state
     if s == "nochip":
         draw_nochip(q)
+    elif s == "pinfail":
+        draw_pinfail(q)
+    elif s == "unconfigured":
+        draw_unconfigured(q)
+    elif s == "crashed":
+        draw_crashed(q)
+    elif s == "device":
+        draw_device(q)
     elif s in ("review", "hold"):
         draw_review(q)
     elif s == "result":

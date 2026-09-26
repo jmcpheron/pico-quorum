@@ -64,7 +64,11 @@ def armed():
 
 
 def flag(name):
-    """A secrets.py flag; False when secrets.py is missing."""
+    """A secrets.py flag; False when secrets.py is missing, and always False on the production
+    console image, so an ALLOW_* left in a pushed secrets.py can never arm anything there."""
+    import image
+    if image.PRODUCTION:
+        return False
     try:
         import secrets
     except ImportError:
@@ -397,13 +401,29 @@ def summary(slots):
     return out
 
 
-def load():
-    """ChipSigner if an ATECC answers on the bus, else the software key."""
+class NoSigner:
+    """What load(soft=False) returns when no chip answers: it has no key and can sign nothing."""
+    name = "none"
+    slot = 0
+
+    def pubkey(self, slot=None):
+        raise Exception("no chip")
+
+    def sign(self, digest, slot=None):
+        raise Exception("no chip")
+
+
+def load(soft=True):
+    """ChipSigner if an ATECC answers on the bus, else the software key (soft=True), else NoSigner.
+    The production console passes soft=False: SoftSigner's first pubkey() writes a key to flash."""
     try:
         s = ChipSigner()
         s.chip.wake()
         s.chip.sleep()
         return s
     except Exception as e:
+        if not soft:
+            print("no chip (%s)" % e)
+            return NoSigner()
         print("no chip (%s), using software key" % e)
         return SoftSigner()

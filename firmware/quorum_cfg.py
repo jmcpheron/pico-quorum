@@ -8,7 +8,13 @@
 # an Anvil fork of Base (tools/quorum up). The address is the one Safe's proxy factory gives that
 # Safe on any fork of Base (owners Alice and Bob, threshold 2, salt "PicoQuorum Family Safe"), so
 # both agree; chain.mjs checks it. The token and batcher addresses are Base mainnet's, as on the fork.
-# Names are hints: every screen that shows one also shows the full address.
+# Names are hints: every screen that shows one also shows the full address. "book" is the laptop's
+# Anvil accounts, so it names addresses only on "bookChains": on Base mainnet those same addresses
+# carry EIP-7702 sweepers (docs/LADDER.md), and a friendly name there would be a lie.
+#
+# "delegates" is empty on purpose: the console refuses any delegatecall except a multiSend to a
+# pinned batcher or a call to a contract pinned here (decode.review). Add one only for a contract
+# you have read, such as Safe's own migration or SignMessageLib.
 #
 # "contracts" is the console's own list of contracts it recognises: [name, logo, {selector:
 # [signature, what the call does]}]. A contract on it gets its logo and "known" on screen; any
@@ -30,6 +36,7 @@ CFG = {
     "safes": [
         {"chainId": 31337, "address": "0xf77e6235ea5ce79d6d823b332276cac99ea77666", "name": "Family Safe"}
     ],
+    "bookChains": [31337],
     "book": {
         "0x70997970c51812dc3a010c7d01b50e0d17dc79c8": "Alice",
         "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc": "Bob",
@@ -41,6 +48,7 @@ CFG = {
         "0x036cbd53842c5426634e7929541ec2318f3dcf7e": ["USDC", 6],
         "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48": ["USDC", 6]
     },
+    "delegates": {},
     "batchers": {
         "0x9641d764fc13c8b624c04430c7356c1c7c8102e2": "MultiSendCallOnly 1.4.1",
         "0x40a2accbd92bca938b02010e17a5b8929b49130d": "MultiSendCallOnly 1.3.0"

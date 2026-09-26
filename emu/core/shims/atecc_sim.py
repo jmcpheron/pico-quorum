@@ -329,6 +329,7 @@ class _Fail(Exception):
 
 
 _chip = None
+present = True      # False: nothing answers on the bus, as with the chip unplugged (tests)
 
 
 def chip():

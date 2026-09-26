@@ -11,6 +11,7 @@ from binascii import hexlify
 import gc
 import requests
 from keccak import keccak256
+from policy import is_sim
 
 TIMEOUT = 5            # the laptop's service, plain HTTP on the LAN
 TIMEOUT_TLS = 15       # api.safe.global: a full TLS handshake on the Pico each call, 1-2 s, sometimes over 5
@@ -36,6 +37,9 @@ class Service:
     def __init__(self, base, safe, api_key=None):
         self.base = base.rstrip("/")
         self.safe = safe
+        self.sim = is_sim(self.base)     # tools/quorum on the laptop: its /sim endpoints exist
+        self.requests = 0                # since boot, for the device screen (the real service has a monthly quota)
+        self.tls = "plain" if self.sim else "unverified"
         # the API key goes only to Safe's own service over HTTPS, never to a laptop on the LAN
         self.headers = {"Authorization": "Bearer " + api_key} if api_key and self.base.startswith("https") else {}
         self.timeout = TIMEOUT_TLS if self.base.startswith("https") else TIMEOUT
@@ -58,6 +62,7 @@ class Service:
 
     def _get(self, path):
         self.release()
+        self.requests += 1
         try:
             r = requests.get(self.base + path, headers=self.headers, timeout=self.timeout)
             try:
@@ -71,6 +76,7 @@ class Service:
 
     def _post(self, path, body):
         self.release()
+        self.requests += 1
         try:
             r = requests.post(self.base + path, json=body, headers=self.headers, timeout=self.timeout)
             try:
@@ -95,12 +101,17 @@ class Service:
         code, out = self._post("/api/v1/multisig-transactions/%s/confirmations/" % safe_tx_hash, {"signature": signature})
         return code in (200, 201), out.get("detail", "") if isinstance(out, dict) else str(out)
 
-    # --- the simulation's own endpoints (tools/quorum); a real service answers 404, which is fine
+    # --- the simulation's own endpoints (tools/quorum). Never sent to a real service: they would
+    # spend its quota and hand it this key's public key for nothing.
     def announce(self, name, qx, qy):
+        if not self.sim:
+            return None
         code, out = self._post("/sim/device", {"name": name, "qx": qx, "qy": qy})
         return out.get("owner") if code == 200 else None
 
     def declined(self, safe_tx_hash, by):
+        if not self.sim:
+            return
         try:
             self._post("/sim/declined", {"safeTxHash": safe_tx_hash, "by": by})
         except Exception:

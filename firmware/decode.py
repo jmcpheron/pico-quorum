@@ -74,12 +74,15 @@ def units(n, decimals):
     return group(whole) + "." + f
 
 
-def context(cfg, safe, names=None):
+def context(cfg, safe, names=None, chain=None):
     """What review() needs from the pinned config, with lowercase keys. names: extra
-    {address: name}, such as this console's own owner address."""
+    {address: name}, such as this console's own owner address. chain: the pinned address book
+    (Alice, Bob...) is the laptop's Anvil accounts, so it names addresses only on the chains in
+    cfg["bookChains"]; on Base mainnet those same addresses carry sweeper code (docs/LADDER.md)."""
     book = {}
-    for a, n in cfg["book"].items():
-        book[a.lower()] = n
+    if chain is None or chain in cfg.get("bookChains", [31337]):
+        for a, n in cfg["book"].items():
+            book[a.lower()] = n
     for a, n in (names or {}).items():
         book[a.lower()] = n
     tokens = {}
@@ -91,7 +94,11 @@ def context(cfg, safe, names=None):
     contracts = {}
     for a, k in cfg.get("contracts", {}).items():
         contracts[a.lower()] = k
-    return {"safe": safe.lower(), "book": book, "tokens": tokens, "batchers": batchers, "contracts": contracts}
+    delegates = {}
+    for a, n in cfg.get("delegates", {}).items():
+        delegates[a.lower()] = n
+    return {"safe": safe.lower(), "book": book, "tokens": tokens, "batchers": batchers, "contracts": contracts,
+            "delegates": delegates}
 
 
 def name(ctx, a):
@@ -290,11 +297,21 @@ def worst(items):
 
 
 def review(tx, ctx):
+    """The screen's view of a transaction. "refuse" is set when the console must not sign it at
+    all, however long A is held: an operation the Safe does not have, or a delegatecall anywhere
+    except to a pinned batcher (cfg "batchers", for a multiSend) or a pinned delegate (cfg
+    "delegates"). A delegatecall runs the target's code as the Safe itself, so an unpinned one could
+    move everything and change the owners (the attack that emptied Bybit's Safe in 2025)."""
     op = int(tx["operation"])
     to = tx["to"].lower()
     value = int(tx["value"])
     data = _bytes(tx.get("data") or "0x")
     items = []
+    refuse = ""
+    if op not in (CALL, DELEGATECALL):
+        refuse = "Operation %d is neither a call nor a delegatecall." % op
+    elif op == DELEGATECALL and not (to in ctx["delegates"] or (to in ctx["batchers"] and data[:4] == b"\x8d\x80\xff\x0a")):
+        refuse = "A delegatecall to a contract this console has not pinned. It would run that code as the Safe itself."
     if op == DELEGATECALL and to in ctx["batchers"] and data[:4] == b"\x8d\x80\xff\x0a":
         try:
             calls = unpack_multisend(data)
@@ -306,6 +323,7 @@ def review(tx, ctx):
                 if iop != CALL:
                     items.append({"title": "DELEGATECALL", "level": "red", "what": "Delegatecall inside a batch", "to": ito,
                                   "label": "contract", "text": AS_SAFE})
+                    refuse = refuse or "A delegatecall inside the batch. It would run that code as the Safe itself."
                 else:
                     items += _call(ito, ival, idata, ctx)
             summary = "Batch: %d action%s" % (len(calls), "" if len(calls) == 1 else "s")
@@ -323,4 +341,5 @@ def review(tx, ctx):
     if g:
         items.append(g)
     # the contract the Safe calls first (a token, the batch helper, itself), for the header
-    return {"summary": summary, "level": worst(items), "items": items, "contract": to if data else None}
+    return {"summary": summary, "level": worst(items), "items": items, "contract": to if data else None,
+            "refuse": refuse}

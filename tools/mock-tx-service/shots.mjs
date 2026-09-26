@@ -36,12 +36,12 @@ const STORIES = [
   ["reject", DEMO, ["key A", "key Y", "wait 200", "shot 21-reject-home"]],
   ["reds", ["refund", "delegate-unknown", "threshold", "wrong-safe"], [
     "shot 22-reds-home", "key A", "key down", "key down", "shot 23-refund-red-page", "key B",
-    "keys down,A", "key down", "shot 24-delegatecall-red-page", "key B",
+    "keys down,A", "shot 24-delegatecall-refused", "key B",
     "keys down,A", "key down", "shot 25-threshold-red-page", "key B",
     "keys down,A", "shot 26-wrong-safe-refused"]],
   ["conflict", ["conflict"], ["shot 27-conflict-home", "key A", "shot 28-conflict-summary", "keys B,down,A,down", "shot 29-conflict-rejection-page"]],
   ["owners", DEMO, ["key B", "shot 30-owners"]],
-  ["chip", DEMO, ["key X", "wait 400", "shot 31-chip-map"]],
+  ["device", DEMO, ["key X", "wait 400", "shot 31-device"]],
   ["offline", null, ["shot 32-no-service"]],
   ["identity", ["send-usdc", "uniswap-approve", "uniswap-swap", "batch", "unknown-call"], [
     "shot 37-identity-home", "key A", "shot 38-identity-usdc-summary",
