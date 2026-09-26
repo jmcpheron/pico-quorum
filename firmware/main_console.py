@@ -38,7 +38,16 @@ try:
         _plain("MAINTENANCE", ["USB only.", "The console is not running", "and nothing can sign.", "",
                                "tools/fw restore or push,", "then unplug and replug.", "", "build " + image.BUILD])
     else:
-        import lcd     # first: grabs the framebuffer while the heap is fresh
+        # The big blocks first, while the heap is still in one piece: the framebuffer (lcd), every
+        # font (bold26 alone is 10.9 KB) and the 32 KB that HTTPS borrows for each call. Everything
+        # imported after them fits in what is left; the other way round the heap ends up in pieces
+        # too small for any of them (2026-09-26, on the board).
+        import lcd
+        import fonts
+        for _f in fonts.FILES:
+            fonts.get(_f)
+        import txservice
+        txservice.reserve_early()
         import quorum
         quorum.start()
 except Exception as e:

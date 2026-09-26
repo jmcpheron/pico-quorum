@@ -196,7 +196,17 @@ function gitBuild() {
   return sha + (dirty ? "+dirty" : "");
 }
 
-function build(image) {
+// Every module but boot.py and main.py goes on the board compiled (.mpy), by the mpy-cross of the
+// board's own MicroPython. Compiling a module on the Pico leaves its heap in pieces: the console
+// image, compiled there, failed to load a 5.8 KB font with 191 KB free (2026-09-26). A .mpy loads
+// without the compiler. Same source, same mpy-cross: the same bytes, so builds can be compared.
+const MPY_CROSS = ["uvx", "--quiet", "--from", "mpy-cross==1.26.1.post2", "mpy-cross"];
+function mpyCross(src, out, name) {
+  const r = spawnSync(MPY_CROSS[0], [...MPY_CROSS.slice(1), "-s", name, "-o", out, src], { encoding: "utf8" });
+  if (r.status !== 0) die(`mpy-cross failed on ${name}:\n${r.stdout}${r.stderr}`);
+}
+
+function build(image, { quiet = false } = {}) {
   const img = M.images[image];
   if (!img) die(`no image "${image}" in firmware/manifest.json (${Object.keys(M.images).join(", ")})`);
   const id = gitBuild();
@@ -205,8 +215,11 @@ function build(image) {
   mkdirSync(dir, { recursive: true });
   const files = {};
   for (const f of img.files) {
-    const to = f === img.main ? "main.py" : f;
-    copyFileSync(join(FIRMWARE, f), join(dir, to));
+    let to = f === img.main ? "main.py" : f;
+    if (to.endsWith(".py") && to !== "main.py" && to !== "boot.py") {
+      to = to.replace(/\.py$/, ".mpy");
+      mpyCross(join(FIRMWARE, f), join(dir, to), f);
+    } else copyFileSync(join(FIRMWARE, f), join(dir, to));
     files[to] = sha256(readFileSync(join(dir, to))).slice(0, 12);
   }
   const py = `# written by tools/fw build; never committed\nIMAGE = ${JSON.stringify(image)}\nBUILD = ${JSON.stringify(id)}\nDATE = ${Math.floor(Date.now() / 1000)}\nFILES = ${JSON.stringify(files)}\n`;
@@ -260,8 +273,8 @@ async function verify({ baseline = false } = {}) {
   const build = files.some((f) => f.name === "build.py") ? run("import build\nprint('BUILD:' + build.BUILD)").match(/BUILD:(\S+)/)?.[1] : null;
   console.log(`image: ${image || "none (a development board: main.py is " + (/wallet/.test(mainSrc) ? "the legacy wallet" : "something else") + ")"}${build ? ", build " + build : ""}`);
   if (image) {
-    const img = M.images[image];
-    const want = new Map(img.files.map((f) => [f === img.main ? "main.py" : f, sha256(readFileSync(join(FIRMWARE, f)))]));
+    const b = build(image);          // this checkout, built the same way a push would
+    const want = new Map(b.names.filter((n) => n !== "build.py").map((n) => [n, sha256(readFileSync(join(b.dir, n)))]));
     const differ = [...want].filter(([n, h]) => files.find((f) => f.name === n)?.sha !== h).map(([n]) => n);
     if (differ.length) { ok = false; console.log(`  differs from this checkout: ${differ.join(", ")}`); }
     else console.log(`  every file of the ${image} image matches this checkout (${want.size})`);

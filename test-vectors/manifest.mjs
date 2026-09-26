@@ -46,6 +46,13 @@ const inSignIt = (i) => { for (let j = i; j >= 0; j--) if (/^def /.test(q[j])) r
 check(signs.length === 1 && signs[0][0] === "quorum.py" && inSignIt(signs[0][1]), "console: the chip signs from one place only, quorum.sign_it");
 check(!/\bsig\.use\(/.test(con.map((f) => (f.endsWith(".py") ? src(f) : "")).join("\n")), "console: nothing switches the active slot");
 
+// tools/fw build compiles every module but boot.py and main.py with plain mpy-cross (no -march):
+// a native or viper function in them would not survive that.
+for (const [name, img] of Object.entries(M.images)) {
+  const nat = img.files.filter((f) => f.endsWith(".py") && /@micropython\.(native|viper)/.test(src(f)));
+  check(!nat.length, `${name}: no @micropython.native/viper code (it goes on as bytecode .mpy)` + (nat.length ? `: ${nat}` : ""));
+}
+
 const cer = M.images.ceremony.files;
 check(!cer.includes("quorum.py") && !cer.includes("txservice.py"), "ceremony: no Safe console and no transaction service");
 check(M.preserve.some((p) => p === "secrets.py"), "secrets.py is preserved by every push");

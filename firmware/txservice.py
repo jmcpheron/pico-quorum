@@ -22,6 +22,19 @@ TIMEOUT_TLS = 15       # api.safe.global: a full TLS handshake on the Pico each 
 # size from the start and lets go of it only for the length of each call.
 RESERVE = 32 * 1024
 ON_BOARD = sys.platform == "rp2"     # the emulator's `requests` is the host's curl, which checks certificates itself
+_early = None
+
+
+def reserve_early():
+    """Take the reserve at boot, before the console's modules load (main_console.py): a block
+    taken then is whole; one taken after them may not exist any more. The first https Service
+    keeps it."""
+    global _early
+    gc.collect()
+    try:
+        _early = bytearray(RESERVE)
+    except MemoryError:
+        _early = None
 
 
 def checksum(a):
@@ -60,7 +73,8 @@ class Service:
         # the API key goes only to Safe's own service over HTTPS, never to a laptop on the LAN
         self.headers = {"Authorization": "Bearer " + api_key} if api_key and self.base.startswith("https") else {}
         self.timeout = TIMEOUT_TLS if self.base.startswith("https") else TIMEOUT
-        self._room = None
+        global _early
+        self._room, _early = (_early if https else None), None
         self.hold()
 
     def hold(self):
