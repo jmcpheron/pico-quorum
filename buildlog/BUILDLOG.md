@@ -642,3 +642,20 @@ Branch `firmware-production`. The walkthrough with every new screen is in
 - **Power cycle** (Jason unplugged and replugged it). Reset cause 1 (power-on). The console came
   up by itself in 7 s: pin ok, watchdog on, home on the Base Safe, TLS verified, counter still 17,
   so nothing was signed outside the console.
+
+## 2026-09-26 — chip 2 (`01230e6b8fa23e70ee`): quorum v1 on silicon
+
+The first of five new Adafruit 4314 breakouts. It's also the first run of the three details only
+silicon can settle (docs/PROVISIONING.md): the byte order of the CRC summary, the data-CRC layout,
+and 4-byte writes into the secret slots' tails.
+
+**Setup:**
+- The dual image (build `814299d`) boots chip 1 into the Base console, and this chip into the
+  ceremony: `chips.json` has it as chip 2, factory, light.
+- `tools/fw allow on` refuses while the pinned chip is on the bus. It was run with chip 2 in, then
+  `tools/fw restart`.
+
+**Just before, with chip 1:** Base mainnet #0, the GS021 transaction (0.000001 ETH, confirmed by
+MetaMask and chip 1), executed with `live exec`:
+[tx](https://basescan.org/tx/0x1b682d376629601808c21cf52cbaddb6e17f57779ef1affd81222c50f1262abb).
+The Safe's nonce is 1.
