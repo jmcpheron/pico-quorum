@@ -62,7 +62,7 @@ def walk(rev):
         order.append(got)
         check(got == want and ok, "%s %s: %s%s" % (rev, want, P.TITLES[want], "" if ok and got == want else " (step %s, %s, %s)" % (got, bad, msg)))
         c2, _, _ = ceremony()           # a reboot after every step: the chip alone says where we are
-        c2.owner_seen, c2.record, c2.summary = c.owner_seen, c.record, c.summary
+        c2.owner_seen, c2.record, c2.summary, c2.tested = c.owner_seen, c.record, c.summary, c.tested
         nxt = c2.step()
         check(nxt == c.step(), "%s after %s, a fresh look at the chip resumes at %s" % (rev, want, nxt))
     cfg = bytes(sim.cfg)
@@ -75,13 +75,34 @@ def walk(rev):
     import webauthn, quorum_cfg
     check(c.owner() == webauthn.owner_address("0x%064x" % x, "0x%064x" % y, quorum_cfg.CFG["signer"]),
           "%s: the owner shown at C7 is the key's passkey signer" % rev)
-    check(sim.counters[0] == 4, "%s: counter 0 = %d: C5's two test signatures, C6's and C9's" % (rev, sim.counters[0]))
+    check(sim.counters[0] == 5, "%s: counter 0 = %d: C5's two test signatures, C6's before and after the seal, C9's" % (rev, sim.counters[0]))
     return c
 
 
 def case_full():
     walk("608a")
     walk("608b")
+
+
+def case_seal_gate():
+    """The seal (C6) only after C5 passed, in this session."""
+    secrets()
+    fresh_chip()
+    c, S, P = ceremony()
+    for st in ("C1", "C2", "C3", "C4"):
+        run(c, st)
+    real = P.p256.verify
+    P.p256.verify = lambda *a: False            # a key whose signatures do not verify
+    try:
+        got, ok, bad, msg = run(c, "C5")
+    finally:
+        P.p256.verify = real
+    check(got == "C5" and not ok and c.step() == "C5", "C5 fails: the next step is C5 again, never the seal")
+    got, ok, bad, msg = run(c, "C6")
+    check(not ok and not c.slot0["locked"], "C6 asked for anyway: refused, slot 0 not sealed")
+    run(c, "C5")
+    c2, _, _ = ceremony()
+    check(c.step() == "C6" and c2.step() == "C5", "C5 passes: C6 next; after a reboot, C5 again first")
 
 
 def case_refusals():
@@ -106,6 +127,7 @@ def case_refusals():
     c, S, P = ceremony()
     for st in ("C3", "C4", "C5", "C6", "C7"):
         run(c, st)
+    check(c.slot0["locked"], "(the setup: slot 0 sealed)")
     x, y = c.key
     rec = chipcfg.record_encode(c.chip.serial(), 0, x, y, c.owner(), 0, "", 0)
     c.record, c.summary = rec, chipcfg.data_summary(chipcfg.QUORUM_V1, chipcfg.zero_slots(), rec)   # C8 skipped
@@ -179,7 +201,7 @@ def case_ui():
 
 
 def main():
-    for case in (case_full, case_refusals, case_console, case_ui):
+    for case in (case_full, case_seal_gate, case_refusals, case_console, case_ui):
         print("--", case.__name__[5:])
         try:
             case()

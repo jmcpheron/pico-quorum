@@ -96,6 +96,7 @@ class Ceremony:
         self.sig = sig
         self.chip = sig.chip
         self.owner_seen = False     # C7 was shown this session
+        self.tested = False         # C5 passed this session: only then is C6 (the seal) offered
         self.record = None          # C8's record, this session (the chip cannot read it back before C9)
         self.summary = None
         self.read()
@@ -133,7 +134,10 @@ class Ceremony:
         if self.key is None:
             return "C4"
         if not self.slot0["locked"]:
-            return "C5" if (self.counter or 0) < 2 else "C6"
+            # The seal only after the test signatures passed, in this session: a failed C5 raises
+            # the counter too, so the counter cannot say whether the key works. After a reboot, C5
+            # again: two more counts, nothing lost.
+            return "C6" if self.tested else "C5"
         if not self.data_locked:
             if not self.owner_seen:
                 return "C7"
@@ -151,7 +155,7 @@ class Ceremony:
 
     # --- the steps: each returns (ok, [(check, ok), ...], message) -------------------
     def run(self, step):
-        fn = getattr(self, "c" + step[1:])
+        fn = getattr(self, "c" + step[1:]) if step.startswith("C") else self.cother
         try:
             out = fn()
         except Exception as e:
@@ -225,9 +229,12 @@ class Ceremony:
             refused = True
         checks = [("plain digest verifies", plain), ("WebAuthn digest verifies", wa),
                   ("counter %d -> %d" % (before, after), after == before + 2), ("Sign on slot 1 refused", refused)]
-        return all(k for _, k in checks), checks, "LimitedUse counts every signature"
+        self.tested = all(k for _, k in checks)
+        return self.tested, checks, "LimitedUse counts every signature" if self.tested else "the key is not sealed: fix this first"
 
     def c6(self):
+        if not self.tested or not self._sign_ok(hashlib.sha256(b"before the seal").digest()):
+            return False, [("the key signs and verifies", False)], "not sealed: run C5 again"
         before = self.chip.pubkey(0)
         msg = self.sig.lock_slot(0)
         cfg = self.chip.read_config_all()
@@ -274,6 +281,9 @@ class Ceremony:
                   ("signs + verifies, sealed", self._sign_ok(hashlib.sha256(b"locked").digest()))]
         return all(k for _, k in checks), checks, msg
 
+    def cother(self):
+        return False, [("table: %s" % self.profile, False)], WHAT["other"]
+
     def c10(self):
         otp = self.chip.read_otp(0) + self.chip.read_otp(1)
         rec = chipcfg.record_decode(otp)
@@ -296,6 +306,7 @@ class UI:
         self.result = None      # (step, ok, checks, message) after a run
         self.hold = None
         self.armhold = None
+        self.released = True    # A let go since the last result was dismissed: only then can a hold start
         self.dirty = True
 
     def need(self, st):
@@ -320,7 +331,10 @@ class UI:
         if self.result:
             if "A" in pressed or "Y" in pressed:
                 self.result, self.dirty = None, True
+                self.released = False
             return None
+        if not self.keys.held("A"):
+            self.released = True
         if "Y" in pressed:
             return "back"
         if st in ("C10", "other"):
@@ -332,7 +346,7 @@ class UI:
             return None
         hold_ms = HOLD_MS if st in PERMANENT or st == "C4" else 0
         if hold_ms:
-            if self.keys.held("A"):
+            if self.keys.held("A") and self.released:
                 if self.hold is None:
                     self.hold = time.ticks_ms()
                 if time.ticks_diff(time.ticks_ms(), self.hold) >= hold_ms:

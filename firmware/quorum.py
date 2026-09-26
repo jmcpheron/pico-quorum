@@ -145,7 +145,7 @@ def read_key():
         qx = qy = ""
         _log("no key: %r" % e)
     me = my_owner()
-    ctx = decode.context(CFG, SAFE_ADDR, {me: "This key"} if me else None)
+    ctx = decode.context(CFG, SAFE_ADDR, {me: "This key"} if me else None, chain=CHAIN)
     cache.clear()
     last_announce = 0
 
@@ -259,11 +259,15 @@ def entry(t):
                 e["mine"] = decode.hx(safe_tx.from_service(CHAIN, t))
                 if e["mine"] != h:
                     e["why"] = "The service wants a signature over a hash that these fields do not produce. Signing it could approve something else entirely."
+            except MemoryError:
+                raise                   # not a verdict on the transaction: not cached, tried again next poll
             except Exception as ex:
                 e["why"] = "Its fields do not hash: %s" % ex
         try:
             e["r"] = decode.review(t, ctx)
             e["why"] = e["why"] or e["r"].get("refuse", "")
+        except MemoryError:
+            raise
         except Exception as ex:
             e["r"] = {"summary": "Unreadable", "level": "red", "items": []}
             e["why"] = e["why"] or "It could not be decoded: %s" % ex
@@ -491,16 +495,29 @@ def signature_for(e, ad, fields, r, s):
     return decode.hx(webauthn.contract_signature(me, ad, fields, r, s))
 
 
+def same_chip():
+    """Right before a signature: the chip on the bus is still the one read at start (serial and
+    the slot's public key, read again from the chip itself, not from a cache)."""
+    if sig.name != "atecc608":
+        return True
+    s = "".join("%02x" % b for b in sig.chip.serial())
+    x, y = sig.chip.pubkey(sig.slot)
+    return s == serial and "0x%064x" % x == qx and "0x%064x" % y == qy
+
+
 def sign_it():
-    global state, result, dirty, counter, outside
+    global state, result, dirty, counter, outside, unsent
     e = cur
     state = "working"
+    unsent = None           # a failure below must never offer to resend an older signature
     U.draw_working(sys.modules[__name__], "Signing", "The chip signs the hash computed here")
     timer.deinit()
     watch.extend(30000)
     try:
         if not pin_ok or (EXPECT and sig.slot != int(EXPECT.get("slot", 0))):
             raise Exception("the key no longer matches the pin")
+        if not same_chip():
+            raise Exception("the chip or its key changed since start")
         t0 = time.ticks_ms()
         c0 = read_counter()
         if c0 is not None and counter is not None and c0 != counter:
@@ -552,9 +569,11 @@ def post(e, signature):
 
 
 def reject():
-    global state, dirty
+    global state, dirty, unsent
     e = cur
     declined.add(e["h"])
+    if unsent and unsent[0]["h"] == e["h"]:
+        unsent = None
     state, dirty = "home", True
     say("Rejected #%d on this console" % e["n"])
     if svc and svc.sim:

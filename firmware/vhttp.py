@@ -60,7 +60,11 @@ class Response:
         pass
 
 
-def request(method, url, ctx, body=None, headers=None, timeout=15, max_body=MAX_BODY):
+def request(method, url, ctx, body=None, headers=None, timeout=15, max_body=MAX_BODY, budget_ms=40000):
+    """timeout applies to each socket operation; budget_ms to the whole response after the
+    handshake (the caller's watchdog allowance is budget + the handshake's own timeouts). A body over
+    max_body raises MemoryError, as running out of room would: the console then asks for less."""
+    t0 = time.ticks_ms()
     proto, _, host, path = url.split("/", 3)
     if proto != "https:":
         raise ValueError("vhttp is HTTPS only")
@@ -93,38 +97,46 @@ def request(method, url, ctx, body=None, headers=None, timeout=15, max_body=MAX_
                 length = int(v)
             elif k == "transfer-encoding" and "chunked" in v.lower():
                 chunked = True
-        out = _chunked(s, max_body) if chunked else _plain(s, length, max_body)
+        out = _chunked(s, max_body, t0, budget_ms) if chunked else _plain(s, length, max_body, t0, budget_ms)
         return Response(status, out)
     finally:
         s.close()
 
 
-def _plain(s, length, cap):
+def _late(t0, budget_ms):
+    if time.ticks_diff(time.ticks_ms(), t0) > budget_ms:
+        raise OSError(110, "the response took too long")
+
+
+def _plain(s, length, cap, t0, budget_ms):
     if length is not None and length > cap:
-        raise OSError("response too big (%d bytes)" % length)
+        raise MemoryError("response too big (%d bytes)" % length)
     parts, n = [], 0
     while length is None or n < length:
+        _late(t0, budget_ms)
         b = s.read(min(1024, length - n) if length is not None else 1024)
         if not b:
             break
         n += len(b)
         if n > cap:
-            raise OSError("response too big")
+            raise MemoryError("response too big")
         parts.append(b)
     return b"".join(parts)
 
 
-def _chunked(s, cap):
+def _chunked(s, cap, t0, budget_ms):
     parts, n = [], 0
     while True:
+        _late(t0, budget_ms)
         size = int(s.readline().split(b";")[0].strip(), 16)
         if size == 0:
             break
         n += size
         if n > cap:
-            raise OSError("response too big")
+            raise MemoryError("response too big")
         left = size
         while left:
+            _late(t0, budget_ms)
             b = s.read(min(1024, left))
             if not b:
                 raise OSError("connection closed mid-chunk")

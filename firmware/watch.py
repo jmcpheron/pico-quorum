@@ -27,8 +27,10 @@ def start():
     if hasattr(micropython, "alloc_emergency_exception_buf"):      # a traceback from the hard timer, if it ever raises
         micropython.alloc_emergency_exception_buf(100)
     extend(TIMEOUT_MS)
-    _wdt = machine.WDT(timeout=TIMEOUT_MS)
+    # The feeder before the watchdog: if the timer could not be made, nothing is armed that would
+    # then reset the board every 8 s, boot after boot. (hard=True: checked on the board, 1.26.1.)
     _timer = machine.Timer(period=1000, mode=machine.Timer.PERIODIC, callback=_feed, hard=True)
+    _wdt = machine.WDT(timeout=TIMEOUT_MS)
 
 
 def extend(ms):

@@ -94,7 +94,9 @@ class Service:
     def _call(self, method, path, body=None):
         try:
             import watch
-            watch.extend(int(self.timeout * 1000) + 10000)      # each call may take its whole timeout
+            # connect and the handshake (each socket step up to the timeout), then vhttp's 40 s
+            # budget for the response: a slow call that is still alive must not reset the board
+            watch.extend(4 * int(self.timeout * 1000) + 40000)
         except ImportError:
             pass
         if self._ctx is not None:

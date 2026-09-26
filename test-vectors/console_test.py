@@ -274,10 +274,15 @@ def case_refusals():
     Q.pin_ok = False
     serve(Q, [good])
     check(Q.can_sign(Q.queue[0]) == (False, "key doesn't match the pin"), "the pin failing after start: can't sign")
+    import decode, quorum_cfg
+    anvil = list(quorum_cfg.CFG["book"])[0]
+    check(decode.name(Q.ctx, anvil) is None, "on Base Sepolia the laptop's Anvil names are not used (%s)" % anvil[:10])
+    check(decode.name(Q.ctx, Q.me) == "This key", "this key is still named")
 
 
 def case_sign():
     c = chip(counter=5)
+    key0 = c.keys[0]
     Q = fresh()
     check(Q.counter == 5 and Q.outside == 0, "counter read at start: 5, first look")
     serve(Q, [tx(Q, 0), tx(Q, 1, to=OTHER, data="0xdeadbeef")])
@@ -304,6 +309,13 @@ def case_sign():
     check(Q.counter == 6 and c.counters[0] == 6, "counter 5 -> 6 after one signature")
     check(open("counter-%s.txt" % SERIAL).read() == "6", "the new count is saved")
     check(any("Chip signature #6" in l for l in Q.result[2]), "the result screen shows chip signature #6")
+    c.keys[0] = p256.rand_scalar()          # another key in slot 0 while the console runs
+    before = len(SVC.posted)
+    Q.unsent = (Q.queue[1], "0xold")
+    check(not sign(Q, Q.queue[1], 3100) and len(SVC.posted) == before and not Q.result[0],
+          "the chip's key changed since start: not signed")
+    check(Q.unsent is None, "and no older signature is offered for sending again")
+    c.keys[0] = key0
     red = Q.queue[1]
     check(red["r"]["level"] == "red" and not red["why"], "an unknown call is red but signable")
     check(not sign(Q, red, 2500), "red, held 2.5 s: nothing signed")

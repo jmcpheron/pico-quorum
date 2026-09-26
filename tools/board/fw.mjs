@@ -270,8 +270,8 @@ async function verify({ baseline = false } = {}) {
   let ok = true;
   const mainSrc = files.some((f) => f.name === "main.py") ? run("print(open('main.py').read()[:120])") : "";
   const image = (/# picoquorum-image: (\w+)/.exec(mainSrc) || [])[1] || null;
-  const build = files.some((f) => f.name === "build.py") ? run("import build\nprint('BUILD:' + build.BUILD)").match(/BUILD:(\S+)/)?.[1] : null;
-  console.log(`image: ${image || "none (a development board: main.py is " + (/wallet/.test(mainSrc) ? "the legacy wallet" : "something else") + ")"}${build ? ", build " + build : ""}`);
+  const onBoard = files.some((f) => f.name === "build.py") ? run("import build\nprint('BUILD:' + build.BUILD)").match(/BUILD:(\S+)/)?.[1] : null;
+  console.log(`image: ${image || "none (a development board: main.py is " + (/wallet/.test(mainSrc) ? "the legacy wallet" : "something else") + ")"}${onBoard ? ", build " + onBoard : ""}`);
   if (image) {
     const b = build(image);          // this checkout, built the same way a push would
     const want = new Map(b.names.filter((n) => n !== "build.py").map((n) => [n, sha256(readFileSync(join(b.dir, n)))]));
@@ -354,18 +354,22 @@ async function leaveMaintenance() {
   await waitForBoard();
 }
 
-// Copy [local, remote] pairs in one session after a soft reset (nothing else runs), then check
-// every hash on the board.
+// Copy [local, remote] pairs with whatever runs paused (in maintenance nothing does; a legacy
+// board's wallet ignores maint and is paused instead), then check every hash on the board. No soft
+// reset: it would run boot.py's WiFi wait again (up to 12 s, longer than mpremote waits for the
+// REPL) and leave a running watchdog unfed.
 function copyChecked(pairs) {
+  pause();
   for (let i = 0; i < pairs.length; i += 30) {
     const args = pairs.slice(i, i + 30).flatMap(([from, to]) => ["cp", from, ":" + to, "+"]);
     args.push("exec", "import os\nif hasattr(os, 'sync'): os.sync()\nprint('SYNCED')");
-    const r = mp(args, { resume: i > 0, timeout: 240000 });
+    const r = mp(args, { resume: true, timeout: 240000 });
     if (r.code !== 0 || !/SYNCED/.test(r.out)) die(`the copy failed (maint is still on the board, so it will boot into maintenance):\n${r.out.slice(-600)}`);
   }
   const now = new Map(boardFiles().map((f) => [f.name, f.sha]));
   const bad = pairs.filter(([from, to]) => now.get(to) !== sha256(readFileSync(from))).map(([, to]) => to);
   if (bad.length) die(`these did not land intact: ${bad.join(", ")} (the board stays in maintenance; push again)`);
+  paused = null;          // leaveMaintenance restarts the board; nothing to resume
 }
 
 function removeOnBoard(names) {
@@ -405,14 +409,21 @@ async function push(image) {
 }
 
 // ----------------------------------------------------------------------------- restore
+// The board's own records (logs, counters, snapshots, slot.txt: manifest "preserve") are never
+// rolled back or deleted: a backup's copy goes on only where the board has none. secrets.py only
+// with --secrets. --exact deletes the rest of what the backup does not have, never a preserved or
+// flagged file. A fresh backup is taken first.
 async function restore(dir) {
   if (!dir || !existsSync(join(dir, "SHA256SUMS"))) die("restore DIR: a folder that tools/fw backup made (it has SHA256SUMS)");
   const sums = readFileSync(join(dir, "SHA256SUMS"), "utf8").trim().split("\n").map((l) => l.split(/\s+/)).map(([h, n]) => ({ h, n }));
   const withSecrets = has("--secrets");
-  const put = sums.filter(({ n }) => n !== "maint" && (withSecrets || !/^secrets/.test(n)));
+  const secret = (n) => /^secrets/.test(n);
+  const kept = (n) => matches(M.preserve, n) || matches(M.flag, n);
+  const { files: nowFiles } = backup();
+  const now = nowFiles.map((f) => f.name);
+  const put = sums.filter(({ n }) => n !== "maint" && (secret(n) ? withSecrets : !kept(n) || !now.includes(n)));
   for (const { h, n } of put) if (sha256(readFileSync(join(dir, n))) !== h) die(`${n} in the backup no longer matches its SHA256SUMS line`);
-  const now = boardFiles().map((f) => f.name);
-  const drop = has("--exact") ? now.filter((n) => n !== "maint" && !sums.some((s) => s.n === n) && (withSecrets || !/^secrets/.test(n))) : [];
+  const drop = has("--exact") ? now.filter((n) => n !== "maint" && !sums.some((s) => s.n === n) && !kept(n) && !secret(n)) : [];
   console.log(`restore ${dir}:\n  copy ${put.length} files${withSecrets ? " (secrets.py too)" : " (not secrets.py)"}\n  delete ${drop.length}: ${drop.join(" ") || "none"}`);
   if (!(await ask("The board goes into maintenance first."))) die("nothing changed");
   await enterMaintenance();
@@ -467,6 +478,8 @@ function measure(what) {
   const tmp = join(ROOT, "build", "measure_tls_run.py");
   mkdirSync(dirname(tmp), { recursive: true });
   writeFileSync(tmp, script);
+  const wd = run("import sys\nw = sys.modules.get('watch')\nprint('WATCHDOG:' + str(bool(w and w.running())))");
+  if (/WATCHDOG:True/.test(wd)) die("the console's watchdog is running, and a soft reset would leave it unfed: put the board in maintenance first (hold B while plugging it in), then measure");
   console.log("the board soft-resets (its app stops) and runs the measurement from RAM; about a minute...");
   const r = mp(["run", tmp], { resume: false, timeout: 300000 });
   console.log(r.out);
