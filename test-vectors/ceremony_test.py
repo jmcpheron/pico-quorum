@@ -178,6 +178,11 @@ def case_console():
     T.serve(Q, [T.tx(Q, 0)])
     check(T.sign(Q, Q.queue[0], 2100) and sim.counters[0] == before + 1 and Q.counter == before + 1 and Q.outside == 0,
           "a signature: exactly one use (the slot is sealed, so the check before it reads only the serial), none flagged")
+    Q2 = T.fresh(expect={"serial": "0123ffffffffffffff", "slot": 0, "owner": owner, "locked": True}, keep=True)
+    Q2.handle("A")
+    Q2.handle("A")                          # "Check again" twice on the pin-fail screen: two more reads of the key
+    Q = T.fresh(expect={"serial": T.SERIAL, "slot": 0, "owner": owner, "locked": True}, keep=True)
+    check(Q.outside == 0, "Check again on the pin-fail screen reads the key; the next boot does not flag it")
     sim.counters[0] += 1                    # something else on the bus uses the key
     sim.save()
     Q = T.fresh(expect={"serial": T.SERIAL, "slot": 0, "owner": owner, "locked": True}, keep=True)

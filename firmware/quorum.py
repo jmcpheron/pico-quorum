@@ -261,6 +261,26 @@ def check_counter():
     store_counter(counter)
 
 
+def own_reads(before):
+    """After this console read the key again (Check again): any rise since `before`, the count
+    found just ahead of the read, was its own. Save the count now, so it is not flagged later."""
+    global counter, outside
+    try:
+        now = read_counter()
+    except Exception:
+        return
+    if now is None:
+        return
+    if counter is None:
+        check_counter()
+        return
+    if before is not None and before > counter:
+        outside += before - counter          # uses between the last look and this one were not ours
+        qlog.write("counter %d: %d use%s of the key outside this console" % (before, before - counter, "" if before - counter == 1 else "s"))
+    counter = now
+    store_counter(now)
+
+
 def fingerprint():
     return qx[2:10] if qx else ""
 
@@ -615,11 +635,11 @@ def handle(k):
     global state, sel, dirty, last_poll
     if state in ("nochip", "pinfail"):
         if k == "A":
-            probe_chip()
+            probe_chip()            # counts first (boot_count), then reads the key: on a sealed chip, a use of it
             if state == "boot":
                 state = "home"
-                check_counter()
                 start_watch()
+            own_reads(boot_count)
             dirty = True
     elif state == "crashed":
         if k == BACK:
