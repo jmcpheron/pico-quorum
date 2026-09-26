@@ -578,3 +578,27 @@ Branch `firmware-production`. The walkthrough with every new screen is in
   ever acted on, so nothing wrong was done with it.
 - MicroPython strings have no `ljust`. The OTP record would have raised at C8 on the board; the
   ceremony's dry run caught it.
+
+**On the board, 2026-09-26, nothing written to flash:**
+- **Backup:** `tools/fw backup` got 52 files, every hash checked, with the wallet paused while
+  reading. `verify --baseline` read chip #1 as expected:
+  - `0123f3acfd2a826bee`, 608A
+  - key `9fad2e82…`, owner `0x2843…5E53`, computed on the laptop
+  - lock bytes `55 00 fe ff`
+  - counter 0 = 16: 14 at the seal, +1 the Base mainnet GS021 confirmation, +1 not yet accounted for
+- **TLS hazard confirmed:** plain `requests` on the board accepted `self-signed.badssl.com`.
+- **Dates are checked:** before NTP the board's clock said 2021 and a verified call was refused
+  ("validity starts in the future").
+- **The console image compiled on the Pico failed to start.** It was run from `mpremote mount`, so
+  nothing went to flash. It had 191 KB free, but no block over 5.7 KB, and a 5.8 KB font would not
+  load. Compiling modules on the device leaves the heap in pieces.
+- **The fix:**
+  - `tools/fw build` now compiles every module but `boot.py` and `main.py` with mpy-cross 1.26.1
+    (`.mpy` v6.3, the board's own).
+  - `main_console.py` loads the fonts and the HTTPS reserve before anything else.
+- **The same image, compiled, from the mount:**
+  - It starts. Not pinned (no `QUORUM_EXPECT` in the test file), TLS mode `verified`.
+  - 8 of 8 verified polls to api.safe.global, 0.8–1.0 s typically, 7 s at worst.
+  - 114 KB free after polling, largest block 10.7 KB, the 32 KB reserve back after every call.
+  - badssl.com refused on the certificate itself: expired, wrong host (CN mismatch), self-signed,
+    untrusted root.
