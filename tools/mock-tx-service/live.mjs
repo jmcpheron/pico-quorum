@@ -445,8 +445,10 @@ print('WROTE', len(old), '->', os.stat('secrets.py')[6], 'bytes; the old file is
   // restart. A development board gets the console shipped and started, as before.
   const main = spawnSync(`${ROOT}tools/usb`, ["exec", "print('MAIN', open('main.py').read()[:60])"], { encoding: "utf8" }).stdout || "";
   if (/picoquorum-image: console/.test(main)) {
+    // then hands off for 30 s: any mpremote command starts with Ctrl-C, which would stop the
+    // console mid-start (tools/fw restart, 2026-09-26)
     spawnSync(`${ROOT}tools/usb`, ["exec", "import machine; machine.reset()"], { encoding: "utf8", timeout: 10000 });
-    await new Promise((res) => setTimeout(res, 20000));
+    await new Promise((res) => setTimeout(res, 30000));
   } else {
     r = spawnSync(`${ROOT}tools/emu`, ["ship", "quorum"], { encoding: "utf8", timeout: 180000 });
     if (!/running quorum/.test(r.stdout + r.stderr)) die(`the restart did not report back:\n${(r.stdout + r.stderr).slice(-600)}`);
