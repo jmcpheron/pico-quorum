@@ -32,7 +32,7 @@ def context(files=CA_FILES):
     ctx.verify_mode = tls.CERT_REQUIRED
     for f in files:
         with open(f, "rb") as fh:
-            ctx.load_verify_locations(cadata=fh.read())
+            ctx.load_verify_locations(fh.read())   # positional: tls's C method takes no keywords; each call adds to the chain
     return ctx
 
 

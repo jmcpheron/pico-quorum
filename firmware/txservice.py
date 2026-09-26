@@ -78,6 +78,11 @@ class Service:
         gc.collect()
 
     def _call(self, method, path, body=None):
+        try:
+            import watch
+            watch.extend(int(self.timeout * 1000) + 10000)      # each call may take its whole timeout
+        except ImportError:
+            pass
         if self._ctx is not None:
             import vhttp
             vhttp.clock(self.floor)

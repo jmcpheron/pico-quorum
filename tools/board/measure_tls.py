@@ -20,7 +20,7 @@ def ctx():
     c = tls.SSLContext(tls.PROTOCOL_TLS_CLIENT)
     c.verify_mode = tls.CERT_REQUIRED
     for b in _CA:
-        c.load_verify_locations(cadata=b)
+        c.load_verify_locations(b)
     return c
 
 

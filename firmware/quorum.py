@@ -638,7 +638,7 @@ def tick(t):
         _n += 1
         watch.extend(5000)
         net.poll_accept()
-        if state in ("home", "boot") and svc and (last_poll == 0 or time.ticks_diff(time.ticks_ms(), last_poll) >= poll_every()):
+        if state in ("home", "boot") and (last_poll == 0 or time.ticks_diff(time.ticks_ms(), last_poll) >= poll_every()):
             timer.deinit()      # no timer events pile up while HTTP and hashing block
             try:
                 net_work()
