@@ -357,7 +357,8 @@ def entry(w, t):
             e["why"] = "It is for another Safe, %s, not the one this console signs for." % U.short(t.get("safe") or "?")
         else:
             try:
-                e["mine"] = decode.hx(safe_tx.from_service(w["chain"], t))
+                dom, msg, mine = safe_tx.parts(w["chain"], t)
+                e["mine"], e["dom"], e["msg"] = decode.hx(mine), decode.hx(dom), decode.hx(msg)
                 if e["mine"] != h:
                     e["why"] = "The service wants a signature over a hash that these fields do not produce. Signing it could approve something else entirely."
             except MemoryError:
@@ -582,7 +583,8 @@ def pages_of(e):
             items.append(("calldata", i))    # the raw call, on a page of its own
     if e["why"]:
         return [("refused", 0)] + items
-    return [("summary", 0)] + items + [("verify", 0)]
+    # the hash (ERC-8213's EIP-712 digest), its two halves as a Ledger shows them, and a QR for a phone
+    return [("summary", 0)] + items + [("verify", 0), ("parts", 0), ("qr", 0)]
 
 
 def open_entry(e):
@@ -601,7 +603,8 @@ def turn(step):
 
 
 def unseen():
-    return [i for i in range(len(pages)) if i not in seen]
+    """The pages still to see before SIGN arms. The QR is an extra, not a page to read."""
+    return [i for i in range(len(pages)) if i not in seen and pages[i][0] != "qr"]
 
 
 def hold_need(e):

@@ -25,7 +25,57 @@ Four rounds. Each one is pushed with its pictures:
    red pages for anything that can't be undone or that sends funds somewhere other than this Safe.
    *(Done: round 2 below.)*
 3. **Hash checks.** The full EIP-712 digest labelled the ERC-8213 way, the Domain and Message
-   hashes a co-signer's Ledger shows, and a QR so a phone can check it too.
+   hashes a co-signer's Ledger shows, and a QR so a phone can check it too. *(Done: round 3 below.)*
+
+## Round 3 (2026-09-27): checking the hash
+
+You asked: is there a better way than comparing the hash through the Safe web app, and are there
+standards for it?
+
+The answer from the research (below) is **ERC-8213**. It fixes the names:
+- **EIP-712 digest** (Safe's safeTxHash);
+- **Domain hash** and **Message hash** (its two halves);
+- **Calldata digest**.
+
+It says to show either the digest in full or the two halves together, and it warns that comparing
+only the ends can be ground: an attacker can mine a transaction whose hash has the same first and
+last characters. Today's verify page did exactly that: its headline was `1f6f 0788`.
+
+The review now ends in three pages:
+
+| | |
+|---|---|
+| <img src="shots/b04-send-verify.png" width="320"> | <img src="shots/b04b-send-parts.png" width="320"> |
+| **Safe tx hash (EIP-712 digest), all 64 characters,** beside its identicon. The 8-character headline is gone. It still says the hash was computed here under the Safe's version rules. | **What a Ledger shows:** the Domain hash and Message hash. A co-signer on a Ledger or Trezor sees these two on their device, not the safeTxHash, so now they can compare directly with this console. Counted in "every page seen". |
+| <img src="shots/b57-withdraw-qr.png" width="320"> | <img src="shots/b04c-send-qr.png" width="320"> |
+| **Check it on your phone.** On Ethereum, Base and Base Sepolia (and Sepolia), the QR opens [Safe Utils](https://safeutils.openzeppelin.com) (OpenZeppelin) pre-filled with the chain, the Safe and the nonce. It fetches that transaction from Safe's service and computes the three hashes with its own code on your phone: a second device and a second codebase. **Optional:** SIGN doesn't wait for this page. | **On a chain Safe Utils doesn't know** (here, the laptop's Local chain), the QR is the hash itself, for another screen to compare. |
+
+On the 240×240 screen the same three pages reflow into 8-character groups:
+
+| | | |
+|---|---|---|
+| <img src="../quorum-ui/shots/04-approve-every-page-first.png" width="240"> | <img src="../quorum-ui/shots/04b-approve-parts.png" width="240"> | <img src="../quorum-ui/shots/04c-approve-qr.png" width="240"> |
+
+How it's checked:
+- The QRs in these pictures were read back with OpenCV's QR decoder, which returned the link with
+  the Safe address checksummed (EIP-55) and the full hash.
+- `safe_tx.py` has a new `parts()`. Every `safe_tx.json` vector now carries viem's `messageHash`,
+  and both CPython and MicroPython check it.
+- The console tests check the link, that the three hashes fit together, and that the QR page is
+  optional.
+- `qrcode.py` joins the console image. The manifest test kept it out only because the legacy wallet
+  was its sole user. It's a pure encoder, and the chip-call check still covers it.
+- The QR uses a fixed mask, so it's made in one pass on the Pico, once per transaction.
+
+**Questions for you:**
+1. **The 8-character code is gone.** It was handy on a call ("does yours end in 1f6f 0788?"). The
+   ERC's alternative is reading all 16 groups, or the two halves. Keep it gone, or bring it back
+   small beside the full hash?
+2. **Safe Utils** fetches the transaction from the same Safe service the console uses. It's an
+   independent computation, not an independent source. Should the link go instead to
+   `safe-tx-hashes-util` instructions, or to a verifier you host?
+3. **The QR is about 23 mm wide** on the 2.8″ screen (41 modules at 3 px). My phone reads that size
+   from 15–20 cm. Worth checking on the real panel.
 
 ## Round 2 (2026-09-27): validator operations
 
@@ -210,6 +260,7 @@ matter:
   - It warns against checking only a prefix or suffix.
   - Ledger and Trezor show Domain + Message when signing a Safe transaction. A co-signer on one of
     those can compare directly with this console, if the console shows the same two values.
+    (Round 3 does.)
 - [ERC-7730](https://eips.ethereum.org/EIPS/eip-7730) (clear-signing descriptors, the Ethereum
   Foundation's [registry](https://github.com/ethereum/clear-signing-erc7730-registry)) is how
   contracts we don't pin could get plain-language pages later. It is in `docs/CLEARSIGNING.md`'s

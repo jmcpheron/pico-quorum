@@ -202,6 +202,9 @@ order I would close them:
    `execute`, also show the Calldata Digest of `data` (`keccak(len‖data)`, a few lines in
    `eip712.py`). The website shows the same values so they can be compared, and any script can
    recompute them. Cheap, no new trust.
+   *Done for the Safe console (2026-09-27, [build1-ui round 3](build1-ui/README.md#round-3-2026-09-27-checking-the-hash)):
+   the full EIP-712 digest with no 8-character headline, the Domain and Message hashes as a Ledger
+   shows them, the Calldata Digest on every undecoded call, and a QR to Safe Utils.*
 
 2. **Send the typed data, not the kind.** Today the app sends `kind` + fields and the wallet
    has one hasher per kind. If the app sent the full EIP-712 JSON (ERC-4527 data-type 2) and

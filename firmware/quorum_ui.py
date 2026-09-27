@@ -768,21 +768,102 @@ def draw_key(q, ik):
          M, y, TW, "sans12", pc["muted"], bg, 15, PAGE_ROW - 2)
 
 
+def hash_block(d, h, x, y, width, max_lines, fg, bg, lead0x=True):
+    """A 32-byte hash in full as 0x + groups: 4 hex a group where max_lines lines of them fit in
+    width, else 8. Lines are even (4x4, 6-6-4, 2x2...). lead0x=False leaves the 0x to the label,
+    for one more group a line. Returns the y after it."""
+    h = h[2:] if h.startswith("0x") else h
+    lead = F.width("0x", "mono13") if lead0x else 0
+    for size in (4, 8):
+        n = 64 // size
+        per = min(n, (width - lead) // F.width("0" * size + " ", "mono13"))
+        if per and (n + per - 1) // per <= max_lines:
+            break
+    lines = (n + per - 1) // per
+    per = (n + lines - 1) // lines
+    for k, line in enumerate(hash_lines(h, per, size)):
+        txt(d, (("0x" if k == 0 else "  ") if lead0x else "") + line, x, y, "mono13", fg, bg)
+        y += 15
+    return y
+
+
 def draw_verify(q):
+    """ERC-8213's EIP-712 digest (Safe's safeTxHash), all 64 characters: a prefix or suffix alone
+    can be ground, so no short code is offered."""
     d, e = q.d, q.cur
-    txt_c(d, "Check with the proposer", 32, "bold18")
-    txt_c(d, "The Safe tx hash ends in", 54, "sans12", "muted")
-    code = e["mine"][-8:]
-    txt_c(d, code[:4] + " " + code[4:], 64, "monob28", "stake")
-    blockies.draw(d, e["mine"], M, 110, 5)
-    y = 104
-    for k, line in enumerate(hash_lines(e["mine"])):
-        txt(d, ("0x" if k == 0 else "  ") + line, 58, y, "mono13", "text" if k == 3 else "muted")
-        y += 14
-    mark(d, True, M + 7, 173, 7)
+    x = txt(d, "Safe tx hash", M, 31, "bold18")
+    txt_r(d, "EIP-712 digest", R, 36, "sans12", "muted")
+    blockies.draw(d, e["mine"], M, 60, 5)
+    y = hash_block(d, e["mine"], M + 50, 58, R - M - 50, 4, "text", "bg")
+    y = max(y, 104) + 8
+    mark(d, True, M + 7, y + 8, 7)
     v, ok = q.safe_version()
-    txt(d, "Hashed here, Safe v%s rules" % v if v else "Hashed here from the fields shown", M + 20, 165, "sans12",
+    txt(d, "Hashed here, Safe v%s rules" % v if v else "Hashed here from the fields shown", M + 20, y, "sans12",
         "ok" if ok or not v else "bad")
+    para(d, "Compare every character, not only the ends. Next: the two halves a Ledger shows.",
+         M, y + 20, TW, "sans12", "muted", "bg", 15, PAGE_ROW - 2)
+
+
+def draw_parts(q):
+    """The Domain Hash and Message Hash (ERC-8213), which a Ledger or Trezor shows instead of the
+    digest when a co-signer signs the same Safe transaction."""
+    d, e = q.d, q.cur
+    x = txt(d, "What a Ledger shows", M, 31, "bold18")
+    if F.width("ERC-8213", "sans12") <= R - x - 8:
+        txt_r(d, "ERC-8213", R, 36, "sans12", "muted")
+    y = 56
+    for label, h in (("Domain hash", e.get("dom", "")), ("Message hash", e.get("msg", ""))):
+        txt(d, label + " (0x\u2026)", M, y, "sans12", "muted")
+        y = hash_block(d, h, M, y + 14, TW, 3, "text", "bg", False) + 6
+
+
+def qr_of(q, e):
+    """(text, n, rows) for this transaction's QR, made once per transaction: a link that has a phone
+    check it independently (cfg "verifier"), or the hash itself."""
+    if "qr" not in e:
+        import qrcode
+        url = decode.verifier_url(q.CFG, e["w"]["chain"], e["w"]["addr"], e["n"])
+        text = url or e["mine"]
+        n, rows = qrcode.encode(text, "L", 6, 0)       # a fixed mask: quick on the Pico, and any reader copes
+        e["qr"] = (text, n, rows, bool(url))
+    return e["qr"]
+
+
+def draw_qr_code(d, n, rows, x0, y0, s):
+    """Dark modules as runs, one rectangle per run: a few hundred calls instead of ~800."""
+    pad = 2 * s
+    d.fill_rect(x0, y0, n * s + 2 * pad, n * s + 2 * pad, c((255, 255, 255)))
+    ink = c((0, 0, 0))
+    for r in range(n):
+        bits, col = rows[r], 0
+        while col < n:
+            if bits >> col & 1:
+                start = col
+                while col < n and bits >> col & 1:
+                    col += 1
+                d.fill_rect(x0 + pad + start * s, y0 + pad + r * s, (col - start) * s, s, ink)
+            else:
+                col += 1
+    return n * s + 2 * pad
+
+
+def draw_qr(q):
+    d, e = q.d, q.cur
+    text, n, rows, is_url = qr_of(q, e)
+    wide = W >= 300
+    s = max(2, min(4, (PAGE_ROW - TOP - (10 if wide else 30)) // (n + 4)))
+    box = n * s + 4 * s
+    x0 = M if wide else (W - box) // 2
+    draw_qr_code(d, n, rows, x0, TOP + 4, s)
+    if wide:
+        x, w = x0 + box + M, R - x0 - box - M
+        y = para(d, "Check it on your phone" if is_url else "The hash, for a phone", x, TOP + 4, w, "bold14", "text", "bg", 17, PAGE_ROW)
+        para(d, ("Opens Safe Utils (OpenZeppelin). It asks Safe's service for #%d and hashes it with its own code: "
+                 "its three hashes must match the last two pages." % e["n"]) if is_url else
+             "No verifier knows this chain, so the QR is the hash itself, to compare on another screen.",
+             x, y + 4, w, "sans12", "muted", "bg", 15, PAGE_ROW - 2)
+    else:
+        txt_c(d, "Safe Utils checks #%d" % e["n"] if is_url else "The hash itself", TOP + box + 8, "sans12", "muted")
 
 
 def draw_refused(q):
@@ -817,6 +898,10 @@ def draw_review(q):
         pc = page_colors(q.cur["r"]["items"][i[0]]["level"])
     elif kind == "verify":
         draw_verify(q)
+    elif kind == "parts":
+        draw_parts(q)
+    elif kind == "qr":
+        draw_qr(q)
     else:
         draw_refused(q)
         pc = page_colors("red")

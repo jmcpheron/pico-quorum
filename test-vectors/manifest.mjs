@@ -16,7 +16,9 @@ const closure = (...mods) => [...new Set(mods.flatMap((m) => dependencies(m)))].
 // Apps and screens that can use the chip other than the console's one signature path.
 const NOT_IN_CONSOLE = ["wallet.py", "usbwallet.py", "main_usb.py", "main.py", "demo.py", "mock.py", "keytest.py", "vid.py",
   "trustm.py", "eip712.py", "power.py", "chipcheck.py", "slots.py", "chipmap.py", "learn.py", "snakelab.py", "ceremony.py",
-  "chipapp.py", "provision.py", "qrcode.py", "main_ceremony.py"];
+  "chipapp.py", "provision.py", "main_ceremony.py"];
+// qrcode.py left this list in round 3 of docs/build1-ui: a pure encoder with no chip or network
+// access (the PERMANENT check below still covers it), for the verify page's QR.
 // Signer and driver calls that change the chip. Only signer.py and atecc.py may even name them.
 const PERMANENT = /\.(genkey\w*|lock_\w+|provision\w*|write_config|restore_snapshot|write_note|write_data|write_otp|write_record\w*)\(/;
 

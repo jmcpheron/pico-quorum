@@ -17,6 +17,9 @@ for v in vs:
     h = safe_tx.safe_tx_hash(v["chainId"], v["safe"], t["to"], t["value"], t["data"], t["operation"],
                              t["safeTxGas"], t["baseGas"], t["gasPrice"], t["gasToken"], t["refundReceiver"], t["nonce"])
     ok = ("0x" + "".join("%02x" % b for b in h)) == v["safeTxHash"].lower()
+    if ok and "messageHash" in v:
+        d2, m2, h2 = safe_tx.parts(v["chainId"], dict(t, safe=v["safe"]))
+        ok = ("0x" + "".join("%02x" % b for b in m2)) == v["messageHash"].lower() and h2 == h
     bad += not ok
     print("pass" if ok else "FAIL", v["name"])
 print("%s: %d/%d vectors pass" % (sys.version, len(vs) - bad, len(vs)))

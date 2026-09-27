@@ -47,11 +47,11 @@ const STORIES = [
   ["home", DEMO, ["shot 01-home"]],
   ["approve", DEMO, [
     "key A", "shot 02-approve-summary", "key down", "shot 03-approve-send", "key A", "shot 04-approve-every-page-first",
-    "frozen-hold 1000", "shot 05-approve-hold", "hold A", "wait 2300", "release A", "wait 800", "shot 06-approve-signed",
+    "key down", "shot 04b-approve-parts", "key down", "shot 04c-approve-qr", "frozen-hold 1000", "shot 05-approve-hold", "hold A", "wait 2300", "release A", "wait 800", "shot 06-approve-signed",
     "key A", "wait 1500", "shot 07-approve-home-after"]],
   ["batch", DEMO, ["keys down,A", "shot 08-batch-summary", "key down", "shot 09-batch-call-1", "key down", "shot 10-batch-call-2",
     "key down", "shot 11-batch-verify"]],
-  ["owner", DEMO, ["keys down,down,A", "shot 12-owner-summary", "key down", "shot 13-owner-red-page", "key down",
+  ["owner", DEMO, ["keys down,down,A", "shot 12-owner-summary", "key down", "shot 13-owner-red-page", "key down", "key down",
     "hold A", "wait 2300", "release A", "wait 100", "shot 14-owner-let-go-early", "frozen-hold 2000", "shot 15-owner-hold-red"]],
   ["lie", DEMO, ["keys down,down,down,A", "shot 16-lie-refused", "key down", "shot 17-lie-claimed", "key A", "shot 18-lie-cant-sign"]],
   ["unknown", DEMO, ["keys down,down,down,down,A", "shot 19-unknown-summary", "key down", "shot 20-unknown-red-page",
@@ -88,7 +88,7 @@ const BUILD1_STORIES = [
   ["home", DEMO, ["shot b01-home"]],
   ["approve", DEMO, [
     "push", "shot b02-send-summary", "turn cw", "shot b03-send-page", "turn cw", "shot b04-send-verify",
-    "turn cw", "shot b05-send-actions", "frozen-hold 1000", "shot b06-send-hold",
+    "turn cw", "shot b04b-send-parts", "turn cw", "shot b04c-send-qr", "turn cw", "shot b05-send-actions", "frozen-hold 1000", "shot b06-send-hold",
     "hold push", "wait 2300", "release push", "wait 800", "shot b07-send-signed"]],
   ["batch", DEMO, ["turn cw", "push", "shot b08-batch-summary", "turn cw", "shot b09-batch-call-1"]],
   ["owner", DEMO, ["turn cw:2", "push", "turn cw", "shot b10-owner-red-page"]],
@@ -100,7 +100,8 @@ const BUILD1_STORIES = [
   // round 2: validators. A Safe on Ethereum; QUORUM_VALIDATORS names node-1..3.
   ["validators", null, [
     "wait 2000", "shot b40-val-home",
-    "push", "shot b41-withdraw-summary", "turn cw", "shot b42-withdraw-page", "turn cw", "shot b43-withdraw-key", "push", "turn cw:2", "push",
+    "push", "shot b41-withdraw-summary", "turn cw", "shot b42-withdraw-page", "turn cw", "shot b43-withdraw-key",
+    "turn cw", "shot b55-withdraw-verify", "turn cw", "shot b56-withdraw-parts", "turn cw", "shot b57-withdraw-qr", "push", "turn cw:2", "push",
     "turn cw", "push", "shot b44-exit-summary", "turn cw", "shot b45-exit-page", "push", "turn cw:2", "push",
     "turn cw", "push", "turn cw", "shot b46-compound-page", "push", "turn cw:2", "push",
     "turn cw", "push", "shot b47-consolidate-summary", "turn cw", "shot b48-consolidate-page", "turn cw:2", "shot b49-consolidate-into-key", "push", "turn cw:2", "push",
@@ -153,7 +154,9 @@ function args(steps, OUT) {
 }
 
 async function post(path, body, base = BASE) {
-  const r = await fetch(base + path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  // connection: close, so a socket the mock has since closed as idle is never reused (a story takes
+  // longer than its keep-alive, and the next reset would fail with "other side closed")
+  const r = await fetch(base + path, { method: "POST", headers: { "content-type": "application/json", connection: "close" }, body: JSON.stringify(body) });
   if (!r.ok) throw new Error(`${path}: ${r.status}`);
 }
 
@@ -163,9 +166,11 @@ const server2 = spawn(process.execPath, [join(ROOT, "tools/mock-tx-service/serve
   { env: { ...process.env, QUORUM_STATE: join(tmp, "state2.json"), QUORUM_SIM_SAFE: `84532:${SAFE2}:Test Safe` }, stdio: "ignore" });
 const server3 = spawn(process.execPath, [join(ROOT, "tools/mock-tx-service/server.mjs"), "--port", String(PORT3)],
   { env: { ...process.env, QUORUM_STATE: join(tmp, "state3.json"), QUORUM_SIM_SAFE: `1:${SAFE3}:Staking Safe` }, stdio: "ignore" });
+// the mocks go down with this script, even when it fails part way (a leftover one would hold its port)
+process.on("exit", () => { for (const sv of [server, server2, server3]) sv.kill(); });
 for (const b of [BASE, BASE2, BASE3]) {
   for (let i = 0; ; i++) {
-    try { await fetch(b + "/sim/state"); break; } catch { if (i > 40) throw new Error("mock did not start"); }
+    try { await fetch(b + "/sim/state", { headers: { connection: "close" } }); break; } catch { if (i > 40) throw new Error("mock did not start"); }
     await new Promise((r) => setTimeout(r, 100));
   }
 }

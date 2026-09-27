@@ -9,7 +9,7 @@
 //
 //   cd tools/vectors && npm install && npm run gen
 import { readFileSync, writeFileSync } from "node:fs";
-import { encodeFunctionData, encodePacked, formatEther, hashDomain, hashTypedData, maxUint256, parseAbi, size, concat } from "viem";
+import { encodeFunctionData, encodePacked, formatEther, hashDomain, hashStruct, hashTypedData, maxUint256, parseAbi, size, concat } from "viem";
 
 const types = {
   SafeTx: [
@@ -171,6 +171,7 @@ const vectors = cases.map(([name, description, chainId, safe, m, expect]) => {
     tx: Object.fromEntries(Object.entries(m).map(([k, v]) => [k, typeof v === "bigint" ? v.toString() : v])),
     domainSeparator: hashDomain({ domain, types: { EIP712Domain: [
       { name: "chainId", type: "uint256" }, { name: "verifyingContract", type: "address" }] } }),
+    messageHash: hashStruct({ data: m, primaryType: "SafeTx", types }),
     safeTxHash: hashTypedData({ domain, types, primaryType: "SafeTx", message: m }),
   };
 });

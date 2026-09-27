@@ -31,6 +31,9 @@ def main():
                                  t["safeTxGas"], t["baseGas"], t["gasPrice"], t["gasToken"],
                                  t["refundReceiver"], t["nonce"])
         ok = dom == v["domainSeparator"].lower() and hx(h) == v["safeTxHash"].lower()
+        if ok and "messageHash" in v:      # ERC-8213's Message Hash, and parts() agreeing with both
+            d2, m2, h2 = safe_tx.parts(v["chainId"], dict(t, safe=v["safe"]))
+            ok = hx(m2) == v["messageHash"].lower() and hx(d2) == dom and h2 == h
         if ok and safe_tx.verify_code(h) != v["safeTxHash"].lower()[-8:]:
             ok = False
         print("%s  %-24s %s" % ("pass" if ok else "FAIL", v["name"], safe_tx.verify_code(h)))

@@ -56,6 +56,21 @@ def _bytes(h):
     return bytes.fromhex(h)
 
 
+def checksum(a):
+    """EIP-55: the address with its checksum capitals (what Safe's service and most tools expect)."""
+    h = a[2:].lower()
+    k = hexlify(keccak256(h.encode())).decode()
+    return "0x" + "".join(ch.upper() if ch in "abcdef" and int(k[i], 16) >= 8 else ch for i, ch in enumerate(h))
+
+
+def verifier_url(cfg, chain, safe, nonce):
+    """The link the QR carries to an independent check of this transaction, or None on a chain the
+    verifier does not know."""
+    v = cfg.get("verifier") or {}
+    p = v.get("prefixes", {}).get(str(chain))
+    return v["url"] % (p, checksum(safe), nonce) if p else None
+
+
 def group(n):
     """12345678 -> 12,345,678"""
     s, out = str(n), ""

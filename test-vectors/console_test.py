@@ -679,9 +679,32 @@ def case_validators():
     check(decode.paid(by[0]["r"]) == [], "a validator request pays no one: nothing counted as paid")
 
 
+def case_verify():
+    import decode, quorum_cfg
+    from keccak import keccak256
+    check(decode.checksum(VIT) == "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", "EIP-55: vitalik.eth's address, checksummed")
+    url = decode.verifier_url(quorum_cfg.CFG, 84532, SAFE, 3)
+    check(url == "https://safeutils.openzeppelin.com/?safeAddress=basesep:%s&nonce=3" % decode.checksum(SAFE),
+          "the QR's link: Safe Utils with Base Sepolia's prefix, the checksummed Safe and the nonce")
+    check(decode.verifier_url(quorum_cfg.CFG, 31337, SAFE, 3) is None, "a chain Safe Utils doesn't know: no link (the QR is the hash)")
+    Q = fresh()
+    serve(Q, [tx(Q, 0)])
+    e = Q.queue[0]
+    dig = keccak256(b"\x19\x01" + bytes.fromhex(e["dom"][2:]) + bytes.fromhex(e["msg"][2:]))
+    check("0x" + "".join("%02x" % b for b in dig) == e["mine"] == e["h"], "domain and message hash on the entry, and together they are the digest")
+    ps = Q.pages_of(e)
+    check(ps[-3:] == [("verify", 0), ("parts", 0), ("qr", 0)], "after the items: the digest, what a Ledger shows, the QR")
+    Q.open_entry(e)
+    while Q.page < len(ps) - 2:
+        Q.turn(1)
+    check(Q.unseen() == [] and ps.index(("qr", 0)) not in Q.seen, "every page but the QR seen: nothing left to see")
+    text, n, rows, is_url = Q.U.qr_of(Q, e)
+    check(is_url and text == url.replace("nonce=3", "nonce=0") and n <= 41, "the QR carries the link and fits version 6")
+
+
 def main():
     for case in (case_pin, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_safes, case_watchdog,
-                 case_names, case_validators):
+                 case_names, case_validators, case_verify):
         print("--", case.__name__[5:])
         try:
             case()

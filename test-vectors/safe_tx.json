@@ -28,6 +28,7 @@
         "nonce": "0"
       },
       "domainSeparator": "0x0a4eb9729c16c5f9e795832037ed22fdcebd77a4d4964a3a235bf8cc6a856240",
+      "messageHash": "0xbfe3b570b20049687b72dff74dd6eab15ee2ee362a6e3b5b535aef55b67f2bdf",
       "safeTxHash": "0x875932f415192acece7a60d60dbf81e1ff29d3dc1126c43dc5a9db0def86dc83"
     },
     {
@@ -57,6 +58,7 @@
         "nonce": "0"
       },
       "domainSeparator": "0xd9085f9a9fcfa4cd05738cd1f6a1409ed6b382015306fcb78c8e0ac906d5487f",
+      "messageHash": "0xbfe3b570b20049687b72dff74dd6eab15ee2ee362a6e3b5b535aef55b67f2bdf",
       "safeTxHash": "0xdf8286d8bbae7fafdc92423428989c1cb853256d06d4370e61dc3452085c2b6d"
     },
     {
@@ -86,6 +88,7 @@
         "nonce": "7"
       },
       "domainSeparator": "0x3a81f42a358fa4254161febf8ac8cbd0deb574e0a5ed46935befa88b0f3ea8dd",
+      "messageHash": "0xba96a137bda883109c44cbe1fbe58b7c75a57f813c139d246872e79eb6c3362c",
       "safeTxHash": "0x9807bb23d810e8e0b86121e283ef84cd25d8afb93620edb18e380ae2aec13c1f"
     },
     {
@@ -119,6 +122,7 @@
         "nonce": "8"
       },
       "domainSeparator": "0x3a81f42a358fa4254161febf8ac8cbd0deb574e0a5ed46935befa88b0f3ea8dd",
+      "messageHash": "0xebdb7a722fa082a2693d56aacf02f477e194a4973cc10488f9feab29479e2a2d",
       "safeTxHash": "0x50f59328dc6f5e81f807459d05e605caa19c363a140dba3811d8cb7e803a3aff"
     },
     {
@@ -152,6 +156,7 @@
         "nonce": "42"
       },
       "domainSeparator": "0x0a4eb9729c16c5f9e795832037ed22fdcebd77a4d4964a3a235bf8cc6a856240",
+      "messageHash": "0xa078468959731e224a70ff56a0aebe583d5b894017f81655abef6abee4b0b6b6",
       "safeTxHash": "0xa8977588d0ad594a73c99764a0bcd0f2b1880dae21d5f988db9e691d2b3abdae"
     },
     {
@@ -181,6 +186,7 @@
         "nonce": "3"
       },
       "domainSeparator": "0xd9085f9a9fcfa4cd05738cd1f6a1409ed6b382015306fcb78c8e0ac906d5487f",
+      "messageHash": "0x84b6057be7f135eb16c48c9fce2967de5f599ab89dfd387f8905e6c64bd50b44",
       "safeTxHash": "0x88ed3ebb2b68e3e82d533e2ee15afd09e963f4ee93d681697be0ab8fb613b9ed"
     },
     {
@@ -210,6 +216,7 @@
         "nonce": "18446744073709551617"
       },
       "domainSeparator": "0x51f0cecac713786a544ffda6ccb720ac5ab50711ccf7998ae2138c938933622e",
+      "messageHash": "0x02040c539c6067d21001844d2d7619f85173e23b1ace29b6de2ec9b8e1385ab3",
       "safeTxHash": "0xa2201c7df723c859431e76f24cce5b19b3549b7e23a1c441eb41c513babd2b04"
     },
     {
@@ -239,6 +246,7 @@
         "nonce": "4"
       },
       "domainSeparator": "0xd9085f9a9fcfa4cd05738cd1f6a1409ed6b382015306fcb78c8e0ac906d5487f",
+      "messageHash": "0x7738c6cc176ec7f161a9ce365682d847be5279b0f51d5ed18dd50db6a0ff5949",
       "safeTxHash": "0x5d4296b6a841e62fbd8c7d07259fbe12584823d372662ca0bf907c0917616422"
     },
     {
@@ -268,6 +276,7 @@
         "nonce": "9"
       },
       "domainSeparator": "0x3a81f42a358fa4254161febf8ac8cbd0deb574e0a5ed46935befa88b0f3ea8dd",
+      "messageHash": "0xba60494716925c8b1abfb31398234d695286bc79a578f1bc794d0d6103626339",
       "safeTxHash": "0xb9f9a1054114eb39b6271f3aa365e3c77691abcec5ff8a91456d8a5980955ed2"
     },
     {
@@ -297,6 +306,7 @@
         "nonce": "10"
       },
       "domainSeparator": "0x3a81f42a358fa4254161febf8ac8cbd0deb574e0a5ed46935befa88b0f3ea8dd",
+      "messageHash": "0xbd0cda498284cba473b50c81a3eb8af303373f6446b29eb2ec8451f50ef2abbd",
       "safeTxHash": "0x57ddfe3dc3b42bb0b9484cdb87b1c92dbb2e9c88bfe63edd6d98f5cdf8b7071f"
     },
     {
@@ -326,6 +336,7 @@
         "nonce": "11"
       },
       "domainSeparator": "0x3a81f42a358fa4254161febf8ac8cbd0deb574e0a5ed46935befa88b0f3ea8dd",
+      "messageHash": "0xc955444a72a15313f60681fe1e296797a45f1443149eb6a8a69ea16e61905fbd",
       "safeTxHash": "0xd9edf4770a62e1a19e0465db4aeb92852b778fe06e0abc67a80e0aa4593ad661"
     },
     {
@@ -355,6 +366,7 @@
         "nonce": "5"
       },
       "domainSeparator": "0xd9085f9a9fcfa4cd05738cd1f6a1409ed6b382015306fcb78c8e0ac906d5487f",
+      "messageHash": "0x597613edf90e79c4104c9d2d3f54c3e6599aed0f70da7df024697d956aea2ca7",
       "safeTxHash": "0x53803024d05601a5ea06c1d99e26e09ddacaeb9a7f618166f31e023df5e5d9d2"
     },
     {
@@ -384,6 +396,7 @@
         "nonce": "12"
       },
       "domainSeparator": "0x3a81f42a358fa4254161febf8ac8cbd0deb574e0a5ed46935befa88b0f3ea8dd",
+      "messageHash": "0x1610184b09de6c0cc6cee710aa11f674e2cface95682adbc984837ca4e31f14f",
       "safeTxHash": "0x0c8341ae7be959811affb41669f251d0b73155d8a0de5300980877a1fd070bb5"
     },
     {
@@ -413,6 +426,7 @@
         "nonce": "13"
       },
       "domainSeparator": "0x3a81f42a358fa4254161febf8ac8cbd0deb574e0a5ed46935befa88b0f3ea8dd",
+      "messageHash": "0xe6299fa76543fa9ecd7e1634e2afefa560e2641806ac1d14ba7245902a1f7f64",
       "safeTxHash": "0x43986d4be9b988130918711530220c9ac68ddf2f77f1644e3e672f29935c3220"
     },
     {
@@ -442,6 +456,7 @@
         "nonce": "20"
       },
       "domainSeparator": "0xf0dcfe86ad4a409690a57dbaae9b1e14c5ea1750a48271a0a3a6037a8100624d",
+      "messageHash": "0xe15b3ee181b72f286799bfa0d2c7afd87c4230d2ca8122ea82552b39e30b4ee3",
       "safeTxHash": "0xe89850eae338228b95ef76f9a392aa8fae7852a011fc03621845f880a59dabee"
     },
     {
@@ -471,6 +486,7 @@
         "nonce": "21"
       },
       "domainSeparator": "0xf0dcfe86ad4a409690a57dbaae9b1e14c5ea1750a48271a0a3a6037a8100624d",
+      "messageHash": "0x8f9459a5ca8de17453f7abc49278203945c1cedbfd9b54ebbd8d4abef201a041",
       "safeTxHash": "0x38b4484a3e2c7bd6cce1c08115712ea3ec2953637519550690f3f33ff9f16d91"
     },
     {
@@ -500,6 +516,7 @@
         "nonce": "22"
       },
       "domainSeparator": "0xf0dcfe86ad4a409690a57dbaae9b1e14c5ea1750a48271a0a3a6037a8100624d",
+      "messageHash": "0x6ce7f3ba1d360b17d9c42c758ffe95c25932c03c926c4020cbb7b447af841298",
       "safeTxHash": "0xc5cde4930b7af4eb775ba307013f07051c7b54d6a78e34574d0073a3b953cb1d"
     },
     {
@@ -529,6 +546,7 @@
         "nonce": "23"
       },
       "domainSeparator": "0xf0dcfe86ad4a409690a57dbaae9b1e14c5ea1750a48271a0a3a6037a8100624d",
+      "messageHash": "0x1a37c34fdbae91dea5b6050442241e7edbc633dd81b69e09ecfbeab174627dec",
       "safeTxHash": "0x67a16a26bd5a276a3e4b8601a0aa7b528a25729d1d34e72a24dac3fc1ffd3616"
     },
     {
@@ -558,6 +576,7 @@
         "nonce": "24"
       },
       "domainSeparator": "0xf0dcfe86ad4a409690a57dbaae9b1e14c5ea1750a48271a0a3a6037a8100624d",
+      "messageHash": "0xae9991a643b38baabfda4291366559eee403f8cac440cebb10ae9bcd7cdb3353",
       "safeTxHash": "0x4f12d783d5b19f12067b19fc9b5d7832262769ea441af36e883ad1e03fc336c8"
     },
     {
@@ -587,6 +606,7 @@
         "nonce": "25"
       },
       "domainSeparator": "0xf0dcfe86ad4a409690a57dbaae9b1e14c5ea1750a48271a0a3a6037a8100624d",
+      "messageHash": "0x66d9512bb1e1f0cf09e46349533dacc4c81f69f99e512e8b1cfb5ac37bdedbb6",
       "safeTxHash": "0x8c78e42d3e73aea0902946a2a65d6524fb870eea24f3c2f119194c1ae8056d61"
     },
     {
@@ -616,6 +636,7 @@
         "nonce": "26"
       },
       "domainSeparator": "0xf0dcfe86ad4a409690a57dbaae9b1e14c5ea1750a48271a0a3a6037a8100624d",
+      "messageHash": "0x2107d9837d34979936f946dd721cb5712ded7d66e814f39432906b3198677751",
       "safeTxHash": "0xae330167c1038247af23074a9db612236c7b0de5f981922366290687fee6b4fd"
     },
     {
@@ -649,6 +670,7 @@
         "nonce": "27"
       },
       "domainSeparator": "0xf0dcfe86ad4a409690a57dbaae9b1e14c5ea1750a48271a0a3a6037a8100624d",
+      "messageHash": "0x1a814e4f866ff23d90bb37f9469dc6bad309f95f6db718d1632fa0ebc794bfa7",
       "safeTxHash": "0xb00a1823582b26c370e1703a47b7869c9eecdd15f78dd8d9a7087d9d367ca5c9"
     },
     {
@@ -678,6 +700,7 @@
         "nonce": "28"
       },
       "domainSeparator": "0x0a4eb9729c16c5f9e795832037ed22fdcebd77a4d4964a3a235bf8cc6a856240",
+      "messageHash": "0x94bf9bc01c639e81a80b634da3aa545a9533b4af7a5644fe71d588ef38555ab3",
       "safeTxHash": "0x3f71dc869d16a9d05383004cf9f1e8d90b5bbb40b40b8681a6346e10f4e44a8e"
     },
     {
@@ -707,6 +730,7 @@
         "nonce": "0"
       },
       "domainSeparator": "0xba8be2fa127aa0f742ff885afa85c194e29e5b6e849796ceacf7cf4ed7c0bba9",
+      "messageHash": "0xd2a8170af4b0cdb8f4faa09cd4e969e5d9629233716d29314008bdf0736c6623",
       "safeTxHash": "0x1e0dc3c2f22dc2fa12f91c65593096b9f8b8b070163dbecf150c4b952b52563a"
     },
     {

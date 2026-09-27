@@ -38,6 +38,12 @@
 # request, in wei) above which a request is yellow: the fee is normally 1 wei, and overpaying is
 # never refunded.
 #
+# "verifier" is the independent check the console's QR code opens on a phone (docs/build1-ui,
+# round 3): OpenZeppelin's Safe Utils, given the Safe (with its chain's prefix) and the nonce. It
+# fetches that transaction from Safe's service and computes the domain, message and safeTx hashes
+# with its own code on the phone; they must match the console's. A chain with no prefix gets a QR
+# of the hash itself.
+#
 # "signer" is how this key owns a Safe (webauthn.py): Safe's passkey signer, safe-modules passkey
 # v0.2.1, the same addresses on Base, Base Sepolia, OP and the Base fork. "proxyCode" is the
 # SafeWebAuthnSignerProxy creation code the factory deploys (its bytes 1653-2090), so the console
@@ -97,6 +103,10 @@ CFG = {
         "560048": {"0x00000961ef480eb55e80d19ad83579a64c007002": "withdraw", "0x0000bbddc7ce488642fb579f8b00f3a590007251": "consolidate", "0x00000000219ab540356cbb839cbe05303d7705fa": "deposit"}
     },
     "validatorFeeWarn": 10000000000000000,
+    "verifier": {
+        "url": "https://safeutils.openzeppelin.com/?safeAddress=%s:%s&nonce=%d",
+        "prefixes": {"1": "eth", "8453": "base", "84532": "basesep", "11155111": "sep"}
+    },
     "signer": {
         "factory": "0x1d31f259ee307358a26dfb23eb365939e8641195",
         "singleton": "0x4e27b51350e6c2083ee19011120f50dafec5ca50",
