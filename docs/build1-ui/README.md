@@ -23,8 +23,78 @@ Four rounds. Each one is pushed with its pictures:
 2. **Validator operations.** Partial withdrawals and exits (EIP-7002), consolidations and the
    switch to compounding (EIP-7251), and deposits and top-ups, decoded into plain pages. There are
    red pages for anything that can't be undone or that sends funds somewhere other than this Safe.
+   *(Done: round 2 below.)*
 3. **Hash checks.** The full EIP-712 digest labelled the ERC-8213 way, the Domain and Message
    hashes a co-signer's Ledger shows, and a QR so a phone can check it too.
+
+## Round 2 (2026-09-27): validator operations
+
+You asked: the console should sign validator changes (partial withdrawals, exits, consolidations)
+as one step of the Safe's approval, after a validator UI builds the transaction.
+
+When a Safe is a validator's withdrawal address, it manages the validator by calling three
+consensus-layer contracts. They are now pinned in `quorum_cfg.py` (`"system"`) for Ethereum,
+Sepolia and Hoodi. I checked each address has code on each chain; Base has none. `decode.py`
+reads their calldata exactly: it's raw bytes, so there's no ABI to trust.
+- **Withdrawal requests (EIP-7002):** 48-byte pubkey + amount in Gwei. **Amount 0 is a full exit.**
+- **Consolidations (EIP-7251):** source + target pubkey. **The same key twice switches that
+  validator to compounding (0x02).**
+- **The deposit contract:** `deposit(pubkey, withdrawal_credentials, signature, root)`. The console
+  checks that the credentials are `0x01`/`0x02` + **this Safe's address**.
+
+Your validators are named in a new `QUORUM_VALIDATORS` in `secrets.py`:
+`{pubkey: ["node-1", 1234567]}` (label, and index if you like).
+
+| Operation | Page | Why |
+|---|---|---|
+| Partial withdrawal | green if the validator is yours, else yellow | The ETH goes to the withdrawal address; the validator keeps running |
+| Full exit | **red**, 3 s hold | Can't be undone |
+| Switch to compounding | yellow | Rewards stop being paid out; one-way |
+| Consolidate A into B | **red**, 3 s hold | A's whole balance goes to whoever controls B |
+| Deposit, credentials = this Safe | green | |
+| Deposit, credentials = anything else | **red** | The stake belongs to someone else |
+| Fee above 0.01 ETH (`validatorFeeWarn`) | yellow at least | The fee is normally 1 wei; overpaying is burned |
+| Wrong length, or a delegatecall to them | red / refused | |
+
+Each validator also gets a **page of its own** with the full 48-byte key beside its identicon,
+counted in "every page seen". Batches from validator UIs work unchanged: each request inside
+the MultiSend gets its own pages.
+
+| | |
+|---|---|
+| <img src="shots/b40-val-home.png" width="320"> | <img src="shots/b41-withdraw-summary.png" width="320"> |
+| **A Staking Safe on Ethereum,** seven requests queued. Each row has Ethereum's diamond: these are the consensus layer's contracts, known. | **Withdraw 12.5 ETH** from node-1 #1234567, **yours** (pinned). |
+| <img src="shots/b42-withdraw-page.png" width="320"> | <img src="shots/b43-withdraw-key.png" width="320"> |
+| **The request:** the amount, the validator (first and last 8 hex of its key), the fee (1 wei, not refunded). | **The key's own page:** all 48 bytes in groups of 4, to compare with your list or a beacon explorer. |
+| <img src="shots/b44-exit-summary.png" width="320"> | <img src="shots/b45-exit-page.png" width="320"> |
+| **Exit node-2:** red, "1 red page — read it". | **FULL EXIT**, can't be undone. Held 3 s, not 2. |
+| <img src="shots/b46-compound-page.png" width="320"> | <img src="shots/b48-consolidate-page.png" width="320"> |
+| **0x01 to 0x02:** yellow; rewards stay on the validator from now on. | **Consolidate:** from node-2 into node-1, both yours, still red: the second's owner gets everything. |
+| <img src="shots/b49-consolidate-into-key.png" width="320"> | <img src="shots/b50-deposit-page.png" width="320"> |
+| **The target's key,** on its own red page. | **Deposit 32 ETH, withdrawals to This Safe:** the credentials were checked, so green. |
+| <img src="shots/b51-deposit-foreign-summary.png" width="320"> | <img src="shots/b52-deposit-foreign-page.png" width="320"> |
+| **A deposit that pays a stranger:** the headline is red. | **Withdrawals to** an address that is **not this Safe.** This is the page that stops a front-end swap on a deposit. |
+| <img src="shots/b47-consolidate-summary.png" width="320"> | <img src="shots/b54-batch-fee-page.png" width="320"> |
+| **Consolidation summary.** Alice and Bob have no names on Ethereum (the laptop's names are local only), so they're shortened to fit on one line. | **In a batch,** the third withdrawal pays a **0.05 ETH fee** from a validator **not in your list**: yellow, "far above the usual 1 wei". |
+
+Tested:
+- `test-vectors/safe_tx.json` has 9 new vectors, with hashes from viem, for withdraw, exit, a
+  malformed request, consolidate, compounding, deposits to this Safe and to someone else, a batch,
+  and the same request on Base, which has no such contract (unknown, red).
+- The decode checks now use each vector's own chain.
+- `console_test.py` checks the validator list, the key pages, and the exit's 3 s hold.
+
+**Questions for you:**
+1. **Your validators:** send me (or add to `secrets.py`) the pubkeys and indices, and which Safe is
+   their withdrawal address. Should a request for a validator **not** in the list be red rather
+   than yellow?
+2. **Consolidating between two of your own validators:** red today, even when both are pinned. It's
+   irreversible, but it's also the routine Pectra move. Yellow when both are yours?
+3. **The fee ceiling:** 0.01 ETH per request is the yellow line. Validator UIs usually overpay a
+   little so the request survives a fee spike. Is that the right line?
+4. **Which validator UI** will propose these (the Launchpad, a staking provider's dashboard, your own
+   script)? If it batches differently, or calls a helper contract instead of the system contracts
+   directly, the console will say "unknown contract". I'd pin that helper next.
 
 ## Round 1 (2026-09-27): who gets paid
 

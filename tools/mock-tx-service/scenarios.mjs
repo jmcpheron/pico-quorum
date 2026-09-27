@@ -21,6 +21,24 @@ export const NAMED = {
   poison: "0xd8da3b1e5f7c9a2d4e6f8b0c1d3e5f7a9b2c6045",      // looks like vitalik.eth
 };
 export const NAMED_BOOK = `QUORUM_BOOK = {"*": {"${NAMED.vitalik}": "vitalik.eth", "${NAMED.cold}": ["Cold storage"]}}\n`;
+// Validators (round 2): a Safe on Ethereum that is the withdrawal address of node-1..3, which the
+// console's QUORUM_VALIDATORS names. The pubkeys are made up (48 bytes); STRANGER_VAL is in no list.
+export const VAL = {
+  node1: "0x8c39dfb5ebaafdd4533943270804709fd6b150feec1beff11c76dc54c17c65e3198c490aa58205771b07711436992358",
+  node2: "0x8a2dbdd6d921d9ec2fd7e43ae3475630f72fb27c77cdba6761d84ec2fabe459c664060f7e6904cc0b55ef93254f7807f",
+  node3: "0x86140c271ddd750b355dcf201c973bb910e09fe6f9ba37857998bf65e024304f027c25b877cc8145a75cb7bcf762cac0",
+  stranger: "0xaa430ae4692ebd52dfb124d56eb8bcc7dc6a8f44d0969323819cd9f747c8937aa2618a274f9db72bea4c011d499e689e",
+};
+export const VAL_SECRETS = `QUORUM_VALIDATORS = {"${VAL.node1}": ["node-1", 1234567], "${VAL.node2}": ["node-2", 1234568], "${VAL.node3}": "node-3"}\n`;
+const WITHDRAW = "0x00000961ef480eb55e80d19ad83579a64c007002";
+const CONSOLIDATE = "0x0000bbddc7ce488642fb579f8b00f3a590007251";
+const DEPOSIT = "0x00000000219ab540356cbb839cbe05303d7705fa";
+const gwei = (eth) => parseUnits(eth, 9);
+const withdrawal = (pk, eth) => concat([pk, encodePacked(["uint64"], [gwei(eth)])]);
+const depositAbi = parseAbi(["function deposit(bytes pubkey, bytes withdrawal_credentials, bytes signature, bytes32 deposit_data_root)"]);
+const creds = (type, addr) => concat([type, "0x0000000000000000000000", addr]);
+const deposit = (pk, wc) => encodeFunctionData({ abi: depositAbi, functionName: "deposit",
+  args: [pk, wc, "0x" + "ab".repeat(96), "0x" + "cd".repeat(32)] });
 export const NAMED_SEEN = JSON.stringify({ 31337: { [NAMED.repeat]: 3, [NAMED.vitalik]: 1 } });
 
 const erc20 = parseAbi(["function transfer(address to, uint256 amount)"]);
@@ -89,6 +107,39 @@ export const SCENARIOS = {
   "send-poison": {
     about: "Alice sends 1.5 ETH to an address made to look like vitalik.eth's (red), and signs it", by: "alice", sign: true,
     build: () => [{ to: NAMED.poison, value: parseEther("1.5") }],
+  },
+  "v-withdraw": {
+    about: "Alice asks node-1 for a partial withdrawal of 12.5 ETH (EIP-7002, fee 1 wei), and signs it", by: "alice", sign: true,
+    build: () => [{ to: WITHDRAW, value: 1n, data: withdrawal(VAL.node1, "12.5") }],
+  },
+  "v-exit": {
+    about: "Bob exits node-2 (EIP-7002 with amount 0: red), and signs it", by: "bob", sign: true,
+    build: () => [{ to: WITHDRAW, value: 1n, data: withdrawal(VAL.node2, "0") }],
+  },
+  "v-compound": {
+    about: "Alice switches node-1 to compounding credentials (EIP-7251, source = target), and signs it", by: "alice", sign: true,
+    build: () => [{ to: CONSOLIDATE, value: 1n, data: concat([VAL.node1, VAL.node1]) }],
+  },
+  "v-consolidate": {
+    about: "Bob consolidates node-2 into node-1 (EIP-7251: red), and signs it", by: "bob", sign: true,
+    build: () => [{ to: CONSOLIDATE, value: 1n, data: concat([VAL.node2, VAL.node1]) }],
+  },
+  "v-deposit": {
+    about: "Alice tops up node-3 with 32 ETH, withdrawal credentials 0x02 to this Safe, and signs it", by: "alice", sign: true,
+    build: (safe) => [{ to: DEPOSIT, value: parseEther("32"), data: deposit(VAL.node3, creds("0x02", safe)) }],
+  },
+  "v-deposit-foreign": {
+    about: "A 32 ETH deposit whose withdrawal credentials pay a stranger, not this Safe (red)", by: "bob", sign: true,
+    build: () => [{ to: DEPOSIT, value: parseEther("32"), data: deposit(VAL.stranger, creds("0x01", STRANGER)) }],
+  },
+  "v-batch": {
+    about: "Alice batches three 1 ETH withdrawals, one from a validator in no list with a 0.05 ETH fee (yellow)", by: "alice", sign: true,
+    build: () => [{
+      to: MULTISEND, operation: 1,
+      data: encodeFunctionData({ abi: multiSendAbi, functionName: "multiSend", args: [concat([
+        entry(WITHDRAW, 1n, withdrawal(VAL.node1, "1")), entry(WITHDRAW, 1n, withdrawal(VAL.node2, "1")),
+        entry(WITHDRAW, parseEther("0.05"), withdrawal(VAL.stranger, "1"))])] }),
+    }],
   },
   refund: {
     about: "A send to Carol that also pays a USDC gas refund to a stranger (red)", by: "alice", sign: true,

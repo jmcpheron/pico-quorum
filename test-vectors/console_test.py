@@ -656,9 +656,32 @@ def case_names():
     check("bad entry" in Q.BOOK_WHY and decode.name(Q.ctx, VIT) == "fine", "a bad QUORUM_BOOK entry is dropped and said, the rest kept")
 
 
+PK1 = "0x8c39dfb5ebaafdd4533943270804709fd6b150feec1beff11c76dc54c17c65e3198c490aa58205771b07711436992358"
+PK2 = "0x8a2dbdd6d921d9ec2fd7e43ae3475630f72fb27c77cdba6761d84ec2fabe459c664060f7e6904cc0b55ef93254f7807f"
+W7002 = "0x00000961ef480eb55e80d19ad83579a64c007002"
+
+
+def case_validators():
+    import decode
+    eth = 'QUORUM_SAFES = [{"chainId": 1, "address": "%s", "name": "Staking"}]\nQUORUM_VALIDATORS = {"%s": ["node-1", 7], "0x12": "bad"}' % (SAFE, PK1)
+    Q = fresh(safe=False, extra=eth)
+    check("48-byte" in Q.VALIDATORS_WHY and decode.vname(Q.ctx, PK1) == ("node-1", 7), "QUORUM_VALIDATORS: node-1 pinned, a bad key dropped and said")
+    req = lambda pk, gwei: "0x" + pk[2:] + "%016x" % gwei
+    serve(Q, [tx(Q, 0, to=W7002, value=1, data=req(PK1, 10 ** 9), chain=1), tx(Q, 1, to=W7002, value=1, data=req(PK2, 10 ** 9), chain=1),
+              tx(Q, 2, to=W7002, value=1, data=req(PK1, 0), chain=1)])
+    by = {e["n"]: e for e in Q.queue}
+    check(by[0]["r"]["level"] == "ok" and by[0]["r"]["summary"] == "Withdraw 1 ETH", "a partial withdrawal from a pinned validator: ok")
+    check(by[1]["r"]["level"] == "warn", "the same from a validator not in the list: yellow")
+    check(by[2]["r"]["level"] == "red" and by[2]["r"]["items"][0]["title"] == "EXIT VALIDATOR", "amount 0: a full exit, red")
+    check(("key", (0, 0)) in Q.pages_of(by[0]), "the validator's key gets a page of its own")
+    check(Q.hold_need(by[2]) == Q.HOLD_RED_MS and not sign(Q, by[2], 2100) and sign(Q, by[2], 3100),
+          "the exit needs the red hold: 2.1 s signs nothing, 3.1 s signs")
+    check(decode.paid(by[0]["r"]) == [], "a validator request pays no one: nothing counted as paid")
+
+
 def main():
     for case in (case_pin, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_safes, case_watchdog,
-                 case_names):
+                 case_names, case_validators):
         print("--", case.__name__[5:])
         try:
             case()

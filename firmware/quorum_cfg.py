@@ -30,6 +30,14 @@
 # only its chainId: the console asks that chain's service, never one the board's secrets.py could
 # point at the wrong chain. secrets.QUORUM_URL overrides it for the laptop's simulation and fork.
 #
+# "system" is the consensus layer's contracts on each chain that has a beacon chain (Pectra, May
+# 2025): a Safe that is a validator's withdrawal address asks for a partial withdrawal or an exit
+# (EIP-7002), a consolidation or the switch to compounding (EIP-7251) by calling them, and tops up
+# or creates a validator through the deposit contract. decode.py reads their calldata exactly (no
+# ABI to trust). Base and other L2s have none. "validatorFeeWarn" is the fee (the value sent with a
+# request, in wei) above which a request is yellow: the fee is normally 1 wei, and overpaying is
+# never refunded.
+#
 # "signer" is how this key owns a Safe (webauthn.py): Safe's passkey signer, safe-modules passkey
 # v0.2.1, the same addresses on Base, Base Sepolia, OP and the Base fork. "proxyCode" is the
 # SafeWebAuthnSignerProxy creation code the factory deploys (its bytes 1653-2090), so the console
@@ -83,6 +91,12 @@ CFG = {
         "84532": {"0x036cbd53842c5426634e7929541ec2318f3dcf7e": ["USDC", "usdc", {}]},
         "1": {"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48": ["USDC", "usdc", {}]}
     },
+    "system": {
+        "1": {"0x00000961ef480eb55e80d19ad83579a64c007002": "withdraw", "0x0000bbddc7ce488642fb579f8b00f3a590007251": "consolidate", "0x00000000219ab540356cbb839cbe05303d7705fa": "deposit"},
+        "11155111": {"0x00000961ef480eb55e80d19ad83579a64c007002": "withdraw", "0x0000bbddc7ce488642fb579f8b00f3a590007251": "consolidate", "0x7f02c3e3c98b133055b8b348b2ac625669ed295d": "deposit"},
+        "560048": {"0x00000961ef480eb55e80d19ad83579a64c007002": "withdraw", "0x0000bbddc7ce488642fb579f8b00f3a590007251": "consolidate", "0x00000000219ab540356cbb839cbe05303d7705fa": "deposit"}
+    },
+    "validatorFeeWarn": 10000000000000000,
     "signer": {
         "factory": "0x1d31f259ee307358a26dfb23eb365939e8641195",
         "singleton": "0x4e27b51350e6c2083ee19011120f50dafec5ca50",
@@ -91,6 +105,8 @@ CFG = {
     },
     "chains": {
         "1": "Ethereum",
+        "11155111": "Sepolia",
+        "560048": "Hoodi",
         "8453": "Base",
         "84532": "Base Sepolia",
         "31337": "Local"

@@ -8,7 +8,7 @@ import { copyFileSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSyn
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { DEMO, NAMED_BOOK, NAMED_SEEN } from "./scenarios.mjs";
+import { DEMO, NAMED_BOOK, NAMED_SEEN, VAL_SECRETS } from "./scenarios.mjs";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 const SHOTS = join(ROOT, "docs", "quorum-ui", "shots");
@@ -19,6 +19,10 @@ const BASE = `http://localhost:${PORT}`;
 const PORT2 = 8797;
 const BASE2 = `http://localhost:${PORT2}`;
 const SAFE2 = "0x5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a";
+// "staking": a Safe on Ethereum that is its validators' withdrawal address (round 2), on PORT3
+const PORT3 = 8796;
+const BASE3 = `http://localhost:${PORT3}`;
+const SAFE3 = "0x57a4e57a4e57a4e57a4e57a4e57a4e57a4e57a4e";
 const tmp = mkdtempSync(join(tmpdir(), "quorum-shots-"));
 // tools/quorum shots [story ...], or tools/quorum shots --fonts inter,plex: FONT_STORIES in each
 // candidate font set (tools/fonts/gen.py --try) into docs/quorum-ui/v2/fonts/SET/
@@ -93,6 +97,17 @@ const BUILD1_STORIES = [
   ["owners", DEMO, ["turn cw:5", "push", "shot b14-owners"]],
   // round 1: names. The console's own book pins vitalik.eth and "Cold storage"; it has paid one
   // address 3 times before (seen.json).
+  // round 2: validators. A Safe on Ethereum; QUORUM_VALIDATORS names node-1..3.
+  ["validators", null, [
+    "wait 2000", "shot b40-val-home",
+    "push", "shot b41-withdraw-summary", "turn cw", "shot b42-withdraw-page", "turn cw", "shot b43-withdraw-key", "push", "turn cw:2", "push",
+    "turn cw", "push", "shot b44-exit-summary", "turn cw", "shot b45-exit-page", "push", "turn cw:2", "push",
+    "turn cw", "push", "turn cw", "shot b46-compound-page", "push", "turn cw:2", "push",
+    "turn cw", "push", "shot b47-consolidate-summary", "turn cw", "shot b48-consolidate-page", "turn cw:2", "shot b49-consolidate-into-key", "push", "turn cw:2", "push",
+    "turn cw", "push", "turn cw", "shot b50-deposit-page", "push", "turn cw:2", "push",
+    "turn cw", "push", "shot b51-deposit-foreign-summary", "turn cw", "shot b52-deposit-foreign-page", "push", "turn cw:2", "push",
+    "turn cw", "push", "shot b53-batch-summary", "turn cw:5", "shot b54-batch-fee-page"],
+    { staking: ["v-withdraw", "v-exit", "v-compound", "v-consolidate", "v-deposit", "v-deposit-foreign", "v-batch"] }],
   ["names", NAMES, [
     "shot b20-names-home", "push", "shot b21-ens-summary", "turn cw", "shot b22-ens-page", "push", "turn cw:2", "push",
     "turn cw", "push", "shot b23-cold-summary", "turn cw", "shot b24-cold-page", "push", "turn cw:2", "push",
@@ -146,7 +161,9 @@ const server = spawn(process.execPath, [join(ROOT, "tools/mock-tx-service/server
   { env: { ...process.env, QUORUM_STATE: join(tmp, "state.json") }, stdio: "ignore" });
 const server2 = spawn(process.execPath, [join(ROOT, "tools/mock-tx-service/server.mjs"), "--port", String(PORT2)],
   { env: { ...process.env, QUORUM_STATE: join(tmp, "state2.json"), QUORUM_SIM_SAFE: `84532:${SAFE2}:Test Safe` }, stdio: "ignore" });
-for (const b of [BASE, BASE2]) {
+const server3 = spawn(process.execPath, [join(ROOT, "tools/mock-tx-service/server.mjs"), "--port", String(PORT3)],
+  { env: { ...process.env, QUORUM_STATE: join(tmp, "state3.json"), QUORUM_SIM_SAFE: `1:${SAFE3}:Staking Safe` }, stdio: "ignore" });
+for (const b of [BASE, BASE2, BASE3]) {
   for (let i = 0; ; i++) {
     try { await fetch(b + "/sim/state"); break; } catch { if (i > 40) throw new Error("mock did not start"); }
     await new Promise((r) => setTimeout(r, 100));
@@ -155,6 +172,8 @@ for (const b of [BASE, BASE2]) {
 const namesSecrets = join(tmp, "names.py"), namesSeen = join(tmp, "seen.json");
 writeFileSync(namesSecrets, NAMED_BOOK);
 writeFileSync(namesSeen, NAMED_SEEN);
+const stakingSecrets = join(tmp, "staking.py");
+writeFileSync(stakingSecrets, `QUORUM_SAFES = [{"chainId": 1, "address": "${SAFE3}", "name": "Staking Safe", "url": "${BASE3}"}]\n` + VAL_SECRETS);
 const twoSecrets = join(tmp, "two.py");
 writeFileSync(twoSecrets, `QUORUM_SAFES = [
     {"chainId": 31337, "address": "0xf77e6235ea5ce79d6d823b332276cac99ea77666", "name": "Family Safe", "url": "${BASE}"},
@@ -173,12 +192,14 @@ for (const fontset of fontsets) {
     for (const f of readdirSync(OUT)) if (steps.some((s) => s === `shot ${f.replace(/\.png$/, "")}`)) rmSync(join(OUT, f));
     if (queue) await post("/sim/reset", { scenarios: queue, keepDevices: false, version: opts.version });
     if (opts.two) await post("/sim/reset", { scenarios: opts.two, keepDevices: false }, BASE2);
+    if (opts.staking) await post("/sim/reset", { scenarios: opts.staking, keepDevices: false }, BASE3);
     const chip = join(tmp, "chip.json");
     copyFileSync(new URL("emu-chip.json", import.meta.url), chip);
-    const app = queue ? BASE : "http://localhost:1";      // "offline": nothing answers
+    const app = queue || opts.staking ? BASE : "http://localhost:1";      // "offline": nothing answers
     const r = spawnSync(process.execPath, [join(ROOT, "emu/headless.mjs"), "quorum", "--app", app, "--chip", chip, "--quiet",
       ...(board ? ["--board", board] : []),
       ...(opts.two ? ["--secrets", twoSecrets] : []),
+      ...(opts.staking ? ["--secrets", stakingSecrets] : []),
       ...(opts.names ? ["--secrets", namesSecrets, "--file", "seen.json=" + namesSeen] : []),
       "--wait", "3000", ...args(steps, OUT)], { cwd: join(ROOT, "emu"), encoding: "utf8" });
     const shots = (r.stdout.match(/\[shot\]/g) || []).length;
@@ -193,6 +214,7 @@ for (const fontset of fontsets) {
 }
 server.kill();
 server2.kill();
+server3.kill();
 rmSync(tmp, { recursive: true, force: true });
 if (failed) console.log(`${failed} stories failed`);
 process.exit(failed ? 1 : 0);

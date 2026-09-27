@@ -55,6 +55,16 @@ recipient is tagged:
 - **LOOKALIKE** (red): the same first and last 4 characters as an address the console knows, but a
   different address. That is address poisoning: reject it.
 
+A Safe that is a validator's withdrawal address can sign validator changes the same way. The
+console reads requests to Ethereum's consensus-layer contracts itself:
+- a partial withdrawal or a **full exit** (red);
+- **switching to compounding**;
+- a **consolidation** (red);
+- a **deposit**, which is red unless its withdrawal credentials name this Safe.
+
+Name your validators in `QUORUM_VALIDATORS = {"0x<48-byte pubkey>": ["node-1", 1234567]}` so their
+pages say **yours**. Each validator key has a page of its own with the full key.
+
 ## Rejecting
 
 Y hides the transaction **on this console only**. It doesn't reject it on the Safe. The Safe's

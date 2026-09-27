@@ -416,6 +416,271 @@
       "safeTxHash": "0x43986d4be9b988130918711530220c9ac68ddf2f77f1644e3e672f29935c3220"
     },
     {
+      "name": "withdraw-partial",
+      "description": "EIP-7002 partial withdrawal of 1.5 ETH (1,500,000,000 Gwei), fee 1 wei",
+      "chainId": 1,
+      "safe": "0x1111111111111111111111111111111111111111",
+      "expect": {
+        "summary": "Withdraw 1.5 ETH",
+        "items": [
+          [
+            "WITHDRAW",
+            "warn"
+          ]
+        ]
+      },
+      "tx": {
+        "to": "0x00000961ef480eb55e80d19ad83579a64c007002",
+        "value": "1",
+        "data": "0x8c39dfb5ebaafdd4533943270804709fd6b150feec1beff11c76dc54c17c65e3198c490aa58205771b077114369923580000000059682f00",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "20"
+      },
+      "domainSeparator": "0xf0dcfe86ad4a409690a57dbaae9b1e14c5ea1750a48271a0a3a6037a8100624d",
+      "safeTxHash": "0xe89850eae338228b95ef76f9a392aa8fae7852a011fc03621845f880a59dabee"
+    },
+    {
+      "name": "exit-full",
+      "description": "EIP-7002 with amount 0: a full exit (a red-screen case)",
+      "chainId": 1,
+      "safe": "0x1111111111111111111111111111111111111111",
+      "expect": {
+        "summary": "Exit validator",
+        "items": [
+          [
+            "EXIT VALIDATOR",
+            "red"
+          ]
+        ]
+      },
+      "tx": {
+        "to": "0x00000961ef480eb55e80d19ad83579a64c007002",
+        "value": "1",
+        "data": "0x8c39dfb5ebaafdd4533943270804709fd6b150feec1beff11c76dc54c17c65e3198c490aa58205771b077114369923580000000000000000",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "21"
+      },
+      "domainSeparator": "0xf0dcfe86ad4a409690a57dbaae9b1e14c5ea1750a48271a0a3a6037a8100624d",
+      "safeTxHash": "0x38b4484a3e2c7bd6cce1c08115712ea3ec2953637519550690f3f33ff9f16d91"
+    },
+    {
+      "name": "withdraw-malformed",
+      "description": "A withdrawal request one byte short: not a request (red)",
+      "chainId": 1,
+      "safe": "0x1111111111111111111111111111111111111111",
+      "expect": {
+        "summary": "Malformed withdrawal request",
+        "items": [
+          [
+            "BAD REQUEST",
+            "red"
+          ]
+        ]
+      },
+      "tx": {
+        "to": "0x00000961ef480eb55e80d19ad83579a64c007002",
+        "value": "1",
+        "data": "0x8c39dfb5ebaafdd4533943270804709fd6b150feec1beff11c76dc54c17c65e3198c490aa58205771b0771143699235800000000000000",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "22"
+      },
+      "domainSeparator": "0xf0dcfe86ad4a409690a57dbaae9b1e14c5ea1750a48271a0a3a6037a8100624d",
+      "safeTxHash": "0xc5cde4930b7af4eb775ba307013f07051c7b54d6a78e34574d0073a3b953cb1d"
+    },
+    {
+      "name": "consolidate",
+      "description": "EIP-7251: consolidate PK2 into PK1 (a red-screen case)",
+      "chainId": 1,
+      "safe": "0x1111111111111111111111111111111111111111",
+      "expect": {
+        "summary": "Consolidate validators",
+        "items": [
+          [
+            "CONSOLIDATE",
+            "red"
+          ]
+        ]
+      },
+      "tx": {
+        "to": "0x0000bbddc7ce488642fb579f8b00f3a590007251",
+        "value": "1",
+        "data": "0x8a2dbdd6d921d9ec2fd7e43ae3475630f72fb27c77cdba6761d84ec2fabe459c664060f7e6904cc0b55ef93254f7807f8c39dfb5ebaafdd4533943270804709fd6b150feec1beff11c76dc54c17c65e3198c490aa58205771b07711436992358",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "23"
+      },
+      "domainSeparator": "0xf0dcfe86ad4a409690a57dbaae9b1e14c5ea1750a48271a0a3a6037a8100624d",
+      "safeTxHash": "0x67a16a26bd5a276a3e4b8601a0aa7b528a25729d1d34e72a24dac3fc1ffd3616"
+    },
+    {
+      "name": "switch-compounding",
+      "description": "EIP-7251 with source = target: switch PK1 to 0x02 credentials",
+      "chainId": 1,
+      "safe": "0x1111111111111111111111111111111111111111",
+      "expect": {
+        "summary": "Switch to compounding",
+        "items": [
+          [
+            "COMPOUNDING",
+            "warn"
+          ]
+        ]
+      },
+      "tx": {
+        "to": "0x0000bbddc7ce488642fb579f8b00f3a590007251",
+        "value": "1",
+        "data": "0x8c39dfb5ebaafdd4533943270804709fd6b150feec1beff11c76dc54c17c65e3198c490aa58205771b077114369923588c39dfb5ebaafdd4533943270804709fd6b150feec1beff11c76dc54c17c65e3198c490aa58205771b07711436992358",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "24"
+      },
+      "domainSeparator": "0xf0dcfe86ad4a409690a57dbaae9b1e14c5ea1750a48271a0a3a6037a8100624d",
+      "safeTxHash": "0x4f12d783d5b19f12067b19fc9b5d7832262769ea441af36e883ad1e03fc336c8"
+    },
+    {
+      "name": "deposit-own-creds",
+      "description": "32 ETH deposit whose 0x02 withdrawal credentials name this Safe",
+      "chainId": 1,
+      "safe": "0x1111111111111111111111111111111111111111",
+      "expect": {
+        "summary": "Deposit 32 ETH",
+        "items": [
+          [
+            "DEPOSIT",
+            "ok"
+          ]
+        ]
+      },
+      "tx": {
+        "to": "0x00000000219ab540356cbb839cbe05303d7705fa",
+        "value": "32000000000000000000",
+        "data": "0x22895118000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000120cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd00000000000000000000000000000000000000000000000000000000000000308a2dbdd6d921d9ec2fd7e43ae3475630f72fb27c77cdba6761d84ec2fabe459c664060f7e6904cc0b55ef93254f7807f00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002002000000000000000000000011111111111111111111111111111111111111110000000000000000000000000000000000000000000000000000000000000060abababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababab",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "25"
+      },
+      "domainSeparator": "0xf0dcfe86ad4a409690a57dbaae9b1e14c5ea1750a48271a0a3a6037a8100624d",
+      "safeTxHash": "0x8c78e42d3e73aea0902946a2a65d6524fb870eea24f3c2f119194c1ae8056d61"
+    },
+    {
+      "name": "deposit-foreign-creds",
+      "description": "32 ETH deposit whose 0x01 withdrawal credentials pay Bob, not this Safe (red)",
+      "chainId": 1,
+      "safe": "0x1111111111111111111111111111111111111111",
+      "expect": {
+        "summary": "Deposit 32 ETH",
+        "items": [
+          [
+            "DEPOSIT",
+            "red"
+          ]
+        ]
+      },
+      "tx": {
+        "to": "0x00000000219ab540356cbb839cbe05303d7705fa",
+        "value": "32000000000000000000",
+        "data": "0x22895118000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000120cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd00000000000000000000000000000000000000000000000000000000000000308a2dbdd6d921d9ec2fd7e43ae3475630f72fb27c77cdba6761d84ec2fabe459c664060f7e6904cc0b55ef93254f7807f0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200100000000000000000000000000000000000000000000000000000000000b0b0000000000000000000000000000000000000000000000000000000000000060abababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababab",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "26"
+      },
+      "domainSeparator": "0xf0dcfe86ad4a409690a57dbaae9b1e14c5ea1750a48271a0a3a6037a8100624d",
+      "safeTxHash": "0xae330167c1038247af23074a9db612236c7b0de5f981922366290687fee6b4fd"
+    },
+    {
+      "name": "validator-batch",
+      "description": "Two partial withdrawals in one MultiSendCallOnly batch, the second with a 0.05 ETH fee",
+      "chainId": 1,
+      "safe": "0x1111111111111111111111111111111111111111",
+      "expect": {
+        "summary": "Batch: 2 actions",
+        "items": [
+          [
+            "WITHDRAW",
+            "warn"
+          ],
+          [
+            "WITHDRAW",
+            "warn"
+          ]
+        ]
+      },
+      "tx": {
+        "to": "0x9641d764fc13c8b624c04430c7356c1c7c8102e2",
+        "value": "0",
+        "data": "0x8d80ff0a0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000011a0000000961ef480eb55e80d19ad83579a64c007002000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000388c39dfb5ebaafdd4533943270804709fd6b150feec1beff11c76dc54c17c65e3198c490aa58205771b07711436992358000000003b9aca000000000961ef480eb55e80d19ad83579a64c00700200000000000000000000000000000000000000000000000000b1a2bc2ec5000000000000000000000000000000000000000000000000000000000000000000388a2dbdd6d921d9ec2fd7e43ae3475630f72fb27c77cdba6761d84ec2fabe459c664060f7e6904cc0b55ef93254f7807f000000003b9aca00000000000000",
+        "operation": 1,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "27"
+      },
+      "domainSeparator": "0xf0dcfe86ad4a409690a57dbaae9b1e14c5ea1750a48271a0a3a6037a8100624d",
+      "safeTxHash": "0xb00a1823582b26c370e1703a47b7869c9eecdd15f78dd8d9a7087d9d367ca5c9"
+    },
+    {
+      "name": "withdraw-on-base",
+      "description": "The same request on Base, which has no such contract: an unknown call (red)",
+      "chainId": 8453,
+      "safe": "0x1111111111111111111111111111111111111111",
+      "expect": {
+        "summary": "Unknown call",
+        "items": [
+          [
+            "UNKNOWN CALL",
+            "red"
+          ]
+        ]
+      },
+      "tx": {
+        "to": "0x00000961ef480eb55e80d19ad83579a64c007002",
+        "value": "1",
+        "data": "0x8c39dfb5ebaafdd4533943270804709fd6b150feec1beff11c76dc54c17c65e3198c490aa58205771b077114369923580000000059682f00",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "28"
+      },
+      "domainSeparator": "0x0a4eb9729c16c5f9e795832037ed22fdcebd77a4d4964a3a235bf8cc6a856240",
+      "safeTxHash": "0x3f71dc869d16a9d05383004cf9f1e8d90b5bbb40b40b8681a6346e10f4e44a8e"
+    },
+    {
       "name": "sim-send",
       "description": "The simulated Safe (chain 31337, tools/quorum): send 0.05 ETH to Bob",
       "chainId": 31337,

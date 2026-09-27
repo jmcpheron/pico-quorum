@@ -46,6 +46,19 @@ const claimAbi = parseAbi(["function claim(uint256 id)"]); // a function decode.
 const routerAbi = parseAbi(["function execute(bytes commands, bytes[] inputs, uint256 deadline)"]);
 const multiSendAbi = parseAbi(["function multiSend(bytes transactions)"]);
 
+// Validators (EIP-7002, EIP-7251, the deposit contract): the consensus layer's contracts on
+// Ethereum, pinned in quorum_cfg.py "system". Made-up 48-byte pubkeys; none is in a validator list,
+// so an otherwise plain request is yellow.
+const WITHDRAW_REQ = "0x00000961ef480eb55e80d19ad83579a64c007002";
+const CONSOLIDATION_REQ = "0x0000bbddc7ce488642fb579f8b00f3a590007251";
+const DEPOSIT = "0x00000000219ab540356cbb839cbe05303d7705fa";
+const PK1 = "0x8c39dfb5ebaafdd4533943270804709fd6b150feec1beff11c76dc54c17c65e3198c490aa58205771b07711436992358";
+const PK2 = "0x8a2dbdd6d921d9ec2fd7e43ae3475630f72fb27c77cdba6761d84ec2fabe459c664060f7e6904cc0b55ef93254f7807f";
+const withdrawal = (pk, gwei) => concat([pk, encodePacked(["uint64"], [gwei])]);
+const depositAbi = parseAbi(["function deposit(bytes pubkey, bytes withdrawal_credentials, bytes signature, bytes32 deposit_data_root)"]);
+const depositData = (pk, type, addr) => encodeFunctionData({ abi: depositAbi, functionName: "deposit",
+  args: [pk, concat([type, "0x0000000000000000000000", addr]), "0x" + "ab".repeat(96), "0x" + "cd".repeat(32)] });
+
 const tx = (o) => ({
   to: ZERO, value: 0n, data: "0x", operation: 0, safeTxGas: 0n, baseGas: 0n, gasPrice: 0n,
   gasToken: ZERO, refundReceiver: ZERO, nonce: 0n, ...o,
@@ -118,6 +131,34 @@ const cases = [
     tx({ to: UNI_ROUTER, value: 100_000_000_000_000_000n, nonce: 13n,
          data: encodeFunctionData({ abi: routerAbi, functionName: "execute", args: ["0x0b00", ["0x1234", "0x5678"], 1790000000n] }) }),
     { summary: "Swap on Uniswap", items: [["CONTRACT CALL", "warn"]] }],
+  ["withdraw-partial", "EIP-7002 partial withdrawal of 1.5 ETH (1,500,000,000 Gwei), fee 1 wei", 1, SAFE_A,
+    tx({ to: WITHDRAW_REQ, value: 1n, data: withdrawal(PK1, 1_500_000_000n), nonce: 20n }),
+    { summary: "Withdraw 1.5 ETH", items: [["WITHDRAW", "warn"]] }],
+  ["exit-full", "EIP-7002 with amount 0: a full exit (a red-screen case)", 1, SAFE_A,
+    tx({ to: WITHDRAW_REQ, value: 1n, data: withdrawal(PK1, 0n), nonce: 21n }),
+    { summary: "Exit validator", items: [red("EXIT VALIDATOR")] }],
+  ["withdraw-malformed", "A withdrawal request one byte short: not a request (red)", 1, SAFE_A,
+    tx({ to: WITHDRAW_REQ, value: 1n, data: withdrawal(PK1, 1n).slice(0, -2), nonce: 22n }),
+    { summary: "Malformed withdrawal request", items: [red("BAD REQUEST")] }],
+  ["consolidate", "EIP-7251: consolidate PK2 into PK1 (a red-screen case)", 1, SAFE_A,
+    tx({ to: CONSOLIDATION_REQ, value: 1n, data: concat([PK2, PK1]), nonce: 23n }),
+    { summary: "Consolidate validators", items: [red("CONSOLIDATE")] }],
+  ["switch-compounding", "EIP-7251 with source = target: switch PK1 to 0x02 credentials", 1, SAFE_A,
+    tx({ to: CONSOLIDATION_REQ, value: 1n, data: concat([PK1, PK1]), nonce: 24n }),
+    { summary: "Switch to compounding", items: [["COMPOUNDING", "warn"]] }],
+  ["deposit-own-creds", "32 ETH deposit whose 0x02 withdrawal credentials name this Safe", 1, SAFE_A,
+    tx({ to: DEPOSIT, value: 32_000_000_000_000_000_000n, data: depositData(PK2, "0x02", SAFE_A), nonce: 25n }),
+    { summary: "Deposit 32 ETH", items: [ok("DEPOSIT")] }],
+  ["deposit-foreign-creds", "32 ETH deposit whose 0x01 withdrawal credentials pay Bob, not this Safe (red)", 1, SAFE_A,
+    tx({ to: DEPOSIT, value: 32_000_000_000_000_000_000n, data: depositData(PK2, "0x01", BOB), nonce: 26n }),
+    { summary: "Deposit 32 ETH", items: [red("DEPOSIT")] }],
+  ["validator-batch", "Two partial withdrawals in one MultiSendCallOnly batch, the second with a 0.05 ETH fee", 1, SAFE_A,
+    tx({ to: MULTISEND_CALL_ONLY_141, operation: 1, nonce: 27n, data: encodeFunctionData({ abi: multiSendAbi, functionName: "multiSend",
+      args: [concat([packed(WITHDRAW_REQ, 1n, withdrawal(PK1, 1_000_000_000n)), packed(WITHDRAW_REQ, 50_000_000_000_000_000n, withdrawal(PK2, 1_000_000_000n))])] }) }),
+    { summary: "Batch: 2 actions", items: [["WITHDRAW", "warn"], ["WITHDRAW", "warn"]] }],
+  ["withdraw-on-base", "The same request on Base, which has no such contract: an unknown call (red)", 8453, SAFE_A,
+    tx({ to: WITHDRAW_REQ, value: 1n, data: withdrawal(PK1, 1_500_000_000n), nonce: 28n }),
+    { summary: "Unknown call", items: [red("UNKNOWN CALL")] }],
   ["sim-send", "The simulated Safe (chain 31337, tools/quorum): send 0.05 ETH to Bob", 31337, SIM_SAFE,
     tx({ to: SIM_BOB, value: 50_000_000_000_000_000n, nonce: 0n }),
     { summary: "Send 0.05 ETH", items: [ok("SEND ETH")] }],

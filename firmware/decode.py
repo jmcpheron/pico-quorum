@@ -38,6 +38,7 @@ SIGS = {
     "e009cfde": "disableModule(address,address)",
     "e19a9dd9": "setGuard(address)",
     "f08a0323": "setFallbackHandler(address)",
+    "22895118": "deposit(bytes,bytes,bytes,bytes32)",
 }
 
 DONT = "Don't sign unless you were told exactly what to expect."
@@ -107,7 +108,23 @@ def pinned_for(book, chain):
     return out
 
 
-def context(cfg, safe, names=None, chain=None, pinned=None, seen=None):
+SYSTEM_NAMES = {"withdraw": "Withdrawal requests", "consolidate": "Consolidations", "deposit": "Deposit contract"}
+
+
+def validators_of(given):
+    """secrets.QUORUM_VALIDATORS -> {pubkey hex (0x + 96, lowercase): (label, index or None)}. An
+    entry is "label" or ["label", index]: the validators this Safe is the withdrawal address of."""
+    out = {}
+    for k, v in (given or {}).items():
+        if isinstance(v, (list, tuple)):
+            label, idx = str(v[0]), (int(v[1]) if len(v) > 1 and v[1] is not None else None)
+        else:
+            label, idx = str(v), None
+        out[k.lower()] = (label, idx)
+    return out
+
+
+def context(cfg, safe, names=None, chain=None, pinned=None, seen=None, validators=None):
     """What review() needs from the pinned config, with lowercase keys, for a Safe on this chain.
     names: extra {address: name}, such as this console's own owner address. chain: the pinned
     address book (Alice, Bob...) is the laptop's Anvil accounts, so it names addresses only on the
@@ -125,10 +142,15 @@ def context(cfg, safe, names=None, chain=None, pinned=None, seen=None):
         book[a] = label
     for a, n in (names or {}).items():
         book[a.lower()] = n
+    system = for_chain(cfg, "system", chain)
+    contracts = for_chain(cfg, "contracts", chain)
+    for a, kind in system.items():
+        contracts[a] = [SYSTEM_NAMES[kind], "eth", {}]
     return {"safe": safe.lower(), "book": book, "pinned": pin, "seen": seen if seen is not None else {},
             "tokens": for_chain(cfg, "tokens", chain),
-            "batchers": for_chain(cfg, "batchers", chain), "contracts": for_chain(cfg, "contracts", chain),
-            "delegates": for_chain(cfg, "delegates", chain)}
+            "batchers": for_chain(cfg, "batchers", chain), "contracts": contracts,
+            "delegates": for_chain(cfg, "delegates", chain), "system": system,
+            "validators": validators_of(validators), "feeWarn": int(cfg.get("validatorFeeWarn", 10 ** 16))}
 
 
 def name(ctx, a):
@@ -321,9 +343,110 @@ def _token_call(sel, to, args, ctx):
     return None
 
 
+# ----------------------------------------------------------------------------- validators
+# A Safe that is a validator's withdrawal address (credentials 0x01 or 0x02 naming it) manages the
+# validator by calling the consensus layer's contracts (cfg "system"). Their calldata has no ABI:
+#   withdraw (EIP-7002):    pubkey (48) || amount in Gwei (8, big-endian); amount 0 is a full exit
+#   consolidate (EIP-7251): source pubkey (48) || target pubkey (48); the same key twice switches
+#                           that validator to compounding (0x02) credentials
+# and the value sent is the fee, burned, never refunded when overpaid. A deposit is the deposit
+# contract's deposit(pubkey, withdrawal_credentials, signature, deposit_data_root): the value is
+# the stake, and the credentials say who can ever withdraw it.
+GWEI = 10 ** 9
+
+
+def vname(ctx, pk):
+    """(label, index) of a pinned validator, or None."""
+    return ctx.get("validators", {}).get(pk.lower())
+
+
+def wei(n):
+    return "%d wei" % n if 0 < n < GWEI else units(n, 18) + " ETH"
+
+
+def _fee(it, value, ctx):
+    it["fee"] = value
+    if value > ctx.get("feeWarn", 10 ** 16):
+        it["level"] = "red" if it["level"] == "red" else "warn"
+        it["text"] = "The fee is far above the usual 1 wei, and what is overpaid is burned."
+    return it
+
+
+def _not_yours(ctx, *pks):
+    return [pk for pk in pks if not vname(ctx, pk)]
+
+
+def _dyn(args, i):
+    off = _word(args, i)
+    n = int.from_bytes(args[off:off + 32], "big")
+    b = args[off + 32:off + 32 + n]
+    if off + 32 > len(args) or len(b) != n:
+        raise ValueError("calldata too short")
+    return b
+
+
+def _validator_call(kind, to, value, data, ctx):
+    """One call to a consensus-layer contract -> item."""
+    base = {"contract": to, "to": to, "label": "contract"}
+    if kind == "withdraw":
+        if len(data) != 56:
+            return dict(base, title="BAD REQUEST", level="red", what="Malformed withdrawal request",
+                        text="A withdrawal request is exactly 56 bytes; this one is %d. It would fail or do something else. %s" % (len(data), DONT))
+        pk, amt = hx(data[:48]), int.from_bytes(data[48:], "big")
+        if amt == 0:
+            it = dict(base, title="EXIT VALIDATOR", level="red", what="Exit validator", amount="FULL EXIT", keys=[("validator", pk)],
+                      text="Stops it for good and pays out its whole balance. It can't be undone.")
+        else:
+            it = dict(base, title="WITHDRAW", level="ok", what="Withdraw %s ETH" % units(amt * GWEI, 18),
+                      amount="%s ETH" % units(amt * GWEI, 18), keys=[("validator", pk)],
+                      text="Pays this much out to the withdrawal address. The validator keeps running.")
+    elif kind == "consolidate":
+        if len(data) != 96:
+            return dict(base, title="BAD REQUEST", level="red", what="Malformed consolidation",
+                        text="A consolidation request is exactly 96 bytes; this one is %d. %s" % (len(data), DONT))
+        src, dst = hx(data[:48]), hx(data[48:])
+        if src == dst:
+            it = dict(base, title="COMPOUNDING", level="warn", what="Switch to compounding", amount="0x01 to 0x02",
+                      keys=[("validator", src)],
+                      text="Rewards stay on the validator, up to 2,048 ETH, not paid out. No way back.")
+        else:
+            it = dict(base, title="CONSOLIDATE", level="red", what="Consolidate validators", keys=[("from", src), ("into", dst)],
+                      text="Merges the first into the second and exits the first. The second's owner gets everything.")
+    else:
+        if data[:4] != b"\x22\x89\x51\x18":
+            return None
+        args = data[4:]
+        pk, wc, sig = _dyn(args, 0), _dyn(args, 1), _dyn(args, 2)
+        if len(pk) != 48 or len(wc) != 32 or len(sig) != 96:
+            raise ValueError("deposit field sizes")
+        pk = hx(pk)
+        eth = units(value, 18)
+        it = dict(base, title="DEPOSIT", level="ok", what="Deposit %s ETH" % eth, amount="%s ETH" % eth, keys=[("validator", pk)],
+                  creds=hx(wc))
+        if wc[0] in (1, 2) and wc[1:12] == bytes(11) and hx(wc[12:]) == ctx["safe"]:
+            it.update(wto=ctx["safe"], text="0x%02x credentials. A validator that already exists keeps its own credentials." % wc[0])
+        elif wc[0] in (1, 2) and wc[1:12] == bytes(11):
+            it.update(level="red", wto=hx(wc[12:]),
+                      text="NOT this Safe: whoever controls that address gets the stake and its rewards.")
+        else:
+            it.update(level="red", text="Withdrawal credentials of type 0x%02x: not an address, so not this Safe. The stake would be controlled by another key." % wc[0])
+        return it       # the value is the stake, not a fee
+    if _not_yours(ctx, *[k for _, k in it["keys"]]) and it["level"] == "ok":
+        it["level"] = "warn"            # the page says which one is not in the list
+    return _fee(it, value, ctx)
+
+
 def _call(to, value, data, ctx):
     """One plain CALL -> [item]"""
     to = to.lower()
+    kind = ctx.get("system", {}).get(to)
+    if kind:
+        try:
+            it = _validator_call(kind, to, value, data, ctx)
+        except ValueError as e:
+            return [_unknown(to, data, "Could not read it (%s)." % e)]
+        if it:
+            return [it]
     if not data:
         if to == ctx["safe"] and value == 0:
             return [{"title": "REJECTION", "level": "ok", "what": "On-chain rejection",

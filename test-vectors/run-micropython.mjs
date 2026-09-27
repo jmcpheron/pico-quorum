@@ -29,7 +29,7 @@ for sel, sig in decode.SIGS.items():
         print("FAIL selector", sel, sig)
 n = 0
 for v in vs:
-    got = decode.review(v["tx"], decode.context(quorum_cfg.CFG, v["safe"]))
+    got = decode.review(v["tx"], decode.context(quorum_cfg.CFG, v["safe"], chain=v["chainId"]))
     if "expect" not in v:
         continue
     n += 1

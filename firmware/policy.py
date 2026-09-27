@@ -173,3 +173,23 @@ def book(given):
             out.setdefault(k, {})[a] = v
             n += 1
     return out, why
+
+
+def validators(given):
+    """secrets.QUORUM_VALIDATORS, the validators this Safe is the withdrawal address of, checked:
+    {pubkey (0x + 96 hex): "label" or ["label", index]}. -> (dict, why)."""
+    if not given:
+        return {}, ""
+    if not isinstance(given, dict):
+        return {}, "QUORUM_VALIDATORS is not a dict"
+    out, why = {}, ""
+    for k, v in given.items():
+        k = str(k).lower()
+        if not (len(k) == 98 and k[:2] == "0x" and all(c in HEX for c in k[2:])):
+            why = why or "QUORUM_VALIDATORS: %s… is not a 48-byte pubkey" % k[:10]
+            continue
+        if isinstance(v, (list, tuple)) and v and isinstance(v[-1], int):
+            out[k] = [str(v[0])[:16], v[-1]]
+        else:
+            out[k] = str(v[0] if isinstance(v, (list, tuple)) and v else v)[:16]
+    return out, why

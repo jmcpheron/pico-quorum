@@ -57,6 +57,8 @@ SAFES = _given or policy.safes(None, CFG["safes"][0])[0]
 URL = (getattr(secrets, "QUORUM_URL", None) or getattr(secrets, "APP_URL", None)) if secrets else None
 # The owner's own names (tools/quorum book add): ENS names and labels, pinned per chain or for all.
 BOOK, BOOK_WHY = policy.book(getattr(secrets, "QUORUM_BOOK", None)) if secrets else ({}, "")
+# The validators the Safes are the withdrawal address of: their pubkeys and names.
+VALIDATORS, VALIDATORS_WHY = policy.validators(getattr(secrets, "QUORUM_VALIDATORS", None)) if secrets else ({}, "")
 
 
 def new_watch(s):
@@ -181,7 +183,7 @@ def read_key():
     load_seen()
     for w in WATCH:
         w["ctx"] = decode.context(CFG, w["addr"], {me: "This key"} if me else None, chain=w["chain"], pinned=BOOK,
-                                  seen=SEEN.setdefault(str(w["chain"]), {}))
+                                  seen=SEEN.setdefault(str(w["chain"]), {}), validators=VALIDATORS)
         w["cache"].clear()
         w["announced"] = 0
     focus(W)
@@ -574,6 +576,8 @@ def pages_of(e):
     items = []
     for i, it in enumerate(e["r"]["items"]):
         items.append(("item", i))
+        for k in range(len(it.get("keys", ()))):
+            items.append(("key", (i, k)))     # a validator's full pubkey, on a page of its own
         if it.get("digest"):
             items.append(("calldata", i))    # the raw call, on a page of its own
     if e["why"]:

@@ -175,6 +175,12 @@ def logo(d, key, cx, cy, r=8):
             d.line(cx, cy + 5 + k, cx + 5, cy + k, col)
     elif key == "refused":
         mark(d, False, cx, cy, r)
+    elif key == "eth":            # the consensus layer's contracts: Ethereum's diamond
+        d.ellipse(cx, cy, r, r, c((98, 126, 234)), True)
+        k = r * 3 // 4
+        w = c((255, 255, 255))
+        d.poly(cx, cy, array("h", [0, -k, k * 3 // 5, 0, 0, k * 2 // 5, -k * 3 // 5, 0]), w, True)
+        d.poly(cx, cy, array("h", [0, k * 3 // 5, k * 3 // 5, k // 5, 0, k, -k * 3 // 5, k // 5]), w, True)
     elif key in LOGO:
         fill, ink, ch = LOGO[key]
         d.ellipse(cx, cy, r, r, c(fill), True)
@@ -292,6 +298,30 @@ def knob_choices(d, q, items, focus, hint, y=222, bg="bg"):
         x -= 6
     if F.width(hint, "sans12") <= x - M - 21:
         txt(d, hint, M + 19, y - 8, "sans12", "faint", bg)
+
+
+def vlabel(q, pk):
+    """A pinned validator's name ("node-3 #123456"), or None."""
+    v = decode.vname(q.ctx, pk) if q.ctx else None
+    if not v:
+        return None
+    return v[0] + (" #%d" % v[1] if v[1] is not None else "")
+
+
+def key_line(d, q, role, pk, y, pc, bg):
+    """A validator in two lines: its role and pinned name (or "not in your list") with a "yours"
+    tag, then its pubkey's first and last 8 hex. The key's own page has it in full."""
+    name = vlabel(q, pk)
+    tw = 0
+    if name:
+        tw = tag_pill(d, "pinned", "yours", R, y, pc, bg, True) + 8
+    x = txt(d, role + " ", M, y + 1, "sans12", pc["muted"], bg)
+    if name:
+        txt(d, fit(name, R - tw - x, "bold14"), x, y, "bold14", pc["text"], bg)
+    else:
+        txt(d, "not in your validator list", x, y + 1, "sans12", "warn" if bg == "bg" else pc["text"], bg)
+    txt(d, pk[:10] + "\u2026" + pk[-8:], M, y + 17, "mono13", pc["stake"], bg)
+    return y + 35
 
 
 def tag_for(q, a, it=None):
@@ -572,6 +602,16 @@ def draw_summary(q):
         x = txt(d, "calls ", M, y + 2, "sans14", "muted")
         txt(d, short(con), x, y + 3, "mono13", "warn")
         y += 22
+    elif len(items) == 1 and items[0].get("keys"):
+        role, pk = items[0]["keys"][0]
+        name = vlabel(q, pk)
+        x = txt(d, ("validator" if len(items[0]["keys"]) == 1 else role) + " ", M, y + 2, "sans14", "muted")
+        if name:
+            x = txt(d, name, x, y + 2, "bold14")
+            tag_pill(d, "pinned", "yours", x + 6, y + 2, page_colors("ok"), "bg")
+        else:
+            x = txt(d, pk[:10] + "\u2026" + pk[-6:], x, y + 3, "mono13", "warn")
+        y += 22
     elif len(items) == 1 and items[0].get("to") and items[0]["to"] != con:
         to = items[0]["to"]
         name, lg, known = ident(q, to)
@@ -602,9 +642,11 @@ def draw_summary(q):
     y += 8
     have, need = len(e["conf"]), q.threshold()
     x = txt(d, "%d of %d" % (have, need), M, y, "bold14") + 12
-    for a in q.owners():
+    names = ["You" if a == q.me else (ident(q, a)[0] or short(a)) for a in q.owners()]
+    if x + sum(24 + F.width(n, "sans14") for n in names) > W - 4:
+        names = [n if n == "You" or not n.startswith("0x") else n[2:6] + "\u2026" + n[-2:] for n in names]
+    for a, nm in zip(q.owners(), names):
         done = a in e["conf"]
-        nm = "You" if a == q.me else (ident(q, a)[0] or short(a))
         w = 12 + F.width(nm, "sans14") + 12
         if x + w > W - 4:
             x, y = M + 58, y + 20
@@ -622,9 +664,10 @@ def draw_summary(q):
         line, col = "Yours makes it %d of %d · ready" % (have + 1, need), "ok"
     else:
         line, col = "Yours makes it %d of %d" % (have + 1, need), "text"
-    txt(d, fit(line, TW, "bold14"), M, y, "bold14" if col == "ok" else "sans14", col)
-    y += 22
     reds = sum(1 for it in items if it["level"] == "red")
+    if not reds or y + 44 <= PAGE_ROW:     # the red pill takes the line's place when both don't fit
+        txt(d, fit(line, TW, "bold14"), M, y, "bold14" if col == "ok" else "sans14", col)
+        y += 22
     if reds:
         pill(d, "%d red page%s — read %s" % (reds, "s" if reds > 1 else "", "them" if reds > 1 else "it"),
              M, min(y, PAGE_ROW - 22), "bold14", "bad_bar", "on_bad")
@@ -646,7 +689,8 @@ def draw_item(q, i):
     pc = page_colors(lvl)
     bg = pc["bg"]
     d.fill_rect(0, TOP - 2, W, BOTTOM - TOP + 2, c(bg))
-    item_head(d, q, it, pc, it["title"], it.get("to") != it.get("contract"))
+    keys = it.get("keys")
+    item_head(d, q, it, pc, it["title"], bool(keys) or it.get("to") != it.get("contract"))
     y = TOP + 30
     if e["why"]:
         pill(d, "Refused · only the service's claim", M, y, "sans12", "bad_bar", "on_bad")
@@ -658,9 +702,20 @@ def draw_item(q, i):
             txt(d, line, M, y, f, pc["stake"] if lvl == "red" else pc["text"], bg)
             y += F.height(f) - 5
         y += 4
-    for label, a in ((it.get("frm_label", "from"), it.get("frm")), (it.get("label", "to"), it.get("to"))):
-        if a:
-            y = who_line(d, q, label, a, y, pc, bg, it if a == it.get("to") else None)
+    if it.get("wto"):             # a deposit: who can withdraw it is what matters (the key has its own page)
+        y = who_line(d, q, "withdrawals to", it["wto"], y, pc, bg)
+    elif keys:
+        for role, pk in keys:
+            y = key_line(d, q, role, pk, y, pc, bg)
+        if "fee" in it:
+            x = txt(d, "fee ", M, y, "sans12", pc["muted"], bg)
+            x = txt(d, decode.wei(it["fee"]), x, y - 1, "bold14", pc["text"], bg)
+            txt(d, " \u00b7 not refunded", x, y, "sans12", pc["muted"], bg)
+            y += 19
+    else:
+        for label, a in ((it.get("frm_label", "from"), it.get("frm")), (it.get("label", "to"), it.get("to"))):
+            if a:
+                y = who_line(d, q, label, a, y, pc, bg, it if a == it.get("to") else None)
     if it.get("text"):
         para(d, it["text"], M, y, TW, "sans14", pc["text"], bg, 17, PAGE_ROW - 2)
 
@@ -681,6 +736,36 @@ def draw_calldata(q, i):
     for line in hash_lines(it["digest"]):
         y += 14
         txt(d, line, M, y, "mono13", pc["text"], bg)
+
+
+def draw_key(q, ik):
+    """One validator's pubkey in full, 4-hex groups beside its identicon: what to compare with the
+    validator list or a beacon explorer."""
+    d, e = q.d, q.cur
+    i, k = ik
+    it = e["r"]["items"][i]
+    role, pk = it["keys"][k]
+    pc = page_colors(it["level"])
+    bg = pc["bg"]
+    d.fill_rect(0, TOP - 2, W, BOTTOM - TOP + 2, c(bg))
+    item_head(d, q, it, pc, "VALIDATOR" if role == "validator" else role.upper() + " VALIDATOR", False)
+    y = TOP + 30
+    name = vlabel(q, pk)
+    if name:
+        x = txt(d, name, M, y, "bold18", pc["text"], bg)
+        tag_pill(d, "pinned", "yours", x + 8, y + 3, pc, bg)
+    else:
+        txt(d, "Not in your validator list", M, y, "bold18", "warn" if bg == "bg" else pc["text"], bg)
+    y += 28
+    blockies.draw(d, pk, M, y + 2, 5)
+    x0 = M + 48
+    per = max(3, (R - x0 - F.width("0x", "mono13")) // F.width("0000 ", "mono13"))
+    for k2, line in enumerate(hash_lines(pk, per)):
+        txt(d, ("0x" if k2 == 0 else "  ") + line, x0, y, "mono13", pc["stake"], bg)
+        y += 15
+    y = max(y, TOP + 58 + 44) + 6
+    para(d, "Compare with your list or a beacon explorer.",
+         M, y, TW, "sans12", pc["muted"], bg, 15, PAGE_ROW - 2)
 
 
 def draw_verify(q):
@@ -727,6 +812,9 @@ def draw_review(q):
     elif kind == "calldata":
         draw_calldata(q, i)
         pc = page_colors(q.cur["r"]["items"][i]["level"])
+    elif kind == "key":
+        draw_key(q, i)
+        pc = page_colors(q.cur["r"]["items"][i[0]]["level"])
     elif kind == "verify":
         draw_verify(q)
     else:

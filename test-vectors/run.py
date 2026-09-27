@@ -57,7 +57,7 @@ def check_decode(vectors):
                 failed += 1
     n = 0
     for v in vectors:
-        got = decode.review(v["tx"], decode.context(quorum_cfg.CFG, v["safe"]))
+        got = decode.review(v["tx"], decode.context(quorum_cfg.CFG, v["safe"], chain=v["chainId"]))   # its chain's lists only
         if "expect" not in v:
             print("----  %-24s %s (%s, no expectation)" % (v["name"], got["summary"][:40], got["level"]))
             continue
