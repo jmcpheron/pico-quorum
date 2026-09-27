@@ -10,6 +10,9 @@ changed.
 [change requests](#change-requests) checklist at the bottom straight in GitHub. I pull before every
 iteration and work through both.
 
+**v2, a redo of the look:** a new boot screen (a 3-of-5 star that becomes a spinning Ethereum
+diamond) and the plan for type and graphics. See [v2/README.md](v2/README.md).
+
 **Next: other screen sizes.** A plan for the six screens on order (0.96″ to 3.5″): the same flow
 reflowed per size, the code it needs, and questions for you. See [SCREENS.md](SCREENS.md).
 

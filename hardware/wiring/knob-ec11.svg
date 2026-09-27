@@ -1,0 +1,144 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="960" viewBox="0 0 1400 960">
+<rect width="1400" height="960" fill="#fbfbf8"/>
+<text x="24" y="34" font-size="18" text-anchor="start" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">The rotary knob (EC11) close up: it is three switches in one</text>
+<text x="24" y="56" font-size="11.5" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">Two switches click on and off as you turn it (A and B), and one closes when you push it (SW). Each leg just connects or doesn't. No chips, no power needed.</text>
+<text x="90" y="110" font-size="14" text-anchor="start" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">1. From the side</text>
+<rect x="220" y="140" width="40" height="80" rx="3" fill="#c8c8c8" stroke="#666" stroke-width="1.5"/>
+<rect x="244" y="146" width="12" height="60" fill="#e8e8e8"/>
+<rect x="200" y="220" width="80" height="40" rx="3" fill="#aaa" stroke="#555" stroke-width="1.5"/>
+<line x1="200" y1="224" x2="280" y2="228" stroke="#666"/>
+<line x1="200" y1="230" x2="280" y2="234" stroke="#666"/>
+<line x1="200" y1="236" x2="280" y2="240" stroke="#666"/>
+<line x1="200" y1="242" x2="280" y2="246" stroke="#666"/>
+<line x1="200" y1="248" x2="280" y2="252" stroke="#666"/>
+<line x1="200" y1="254" x2="280" y2="258" stroke="#666"/>
+<rect x="130" y="260" width="220" height="90" rx="4" fill="#8a8a8a" stroke="#333" stroke-width="2"/>
+<rect x="124" y="270" width="232" height="16" rx="2" fill="#bdbdbd" stroke="#555" stroke-width="1.5"/>
+<text x="240.0" y="320" font-size="11" text-anchor="middle" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">body</text>
+<rect x="197" y="350" width="6" height="40" rx="1" fill="#d9b24a" stroke="#8a6d1f" stroke-width="1.5"/>
+<text x="200" y="408" font-size="16" text-anchor="middle" fill="#138a8a" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">A</text>
+<rect x="237" y="350" width="6" height="40" rx="1" fill="#d9b24a" stroke="#8a6d1f" stroke-width="1.5"/>
+<text x="240" y="408" font-size="16" text-anchor="middle" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">C</text>
+<rect x="277" y="350" width="6" height="40" rx="1" fill="#d9b24a" stroke="#8a6d1f" stroke-width="1.5"/>
+<text x="280" y="408" font-size="16" text-anchor="middle" fill="#138a8a" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">B</text>
+<rect x="134" y="350" width="8" height="28" rx="1" fill="#bdbdbd" stroke="#555" stroke-width="1.5"/>
+<rect x="340" y="350" width="8" height="28" rx="1" fill="#bdbdbd" stroke="#555" stroke-width="1.5"/>
+<text x="116" y="376" font-size="9" text-anchor="end" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">tab</text>
+<text x="366" y="376" font-size="9" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">tab</text>
+<text x="240.0" y="430" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">this side: 3 legs, the turning part</text>
+<text x="240.0" y="444" font-size="10" text-anchor="middle" fill="#111" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">the other side (behind): 2 legs, the push switch</text>
+<text x="280" y="170" font-size="9" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">shaft: the knob cap</text>
+<text x="280" y="182" font-size="9" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">pushes on here</text>
+<text x="290" y="238" font-size="9" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">nut thread, for a panel</text>
+<text x="520" y="110" font-size="14" text-anchor="start" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">2. Turned over, legs toward you</text>
+<rect x="590" y="186" width="220" height="220" rx="6" fill="#8a8a8a" stroke="#333" stroke-width="2"/>
+<circle cx="700" cy="296" r="40" fill="#777" stroke="#444" stroke-dasharray="4 4"/>
+<text x="700" y="300" font-size="9" text-anchor="middle" fill="#eee" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">shaft is</text>
+<text x="700" y="312" font-size="9" text-anchor="middle" fill="#eee" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">on the far side</text>
+<rect x="574" y="276" width="16" height="40" rx="2" fill="#bdbdbd" stroke="#555" stroke-width="1.5"/>
+<rect x="810" y="276" width="16" height="40" rx="2" fill="#bdbdbd" stroke="#555" stroke-width="1.5"/>
+<text x="566" y="300" font-size="9" text-anchor="end" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">tab</text>
+<text x="834" y="300" font-size="9" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">tab</text>
+<text x="566" y="314" font-size="9" text-anchor="end" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">(nothing)</text>
+<text x="834" y="314" font-size="9" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">(nothing)</text>
+<circle cx="660" cy="386" r="9" fill="#d9b24a" stroke="#8a6d1f" stroke-width="2"/>
+<text x="660" y="436" font-size="16" text-anchor="middle" fill="#138a8a" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">A</text>
+<circle cx="700" cy="386" r="9" fill="#d9b24a" stroke="#8a6d1f" stroke-width="2"/>
+<text x="700" y="436" font-size="16" text-anchor="middle" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">C</text>
+<circle cx="740" cy="386" r="9" fill="#d9b24a" stroke="#8a6d1f" stroke-width="2"/>
+<text x="740" y="436" font-size="16" text-anchor="middle" fill="#138a8a" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">B</text>
+<circle cx="670" cy="208" r="9" fill="#d9b24a" stroke="#8a6d1f" stroke-width="2"/>
+<text x="670" y="176" font-size="14" text-anchor="middle" fill="#2a8c4a" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">SW</text>
+<circle cx="730" cy="208" r="9" fill="#d9b24a" stroke="#8a6d1f" stroke-width="2"/>
+<text x="730" y="176" font-size="14" text-anchor="middle" fill="#2a8c4a" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">SW</text>
+<text x="700" y="458" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">3 legs in a row: A, C (always the middle), B</text>
+<text x="700" y="152" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">2 legs: the push switch (they're the same, either way round)</text>
+<text x="960" y="110" font-size="14" text-anchor="start" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">3. Where each leg goes</text>
+<rect x="960" y="134" width="110" height="26" rx="4" fill="#fff" stroke="#138a8a" stroke-width="2"/>
+<text x="1015" y="152" font-size="11" text-anchor="middle" fill="#138a8a" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">A</text>
+<path d="M1072 147 L1130 147" fill="none" stroke="#138a8a" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1140" y="152" font-size="11" text-anchor="start" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">Pico pin 4 (GP2)</text>
+<text x="1140" y="165" font-size="8.5" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">wire 16 on build1-breadboard.svg</text>
+<rect x="960" y="184" width="110" height="26" rx="4" fill="#fff" stroke="#222" stroke-width="2"/>
+<text x="1015" y="202" font-size="11" text-anchor="middle" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">C, middle</text>
+<path d="M1072 197 L1130 197" fill="none" stroke="#222" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1140" y="202" font-size="11" text-anchor="start" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">blue - rail (ground)</text>
+<text x="1140" y="215" font-size="8.5" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">wire 15 on build1-breadboard.svg</text>
+<rect x="960" y="234" width="110" height="26" rx="4" fill="#fff" stroke="#138a8a" stroke-width="2"/>
+<text x="1015" y="252" font-size="11" text-anchor="middle" fill="#138a8a" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">B</text>
+<path d="M1072 247 L1130 247" fill="none" stroke="#138a8a" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1140" y="252" font-size="11" text-anchor="start" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">Pico pin 5 (GP3)</text>
+<text x="1140" y="265" font-size="8.5" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">wire 17 on build1-breadboard.svg</text>
+<rect x="960" y="284" width="110" height="26" rx="4" fill="#fff" stroke="#2a8c4a" stroke-width="2"/>
+<text x="1015" y="302" font-size="11" text-anchor="middle" fill="#2a8c4a" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">SW, one</text>
+<path d="M1072 297 L1130 297" fill="none" stroke="#2a8c4a" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1140" y="302" font-size="11" text-anchor="start" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">Pico pin 2 (GP1)</text>
+<text x="1140" y="315" font-size="8.5" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">wire 18 on build1-breadboard.svg</text>
+<rect x="960" y="334" width="110" height="26" rx="4" fill="#fff" stroke="#222" stroke-width="2"/>
+<text x="1015" y="352" font-size="11" text-anchor="middle" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">SW, other</text>
+<path d="M1072 347 L1130 347" fill="none" stroke="#222" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1140" y="352" font-size="11" text-anchor="start" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">blue - rail (ground)</text>
+<text x="1140" y="365" font-size="8.5" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">wire 19 on build1-breadboard.svg</text>
+<text x="960" y="404" font-size="10.5" text-anchor="start" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">Counts backwards? Swap the A and B wires.</text>
+<text x="960" y="420" font-size="10.5" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">Nothing can break either way: the Pico's own</text>
+<text x="960" y="435" font-size="10.5" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">pull-ups hold each pin high, and a closed switch</text>
+<text x="960" y="450" font-size="10.5" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">pulls it to ground. No resistors needed.</text>
+<text x="24" y="520" font-size="14" text-anchor="start" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">4. How turning it works</text>
+<text x="24" y="540" font-size="10.5" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">Inside, A and B each touch C in some positions and not in others. They take turns, a quarter step apart, so the Pico can tell which way you turned by which one moves first.</text>
+<text x="24" y="556" font-size="10.5" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">Each click you feel is one full cycle: 4 changes. The Pico reads them as high (switch open) and low (switch closed to ground).</text>
+<text x="110" y="592" font-size="11" text-anchor="start" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">clockwise: A drops first</text>
+<text x="98" y="626" font-size="13" text-anchor="end" fill="#138a8a" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">A</text>
+<path d="M110 608 L150 608 L150 638 L190 638 L190 638 L230 638 L230 608 L270 608 L270 608 L310 608 L310 638 L350 638 L350 638 L390 638 L390 608 L430 608 L430 608 L470 608" fill="none" stroke="#138a8a" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="98" y="676" font-size="13" text-anchor="end" fill="#6a3fbf" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">B</text>
+<path d="M110 658 L150 658 L150 658 L190 658 L190 688 L230 688 L230 688 L270 688 L270 658 L310 658 L310 658 L350 658 L350 688 L390 688 L390 688 L430 688 L430 658 L470 658" fill="none" stroke="#6a3fbf" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="640" y="592" font-size="11" text-anchor="start" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">counter-clockwise: B drops first</text>
+<text x="628" y="626" font-size="13" text-anchor="end" fill="#138a8a" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">A</text>
+<path d="M640 608 L680 608 L680 608 L720 608 L720 638 L760 638 L760 638 L800 638 L800 608 L840 608 L840 608 L880 608 L880 638 L920 638 L920 638 L960 638 L960 608 L1000 608" fill="none" stroke="#138a8a" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="628" y="676" font-size="13" text-anchor="end" fill="#6a3fbf" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">B</text>
+<path d="M640 658 L680 658 L680 688 L720 688 L720 688 L760 688 L760 658 L800 658 L800 658 L840 658 L840 688 L880 688 L880 688 L920 688 L920 658 L960 658 L960 658 L1000 658" fill="none" stroke="#6a3fbf" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<line x1="150" y1="600" x2="150" y2="696" stroke="#bbb" stroke-dasharray="3 3"/>
+<line x1="310" y1="600" x2="310" y2="696" stroke="#bbb" stroke-dasharray="3 3"/>
+<line x1="470" y1="600" x2="470" y2="696" stroke="#bbb" stroke-dasharray="3 3"/>
+<text x="230" y="716" font-size="9" text-anchor="middle" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">one click</text>
+<path d="M154 706 L306 706" fill="none" stroke="#666" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="490" y="616" font-size="9" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">high = open</text>
+<text x="490" y="642" font-size="9" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">low = closed</text>
+<line x1="680" y1="600" x2="680" y2="696" stroke="#bbb" stroke-dasharray="3 3"/>
+<line x1="840" y1="600" x2="840" y2="696" stroke="#bbb" stroke-dasharray="3 3"/>
+<line x1="1000" y1="600" x2="1000" y2="696" stroke="#bbb" stroke-dasharray="3 3"/>
+<text x="760" y="716" font-size="9" text-anchor="middle" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">one click</text>
+<path d="M684 706 L836 706" fill="none" stroke="#666" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1020" y="616" font-size="9" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">high = open</text>
+<text x="1020" y="642" font-size="9" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">low = closed</text>
+<text x="24" y="746" font-size="10.5" text-anchor="start" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">Push: the two SW legs touch while you hold the shaft down. That is all the button is.</text>
+<text x="24" y="790" font-size="14" text-anchor="start" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">5. Getting wires onto the legs</text>
+<text x="24" y="812" font-size="10.5" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">- Female-to-male jumper wires: the socket end pushes onto a leg, the pin end goes in the breadboard.</text>
+<text x="40" y="828" font-size="10.5" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">If one is loose, squeeze the socket gently with pliers, or tin the leg with a little solder.</text>
+<text x="24" y="844" font-size="10.5" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">- Or plug the knob itself into a spare end of the breadboard across the middle gap:</text>
+<text x="40" y="860" font-size="10.5" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">bend the two side tabs flat first; then wire from the legs' columns like any other part.</text>
+<text x="24" y="876" font-size="10.5" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">- Keep the legs from touching each other or the metal frame.</text>
+<text x="800" y="790" font-size="14" text-anchor="start" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">On a little board instead (KY-040)?</text>
+<rect x="800" y="804" width="150" height="110" rx="6" fill="#1f5fbf" stroke="#123a70" stroke-width="2"/>
+<circle cx="860" cy="859" r="26" fill="#777" stroke="#222" stroke-width="2"/>
+<rect x="945" y="815" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="940" y="824" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">CLK</text>
+<path d="M955 820 L1000 820" fill="none" stroke="#138a8a" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1008" y="824" font-size="10.5" text-anchor="start" fill="#138a8a" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">pin 4 (GP2), like A</text>
+<rect x="945" y="835" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="940" y="844" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">DT</text>
+<path d="M955 840 L1000 840" fill="none" stroke="#138a8a" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1008" y="844" font-size="10.5" text-anchor="start" fill="#138a8a" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">pin 5 (GP3), like B</text>
+<rect x="945" y="855" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="940" y="864" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">SW</text>
+<path d="M955 860 L1000 860" fill="none" stroke="#2a8c4a" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1008" y="864" font-size="10.5" text-anchor="start" fill="#2a8c4a" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">pin 2 (GP1)</text>
+<rect x="945" y="875" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="940" y="884" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">+</text>
+<path d="M955 880 L1000 880" fill="none" stroke="#b3261e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1008" y="884" font-size="10.5" text-anchor="start" fill="#b3261e" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">red + rail: 3.3 V, never 5 V</text>
+<rect x="945" y="895" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="940" y="904" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">GND</text>
+<path d="M955 900 L1000 900" fill="none" stroke="#222" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1008" y="904" font-size="10.5" text-anchor="start" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">blue - rail</text>
+<text x="800" y="940" font-size="10" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">Five labelled pins, the switch ground already joined on the board.</text>
+</svg>

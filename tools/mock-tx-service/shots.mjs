@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 import { DEMO } from "./scenarios.mjs";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
-const OUT = join(ROOT, "docs", "quorum-ui", "shots");
+const SHOTS = join(ROOT, "docs", "quorum-ui", "shots");
 const PORT = 8799;
 const BASE = `http://localhost:${PORT}`;
 // "two": a console that watches two Safes (QUORUM_SAFES), the Family Safe here and a simulated
@@ -20,7 +20,14 @@ const PORT2 = 8797;
 const BASE2 = `http://localhost:${PORT2}`;
 const SAFE2 = "0x5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a";
 const tmp = mkdtempSync(join(tmpdir(), "quorum-shots-"));
-const only = process.argv.slice(3);      // tools/quorum shots [story ...]
+// tools/quorum shots [story ...], or tools/quorum shots --fonts inter,plex: FONT_STORIES in each
+// candidate font set (tools/fonts/gen.py --try) into docs/quorum-ui/v2/fonts/SET/
+let only = process.argv.slice(3);
+let fontsets = [null];
+if (only[0] === "--fonts") {
+  fontsets = only[1].split(",");
+  only = only.slice(2);
+}
 
 // A step is a string: "key A", "keys down,down,A", "hold A", "release A", "wait MS", "shot NAME",
 // "exec CODE", or "frozen-hold MS" (the hold overlay drawn at MS in, with the timer stopped so the
@@ -62,7 +69,16 @@ const STORIES = [
     "keys B,down,down,A,down", "shot 35-light-red-page", "key down", "shot 36-light-verify"]],
 ];
 
-function args(steps) {
+// A few screens that show every size of type, for comparing font sets (docs/quorum-ui/v2/FONTS.md).
+const FONT_STORIES = [
+  ["home", DEMO, ["shot 01-home"]],
+  ["approve", DEMO, ["key A", "shot 02-approve-summary", "key down", "shot 03-approve-send"]],
+  ["batch", DEMO, ["keys down,A", "key down", "key down", "key down", "shot 11-batch-verify"]],
+  ["owner", DEMO, ["keys down,down,A", "key down", "shot 13-owner-red-page"]],
+  ["lie", DEMO, ["keys down,down,down,A", "shot 16-lie-refused"]],
+];
+
+function args(steps, OUT) {
   const out = [];
   for (const s of steps) {
     const [k, ...rest] = s.split(" ");
@@ -92,7 +108,6 @@ async function post(path, body, base = BASE) {
   if (!r.ok) throw new Error(`${path}: ${r.status}`);
 }
 
-mkdirSync(OUT, { recursive: true });
 const server = spawn(process.execPath, [join(ROOT, "tools/mock-tx-service/server.mjs"), "--port", String(PORT)],
   { env: { ...process.env, QUORUM_STATE: join(tmp, "state.json") }, stdio: "ignore" });
 const server2 = spawn(process.execPath, [join(ROOT, "tools/mock-tx-service/server.mjs"), "--port", String(PORT2)],
@@ -129,9 +144,10 @@ for (const [name, queue, steps, opts = {}] of STORIES) {
     failed++;
     console.log((r.stdout + r.stderr).split("\n").filter((l) => !l.startsWith("[shot]")).slice(-15).join("\n"));
   }
+  console.log(`shots in ${OUT}`);
 }
 server.kill();
 server2.kill();
 rmSync(tmp, { recursive: true, force: true });
-console.log(failed ? `${failed} stories failed` : `shots in ${OUT}`);
+if (failed) console.log(`${failed} stories failed`);
 process.exit(failed ? 1 : 0);

@@ -1,0 +1,284 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1000" viewBox="0 0 1440 1000">
+<rect width="1440" height="1000" fill="#fbfbf8"/>
+<text x="24" y="32" font-size="16" text-anchor="start" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">PicoQuorum Build 1: Pico 2 W + 2.0" ST7789 240x320 + EC11 knob + key jacks (3.5 mm and 2.5 mm TRRS), ATECC608 key</text>
+<text x="24" y="52" font-size="11" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">Pico 2 W seen from the top, USB up. Numbers are physical header pins. A dot joins wires; wires that cross without a dot do not touch.</text>
+<text x="24" y="68" font-size="11" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">All power is 3.3 V from pin 36. Nothing here goes to VBUS (40) or VSYS (39). The pin table in hardware/wiring/BUILD1.md is the same one.</text>
+<rect x="620" y="150" width="240" height="440" rx="8" fill="#2e7d4f" stroke="#1b4d31" stroke-width="2"/>
+<rect x="714.0" y="132" width="52" height="26" rx="3" fill="#bbb" stroke="#777" stroke-width="1.5"/>
+<text x="740.0" y="149" font-size="9" text-anchor="middle" fill="#333" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">micro-USB</text>
+<text x="740.0" y="125" font-size="9.5" text-anchor="middle" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">programming and power</text>
+<rect x="712.0" y="320" width="56" height="56" rx="2" fill="#111" stroke="#111" stroke-width="1.5"/>
+<text x="740.0" y="352" font-size="10" text-anchor="middle" fill="#ddd" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">RP2350</text>
+<rect x="716.0" y="455" width="48" height="30" rx="2" fill="#777" stroke="#444" stroke-width="1.5"/>
+<text x="740.0" y="474" font-size="9" text-anchor="middle" fill="#eee" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">CYW43</text>
+<text x="740.0" y="505" font-size="9" text-anchor="middle" fill="#d8f0e0" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">GP23-25, GP29:</text>
+<text x="740.0" y="517" font-size="9" text-anchor="middle" fill="#d8f0e0" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">the radio's. Never.</text>
+<circle cx="628" cy="175" r="5" fill="#e8e0b0" stroke="#333"/>
+<text x="639" y="179" font-size="9" text-anchor="start" fill="#cfe6d6" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">1 GP0</text>
+<circle cx="628" cy="195" r="5" fill="#138a8a" stroke="#333"/>
+<text x="639" y="199" font-size="10" text-anchor="start" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">2 GP1</text>
+<circle cx="628" cy="215" r="5" fill="#222" stroke="#333"/>
+<text x="639" y="219" font-size="10" text-anchor="start" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">3 GND</text>
+<circle cx="628" cy="235" r="5" fill="#138a8a" stroke="#333"/>
+<text x="639" y="239" font-size="10" text-anchor="start" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">4 GP2</text>
+<circle cx="628" cy="255" r="5" fill="#138a8a" stroke="#333"/>
+<text x="639" y="259" font-size="10" text-anchor="start" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">5 GP3</text>
+<circle cx="628" cy="275" r="5" fill="#1f5fbf" stroke="#333"/>
+<text x="639" y="279" font-size="10" text-anchor="start" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">6 GP4</text>
+<circle cx="628" cy="295" r="5" fill="#c99a00" stroke="#333"/>
+<text x="639" y="299" font-size="10" text-anchor="start" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">7 GP5</text>
+<circle cx="628" cy="315" r="5" fill="#222" stroke="#333"/>
+<text x="639" y="319" font-size="10" text-anchor="start" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">8 GND</text>
+<circle cx="628" cy="335" r="5" fill="#d2691e" stroke="#333"/>
+<text x="639" y="339" font-size="10" text-anchor="start" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">9 GP6</text>
+<circle cx="628" cy="355" r="5" fill="#2a8c4a" stroke="#333"/>
+<text x="639" y="359" font-size="10" text-anchor="start" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">10 GP7</text>
+<circle cx="628" cy="375" r="5" fill="#6a3fbf" stroke="#333"/>
+<text x="639" y="379" font-size="10" text-anchor="start" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">11 GP8</text>
+<circle cx="628" cy="395" r="5" fill="#6a3fbf" stroke="#333"/>
+<text x="639" y="399" font-size="10" text-anchor="start" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">12 GP9</text>
+<circle cx="628" cy="415" r="5" fill="#222" stroke="#333"/>
+<text x="639" y="419" font-size="10" text-anchor="start" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">13 GND</text>
+<circle cx="628" cy="435" r="5" fill="#6a3fbf" stroke="#333"/>
+<text x="639" y="439" font-size="10" text-anchor="start" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">14 GP10</text>
+<circle cx="628" cy="455" r="5" fill="#6a3fbf" stroke="#333"/>
+<text x="639" y="459" font-size="10" text-anchor="start" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">15 GP11</text>
+<circle cx="628" cy="475" r="5" fill="#6a3fbf" stroke="#333"/>
+<text x="639" y="479" font-size="10" text-anchor="start" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">16 GP12</text>
+<circle cx="628" cy="495" r="5" fill="#2a8c4a" stroke="#333"/>
+<text x="639" y="499" font-size="10" text-anchor="start" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">17 GP13</text>
+<circle cx="628" cy="515" r="5" fill="#e8e0b0" stroke="#333"/>
+<text x="639" y="519" font-size="9" text-anchor="start" fill="#cfe6d6" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">18 GND</text>
+<circle cx="628" cy="535" r="5" fill="#e8e0b0" stroke="#333"/>
+<text x="639" y="539" font-size="9" text-anchor="start" fill="#cfe6d6" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">19 GP14</text>
+<circle cx="628" cy="555" r="5" fill="#2e7d4f" stroke="#e8e0b0" stroke-width="2" stroke-dasharray="2 2"/>
+<text x="639" y="559" font-size="9" text-anchor="start" fill="#cfe6d6" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">20 GP15</text>
+<circle cx="852" cy="175" r="5" fill="#e8e0b0" stroke="#333"/>
+<text x="841" y="179" font-size="9" text-anchor="end" fill="#cfe6d6" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">VBUS 40</text>
+<circle cx="852" cy="195" r="5" fill="#e8e0b0" stroke="#333"/>
+<text x="841" y="199" font-size="9" text-anchor="end" fill="#cfe6d6" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">VSYS 39</text>
+<circle cx="852" cy="215" r="5" fill="#e8e0b0" stroke="#333"/>
+<text x="841" y="219" font-size="9" text-anchor="end" fill="#cfe6d6" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">GND 38</text>
+<circle cx="852" cy="235" r="5" fill="#e8e0b0" stroke="#333"/>
+<text x="841" y="239" font-size="9" text-anchor="end" fill="#cfe6d6" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">3V3_EN 37</text>
+<circle cx="852" cy="255" r="5" fill="#b3261e" stroke="#333"/>
+<text x="841" y="259" font-size="10" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">3V3 OUT 36</text>
+<circle cx="852" cy="275" r="5" fill="#e8e0b0" stroke="#333"/>
+<text x="841" y="279" font-size="9" text-anchor="end" fill="#cfe6d6" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">ADC_VREF 35</text>
+<circle cx="852" cy="295" r="5" fill="#2e7d4f" stroke="#e8e0b0" stroke-width="2" stroke-dasharray="2 2"/>
+<text x="841" y="299" font-size="9" text-anchor="end" fill="#cfe6d6" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">GP28 34</text>
+<circle cx="852" cy="315" r="5" fill="#e8e0b0" stroke="#333"/>
+<text x="841" y="319" font-size="9" text-anchor="end" fill="#cfe6d6" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">AGND 33</text>
+<circle cx="852" cy="335" r="5" fill="#9b3d8f" stroke="#333"/>
+<text x="841" y="339" font-size="10" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">GP27 32</text>
+<circle cx="852" cy="355" r="5" fill="#9b3d8f" stroke="#333"/>
+<text x="841" y="359" font-size="10" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">GP26 31</text>
+<circle cx="852" cy="375" r="5" fill="#e8e0b0" stroke="#333"/>
+<text x="841" y="379" font-size="9" text-anchor="end" fill="#cfe6d6" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">RUN 30</text>
+<circle cx="852" cy="395" r="5" fill="#e8e0b0" stroke="#333"/>
+<text x="841" y="399" font-size="9" text-anchor="end" fill="#cfe6d6" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">GP22 29</text>
+<circle cx="852" cy="415" r="5" fill="#e8e0b0" stroke="#333"/>
+<text x="841" y="419" font-size="9" text-anchor="end" fill="#cfe6d6" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">GND 28</text>
+<circle cx="852" cy="435" r="5" fill="#2e7d4f" stroke="#e8e0b0" stroke-width="2" stroke-dasharray="2 2"/>
+<text x="841" y="439" font-size="9" text-anchor="end" fill="#cfe6d6" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">GP21 27</text>
+<circle cx="852" cy="455" r="5" fill="#e8e0b0" stroke="#333"/>
+<text x="841" y="459" font-size="9" text-anchor="end" fill="#cfe6d6" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">GP20 26</text>
+<circle cx="852" cy="475" r="5" fill="#2e7d4f" stroke="#e8e0b0" stroke-width="2" stroke-dasharray="2 2"/>
+<text x="841" y="479" font-size="9" text-anchor="end" fill="#cfe6d6" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">GP19 25</text>
+<circle cx="852" cy="495" r="5" fill="#e8e0b0" stroke="#333"/>
+<text x="841" y="499" font-size="9" text-anchor="end" fill="#cfe6d6" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">GP18 24</text>
+<circle cx="852" cy="515" r="5" fill="#e8e0b0" stroke="#333"/>
+<text x="841" y="519" font-size="9" text-anchor="end" fill="#cfe6d6" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">GND 23</text>
+<circle cx="852" cy="535" r="5" fill="#2e7d4f" stroke="#e8e0b0" stroke-width="2" stroke-dasharray="2 2"/>
+<text x="841" y="539" font-size="9" text-anchor="end" fill="#cfe6d6" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">GP17 22</text>
+<circle cx="852" cy="555" r="5" fill="#e8e0b0" stroke="#333"/>
+<text x="841" y="559" font-size="9" text-anchor="end" fill="#cfe6d6" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">GP16 21</text>
+<rect x="200" y="170" width="150" height="92" rx="8" fill="#3a3a3a" stroke="#111" stroke-width="2"/>
+<circle cx="245" cy="216.0" r="26" fill="#777" stroke="#222" stroke-width="2"/>
+<circle cx="245" cy="216.0" r="11" fill="#bbb" stroke="#222"/>
+<text x="245" y="162" font-size="11" text-anchor="start" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">EC11 knob (bare, 5 lugs)</text>
+<rect x="345" y="190" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="340" y="199" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">SW1</text>
+<path d="M355 195 L628 195" fill="none" stroke="#138a8a" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="345" y="210" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="340" y="219" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">C+SW2</text>
+<path d="M355 215 L628 215" fill="none" stroke="#222" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="345" y="230" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="340" y="239" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">A</text>
+<path d="M355 235 L628 235" fill="none" stroke="#138a8a" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="345" y="250" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="340" y="259" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">B</text>
+<path d="M355 255 L628 255" fill="none" stroke="#138a8a" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="367" y="189" font-size="10" text-anchor="start" fill="#138a8a" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">SW1 (push) -&gt; GP1, pin 2</text>
+<text x="367" y="209" font-size="10" text-anchor="start" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">C and SW2 -&gt; GND, pin 3</text>
+<text x="367" y="229" font-size="10" text-anchor="start" fill="#138a8a" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">A -&gt; GP2, pin 4</text>
+<text x="367" y="249" font-size="10" text-anchor="start" fill="#138a8a" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">B -&gt; GP3, pin 5</text>
+<text x="190" y="188" font-size="9" text-anchor="end" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">3 lugs one side: A, C, B</text>
+<text x="190" y="201" font-size="9" text-anchor="end" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">2 lugs other side: SW</text>
+<text x="190" y="214" font-size="9" text-anchor="end" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">C is the middle of the 3</text>
+<text x="190" y="227" font-size="9" text-anchor="end" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">internal pull-ups: no resistors</text>
+<text x="190" y="240" font-size="9" text-anchor="end" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">KY-040 board instead? + to 3V3</text>
+<rect x="200" y="266" width="150" height="98" rx="6" fill="#262626" stroke="#111" stroke-width="2"/>
+<text x="208" y="286" font-size="11" text-anchor="start" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">J1</text>
+<text x="208" y="300" font-size="11" text-anchor="start" fill="#ffd9b8" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">J2</text>
+<text x="190" y="278" font-size="9.5" text-anchor="end" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">J1: 3.5 mm TRRS jack</text>
+<text x="190" y="291" font-size="9.5" text-anchor="end" fill="#8a4a12" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">J2: 2.5 mm TRRS jack</text>
+<text x="190" y="304" font-size="9" text-anchor="end" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">lugs found by meter,</text>
+<text x="190" y="317" font-size="9" text-anchor="end" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">step 1 in BUILD1.md</text>
+<rect x="345" y="270" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="340" y="279" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">J1 T</text>
+<path d="M355 275 L628 275" fill="none" stroke="#1f5fbf" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="345" y="290" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="340" y="299" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">J1 R1</text>
+<path d="M355 295 L628 295" fill="none" stroke="#c99a00" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="345" y="310" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="340" y="319" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">J1+J2 S</text>
+<path d="M355 315 L628 315" fill="none" stroke="#222" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="345" y="330" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="340" y="339" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">J2 T</text>
+<path d="M355 335 L628 335" fill="none" stroke="#d2691e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="345" y="350" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="340" y="359" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">J1 R2</text>
+<path d="M355 355 L628 355" fill="none" stroke="#2a8c4a" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="367" y="269" font-size="10" text-anchor="start" fill="#1f5fbf" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">J1 tip: SDA -&gt; GP4, pin 6</text>
+<text x="367" y="289" font-size="10" text-anchor="start" fill="#9a7600" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">J1 ring 1: SCL -&gt; GP5, pin 7</text>
+<text x="367" y="309" font-size="10" text-anchor="start" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">J1 + J2 sleeves -&gt; GND, pin 8</text>
+<text x="367" y="329" font-size="10" text-anchor="start" fill="#d2691e" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">J2 tip: KEY VCC &lt;- GP6, pin 9</text>
+<text x="367" y="349" font-size="10" text-anchor="start" fill="#2a8c4a" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">J1 ring 2: DETECT -&gt; GP7, pin 10</text>
+<rect x="195" y="331" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="210" y="340" font-size="9" text-anchor="start" fill="#ffd9b8" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">J2 R2</text>
+<rect x="195" y="349" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="210" y="358" font-size="9" text-anchor="start" fill="#ffd9b8" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">J2 R1</text>
+<path d="M195 354 L44 354 L44 616 L872 616 L872 355 L852 355" fill="none" stroke="#9b3d8f" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M195 336 L30 336 L30 630 L886 630 L886 335 L852 335" fill="none" stroke="#9b3d8f" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="7 5"/>
+<text x="375" y="610" font-size="9.5" text-anchor="start" fill="#9b3d8f" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">J2 ring 1: KEY RST -&gt; GP26, pin 31 (Trust M key; an ATECC key leaves it open)</text>
+<text x="375" y="646" font-size="9.5" text-anchor="start" fill="#9b3d8f" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">J2 ring 2: KEY ID -&gt; GP27, pin 32 (ADC1; open on every Build 1 key, dashed = optional)</text>
+<rect x="200" y="368" width="150" height="180" rx="6" fill="#1b1b1b" stroke="#111" stroke-width="2"/>
+<rect x="214" y="384" width="88" height="120" rx="2" fill="#27496d" stroke="#555" stroke-width="1.5"/>
+<text x="258" y="438" font-size="12" text-anchor="middle" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">2.0"</text>
+<text x="258" y="454" font-size="9" text-anchor="middle" fill="#dde" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">240x320</text>
+<text x="258" y="468" font-size="9" text-anchor="middle" fill="#dde" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">ST7789</text>
+<text x="208" y="528" font-size="8.5" text-anchor="start" fill="#ccc" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">go by the printed</text>
+<text x="208" y="540" font-size="8.5" text-anchor="start" fill="#ccc" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">labels, not order</text>
+<rect x="345" y="370" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="340" y="379" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">DC</text>
+<path d="M355 375 L628 375" fill="none" stroke="#6a3fbf" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="367" y="370" font-size="9.5" text-anchor="start" fill="#6a3fbf" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">DC -&gt; GP8, pin 11</text>
+<rect x="345" y="390" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="340" y="399" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">CS</text>
+<path d="M355 395 L628 395" fill="none" stroke="#6a3fbf" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="367" y="390" font-size="9.5" text-anchor="start" fill="#6a3fbf" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">CS -&gt; GP9, pin 12</text>
+<rect x="345" y="410" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="340" y="419" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">GND</text>
+<path d="M355 415 L628 415" fill="none" stroke="#222" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="367" y="410" font-size="9.5" text-anchor="start" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">GND -&gt; GND, pin 13</text>
+<rect x="345" y="430" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="340" y="439" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">CLK</text>
+<path d="M355 435 L628 435" fill="none" stroke="#6a3fbf" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="367" y="430" font-size="9.5" text-anchor="start" fill="#6a3fbf" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">CLK -&gt; GP10, pin 14</text>
+<rect x="345" y="450" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="340" y="459" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">DIN</text>
+<path d="M355 455 L628 455" fill="none" stroke="#6a3fbf" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="367" y="450" font-size="9.5" text-anchor="start" fill="#6a3fbf" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">DIN -&gt; GP11, pin 15</text>
+<rect x="345" y="470" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="340" y="479" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">RST</text>
+<path d="M355 475 L628 475" fill="none" stroke="#6a3fbf" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="367" y="470" font-size="9.5" text-anchor="start" fill="#6a3fbf" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">RST -&gt; GP12, pin 16</text>
+<rect x="345" y="490" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="340" y="499" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">BL</text>
+<path d="M355 495 L628 495" fill="none" stroke="#2a8c4a" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="367" y="490" font-size="9.5" text-anchor="start" fill="#2a8c4a" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">BL -&gt; GP13, pin 17</text>
+<text x="190" y="398" font-size="9" text-anchor="end" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">some boards print</text>
+<text x="190" y="411" font-size="9" text-anchor="end" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">SDA for DIN and</text>
+<text x="190" y="424" font-size="9" text-anchor="end" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">SCL for CLK: that is</text>
+<text x="190" y="437" font-size="9" text-anchor="end" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">SPI, not the I2C bus</text>
+<rect x="345" y="530" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="340" y="539" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">VCC</text>
+<path d="M355 535 L363 535 L363 672 L908 672 L908 255 L852 255" fill="none" stroke="#b3261e" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="375" y="690" font-size="10" text-anchor="start" fill="#b3261e" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">screen VCC -&gt; 3V3 OUT, pin 36. 3.3 V, never VBUS / 5 V</text>
+<text x="367" y="530" font-size="9.5" text-anchor="start" fill="#b3261e" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">VCC -&gt; 3V3, pin 36 (under the board)</text>
+<text x="924" y="259" font-size="10" text-anchor="start" fill="#b3261e" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">36 3V3 OUT: screen VCC</text>
+<text x="924" y="299" font-size="9.5" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">34 GP28: reserved, battery sense (hardware/wiring/SOLDERING.md)</text>
+<text x="924" y="339" font-size="10" text-anchor="start" fill="#9b3d8f" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">32 GP27: KEY ID, J2 ring 2</text>
+<text x="924" y="359" font-size="10" text-anchor="start" fill="#9b3d8f" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">31 GP26: KEY RST, J2 ring 1</text>
+<text x="924" y="439" font-size="9.5" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">27 GP21: reserved, Y = Reject</text>
+<text x="924" y="479" font-size="9.5" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">25 GP19: reserved, X</text>
+<text x="924" y="539" font-size="9.5" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">22 GP17: reserved, B</text>
+<text x="614" y="559" font-size="9.5" text-anchor="end" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">reserved, A = Sign: GP15, pin 20</text>
+<text x="924" y="399" font-size="9.5" text-anchor="start" fill="#2e7d4f" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">free: GP0, GP14, GP16, GP18, GP20, GP22</text>
+<text x="924" y="186" font-size="9.5" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">dashed ring on the board = reserved pin, leave it free</text>
+<text x="24" y="718" font-size="13" text-anchor="start" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">The key, Build 1: the ATECC608 STEMMA breakout on a cut STEMMA QT cable, soldered to two plugs</text>
+<text x="24" y="734" font-size="9.5" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">Map each cable wire to the breakout's VIN / GND / SDA / SCL pads with a meter first (hardware/wiring/SOLDERING.md, section 1).</text>
+<rect x="310" y="756" width="70" height="28" rx="6" fill="#555" stroke="#222" stroke-width="1.5"/>
+<text x="345" y="774" font-size="8.5" text-anchor="middle" fill="#eee" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">handle</text>
+<rect x="400" y="761" width="57" height="18" rx="2" fill="#bdbdbd" stroke="#555" stroke-width="1"/>
+<text x="428.5" y="774" font-size="9" text-anchor="middle" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">S</text>
+<rect x="460" y="761" width="47" height="18" rx="2" fill="#d9d9d9" stroke="#555" stroke-width="1"/>
+<text x="483.5" y="774" font-size="9" text-anchor="middle" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">R2</text>
+<rect x="510" y="761" width="47" height="18" rx="2" fill="#d9d9d9" stroke="#555" stroke-width="1"/>
+<text x="533.5" y="774" font-size="9" text-anchor="middle" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">R1</text>
+<rect x="560" y="761" width="57" height="18" rx="2" fill="#d9d9d9" stroke="#555" stroke-width="1"/>
+<text x="588.5" y="774" font-size="9" text-anchor="middle" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">T</text>
+<polygon points="620,761 620,779 636,770" fill="#d9d9d9" stroke="#555"/>
+<text x="656" y="768" font-size="11" text-anchor="start" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">P1: 3.5 mm TRRS plug</text>
+<text x="656" y="782" font-size="9" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">goes in J1</text>
+<rect x="310" y="916" width="70" height="28" rx="6" fill="#555" stroke="#222" stroke-width="1.5"/>
+<text x="345" y="934" font-size="8.5" text-anchor="middle" fill="#eee" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">handle</text>
+<rect x="400" y="921" width="57" height="18" rx="2" fill="#bdbdbd" stroke="#555" stroke-width="1"/>
+<text x="428.5" y="934" font-size="9" text-anchor="middle" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">S</text>
+<rect x="460" y="921" width="47" height="18" rx="2" fill="#d9d9d9" stroke="#555" stroke-width="1"/>
+<text x="483.5" y="934" font-size="9" text-anchor="middle" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">R2</text>
+<rect x="510" y="921" width="47" height="18" rx="2" fill="#d9d9d9" stroke="#555" stroke-width="1"/>
+<text x="533.5" y="934" font-size="9" text-anchor="middle" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">R1</text>
+<rect x="560" y="921" width="57" height="18" rx="2" fill="#d9d9d9" stroke="#555" stroke-width="1"/>
+<text x="588.5" y="934" font-size="9" text-anchor="middle" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">T</text>
+<polygon points="620,921 620,939 632,930" fill="#d9d9d9" stroke="#555"/>
+<text x="652" y="928" font-size="11" text-anchor="start" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">P2: 2.5 mm TRRS plug</text>
+<text x="652" y="942" font-size="9" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">goes in J2</text>
+<rect x="400" y="812" width="220" height="76" rx="8" fill="#1e5aa8" stroke="#123a70" stroke-width="2"/>
+<text x="510" y="846" font-size="11" text-anchor="middle" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">ATECC608 breakout</text>
+<text x="510" y="860" font-size="9" text-anchor="middle" fill="#dbe7ff" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">(answers at 0x60)</text>
+<text x="510" y="874" font-size="9" text-anchor="middle" fill="#dbe7ff" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">own pull-ups to VIN</text>
+<rect x="425" y="807" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="438" y="826" font-size="8.5" text-anchor="start" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">GND</text>
+<rect x="530" y="807" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="543" y="826" font-size="8.5" text-anchor="start" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">SCL</text>
+<rect x="585" y="807" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="598" y="826" font-size="8.5" text-anchor="start" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">SDA</text>
+<rect x="425" y="883" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="438" y="884" font-size="8.5" text-anchor="start" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">GND</text>
+<rect x="585" y="883" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="598" y="884" font-size="8.5" text-anchor="start" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">VIN</text>
+<path d="M590 779 L590 807" fill="none" stroke="#1f5fbf" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M535 779 L535 807" fill="none" stroke="#c99a00" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M430 779 L430 807" fill="none" stroke="#222" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M485 779 L485 792 L430 792" fill="none" stroke="#2a8c4a" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="430" cy="792" r="4" fill="#222"/>
+<path d="M430 893 L430 921" fill="none" stroke="#222" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M590 893 L590 921" fill="none" stroke="#d2691e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M485 921 L485 908" fill="none" stroke="#9b3d8f" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="7 5"/>
+<path d="M535 921 L535 908" fill="none" stroke="#9b3d8f" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="7 5"/>
+<text x="80" y="792" font-size="9.5" text-anchor="start" fill="#2a8c4a" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">P1 ring 2 jumpered to P1 sleeve:</text>
+<text x="80" y="805" font-size="9.5" text-anchor="start" fill="#2a8c4a" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">that is how the console sees</text>
+<text x="80" y="818" font-size="9.5" text-anchor="start" fill="#2a8c4a" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">a key (DETECT reads low)</text>
+<text x="80" y="870" font-size="9.5" text-anchor="start" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">split the GND wire:</text>
+<text x="80" y="883" font-size="9.5" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">both sleeves are ground</text>
+<text x="80" y="910" font-size="9.5" text-anchor="start" fill="#9b3d8f" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">P2 rings: nothing on an ATECC key.</text>
+<text x="80" y="923" font-size="9.5" text-anchor="start" fill="#9b3d8f" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">Trust M key: ring 1 = its RST pad</text>
+<text x="80" y="956" font-size="9.5" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">optional: 100 nF across VIN-GND at the plug</text>
+<rect x="800" y="700" width="616" height="282" rx="6" fill="#fff4f2" stroke="#b3261e" stroke-width="1.5"/>
+<text x="814" y="724" font-size="13" text-anchor="start" fill="#b3261e" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">Rules that prevent damage</text>
+<text x="814" y="746" font-size="10" text-anchor="start" fill="#3a1410" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">1. Screen VCC is 3.3 V (pin 36). Not VBUS, not 5 V.</text>
+<text x="814" y="763" font-size="10" text-anchor="start" fill="#3a1410" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">2. Key power (GP6) is OFF before a plug goes in or comes out.</text>
+<text x="814" y="780" font-size="10" text-anchor="start" fill="#6b3b36" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">   Every plug tip wipes past every jack contact, sleeve included:</text>
+<text x="814" y="797" font-size="10" text-anchor="start" fill="#6b3b36" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">   a live GP6 on J2's tip gets shorted to ground on the way in.</text>
+<text x="814" y="814" font-size="10" text-anchor="start" fill="#6b3b36" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">   The firmware turns GP6 on only after DETECT has read low</text>
+<text x="814" y="831" font-size="10" text-anchor="start" fill="#6b3b36" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">   for 200 ms, and off the moment it goes high.</text>
+<text x="814" y="848" font-size="10" text-anchor="start" fill="#3a1410" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">3. Never plug the key into a phone, laptop or audio jack.</text>
+<text x="814" y="865" font-size="10" text-anchor="start" fill="#6b3b36" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">   Those drive the tip and put mic bias on a ring.</text>
+<text x="814" y="882" font-size="10" text-anchor="start" fill="#3a1410" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">4. No 18650 without a PROTECTED TP4056 (the DW01 kind).</text>
+<text x="814" y="899" font-size="10" text-anchor="start" fill="#6b3b36" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">   Build 1 runs on USB; the cell is a later build.</text>
+<text x="814" y="916" font-size="10" text-anchor="start" fill="#3a1410" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">5. Config lock and data lock on the ATECC are permanent.</text>
+<text x="814" y="933" font-size="10" text-anchor="start" fill="#6b3b36" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">   Build 1 only reads the chip. ALLOW_LOCK stays False.</text>
+<text x="814" y="950" font-size="10" text-anchor="start" fill="#3a1410" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">6. Meter SDA/SCL/VIN/GND at the plugs before the first plug-in.</text>
+</svg>
