@@ -1,7 +1,7 @@
 # Build 1 on a breadboard (no jacks yet)
 
-Start here. This is Build 1 with nothing soldered: a Pico 2 W, the 2.0″ screen, the rotary knob and an
-ATECC608 chip on a breadboard, joined by jumper wires.
+Start here. This is Build 1 with nothing soldered: a Pico 2 W, the 2.0″ screen, the rotary knob, an
+ATECC608 chip and a Sign button on a breadboard, joined by jumper wires.
 
 The chip is wired straight to the Pico for now. The key jacks come later
 ([BUILD1.md](BUILD1.md)). Every signal uses the same Pico pin in both versions, so nothing you learn
@@ -26,6 +26,7 @@ wire table below still matches them.
 - an ATECC608 breakout and a **STEMMA QT to male pins** cable (Adafruit 4209, or any JST SH 4-pin to
   male header cable). A cable with the small connector on both ends won't go into a breadboard.
 - the 2.0″ screen and the knob
+- one momentary push button (SPST, push-to-make) for Sign
 - a micro-USB cable that carries data, not a charge-only one
 
 A multimeter helps with the checks at the end but isn't required.
@@ -59,7 +60,7 @@ A multimeter helps with the checks at the end but isn't required.
 
 ## The wires
 
-19 wires. Plug them in this order; each group is one part. "Pico pin 6" means a free hole in the same
+21 wires. Plug them in this order; each group is one part. "Pico pin 6" means a free hole in the same
 column as the Pico's pin 6.
 
 | # | from | to | wire |
@@ -83,6 +84,8 @@ column as the Pico's pin 6.
 | 17 | Pico pin 5 (GP3) | knob B | any color |
 | 18 | Pico pin 2 (GP1) | knob switch leg 1 | any color |
 | 19 | blue - rail | knob switch leg 2 | black |
+| 20 | Pico pin 20 (GP15) | Sign button leg 1 | any color. Pin 20 is the bottom-right pin |
+| 21 | blue - rail | Sign button leg 2 | black |
 
 Red for 3.3 V and black for ground aren't required, but they make the check at the end easy.
 
@@ -150,6 +153,25 @@ two side tabs flat first, then wire from the legs' columns.
 | + | red rail. It must be 3.3 V, never 5 V |
 | GND | blue rail |
 
+### The Sign button
+
+One momentary push button, the kind that only connects while you hold it down (SPST, push-to-make):
+
+- **Two legs:** one goes to Pico pin 20 (GP15), the bottom-right pin; the other goes to the blue
+  rail. Either way round works.
+- **Four legs** (a square tactile switch): the legs are joined in pairs inside, so two of them are
+  really one. Use two **diagonally opposite** corners; those are always on different sides of the
+  switch.
+- **A panel button for the case** with solder lugs: female jumper ends often push onto the lugs.
+  Otherwise solder a short wire to each.
+
+No resistor is needed; the Pico holds the pin high and the button pulls it to ground.
+
+The console firmware already reads this pin as **A**, the Sign key: it signs a transaction only after
+A has been held for 2 seconds, or 3 seconds when any page is red. Making every other action that
+can't be undone wait for the same hold is next on the firmware list
+([HANDOFF.md](../HANDOFF.md#6-firmware-to-do-in-order)).
+
 ## Check before the USB goes in
 
 - [ ] Nothing is in the columns of pin 40 (VBUS) or pin 39 (VSYS), the two top-left pins. Those carry
@@ -174,6 +196,8 @@ The screen should show:
 - a small **TL** in the top-left corner, and bars reading **red, green, blue, white** from left to
   right
 - **KNOB** counting up by one each click clockwise, and **PUSH** showing DOWN while you press
+- **SIGN** counting up while the button is held, with an orange bar that fills at 2 seconds and
+  turns into **HELD: OK**
 - **BUS 60** and **CHIP 608A** or **608B**, a serial number, and `config open data open`
 
 Pressing the knob reads the chip again. Holding it for 2 seconds prints a full chip report at the
@@ -193,6 +217,8 @@ decision ([HANDOFF.md](../HANDOFF.md#7-open-decisions)).
 | knob counts down when turned clockwise | swap wires 16 and 17 |
 | knob counts 2 per click, or every other click | `STEPS_PER_CLICK` at the top of `bench1.py` |
 | PUSH never shows DOWN | wires 18 and 19 must be on the 2-leg side |
+| SIGN never changes | wires 20 and 21; on a 4-leg button, use diagonally opposite legs |
+| SIGN shows held all the time | on a 4-leg button, the two legs used are joined inside: move one to the diagonal corner |
 
 ## Later: the jacks
 

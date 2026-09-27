@@ -1,13 +1,13 @@
 # Hardware handoff: Build 1
 
-*2026-09-26, updated 2026-09-27.* This file is for the next person or AI session to pick up from: what's on the bench,
+*2026-09-26, updated 2026-09-27 (the Sign button).* This file is for the next person or AI session to pick up from: what's on the bench,
 how it's wired, what to do next and what's still open.
 
 It links to the wiring rather than repeating it:
 
 - [wiring/BREADBOARD.md](wiring/BREADBOARD.md): **where the bench is now.** The chip, the screen and
-  the knob on a breadboard with jumper wires, the chip wired straight to 3.3 V, no jacks. It has 19
-  numbered wires, a picture of the knob's legs, and troubleshooting
+  the knob and the Sign button on a breadboard with jumper wires, the chip wired straight to 3.3 V,
+  no jacks. It has 21 numbered wires, a picture of the knob's legs, and troubleshooting
 - [wiring/BUILD1.md](wiring/BUILD1.md): the pin map, the detect and power logic, and the key
 - [wiring/build1-wiring.svg](wiring/build1-wiring.svg): the diagram
 
@@ -35,8 +35,9 @@ It runs on USB, and it only reads the chip.
 | Pico 2 W | everything |
 | 2.0″ ST7789 240×320 SPI screen, 8-pin | step 2 (screen), firmware 1 |
 | EC11 rotary encoder with push, one | step 3 (knob), firmware 2 |
-| 3.5 mm and 2.5 mm TRRS jacks and plugs | steps 4–8 (jacks and key) |
-| ATECC608 STEMMA QT breakouts, a pack, unconfigured; STEMMA QT cables | step 1 (today) and step 6. One is the sacrificial chip for firmware 4 |
+| SPST momentary push button, one | step 4 (the Sign button), firmware 3 |
+| 3.5 mm and 2.5 mm TRRS jacks and plugs | steps 5–9 (jacks and key) |
+| ATECC608 STEMMA QT breakouts, a pack, unconfigured; STEMMA QT cables | step 1 and step 7. One is the sacrificial chip for firmware 4 |
 | 18650 cell and clips | nothing yet: waits for the protected TP4056 |
 
 **Arriving:** 5–10 Adafruit OPTIGA Trust M STEMMA boards, expected Tuesday 2026-09-29. They unblock
@@ -53,7 +54,7 @@ firmware 5 and a Trust M key (its RST pad goes to P2 ring 1).
 | resistors: 33k, 10k | ID resistor codes on GP27, if the ID line gets used |
 | resistors: 100 Ω | series on SDA and SCL at J1, to limit current while a plug wipes across the contacts |
 | caps: 100 nF | key decoupling, the battery gauge |
-| tact switches | Sign (A, GP15) and Reject (Y, GP21), then B and X |
+| more buttons | Reject (Y, GP21), then B and X. Sign (A, GP15) is on the bench now |
 
 ## 3. Wiring summary
 
@@ -76,6 +77,8 @@ on one screen. `tools/wiring-build1 --check` confirms it still matches.
 | knob C | encoder common | GND | 3 |
 | knob SW1 | push | GP1 | 2 |
 | knob SW2 | push, other side | GND | 3 |
+| button SW1 | Sign (hold) | GP15 | 20 |
+| button SW2 | ground | GND | 23 |
 | J1 T | SDA | GP4 | 6 |
 | J1 R1 | SCL | GP5 | 7 |
 | J1 R2 | DETECT | GP7 | 10 |
@@ -90,7 +93,7 @@ J2, even though nothing uses them yet.
 
 These pins are reserved and nothing else goes on them:
 
-- GP15, GP17, GP19 and GP21 (pins 20, 22, 25 and 27): the A, B, X and Y buttons
+- GP17, GP19 and GP21 (pins 22, 25 and 27): the B, X and Y buttons. A is GP15, the Sign button, now wired
 - GP28 (pin 34): battery sense
 
 Free pins: GP0, GP14, GP16, GP18, GP20 and GP22.
@@ -104,35 +107,40 @@ Each step has a pass test. `bench1` means `firmware/bench1.py`; see
 
 **Now: the breadboard, no jacks** ([BREADBOARD.md](wiring/BREADBOARD.md), `JACKS = False` in `bench1.py`).
 
-- [ ] **1. ATECC608 alone.** Wires 1–6: the power rails and the chip.
+- [x] **1. ATECC608 alone.** Wires 1–6: the power rails and the chip.
       *Passes when* `import bench1` prints `key bus scan: ['0x60']`, a serial number, and
       `config open, data open`.
-- [ ] **2. Screen.** Wires 7–14.
+- [x] **2. Screen.** Wires 7–14.
       *Passes when* `bench1` shows the TL mark top left, the bars read red, green, blue and white in
       that order, and the text isn't mirrored. If not, fix it with `MADCTL` and `INVERT`.
-- [ ] **3. Knob.** Wires 15–19.
+- [x] **3. Knob.** Wires 15–19.
       *Passes when* one click moves the count by exactly 1, clockwise goes up, PUSH shows DOWN while
       the knob is pressed, and a 2 s hold prints the chip report.
+- [ ] **4. Sign button.** Wires 20–21: one leg to pin 20 (GP15), the other to the blue rail.
+      *Passes when* SIGN in `bench1` counts up while the button is held, the bar fills at 2 s and
+      shows "HELD: OK", and it goes back to "up" when released.
+
+Steps 1–3 work on the bench (2026-09-27); a first case for this layout is being drafted.
 
 **Later: the jacks and the key** ([BUILD1.md](wiring/BUILD1.md), `JACKS = True`). The chip comes off
 the red rail and into the key.
 
-- [ ] **4. Mark the jack lugs.** Put the matching plug in each jack. Beep each plug contact (tip,
+- [ ] **5. Mark the jack lugs.** Put the matching plug in each jack. Beep each plug contact (tip,
       ring 1, ring 2, sleeve) to the lugs, and label them. Note any switch lugs; Build 1 doesn't use
       them.
       *Passes when* every lug of both jacks has a label.
-- [ ] **5. Jacks to the console.** Before power, check continuity from each lug to its Pico pin, and
+- [ ] **6. Jacks to the console.** Before power, check continuity from each lug to its Pico pin, and
       check that J2's tip (GP6) doesn't beep to ground. Then put a test plug in J1 with ring 2
       shorted to its sleeve.
       *Passes when* DETECT shows "key in" and POWER shows "ON" then drops to "off" with "not a key",
       since that plug has no chip.
-- [ ] **6. Solder the key.** Solder the breakout to P1 and P2 as in
+- [ ] **7. Solder the key.** Solder the breakout to P1 and P2 as in
       [BUILD1.md](wiring/BUILD1.md#the-key-build-1), then run the meter checks listed there.
       *Passes when* every check in that list beeps as it should.
-- [ ] **7. Key scan.** Plug the key in.
+- [ ] **8. Key scan.** Plug the key in.
       *Passes when* the screen shows DETECT "key in", POWER "ON GP6", and BUS "60". Unplugging it shows
       "key out: power cut".
-- [ ] **8. Chip status.**
+- [ ] **9. Chip status.**
       *Passes when* the CHIP line shows 608A or 608B, the serial matches step 1's, and the locks
       read `config open, data open`. Nothing has been written.
 
@@ -152,24 +160,33 @@ the red rail and into the key.
 
 ## 6. Firmware to do, in order
 
-1. **`lcd.py`: a size option.** Add width, height, offset and MADCTL so `LCD()` can drive the
-   240×320 panel in landscape. `bench1.py`'s `Screen` class is the working reference. The
-   framebuffer grows from 115 KB to 150 KB; that's fine on the RP2350 but check the emulator's heap.
-   `quorum_ui.py` then has to reflow; [SCREENS.md](../docs/quorum-ui/SCREENS.md) has the plan.
-2. **Encoder input.** Add a `firmware/knob.py` with the same `pressed()` and `held()` shape as
-   `lcd.Keys`, so `wallet.py` and `quorum_ui.py` don't change: a turn reads as up or down, a press
-   reads as press, and a 2 s hold is its own event. The quadrature table and IRQs are in `bench1.py`.
-3. **Key presence and power in `wallet.py`.** DETECT, then GP6 on, then scan, then the ATECC. Key
+Done on `main` (2026-09-26, "Support Build 1 displays"): the screen size option (`board.py`,
+`lcd.py`, set with `BOARD = "build1"` and `SCREEN` in `secrets.py`) and the knob (`knob.py`).
+
+1. ~~**`lcd.py`: a size option.**~~ Done: `board.py` and `lcd.py`, drawn in 30-row bands.
+2. ~~**Encoder input.**~~ Done: `knob.py`, the same `pressed()` and `held()` shape as `lcd.Keys`.
+3. **The Sign button: hold to confirm anything that can't be undone.** The button is GP15, which
+   `board.py` already names A, and `quorum.py` already signs only after A is held for `HOLD_MS`
+   (2 s), or `HOLD_RED_MS` (3 s) when a page is red. Still to do:
+   - On Build 1, A is the only button besides the knob, and the console's footers also use it for
+     Open, OK and Check again. Move those to the knob press, so the Sign button means only
+     "confirm".
+   - Put every other permanent action behind the same hold: the config and data locks, GenKey and
+     slot locks (the chip page and `chipmap.py`), which today arm with B and Y held together.
+     Build 1 has no B or Y.
+   - Show the hold as it fills and say what it will do, then cancel cleanly if the button is let go
+     early. `bench1.py` has the bare timer.
+4. **Key presence and power in `wallet.py`.** DETECT, then GP6 on, then scan, then the ATECC. Key
    out means power off and the bus released, and the wallet shows "insert key" instead of failing
    on a missing chip. `bench1.tick()` has the logic.
-4. **ATECC config and lock on the Pico**, with `atecc.py`'s `write_config`, `lock_config` and
-   `genkey_new`, from the chip page behind the hold-A red screens that already exist. Run it on the
+5. **ATECC config and lock on the Pico**, with `atecc.py`'s `write_config`, `lock_config` and
+   `genkey_new`, from the chip page behind the Sign-button hold (item 3). Run it on the
    sacrificial chip first, and only after the slot plan is decided (see
    [CHIPMAP.md](../docs/CHIPMAP.md) and [LOCKING.md](../docs/LOCKING.md)).
-5. **`trustm.py` when the boards arrive.** `bench1` already reports a Trust M at 0x30. Next, after
+6. **`trustm.py` when the boards arrive.** `bench1` already reports a Trust M at 0x30. Next, after
    GP6 is on, run `trustm.bus(4, 5)` and do a read-only identity read. Nothing permanent.
-6. **Emulator.** Add a 320×240 screen, a knob, and a virtual key jack (DETECT plus GP6) to
-   `emu/core/shims/machine.py` and the page, so steps 1–3 can be rehearsed without the board.
+7. **Emulator.** Add a 320×240 screen, a knob, the Sign button, and a virtual key jack (DETECT plus GP6) to
+   `emu/core/shims/machine.py` and the page, so steps 1–4 can be rehearsed without the board.
 
 ## 7. Open decisions
 
@@ -199,7 +216,7 @@ Compared with the Waveshare dev console, the joystick is gone:
 
 - GP2 and GP3 are now knob A and B.
 - GP16, GP18 and GP20 are free.
-- A, B, X and Y keep GP15, GP17, GP19 and GP21.
+- A, B, X and Y keep GP15, GP17, GP19 and GP21. A (GP15) is the Sign button.
 - The screen keeps its SPI pins.
 
 ## 9. Where the notes are

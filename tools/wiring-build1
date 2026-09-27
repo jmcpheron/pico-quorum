@@ -21,6 +21,8 @@ PINS = [
     ("knob", "C", "encoder common", "GND", 3),
     ("knob", "SW1", "push", "GP1", 2),
     ("knob", "SW2", "push, other side", "GND", 3),
+    ("button", "SW1", "Sign (hold)", "GP15", 20),
+    ("button", "SW2", "ground", "GND", 23),
     ("J1", "T", "SDA", "GP4", 6),
     ("J1", "R1", "SCL", "GP5", 7),
     ("J1", "R2", "DETECT", "GP7", 10),
@@ -30,7 +32,7 @@ PINS = [
     ("J2", "R2", "KEY ID", "GP27", 32),
     ("J2", "S", "ground", "GND", 8),
 ]
-RESERVED = {"GP15": 20, "GP17": 22, "GP19": 25, "GP21": 27, "GP28": 34}
+RESERVED = {"GP17": 22, "GP19": 25, "GP21": 27, "GP28": 34}
 
 W, H = 1440, 1000
 MONO = "ui-monospace, Menlo, Consolas, monospace"
@@ -79,7 +81,7 @@ def build():
     RIGHT = {40: "VBUS", 39: "VSYS", 38: "GND", 37: "3V3_EN", 36: "3V3 OUT", 35: "ADC_VREF", 34: "GP28", 33: "AGND", 32: "GP27", 31: "GP26",
              30: "RUN", 29: "GP22", 28: "GND", 27: "GP21", 26: "GP20", 25: "GP19", 24: "GP18", 23: "GND", 22: "GP17", 21: "GP16"}
     color = {"3V3": RED, "GND": BLK, "GP11": PUR, "GP10": PUR, "GP9": PUR, "GP8": PUR, "GP12": PUR, "GP13": GRN,
-             "GP2": TEAL, "GP3": TEAL, "GP1": TEAL, "GP4": BLU, "GP5": YEL, "GP7": GRN, "GP6": ORG, "GP26": MAG, "GP27": MAG}
+             "GP2": TEAL, "GP3": TEAL, "GP1": TEAL, "GP4": BLU, "GP5": YEL, "GP7": GRN, "GP6": ORG, "GP26": MAG, "GP27": MAG, "GP15": GRN}
     used = {}
     for part, contact, sig, gp, n in PINS:
         used[n] = color[gp]
@@ -183,7 +185,23 @@ def build():
     text(NX, ry(27) + 4, "27 GP21: reserved, Y = Reject", 9.5, GREY)
     text(NX, ry(25) + 4, "25 GP19: reserved, X", 9.5, GREY)
     text(NX, ry(22) + 4, "22 GP17: reserved, B", 9.5, GREY)
-    text(LX - 14, ly(20) + 4, "reserved, A = Sign: GP15, pin 20", 9.5, GREY, "end")
+    # the Sign button: one leg to GP15 (pin 20), the other under the board to GND pin 23
+    BY0, BY1 = 556, 604
+    rect(BX, BY0, BW, BY1 - BY0, "#2a2a2a", "#111", 6, 2)
+    add('<circle cx="%s" cy="%s" r="15" fill="#2a8c4a" stroke="#111" stroke-width="2"/>' % (BX + 30, (BY0 + BY1) / 2))
+    text(BX + 52, BY0 + 20, "Sign", 10, "#fff", "start", True)
+    text(BX + 52, BY0 + 34, "button", 8.5, "#ccc")
+    text(BX - 10, BY0 + 14, "SPST momentary:", 9, GREY, "end")
+    text(BX - 10, BY0 + 27, "2 legs, either way round", 9, GREY, "end")
+    text(BX - 10, BY0 + 40, "4-leg tactile? use 2", 9, GREY, "end")
+    text(BX - 10, BY0 + 53, "diagonal corners", 9, GREY, "end")
+    S1, S2 = BY0 + 12, BY0 + 34
+    pad(BX + BW, S1); text(BX + BW - 10, S1 + 4, "SW1", 9, "#fff", "end", True)
+    pad(BX + BW, S2); text(BX + BW - 10, S2 + 4, "SW2", 9, "#fff", "end", True)
+    wire([(PE, S1), (PE + 18, S1), (PE + 18, ly(20)), (LX, ly(20))], GRN, 3)
+    text(PE + 28, ly(20) - 5, "Sign -> GP15, pin 20 (hold)", 9.5, GRN, bold=True)
+    wire([(PE, S2), (PE + 30, S2), (PE + 30, 600), (RX + 10, 600), (RX + 10, ry(23)), (RX, ry(23))], BLK)
+    text(NX, ry(23) + 4, "23 GND: the Sign button's other leg", 10, BLK, bold=True)
     text(NX, ry(29) + 4, "free: GP0, GP14, GP16, GP18, GP20, GP22", 9.5, "#2e7d4f")
     text(NX, 186, "dashed ring on the board = reserved pin, leave it free", 9.5, GREY)
 
@@ -284,7 +302,7 @@ def check():
     src = open("firmware/bench1.py").read()
     consts = dict((k, int(v)) for k, v in re.findall(r"^([A-Z_]+) = (\d+)\b", src, re.M))
     expect = {"SCR_DC": "GP8", "SCR_CS": "GP9", "SCR_SCK": "GP10", "SCR_MOSI": "GP11", "SCR_RST": "GP12", "SCR_BL": "GP13",
-              "ENC_A": "GP2", "ENC_B": "GP3", "ENC_SW": "GP1", "KEY_SDA": "GP4", "KEY_SCL": "GP5", "KEY_PWR": "GP6",
+              "ENC_A": "GP2", "ENC_B": "GP3", "ENC_SW": "GP1", "BTN_SIGN": "GP15", "KEY_SDA": "GP4", "KEY_SCL": "GP5", "KEY_PWR": "GP6",
               "KEY_DETECT": "GP7", "KEY_RST": "GP26", "KEY_ID": "GP27"}
     gps = {gp for p, c, s, gp, n in PINS}
     for name, gp in expect.items():

@@ -77,6 +77,22 @@ other common difference between encoders.
 On a KY-040 board instead of a bare encoder: CLK goes to A, DT to B and SW to SW1. + goes to 3V3
 (pin 36), never 5 V, because the board's pull-ups go to +.
 
+### Sign button: SPST momentary
+
+<!-- pins: button -->
+| contact | signal | GPIO | Pico pin | notes |
+|---|---|---|---|---|
+| SW1 | Sign (hold) | GP15 | 20 | internal pull-up; reads low while pressed |
+| SW2 | ground | GND | 23 | on the breadboard, the blue rail instead |
+
+A plain push-to-make button with two legs, either way round. On a 4-leg tactile switch the legs
+are joined in pairs, so use two diagonally opposite corners.
+
+GP15 is the pin the firmware already calls **A** (`board.BUTTONS`), and A held down is the Sign
+hold in `quorum.py`: 2 s, or 3 s when any page of the transaction is red. So on the console this
+button is already Sign. Holding it to confirm every other permanent action is on the firmware list
+in [HANDOFF.md](../HANDOFF.md#6-firmware-to-do-in-order). `bench1.py` shows how long it's held.
+
 ### J1: 3.5 mm TRRS jack (the I2C jack)
 
 <!-- pins: J1 -->
@@ -101,7 +117,7 @@ On a KY-040 board instead of a bare encoder: CLK goes to A, DT to B and SW to SW
 
 | pins | GPIO | kept for |
 |---|---|---|
-| 20, 22, 25, 27 | GP15, GP17, GP19, GP21 | A (Sign), B, X, Y (Reject): tact switches later, on the Waveshare's pins so `lcd.Keys` still works |
+| 22, 25, 27 | GP17, GP19, GP21 | B, X, Y (Reject): more buttons later, on the Waveshare's pins so `lcd.Keys` still works. A (Sign) on GP15 is wired now |
 | 34 | GP28 | battery sense, the divider in [SOLDERING.md](SOLDERING.md#2-battery-switch-diode) (`power.py`) |
 | 1, 19, 21, 24, 26, 29 | GP0, GP14, GP16, GP18, GP20, GP22 | free: status LED, the Sign guard's arm switch, a second knob |
 | none | GP23, GP24, GP25, GP29 | never. On a Pico 2 W they belong to the radio and are not on the header. The LED is `Pin("LED")`, not `Pin(25)` |

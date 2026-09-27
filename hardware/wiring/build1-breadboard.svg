@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1520" height="1080" viewBox="0 0 1520 1080">
 <rect width="1520" height="1080" fill="#fbfbf8"/>
 <text x="24" y="34" font-size="18" text-anchor="start" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">Build 1 on a breadboard: the chip, the screen and the knob. No jacks yet.</text>
-<text x="24" y="56" font-size="11.5" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">19 jumper wires. Plug them in number order with the USB cable unplugged. Red = 3.3 V, black = ground; the other colors are only to tell wires apart.</text>
+<text x="24" y="56" font-size="11.5" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">21 jumper wires. Plug them in number order with the USB cable unplugged. Red = 3.3 V, black = ground; the other colors are only to tell wires apart.</text>
 <text x="24" y="74" font-size="11.5" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">Looking down at the Pico's top (the side with the chips), USB to the left. Pin 1 is the bottom-left pin, next to the USB plug; pin 40 is right above it.</text>
 <rect x="110" y="124" width="998" height="390" rx="10" fill="#f1ede4" stroke="#c9c2b0" stroke-width="1.5"/>
 <rect x="110" y="308" width="998" height="18" fill="#e3ddcf"/>
@@ -456,8 +456,8 @@
 <text x="0" y="0" font-size="9.5" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(800 374) rotate(-90)">18 GND</text>
 <circle cx="830" cy="384" r="5" fill="#e8e0b0" stroke="#333"/>
 <text x="0" y="0" font-size="8.5" fill="#b9d9c4" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(834 374) rotate(-90)">19 GP14</text>
-<circle cx="864" cy="384" r="5" fill="#e8e0b0" stroke="#333"/>
-<text x="0" y="0" font-size="8.5" fill="#b9d9c4" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(868 374) rotate(-90)">20 GP15</text>
+<circle cx="864" cy="384" r="5" fill="#f2c14e" stroke="#333"/>
+<text x="0" y="0" font-size="9.5" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(868 374) rotate(-90)">20 GP15</text>
 <circle cx="864" cy="250" r="5" fill="#e8e0b0" stroke="#333"/>
 <text x="0" y="0" font-size="8.5" fill="#b9d9c4" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(868 303.4) rotate(-90)">21 GP16</text>
 <circle cx="830" cy="250" r="5" fill="#e8e0b0" stroke="#333"/>
@@ -505,11 +505,17 @@
 <rect x="203" y="600" width="166" height="120" rx="8" fill="#3a3a3a" stroke="#111" stroke-width="2"/>
 <rect x="373" y="600" width="132" height="120" rx="8" fill="#1e5aa8" stroke="#111" stroke-width="2"/>
 <rect x="509" y="600" width="268" height="120" rx="8" fill="#1b1b1b" stroke="#111" stroke-width="2"/>
+<rect x="815" y="600" width="64" height="120" rx="8" fill="#2a2a2a" stroke="#111" stroke-width="2"/>
 <circle cx="286.0" cy="670" r="30" fill="#777" stroke="#222" stroke-width="2"/>
 <circle cx="286.0" cy="670" r="12" fill="#bbb" stroke="#222"/>
 <text x="286.0" y="740" font-size="12" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">the knob</text>
 <text x="286.0" y="755" font-size="9.5" text-anchor="middle" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">which leg is which:</text>
 <text x="286.0" y="768" font-size="9.5" text-anchor="middle" fill="#138a8a" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">knob-ec11.svg</text>
+<circle cx="847.0" cy="670" r="20" fill="#2a8c4a" stroke="#111" stroke-width="2"/>
+<circle cx="847.0" cy="670" r="13" fill="#39a860"/>
+<text x="847.0" y="740" font-size="12" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">Sign</text>
+<text x="847.0" y="755" font-size="9.5" text-anchor="middle" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">button</text>
+<text x="847.0" y="768" font-size="9.5" text-anchor="middle" fill="#d2691e" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">hold to sign</text>
 <text x="439.0" y="664" font-size="11" text-anchor="middle" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">ATECC608</text>
 <text x="439.0" y="680" font-size="9" text-anchor="middle" fill="#dbe7ff" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">breakout</text>
 <text x="439.0" y="740" font-size="12" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">the chip</text>
@@ -520,60 +526,60 @@
 <text x="643.0" y="740" font-size="12" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">the screen</text>
 <text x="643.0" y="755" font-size="9.5" text-anchor="middle" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">real pin order differs: see right</text>
 <text x="643.0" y="768" font-size="9.5" text-anchor="middle" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">the wires cross; that is fine</text>
-<text x="811" y="596" font-size="11" text-anchor="start" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">Your screen's pins, as printed</text>
-<text x="811" y="610" font-size="9" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">(header on the right, top to bottom)</text>
-<rect x="811" y="622" width="96" height="190" rx="6" fill="#1b1b1b" stroke="#111" stroke-width="2"/>
-<rect x="821" y="636" width="50" height="160" rx="2" fill="#27496d" stroke="#555" stroke-width="1.5"/>
-<rect x="902" y="635" width="10" height="10" fill="#e8c27a" stroke="#333"/>
-<text x="899" y="644" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">BL</text>
-<path d="M912 640 L939 640" fill="none" stroke="#2a8c4a" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-<circle cx="951" cy="640" r="10" fill="#fff" stroke="#2a8c4a" stroke-width="2"/>
-<text x="951" y="644" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">14</text>
-<text x="967" y="644" font-size="10" text-anchor="start" fill="#2a8c4a" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">Pico pin 17 (GP13)</text>
-<rect x="902" y="657" width="10" height="10" fill="#e8c27a" stroke="#333"/>
-<text x="899" y="666" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">RST</text>
-<path d="M912 662 L939 662" fill="none" stroke="#6a3fbf" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-<circle cx="951" cy="662" r="10" fill="#fff" stroke="#6a3fbf" stroke-width="2"/>
-<text x="951" y="666" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">13</text>
-<text x="967" y="666" font-size="10" text-anchor="start" fill="#6a3fbf" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">Pico pin 16 (GP12)</text>
-<rect x="902" y="679" width="10" height="10" fill="#e8c27a" stroke="#333"/>
-<text x="899" y="688" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">DC</text>
-<path d="M912 684 L939 684" fill="none" stroke="#6a3fbf" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-<circle cx="951" cy="684" r="10" fill="#fff" stroke="#6a3fbf" stroke-width="2"/>
-<text x="951" y="688" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">9</text>
-<text x="967" y="688" font-size="10" text-anchor="start" fill="#6a3fbf" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">Pico pin 11 (GP8)</text>
-<rect x="902" y="701" width="10" height="10" fill="#e8c27a" stroke="#333"/>
-<text x="899" y="710" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">SCL</text>
-<path d="M912 706 L939 706" fill="none" stroke="#6a3fbf" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-<circle cx="951" cy="706" r="10" fill="#fff" stroke="#6a3fbf" stroke-width="2"/>
-<text x="951" y="710" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">11</text>
-<text x="967" y="710" font-size="10" text-anchor="start" fill="#6a3fbf" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">Pico pin 14 (GP10)</text>
-<rect x="902" y="723" width="10" height="10" fill="#e8c27a" stroke="#333"/>
-<text x="899" y="732" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">MOSI</text>
-<path d="M912 728 L939 728" fill="none" stroke="#6a3fbf" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-<circle cx="951" cy="728" r="10" fill="#fff" stroke="#6a3fbf" stroke-width="2"/>
-<text x="951" y="732" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">12</text>
-<text x="967" y="732" font-size="10" text-anchor="start" fill="#6a3fbf" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">Pico pin 15 (GP11)</text>
-<rect x="902" y="745" width="10" height="10" fill="#e8c27a" stroke="#333"/>
-<text x="899" y="754" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">CS</text>
-<path d="M912 750 L939 750" fill="none" stroke="#6a3fbf" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-<circle cx="951" cy="750" r="10" fill="#fff" stroke="#6a3fbf" stroke-width="2"/>
-<text x="951" y="754" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">10</text>
-<text x="967" y="754" font-size="10" text-anchor="start" fill="#6a3fbf" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">Pico pin 12 (GP9)</text>
-<rect x="902" y="767" width="10" height="10" fill="#e8c27a" stroke="#333"/>
-<text x="899" y="776" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">3V3</text>
-<path d="M912 772 L939 772" fill="none" stroke="#b3261e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-<circle cx="951" cy="772" r="10" fill="#fff" stroke="#b3261e" stroke-width="2"/>
-<text x="951" y="776" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">7</text>
-<text x="967" y="776" font-size="10" text-anchor="start" fill="#b3261e" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">red + rail</text>
-<rect x="902" y="789" width="10" height="10" fill="#e8c27a" stroke="#333"/>
-<text x="899" y="798" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">GND</text>
-<path d="M912 794 L939 794" fill="none" stroke="#222" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-<circle cx="951" cy="794" r="10" fill="#fff" stroke="#222" stroke-width="2"/>
-<text x="951" y="798" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">8</text>
-<text x="967" y="798" font-size="10" text-anchor="start" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">blue - rail</text>
-<text x="811" y="828" font-size="9.5" text-anchor="start" fill="#b3261e" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">SCL here is the screen's clock,</text>
-<text x="811" y="841" font-size="9.5" text-anchor="start" fill="#b3261e" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">not the chip's SCL. 3V3 = 3.3 V.</text>
+<text x="909" y="596" font-size="11" text-anchor="start" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">Your screen's pins, as printed</text>
+<text x="909" y="610" font-size="9" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">(header on the right, top to bottom)</text>
+<rect x="909" y="622" width="96" height="190" rx="6" fill="#1b1b1b" stroke="#111" stroke-width="2"/>
+<rect x="919" y="636" width="50" height="160" rx="2" fill="#27496d" stroke="#555" stroke-width="1.5"/>
+<rect x="1000" y="635" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="997" y="644" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">BL</text>
+<path d="M1010 640 L1037 640" fill="none" stroke="#2a8c4a" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1049" cy="640" r="10" fill="#fff" stroke="#2a8c4a" stroke-width="2"/>
+<text x="1049" y="644" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">14</text>
+<text x="1065" y="644" font-size="10" text-anchor="start" fill="#2a8c4a" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">pin 17 (GP13)</text>
+<rect x="1000" y="657" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="997" y="666" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">RST</text>
+<path d="M1010 662 L1037 662" fill="none" stroke="#6a3fbf" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1049" cy="662" r="10" fill="#fff" stroke="#6a3fbf" stroke-width="2"/>
+<text x="1049" y="666" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">13</text>
+<text x="1065" y="666" font-size="10" text-anchor="start" fill="#6a3fbf" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">pin 16 (GP12)</text>
+<rect x="1000" y="679" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="997" y="688" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">DC</text>
+<path d="M1010 684 L1037 684" fill="none" stroke="#6a3fbf" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1049" cy="684" r="10" fill="#fff" stroke="#6a3fbf" stroke-width="2"/>
+<text x="1049" y="688" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">9</text>
+<text x="1065" y="688" font-size="10" text-anchor="start" fill="#6a3fbf" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">pin 11 (GP8)</text>
+<rect x="1000" y="701" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="997" y="710" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">SCL</text>
+<path d="M1010 706 L1037 706" fill="none" stroke="#6a3fbf" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1049" cy="706" r="10" fill="#fff" stroke="#6a3fbf" stroke-width="2"/>
+<text x="1049" y="710" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">11</text>
+<text x="1065" y="710" font-size="10" text-anchor="start" fill="#6a3fbf" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">pin 14 (GP10)</text>
+<rect x="1000" y="723" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="997" y="732" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">MOSI</text>
+<path d="M1010 728 L1037 728" fill="none" stroke="#6a3fbf" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1049" cy="728" r="10" fill="#fff" stroke="#6a3fbf" stroke-width="2"/>
+<text x="1049" y="732" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">12</text>
+<text x="1065" y="732" font-size="10" text-anchor="start" fill="#6a3fbf" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">pin 15 (GP11)</text>
+<rect x="1000" y="745" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="997" y="754" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">CS</text>
+<path d="M1010 750 L1037 750" fill="none" stroke="#6a3fbf" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1049" cy="750" r="10" fill="#fff" stroke="#6a3fbf" stroke-width="2"/>
+<text x="1049" y="754" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">10</text>
+<text x="1065" y="754" font-size="10" text-anchor="start" fill="#6a3fbf" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">pin 12 (GP9)</text>
+<rect x="1000" y="767" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="997" y="776" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">3V3</text>
+<path d="M1010 772 L1037 772" fill="none" stroke="#b3261e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1049" cy="772" r="10" fill="#fff" stroke="#b3261e" stroke-width="2"/>
+<text x="1049" y="776" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">7</text>
+<text x="1065" y="776" font-size="10" text-anchor="start" fill="#b3261e" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">red + rail</text>
+<rect x="1000" y="789" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="997" y="798" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">GND</text>
+<path d="M1010 794 L1037 794" fill="none" stroke="#222" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1049" cy="794" r="10" fill="#fff" stroke="#222" stroke-width="2"/>
+<text x="1049" y="798" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">8</text>
+<text x="1065" y="798" font-size="10" text-anchor="start" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">blue - rail</text>
+<text x="909" y="828" font-size="9.5" text-anchor="start" fill="#b3261e" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">SCL here is the screen's clock,</text>
+<text x="909" y="841" font-size="9.5" text-anchor="start" fill="#b3261e" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">not the chip's SCL. 3V3 = 3.3 V.</text>
 <path d="M218 488 L218 600" fill="none" stroke="#222" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="218" cy="488" r="4" fill="#222"/>
 <rect x="213" y="595" width="10" height="10" fill="#e8c27a" stroke="#333"/>
@@ -676,6 +682,18 @@
 <text x="762" y="622" font-size="9" text-anchor="middle" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">BL</text>
 <circle cx="762" cy="570" r="10" fill="#fff" stroke="#2a8c4a" stroke-width="2"/>
 <text x="762" y="574" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">14</text>
+<path d="M830 488 L830 600" fill="none" stroke="#222" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="830" cy="488" r="4" fill="#222"/>
+<rect x="825" y="595" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="830" y="622" font-size="9" text-anchor="middle" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">SW2</text>
+<circle cx="830" cy="570" r="10" fill="#fff" stroke="#222" stroke-width="2"/>
+<text x="830" y="574" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">21</text>
+<path d="M864 428 L864 544 L864 544 L864 600" fill="none" stroke="#d2691e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="864" cy="428" r="4" fill="#d2691e"/>
+<rect x="859" y="595" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="864" y="622" font-size="9" text-anchor="middle" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">SW1</text>
+<circle cx="864" cy="570" r="10" fill="#fff" stroke="#d2691e" stroke-width="2"/>
+<text x="864" y="574" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">20</text>
 <path d="M354 206 L354 110 L1084 110 L1084 466 L1034 466" fill="none" stroke="#b3261e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="354" cy="206" r="4" fill="#b3261e"/>
 <circle cx="1034" cy="466" r="4" fill="#b3261e"/>
@@ -687,7 +705,7 @@
 <circle cx="796" cy="488" r="4" fill="#222"/>
 <circle cx="818" cy="450" r="10" fill="#fff" stroke="#222" stroke-width="2"/>
 <text x="818" y="454" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">2</text>
-<rect x="1226" y="96" width="290" height="690" rx="8" fill="#fff" stroke="#ccc" stroke-width="1"/>
+<rect x="1226" y="96" width="290" height="772" rx="8" fill="#fff" stroke="#ccc" stroke-width="1"/>
 <text x="1240" y="120" font-size="13" text-anchor="start" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">Wires, in order</text>
 <text x="1240" y="136" font-size="9" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">a dot = the end goes in that hole</text>
 <text x="1240" y="166" font-size="10.5" text-anchor="start" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">Power rails</text>
@@ -770,6 +788,15 @@
 <text x="1250" y="770" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">19</text>
 <text x="1266" y="765" font-size="9" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">blue - rail</text>
 <text x="1266" y="777" font-size="9" text-anchor="start" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">-&gt; knob switch leg 2</text>
+<text x="1240" y="805" font-size="10.5" text-anchor="start" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">The Sign button</text>
+<circle cx="1250" cy="817" r="10" fill="#fff" stroke="#d2691e" stroke-width="2"/>
+<text x="1250" y="821" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">20</text>
+<text x="1266" y="816" font-size="9" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">pin 20 (GP15)</text>
+<text x="1266" y="828" font-size="9" text-anchor="start" fill="#d2691e" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">-&gt; Sign button leg 1</text>
+<circle cx="1250" cy="846" r="10" fill="#fff" stroke="#222" stroke-width="2"/>
+<text x="1250" y="850" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">21</text>
+<text x="1266" y="845" font-size="9" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">blue - rail</text>
+<text x="1266" y="857" font-size="9" text-anchor="start" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">-&gt; Sign button leg 2</text>
 <text x="24" y="830" font-size="13" text-anchor="start" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">How a breadboard connects</text>
 <rect x="40" y="846" width="330" height="200" rx="8" fill="#f1ede4" stroke="#c9c2b0" stroke-width="1"/>
 <rect x="67" y="867" width="6" height="6" fill="#555"/>

@@ -43,6 +43,8 @@ WIRES = [
     (17, TEAL, "Pico pin 5 (GP3)", "knob B", "knob", "B"),
     (18, TEAL, "Pico pin 2 (GP1)", "knob switch leg 1", "knob", "SW1"),
     (19, BLK, RAIL_M, "knob switch leg 2", "knob", None),
+    (20, ORG, "Pico pin 20 (GP15)", "Sign button leg 1", "button", "SW1"),
+    (21, BLK, RAIL_M, "Sign button leg 2", "button", None),
 ]
 
 MONO = wb1.MONO
@@ -75,7 +77,7 @@ def breadboard():
     add('<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d">' % (W, H, W, H))
     add('<rect width="%d" height="%d" fill="#fbfbf8"/>' % (W, H))
     text(24, 34, "Build 1 on a breadboard: the chip, the screen and the knob. No jacks yet.", 18, bold=True)
-    text(24, 56, "19 jumper wires. Plug them in number order with the USB cable unplugged. Red = 3.3 V, black = ground; the other colors are only to tell wires apart.", 11.5, GREY)
+    text(24, 56, "21 jumper wires. Plug them in number order with the USB cable unplugged. Red = 3.3 V, black = ground; the other colors are only to tell wires apart.", 11.5, GREY)
     text(24, 74, "Looking down at the Pico's top (the side with the chips), USB to the left. Pin 1 is the bottom-left pin, next to the USB plug; pin 40 is right above it.", 11.5, GREY)
 
     # board
@@ -140,13 +142,14 @@ def breadboard():
          ("chip", "SDA", 8, 5, ("pin", 6)), ("chip", "SCL", 9, 6, ("pin", 7)), ("chip", "GND", 10, 4, ("rail", BOT_M)), ("chip", "VIN", 11, 3, ("rail", BOT_P)),
          ("screen", "3V3", 12, 7, ("rail", BOT_P)), ("screen", "DC", 13, 9, ("pin", 11)), ("screen", "CS", 14, 10, ("pin", 12)),
          ("screen", "GND", 15, 8, ("rail", BOT_M)), ("screen", "SCL", 16, 11, ("pin", 14)), ("screen", "MOSI", 17, 12, ("pin", 15)),
-         ("screen", "RST", 18, 13, ("pin", 16)), ("screen", "BL", 19, 14, ("pin", 17))]
+         ("screen", "RST", 18, 13, ("pin", 16)), ("screen", "BL", 19, 14, ("pin", 17)),
+         ("button", "SW2", 21, 21, ("rail", BOT_M)), ("button", "SW1", 22, 20, ("pin", 20))]
     wcol = {w[0]: w[1] for w in WIRES}
     boxes = {}
-    for part in ("knob", "chip", "screen"):
+    for part in ("knob", "chip", "screen", "button"):
         cols = [t[2] for t in T if t[0] == part]
         boxes[part] = (cx(min(cols)) - 15, cx(max(cols)) + 15)
-    fills = {"knob": "#3a3a3a", "chip": "#1e5aa8", "screen": "#1b1b1b"}
+    fills = {"knob": "#3a3a3a", "chip": "#1e5aa8", "screen": "#1b1b1b", "button": "#2a2a2a"}
     BH = 120
     for part, (x0, x1) in boxes.items():
         rect(x0, PARTS_Y, x1 - x0, BH, fills[part], "#111", 8, 2)
@@ -157,6 +160,12 @@ def breadboard():
     text((kx0 + kx1) / 2, PARTS_Y + BH + 20, "the knob", 12, "#111", "middle", True)
     text((kx0 + kx1) / 2, PARTS_Y + BH + 35, "which leg is which:", 9.5, GREY, "middle")
     text((kx0 + kx1) / 2, PARTS_Y + BH + 48, "knob-ec11.svg", 9.5, TEAL, "middle", True)
+    bx0, bx1 = boxes["button"]
+    add('<circle cx="%s" cy="%s" r="20" fill="#2a8c4a" stroke="#111" stroke-width="2"/>' % ((bx0 + bx1) / 2, PARTS_Y + 70))
+    add('<circle cx="%s" cy="%s" r="13" fill="#39a860"/>' % ((bx0 + bx1) / 2, PARTS_Y + 70))
+    text((bx0 + bx1) / 2, PARTS_Y + BH + 20, "Sign", 12, "#111", "middle", True)
+    text((bx0 + bx1) / 2, PARTS_Y + BH + 35, "button", 9.5, GREY, "middle")
+    text((bx0 + bx1) / 2, PARTS_Y + BH + 48, "hold to sign", 9.5, ORG, "middle", True)
     cx0, cx1 = boxes["chip"]
     text((cx0 + cx1) / 2, PARTS_Y + 64, "ATECC608", 11, "#fff", "middle", True)
     text((cx0 + cx1) / 2, PARTS_Y + 80, "breakout", 9, "#dbe7ff", "middle")
@@ -171,13 +180,13 @@ def breadboard():
     text((sx0 + sx1) / 2, PARTS_Y + BH + 48, "the wires cross; that is fine", 9.5, GREY, "middle")
 
     # the bench screen's header as printed, top to bottom, header on the right
-    IX, IY = sx1 + 34, PARTS_Y - 4
+    IX, IY = bx1 + 30, PARTS_Y - 4
     text(IX, IY, "Your screen's pins, as printed", 11, "#111", "start", True)
     text(IX, IY + 14, "(header on the right, top to bottom)", 9, GREY)
     rect(IX, IY + 26, 96, 190, "#1b1b1b", "#111", 6, 2)
     rect(IX + 10, IY + 40, 50, 160, "#27496d", "#555", 2)
-    header = [("BL", "Pico pin 17 (GP13)", 14), ("RST", "Pico pin 16 (GP12)", 13), ("DC", "Pico pin 11 (GP8)", 9),
-              ("SCL", "Pico pin 14 (GP10)", 11), ("MOSI", "Pico pin 15 (GP11)", 12), ("CS", "Pico pin 12 (GP9)", 10),
+    header = [("BL", "pin 17 (GP13)", 14), ("RST", "pin 16 (GP12)", 13), ("DC", "pin 11 (GP8)", 9),
+              ("SCL", "pin 14 (GP10)", 11), ("MOSI", "pin 15 (GP11)", 12), ("CS", "pin 12 (GP9)", 10),
               ("3V3", "red + rail", 7), ("GND", "blue - rail", 8)]
     for i, (lab, to, n) in enumerate(header):
         y = IY + 44 + i * 22
@@ -218,11 +227,11 @@ def breadboard():
 
     # the wire list
     LX = 1240
-    rect(LX - 14, 96, 290, 690, "#fff", "#ccc", 8, 1)
+    rect(LX - 14, 96, 290, 772, "#fff", "#ccc", 8, 1)
     text(LX, 120, "Wires, in order", 13, "#111", "start", True)
     text(LX, 136, "a dot = the end goes in that hole", 9, GREY)
     y = 160
-    groups = {"power": "Power rails", "chip": "The chip", "screen": "The screen", "knob": "The knob"}
+    groups = {"power": "Power rails", "chip": "The chip", "screen": "The screen", "knob": "The knob", "button": "The Sign button"}
     seen = set()
     for n, c, a, b, part, contact in WIRES:
         if part == "J1":

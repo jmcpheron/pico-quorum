@@ -13,6 +13,8 @@
 # JACKS = True (hardware/wiring/BUILD1.md): the chip lives in a key behind the two jacks, as below.
 #
 # On the screen and the REPL:
+#   Sign      the button on GP15: SIGN shows how long it has been held, and a bar that fills at
+#             SIGN_HOLD_MS, the hold the console asks for before it signs.
 #   knob      turn: the count moves one per click. Press: scan the chip's bus now.
 #             Hold 2 s: the full read-only chip report (chipcheck.py) on the REPL.
 #   key       (JACKS only) DETECT (J1 ring 2) low for 200 ms -> key power (GP6) on -> scan -> read the chip.
@@ -31,6 +33,7 @@ SCR_BL = 13
 ENC_A = 2
 ENC_B = 3
 ENC_SW = 1
+BTN_SIGN = 15           # the Sign button (lcd/board "A"); its other leg is on ground
 KEY_SDA = 4
 KEY_SCL = 5
 KEY_PWR = 6
@@ -46,6 +49,7 @@ SPI_BAUD = 24_000_000   # jumper wires; garbage on screen -> 10_000_000, short s
 STEPS_PER_CLICK = 4     # most EC11s: 4 quadrature steps per detent. Counts 2 per click -> 2
 SETTLE_MS = 200         # DETECT must read low this long before key power goes on
 HOLD_MS = 2000
+SIGN_HOLD_MS = 2000     # quorum.py's HOLD_MS: how long Sign is held to approve (3 s on a red page)
 
 KEY_ADDRS = {0x60: "ATECC608", 0x35: "ATECC608 (Trust&Go)", 0x6A: "ATECC608 (TrustFLEX)", 0x30: "OPTIGA Trust M"}
 
@@ -107,6 +111,7 @@ class Screen(framebuf.FrameBuffer):
 _enc_a = Pin(ENC_A, Pin.IN, Pin.PULL_UP)
 _enc_b = Pin(ENC_B, Pin.IN, Pin.PULL_UP)
 _push = Pin(ENC_SW, Pin.IN, Pin.PULL_UP)
+_sign = Pin(BTN_SIGN, Pin.IN, Pin.PULL_UP)
 _QUAD = (0, -1, 1, 0, 1, 0, 0, -1, -1, 0, 0, 1, 0, 1, -1, 0)
 _enc_state = (_enc_a.value() << 1) | _enc_b.value()
 steps = 0
@@ -203,6 +208,14 @@ def draw(scr, st):
     row("KNOB", "%+d" % clicks())
     scr.text("%d steps" % steps, 230, y - 16, GREY)
     row("PUSH", "DOWN" if st["down"] else "up", GREEN if st["down"] else WHITE)
+    held = st["sign_ms"]
+    if held is None:
+        row("SIGN", "up")
+    elif held < SIGN_HOLD_MS:
+        row("SIGN", "held %.1fs" % (held / 1000), ORANGE)
+        scr.fill_rect(8, y - 3, 304 * held // SIGN_HOLD_MS, 2, ORANGE)
+    else:
+        row("SIGN", "HELD: OK", GREEN)
     if JACKS:
         row("DETECT", "key in" if st["present"] else "no key", GREEN if st["present"] else WHITE)
         row("POWER", "ON  GP6" if st["powered"] else "off", ORANGE if st["powered"] else WHITE)
@@ -228,13 +241,14 @@ def draw(scr, st):
 
 scr = None
 timer = None
-st = {"down": False, "present": False, "powered": False, "probe": None, "msg": ""}
+st = {"sign_ms": None, "down": False, "present": False, "powered": False, "probe": None, "msg": ""}
 _low_since = None
 _refused = False                 # "not a key": stay off until the plug comes out
 _down_at = None
 _held = False
 _last = None
 _busy = False
+_sign_at = [None]               # when the Sign button went down
 
 
 def tick(_=None):
@@ -287,7 +301,17 @@ def tick(_=None):
                     release_bus()
             _down_at = None
         st["down"] = down
-        key = (steps, st["down"], st["present"], st["powered"], id(st["probe"]), st["msg"])
+        # the Sign button: how long it has been held, in tenths, so the bar moves
+        if _sign.value() == 0:
+            if _sign_at[0] is None:
+                _sign_at[0] = now
+                print("sign: down")
+            st["sign_ms"] = time.ticks_diff(now, _sign_at[0]) // 100 * 100
+        elif _sign_at[0] is not None:
+            print("sign: up after %d ms%s" % (time.ticks_diff(now, _sign_at[0]), "" if st["sign_ms"] < SIGN_HOLD_MS else " (a sign would have gone through)"))
+            _sign_at[0] = None
+            st["sign_ms"] = None
+        key = (steps, st["down"], st["sign_ms"], st["present"], st["powered"], id(st["probe"]), st["msg"])
         if key != _last:
             draw(scr, st)
             _last = key

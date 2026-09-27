@@ -51,8 +51,8 @@
 <text x="639" y="519" font-size="9" text-anchor="start" fill="#cfe6d6" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">18 GND</text>
 <circle cx="628" cy="535" r="5" fill="#e8e0b0" stroke="#333"/>
 <text x="639" y="539" font-size="9" text-anchor="start" fill="#cfe6d6" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">19 GP14</text>
-<circle cx="628" cy="555" r="5" fill="#2e7d4f" stroke="#e8e0b0" stroke-width="2" stroke-dasharray="2 2"/>
-<text x="639" y="559" font-size="9" text-anchor="start" fill="#cfe6d6" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">20 GP15</text>
+<circle cx="628" cy="555" r="5" fill="#2a8c4a" stroke="#333"/>
+<text x="639" y="559" font-size="10" text-anchor="start" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">20 GP15</text>
 <circle cx="852" cy="175" r="5" fill="#e8e0b0" stroke="#333"/>
 <text x="841" y="179" font-size="9" text-anchor="end" fill="#cfe6d6" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">VBUS 40</text>
 <circle cx="852" cy="195" r="5" fill="#e8e0b0" stroke="#333"/>
@@ -87,8 +87,8 @@
 <text x="841" y="479" font-size="9" text-anchor="end" fill="#cfe6d6" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">GP19 25</text>
 <circle cx="852" cy="495" r="5" fill="#e8e0b0" stroke="#333"/>
 <text x="841" y="499" font-size="9" text-anchor="end" fill="#cfe6d6" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">GP18 24</text>
-<circle cx="852" cy="515" r="5" fill="#e8e0b0" stroke="#333"/>
-<text x="841" y="519" font-size="9" text-anchor="end" fill="#cfe6d6" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">GND 23</text>
+<circle cx="852" cy="515" r="5" fill="#222" stroke="#333"/>
+<text x="841" y="519" font-size="10" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">GND 23</text>
 <circle cx="852" cy="535" r="5" fill="#2e7d4f" stroke="#e8e0b0" stroke-width="2" stroke-dasharray="2 2"/>
 <text x="841" y="539" font-size="9" text-anchor="end" fill="#cfe6d6" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">GP17 22</text>
 <circle cx="852" cy="555" r="5" fill="#e8e0b0" stroke="#333"/>
@@ -204,7 +204,22 @@
 <text x="924" y="439" font-size="9.5" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">27 GP21: reserved, Y = Reject</text>
 <text x="924" y="479" font-size="9.5" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">25 GP19: reserved, X</text>
 <text x="924" y="539" font-size="9.5" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">22 GP17: reserved, B</text>
-<text x="614" y="559" font-size="9.5" text-anchor="end" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">reserved, A = Sign: GP15, pin 20</text>
+<rect x="200" y="556" width="150" height="48" rx="6" fill="#2a2a2a" stroke="#111" stroke-width="2"/>
+<circle cx="230" cy="580.0" r="15" fill="#2a8c4a" stroke="#111" stroke-width="2"/>
+<text x="252" y="576" font-size="10" text-anchor="start" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">Sign</text>
+<text x="252" y="590" font-size="8.5" text-anchor="start" fill="#ccc" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">button</text>
+<text x="190" y="570" font-size="9" text-anchor="end" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">SPST momentary:</text>
+<text x="190" y="583" font-size="9" text-anchor="end" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">2 legs, either way round</text>
+<text x="190" y="596" font-size="9" text-anchor="end" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">4-leg tactile? use 2</text>
+<text x="190" y="609" font-size="9" text-anchor="end" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">diagonal corners</text>
+<rect x="345" y="563" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="340" y="572" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">SW1</text>
+<rect x="345" y="585" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="340" y="594" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">SW2</text>
+<path d="M355 568 L373 568 L373 555 L628 555" fill="none" stroke="#2a8c4a" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="383" y="550" font-size="9.5" text-anchor="start" fill="#2a8c4a" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">Sign -&gt; GP15, pin 20 (hold)</text>
+<path d="M355 590 L385 590 L385 600 L862 600 L862 515 L852 515" fill="none" stroke="#222" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="924" y="519" font-size="10" text-anchor="start" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">23 GND: the Sign button's other leg</text>
 <text x="924" y="399" font-size="9.5" text-anchor="start" fill="#2e7d4f" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">free: GP0, GP14, GP16, GP18, GP20, GP22</text>
 <text x="924" y="186" font-size="9.5" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">dashed ring on the board = reserved pin, leave it free</text>
 <text x="24" y="718" font-size="13" text-anchor="start" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">The key, Build 1: the ATECC608 STEMMA breakout on a cut STEMMA QT cable, soldered to two plugs</text>

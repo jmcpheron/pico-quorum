@@ -729,3 +729,25 @@ The Safe's nonce is 1.
   `0x99eD…6b88` now has code on Base. The factory on Ethereum mainnet has the same code and gives
   the same address; chip 2 is not deployed there yet (only when a Safe there needs it). Not yet an
   owner of any Safe.
+
+## 2026-09-27 — Build 1 on the breadboard, and a Sign button for the case
+
+Build 1 without the key jacks: a Pico 2 W on a breadboard, the chip on a STEMMA QT to male-pins
+cable wired straight to 3.3 V, the knob, and the screen, all with jumper wires
+(`hardware/wiring/BREADBOARD.md`). It works. A first case for this layout is being drafted.
+
+- **The screen prints other names.** The 2.0″ board on the bench labels its header BL, RST, DC,
+  SCL, MOSI, CS, 3V3, GND, top to bottom. They're the same 8 signals on the same Pico pins. SCL
+  there is the screen's SPI clock (pin 14), not the chip's I2C SCL (pin 7). The docs and diagrams
+  now use the printed names.
+- **A Sign button.** One SPST momentary push button: one leg to pin 20 (GP15), the other to
+  ground (the blue rail). That brings the breadboard to 21 wires. GP15 is the pin `board.py`
+  already names A, and `quorum.py` signs only after A is held for 2 s (3 s when a page is red), so
+  the console treats this button as Sign as it stands. `bench1.py` shows the hold on screen
+  (SIGN, a bar that fills at 2 s), checked in the emulator.
+- **Next, in firmware:** every action that can't be undone (signing, the config and data locks,
+  GenKey, slot locks) waits for the same hold on this button. The ones that arm with B and Y today
+  need it most, because Build 1 has no B or Y. See `hardware/HANDOFF.md`, firmware item 3.
+
+Diagrams regenerated: `hardware/wiring/build1-breadboard.svg` (`tools/wiring-breadboard`) and
+`hardware/wiring/build1-wiring.svg` (`tools/wiring-build1`). Both `--check` runs pass.
