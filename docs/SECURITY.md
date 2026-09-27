@@ -13,6 +13,10 @@ toward the threshold, never the Safe: the other owners can execute without it an
   was seen and A was held (3 s for red).
 - A delegatecall is refused unless it is a multiSend to a pinned batcher or goes to a pinned
   delegate, and so is any operation other than call and delegatecall.
+- With several Safes (`QUORUM_SAFES`), each transaction is hashed with its own Safe's pinned chain
+  and address, and its signature goes to that chain's service (pinned in `quorum_cfg.py`). A
+  transaction served for one Safe but hashed for another chain or Safe is refused. Known
+  contracts and tokens are per chain, so an address pinned on Base is unknown on Ethereum.
 
 **What is on the board.** Exactly the console image in `firmware/manifest.json`; `tools/fw verify`
 checks every hash.

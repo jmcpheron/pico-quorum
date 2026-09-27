@@ -4,7 +4,7 @@
 // in slot 0; copied per story, so the file never changes). Runs its own mock on port 8799 with
 // its own state, so a session on 8787 is left alone.
 import { spawn, spawnSync } from "node:child_process";
-import { copyFileSync, mkdirSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { copyFileSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,6 +14,11 @@ const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 const OUT = join(ROOT, "docs", "quorum-ui", "shots");
 const PORT = 8799;
 const BASE = `http://localhost:${PORT}`;
+// "two": a console that watches two Safes (QUORUM_SAFES), the Family Safe here and a simulated
+// Safe on Base Sepolia from a second mock on PORT2, each named with its own "url".
+const PORT2 = 8797;
+const BASE2 = `http://localhost:${PORT2}`;
+const SAFE2 = "0x5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a";
 const tmp = mkdtempSync(join(tmpdir(), "quorum-shots-"));
 const only = process.argv.slice(3);      // tools/quorum shots [story ...]
 
@@ -51,6 +56,8 @@ const STORIES = [
   ["v150", ["send-eth"], ["shot 43-version-1.5.0"], { version: "1.5.0" }],
   ["v130", ["send-eth"], ["key B", "shot 44-version-1.3.0-L2-owners"], { version: "1.3.0+L2" }],
   ["vold", ["send-eth"], ["shot 45-version-too-old", "key A", "shot 46-version-too-old-summary"], { version: "1.1.1" }],
+  ["two", ["send-eth", "send-usdc"], ["wait 3000", "shot 47-two-safes-home", "keys down,down", "shot 48-two-safes-other-chain",
+    "key A", "shot 49-two-safes-review", "keys B,B", "shot 50-two-safes-owners"], { two: ["send-eth"] }],
   ["light", DEMO, ["exec import quorum_ui; quorum_ui.use('light'); quorum.dirty = True", "shot 33-light-home", "key A", "shot 34-light-summary",
     "keys B,down,down,A,down", "shot 35-light-red-page", "key down", "shot 36-light-verify"]],
 ];
@@ -80,28 +87,40 @@ function args(steps) {
   return out;
 }
 
-async function post(path, body) {
-  const r = await fetch(BASE + path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+async function post(path, body, base = BASE) {
+  const r = await fetch(base + path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
   if (!r.ok) throw new Error(`${path}: ${r.status}`);
 }
 
 mkdirSync(OUT, { recursive: true });
 const server = spawn(process.execPath, [join(ROOT, "tools/mock-tx-service/server.mjs"), "--port", String(PORT)],
   { env: { ...process.env, QUORUM_STATE: join(tmp, "state.json") }, stdio: "ignore" });
-for (let i = 0; ; i++) {
-  try { await fetch(BASE + "/sim/state"); break; } catch { if (i > 40) throw new Error("mock did not start"); }
-  await new Promise((r) => setTimeout(r, 100));
+const server2 = spawn(process.execPath, [join(ROOT, "tools/mock-tx-service/server.mjs"), "--port", String(PORT2)],
+  { env: { ...process.env, QUORUM_STATE: join(tmp, "state2.json"), QUORUM_SIM_SAFE: `84532:${SAFE2}:Test Safe` }, stdio: "ignore" });
+for (const b of [BASE, BASE2]) {
+  for (let i = 0; ; i++) {
+    try { await fetch(b + "/sim/state"); break; } catch { if (i > 40) throw new Error("mock did not start"); }
+    await new Promise((r) => setTimeout(r, 100));
+  }
 }
+const twoSecrets = join(tmp, "two.py");
+writeFileSync(twoSecrets, `QUORUM_SAFES = [
+    {"chainId": 31337, "address": "0xf77e6235ea5ce79d6d823b332276cac99ea77666", "name": "Family Safe", "url": "${BASE}"},
+    {"chainId": 84532, "address": "${SAFE2}", "name": "Test Safe", "url": "${BASE2}"},
+]
+`);
 
 let failed = 0;
 for (const [name, queue, steps, opts = {}] of STORIES) {
   if (only.length && !only.includes(name)) continue;
   for (const f of readdirSync(OUT)) if (steps.some((s) => s === `shot ${f.replace(/\.png$/, "")}`)) rmSync(join(OUT, f));
   if (queue) await post("/sim/reset", { scenarios: queue, keepDevices: false, version: opts.version });
+  if (opts.two) await post("/sim/reset", { scenarios: opts.two, keepDevices: false }, BASE2);
   const chip = join(tmp, "chip.json");
   copyFileSync(new URL("emu-chip.json", import.meta.url), chip);
   const app = queue ? BASE : "http://localhost:1";      // "offline": nothing answers
   const r = spawnSync(process.execPath, [join(ROOT, "emu/headless.mjs"), "quorum", "--app", app, "--chip", chip, "--quiet",
+    ...(opts.two ? ["--secrets", twoSecrets] : []),
     "--wait", "3000", ...args(steps)], { cwd: join(ROOT, "emu"), encoding: "utf8" });
   const shots = (r.stdout.match(/\[shot\]/g) || []).length;
   const bad = r.status !== 0 || /Traceback/.test(r.stdout + r.stderr);
@@ -112,6 +131,7 @@ for (const [name, queue, steps, opts = {}] of STORIES) {
   }
 }
 server.kill();
+server2.kill();
 rmSync(tmp, { recursive: true, force: true });
 console.log(failed ? `${failed} stories failed` : `shots in ${OUT}`);
 process.exit(failed ? 1 : 0);

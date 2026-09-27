@@ -23,7 +23,7 @@ import {
 import { privateKeyToAccount } from "viem/accounts";
 import { foundry } from "viem/chains";
 import { p256 } from "@noble/curves/p256";
-import { BOOK, CFG, PEOPLE, ZERO, nameOf, say, safeTxHash } from "./sim.mjs";
+import { BOOK, CFG, PEOPLE, ZERO, forChain, nameOf, say, safeTxHash } from "./sim.mjs";
 import { packSignatures } from "./sigs.mjs";
 
 // Safe 1.4.1's canonical deployments, the same on Base and on every fork of it.
@@ -33,7 +33,7 @@ export const SAFE_141 = {
   fallbackHandler: "0xfd0732Dc9E303f09fCEf3a7388Ad10A83459Ec99",  // CompatibilityFallbackHandler
 };
 export const FAMILY_SALT = BigInt(keccak256(toHex("PicoQuorum Family Safe")));
-export const USDC = getAddress(Object.keys(CFG.tokens)[0]);      // Base's USDC (FiatToken)
+export const USDC = getAddress(Object.keys(forChain("tokens", 8453))[0]);      // Base's USDC (FiatToken)
 const USDC_BALANCE_SLOT = 9n;                                     // FiatToken v2.2 balanceAndBlacklistStates
 export const EXECUTOR = privateKeyToAccount("0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80");  // anvil #0
 const MAGIC = "0x1626ba7e";

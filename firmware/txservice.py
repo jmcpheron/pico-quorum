@@ -4,6 +4,7 @@
 # transaction from its fields and refuses any whose hash or Safe differs from what it pinned.
 #
 #   s = Service(base_url, safe)
+#   s.target(base_url, safe)   another Safe, maybe on another chain's service
 #   s.safe_info() -> {"nonce", "threshold", "owners", ...}
 #   s.pending(nonce) -> [transaction, ...] oldest nonce first
 #   s.confirm(safe_tx_hash, signature) -> (ok, detail)
@@ -52,31 +53,43 @@ class Service:
     def __init__(self, base, safe, api_key=None, verify=True, floor=0):
         """verify: check the server's certificate against the pinned roots (vhttp.py). Only a
         development board may turn it off (QUORUM_TLS_VERIFY = False); the production image cannot.
-        floor: the build's date; the clock is never trusted below it."""
-        self.base = base.rstrip("/")
-        self.safe = safe
-        self.sim = is_sim(self.base)     # tools/quorum on the laptop: its /sim endpoints exist
+        floor: the build's date; the clock is never trusted below it.
+        One Service serves every Safe the console watches (target() switches between them), so
+        the TLS context and the HTTPS reserve exist once, however many Safes there are."""
+        self.api_key = api_key
+        self.verify = verify
         self.requests = 0                # since boot, for the device screen (the real service has a monthly quota)
         self.floor = floor
         self._ctx = None
+        self._room = None
         self.lost = False
+        self.target(base, safe)
+        global _early
+        if self.base.startswith("https"):
+            self._room, _early = _early, None
+        self.hold()
+
+    def target(self, base, safe):
+        """Ask about this Safe at this service from now on (a Safe on another chain has another
+        service: api.safe.global/tx-service/<chain>)."""
+        self.base = base.rstrip("/")
+        self.safe = safe
+        self.sim = is_sim(self.base)     # tools/quorum on the laptop: its /sim endpoints exist
         https = self.base.startswith("https")
         if not https:
             self.tls = "plain"
         elif not ON_BOARD:
             self.tls = "host"
-        elif verify:
-            import vhttp
-            self._ctx = vhttp.context()      # now, while the heap is whole
+        elif self.verify:
+            if self._ctx is None:
+                import vhttp
+                self._ctx = vhttp.context()      # the first https target: at start, while the heap is whole
             self.tls = "verified"
         else:
             self.tls = "UNVERIFIED"
         # the API key goes only to Safe's own service over HTTPS, never to a laptop on the LAN
-        self.headers = {"Authorization": "Bearer " + api_key} if api_key and self.base.startswith("https") else {}
-        self.timeout = TIMEOUT_TLS if self.base.startswith("https") else TIMEOUT
-        global _early
-        self._room, _early = (_early if https else None), None
-        self.hold()
+        self.headers = {"Authorization": "Bearer " + self.api_key} if self.api_key and https else {}
+        self.timeout = TIMEOUT_TLS if https else TIMEOUT
 
     def hold(self):
         """Take the reserve back (https only). If it no longer fits, `lost` says so: the heap has
@@ -104,7 +117,7 @@ class Service:
             watch.extend(4 * int(self.timeout * 1000) + 40000)
         except ImportError:
             pass
-        if self._ctx is not None:
+        if self._ctx is not None and self.base.startswith("https"):
             import vhttp
             vhttp.clock(self.floor)
             return vhttp.request(method, self.base + path, self._ctx, body=body, headers=self.headers, timeout=self.timeout)

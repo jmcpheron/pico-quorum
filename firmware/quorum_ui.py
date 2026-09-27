@@ -292,8 +292,13 @@ def draw_home(q):
     d = q.d
     d.fill(c("bg"))
     ok = q.net_ok
-    s = "Synced" if ok else "Offline"
-    x = M + chain_pill(d, q, M, 4) + 6
+    many = len(q.WATCH) > 1
+    if many:        # several Safes: how many answered, and the pill is the highlighted row's chain
+        down = sum(1 for w in q.WATCH if w["tried"] and not w["ok"])
+        s = ("%d offline" % down) if down else "%d synced" % len(q.WATCH)
+    else:
+        s = "Synced" if ok else "Offline"
+    x = M + chain_pill(d, q, M, 4, full=not many) + 6
     v, vok = q.safe_version()
     if v and (not vok or x + F.width("Safe v" + v, "sans12") + 12 < 230 - F.width(s, "sans12") - 14):
         version_pill(d, q, x, 4)        # when it fits; always when the version is one this console can't sign for
@@ -339,7 +344,7 @@ def draw_home(q):
         con = e["r"].get("contract")
         lg = "refused" if e["why"] else "send"
         if con and not e["why"]:
-            name, lg, known = ident(q, con)
+            name, lg, known = decode.identify(e["w"]["ctx"], con) if e.get("w") and e["w"]["ctx"] else ident(q, con)
             lg = lg if known and lg else None
         logo(d, lg, 51, y + 12, 7)
         if e["why"]:
@@ -355,8 +360,10 @@ def draw_home(q):
         elif e["why"]:
             st, sc = "—", "bad"
         else:
-            st, sc = "%d/%d" % (len(e["conf"]), q.threshold()), "muted"
+            st, sc = "%d/%d" % (len(e["conf"]), q.threshold(e["w"])), "muted"
         txt_r(d, st, 226, y + 4, "sans12", sc, fill)
+        if many:        # which chain the row's Safe is on, in its pill colour
+            d.fill_rect(230, y + 5, 3, 15, c(CHAIN.get(e["w"]["chain"], ((120, 120, 120), 0))[0]))
         y += 28
     if q.outside:
         rrect(d, 6, 190, 228, 24, 5, "warn_bg")
@@ -649,7 +656,7 @@ def draw_result(q):
 def draw_owners(q):
     d = q.d
     d.fill(c("bg"))
-    txt(d, "Owners", M, 4, "bold18")
+    txt(d, fit(q.SAFE["name"], 110, "bold18") if len(q.WATCH) > 1 else "Owners", M, 4, "bold18")
     if q.owners():
         txt_r(d, "%d of %d must approve" % (q.threshold(), len(q.owners())), 230, 9, "sans12", "muted")
     y = 34
@@ -729,8 +736,8 @@ def draw_pinfail(q):
 
 
 def draw_unconfigured(q):
-    notice(q, False, "No Safe", ["secrets.py has no QUORUM_SAFE.", "This console signs for one pinned Safe;",
-                                "set it over USB (tools/fw config)."])
+    notice(q, False, "No Safe", ["secrets.py has no QUORUM_SAFES.", "This console signs only for the Safes",
+                                "listed there (docs/guide/SETUP.md)."])
 
 
 def draw_crashed(q, why=""):

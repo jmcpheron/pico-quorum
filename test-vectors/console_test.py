@@ -52,17 +52,24 @@ class Service:
         self.txs = []
         self.posted = []
         self.fail_pending = None
+        self.safes = {}         # another Safe's address -> {"info", "txs", "down"}; the rest get info and txs
 
     def get(self, url, headers=None, timeout=None):
         self.calls.append(("GET", url, dict(headers or {})))
+        info, txs = self.info, self.txs
+        for a, o in self.safes.items():
+            if a in url.lower():
+                if o.get("down"):
+                    raise OSError(110)
+                info, txs = o["info"], o["txs"]
         if "/multisig-transactions/" in url:
             if self.fail_pending:
                 e, self.fail_pending = self.fail_pending, None
                 raise e
             limit = int(url.split("limit=")[1].split("&")[0]) if "limit=" in url else 10
-            return Resp(200, {"count": len(self.txs), "results": self.txs[:limit]})
+            return Resp(200, {"count": len(txs), "results": txs[:limit]})
         if "/safes/" in url:
-            return Resp(200, self.info)
+            return Resp(200, info)
         return Resp(404, {})
 
     def post(self, url, json=None, headers=None, timeout=None):
@@ -146,8 +153,10 @@ def owner_of(slot):
 
 def fresh(prod=True, url="https://api.safe.global/tx-service/basesep", expect="auto", extra="", safe=True, keep=False):
     """A newly imported console with this secrets.py (and build.py when prod), started, not polled."""
-    lines = ['WIFI_SSID = "emulator"', 'WIFI_PASS = ""', 'HOSTNAME = "emu"', 'QUORUM_URL = "%s"' % url,
+    lines = ['WIFI_SSID = "emulator"', 'WIFI_PASS = ""', 'HOSTNAME = "emu"',
              'QUORUM_API_KEY = "test-key"', "ALLOW_LOCK = True", "ALLOW_GENKEY = True", "ALLOW_SOFT_KEY = True"]
+    if url:
+        lines.append('QUORUM_URL = "%s"' % url)
     if safe:
         lines.append('QUORUM_SAFE = {"chainId": %d, "address": "%s", "name": "Test Safe"}' % (CHAIN, SAFE))
     if expect == "auto":
@@ -183,12 +192,13 @@ def fresh(prod=True, url="https://api.safe.global/tx-service/basesep", expect="a
     return Q
 
 
-def tx(Q, nonce, to=ALICE, value=0, data="0x", op=0, safe=SAFE, conf=(), tamper=False):
+def tx(Q, nonce, to=ALICE, value=0, data="0x", op=0, safe=SAFE, conf=(), tamper=False, chain=CHAIN, hsafe=SAFE):
+    """A transaction as the service serves it for `safe`, its safeTxHash over (chain, hsafe)."""
     t = {"safe": safe, "to": to, "value": str(value), "data": data if data != "0x" else None, "operation": op,
          "safeTxGas": "0", "baseGas": "0", "gasPrice": "0", "gasToken": ZERO, "refundReceiver": ZERO,
          "nonce": nonce, "confirmations": [{"owner": o} for o in conf]}
     try:
-        h = safe_tx.from_service(CHAIN, dict(t, safe=SAFE))
+        h = safe_tx.from_service(chain, dict(t, safe=hsafe))
     except ValueError:
         h = bytes(32)
     if tamper:
@@ -202,7 +212,7 @@ def serve(Q, txs, owners=None, threshold=2, version="1.4.1"):
                 "owners": owners if owners is not None else [Q.me, ALICE, BOB]}
     SVC.txs = txs
     Q.last_poll = 0
-    Q.need_info = True
+    Q.WATCH[0]["need_info"] = True
     Q.net_work()
 
 
@@ -357,7 +367,7 @@ def case_service():
     Q.reject()
     check(not SVC.sim_calls(), "rejecting on https does not tell the service anything")
     SVC.info = {"address": SAFE, "nonce": 0, "threshold": 5, "owners": [ALICE, BOB]}
-    Q.need_info = True
+    Q.WATCH[0]["need_info"] = True
     Q.net_work()
     check(not Q.net_ok and "bad Safe info" in repr(Q.log[-1]), "threshold 5 of 2 owners: the Safe's info is refused")
     Q = fresh(url="http://192.168.0.2:8787")
@@ -516,8 +526,100 @@ def case_watchdog():
     check(machine.WDT.feeds == before + 1, "not fed once the deadline has passed")
 
 
+ETH_SAFE = "0x7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c"
+USDC_ETH = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+USDC_BASE = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
+TWO = ('QUORUM_SAFES = [{"chainId": %d, "address": "%s", "name": "Test Safe"},\n'
+       '                {"chainId": 1, "address": "%s", "name": "Vault"}]' % (CHAIN, SAFE, ETH_SAFE))
+
+
+def case_safes():
+    """Several Safes on several chains: each asked about at its own chain's service, in turn, one
+    queue on home, each transaction hashed with its own Safe's chain."""
+    import policy, decode, quorum_cfg
+    got, why = policy.safes([{"chainId": 1, "address": ETH_SAFE}, {"chainId": 1, "address": ETH_SAFE.upper().replace("0X", "0x")},
+                             {"chainId": 8453, "address": "0x12"}, {"address": SAFE}], None)
+    check(len(got) == 1 and got[0]["name"] == "Safe" and why, "QUORUM_SAFES: a duplicate, a bad address and a missing chainId are dropped, and it says so")
+    got, why = policy.safes([{"chainId": c, "address": SAFE} for c in (1, 10, 8453, 84532, 137)], None)
+    check(len(got) == policy.MAX_SAFES and "more than" in why, "more than %d Safes: only the first %d are watched" % (policy.MAX_SAFES, policy.MAX_SAFES))
+    got, why = policy.safes(None, {"chainId": CHAIN, "address": SAFE, "name": "One"})
+    check(len(got) == 1 and got[0]["chainId"] == CHAIN and not why, "QUORUM_SAFE (one Safe) still works")
+    eth = decode.context(quorum_cfg.CFG, ETH_SAFE, chain=1)
+    fork = decode.context(quorum_cfg.CFG, SAFE, chain=31337)
+    check(USDC_ETH in eth["tokens"] and USDC_BASE not in eth["tokens"] and MULTISEND in eth["batchers"],
+          "on Ethereum: Ethereum's USDC is known, Base's is not, MultiSend (every chain) is pinned")
+    check(USDC_BASE in fork["tokens"] and USDC_ETH not in fork["tokens"], "the Anvil fork of Base (31337) uses Base's lists")
+
+    chip()
+    Q = fresh(url=None, safe=False, extra=TWO)
+    check(len(Q.WATCH) == 2 and Q.state == "home", "two Safes in QUORUM_SAFES: both watched")
+    check(Q.WATCH[0]["base"].endswith("/tx-service/basesep") and Q.WATCH[1]["base"].endswith("/tx-service/eth"),
+          "each Safe's service comes from its chain, not from secrets.py")
+    SVC.info = {"address": SAFE, "nonce": 0, "threshold": 2, "version": "1.4.1", "owners": [Q.me, ALICE, BOB]}
+    SVC.txs = [tx(Q, 0)]
+    good_eth = tx(Q, 7, safe=ETH_SAFE, chain=1, hsafe=ETH_SAFE, to=BOB)
+    replay = tx(Q, 8, safe=ETH_SAFE, chain=CHAIN, hsafe=ETH_SAFE)       # hashed for Base Sepolia, served as Ethereum's
+    SVC.safes[ETH_SAFE] = {"info": {"address": ETH_SAFE, "nonce": 7, "threshold": 1, "version": "1.4.1", "owners": [Q.me, BOB]},
+                           "txs": [good_eth, replay]}
+    Q.net_work()
+    Q.net_work()
+    urls = [c[1] for c in SVC.calls]
+    check(any("/tx-service/basesep/" in u for u in urls) and any("/tx-service/eth/" in u and ETH_SAFE[2:] in u.lower() for u in urls),
+          "one poll each: Base Sepolia's service, then Ethereum's")
+    check(len(Q.queue) == 3 and Q.net_ok, "home: one queue with both Safes' transactions")
+    by = {e["n"]: e for e in Q.queue}
+    check(by[0]["w"]["chain"] == CHAIN and by[7]["w"]["chain"] == 1, "each entry knows its Safe")
+    check(Q.can_sign(by[7]) == (True, ""), "Ethereum's transaction, hashed for chain 1: signable")
+    check("hash" in by[8]["why"], "a transaction hashed for another chain: refused (no replay across chains)")
+    check(Q.threshold(by[7]["w"]) == 1 and Q.threshold(by[0]["w"]) == 2, "each Safe's own threshold")
+    n = len(SVC.calls)
+    Q.net_work()
+    check(len(SVC.calls) == n + 1 and "/tx-service/basesep/" in SVC.calls[-1][1], "then in turn: one Safe per poll, not both")
+    Q.open_entry(by[7])
+    check(Q.CHAIN == 1 and Q.SAFE_ADDR == ETH_SAFE, "reviewing Ethereum's transaction puts that Safe in view")
+    check(sign(Q, by[7], 2100) and "/tx-service/eth/" in SVC.posted[-1][0], "its confirmation goes to Ethereum's service")
+    Q.handle("A")
+    check(Q.state == "home" and Q.rr == 1 and Q.last_poll == 0, "back on home: that Safe is asked about next, now")
+    SVC.safes[ETH_SAFE]["down"] = True
+    Q.WATCH[1]["need_info"] = True
+    Q.net_work()
+    check(not Q.net_ok and "Vault" in Q.net_err and any(e["w"]["chain"] == CHAIN for e in Q.queue),
+          "Ethereum's service down: said so by name, Base Sepolia's queue still shown")
+    SVC.safes[ETH_SAFE]["down"] = False
+
+    # a signature the service did not take, for the second Safe, survives a restart and goes to its service
+    real_post = SVC.post
+    SVC.post = lambda url, json=None, headers=None, timeout=None: (_ for _ in ()).throw(OSError(12))
+    Q.net_work()
+    e = [x for x in Q.queue if x["n"] == 7][0]
+    e["conf"] = []
+    try:
+        sign(Q, e, 2100)
+    finally:
+        SVC.post = real_post
+    saved = json.load(open("unsent.json"))
+    check(saved.get("chain") == 1 and saved.get("safe") == ETH_SAFE, "the saved signature names its chain and Safe")
+    Q = fresh(url=None, safe=False, extra=TWO, keep=True)
+    SVC.info = {"address": SAFE, "nonce": 0, "threshold": 2, "version": "1.4.1", "owners": [Q.me, ALICE, BOB]}
+    SVC.txs = [tx(Q, 0)]
+    SVC.safes[ETH_SAFE] = {"info": {"address": ETH_SAFE, "nonce": 7, "threshold": 1, "owners": [Q.me, BOB]}, "txs": [good_eth]}
+    Q.net_work()
+    check("unsent.json" in os.listdir() and not SVC.posted, "after a restart, Base Sepolia's poll leaves Ethereum's saved signature alone")
+    Q.net_work()
+    check(SVC.posted and "/tx-service/eth/" in SVC.posted[-1][0] and "unsent.json" not in os.listdir(),
+          "Ethereum's poll sends it, to Ethereum's service")
+
+    Q = fresh(url=None, safe=False, extra='QUORUM_SAFES = [{"chainId": 10, "address": "%s", "name": "OP"}]' % SAFE)
+    Q.net_work()
+    check(not Q.net_ok and "no service for chain 10" in Q.net_err, "a chain with no pinned service: said so, nothing asked")
+    Q = fresh(url="http://192.168.0.2:8787", safe=False, extra=TWO)
+    check(all(w["base"] == "http://192.168.0.2:8787" for w in Q.WATCH), "QUORUM_URL (the laptop) overrides every Safe's service")
+    Q = fresh(url=None, safe=False, extra='QUORUM_SAFES = [{"chainId": %d, "address": "%s", "name": "A"}, {"chainId": 31337, "address": "%s", "name": "B", "url": "http://10.0.0.2:8788"}]' % (CHAIN, SAFE, ETH_SAFE))
+    check(Q.WATCH[0]["base"].endswith("/basesep") and Q.WATCH[1]["base"] == "http://10.0.0.2:8788", "a Safe's own \"url\" overrides its chain's service, for that Safe only")
+
+
 def main():
-    for case in (case_pin, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_watchdog):
+    for case in (case_pin, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_safes, case_watchdog):
         print("--", case.__name__[5:])
         try:
             case()

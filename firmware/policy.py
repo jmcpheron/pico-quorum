@@ -47,6 +47,48 @@ def expect_check(expect, serial, slot, row, owner):
     return True, ""
 
 
+MAX_SAFES = 4       # each one is a queue and a set of decoded transactions in RAM
+
+
+def safes(many, one):
+    """secrets.QUORUM_SAFES (a list) or QUORUM_SAFE (one) as a checked list of
+    {"chainId", "address", "name"} (and "url" when one names its own service, overriding the
+    chain's). -> (list, why): why says what was dropped, or ""."""
+    given = many if many else ([one] if one else [])
+    if not isinstance(given, (list, tuple)):
+        return [], "QUORUM_SAFES is not a list"
+    out, seen, why = [], set(), ""
+    for s in given:
+        try:
+            c, a = int(s["chainId"]), str(s["address"]).lower()
+        except (KeyError, TypeError, ValueError):
+            why = why or "a Safe without chainId or address"
+            continue
+        if not is_address(a):
+            why = why or "a Safe with a bad address"
+            continue
+        if (c, a) in seen:
+            continue
+        if len(out) == MAX_SAFES:
+            why = why or "more than %d Safes: the rest are not watched" % MAX_SAFES
+            break
+        seen.add((c, a))
+        e = {"chainId": c, "address": a, "name": str(s.get("name") or "Safe")[:24]}
+        if isinstance(s.get("url"), str) and s["url"]:
+            e["url"] = s["url"]         # this Safe's own service (a second simulated Safe on the laptop)
+        out.append(e)
+    return out, why
+
+
+def service_url(cfg, chain, override=None):
+    """Where to ask about a Safe on this chain: secrets.QUORUM_URL when set (the laptop's
+    simulation or fork), else Safe's own service for the chain, pinned in cfg["services"]. None for
+    a chain the console has no service for."""
+    if override:
+        return override
+    return cfg.get("services", {}).get(str(chain))
+
+
 def valid_info(info, safe):
     """The service's view of the Safe, checked for shape before anything shows or uses it.
     -> (ok, why)."""

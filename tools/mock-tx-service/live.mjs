@@ -16,10 +16,10 @@
 //                       the console on the emulator, with its throwaway virtual chip (live key --emu),
 //                       against the real service: it opens the first transaction waiting for it, pages
 //                       through, holds A, and the service's answer is printed. The spike before the Pico.
-//   live pico --chain C [--safe 0x..] [--name NAME]
-//                       point the Pico's console at chain C: the board's secrets.py gets that chain's
-//                       service and its pinned Safe (QUORUM_URL, QUORUM_SAFE), the old file is kept as
-//                       secrets.bak, and the console restarts. The API key and everything else stay.
+//   live pico --chain C[,C..] [--safe 0x..] [--name NAME]   several chains: a Safe on each (QUORUM_SAFES)
+//                       point the Pico's console at chain C (or several): the board's secrets.py gets
+//                       each chain's pinned Safe (QUORUM_SAFES; the console finds each chain's service
+//                       itself), the old file is kept as secrets.bak, and the console restarts. The API key and everything else stay.
 //                       --chain local: tools/quorum on this Mac (the fork or the simulation), no QUORUM_SAFE.
 //   --chain local       the rehearsal against tools/quorum up --manual-exec (the fork, anvil's account 0;
 //                       --browser uses the wallet page there too, with a wallet pointed at the fork)
@@ -404,32 +404,49 @@ async function rehearse() {
 
 // ----------------------------------------------------------------------------- pico
 async function pico() {
-  const name = opt("--chain");
-  if (!CHAINS[name]) die(`--chain ${Object.keys(CHAINS).join(" | ")}`);
-  const n = CHAINS[name];
-  let url, safeLine = null;
-  if (name === "local") {
+  // --chain basesep,base,eth: the console watches a Safe on each (QUORUM_SAFES), each asked about
+  // at its own chain's service (firmware/quorum_cfg.py "services"). local stands alone: the
+  // laptop's service, at QUORUM_URL.
+  const names = (opt("--chain") || "").split(",").filter(Boolean);
+  if (!names.length || names.some((x) => !CHAINS[x])) die(`--chain ${Object.keys(CHAINS).join(" | ")}, or several: --chain basesep,base,eth`);
+  if (names.includes("local") && names.length > 1) die("--chain local stands alone (the laptop's service)");
+  if (names.length > 1 && (opt("--safe") || opt("--name"))) die("--safe and --name are for one chain; with several, each chain's Safe comes from live.json");
+  let lines;
+  if (names[0] === "local") {
     const ip = spawnSync("ipconfig", ["getifaddr", "en0"], { encoding: "utf8" }).stdout.trim();
     if (!ip) die("no LAN address on en0 for the Pico to reach this Mac");
-    url = `http://${ip}:${process.env.QUORUM_PORT || 8787}`;
+    lines = [`QUORUM_URL = ${JSON.stringify(`http://${ip}:${process.env.QUORUM_PORT || 8787}`)}`];
   } else {
-    const safe = theSafe({ ...n, name });
-    const label = opt("--name") || saved().names?.[name] || `${n.chain.name} Safe`;
     const live = saved();
-    live.names = { ...live.names, [name]: label };
+    const safes = names.map((name) => {
+      const c = CHAINS[name];
+      const safe = theSafe({ ...c, name });
+      const label = (names.length === 1 && opt("--name")) || live.names?.[name] || `${c.chain.name} Safe`;
+      live.names = { ...live.names, [name]: label };
+      return { chainId: c.chain.id, address: safe.toLowerCase(), name: label };
+    });
     keep(live);
-    url = n.service;
-    safeLine = `QUORUM_SAFE = ${JSON.stringify({ chainId: n.chain.id, address: safe.toLowerCase(), name: label })}`;
+    lines = [`QUORUM_SAFES = [\n    ${safes.map((x) => JSON.stringify(x)).join(",\n    ")}\n]`];
   }
-  const lines = [`QUORUM_URL = ${JSON.stringify(url)}`, ...(safeLine ? [safeLine] : [])];
-  console.log(`the Pico's console, to ${n.chain.name}:\n  ${lines.join("\n  ")}`);
+  console.log(`the Pico's console, to ${names.map((x) => CHAINS[x].chain.name).join(" + ")}:\n  ${lines.join("\n  ")}`);
   const code = `import os
 new = ${JSON.stringify(lines.join("\n"))}
 with open('secrets.py') as f:
     old = f.read()
 with open('secrets.bak', 'w') as f:
     f.write(old)
-keep = [l for l in old.split(chr(10)) if l.split('=')[0].strip() not in ('QUORUM_URL', 'QUORUM_SAFE') and not l.startswith('# Base Sepolia (docs/LADDER.md') and not l.startswith('# the network, written by')]
+keep, skip = [], False
+for l in old.split(chr(10)):
+    k = l.split('=')[0].strip()
+    if skip:
+        skip = not l.startswith(']')
+        continue
+    if k == 'QUORUM_SAFES' and l.rstrip().endswith('['):
+        skip = True
+        continue
+    if k in ('QUORUM_URL', 'QUORUM_SAFE', 'QUORUM_SAFES') or l.startswith('# Base Sepolia (docs/LADDER.md') or l.startswith('# the network, written by'):
+        continue
+    keep.append(l)
 while keep and not keep[-1].strip():
     keep.pop()
 with open('secrets.py', 'w') as f:
@@ -453,7 +470,7 @@ print('WROTE', len(old), '->', os.stat('secrets.py')[6], 'bytes; the old file is
     r = spawnSync(`${ROOT}tools/emu`, ["ship", "quorum"], { encoding: "utf8", timeout: 180000 });
     if (!/running quorum/.test(r.stdout + r.stderr)) die(`the restart did not report back:\n${(r.stdout + r.stderr).slice(-600)}`);
   }
-  const check = "import quorum; print('NOW', quorum.CHAIN, quorum.SAFE_ADDR, quorum.SAFE.get('name'), quorum.BASE, 'net', quorum.net_ok, quorum.net_err, 'nonce', quorum.info.get('nonce'), 'me-owner', quorum.me in quorum.owners())";
+  const check = "import quorum as q; print('NOW', 'net', q.net_ok, q.net_err, '|', ' | '.join('%d %s %s nonce %s me-owner %s' % (w['chain'], w['addr'], w['name'], w['info'].get('nonce'), q.me in q.owners(w)) for w in q.WATCH))";
   for (let i = 0; i < 12; i++) {
     await new Promise((res) => setTimeout(res, 5000));
     r = spawnSync(`${ROOT}tools/usb`, ["exec", check], { encoding: "utf8" });

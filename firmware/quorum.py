@@ -11,8 +11,12 @@
 # the slot and the owner address its key must produce. At boot the chip on the bus picks its entry. The production image (image.PRODUCTION) signs nothing until they all match, and
 # the check runs again right before every signature.
 #
+# Safes: secrets.QUORUM_SAFES lists the Safes this console signs for (up to 4, any mix of chains;
+# QUORUM_SAFE, one, still works). Each is asked about at its own chain's service (quorum_cfg.py
+# "services"), one Safe per poll in turn, and home shows one queue across all of them.
+#
 # Trust: the service is not trusted. Each transaction is rehashed here (safe_tx.py) from the same
-# fields decode.py puts on the screen, with the chain and Safe pinned in quorum_cfg.py. If the
+# fields decode.py puts on the screen, with the chain and Safe pinned in secrets.py. If the
 # service's safeTxHash or Safe differs, the transaction is REFUSED and cannot be signed. The chip
 # signs the hash computed here, never a string the service sent: wrapped as a WebAuthn assertion
 # (webauthn.py), because onchain this key owns the Safe through Safe's passkey signer.
@@ -41,22 +45,34 @@ except ImportError:
 
 CFG = quorum_cfg.CFG
 PROD = image.PRODUCTION
-# The Safe this console signs for: QUORUM_SAFE in secrets.py (a Safe on Base Sepolia or Base, made
-# in the Safe web app), else, on a development board only, the pinned Family Safe on the laptop.
-# The production image with no QUORUM_SAFE stops on an "unconfigured" screen instead.
-_SAFE = getattr(secrets, "QUORUM_SAFE", None) if secrets else None
-UNCONFIGURED = PROD and not _SAFE
-SAFE = _SAFE or CFG["safes"][0]
-CHAIN = SAFE["chainId"]
-SAFE_ADDR = SAFE["address"].lower()
-BASE = (getattr(secrets, "QUORUM_URL", None) or getattr(secrets, "APP_URL", None)) if secrets else None
+# The Safes this console signs for: QUORUM_SAFES (or QUORUM_SAFE) in secrets.py, made in the Safe
+# web app, else, on a development board only, the pinned Family Safe on the laptop. The production
+# image with none stops on an "unconfigured" screen instead.
+_given, SAFES_WHY = policy.safes(getattr(secrets, "QUORUM_SAFES", None), getattr(secrets, "QUORUM_SAFE", None)) if secrets else ([], "")
+UNCONFIGURED = PROD and not _given
+SAFES = _given or policy.safes(None, CFG["safes"][0])[0]
+URL = (getattr(secrets, "QUORUM_URL", None) or getattr(secrets, "APP_URL", None)) if secrets else None
+
+
+def new_watch(s):
+    """One watched Safe: where to ask about it, and what the service last said."""
+    return {"safe": s, "chain": s["chainId"], "addr": s["address"], "name": s["name"],
+            "base": s.get("url") or policy.service_url(CFG, s["chainId"], URL), "info": {}, "queue": [], "cache": {}, "ctx": None,
+            "polls": 0, "need_info": True, "seen": None, "ok": False, "err": "starting", "tried": False, "announced": 0}
+
+
+WATCH = [new_watch(s) for s in SAFES]
+# The Safe in view (focus): the one under review, or the highlighted row's on home. quorum_ui.py
+# draws from these.
+W = WATCH[0]
+SAFE, CHAIN, SAFE_ADDR, BASE = W["safe"], W["chain"], W["addr"], W["base"]
 API_KEY = getattr(secrets, "QUORUM_API_KEY", None) if secrets else None
 EXPECTS = policy.pins(getattr(secrets, "QUORUM_EXPECT", None) if secrets else None)
 EXPECT = None       # the entry for the chip on the bus (probe_chip), from EXPECTS
 NAME = getattr(secrets, "DEVICE_NAME", "picoquorum") if secrets else "picoquorum"
 SSID = getattr(secrets, "WIFI_SSID", "") if secrets else ""
 SOFT_OK = not PROD and bool(getattr(secrets, "ALLOW_SOFT_KEY", False) if secrets else False)
-_poll, _idle = policy.poll_defaults(BASE, API_KEY)
+_poll, _idle = policy.poll_defaults(URL or BASE, API_KEY)
 POLL_MS = int(getattr(secrets, "QUORUM_POLL_S", _poll) if secrets else _poll) * 1000
 IDLE_POLL_MS = int(getattr(secrets, "QUORUM_IDLE_POLL_S", _idle) if secrets else _idle) * 1000
 IDLE_AFTER_MS = 10 * 60 * 1000
@@ -76,10 +92,9 @@ timer = None
 state = "boot"      # boot | home | review | hold | working | result | owners | device | nochip | pinfail | unconfigured | crashed
 qx = qy = ""
 me = ""             # this key's owner address, lowercase (see my_owner)
-ctx = None          # decode.context: the pinned names plus "This key"
-info = {}           # the service's view of the Safe: nonce, threshold, owners
-queue = []          # entries (see entry()), lowest nonce first
-cache = {}          # safeTxHash -> entry, so each transaction is hashed and decoded once
+ctx = None          # decode.context of the Safe in view: the pinned names plus "This key"
+queue = []          # entries (see entry()) of every watched Safe, each Safe's lowest nonce first
+rr = 0              # the watched Safe the next poll asks about
 sel = 0             # the highlighted row on home
 cur = None          # the entry being reviewed
 pages = []          # its pages: ("summary"|"item"|"verify"|"refused", index)
@@ -99,15 +114,11 @@ counter = None      # the chip's key-use counter (counter 0) when the slot has L
 boot_count = None   # counter 0 as found at boot, before this console used the key itself
 outside = 0         # signatures the chip made since this console last looked, not made by it
 truncated = False   # the queue did not fit in memory: only the first few are shown
-polls = 0           # since the Safe's info was last fetched
-need_info = True
-_txs_seen = None
 fails = 0           # ticks in a row that raised
 saved_checked = False   # send_saved() ran after this boot
 net_ok = False
 net_err = "starting"
 last_poll = 0
-last_announce = 0
 last_activity = 0   # the last key press or change in the queue (see poll_every)
 _snap = None
 splash_until = 0
@@ -143,7 +154,7 @@ def my_owner():
 
 
 def read_key():
-    global qx, qy, me, ctx, last_announce
+    global qx, qy, me
     try:
         x, y = sig.pubkey()
         qx, qy = "0x%064x" % x, "0x%064x" % y
@@ -151,9 +162,23 @@ def read_key():
         qx = qy = ""
         _log("no key: %r" % e)
     me = my_owner()
-    ctx = decode.context(CFG, SAFE_ADDR, {me: "This key"} if me else None, chain=CHAIN)
-    cache.clear()
-    last_announce = 0
+    for w in WATCH:
+        w["ctx"] = decode.context(CFG, w["addr"], {me: "This key"} if me else None, chain=w["chain"])
+        w["cache"].clear()
+        w["announced"] = 0
+    focus(W)
+
+
+def focus(w):
+    """Put this Safe in view: its name, chain and names are what the screens show."""
+    global W, SAFE, CHAIN, SAFE_ADDR, BASE, ctx
+    W = w
+    SAFE, CHAIN, SAFE_ADDR, BASE, ctx = w["safe"], w["chain"], w["addr"], w["base"], w["ctx"]
+
+
+def focus_sel():
+    """On home, the Safe in view is the highlighted row's (the first Safe's when nothing is queued)."""
+    focus(queue[sel]["w"] if queue and 0 <= sel < len(queue) else WATCH[0])
 
 
 def probe_chip():
@@ -297,20 +322,22 @@ def fingerprint():
 
 
 # ----------------------------------------------------------------------------- the queue
-def entry(t):
-    """One transaction from the service, checked and decoded once (cached by its safeTxHash).
-    Confirmations are refreshed on every poll; the fields cannot change without the hash changing."""
+def entry(w, t):
+    """One transaction from the service about Safe w, checked and decoded once (cached by its
+    safeTxHash). Confirmations are refreshed on every poll; the fields cannot change without the
+    hash changing. The chain in the hash is the one pinned for w, never the service's."""
     h = (t.get("safeTxHash") or "").lower()
+    cache = w["cache"]
     e = cache.get(h)
     if e is None:
-        e = {"h": h, "t": t, "n": int(t["nonce"]), "mine": "", "why": ""}
+        e = {"h": h, "t": t, "n": int(t["nonce"]), "mine": "", "why": "", "w": w}
         if len(h) != 66:
             e["why"] = "It has no usable safeTxHash."
-        elif (t.get("safe") or "").lower() != SAFE_ADDR:
+        elif (t.get("safe") or "").lower() != w["addr"]:
             e["why"] = "It is for another Safe, %s, not the one this console signs for." % U.short(t.get("safe") or "?")
         else:
             try:
-                e["mine"] = decode.hx(safe_tx.from_service(CHAIN, t))
+                e["mine"] = decode.hx(safe_tx.from_service(w["chain"], t))
                 if e["mine"] != h:
                     e["why"] = "The service wants a signature over a hash that these fields do not produce. Signing it could approve something else entirely."
             except MemoryError:
@@ -318,7 +345,7 @@ def entry(t):
             except Exception as ex:
                 e["why"] = "Its fields do not hash: %s" % ex
         try:
-            e["r"] = decode.review(t, ctx)
+            e["r"] = decode.review(t, w["ctx"])
             e["why"] = e["why"] or e["r"].get("refuse", "")
         except MemoryError:
             raise
@@ -330,14 +357,14 @@ def entry(t):
     return e
 
 
-def bad_entry(t, i, ex):
+def bad_entry(w, t, i, ex):
     """A transaction the service sent that could not even be read: shown, refused, never signed."""
     h = str(t.get("safeTxHash") if isinstance(t, dict) else "") or "bad:%d" % i
     try:
         n = int(t.get("nonce"))
     except Exception:
         n = -1
-    return {"h": h.lower(), "t": {}, "n": n, "mine": "", "conf": [],
+    return {"h": h.lower(), "t": {}, "n": n, "mine": "", "conf": [], "w": w,
             "why": "The service sent something that is not a transaction: %s" % repr(ex)[:60],
             "r": {"summary": "Malformed", "level": "red", "items": []}}
 
@@ -346,12 +373,13 @@ def signed_by_me(e):
     return bool(me) and me in e["conf"]
 
 
-def owners():
-    return [o.lower() for o in info.get("owners", [])]
+def owners(w=None):
+    """The Safe's owners as the service reports them: w's, or the Safe in view's."""
+    return [o.lower() for o in (w or W)["info"].get("owners", [])]
 
 
-def threshold():
-    return int(info.get("threshold", 0) or 0)
+def threshold(w=None):
+    return int((w or W)["info"].get("threshold", 0) or 0)
 
 
 def waiting(e):
@@ -359,10 +387,10 @@ def waiting(e):
     return not e["why"] and not signed_by_me(e) and e["h"] not in declined
 
 
-def safe_version():
+def safe_version(w=None):
     """The Safe's version as the service reports it ("1.4.1", "1.3.0+L2"), and whether this
     console's hash is right for it: safe_tx.py follows the EIP-712 domain of Safe 1.3.0 and later."""
-    v = str(info.get("version") or "")
+    v = str((w or W)["info"].get("version") or "")
     try:
         nums = tuple(int(x) for x in v.split("+")[0].split(".")[:3])
     except ValueError:
@@ -374,14 +402,14 @@ def can_sign(e):
     """(True, "") or (False, why not). Seeing every page is checked separately."""
     if e["why"]:
         return False, "refused"
-    v, ok = safe_version()
+    v, ok = safe_version(e["w"])
     if v and not ok:
         return False, "old Safe v%s" % v
     if not qx:
         return False, "no key in the chip"
     if not pin_ok:
         return False, "key doesn't match the pin"
-    if me not in owners():
+    if me not in owners(e["w"]):
         return False, "this key is not an owner"
     if signed_by_me(e):
         return False, "already signed by you"
@@ -389,33 +417,48 @@ def can_sign(e):
 
 
 def conflicts(e):
-    return sum(1 for x in queue if x["n"] == e["n"]) > 1
+    """Two transactions for the same Safe with the same nonce: only one of them can execute."""
+    return sum(1 for x in queue if x["n"] == e["n"] and x["w"] is e["w"]) > 1
 
 
 # ----------------------------------------------------------------------------- the service
 def poll_every():
     """How often to ask the service. The real one counts requests against an API key's monthly
     quota, so after 10 quiet minutes the console asks only every QUORUM_IDLE_POLL_S; a key press or
-    a change in the queue brings it back to QUORUM_POLL_S."""
+    a change in the queue brings it back to QUORUM_POLL_S. Each poll asks about one Safe, in turn,
+    so several Safes spend no more of the quota than one; a Safe not yet asked about goes first."""
+    if any(not w["tried"] for w in WATCH):
+        return 0
     if time.ticks_diff(time.ticks_ms(), last_activity) > IDLE_AFTER_MS:
         return max(POLL_MS, IDLE_POLL_MS)
     return POLL_MS
 
 
-def fetch_info():
-    global info, polls, need_info
+def poll_soon(w):
+    """Ask about Safe w next, now (after a signature: its queue has moved)."""
+    global rr, last_poll
+    rr, last_poll = WATCH.index(w), 0
+    w["need_info"] = True
+
+
+def aim(w):
+    """Point the one Service at Safe w's service."""
+    svc.target(w["base"], txservice.checksum(w["addr"]))
+
+
+def fetch_info(w):
     got = svc.safe_info()
-    ok, why = policy.valid_info(got, SAFE_ADDR)
+    ok, why = policy.valid_info(got, w["addr"])
     if not ok:
         raise ValueError("bad Safe info: " + why)
-    info, polls, need_info = got, 0, False
+    w["info"], w["polls"], w["need_info"] = got, 0, False
 
 
-def fetch_queue():
+def fetch_queue(w):
     """The pending transactions, each checked on its own: one the service mangled is shown as
     refused and cannot stop the others from being listed."""
     global truncated
-    nonce = int(info.get("nonce", 0))
+    nonce = int(w["info"].get("nonce", 0))
     try:
         txs, truncated = svc.pending(nonce), False
     except MemoryError:
@@ -425,59 +468,82 @@ def fetch_queue():
     out = []
     for i, t in enumerate(txs):
         try:
-            out.append(entry(t))
+            out.append(entry(w, t))
         except Exception as ex:
-            out.append(bad_entry(t, i, ex))
+            out.append(bad_entry(w, t, i, ex))
     return out
 
 
+def poll(w):
+    """One Safe: its info (every INFO_EVERY polls on the real service), then its queue."""
+    w["tried"] = True
+    if not w["base"]:
+        w["ok"], w["err"] = False, "no service for chain %d" % w["chain"]
+        return
+    aim(w)
+    try:
+        w["polls"] += 1
+        if w["need_info"] or not w["info"] or svc.sim or w["polls"] >= INFO_EVERY:
+            fetch_info(w)
+        if svc.sim and qx and me not in owners(w) and (w["announced"] == 0 or time.ticks_diff(time.ticks_ms(), w["announced"]) > 10000):
+            w["announced"] = time.ticks_ms()        # the simulation adds this key as an owner
+            if svc.announce(NAME, qx, qy):
+                fetch_info(w)
+        q = fetch_queue(w)
+        seen_now = tuple(e["h"] for e in q)
+        if w["seen"] is not None and seen_now != w["seen"] and w["polls"]:
+            fetch_info(w)                           # something executed or arrived: owners and nonce may have moved
+            q = fetch_queue(w)
+            seen_now = tuple(e["h"] for e in q)
+        w["seen"], w["queue"] = seen_now, q
+        live = set(seen_now)
+        for h in list(w["cache"]):
+            if h not in live:
+                del w["cache"][h]
+        w["ok"], w["err"] = True, ""
+        if not saved_checked:
+            send_saved(w)
+    except Exception as ex:
+        w["ok"], w["err"] = False, net.short_err(ex)
+        _log("service %s: %r" % (w["name"], ex))
+        qlog.once("service %s: %s" % (w["name"], w["err"]))
+
+
 def net_work():
-    """One poll: the Safe (every INFO_EVERY polls on the real service), then its queue. Runs with
-    the timer stopped."""
-    global net_ok, net_err, info, queue, last_poll, last_announce, last_activity, dirty, sel, _snap, polls, _txs_seen, declined
+    """One poll: the next Safe in turn. Runs with the timer stopped."""
+    global net_ok, net_err, queue, last_poll, last_activity, dirty, sel, _snap, declined, rr
     last_poll = time.ticks_ms()
     watch.extend(45000)
     if svc is None:
-        net_ok, net_err = False, "no QUORUM_URL in secrets.py"
+        net_ok, net_err = False, "no service for chain %s" % ", ".join(str(x["chain"]) for x in WATCH)
+        for x in WATCH:
+            x["tried"] = True
         return
+    fresh = [w for w in WATCH if not w["tried"]]
+    w = fresh[0] if fresh else WATCH[rr % len(WATCH)]
+    rr = (WATCH.index(w) + 1) % len(WATCH)
     wlan = network.WLAN(network.STA_IF)
     if not wlan.isconnected():
         if time.ticks_diff(time.ticks_ms(), net.last_try) > 30000:
             net.retry()
             _log("wifi: retrying " + SSID)
         net_ok, net_err = False, "no wifi"
+        for x in WATCH:                     # no wifi: every Safe is offline, and waits the poll period
+            x["tried"], x["ok"], x["err"] = True, False, "no wifi"
     else:
         if not net.up:
             net.joined()
-        try:
-            polls += 1
-            if need_info or not info or svc.sim or polls >= INFO_EVERY:
-                fetch_info()
-            if svc.sim and qx and me not in owners() and (last_announce == 0 or time.ticks_diff(time.ticks_ms(), last_announce) > 10000):
-                last_announce = time.ticks_ms()     # the simulation adds this key as an owner
-                if svc.announce(NAME, qx, qy):
-                    fetch_info()
-            queue = fetch_queue()
-            seen_now = tuple(e["h"] for e in queue)
-            if _txs_seen is not None and seen_now != _txs_seen and polls:
-                fetch_info()                        # something executed or arrived: owners and nonce may have moved
-                queue = fetch_queue()
-                seen_now = tuple(e["h"] for e in queue)
-            _txs_seen = seen_now
-            live = set(seen_now)
-            for h in list(cache):
-                if h not in live:
-                    del cache[h]
-            declined = set(h for h in declined if h in live)
-            net_ok, net_err = True, ""
-            if not saved_checked:
-                send_saved()
-        except Exception as ex:
-            net_ok, net_err = False, net.short_err(ex)
-            _log("service: %r" % ex)
-            qlog.once("service: " + net_err)
+        poll(w)
+        down = [x for x in WATCH if not x["ok"] and x["tried"]]
+        net_ok = not down
+        net_err = "" if not down else (down[0]["err"] if len(WATCH) == 1 else "%s: %s" % (down[0]["name"], down[0]["err"]))
+    queue = [e for x in WATCH for e in x["queue"]]
+    live = set(e["h"] for e in queue)
+    declined = set(h for h in declined if h in live)
     sel = max(0, min(sel, len(queue) - 1))
-    snap = (net_ok, net_err, str(info.get("nonce")), threshold(), len(owners()),
+    if state in ("home", "boot"):
+        focus_sel()
+    snap = (net_ok, net_err, tuple((str(x["info"].get("nonce")), threshold(x), len(owners(x)), x["ok"]) for x in WATCH),
             tuple((e["h"], len(e["conf"])) for e in queue))
     if snap != _snap:
         _snap, dirty = snap, True
@@ -499,6 +565,7 @@ def pages_of(e):
 
 def open_entry(e):
     global cur, pages, page, seen, state, dirty
+    focus(e["w"])
     cur, pages, page, seen = e, pages_of(e), 0, {0}
     state, dirty = "review", True
 
@@ -607,7 +674,7 @@ def save_unsent(e, signature):
     import json
     try:
         with open(UNSENT_FILE, "w") as f:
-            json.dump({"h": e["h"], "n": e["n"], "sig": signature}, f)
+            json.dump({"h": e["h"], "n": e["n"], "sig": signature, "chain": e["w"]["chain"], "safe": e["w"]["addr"]}, f)
     except OSError as ex:
         qlog.write("unsent not saved: %r" % ex)
 
@@ -622,17 +689,28 @@ def clear_unsent(h=None):
         pass
 
 
-def send_saved():
-    """At the first good poll after a boot: a saved signature goes out while the heap is whole.
-    Dropped once sent, or once its transaction is no longer in the queue (executed or replaced)."""
+def send_saved(w):
+    """At the first good poll of its Safe after a boot: a saved signature goes out while the heap
+    is whole. Dropped once sent, or once its transaction is no longer in the queue (executed or
+    replaced), or when its Safe is no longer watched. One saved before QUORUM_SAFES belongs to the
+    first Safe."""
     import json
     global saved_checked
-    saved_checked = True
     try:
         s = json.load(open(UNSENT_FILE))
     except (OSError, ValueError):
+        saved_checked = True
         return
-    if s["h"] not in [e["h"] for e in queue]:
+    mine = [x for x in WATCH if x["chain"] == s.get("chain", WATCH[0]["chain"]) and x["addr"] == s.get("safe", WATCH[0]["addr"])]
+    if not mine:
+        qlog.write("saved signature for #%s dropped: its Safe is not watched" % s.get("n"))
+        clear_unsent()
+        saved_checked = True
+        return
+    if mine[0] is not w:
+        return                      # its Safe's own poll sends it
+    saved_checked = True
+    if s["h"] not in [e["h"] for e in w["queue"]]:
         qlog.write("saved signature for #%s dropped: no longer queued" % s.get("n"))
         clear_unsent()
         return
@@ -644,23 +722,24 @@ def send_saved():
         qlog.write("confirmed #%s (the saved signature, after a restart)" % s.get("n"))
         say("Sent the saved signature for #%s" % s.get("n"), 6)
         clear_unsent()
-        globals()["need_info"] = True
+        w["need_info"] = True
     else:
         qlog.write("saved signature for #%s refused: %s" % (s.get("n"), detail[:80]))
 
 
 def post(e, signature):
-    global result, unsent, need_info
+    global result, unsent
     U.draw_working(sys.modules[__name__], "Sending", "To the transaction service")
     watch.extend(45000)
     try:
+        aim(e["w"])
         ok, detail = svc.confirm(e["h"], signature)
     except Exception as ex:
         ok, detail = False, net.short_err(ex)
     if ok:
         unsent = None
         clear_unsent(e["h"])
-        have, need = len(e["conf"]) + 1, threshold()
+        have, need = len(e["conf"]) + 1, threshold(e["w"])
         lines = ["#%d %s" % (e["n"], e["r"]["summary"]), "Approvals now %d of %d" % (have, need)]
         if have >= need:
             lines += ["Ready \u00b7 the proposer executes it"]
@@ -669,7 +748,7 @@ def post(e, signature):
         if counter is not None:
             lines += ["Key use #%d" % counter]
         result = (True, "Signed", lines)
-        need_info = True
+        e["w"]["need_info"] = True
         _log("confirmed #%d" % e["n"])
         qlog.write("confirmed #%d" % e["n"])
     else:
@@ -688,10 +767,12 @@ def reject():
         unsent = None
     clear_unsent(e["h"])
     state, dirty = "home", True
+    focus_sel()
     say("Rejected #%d on this console" % e["n"])
-    if svc and svc.sim:
+    if svc and e["w"]["base"] and policy.is_sim(e["w"]["base"]):
         timer.deinit()
         try:
+            aim(e["w"])
             svc.declined(e["h"], NAME)     # the simulation logs it; a real service has no such thing
         finally:
             start_timer()
@@ -714,8 +795,10 @@ def handle(k):
     elif state in ("home", "boot"):
         if k == "down" and queue:
             sel = min(len(queue) - 1, sel + 1)
+            focus_sel()
         elif k == "up":
             sel = max(0, sel - 1)
+            focus_sel()
         elif k in (SIGN, "right") and queue:
             open_entry(queue[sel])
         elif k == BACK:
@@ -736,6 +819,7 @@ def handle(k):
             turn(-1)
         elif k == BACK:
             state = "home"
+            focus_sel()
             dirty = True
         elif k == REJECT:
             reject()
@@ -749,7 +833,10 @@ def handle(k):
             finally:
                 start_timer()
         elif k in (SIGN, BACK, REJECT):
-            state, last_poll = "home", 0     # poll now: the queue has moved
+            state = "home"
+            if cur:
+                poll_soon(cur["w"])          # poll now: its queue has moved
+            focus_sel()
         dirty = True
 
 
@@ -901,13 +988,20 @@ def start():
         except Exception as e:
             print("wifi:", e)
     splash.wifi_row(w, SSID if secrets else "")
-    host = (BASE or "").replace("http://", "").replace("https://", "").rstrip("/")
-    splash.step("app", ("safe svc " + host)[:24] if BASE else "no QUORUM_URL", L.GREY if BASE else L.RED)
+    served = [x for x in WATCH if x["base"]]
+    first = ([x for x in served if x["base"].startswith("https")] or served or [None])[0]
+    if len(WATCH) > 1:
+        what = "%d Safes · %d chains" % (len(WATCH), len(set(x["chain"] for x in WATCH)))
+    else:
+        what = "safe svc " + (BASE or "").replace("http://", "").replace("https://", "").rstrip("/")
+    splash.step("app", what[:24] if first else "no service", L.GREY if first and len(served) == len(WATCH) else L.RED)
+    if SAFES_WHY:
+        qlog.write("secrets.py: " + SAFES_WHY)
     if UNCONFIGURED:
         state = "unconfigured"
-    elif BASE:
+    elif first:
         verify = PROD or bool(getattr(secrets, "QUORUM_TLS_VERIFY", True))
-        svc = txservice.Service(BASE, txservice.checksum(SAFE_ADDR), API_KEY, verify=verify, floor=image.DATE)
+        svc = txservice.Service(first["base"], txservice.checksum(first["addr"]), API_KEY, verify=verify, floor=image.DATE)
     splash_until = time.ticks_add(time.ticks_ms(), 1500)
     last_activity = time.ticks_ms()
     dirty = True

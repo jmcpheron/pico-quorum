@@ -74,31 +74,38 @@ def units(n, decimals):
     return group(whole) + "." + f
 
 
+def for_chain(cfg, key, chain):
+    """One of cfg's per-chain lists ("tokens", "batchers", "contracts", "delegates") for this chain,
+    lowercase: the "*" entries (the same contract everywhere) and the chain's own, or those of the
+    chain it is the same as (cfg["sameAs"]: the Anvil fork of Base has Base's). None: every chain's."""
+    lists = cfg.get(key, {})
+    if chain is None:
+        keys = list(lists)
+    else:
+        c = str(chain)
+        keys = ["*", cfg.get("sameAs", {}).get(c, c)]
+    out = {}
+    for k in keys:
+        for a, v in lists.get(k, {}).items():
+            out[a.lower()] = v
+    return out
+
+
 def context(cfg, safe, names=None, chain=None):
-    """What review() needs from the pinned config, with lowercase keys. names: extra
-    {address: name}, such as this console's own owner address. chain: the pinned address book
-    (Alice, Bob...) is the laptop's Anvil accounts, so it names addresses only on the chains in
-    cfg["bookChains"]; on Base mainnet those same addresses carry sweeper code (docs/LADDER.md)."""
+    """What review() needs from the pinned config, with lowercase keys, for a Safe on this chain.
+    names: extra {address: name}, such as this console's own owner address. chain: the pinned
+    address book (Alice, Bob...) is the laptop's Anvil accounts, so it names addresses only on the
+    chains in cfg["bookChains"]; on Base mainnet those same addresses carry sweeper code
+    (docs/LADDER.md). Tokens, batchers, contracts and delegates are this chain's (for_chain)."""
     book = {}
     if chain is None or chain in cfg.get("bookChains", [31337]):
         for a, n in cfg["book"].items():
             book[a.lower()] = n
     for a, n in (names or {}).items():
         book[a.lower()] = n
-    tokens = {}
-    for a, t in cfg["tokens"].items():
-        tokens[a.lower()] = t
-    batchers = {}
-    for a, n in cfg["batchers"].items():
-        batchers[a.lower()] = n
-    contracts = {}
-    for a, k in cfg.get("contracts", {}).items():
-        contracts[a.lower()] = k
-    delegates = {}
-    for a, n in cfg.get("delegates", {}).items():
-        delegates[a.lower()] = n
-    return {"safe": safe.lower(), "book": book, "tokens": tokens, "batchers": batchers, "contracts": contracts,
-            "delegates": delegates}
+    return {"safe": safe.lower(), "book": book, "tokens": for_chain(cfg, "tokens", chain),
+            "batchers": for_chain(cfg, "batchers", chain), "contracts": for_chain(cfg, "contracts", chain),
+            "delegates": for_chain(cfg, "delegates", chain)}
 
 
 def name(ctx, a):

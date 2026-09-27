@@ -159,7 +159,7 @@ try:
         if _k.startswith("_"):
             continue
         _v = _s[_k]
-        if _v is None or isinstance(_v, (bool, int)) or _k in ("QUORUM_URL", "QUORUM_SAFE", "QUORUM_EXPECT", "QUORUM_THEME", "WIFI_SSID", "HOSTNAME", "DEVICE_NAME"):
+        if _v is None or isinstance(_v, (bool, int)) or _k in ("QUORUM_URL", "QUORUM_SAFE", "QUORUM_SAFES", "QUORUM_EXPECT", "QUORUM_THEME", "WIFI_SSID", "HOSTNAME", "DEVICE_NAME"):
             _o[_k] = _v
         else:
             _o[_k] = "<set>"
@@ -175,8 +175,10 @@ if q:
     import image
     o = {"image": image.IMAGE, "build": image.BUILD, "state": q.state, "me": q.me, "serial": q.serial, "slot": q.sig.slot if q.sig else None,
          "pin_ok": q.pin_ok, "pin_why": q.pin_why, "counter": q.counter, "outside": q.outside, "net_ok": q.net_ok, "net_err": q.net_err,
-         "chain": q.CHAIN, "safe": q.SAFE_ADDR, "tls": q.svc.tls if q.svc else None, "requests": q.svc.requests if q.svc else None,
-         "queue": len(q.queue), "owner": q.me in q.owners(), "free": gc.mem_free(), "qx": q.qx, "qy": q.qy,
+         "safes": ["%s %s %s: %s, %s" % (w["chain"], w["addr"], w["name"], "ok" if w["ok"] else w["err"], "owner" if q.me in q.owners(w) else "NOT an owner")
+                   for w in getattr(q, "WATCH", [])],
+         "tls": q.svc.tls if q.svc else None, "requests": q.svc.requests if q.svc else None,
+         "queue": len(q.queue), "free": gc.mem_free(), "qx": q.qx, "qy": q.qy,
          "locked": bool(q.row and q.row.get("locked")), "kind": q.row.get("kind") if q.row else None}
     try:
         import watch

@@ -7,12 +7,16 @@ DEVICE_NAME = "picowallet"
 # The PicoQuorum console (quorum.py). On the laptop: tools/quorum's Family Safe, simulated or on
 # the Anvil fork (`tools/quorum ip` or `tools/quorum up` prints this line).
 QUORUM_URL = "http://<mac-lan-ip>:8787"
-# A real Safe (docs/LADDER.md): Safe's transaction service, the Safe itself, and an API key from
-# developer.safe.global. The key's quota is monthly, so poll gently: every QUORUM_POLL_S seconds,
-# and every QUORUM_IDLE_POLL_S after 10 minutes with no key press and no change in the queue.
-# QUORUM_URL = "https://api.safe.global/tx-service/basesep"      # or .../tx-service/base
+# Real Safes (docs/guide/SETUP.md): the Safes this console signs for, up to 4, on any of the chains
+# in firmware/quorum_cfg.py "services" (1 Ethereum, 8453 Base, 84532 Base Sepolia). Each is asked
+# about at its own chain's service, so leave QUORUM_URL out. Plus an API key from
+# developer.safe.global. The key's quota is monthly, so poll gently: one Safe every QUORUM_POLL_S
+# seconds, in turn, and every QUORUM_IDLE_POLL_S after 10 minutes with no key press and no change.
+# QUORUM_SAFES = [
+#     {"chainId": 8453, "address": "0x...", "name": "Family Safe"},
+#     {"chainId": 1, "address": "0x...", "name": "Vault"},
+# ]
 # QUORUM_API_KEY = "..."
-# QUORUM_SAFE = {"chainId": 84532, "address": "0x...", "name": "Test Safe"}
 # QUORUM_POLL_S = 20
 # QUORUM_IDLE_POLL_S = 120
 QUORUM_THEME = "dark"   # or "light"

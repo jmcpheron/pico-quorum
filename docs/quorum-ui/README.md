@@ -30,6 +30,23 @@ They can be combined: **1 or 2 as the first second, then 4 while WiFi joins.** W
 
 ## Iteration log
 
+### Iteration 4 (2026-09-26): several Safes, several chains
+
+The console now watches a list of Safes (`QUORUM_SAFES`, up to 4, any mix of chains). Home shows
+one queue across all of them. Each Safe is asked about at its own chain's service, one per poll
+in turn. What the console knows (tokens, batchers, contracts) is per chain now, and Ethereum
+mainnet (chain 1) is in the list. Guide: [docs/guide/NETWORKS.md](../guide/NETWORKS.md).
+
+| | |
+|---|---|
+| <img src="shots/47-two-safes-home.png" width="240"> | <img src="shots/48-two-safes-other-chain.png" width="240"> |
+| **Home, two Safes.** The Family Safe (Local) and a Test Safe on Base Sepolia. Each row's stripe on the right is its chain's colour. The header is the highlighted row's Safe, and `2 synced` says how many Safes answered. With one Safe, home is unchanged. | **The highlight on the Base Sepolia row.** The header follows it: Test Safe, its chain pill and its approvals. The USDC row keeps its Base logo, because each row is named with its own Safe's chain. |
+| <img src="shots/49-two-safes-review.png" width="240"> | <img src="shots/50-two-safes-owners.png" width="240"> |
+| **Review.** The chain pill is Base Sepolia's. Alice and Bob show as plain addresses: the laptop's names are used only on the local chain. The hash is computed for chain 84532, and the signature goes to that Safe's own service. | **Owners (B)** for the Safe in view, titled with its name when there are several. |
+
+Also refreshed: every home shot now reads **X Device** (it read "Chip" since the production image
+changed it, 2026-09-26).
+
 ### Iteration 3 (2026-09-25): the signature and the owner are real
 
 No new screens. What the chip signs, and who it signs as, are now what a real Safe checks:
@@ -136,7 +153,7 @@ signature, and a stand-in owner address. Iteration 3 made all three real.
 |---|---|
 | **Safe** | Family Safe, `0xf77e…7666`, v1.4.1, on chain 31337 (Local: nothing signed here is valid on a real chain) |
 | **Owners** | Alice and Bob (simulated, on the laptop) and This key (the chip, through its signer proxy), 2 of 3 must approve |
-| **Buttons** | A (top, green) sign · B back / owners · X chip map · Y (bottom, red) reject · stick: pages |
+| **Buttons** | A (top, green) sign · B back / owners · X device · Y (bottom, red) reject · stick: pages |
 | **Pinned** | the Safe, the chain, the names, the known contracts and tokens live on the console (`firmware/quorum_cfg.py`); the transaction service is not trusted for any of it |
 
 The demo queue: Alice sends ETH, a batch, Bob adds a stranger as an owner, a transaction the
@@ -217,8 +234,8 @@ rejected it. It isn't sent to the Safe (iteration 1's question 1).
 |---|---|
 | <img src="shots/22-reds-home.png"> | <img src="shots/23-refund-red-page.png"> |
 | A queue of the other red cases. | **A gas refund:** the Safe would pay whoever executes it, in USDC here, to an unknown address. |
-| <img src="shots/24-delegatecall-red-page.png"> | <img src="shots/25-threshold-red-page.png"> |
-| **Delegatecall** to an unknown contract: it would run as the Safe. | **Threshold change** to 1: any one owner could then move everything. |
+| <img src="shots/24-delegatecall-refused.png"> | <img src="shots/25-threshold-red-page.png"> |
+| **Delegatecall** to an unpinned contract: it would run as the Safe, so it is refused (a red page you could sign, until the production image). | **Threshold change** to 1: any one owner could then move everything. |
 | <img src="shots/26-wrong-safe-refused.png"> | |
 | A transaction for a **different Safe** slipped into this one's queue: refused. | |
 
@@ -267,8 +284,8 @@ The same screens with `QUORUM_THEME = "light"`.
 
 | | |
 |---|---|
-| <img src="shots/30-owners.png"> | <img src="shots/31-chip-map.png"> |
-| **B from home:** the owners in full, the Safe's version, and this key. | **X from home:** the chip map, as before, with LAB and snake inside. Y comes back. It keeps its own look for now. |
+| <img src="shots/30-owners.png"> | <img src="shots/31-device.png"> |
+| **B from home:** the owners in full, the Safe's version, and this key. | **X from home:** Device: the build, the chip and its pin, the key's use count, the service, polls and memory. (The chip map is on the ceremony image now.) |
 | <img src="shots/32-no-service.png"> | |
 | **No service:** the error and the URL it tried. Everything local still works. | |
 

@@ -29,6 +29,13 @@ export function loadCfg() {
   return JSON.parse(src.slice(src.indexOf("{", src.indexOf("CFG ="))));
 }
 export const CFG = loadCfg();
+// One of the config's per-chain lists for a chain, as firmware/decode.py for_chain reads it: the
+// "*" entries and the chain's own (or those of the chain it is the same as: 31337 is Base's fork).
+export function forChain(key, chainId) {
+  const c = String(chainId);
+  const own = CFG.sameAs?.[c] ?? c;
+  return { ...(CFG[key]?.["*"] || {}), ...(CFG[key]?.[own] || {}) };
+}
 export const BOOK = Object.fromEntries(Object.entries(CFG.book).map(([a, n]) => [n, getAddress(a)]));  // name -> address
 
 // The simulated co-signers: anvil's well-known test accounts 1 and 2, which quorum_cfg.py names
@@ -70,8 +77,11 @@ export function useChain(c, { manualExec = false } = {}) {
 }
 
 // ----------------------------------------------------------------------------- state
+// QUORUM_SIM_SAFE="chainId:address:name" simulates another Safe than the pinned Family Safe: a
+// second server (its own --port and QUORUM_STATE) for a console that watches two Safes.
 export function fresh() {
-  const s = CFG.safes[0];
+  const [c, a, ...n] = (process.env.QUORUM_SIM_SAFE || "").split(":");
+  const s = a ? { chainId: Number(c), address: a, name: n.join(":") || "Safe" } : CFG.safes[0];
   return {
     chainId: s.chainId, address: getAddress(s.address), name: s.name, nonce: 0, threshold: 2, version: "1.4.1",
     owners: [{ address: PEOPLE.alice.address, name: "Alice", kind: "eoa" }, { address: PEOPLE.bob.address, name: "Bob", kind: "eoa" }],
