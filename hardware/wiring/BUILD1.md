@@ -38,10 +38,10 @@ line. Which connector the real keys use is still open ([HANDOFF.md](../HANDOFF.m
 <!-- pins: screen -->
 | contact | signal | GPIO | Pico pin | notes |
 |---|---|---|---|---|
-| VCC | 3.3 V | 3V3 | 36 | 3V3 OUT. **Not VBUS, not 5 V** |
+| 3V3 | 3.3 V | 3V3 | 36 | 3V3 OUT. **Not VBUS, not 5 V**. Other boards print VCC |
 | GND | ground | GND | 13 | |
-| DIN | SPI1 MOSI | GP11 | 15 | some boards print SDA |
-| CLK | SPI1 SCK | GP10 | 14 | some boards print SCL |
+| MOSI | SPI1 MOSI | GP11 | 15 | other boards print DIN or SDA |
+| SCL | SPI1 SCK | GP10 | 14 | the SPI clock. Other boards print CLK or SCK |
 | CS | chip select | GP9 | 12 | |
 | DC | data/command | GP8 | 11 | some boards print RS or A0 |
 | RST | reset | GP12 | 16 | |
@@ -50,9 +50,12 @@ line. Which connector the real keys use is still open ([HANDOFF.md](../HANDOFF.m
 These are the same SPI1 pins the Waveshare board uses, so `lcd.py`'s pin constants still apply. Only
 the size is new.
 
-Wire by the labels printed on your module, not by pin order, because the order varies between
-makers. SDA and SCL on a screen mean SPI data and clock. They have nothing to do with the key's I2C
-bus.
+The names in the table are the ones printed on the bench screen. Its 8 pins run BL, RST, DC, SCL,
+MOSI, CS, 3V3, GND from top to bottom, with the header on the right.
+
+On any other screen, wire by the labels printed on it, not by pin order, because the order varies
+between makers. SCL (or SDA) on a screen is the SPI clock (or data). It has nothing to do with the
+key's I2C SCL and SDA on GP5 and GP4.
 
 ### Knob: EC11 with push
 

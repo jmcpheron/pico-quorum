@@ -3,8 +3,9 @@
 # already showed the splash and joined WiFi. This starts the Safe console on its timer and returns,
 # so the USB REPL stays free for tools/fw (backup, verify, logs, config).
 #
-# Maintenance: hold B while plugging the board in, and keep holding it until the screen says
-# MAINTENANCE (or tools/fw leaves a file named "maint" on the flash). Then nothing starts: no
+# Maintenance: hold B (on build1, the knob pressed down) while plugging the board in, and keep
+# holding it until the onboard LED lights (or tools/fw leaves a file named "maint" on flash).
+# The display stays off in maintenance. Then nothing starts: no
 # console, no watchdog, only the USB REPL, for a restore or a repair.
 import sys
 import os
@@ -15,28 +16,33 @@ def _plain(title, lines, color=None):
     import lcd
     import splash
     d = splash.begin()
-    d.fill(lcd.BLACK)
-    d.center_text(title, 60, color or lcd.YELLOW, 2)
-    y = 100
-    for line in lines:
-        d.center_text(line[:29], y, lcd.WHITE)
-        y += 14
-    d.show()
+
+    def draw():
+        d.fill(lcd.BLACK)
+        d.center_text(title, 60, color or lcd.YELLOW, 2)
+        y = 100
+        for line in lines:
+            d.center_text(line[:(d.width - 8) // 8], y, lcd.WHITE)
+            y += 14
+        d.show()
+    d.frames(draw)
 
 
 def _maintenance():
     if "maint" in os.listdir():
         return True
     from machine import Pin
-    return Pin(17, Pin.IN, Pin.PULL_UP).value() == 0      # B, lcd.KEYS
+    import board
+    return getattr(board, "MAINTENANCE", False) or Pin(board.MAINT, Pin.IN, Pin.PULL_UP).value() == 0     # B, or the knob's push on build1
 
 
 try:
     import image
     if _maintenance():
         print("maintenance: the console is not started")
-        _plain("MAINTENANCE", ["USB only.", "The console is not running", "and nothing can sign.", "",
-                               "tools/fw restore or push,", "then unplug and replug.", "", "build " + image.BUILD])
+        # Leave the heap and USB free even when the display driver is broken.
+        from machine import Pin
+        Pin("LED", Pin.OUT).on()
     else:
         # The big blocks first, while the heap is still in one piece: the framebuffer (lcd), every
         # font (bold26 alone is 10.9 KB) and the 32 KB that HTTPS borrows for each call. Everything

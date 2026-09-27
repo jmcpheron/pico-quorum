@@ -30,12 +30,12 @@ WIRES = [
     (4, BLK, RAIL_M, "chip GND (black)", "chip", None),
     (5, BLU, "Pico pin 6 (GP4)", "chip SDA (blue)", "J1", "T"),
     (6, YEL, "Pico pin 7 (GP5)", "chip SCL (yellow)", "J1", "R1"),
-    (7, RED, RAIL_P, "screen VCC", "screen", None),
+    (7, RED, RAIL_P, "screen 3V3", "screen", None),
     (8, BLK, RAIL_M, "screen GND", "screen", None),
     (9, PUR, "Pico pin 11 (GP8)", "screen DC", "screen", "DC"),
     (10, PUR, "Pico pin 12 (GP9)", "screen CS", "screen", "CS"),
-    (11, PUR, "Pico pin 14 (GP10)", "screen CLK", "screen", "CLK"),
-    (12, PUR, "Pico pin 15 (GP11)", "screen DIN", "screen", "DIN"),
+    (11, PUR, "Pico pin 14 (GP10)", "screen SCL", "screen", "SCL"),
+    (12, PUR, "Pico pin 15 (GP11)", "screen MOSI", "screen", "MOSI"),
     (13, PUR, "Pico pin 16 (GP12)", "screen RST", "screen", "RST"),
     (14, GRN, "Pico pin 17 (GP13)", "screen BL", "screen", "BL"),
     (15, BLK, RAIL_M, "knob C (middle leg)", "knob", None),
@@ -138,8 +138,8 @@ def breadboard():
     T = [("knob", "SW2", 3, 19, ("rail", BOT_M)), ("knob", "SW1", 4, 18, ("pin", 2)), ("knob", "C", 5, 15, ("rail", BOT_M)),
          ("knob", "A", 6, 16, ("pin", 4)), ("knob", "B", 7, 17, ("pin", 5)),
          ("chip", "SDA", 8, 5, ("pin", 6)), ("chip", "SCL", 9, 6, ("pin", 7)), ("chip", "GND", 10, 4, ("rail", BOT_M)), ("chip", "VIN", 11, 3, ("rail", BOT_P)),
-         ("screen", "VCC", 12, 7, ("rail", BOT_P)), ("screen", "DC", 13, 9, ("pin", 11)), ("screen", "CS", 14, 10, ("pin", 12)),
-         ("screen", "GND", 15, 8, ("rail", BOT_M)), ("screen", "CLK", 16, 11, ("pin", 14)), ("screen", "DIN", 17, 12, ("pin", 15)),
+         ("screen", "3V3", 12, 7, ("rail", BOT_P)), ("screen", "DC", 13, 9, ("pin", 11)), ("screen", "CS", 14, 10, ("pin", 12)),
+         ("screen", "GND", 15, 8, ("rail", BOT_M)), ("screen", "SCL", 16, 11, ("pin", 14)), ("screen", "MOSI", 17, 12, ("pin", 15)),
          ("screen", "RST", 18, 13, ("pin", 16)), ("screen", "BL", 19, 14, ("pin", 17))]
     wcol = {w[0]: w[1] for w in WIRES}
     boxes = {}
@@ -167,8 +167,27 @@ def breadboard():
     rect(sx0 + 40, PARTS_Y + 42, sx1 - sx0 - 80, 66, "#27496d", "#555", 2)
     text((sx0 + sx1) / 2, PARTS_Y + 80, "2.0\" 240x320", 11, "#fff", "middle", True)
     text((sx0 + sx1) / 2, PARTS_Y + BH + 20, "the screen", 12, "#111", "middle", True)
-    text((sx0 + sx1) / 2, PARTS_Y + BH + 35, "go by the labels printed on it; the order varies.", 9.5, GREY, "middle")
-    text((sx0 + sx1) / 2, PARTS_Y + BH + 48, "Some print SDA for DIN and SCL for CLK.", 9.5, GREY, "middle")
+    text((sx0 + sx1) / 2, PARTS_Y + BH + 35, "real pin order differs: see right", 9.5, GREY, "middle")
+    text((sx0 + sx1) / 2, PARTS_Y + BH + 48, "the wires cross; that is fine", 9.5, GREY, "middle")
+
+    # the bench screen's header as printed, top to bottom, header on the right
+    IX, IY = sx1 + 34, PARTS_Y - 4
+    text(IX, IY, "Your screen's pins, as printed", 11, "#111", "start", True)
+    text(IX, IY + 14, "(header on the right, top to bottom)", 9, GREY)
+    rect(IX, IY + 26, 96, 190, "#1b1b1b", "#111", 6, 2)
+    rect(IX + 10, IY + 40, 50, 160, "#27496d", "#555", 2)
+    header = [("BL", "Pico pin 17 (GP13)", 14), ("RST", "Pico pin 16 (GP12)", 13), ("DC", "Pico pin 11 (GP8)", 9),
+              ("SCL", "Pico pin 14 (GP10)", 11), ("MOSI", "Pico pin 15 (GP11)", 12), ("CS", "Pico pin 12 (GP9)", 10),
+              ("3V3", "red + rail", 7), ("GND", "blue - rail", 8)]
+    for i, (lab, to, n) in enumerate(header):
+        y = IY + 44 + i * 22
+        c = wcol[n]
+        pad(IX + 96, y); text(IX + 88, y + 4, lab, 9, "#fff", "end", True)
+        wire([(IX + 101, y), (IX + 128, y)], c, 3)
+        tag(IX + 140, y, n, c)
+        text(IX + 156, y + 4, to, 10, c, "start", True)
+    text(IX, IY + 232, "SCL here is the screen's clock,", 9.5, RED, "start", True)
+    text(IX, IY + 245, "not the chip's SCL. 3V3 = 3.3 V.", 9.5, RED, "start", True)
 
     for part, label, col, n, (kind, v) in T:
         x = cx(col)

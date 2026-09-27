@@ -4,7 +4,8 @@
 # it has no transaction service and no Safe. It exists on the board only while a chip is being
 # set up, and tools/fw refuses to push it onto a board whose QUORUM_EXPECT pins the chip it holds.
 #
-# Maintenance works as on the console image: hold B at power-up, or leave a file named "maint".
+# Maintenance works as on the console image: hold B (build1: the knob pressed) at power-up, or leave
+# a file named "maint".
 import sys
 import os
 
@@ -13,7 +14,8 @@ def _maintenance():
     if "maint" in os.listdir():
         return True
     from machine import Pin
-    return Pin(17, Pin.IN, Pin.PULL_UP).value() == 0      # B, lcd.KEYS
+    import board
+    return getattr(board, "MAINTENANCE", False) or Pin(board.MAINT, Pin.IN, Pin.PULL_UP).value() == 0     # B, or the knob's push on build1
 
 
 try:

@@ -63,10 +63,10 @@ on one screen. `tools/wiring-build1 --check` confirms it still matches.
 <!-- pins: summary -->
 | part, contact | signal | GPIO | Pico pin |
 |---|---|---|---|
-| screen VCC | 3.3 V | 3V3 | 36 |
+| screen 3V3 | 3.3 V | 3V3 | 36 |
 | screen GND | ground | GND | 13 |
-| screen DIN | SPI1 MOSI | GP11 | 15 |
-| screen CLK | SPI1 SCK | GP10 | 14 |
+| screen MOSI | SPI1 MOSI | GP11 | 15 |
+| screen SCL | SPI1 SCK | GP10 | 14 |
 | screen CS | chip select | GP9 | 12 |
 | screen DC | data/command | GP8 | 11 |
 | screen RST | reset | GP12 | 16 |

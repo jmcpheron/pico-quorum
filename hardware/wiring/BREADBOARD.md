@@ -70,12 +70,12 @@ column as the Pico's pin 6.
 | 4 | blue - rail | chip GND (black) | the cable's black wire |
 | 5 | Pico pin 6 (GP4) | chip SDA (blue) | the cable's blue wire |
 | 6 | Pico pin 7 (GP5) | chip SCL (yellow) | the cable's yellow wire |
-| 7 | red + rail | screen VCC | red |
+| 7 | red + rail | screen 3V3 | red |
 | 8 | blue - rail | screen GND | black |
 | 9 | Pico pin 11 (GP8) | screen DC | any color |
 | 10 | Pico pin 12 (GP9) | screen CS | any color |
-| 11 | Pico pin 14 (GP10) | screen CLK | any color |
-| 12 | Pico pin 15 (GP11) | screen DIN | any color |
+| 11 | Pico pin 14 (GP10) | screen SCL | any color |
+| 12 | Pico pin 15 (GP11) | screen MOSI | any color |
 | 13 | Pico pin 16 (GP12) | screen RST | any color |
 | 14 | Pico pin 17 (GP13) | screen BL | any color |
 | 15 | blue - rail | knob C (middle leg) | black |
@@ -98,18 +98,32 @@ The breakout has its own pull-up resistors and runs on 3.3 V, so the four wires 
 
 ### The screen
 
-The screen has one row of 8 pins. Use female-to-male wires: the female end on the screen, the male
-end in the breadboard. **Go by the names printed next to its pins, not by their order**, because
-makers order them differently. Some print other names for the same pins:
+The screen has one row of 8 pins down its right-hand edge. Its names, top to bottom, and where each
+one goes:
 
-| printed | same as |
-|---|---|
-| SDA, MOSI | DIN |
-| SCL, SCK | CLK |
-| RS, A0 | DC |
-| LED, BLK | BL |
+| printed | goes to | wire |
+|---|---|---|
+| BL | Pico pin 17 (GP13) | 14 |
+| RST | Pico pin 16 (GP12) | 13 |
+| DC | Pico pin 11 (GP8) | 9 |
+| SCL | Pico pin 14 (GP10) | 11 |
+| MOSI | Pico pin 15 (GP11) | 12 |
+| CS | Pico pin 12 (GP9) | 10 |
+| 3V3 | red + rail | 7 |
+| GND | blue - rail | 8 |
 
-SDA and SCL on a screen are its data and clock. They have nothing to do with the chip's SDA and SCL.
+That's a different order from the Pico's pins, so the wires cross. That's fine; each wire only has
+to join the right two holes.
+
+- **SCL on the screen is the screen's own clock line.** It goes to pin 14, *not* to the chip's SCL
+  on pin 7. Mixing the two up is the easy mistake here.
+- **3V3 means it wants 3.3 V**, which the red rail carries.
+- If the pins are bare holes with no metal pins sticking out, the board needs its 8-pin header
+  strip soldered in first (usually in the bag). Then female-to-male wires push onto the pins, or
+  the screen plugs straight into the breadboard.
+
+Another screen may print other names for the same pins: VCC for 3V3; DIN or SDA for MOSI; CLK or
+SCK for SCL; RS or A0 for DC; LED or BLK for BL.
 
 ### The knob
 
@@ -170,7 +184,7 @@ decision ([HANDOFF.md](../HANDOFF.md#7-open-decisions)).
 
 | what you see | what to check |
 |---|---|
-| screen dark, backlight off | wires 7, 8 and 14; that VCC is in the red rail |
+| screen dark, backlight off | wires 7, 8 and 14; that 3V3 is in the red rail |
 | backlight on, no picture | wires 9 to 13, going by the printed names. Then try `SPI_BAUD = 10_000_000` at the top of `bench1.py` |
 | picture upside down or mirrored | `MADCTL` at the top of `bench1.py`: try `0xA0` |
 | red and blue swapped | add `0x08` to `MADCTL` |

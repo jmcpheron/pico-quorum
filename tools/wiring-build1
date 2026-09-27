@@ -8,10 +8,10 @@ import re, sys
 
 # (part, contact, signal, GPIO or rail, physical header pin)
 PINS = [
-    ("screen", "VCC", "3.3 V", "3V3", 36),
+    ("screen", "3V3", "3.3 V", "3V3", 36),
     ("screen", "GND", "ground", "GND", 13),
-    ("screen", "DIN", "SPI1 MOSI", "GP11", 15),
-    ("screen", "CLK", "SPI1 SCK", "GP10", 14),
+    ("screen", "MOSI", "SPI1 MOSI", "GP11", 15),
+    ("screen", "SCL", "SPI1 SCK", "GP10", 14),
     ("screen", "CS", "chip select", "GP9", 12),
     ("screen", "DC", "data/command", "GP8", 11),
     ("screen", "RST", "reset", "GP12", 16),
@@ -158,21 +158,21 @@ def build():
     text(BX + 58, SY0 + 70, "2.0\"", 12, "#fff", "middle", True); text(BX + 58, SY0 + 86, "240x320", 9, "#dde", "middle")
     text(BX + 58, SY0 + 100, "ST7789", 9, "#dde", "middle")
     text(BX + 8, SY1 - 20, "go by the printed", 8.5, "#ccc"); text(BX + 8, SY1 - 8, "labels, not order", 8.5, "#ccc")
-    for contact in ("DC", "CS", "GND", "CLK", "DIN", "RST", "BL"):
+    for contact in ("DC", "CS", "GND", "SCL", "MOSI", "RST", "BL"):
         _, _, sig, gp, n = pin("screen", contact)
         y = ly(n)
         pad(BX + BW, y); text(BX + BW - 10, y + 4, contact, 9, "#fff", "end", True)
         wire([(PE, y), (LX, y)], color[gp])
         text(PE + 12, y - 5, "%s -> %s, pin %d" % (contact, gp if gp != "GND" else "GND", n), 9.5, color[gp] if gp != "GP5" else "#9a7600", bold=True)
-    text(BX - 10, SY0 + 30, "some boards print", 9, GREY, "end")
-    text(BX - 10, SY0 + 43, "SDA for DIN and", 9, GREY, "end")
-    text(BX - 10, SY0 + 56, "SCL for CLK: that is", 9, GREY, "end")
-    text(BX - 10, SY0 + 69, "SPI, not the I2C bus", 9, GREY, "end")
+    text(BX - 10, SY0 + 30, "other boards print", 9, GREY, "end")
+    text(BX - 10, SY0 + 43, "SDA or DIN for MOSI", 9, GREY, "end")
+    text(BX - 10, SY0 + 56, "SCL is SPI clock here:", 9, GREY, "end")
+    text(BX - 10, SY0 + 69, "not the chip's I2C SCL", 9, GREY, "end")
     VY = ly(19)
-    pad(BX + BW, VY); text(BX + BW - 10, VY + 4, "VCC", 9, "#fff", "end", True)
+    pad(BX + BW, VY); text(BX + BW - 10, VY + 4, "3V3", 9, "#fff", "end", True)
     wire([(PE, VY), (PE + 8, VY), (PE + 8, 672), (RX + 56, 672), (RX + 56, ry(36)), (RX, ry(36))], RED)
-    text(PE + 20, 690, "screen VCC -> 3V3 OUT, pin 36. 3.3 V, never VBUS / 5 V", 10, RED, bold=True)
-    text(PE + 12, VY - 5, "VCC -> 3V3, pin 36 (under the board)", 9.5, RED, bold=True)
+    text(PE + 20, 690, "screen 3V3 -> 3V3 OUT, pin 36. 3.3 V, never VBUS / 5 V", 10, RED, bold=True)
+    text(PE + 12, VY - 5, "3V3 -> 3V3 OUT, pin 36 (under the board)", 9.5, RED, bold=True)
 
     # ----------------------------------------------------------------------------- right-hand notes, one per pin row
     NX = RX + 72

@@ -7,7 +7,8 @@
 #   anything else, or no chip                        -> the console (it says Not pinned / No chip)
 # Once the new chip is sealed, enrolled and pinned, the board goes back to the console image.
 #
-# Maintenance works as on the other images: hold B at power-up, or leave a file named "maint".
+# Maintenance works as on the other images: hold B (build1: the knob pressed) at power-up, or leave
+# a file named "maint".
 import sys
 import os
 import gc
@@ -17,7 +18,8 @@ def _maintenance():
     if "maint" in os.listdir():
         return True
     from machine import Pin
-    return Pin(17, Pin.IN, Pin.PULL_UP).value() == 0      # B, lcd.KEYS
+    import board
+    return getattr(board, "MAINTENANCE", False) or Pin(board.MAINT, Pin.IN, Pin.PULL_UP).value() == 0     # B, or the knob's push on build1
 
 
 def which():
