@@ -1,5 +1,9 @@
 # Build 1: screen, knob, key jacks, ATECC608 key
 
+**New to breadboards, or not doing the jacks yet? Start with [BREADBOARD.md](BREADBOARD.md)**: the
+same build on a breadboard with the chip wired straight to the Pico, 19 numbered wires, and a close-up
+of the knob.
+
 This is the first console build on the bench that isn't the Waveshare dev console:
 
 - a Pico 2 W
@@ -201,6 +205,9 @@ To run it:
 1. `tools/usb push` copies it with the rest of `firmware/`.
 2. Stop the wallet with `import wallet; wallet.stop()`.
 3. Run `import bench1`.
+
+Set `JACKS = True` at the top of `bench1.py` once the jacks are wired. The default, `False`, is the
+breadboard build, with the chip on 3.3 V and no key detection.
 
 It runs from a 20 ms Timer, so the REPL stays free. `bench1.stop()` ends it and cuts key power.
 
