@@ -77,13 +77,13 @@ diamond spins.
 
 | **A. Ring** | **B. Orbit** |
 |---|---|
-| <img src="boot/ring.gif"> | <img src="boot/orbit.gif"> |
+| <img src="boot/ring.gif"> | <img src="boot/iter2/orbit.gif"> |
 | Five owners spin round a faint circle, each trailing a comet tail of light. They slow down and stop with one at the top. Flat and simple, like a dial settling. | Five owners orbit in space: the circle starts small and tipped back like a planet's ring, with a few stars drifting behind. It swings round to face you and grows as it slows, and the stars fade out as it lands. |
 
 | | | |
 |---|---|---|
 | <img src="boot/ring-008.png"> | <img src="boot/ring-016.png"> | <img src="boot/ring-026.png"> |
-| <img src="boot/orbit-008.png"> | <img src="boot/orbit-016.png"> | <img src="boot/orbit-026.png"> |
+| <img src="boot/iter2/orbit-008.png"> | <img src="boot/iter2/orbit-016.png"> | <img src="boot/iter2/orbit-026.png"> |
 
 Both land here, and the signing starts:
 
