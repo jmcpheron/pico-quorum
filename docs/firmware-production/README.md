@@ -32,7 +32,8 @@ harness (`test-vectors/console_test.py`), so the Safe is a stand-in (`0x5a5a…`
   - Polls are quota-sized.
   - There is a log that survives power cycles (`log.txt`) and a watchdog.
   - After 20 failures in a row the console stops on a crashed screen and signs nothing.
-- **Maintenance:** hold B while plugging in. Nothing starts except the USB REPL.
+- **Maintenance:** hold B (the knob on Build 1) while plugging in until the onboard LED lights.
+  The display stays off; display and Wi-Fi startup are skipped, leaving the USB REPL free.
 
 ## The console
 

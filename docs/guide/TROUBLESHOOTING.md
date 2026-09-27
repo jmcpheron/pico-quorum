@@ -4,6 +4,22 @@
 secrets), the console's state, and each Safe's status. `tools/fw logs` copies the board's
 `log.txt` and `error.log`.
 
+## Display and firmware updates
+
+The Build 1 2.8-inch display uses its full **320 × 240** landscape resolution. Set
+`BOARD = "build1"` and `SCREEN = "2.8"` in the board's `secrets.py`. The console draws in
+30-row strips, using 19,200 bytes of framebuffer memory without reducing resolution or colour depth.
+
+Use `tools/fw push console` for the production image. It backs up the board and checks every
+copied file by hash. Avoid interrupting it during the restart; boot needs time before USB
+inspection can safely resume.
+
+For recovery, hold the knob pressed while plugging in Build 1 (B on the Waveshare board),
+until the Pico's onboard LED lights. Maintenance skips display and Wi-Fi initialization;
+a blank display is expected. USB remains available even if the display cannot initialize.
+The updater's `maint` file selects the same mode automatically. A failed update keeps that
+file so another push can repair the image.
+
 ## Stop screens
 
 These screens sign nothing.

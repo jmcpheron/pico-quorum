@@ -7,7 +7,9 @@
 #
 # The A/B/X/Y column runs down the right edge, A at the top and Y at the bottom. On a review page
 # the SIGN bar runs across the top and ends in an A badge, REJECT across the bottom with a Y badge,
-# and B (back) is labelled in the page row. SIGN stays grey until every page has been seen. A red
+# and B (back) is labelled in the page row. SIGN stays grey until every page has been seen.
+# With the knob (lcd.KNOB) the bottom bar holds three actions instead, SIGN, REJECT and BACK: they
+# come after the last page as the knob turns, and a press on any page jumps to them. A red
 # page is red all over, and the thing at stake (the address that gains power, the amount) is in
 # the "stake" colour, as on the chip map's red PERMANENT screen.
 #
@@ -45,7 +47,11 @@ CHAIN = {31337: ((255, 149, 0), (26, 16, 0)), 8453: ((0, 82, 255), (255, 255, 25
          84532: ((150, 90, 255), (255, 255, 255)), 1: ((98, 126, 234), (255, 255, 255))}
 LOGO = {"safe": ((18, 255, 128), (0, 0, 0), "S"), "uniswap": ((255, 0, 122), (255, 255, 255), "U"),
         "usdc": ((39, 117, 202), (255, 255, 255), "$")}
+W, H = L.W, L.H                 # 240x240, or 320x240 on build1: x positions come from W
 M = 10                          # side margin
+R = W - M                       # right edge of text
+TW = W - 2 * M                  # text width
+OX = (W - 240) // 2             # centres a box laid out for 240 wide
 TOP, BOTTOM = 30, 210           # review pages: content lives between the SIGN and REJECT bars
 PAGE_ROW = 191                  # page dots and the B hint
 T = {}
@@ -82,7 +88,7 @@ def txt_r(d, s, xr, y, font, fg="text", bg="bg"):
     return F.text(d, s, xr - F.width(s, font), y, font, rgb(fg), rgb(bg))
 
 
-def txt_c(d, s, y, font, fg="text", bg="bg", x0=0, x1=240):
+def txt_c(d, s, y, font, fg="text", bg="bg", x0=0, x1=W):
     return F.text(d, s, x0 + (x1 - x0 - F.width(s, font)) // 2, y, font, rgb(fg), rgb(bg))
 
 
@@ -244,15 +250,48 @@ def page_colors(level):
 
 
 def footer_hints(d, q, hints, y=222, bg="bg"):
-    """Key badges with what they do, or the last message if there is one."""
+    """Key badges with what they do, or the last message if there is one. With the knob, only the
+    first hint: what a press does."""
     if q.msg:
-        d.fill_rect(0, y - 12, 240, 240 - y + 12, c(bg))
+        d.fill_rect(0, y - 12, W, H - y + 12, c(bg))
         txt_c(d, q.msg, y - 9, "bold14", "warn", bg)
+        return
+    if q.KNOB:
+        if hints:
+            knob_badge(d, M + 6, y, "raised", "text")
+            x = txt(d, "press", M + 19, y - 8, "sans12", "faint", bg)
+            txt(d, hints[0][1], x + 6, y - 9, "bold14", "text", bg)
         return
     x = M + 6
     for key, what in hints:
         badge(d, key, x, y, "raised", "text")
         x = txt(d, what, x + 13, y - 8, "sans12", "muted", bg) + 16
+
+
+def knob_badge(d, cx, cy, fill, ink):
+    """The knob, seen from above: a disc with a pointer notch."""
+    d.ellipse(cx, cy, 9, 9, c(fill), True)
+    d.ellipse(cx, cy, 5, 5, c(ink), False)
+    d.fill_rect(cx - 1, cy - 8, 2, 5, c(ink))
+
+
+def knob_choices(d, q, items, focus, hint, y=222, bg="bg"):
+    """A row of choices the knob turns onto, right-aligned, the one in focus lit; a hint on the left.
+    items: (key, label); focus: the key in focus, or None."""
+    if q.msg:
+        d.fill_rect(0, y - 12, W, H - y + 12, c(bg))
+        txt_c(d, q.msg, y - 9, "bold14", "warn", bg)
+        return
+    knob_badge(d, M + 6, y, "raised", "text")
+    x = R
+    for key, label in reversed(items):
+        on = key == focus
+        font = "bold14" if on else "sans12"
+        x -= F.width(label, font) + 12       # pill()'s width
+        pill(d, label, x, y - 9, font, "stake" if on else "surface", "bg" if on else "muted")
+        x -= 6
+    if F.width(hint, "sans12") <= x - M - 21:
+        txt(d, hint, M + 19, y - 8, "sans12", "faint", bg)
 
 
 def who_line(d, q, label, a, y, pc, bg):
@@ -300,33 +339,34 @@ def draw_home(q):
         s = "Synced" if ok else "Offline"
     x = M + chain_pill(d, q, M, 4, full=not many) + 6
     v, vok = q.safe_version()
-    if v and (not vok or x + F.width("Safe v" + v, "sans12") + 12 < 230 - F.width(s, "sans12") - 14):
+    if v and (not vok or x + F.width("Safe v" + v, "sans12") + 12 < R - F.width(s, "sans12") - 14):
         version_pill(d, q, x, 4)        # when it fits; always when the version is one this console can't sign for
-    txt_r(d, s, 230, 4, "sans12", "muted")
-    d.ellipse(230 - F.width(s, "sans12") - 8, 12, 3, 3, c("ok" if ok else "bad"), True)
+    txt_r(d, s, R, 4, "sans12", "muted")
+    d.ellipse(R - F.width(s, "sans12") - 8, 12, 3, 3, c("ok" if ok else "bad"), True)
     blockies.draw(d, q.SAFE_ADDR, M, 30, 4)
-    txt(d, q.SAFE["name"], 52, 26, "bold18")
-    txt(d, short(q.SAFE_ADDR), 52, 49, "mono13", "muted")
     n_own, need = len(q.owners()), q.threshold()
+    room = R - 52 - (F.width("%d of %d" % (need, n_own), "bold14") + 8 if n_own else 0)
+    txt(d, fit(q.SAFE["name"], room, "bold18"), 52, 26, "bold18")
+    txt(d, short(q.SAFE_ADDR), 52, 49, "mono13", "muted")
     if n_own:
-        txt_r(d, "%d of %d" % (need, n_own), 230, 28, "bold14")
-        txt_r(d, "approvals", 230, 46, "sans12", "muted")
+        txt_r(d, "%d of %d" % (need, n_own), R, 28, "bold14")
+        txt_r(d, "approvals", R, 46, "sans12", "muted")
     todo = sum(1 for e in q.queue if q.waiting(e))
     y = 72
     txt(d, ("WAITING FOR YOU · %d" % todo) if todo else "QUEUE", M, y, "bold14" if todo else "sans12",
         "warn" if todo else "muted")
     if any(q.conflicts(e) for e in q.queue):
-        txt_r(d, "same # twice", 230, y + 2, "sans12", "warn")
+        txt_r(d, "same # twice", R, y + 2, "sans12", "warn")
     elif q.queue:
-        txt_r(d, "%d queued" % len(q.queue), 230, y + 2, "sans12", "faint")
+        txt_r(d, "%d queued" % len(q.queue), R, y + 2, "sans12", "faint")
     y = 92
     if not q.queue:
         if q.net_ok:
-            mark(d, True, 120, 132, 16)
+            mark(d, True, W // 2, 132, 16)
             txt_c(d, "Nothing to sign", 154, "bold18")
             txt_c(d, "The queue is empty", 178, "sans14", "muted")
         else:
-            mark(d, False, 120, 128, 16)
+            mark(d, False, W // 2, 128, 16)
             txt_c(d, "No service", 150, "bold18")
             txt_c(d, q.net_err[:30], 174, "sans14", "muted")
             txt_c(d, (q.BASE or "")[:34], 192, "mono13", "faint")
@@ -335,9 +375,9 @@ def draw_home(q):
     for i in range(top, min(len(q.queue), top + n)):
         e = q.queue[i]
         lvl = "red" if e["why"] else e["r"]["level"]
-        sel = i == q.sel
+        sel = i == q.sel and not q.foot
         fill = "raised" if sel else "surface"
-        rrect(d, 6, y, 228, 25, 5, fill)
+        rrect(d, 6, y, W - 12, 25, 5, fill)
         if lvl != "ok":
             d.fill_rect(6, y + 5, 3, 15, c("bad" if lvl == "red" else "warn"))
         txt(d, "#%d" % e["n"], 15, y + 4, "mono13", "warn" if q.conflicts(e) else "faint", fill)
@@ -352,7 +392,7 @@ def draw_home(q):
         else:
             what = e["r"]["summary"]
         f = "bold14" if sel else "sans14"
-        txt(d, fit(what, 124, f), 63, y + 3, f, {"red": "bad", "warn": "warn"}.get(lvl, "text"), fill)
+        txt(d, fit(what, W - 116, f), 63, y + 3, f, {"red": "bad", "warn": "warn"}.get(lvl, "text"), fill)
         if q.signed_by_me(e):
             st, sc = "Signed", "ok"
         elif e["h"] in q.declined:
@@ -361,16 +401,19 @@ def draw_home(q):
             st, sc = "—", "bad"
         else:
             st, sc = "%d/%d" % (len(e["conf"]), q.threshold(e["w"])), "muted"
-        txt_r(d, st, 226, y + 4, "sans12", sc, fill)
+        txt_r(d, st, R - 4, y + 4, "sans12", sc, fill)
         if many:        # which chain the row's Safe is on, in its pill colour
-            d.fill_rect(230, y + 5, 3, 15, c(CHAIN.get(e["w"]["chain"], ((120, 120, 120), 0))[0]))
+            d.fill_rect(R, y + 5, 3, 15, c(CHAIN.get(e["w"]["chain"], ((120, 120, 120), 0))[0]))
         y += 28
     if q.outside:
-        rrect(d, 6, 190, 228, 24, 5, "warn_bg")
+        rrect(d, 6, 190, W - 12, 24, 5, "warn_bg")
         warn_sign(d, 18, 202, 8)
-        txt(d, fit("key used %d\u00d7 outside this console" % q.outside, 200, "sans12"),
+        txt(d, fit("key used %d\u00d7 outside this console" % q.outside, W - 40, "sans12"),
             30, 196, "sans12", "warn_text", "warn_bg")
-    footer_hints(d, q, (("A", "Open"), ("B", "Owners"), ("X", "Device")))
+    if q.KNOB:
+        knob_choices(d, q, (("owners", "Owners"), ("device", "Device")), q.foot, "turn \u00b7 press")
+    else:
+        footer_hints(d, q, (("A", "Open"), ("B", "Owners"), ("X", "Device")))
     d.show()
 
 
@@ -380,23 +423,50 @@ def sign_bar(q):
     ok, why = q.can_sign(q.cur)
     left = q.unseen()
     if ok and not left:
-        d.fill_rect(0, 0, 240, TOP - 2, c("ok"))
-        x = txt(d, "Hold to sign", M, 3, "bold18", "on_ok", "ok")
-        txt(d, "%d s" % (q.hold_need(q.cur) // 1000), x + 8, 7, "sans14", "on_ok", "ok")
-        badge(d, "A", 225, 14, "on_ok", "ok")
+        d.fill_rect(0, 0, W, TOP - 2, c("ok"))
+        x = txt(d, "Ready to sign" if q.KNOB else "Hold to sign", M, 3, "bold18", "on_ok", "ok")
+        txt(d, "hold %d s" % (q.hold_need(q.cur) // 1000) if q.KNOB else "%d s" % (q.hold_need(q.cur) // 1000),
+            x + 8, 7, "sans14", "on_ok", "ok")
+        if not q.KNOB:
+            badge(d, "A", W - 15, 14, "on_ok", "ok")
     else:
-        d.fill_rect(0, 0, 240, TOP - 2, c("surface"))
+        d.fill_rect(0, 0, W, TOP - 2, c("surface"))
         x = txt(d, "Sign" if ok else "Can't sign", M, 3, "bold18", "faint", "surface")
         note = ("%d of %d pages seen" % (len(q.pages) - len(left), len(q.pages))) if ok else why
-        txt(d, fit(note, 204 - x, "sans12"), x + 8, 8, "sans12", "muted", "surface")
-        badge(d, "A", 225, 14, "raised", "faint")
+        txt(d, fit(note, W - 36 - x, "sans12"), x + 8, 8, "sans12", "muted", "surface")
+        if not q.KNOB:
+            badge(d, "A", W - 15, 14, "raised", "faint")
 
 
 def reject_bar(q):
     d = q.d
-    d.fill_rect(0, BOTTOM, 240, 240 - BOTTOM, c("bad_bar"))
+    d.fill_rect(0, BOTTOM, W, H - BOTTOM, c("bad_bar"))
     txt(d, "Reject", M, BOTTOM + 4, "bold18", "on_bad", "bad_bar")
-    badge(d, "Y", 225, BOTTOM + 15, "on_bad", "bad_bar")
+    badge(d, "Y", W - 15, BOTTOM + 15, "on_bad", "bad_bar")
+
+
+def action_bar(q):
+    """The knob's bottom bar: SIGN, REJECT and BACK. Lit only while the knob is on them (q.act);
+    SIGN is green only when it can be held."""
+    d = q.d
+    ok, why = q.can_sign(q.cur)
+    ready = ok and not q.unseen()
+    d.fill_rect(0, BOTTOM, W, H - BOTTOM, c("bg"))
+    gap, x = 4, 4
+    ws = ((W - 16) * 40 // 100, (W - 16) * 32 // 100)
+    ws += (W - 16 - ws[0] - ws[1],)
+    for i, (label, on, off, ink_on) in enumerate((("SIGN", "ok" if ready else "raised", "surface", "on_ok" if ready else "text"),
+                                                   ("REJECT", "bad_bar", "bad_bg", "on_bad"),
+                                                   ("BACK", "raised", "surface", "text"))):
+        focus = q.act == i
+        fill = on if focus else off
+        rrect(d, x, BOTTOM + 2, ws[i], H - BOTTOM - 4, 6, fill)
+        if focus:
+            d.rect(x, BOTTOM + 2, ws[i], H - BOTTOM - 4, c("text"))
+        font = "bold18" if focus else "sans14"
+        ink = ink_on if focus else ("bad_muted" if i == 1 else "muted")
+        txt_c(d, label, BOTTOM + (4 if focus else 6), font, ink, fill, x, x + ws[i])
+        x += ws[i] + gap
 
 
 def page_row(q, pc):
@@ -405,20 +475,26 @@ def page_row(q, pc):
         txt_c(d, q.msg, PAGE_ROW - 2, "bold14", "warn" if bg == "bg" else pc["text"], bg)
         return
     n = len(q.pages)
-    x0 = 120 - (n * 12) // 2 + 6
+    here = q.page if not q.KNOB or q.act is None else -1
+    x0 = W // 2 - (n * 12) // 2 + 6
     for i in range(n):
-        col = "text" if i == q.page else ("muted" if i in q.seen else "faint")
-        d.ellipse(x0 + i * 12, PAGE_ROW + 8, 3, 3, c(col if bg == "bg" else pc["muted"] if i != q.page else pc["text"]),
-                  i == q.page or i in q.seen)
-    badge(d, "B", 186, PAGE_ROW + 8, "raised", "text")
-    txt(d, "Back", 199, PAGE_ROW, "sans12", pc["muted"], bg)
+        col = "text" if i == here else ("muted" if i in q.seen else "faint")
+        d.ellipse(x0 + i * 12, PAGE_ROW + 8, 3, 3, c(col if bg == "bg" else pc["muted"] if i != here else pc["text"]),
+                  i == here or i in q.seen)
+    if q.KNOB:          # the actions come after the last page: a bar for them in the row of dots
+        d.fill_rect(x0 + n * 12 - 3, PAGE_ROW + 6, 9, 4, c(pc["text"] if q.act is not None else pc["muted"]))
+        if q.act is None:
+            txt_r(d, "press: actions", R, PAGE_ROW, "sans12", pc["muted"], bg)
+        return
+    badge(d, "B", W - 54, PAGE_ROW + 8, "raised", "text")
+    txt(d, "Back", W - 41, PAGE_ROW, "sans12", pc["muted"], bg)
 
 
 def draw_summary(q):
     d, e = q.d, q.cur
     r = e["r"]
     lvl = r["level"]
-    right = 230 - chain_pill(d, q, 230, 33, True, False) - 6
+    right = R - chain_pill(d, q, R, 33, True, False) - 6
     x = txt(d, "#%d" % e["n"], M, 33, "bold14", "muted")
     con = r.get("contract")
     if con:
@@ -438,7 +514,7 @@ def draw_summary(q):
         logo(d, "send", x + 14, 42, 8)
         txt(d, "transfer", x + 26, 34, "sans12", "muted")
     y = 54
-    for line in F.wrap(r["summary"], 220, "bold26")[:2]:
+    for line in F.wrap(r["summary"], TW, "bold26")[:2]:
         txt(d, line, M, y, "bold26", {"red": "bad", "warn": "warn"}.get(lvl, "text"))
         y += 29
     items = r["items"]
@@ -466,7 +542,7 @@ def draw_summary(q):
             y += 18
         y += 2
     y += 4
-    d.hline(M, y, 220, c("line"))
+    d.hline(M, y, TW, c("line"))
     y += 8
     have, need = len(e["conf"]), q.threshold()
     x = txt(d, "%d of %d" % (have, need), M, y, "bold14") + 12
@@ -474,7 +550,7 @@ def draw_summary(q):
         done = a in e["conf"]
         nm = "You" if a == q.me else (ident(q, a)[0] or short(a))
         w = 12 + F.width(nm, "sans14") + 12
-        if x + w > 236:
+        if x + w > W - 4:
             x, y = M + 58, y + 20
         col = "ok" if done else ("stake" if a == q.me else "faint")
         d.ellipse(x + 4, y + 10, 4, 4, c(col), done)
@@ -490,7 +566,7 @@ def draw_summary(q):
         line, col = "Yours makes it %d of %d · ready" % (have + 1, need), "ok"
     else:
         line, col = "Yours makes it %d of %d" % (have + 1, need), "text"
-    txt(d, fit(line, 220, "bold14"), M, y, "bold14" if col == "ok" else "sans14", col)
+    txt(d, fit(line, TW, "bold14"), M, y, "bold14" if col == "ok" else "sans14", col)
     y += 22
     reds = sum(1 for it in items if it["level"] == "red")
     if reds:
@@ -501,10 +577,10 @@ def draw_summary(q):
 
 
 def item_head(d, q, it, pc, title, chip=True):
-    d.fill_rect(0, TOP - 2, 240, 26, c(pc["head"]))
+    d.fill_rect(0, TOP - 2, W, 26, c(pc["head"]))
     x = txt(d, title, M, TOP + 1, "bold14", pc["on_head"], pc["head"])
     if chip and it.get("contract"):
-        contract_chip(d, q, it["contract"], 230, TOP + 2, pc["on_head"], pc["head"], 230 - x - 12)
+        contract_chip(d, q, it["contract"], R, TOP + 2, pc["on_head"], pc["head"], R - x - 12)
 
 
 def draw_item(q, i):
@@ -513,7 +589,7 @@ def draw_item(q, i):
     lvl = it["level"]
     pc = page_colors(lvl)
     bg = pc["bg"]
-    d.fill_rect(0, TOP - 2, 240, BOTTOM - TOP + 2, c(bg))
+    d.fill_rect(0, TOP - 2, W, BOTTOM - TOP + 2, c(bg))
     item_head(d, q, it, pc, it["title"], it.get("to") != it.get("contract"))
     y = TOP + 30
     if e["why"]:
@@ -521,8 +597,8 @@ def draw_item(q, i):
         y += 22
     if it.get("amount"):
         a = it["amount"]
-        f = "bold26" if F.width(a, "bold26") <= 220 else "bold18"
-        for line in F.wrap(a, 220, f)[:2]:
+        f = "bold26" if F.width(a, "bold26") <= TW else "bold18"
+        for line in F.wrap(a, TW, f)[:2]:
             txt(d, line, M, y, f, pc["stake"] if lvl == "red" else pc["text"], bg)
             y += F.height(f) - 5
         y += 4
@@ -530,7 +606,7 @@ def draw_item(q, i):
         if a:
             y = who_line(d, q, label, a, y, pc, bg)
     if it.get("text"):
-        para(d, it["text"], M, y, 220, "sans14", pc["text"], bg, 17, PAGE_ROW - 2)
+        para(d, it["text"], M, y, TW, "sans14", pc["text"], bg, 17, PAGE_ROW - 2)
 
 
 def draw_calldata(q, i):
@@ -539,10 +615,10 @@ def draw_calldata(q, i):
     it = e["r"]["items"][i]
     pc = page_colors(it["level"])
     bg = pc["bg"]
-    d.fill_rect(0, TOP - 2, 240, BOTTOM - TOP + 2, c(bg))
+    d.fill_rect(0, TOP - 2, W, BOTTOM - TOP + 2, c(bg))
     item_head(d, q, it, pc, "CALLDATA")
     txt(d, "function", M, TOP + 30, "sans12", pc["muted"], bg)
-    txt_r(d, "%d bytes of calldata" % it["size"], 230, TOP + 30, "sans12", pc["muted"], bg)
+    txt_r(d, "%d bytes of calldata" % it["size"], R, TOP + 30, "sans12", pc["muted"], bg)
     txt(d, it["selector"], M, TOP + 42, "monob28", pc["stake"], bg)
     y = TOP + 82
     txt(d, "digest (ERC-8213): compare it", M, y, "sans12", pc["muted"], bg)
@@ -571,10 +647,10 @@ def draw_verify(q):
 def draw_refused(q):
     d, e = q.d, q.cur
     bg = "bad_bg"
-    d.fill_rect(0, TOP - 2, 240, BOTTOM - TOP + 2, c(bg))
+    d.fill_rect(0, TOP - 2, W, BOTTOM - TOP + 2, c(bg))
     mark(d, False, M + 13, TOP + 20, 13)
     txt(d, "Refused", M + 34, TOP + 3, "bold26", "bad_text", bg)
-    y = para(d, e["why"], M, TOP + 42, 220, "sans14", "bad_text", bg, 17, TOP + 42 + 17 * 4) + 6
+    y = para(d, e["why"], M, TOP + 42, TW, "sans14", "bad_text", bg, 17, TOP + 42 + 17 * 4) + 6
     txt(d, "asks for", M, y + 1, "sans12", "bad_muted", bg)
     txt(d, e["h"][:10] + "…" + e["h"][-8:], M + 66, y, "mono13", "bad_text", bg)
     if e["mine"]:
@@ -602,7 +678,10 @@ def draw_review(q):
         pc = page_colors("red")
     sign_bar(q)
     page_row(q, pc)
-    reject_bar(q)
+    if q.KNOB:
+        action_bar(q)
+    else:
+        reject_bar(q)
     if q.state == "hold":
         draw_hold(q)
     d.show()
@@ -613,13 +692,13 @@ def draw_hold(q):
     need = q.hold_need(q.cur)
     el = min(need, time.ticks_diff(time.ticks_ms(), q.hold_t0))
     red = need > q.HOLD_MS
-    rrect(d, 14, 58, 212, 112, 10, "bad_bar" if red else "ok")
-    rrect(d, 16, 60, 208, 108, 9, "surface")
-    txt_c(d, "Keep holding A", 72, "bold18", "text", "surface")
-    rrect(d, 30, 104, 180, 14, 7, "raised")
+    rrect(d, OX + 14, 58, 212, 112, 10, "bad_bar" if red else "ok")
+    rrect(d, OX + 16, 60, 208, 108, 9, "surface")
+    txt_c(d, "Keep holding " + ("the knob" if q.hold_key == "press" else q.hold_key), 72, "bold18", "text", "surface")
+    rrect(d, OX + 30, 104, 180, 14, 7, "raised")
     w = 180 * el // need
     if w >= 14:
-        rrect(d, 30, 104, w, 14, 7, "ok")
+        rrect(d, OX + 30, 104, w, 14, 7, "ok")
     txt_c(d, "%.1f s to go" % ((need - el) / 1000), 124, "sans14", "muted", "surface")
     txt_c(d, "Red: %d s, not %d" % (need // 1000, q.HOLD_MS // 1000) if red else "Let go to cancel", 144, "sans12",
           "bad" if red else "faint", "surface")
@@ -629,8 +708,8 @@ def draw_hold(q):
 def draw_working(q, title, sub):
     d = q.d
     d.fill(c("bg"))
-    rrect(d, 70, 60, 100, 8, 4, "raised")
-    rrect(d, 70, 60, 60, 8, 4, "stake")
+    rrect(d, OX + 70, 60, 100, 8, 4, "raised")
+    rrect(d, OX + 70, 60, 60, 8, 4, "stake")
     txt_c(d, title, 86, "bold26")
     if q.cur:
         txt_c(d, "#%d %s" % (q.cur["n"], q.cur["r"]["summary"]), 126, "sans14", "text")
@@ -642,14 +721,17 @@ def draw_result(q):
     d = q.d
     ok, title, lines = q.result
     d.fill(c("bg"))
-    mark(d, ok, 120, 56, 28)
+    mark(d, ok, W // 2, 56, 28)
     txt_c(d, title, 92, "bold26")
     y = 132
     for k, s in enumerate(lines):
-        for line in F.wrap(s, 220, "sans14"):
+        for line in F.wrap(s, TW, "sans14"):
             txt_c(d, line, y, "bold14" if k == 0 else "sans14", ("ok" if ok else "bad") if k == 0 else "text")
             y += 19
-    footer_hints(q.d, q, (("A", "Send again"), ("B", "Back")) if not ok and q.unsent else (("A", "OK"),))
+    if q.KNOB and not ok and q.unsent:
+        knob_choices(d, q, (("send", "Send again"), ("back", "Back")), ("send", "back")[q.ract], "turn \u00b7 press")
+    else:
+        footer_hints(q.d, q, (("A", "Send again"), ("B", "Back")) if not ok and q.unsent else (("A", "OK"),))
     d.show()
 
 
@@ -658,7 +740,7 @@ def draw_owners(q):
     d.fill(c("bg"))
     txt(d, fit(q.SAFE["name"], 110, "bold18") if len(q.WATCH) > 1 else "Owners", M, 4, "bold18")
     if q.owners():
-        txt_r(d, "%d of %d must approve" % (q.threshold(), len(q.owners())), 230, 9, "sans12", "muted")
+        txt_r(d, "%d of %d must approve" % (q.threshold(), len(q.owners())), R, 9, "sans12", "muted")
     y = 34
     for a in q.owners()[:4]:
         nm = ident(q, a)[0]
@@ -674,7 +756,7 @@ def draw_owners(q):
     k = "this key " + (q.fingerprint() or "none")
     if q.counter is not None:
         k += " \u00b7 use #%d" % q.counter
-    txt_r(d, k, 230, 195, "sans12", "faint")
+    txt_r(d, k, R, 195, "sans12", "faint")
     footer_hints(d, q, (("B", "Back"),))
     d.show()
 
@@ -682,11 +764,11 @@ def draw_owners(q):
 def draw_nochip(q):
     d = q.d
     d.fill(c("bg"))
-    mark(d, False, 120, 60, 22)
+    mark(d, False, W // 2, 60, 22)
     txt_c(d, "No chip", 94, "bold26")
     y = 136
     for line in ("No ATECC608 answered on I2C.", "The console only signs with", "a key inside the chip.", "",
-                 "Wire the chip, then press A."):
+                 "Wire the chip, then press " + ("the knob." if q.KNOB else "A.")):
         txt_c(d, line, y, "sans14", "muted")
         y += 19
     d.show()
@@ -696,11 +778,11 @@ def notice(q, ok, title, lines, hints=()):
     """A plain page: a mark, a title and a few lines. The states where the console signs nothing."""
     d = q.d
     d.fill(c("bg"))
-    mark(d, ok, 120, 44, 20)
+    mark(d, ok, W // 2, 44, 20)
     txt_c(d, title, 72, "bold26")
     y = 110
     for k, s in enumerate(lines):
-        for line in F.wrap(s, 220, "sans14"):
+        for line in F.wrap(s, TW, "sans14"):
             if y > 200:
                 break
             txt_c(d, line, y, "sans14", "text" if k == 0 else "muted")
@@ -715,9 +797,9 @@ def draw_pinfail(q):
     d = q.d
     exp = q.EXPECT or {}
     d.fill(c("bg"))
-    mark(d, False, 120, 36, 18)
+    mark(d, False, W // 2, 36, 18)
     txt_c(d, "Not the pinned key" if q.EXPECT else ("Not a pinned chip" if q.EXPECTS else "Not pinned"), 60, "bold18")
-    txt_c(d, fit(q.pin_why or "", 224, "sans14"), 84, "sans14", "bad")
+    txt_c(d, fit(q.pin_why or "", W - 16, "sans14"), 84, "sans14", "bad")
     y = 110
     rows = (("chip", q.serial[-8:] or "none", str(exp.get("serial", ""))[-8:] or "-"),
             ("slot", str(q.sig.slot) if q.sig else "-", str(exp.get("slot", "-"))),
@@ -742,9 +824,10 @@ def draw_unconfigured(q):
 
 def draw_crashed(q, why=""):
     import image
+    how = "Holding the knob 3 s restarts it" if q.KNOB else "B restarts it"
     notice(q, False, "Stopped", ["The console failed %d times in a row and signs nothing now." % q.fails,
-                                why[:60], "build " + image.BUILD, "B restarts it; error.log has the details."],
-           (("B", "Restart"),))
+                                why[:60], "build " + image.BUILD, how + "; error.log has the details."],
+           () if q.KNOB else (("B", "Restart"),))
 
 
 def draw_device(q):
@@ -752,7 +835,7 @@ def draw_device(q):
     d = q.d
     d.fill(c("bg"))
     txt(d, "Device", M, 4, "bold18")
-    txt_r(d, image.IMAGE + " " + image.BUILD, 230, 9, "sans12", "muted")
+    txt_r(d, image.IMAGE + " " + image.BUILD, R, 9, "sans12", "muted")
     import chips
     name = q.chip["name"] + " \u00b7 " if q.chip else ""
     rows = [("Chip", (name + (q.serial[-8:] if q.serial else (q.sig.name if q.sig else "none")))[:22]),
@@ -767,10 +850,10 @@ def draw_device(q):
     y = 32
     for k, v in rows:
         txt(d, k, M, y, "sans14", "muted")
-        txt_r(d, v, 230, y, "mono13", "bad" if v == "FAIL" else "text")
+        txt_r(d, v, R, y, "mono13", "bad" if v == "FAIL" else "text")
         y += 20
     if q.net_err and not q.net_ok:
-        txt(d, fit("Last error: " + q.net_err, 220, "sans12"), M, y + 2, "sans12", "warn")
+        txt(d, fit("Last error: " + q.net_err, TW, "sans12"), M, y + 2, "sans12", "warn")
     footer_hints(d, q, (("B", "Back"),))
     d.show()
 

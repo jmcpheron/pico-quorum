@@ -367,7 +367,10 @@ async function waitForBoard(ms = 45000) {
 
 async function enterMaintenance() {
   run("open('maint', 'w').close()\nimport os\nif hasattr(os, 'sync'): os.sync()\nprint('MAINT')");
-  mp(["exec", "import machine; machine.reset()"], { timeout: 8000 });
+  // mpremote's reset shortcut uses --no-follow and a delay, allowing the host to close
+  // the port before USB disappears. Following exec waits for a reply that reset cannot send.
+  const reset = mp(["reset"], { timeout: 8000 });
+  if (reset.code !== 0) die(`reset failed: ${reset.out.slice(-400)}`);
   await waitForBoard();
 }
 
@@ -380,7 +383,10 @@ async function leaveMaintenance() {
 }
 
 async function restartHandsOff(settle = 30000) {
-  mp(["exec", "import machine; machine.reset()"], { timeout: 8000 });
+  // mpremote's reset shortcut uses --no-follow and a delay, allowing the host to close
+  // the port before USB disappears. Following exec waits for a reply that reset cannot send.
+  const reset = mp(["reset"], { timeout: 8000 });
+  if (reset.code !== 0) die(`reset failed: ${reset.out.slice(-400)}`);
   const t0 = Date.now();
   await sleep(3000);
   while (!serialPorts().includes(port())) {
@@ -437,6 +443,7 @@ async function push(image) {
   console.log(`  backup to restore from: ${bdir}`);
   if (!(await ask("\nThe board goes into maintenance, gets these files, and restarts."))) die("nothing changed");
   await enterMaintenance();
+  paused = null; // the reset discarded the old app; rediscover state on the fresh board
   copyChecked(copy.map((n) => [join(b.dir, n), n]));
   removeOnBoard(stale);
   console.log(`copied ${copy.length}, deleted ${stale.length}, every hash checked. Restarting out of maintenance...`);
@@ -463,6 +470,7 @@ async function restore(dir) {
   console.log(`restore ${dir}:\n  copy ${put.length} files${withSecrets ? " (secrets.py too)" : " (not secrets.py)"}\n  delete ${drop.length}: ${drop.join(" ") || "none"}`);
   if (!(await ask("The board goes into maintenance first."))) die("nothing changed");
   await enterMaintenance();
+  paused = null; // the reset discarded the old app; rediscover state on the fresh board
   copyChecked(put.map(({ n }) => [join(dir, n), n]));
   removeOnBoard(drop);
   await leaveMaintenance();

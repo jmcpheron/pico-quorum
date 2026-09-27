@@ -37,7 +37,10 @@ import quorum_cfg
 import txservice
 import webauthn
 import splash
-import quorum_ui as U
+if L.SMALL:
+    import quorum_ui_s as U     # the 1.8" (board.py): more, smaller pages
+else:
+    import quorum_ui as U
 try:
     import secrets
 except ImportError:
@@ -83,6 +86,12 @@ HOLD_MS, HOLD_RED_MS = 2000, 3000       # A held this long to sign; longer when 
 # Keys by role. The console's own controls (a guarded Sign button, a paging dial) remap here.
 SIGN, REJECT, BACK = "A", "Y", "B"
 NEXT, PREV = ("down", "right"), ("up", "left")
+# The knob (lcd.KNOB, board "build1"): a turn moves and a press does, see knob(). On a review the
+# actions come after the last page, and SIGN is held with the knob pressed down. A/B/X/Y, once
+# wired, keep their roles above alongside it.
+KNOB = L.KNOB
+ACTS = ("sign", "reject", "back")
+CRASH_HOLD_MS = 3000    # the knob held this long on the crashed screen restarts the board
 
 d = None
 keys = None
@@ -101,6 +110,11 @@ pages = []          # its pages: ("summary"|"item"|"verify"|"refused", index)
 page = 0
 seen = set()        # pages of cur the person has looked at
 hold_t0 = 0
+hold_key = SIGN     # the key that started the hold: it has to stay down
+act = None          # knob, on a review: the action in focus (an index into ACTS), None on a page
+foot = None         # knob, on home: "owners" or "device" when the knob has turned past the queue
+ract = 0            # knob, on a result with an unsent signature: 0 send again, 1 back
+crash_t0 = None     # knob, on the crashed screen: when the hold to restart began
 result = None       # (ok, title, lines) after a signing attempt
 unsent = None       # (entry, signature) when the service did not take it: A tries again
 declined = set()    # safeTxHashes rejected on this console
@@ -564,9 +578,10 @@ def pages_of(e):
 
 
 def open_entry(e):
-    global cur, pages, page, seen, state, dirty
+    global cur, pages, page, seen, state, dirty, act, ract
     focus(e["w"])
-    cur, pages, page, seen = e, pages_of(e), 0, {0}
+    cur, pages, page, seen = e, (U.pages_of(e) if hasattr(U, "pages_of") else pages_of(e)), 0, {0}
+    act, ract = None, 0
     state, dirty = "review", True
 
 
@@ -585,8 +600,8 @@ def hold_need(e):
     return HOLD_RED_MS if e["r"]["level"] == "red" else HOLD_MS
 
 
-def press_sign():
-    global state, hold_t0, page, dirty
+def press_sign(k=SIGN):
+    global state, hold_t0, hold_key, page, dirty
     ok, why = can_sign(cur)
     if not ok:
         say("Can't sign: " + why)
@@ -597,12 +612,12 @@ def press_sign():
         seen.add(page)
         say("See every page first \u00b7 %d more" % len(left))
         return
-    state, hold_t0, dirty = "hold", time.ticks_ms(), True
+    state, hold_t0, hold_key, dirty = "hold", time.ticks_ms(), k, True
 
 
 def hold_tick():
     global state, dirty
-    if keys.held(SIGN):
+    if keys.held(hold_key):
         if time.ticks_diff(time.ticks_ms(), hold_t0) >= hold_need(cur):
             sign_it()
         elif _n % 2 == 0:
@@ -636,7 +651,7 @@ def sign_it():
     e = cur
     state = "working"
     unsent = None           # a failure below must never offer to resend an older signature
-    U.draw_working(sys.modules[__name__], "Signing", "The chip signs the hash computed here")
+    d.frames(U.draw_working, sys.modules[__name__], "Signing", "The chip signs the hash computed here")
     timer.deinit()
     watch.extend(30000)
     try:
@@ -729,7 +744,7 @@ def send_saved(w):
 
 def post(e, signature):
     global result, unsent
-    U.draw_working(sys.modules[__name__], "Sending", "To the transaction service")
+    d.frames(U.draw_working, sys.modules[__name__], "Sending", "To the transaction service")
     watch.extend(45000)
     try:
         aim(e["w"])
@@ -840,6 +855,82 @@ def handle(k):
         dirty = True
 
 
+def knob(k):
+    """A knob turn ("down" clockwise, "up") or press, by state. Turning never does anything but
+    move; every action is a press, and signing is a press held down."""
+    global state, sel, foot, act, ract, dirty, crash_t0
+    if state in ("nochip", "pinfail"):
+        if k == "press":
+            handle("A")                 # Check again
+    elif state == "crashed":
+        if k == "press":
+            crash_t0 = time.ticks_ms()  # tick() restarts once it has been held CRASH_HOLD_MS
+    elif state in ("home", "boot"):
+        if k == "down":
+            if foot is None and queue and sel < len(queue) - 1:
+                sel += 1
+                focus_sel()
+            elif foot is None:
+                foot = "owners"
+            else:
+                foot = "device"
+        elif k == "up":
+            if foot == "device":
+                foot = "owners"
+            elif foot == "owners":
+                foot = None
+            elif sel > 0:
+                sel -= 1
+                focus_sel()
+        elif k == "press":
+            if foot:
+                state = foot
+            elif queue:
+                open_entry(queue[sel])
+        if outside:
+            outside_seen()
+        dirty = True
+    elif state in ("owners", "device"):
+        if k == "press":
+            state, dirty = "home", True
+    elif state == "review":
+        if k == "down":
+            if act is not None:
+                act = min(len(ACTS) - 1, act + 1)
+            elif page < len(pages) - 1:
+                turn(1)
+            else:
+                act = 0                 # past the last page: the actions
+        elif k == "up":
+            if act:
+                act -= 1
+            elif act == 0:
+                act = None              # back onto the page
+            else:
+                turn(-1)
+        elif k == "press":
+            if act is None:
+                act = 0                 # a press on a page jumps to the actions (it signs nothing)
+            elif ACTS[act] == "sign":
+                left = unseen()
+                press_sign("press")
+                if left and can_sign(cur)[0]:
+                    act = None          # press_sign turned to the first unseen page: show it
+            elif ACTS[act] == "reject":
+                reject()
+            else:
+                state = "home"
+                focus_sel()
+        dirty = True
+    elif state == "result":
+        if unsent and k in ("down", "up"):
+            ract = 1 - ract
+        elif k == "press":
+            handle(SIGN if not unsent or ract == 0 else BACK)
+            ract = 0
+        dirty = True
+
+
 def led_tick():
     if any(waiting(e) for e in queue):
         if _n % 10 == 0:
@@ -849,7 +940,7 @@ def led_tick():
 
 
 def tick(t):
-    global _busy, _n, dirty, state, splash_until, msg, last_activity, fails
+    global _busy, _n, dirty, state, splash_until, msg, last_activity, fails, crash_t0
     if _busy:
         return
     _busy = True
@@ -867,9 +958,17 @@ def tick(t):
         if pressed:
             last_activity = time.ticks_ms()
         for k in pressed:
-            handle(k)
+            if KNOB and k in ("down", "up", "press"):
+                knob(k)
+            else:
+                handle(k)
         if state == "hold":
             hold_tick()
+        if state == "crashed" and crash_t0 is not None:
+            if not keys.held("press"):
+                crash_t0 = None
+            elif time.ticks_diff(time.ticks_ms(), crash_t0) >= CRASH_HOLD_MS:
+                machine.reset()
         if splash_until:
             if time.ticks_diff(splash_until, time.ticks_ms()) > 0:
                 if _n % 3 == 0:
@@ -888,7 +987,7 @@ def tick(t):
             if state == "boot" and splash_until:
                 splash.draw()
             else:
-                U.draw(sys.modules[__name__])
+                d.frames(U.draw, sys.modules[__name__])      # lcd.py: once per band
         fails = 0
     except Exception as e:
         _log("ui: %r" % e)
@@ -913,7 +1012,7 @@ def crashed(e):
     except Exception:
         pass
     try:
-        U.draw_crashed(sys.modules[__name__], repr(e))
+        d.frames(U.draw_crashed, sys.modules[__name__], repr(e))
     except Exception:
         pass
 
@@ -984,7 +1083,8 @@ def start():
     w = network.WLAN(network.STA_IF)
     if secrets and not w.isconnected() and not net.tried:
         try:
-            net.connect(progress=lambda ms: splash.spin("wifi", ("join " + SSID)[:12] + " A skips") or bool(keys.pressed()))
+            skip = " press skips" if KNOB else " A skips"
+            net.connect(progress=lambda ms: splash.spin("wifi", ("join " + SSID)[:12] + skip) or bool(keys.pressed()))
         except Exception as e:
             print("wifi:", e)
     splash.wifi_row(w, SSID if secrets else "")

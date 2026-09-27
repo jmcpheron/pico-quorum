@@ -126,23 +126,28 @@ writeFileSync(twoSecrets, `QUORUM_SAFES = [
 `);
 
 let failed = 0;
-for (const [name, queue, steps, opts = {}] of STORIES) {
-  if (only.length && !only.includes(name)) continue;
-  for (const f of readdirSync(OUT)) if (steps.some((s) => s === `shot ${f.replace(/\.png$/, "")}`)) rmSync(join(OUT, f));
-  if (queue) await post("/sim/reset", { scenarios: queue, keepDevices: false, version: opts.version });
-  if (opts.two) await post("/sim/reset", { scenarios: opts.two, keepDevices: false }, BASE2);
-  const chip = join(tmp, "chip.json");
-  copyFileSync(new URL("emu-chip.json", import.meta.url), chip);
-  const app = queue ? BASE : "http://localhost:1";      // "offline": nothing answers
-  const r = spawnSync(process.execPath, [join(ROOT, "emu/headless.mjs"), "quorum", "--app", app, "--chip", chip, "--quiet",
-    ...(opts.two ? ["--secrets", twoSecrets] : []),
-    "--wait", "3000", ...args(steps)], { cwd: join(ROOT, "emu"), encoding: "utf8" });
-  const shots = (r.stdout.match(/\[shot\]/g) || []).length;
-  const bad = r.status !== 0 || /Traceback/.test(r.stdout + r.stderr);
-  console.log(`${bad ? "FAIL" : "ok  "}  ${name.padEnd(9)} ${shots} shots`);
-  if (bad) {
-    failed++;
-    console.log((r.stdout + r.stderr).split("\n").filter((l) => !l.startsWith("[shot]")).slice(-15).join("\n"));
+for (const fontset of fontsets) {
+  const OUT = fontset ? join(ROOT, "docs", "quorum-ui", "v2", "fonts", fontset) : SHOTS;
+  mkdirSync(OUT, { recursive: true });
+  for (let [name, queue, steps, opts = {}] of fontset ? FONT_STORIES : STORIES) {
+    if (only.length && !only.includes(name)) continue;
+    if (fontset) steps = [`exec import fonts; fonts.use('${fontset}'); quorum.dirty = True`, "wait 300", ...steps];
+    for (const f of readdirSync(OUT)) if (steps.some((s) => s === `shot ${f.replace(/\.png$/, "")}`)) rmSync(join(OUT, f));
+    if (queue) await post("/sim/reset", { scenarios: queue, keepDevices: false, version: opts.version });
+    if (opts.two) await post("/sim/reset", { scenarios: opts.two, keepDevices: false }, BASE2);
+    const chip = join(tmp, "chip.json");
+    copyFileSync(new URL("emu-chip.json", import.meta.url), chip);
+    const app = queue ? BASE : "http://localhost:1";      // "offline": nothing answers
+    const r = spawnSync(process.execPath, [join(ROOT, "emu/headless.mjs"), "quorum", "--app", app, "--chip", chip, "--quiet",
+      ...(opts.two ? ["--secrets", twoSecrets] : []),
+      "--wait", "3000", ...args(steps, OUT)], { cwd: join(ROOT, "emu"), encoding: "utf8" });
+    const shots = (r.stdout.match(/\[shot\]/g) || []).length;
+    const bad = r.status !== 0 || /Traceback/.test(r.stdout + r.stderr);
+    console.log(`${bad ? "FAIL" : "ok  "}  ${(fontset ? fontset + " " : "") + name.padEnd(9)} ${shots} shots`);
+    if (bad) {
+      failed++;
+      console.log((r.stdout + r.stderr).split("\n").filter((l) => !l.startsWith("[shot]")).slice(-15).join("\n"));
+    }
   }
   console.log(`shots in ${OUT}`);
 }

@@ -80,6 +80,8 @@ def palette(fg, bg):
 def text(d, s, x, y, font, fg, bg):
     """Draw s with the top of its line box at y. fg and bg are (r, g, b). Returns x after it."""
     f = get(font)
+    if L.BANDS > 1 and (y + f.height + 4 <= d.y0 or y - 4 >= d.y0 + d.band_h):
+        return x + width(s, font)       # not in the band being drawn (lcd.LCD.frames)
     p = palette(fg, bg)
     key = L.color(*bg)      # coverage 0 is the background itself: leave those pixels alone
     for c in s:

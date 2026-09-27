@@ -68,10 +68,15 @@ def draw():
     if lcd is None:
         return
     _frame += 1
+    lcd.frames(_draw)
+
+
+def _draw():
     d = lcd
-    T.gradient(d, 0, 240, T.RGB["navy"], T.RGB["bg"])
+    T.gradient(d, 0, L.H, T.RGB["navy"], T.RGB["bg"])
     # the die: 48 px body, 8 legs a side, one colour of the rainbow per leg walking round
-    cx, cy = 120, 42
+    small = L.H < 200       # the 1.8": the die, the name and four short rows in 128 px
+    cx, cy = L.W // 2, 26 if small else 42
     if _waiting:
         r = 34 + (_frame % 3) * 2
         d.ellipse(cx, cy, r, r, T.shade("config", 0.5))
@@ -85,14 +90,23 @@ def draw():
         right = T.C[T.RAINBOW[(_frame + 15 - i) % 7]] if _waiting or _frame < 40 else T.C["dim"]
         d.fill_rect(cx - 33, y, 9, 3, left)
         d.fill_rect(cx + 24, y, 9, 3, right)
-    d.center_text(TITLE, 76, L.WHITE, 2)
+    d.center_text(TITLE, 56 if small else 76, L.WHITE, 2)
     done = sum(1 for r in rows if r[2] == L.GREEN)
-    d.fill_rect(40, 96, 160, 3, T.C["ink"])
-    d.fill_rect(40, 96, 40 * done, 3, T.C["learn"])
-    y = 110
+    x0, yb = L.W // 2 - 80, 74 if small else 96
+    d.fill_rect(x0, yb, 160, 3, T.C["ink"])
+    d.fill_rect(x0, yb, 40 * done, 3, T.C["learn"])
+    if small:
+        y = 82
+        for key, text, color in rows:
+            d.fill_rect(4, y + 2, 4, 4, color if color != L.GREY else T.C["config"])
+            d.text((key + " " + text)[:(L.W - 14) // 8], 12, y, color)
+            y += 11
+        d.show()
+        return
+    y, ox = 110, (L.W - 240) // 2
     for key, text, color in rows:
-        I.draw(d, ICON.get(key, "chip"), 20, y - 4, color if color != L.GREY else T.C["config"])
-        d.text(text[:24], 44, y, color)
+        I.draw(d, ICON.get(key, "chip"), ox + 20, y - 4, color if color != L.GREY else T.C["config"])
+        d.text(text[:24], ox + 44, y, color)
         y += 20
-    d.text("%.1fs" % (time.ticks_diff(time.ticks_ms(), _t0) / 1000), 4, 228, T.C["dim"])
+    d.text("%.1fs" % (time.ticks_diff(time.ticks_ms(), _t0) / 1000), 4, L.H - 12, T.C["dim"])
     d.show()

@@ -37,7 +37,7 @@ def gradient(d, y0, y1, a, b, band=8):
     """Horizontal bands from triple a at y0 to b at y1."""
     n = max(1, (y1 - y0) // band)
     for i in range(n):
-        d.fill_rect(0, y0 + i * band, 240, band, L.color(*mix(a, b, i / max(1, n - 1))))
+        d.fill_rect(0, y0 + i * band, L.W, band, L.color(*mix(a, b, i / max(1, n - 1))))
 
 
 def zone_of(view):
