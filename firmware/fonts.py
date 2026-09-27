@@ -20,6 +20,7 @@ EXTRA = {"\u2026": 127, "\u00b7": 128, "\u2014": 129}   # … · —, after "~" 
 
 _fonts = {}
 _pal = {}
+_set = None                 # a candidate font set from tools/fonts/gen.py --try, or None
 
 
 class Font:
@@ -50,8 +51,15 @@ class Font:
 def get(name):
     f = _fonts.get(name)
     if f is None:
-        f = _fonts[name] = Font(FILES[name])
+        f = _fonts[name] = Font(FILES[name] if _set is None else "qf_%s_%s.bin" % (_set, name))
     return f
+
+
+def use(fontset=None):
+    """Draw every size in a candidate set (qf_SET_NAME.bin, emulator only); None: our own."""
+    global _set
+    _set = fontset
+    _fonts.clear()
 
 
 def palette(fg, bg):

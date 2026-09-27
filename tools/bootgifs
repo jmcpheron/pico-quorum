@@ -1,30 +1,57 @@
 #!/bin/sh
-# Capture the boot screen options in emu/sketches/bootfx.py as GIFs in docs/quorum-ui/boot/.
-#   tools/bootgifs [option ...]          (default: all of them)
-# Each frame is drawn by the sketch itself in the emulator (render(option, i)), saved as a PNG,
-# and the PNGs become a GIF at the firmware's 50 ms tick, the last frame held 1.5 s.
+# Capture boot screen animations from a sketch in emu/sketches/ as GIFs.
+#   tools/bootgifs [option ...]                               bootfx's options into docs/quorum-ui/boot/
+#   tools/bootgifs --sketch ethboot [--out DIR] [--stills 20,40] [option ...]
+# The sketch lists its options and their frame counts in FRAMES = {...} and draws frame i of an
+# option with render(option, i). Each frame is drawn by the sketch itself in the emulator, saved
+# as a PNG, and the PNGs become a GIF at the firmware's 50 ms tick, the last frame held 1.5 s,
+# with one 128-colour palette drawn from frames across the whole animation.
+# --stills also keeps the listed frames as PNGs (the emulator's 2x), OPTION-NNN.png, for docs.
 cd "$(dirname "$0")/.." || exit 1
+sketch=bootfx
+out=
+stills=
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --sketch) sketch=$2; shift 2 ;;
+    --out) out=$2; shift 2 ;;
+    --stills) stills=$2; shift 2 ;;
+    *) break ;;
+  esac
+done
+[ -n "$out" ] || { [ "$sketch" = bootfx ] && out=docs/quorum-ui/boot || out=docs/quorum-ui/v2/boot; }
+src=emu/sketches/$sketch.py
+[ -f "$src" ] || { echo "no sketch $src" >&2; exit 1; }
 [ -d emu/node_modules ] || (cd emu && npm install --silent) || exit 1
-out=docs/quorum-ui/boot
 tmp=$(mktemp -d)
 mkdir -p "$out"
 opts="$*"
-[ -n "$opts" ] || opts="quorum plugin hashrain checklist"
+[ -n "$opts" ] || opts=$(sed -n 's/^OPTIONS = (\(.*\))/\1/p' "$src" | tr -d '",')
 for o in $opts; do
-  n=$(sed -n "s/.*\"$o\": \([0-9]*\).*/\1/p" emu/sketches/bootfx.py | head -1)
-  set -- --quiet --exec "bootfx.stop()"
+  n=$(sed -n "s/.*\"$o\": \([0-9]*\).*/\1/p" "$src" | head -1)
+  [ -n "$n" ] || { echo "$o: not in FRAMES of $src" >&2; exit 1; }
+  set -- --quiet --exec "$sketch.stop()"
   i=0
   while [ "$i" -lt "$n" ]; do
-    set -- "$@" --exec "bootfx.render('$o', $i)" --shot "$tmp/$o-$(printf %03d "$i").png"
+    set -- "$@" --exec "$sketch.render('$o', $i)" --shot "$tmp/$o-$(printf %03d "$i").png"
     i=$((i + 1))
   done
-  (cd emu && node headless.mjs bootfx "$@" >/dev/null) || { echo "$o: emulator failed" >&2; exit 1; }
+  (cd emu && node headless.mjs "$sketch" "$@" >/dev/null) || { echo "$o: emulator failed" >&2; exit 1; }
+  for s in $(echo "$stills" | tr ',' ' '); do
+    f=$(printf %03d "$s")
+    cp "$tmp/$o-$f.png" "$out/$o-$f.png" || exit 1
+  done
   uv run --quiet --python 3.11 --with pillow python - "$tmp" "$o" "$out/$o.gif" <<'PY'
 import glob, sys
 from PIL import Image
 tmp, name, dst = sys.argv[1:]
 frames = [Image.open(p).convert("RGB").resize((360, 360), Image.LANCZOS) for p in sorted(glob.glob("%s/%s-*.png" % (tmp, name)))]
-pal = frames[-1].quantize(colors=128, method=Image.Quantize.MEDIANCUT)
+# one palette for the whole GIF, from frames across it (the last frame alone may miss colours)
+picks = frames[::max(1, len(frames) // 15)] + [frames[-1]]
+sheet = Image.new("RGB", (360, 360 * len(picks)))
+for k, f in enumerate(picks):
+    sheet.paste(f, (0, 360 * k))
+pal = sheet.quantize(colors=128, method=Image.Quantize.MEDIANCUT)
 q = [f.quantize(palette=pal, dither=Image.Dither.NONE) for f in frames]
 q[0].save(dst, save_all=True, append_images=q[1:], duration=[50] * (len(q) - 1) + [1500], loop=0, optimize=True, disposal=1)
 print("%-10s %d frames -> %s" % (name, len(q), dst))
