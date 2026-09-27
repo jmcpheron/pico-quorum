@@ -12,7 +12,7 @@ there is where this one starts.
 ## The plan
 
 1. **The boot screen:** a 3-of-5 quorum that becomes the Ethereum diamond. **Picked: the orbit,
-   just dots** (iteration 3).
+   just dots** (iteration 3), with green signatures and a status line (iteration 4).
 2. **Wire it to the real boot.** Each signature is a real boot step finishing, and the spin
    covers the slow ones (see [On the device](#on-the-device)).
 3. **Type.** Five candidate sets on a specimen card and on six real screens: see
@@ -21,28 +21,50 @@ there is where this one starts.
    the home screen, the approvals row, and the moment of signing.
 5. **Every screen, redone,** with before/after pairs like the v1 walkthrough.
 
-## Iteration 3 (2026-09-27): the orbit, just dots
+## Iteration 4 (2026-09-27): more time, a status line, green signatures
 
-You picked the orbit, without the circle. The orbit's path is gone, and so is the faint circle
-the owners landed on. There are only five dots, then only the triangle of the three who sign.
+You asked:
+- Spin the orbit for another cycle; the loading screen could use more time.
+- Show what's happening at the bottom as it goes: joining WiFi, verifying the chip…
+- Make the three signers green, start the solid triangle green, and blend it into the Ethereum
+  logo.
 
 <img src="boot/orbit.gif" width="60%">
 
 | | |
 |---|---|
-| <img src="boot/orbit-008.png"> | <img src="boot/orbit-016.png"> |
-| **Five owners in space,** small and tipped back, stars drifting behind. The far ones are dimmer. | **Swinging round** to face you as they slow. |
-| <img src="boot/orbit-026.png"> | <img src="boot/orbit-044.png"> |
-| **Nearly there.** The stars fade out. | **Landed:** five amber dots, one at the top. Nothing joins them. |
-| <img src="boot/orbit-060.png"> | <img src="boot/orbit-068.png"> |
-| **Signing:** the top, then the bottom left. | **Quorum:** the bottom right signs and the triangle closes. |
-| <img src="boot/orbit-086.png"> | <img src="boot/orbit-104.png"> |
-| **The triangle is a pyramid's face,** and it starts to turn. | **The inverted pyramid rises** underneath. |
-| <img src="boot/orbit-173.png"> | |
-| **The Ethereum diamond** lands on the logo's pose, and the name comes up. | |
+| <img src="boot/orbit-012.png"> | <img src="boot/orbit-050.png"> |
+| **Starting up.** Five owners far out in space. The orbit now takes 3.2 s and 2.4 turns (was 2.2 s and 1.4). | **Joining WiFi** while they swing round to face you. |
+| <img src="boot/orbit-081.png"> | <img src="boot/orbit-104.png"> |
+| **WiFi connected: the top signs,** and turns green. Each step's line slides up and out as the next slides in. | **Chip verified: the bottom left signs,** with a green line to the top. |
+| <img src="boot/orbit-130.png"> | <img src="boot/orbit-140.png"> |
+| **The Safe found: the bottom right signs** and the triangle closes. "Family Safe · 3 of 5". | **The triangle turns solid green.** The two who didn't sign fade away. |
+| <img src="boot/orbit-158.png"> | <img src="boot/orbit-166.png"> |
+| **Loading the queue:** the pyramid turns, and its green blends into Ethereum's blue… | **…and the inverted pyramid rises** underneath. |
+| <img src="boot/orbit-233.png"> | |
+| **Ready.** The diamond lands on the logo's pose, with the name above the last line. | |
 
-It's now the first option in the emulator (`tools/emu run ethboot`). A still cycles to the ring
-and the star.
+- **The status line** is one row at the bottom. A spinner and grey text mean working ("Joining
+  WiFi…"); a green check and white text mean done ("WiFi connected").
+- **Each signature is a boot step.** The timeline pauses before each one, so each step gets about a
+  second. On the device the pauses would last as long as the real step does.
+- **Green** is the theme's "signed" green (the SIGN bar, the checks), which also answers iteration
+  1's question 1. The diamond is still Ethereum's blue.
+- **The name** no longer has "3 of 5 · ready" under it; the status line says "Ready".
+- **Length:** 11.7 s, up from 8.7 s. On the device, most of that would be real waiting anyway.
+
+**Questions for you:**
+1. **The wording:** "Starting up · Joining WiFi · WiFi connected · Checking the chip · Chip
+   verified · Finding the Safe · Family Safe · 3 of 5 · Loading the queue · Ready". Change any of
+   them? It could name the network ("Joining HomeNet") or the key ("Chip verified · 9fad2e82").
+2. **Pauses:** about 1.2 s per step here. Faster, slower, or let the real boot decide (my
+   suggestion)?
+
+## Iteration 3 (2026-09-27): the orbit, just dots
+
+You picked the orbit, without the circle. The orbit's path is gone, and so is the faint circle the
+owners landed on. There are only five dots, then only the triangle of the three who sign. The
+pictures for this iteration were replaced by iteration 4's, which builds on it.
 
 ## Iteration 2 (2026-09-27): no star, two ways in
 
@@ -152,14 +174,14 @@ holds). `tools/emu run ethboot` plays it in the emulator; A replays it.
 
 This is a proposal; none of it is wired up yet. Today `firmware/splash.py` draws the boot checklist.
 
-| Boot step | What it shows |
+| Boot step | What it shows (status line in quotes) |
 |---|---|
-| Screen up | the five owners spin in and land, all amber |
-| WiFi joined | the top signs |
-| The chip answers with its key | the left leg signs |
-| The Safe found, through the service | the right leg signs, the quorum closes |
-| Loading the queue | the diamond spins, as long as it takes |
-| Ready | it lands on the logo, and the home screen follows |
+| Screen up | the five owners spin in and land, all amber: "Starting up", "Joining WiFi" |
+| WiFi joined | the top signs: "WiFi connected", then "Checking the chip" |
+| The chip answers with its key | the bottom left signs: "Chip verified", then "Finding the Safe" |
+| The Safe found, through the service | the bottom right signs, the triangle closes and turns green: "Family Safe · 3 of 5" |
+| Loading the queue | the diamond spins, as long as it takes: "Loading the queue" |
+| Ready | it lands on the logo: "Ready", and the home screen follows |
 
 - **If a step fails,** that owner turns red and the error goes where the name would be, like the
   checklist's error line today.
@@ -208,5 +230,8 @@ Edit this list on GitHub: add a line, tick one off, or write under it. Each iter
 - [x] The star can read as a pentagram: the five owners spin in on a ring or an orbit instead
       (iteration 2)
 - [x] Pick the ring or the orbit: the orbit, just dots, no circle (iteration 3)
+- [x] Orbit one more turn, more time overall (iteration 4)
+- [x] A status line at the bottom: joining WiFi, checking the chip… (iteration 4)
+- [x] Signers green, the triangle solid green, blending into the Ethereum logo (iteration 4)
 - [ ] Pick a font set (FONTS.md, question 1)
 - [ ] (add yours)

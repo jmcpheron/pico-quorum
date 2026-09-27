@@ -4,7 +4,9 @@
 #
 #   1. Five owners arrive, all amber: ready to sign. Three ways in:
 #        ring    they spin round a circle, trailing light, and slow to a stop
-#        orbit   they orbit in space, tilted and far, and swing round to face us: just the dots
+#        orbit   they orbit in space, tilted and far, and swing round to face us: just the dots.
+#                The pick. Signing is green, the triangle turns solid green and blends into the
+#                diamond's blue, and a status line at the bottom names each boot step.
 #        star    a star drawn in one stroke (iteration 1; it reads as a pentagram)
 #   2. Three sign (the top, then the two bottom ones) and turn Ethereum blue. Their lines close
 #      into the tall triangle those three make.
@@ -27,13 +29,21 @@ import quorum_ui as U
 d = L.LCD()
 keys = L.Keys()
 OPTIONS = ("orbit", "ring", "star")     # orbit is the pick (iteration 2); the others for the record
-RING_IN, ORBIT_IN = 40, 44          # frames the ring and orbit take to land; the star's is 20
-FRAMES = {"ring": 170, "orbit": 174, "star": 150}     # literal: tools/bootgifs reads them; 130 + the way in
+RING_IN, ORBIT_IN = 40, 64          # frames the ring and orbit take to land; the star's is 20
+FRAMES = {"ring": 170, "orbit": 234, "star": 150}     # literal: tools/bootgifs reads them
 T = U.THEMES["dark"]
 BG, INK, MUTED = T["bg"], T["text"], T["muted"]
 WAIT = T["warn"]                    # amber: an owner who can sign and hasn't yet
 ETH = (122, 146, 255)               # signed; Ethereum's periwinkle, lifted for a dark screen
 ETH_DARK, ETH_LIGHT = (30, 36, 92), (218, 226, 255)      # the diamond's shading runs between
+OK = T["ok"]                        # signed, in the orbit: the green of every other "signed"
+OK_DARK, OK_LIGHT = (0, 96, 36), (120, 255, 150)         # the green triangle's shading
+# What the drawing below uses; each option's draw function sets it for its frames.
+#   sign     the colour an owner turns when it signs, and the quorum's lines
+#   green    the triangle turns solid green, then blends into the diamond's blue
+#   status   the bottom line names boot steps (and the counter and "3 of 5 · ready" go)
+#   clock    the frame the waiting owners breathe by, when the timeline is paused around them
+STYLE = {"sign": ETH, "green": False, "status": False, "clock": None}
 timer = None
 n = 0
 
@@ -110,10 +120,10 @@ def draw_star(i, lines=True, hoop_too=True):
     for (a, b, at) in ((TOP, LEFT, SIGN_AT[3]), (TOP, RIGHT, SIGN_AT[2]), (LEFT, RIGHT, SIGN_AT[2] + 2)):
         f = ease(span(i, at, at + 6))
         if f > 0:
-            thick(a[0], a[1], int(a[0] + (b[0] - a[0]) * f), int(a[1] + (b[1] - a[1]) * f), ETH, 3)
+            thick(a[0], a[1], int(a[0] + (b[0] - a[0]) * f), int(a[1] + (b[1] - a[1]) * f), STYLE["sign"], 3)
     fill = smooth(span(i, 48, 57))              # the triangle fills in: the pyramid's front face
     if fill > 0:
-        draw_diamond(0.0, fill)
+        draw_diamond(0.0, fill, green=1.0 if STYLE["green"] else 0.0)
     for k, (x, y) in enumerate(STAR):
         born = ease(span(i, born_at(k), born_at(k) + 5))
         if born <= 0:
@@ -126,17 +136,20 @@ def draw_star(i, lines=True, hoop_too=True):
         q = span(i, at, at + 9)
         if 0 < q < 1:                           # a ring goes out as it signs
             rr = int(12 + 18 * q)
-            ring = col(mix(BG, ETH, 1 - q))
+            ring = col(mix(BG, STYLE["sign"], 1 - q))
             d.ellipse(x, y, rr, rr, ring)
             d.ellipse(x, y, rr + 1, rr + 1, ring)
         if i < at:                              # ready and waiting: a slow breath
-            rgb = mix(WAIT, (255, 226, 150), 0.5 + 0.5 * math.sin(i * 0.45 + k))
+            clock = i if STYLE["clock"] is None else STYLE["clock"]
+            rgb = mix(WAIT, (255, 226, 150), 0.5 + 0.5 * math.sin(clock * 0.45 + k))
         else:
-            rgb = mix(WAIT, ETH, span(i, at, at + 3))
+            rgb = mix(WAIT, STYLE["sign"], span(i, at, at + 3))
         node(x, y, int((9 + (3 if at <= i < at + 3 else 0)) * born), rgb)
 
 
 def counter(i):
+    if STYLE["status"]:
+        return
     signed = sum(1 for at in SIGN_AT.values() if i >= at)
     out = 1 - span(i, 56, 62)
     if out <= 0:
@@ -171,9 +184,10 @@ def box(s, y):
     return [(-s, y, s), (s, y, s), (s, y, -s), (-s, y, -s)]
 
 
-def draw_diamond(u, alpha=1.0, yaw=0.0, el=0.0, chev=None, chev_alpha=0.0, pts=None):
+def draw_diamond(u, alpha=1.0, yaw=0.0, el=0.0, chev=None, chev_alpha=0.0, pts=None, green=0.0):
     """The diamond at zoom u (0 = the star's triangle filling the screen, 1 = the logo).
-    chev is how far below its place the inverted pyramid is (None: not there yet)."""
+    chev is how far below its place the inverted pyramid is (None: not there yet). green: how
+    much of the top pyramid is still the quorum's green (0: all Ethereum blue)."""
     s = S0 + (S1 - S0) * u
     k0 = LEFT[1] - TOP[1]
     k = k0 + (K1 - k0) * u                                              # pixels per unit
@@ -208,8 +222,12 @@ def draw_diamond(u, alpha=1.0, yaw=0.0, el=0.0, chev=None, chev_alpha=0.0, pts=N
             continue                                # facing away, or edge-on
         lit = max(0.0, (nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2]) / m)
         rgb = mix(ETH_DARK, ETH_LIGHT, 0.12 + 0.88 * lit)
-        if a < 1:                                   # fade in through the diamond's own dark blue
-            rgb = mix(mix(BG, ETH_DARK, min(1.0, 2 * a)), rgb, a)
+        dark = ETH_DARK
+        if green > 0 and layer == 1:
+            rgb = mix(rgb, mix(OK_DARK, OK_LIGHT, 0.12 + 0.88 * lit), green)
+            dark = mix(ETH_DARK, OK_DARK, green)
+        if a < 1:                                   # fade in through its own dark shade
+            rgb = mix(mix(BG, dark, min(1.0, 2 * a)), rgb, a)
         polys.append((layer * 10 + (v[0][2] + v[1][2] + v[2][2]) / 3, v, rgb))
     polys.sort(key=lambda p: p[0])                  # the bottom pyramid first, then far to near
     for (_, v, rgb) in polys:
@@ -257,13 +275,16 @@ def draw_star_to_eth(i, lines=True, hoop_too=True):
     u = smooth(span(i, 58, 98))
     rise = smooth(span(i, 74, 98))
     nodes = 1 - span(i, 60, 80)
+    green = 1 - smooth(span(i, 62, 86)) if STYLE["green"] else 0.0    # green to Ethereum blue
     draw_diamond(u, 1.0, yaw_at(i), EL * u, 0.5 * (1 - rise) if rise > 0 else None, rise,
-                 (int(9 * nodes), ETH) if nodes > 0.1 else None)
+                 (int(9 * nodes), mix(ETH, STYLE["sign"], green) if STYLE["green"] else STYLE["sign"])
+                 if nodes > 0.1 else None, green)
     t = ease(span(i, 100, 116))                     # the name
     if t > 0:
         yy = int(172 + 12 * (1 - t))
         center("PicoQuorum", yy, "bold26", mix(BG, INK, t))
-        center("3 of 5 · ready", yy + 34, "sans14", mix(BG, MUTED, t))
+        if not STYLE["status"]:
+            center("3 of 5 · ready", yy + 34, "sans14", mix(BG, MUTED, t))
 
 
 # ----------------------------------------------------------------------------- the ways in
@@ -341,18 +362,88 @@ def orbit_xy(k, spin, tilt, yaw, scale):
     return SX + x * scale * p, SY + y * scale * p, z, p
 
 
+# The orbit's timeline. The star's (which the rest is drawn in) pauses before each signature, so
+# each boot step gets its moment: STALLS are (star frame, frames to hold there).
+STALLS = ((20, 10), (30, 15), (39, 15))
+
+
+def star_frame(i):
+    """The star's frame for the orbit's frame i (from the landing on)."""
+    m = 20 + (i - ORBIT_IN)
+    for (v, n) in STALLS:
+        if m > v:
+            m = max(v, m - n)
+    return m
+
+
+def orbit_frame(m):
+    """The first orbit frame showing the star's frame m."""
+    i = ORBIT_IN
+    while star_frame(i) < m:
+        i += 1
+    return i
+
+
+# The bottom line: (from frame, text, done). On the device each is a real step, and a signature
+# lands when its step does (see docs/quorum-ui/v2/README.md, "On the device").
+WIFI, CHIP, SAFE = (orbit_frame(SIGN_AT[k]) for k in (0, 3, 2))
+NAME = orbit_frame(100)
+STATUS = ((0, "Starting up", False), (22, "Joining WiFi", False),
+          (WIFI, "WiFi connected", True), (WIFI + 12, "Checking the chip", False),
+          (CHIP, "Chip verified", True), (CHIP + 12, "Finding the Safe", False),
+          (SAFE, "Family Safe \u00b7 3 of 5", True), (SAFE + 22, "Loading the queue", False),
+          (NAME, "Ready", True))
+SLIDE = 6                           # frames a line takes to slide in (and the old one out)
+
+
+def status_line(i):
+    now = 0
+    while now + 1 < len(STATUS) and STATUS[now + 1][0] <= i:
+        now += 1
+    t = ease(span(i, STATUS[now][0], STATUS[now][0] + SLIDE)) if now or i >= SLIDE else ease(span(i, 0, 10))
+    if now and t < 0.6:                             # the last one, leaving upward, gone early
+        status_row(i, STATUS[now - 1], -int(18 * t), (1 - t / 0.6) ** 2)
+    status_row(i, STATUS[now], int(18 * (1 - t)), t * t)
+
+
+def status_row(i, st, dy, a):
+    if a <= 0.02:
+        return
+    _, text, done = st
+    font = "sans14"
+    w = F.width(text, font) + 22
+    x, y = (240 - w) // 2, 214 + dy
+    if done:                                        # a green check
+        d.ellipse(x + 7, y + 9, 7, 7, col(mix(BG, OK, a)), True)
+        thick(x + 4, y + 9, x + 6, y + 12, T["on_ok"], 2)
+        thick(x + 6, y + 12, x + 10, y + 6, T["on_ok"], 2)
+    else:
+        for k in range(8):                          # a small spinner
+            ang = math.radians(k * 45)
+            on = (i // 2) % 8 == k
+            d.pixel(int(x + 7 + 5 * math.cos(ang)), int(y + 9 + 5 * math.sin(ang)),
+                    col(mix(BG, INK if on else MUTED, a)))
+            if on:
+                d.ellipse(int(x + 7 + 5 * math.cos(ang)), int(y + 9 + 5 * math.sin(ang)), 1, 1,
+                          col(mix(BG, INK, a)), True)
+    F.text(d, text + ("" if done else "\u2026"), x + 22, y, font, mix(BG, INK if done else MUTED, a), BG)
+
+
 def draw_orbit(i):
+    STYLE.update(sign=OK, green=True, status=True, clock=i)
     if i >= ORBIT_IN:
-        return draw_star_to_eth(i - ORBIT_IN + 20, lines=False, hoop_too=False)
+        draw_star_to_eth(star_frame(i), lines=False, hoop_too=False)
+        status_line(i)
+        return
     d.fill(col(BG))
-    face = smooth(span(i, 6, ORBIT_IN - 4))             # swinging round to face us
+    face = smooth(span(i, 20, ORBIT_IN - 4))            # swinging round to face us
     tilt, yaw = math.radians(74) * (1 - face), math.radians(-28) * (1 - face)
-    scale = 0.45 + 0.55 * ease(span(i, 0, ORBIT_IN - 6))
+    scale = 0.45 + 0.55 * ease(span(i, 10, ORBIT_IN - 6))
     fade = 1 - span(i, ORBIT_IN - 16, ORBIT_IN)
     for (x, y, b) in SPACE:                             # a few stars, drifting, gone by the landing
         c = mix(BG, (b, b, b + 20), fade * ease(span(i, 0, 8)))
         d.pixel(int(x - i * 0.4) % 240, y, col(c))
-    spin = spin_at(i, ORBIT_IN, -504)                   # 1.4 turns, landing top-up
+    spin = spin_at(i, ORBIT_IN, -864)                   # 2.4 turns, landing top-up
     owners = []
     for k in range(5):
         born = ease(span(i, 2 * k, 2 * k + 7))
@@ -361,12 +452,21 @@ def draw_orbit(i):
     owners.sort(key=lambda o: o[0][2])                  # far ones first
     for ((x, y, z, p), k, born) in owners:
         near = 0.55 + 0.45 * min(1.0, max(0.0, (z / SR + 1) / 2 + face))
-        node(int(x), int(y), max(1, int(9 * scale * p * born)),
-             mix(BG, waiting(k, i - ORBIT_IN + 20), born * near))
-    lead_in(i, ORBIT_IN)
+        node(int(x), int(y), max(1, int(9 * scale * p * born)), mix(BG, waiting(k, i), born * near))
+    status_line(i)
 
 
-DRAW = {"ring": draw_ring, "orbit": draw_orbit, "star": draw_star_to_eth}
+def draw_ring_(i):
+    STYLE.update(sign=ETH, green=False, status=False, clock=None)
+    draw_ring(i)
+
+
+def draw_star_(i):
+    STYLE.update(sign=ETH, green=False, status=False, clock=None)
+    draw_star_to_eth(i)
+
+
+DRAW = {"ring": draw_ring_, "orbit": draw_orbit, "star": draw_star_}
 
 
 def render(name, i):
