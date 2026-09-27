@@ -1,16 +1,19 @@
-# Boot screen, take 2: a 3-of-5 quorum that becomes the Ethereum diamond. A replays, X stops.
+# Boot screen, take 2: a 3-of-5 quorum that becomes the Ethereum diamond. A = next option, X stops.
 #   tools/emu run ethboot                       watch it in the emulator
-#   tools/bootgifs --sketch ethboot star        capture it as a GIF for docs/quorum-ui/v2/
+#   tools/bootgifs --sketch ethboot             capture each option as a GIF for docs/quorum-ui/v2/
 #
-#   1. Five owners on a star, all amber: ready to sign.
-#   2. Three sign (the top, then the two legs) and turn Ethereum blue. Their lines close into
-#      the tall triangle the star's top and legs make.
+#   1. Five owners arrive, all amber: ready to sign. Three ways in:
+#        ring    they spin round a circle, trailing light, and slow to a stop
+#        orbit   they orbit in space, tilted and far, and swing round to face us
+#        star    a star drawn in one stroke (iteration 1; it reads as a pentagram)
+#   2. Three sign (the top, then the two bottom ones) and turn Ethereum blue. Their lines close
+#      into the tall triangle those three make.
 #   3. That triangle is one face of a pyramid seen head-on. The camera pulls back and up, the
 #      pyramid turns, and an inverted pyramid rises underneath. Together they are the Ethereum
 #      diamond, spinning on its axis.
 #   4. It slows into the logo's own pose, a corner toward us, and the name comes up.
 #
-# Every frame is a function of its number (render("star", i)), like emu/sketches/bootfx.py, so
+# Every frame is a function of its number (render("ring", i)), like emu/sketches/bootfx.py, so
 # the GIFs are exact. The diamond is ten 3D points turned and projected each frame, then drawn as
 # flat filled triangles (framebuf.poly, in C), back faces dropped and the rest painted far to near:
 # at most four triangles a frame.
@@ -23,8 +26,9 @@ import quorum_ui as U
 
 d = L.LCD()
 keys = L.Keys()
-OPTIONS = ("star",)
-FRAMES = {"star": 150}
+OPTIONS = ("ring", "orbit", "star")
+RING_IN, ORBIT_IN = 40, 44          # frames the ring and orbit take to land; the star's is 20
+FRAMES = {"ring": 170, "orbit": 174, "star": 150}     # literal: tools/bootgifs reads them; 130 + the way in
 T = U.THEMES["dark"]
 BG, INK, MUTED = T["bg"], T["text"], T["muted"]
 WAIT = T["warn"]                    # amber: an owner who can sign and hasn't yet
@@ -72,8 +76,9 @@ def node(x, y, r, rgb):
 
 
 # ----------------------------------------------------------------------------- the star
-# Five owners at the points of a star, numbered clockwise from the top. The quorum is the top and
-# the two legs: a tall "golden" triangle, 36 degrees at the apex.
+# Five owners evenly round a circle, numbered clockwise from the top (the points of a star, which
+# iteration 1 drew). The quorum is the top and the two at the bottom: a tall "golden" triangle,
+# 36 degrees at the apex.
 SX, SY, SR = 120, 116, 92
 STAR = [(int(SX + SR * math.cos(math.radians(-90 + 72 * k))),
          int(SY + SR * math.sin(math.radians(-90 + 72 * k)))) for k in range(5)]
@@ -87,10 +92,13 @@ def born_at(k):
     return DRAW0 + (DRAW1 - DRAW0) * STROKE.index(k) / 5
 
 
-def draw_star(i):
+def draw_star(i, lines=True):
     gone = smooth(span(i, 46, 58))              # the two who didn't sign fade away
     line = mix(BG, WAIT, 0.32 * (1 - gone))
-    t = span(i, DRAW0, DRAW1) * 5               # the stroke, one edge after another
+    if not lines:                               # the ring they spun in, in place of the star
+        if gone < 1:
+            hoop(SX, SY, SR, mix(BG, WAIT, RING_INK * (1 - gone)))
+    t = span(i, DRAW0, DRAW1) * 5 if lines else 0   # the stroke, one edge after another
     for e in range(5):
         f = t - e
         if f <= 0 or gone >= 1:
@@ -240,11 +248,11 @@ def yaw_at(i):
     return math.radians(deg)
 
 
-def draw_star_to_eth(i):
+def draw_star_to_eth(i, lines=True):
     d.fill(col(BG))
     counter(i)
     if i < 58:
-        draw_star(i)
+        draw_star(i, lines)
         return
     u = smooth(span(i, 58, 98))
     rise = smooth(span(i, 74, 98))
@@ -258,7 +266,114 @@ def draw_star_to_eth(i):
         center("3 of 5 · ready", yy + 34, "sans14", mix(BG, MUTED, t))
 
 
-DRAW = {"star": draw_star_to_eth}
+# ----------------------------------------------------------------------------- the ways in
+# Both end with the owners exactly where the star had them, at frame 20 of the star's timeline
+# (drawn, all waiting), and it carries on from there.
+RING_INK = 0.28                     # the circle, as a fraction of amber
+
+
+def hoop(cx, cy, r, rgb):
+    c = col(rgb)
+    d.ellipse(cx, cy, r, r, c)
+    d.ellipse(cx, cy, r - 1, r - 1, c)
+
+
+def spin_at(i, frames, turn):
+    """Degrees still to go: turn at the start, 0 at the end, slowing all the way."""
+    return turn * (1 - ease(i / frames))
+
+
+def waiting(k, m):
+    """An owner's amber at frame m of the star's timeline, breathing."""
+    return mix(WAIT, (255, 226, 150), 0.5 + 0.5 * math.sin(m * 0.45 + k))
+
+
+def lead_in(i, frames):
+    """"3 of 5 to sign" fading in over the last half-second."""
+    t = span(i, frames - 12, frames)
+    if t > 0:
+        center("3 of 5 to sign", 214, "sans14", mix(BG, MUTED, t))
+
+
+def on_circle(k, deg, r=SR):
+    a = math.radians(-90 + 72 * k + deg)
+    return r * math.cos(a), r * math.sin(a)
+
+
+def draw_ring(i):
+    if i >= RING_IN:
+        return draw_star_to_eth(i - RING_IN + 20, lines=False)
+    d.fill(col(BG))
+    hoop(SX, SY, SR, mix(BG, WAIT, RING_INK * ease(span(i, 0, 12))))
+    spin = spin_at(i, RING_IN, -432)                    # 1.2 turns, clockwise, landing top-up
+    tail = 80 * (1 - i / RING_IN) ** 1.5                # degrees of comet tail, shrinking as it slows
+    for k in range(5):
+        born = ease(span(i, 2 * k, 2 * k + 7))
+        if born <= 0:
+            continue
+        if tail > 2:                                    # the tail, fading along the ring behind it
+            x0, y0 = on_circle(k, spin)
+            for j in range(1, 9):
+                x1, y1 = on_circle(k, spin - tail * j / 8)
+                thick(int(SX + x0), int(SY + y0), int(SX + x1), int(SY + y1),
+                      mix(BG, WAIT, 0.9 * born * (1 - j / 9)), 3)
+                x0, y0 = x1, y1
+        x, y = on_circle(k, spin)
+        node(int(SX + x), int(SY + y), int(9 * born), mix(BG, waiting(k, i - RING_IN + 20), born))
+    lead_in(i, RING_IN)
+
+
+def rnd(a):
+    x = (a * 73856093) ^ 0x5bd1e995
+    x = (x ^ (x >> 13)) * 1274126177
+    return (x ^ (x >> 16)) & 0xffff
+
+
+SPACE = [(rnd(3 * k) % 240, rnd(3 * k + 1) % 240, 40 + rnd(3 * k + 2) % 90) for k in range(28)]
+
+
+def orbit_xy(k, spin, tilt, yaw, scale):
+    """An owner on the circle, the circle tipped back by tilt and turned by yaw: screen x, y, depth."""
+    x, y = on_circle(k, spin)
+    y, z = y * math.cos(tilt), y * math.sin(tilt)       # tip the top away from us
+    x, z = x * math.cos(yaw) + z * math.sin(yaw), -x * math.sin(yaw) + z * math.cos(yaw)
+    p = 320 / (320 - z * scale)                         # nearer is bigger
+    return SX + x * scale * p, SY + y * scale * p, z, p
+
+
+def draw_orbit(i):
+    if i >= ORBIT_IN:
+        return draw_star_to_eth(i - ORBIT_IN + 20, lines=False)
+    d.fill(col(BG))
+    face = smooth(span(i, 6, ORBIT_IN - 4))             # swinging round to face us
+    tilt, yaw = math.radians(74) * (1 - face), math.radians(-28) * (1 - face)
+    scale = 0.45 + 0.55 * ease(span(i, 0, ORBIT_IN - 6))
+    fade = 1 - span(i, ORBIT_IN - 16, ORBIT_IN)
+    for (x, y, b) in SPACE:                             # a few stars, drifting, gone by the landing
+        c = mix(BG, (b, b, b + 20), fade * ease(span(i, 0, 8)))
+        d.pixel(int(x - i * 0.4) % 240, y, col(c))
+    spin = spin_at(i, ORBIT_IN, -504)                   # 1.4 turns, landing top-up
+    path = mix(BG, WAIT, RING_INK * ease(span(i, 0, 12)))
+    prev = None
+    for s in range(37):                                 # the orbit itself
+        x, y, _, _ = orbit_xy(0, s * 10, tilt, yaw, scale)
+        if prev:
+            d.line(int(prev[0]), int(prev[1]), int(x), int(y), col(path))
+        prev = (x, y)
+    owners = []
+    for k in range(5):
+        born = ease(span(i, 2 * k, 2 * k + 7))
+        if born > 0:
+            owners.append((orbit_xy(k, spin, tilt, yaw, scale), k, born))
+    owners.sort(key=lambda o: o[0][2])                  # far ones first
+    for ((x, y, z, p), k, born) in owners:
+        near = 0.55 + 0.45 * min(1.0, max(0.0, (z / SR + 1) / 2 + face))
+        node(int(x), int(y), max(1, int(9 * scale * p * born)),
+             mix(BG, waiting(k, i - ORBIT_IN + 20), born * near))
+    lead_in(i, ORBIT_IN)
+
+
+DRAW = {"ring": draw_ring, "orbit": draw_orbit, "star": draw_star_to_eth}
 
 
 def render(name, i):
@@ -267,17 +382,21 @@ def render(name, i):
 
 
 # ----------------------------------------------------------------------------- live
+opt = 0
+
+
 def tick(_):
-    global n
+    global n, opt
     for k in keys.pressed():
         if k == "A":
-            n = 0
+            opt, n = (opt + 1) % len(OPTIONS), 0
         elif k == "X":
             stop()
             return
-    render("star", min(n, FRAMES["star"] - 1))
+    name = OPTIONS[opt]
+    render(name, min(n, FRAMES[name] - 1))
     n += 1
-    if n > FRAMES["star"] + 30:          # hold the last frame a moment, then play it again
+    if n > FRAMES[name] + 30:            # hold the last frame a moment, then play it again
         n = 0
 
 

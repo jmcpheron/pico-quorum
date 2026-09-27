@@ -11,7 +11,8 @@ there is where this one starts.
 
 ## The plan
 
-1. **The boot screen** (this iteration): a 3-of-5 star whose quorum becomes the Ethereum diamond.
+1. **The boot screen:** a 3-of-5 quorum that becomes the Ethereum diamond. Iteration 2 replaces
+   the star with five owners spinning in: two options below.
 2. **Wire it to the real boot.** Each signature is a real boot step finishing, and the spin
    covers the slow ones (see [On the device](#on-the-device)).
 3. **Type.** Five candidate sets on a specimen card and on six real screens: see
@@ -19,6 +20,44 @@ there is where this one starts.
 4. **Colour and graphics.** Bring the boot screen's palette and shapes into the approval screens:
    the home screen, the approvals row, and the moment of signing.
 5. **Every screen, redone,** with before/after pairs like the v1 walkthrough.
+
+## Iteration 2 (2026-09-27): no star, two ways in
+
+You asked: the star could read as a pentagram. Drop it, and have the five owners spin in a
+circle or in space, then carry on to the top and the two bottom ones and the Ethereum diamond.
+
+There are two options. Both end with the owners exactly where the star had them. From there it's
+iteration 1 unchanged, minus the star's lines: the three sign, the triangle closes, and the
+diamond spins.
+
+| **A. Ring** | **B. Orbit** |
+|---|---|
+| <img src="boot/ring.gif"> | <img src="boot/orbit.gif"> |
+| Five owners spin round a faint circle, each trailing a comet tail of light. They slow down and stop with one at the top. Flat and simple, like a dial settling. | Five owners orbit in space: the circle starts small and tipped back like a planet's ring, with a few stars drifting behind. It swings round to face you and grows as it slows, and the stars fade out as it lands. |
+
+| | | |
+|---|---|---|
+| <img src="boot/ring-008.png"> | <img src="boot/ring-016.png"> | <img src="boot/ring-026.png"> |
+| <img src="boot/orbit-008.png"> | <img src="boot/orbit-016.png"> | <img src="boot/orbit-026.png"> |
+
+Both land here, and the signing starts:
+
+| | |
+|---|---|
+| <img src="boot/ring-040.png"> | <img src="boot/ring-066.png"> |
+| **Landed.** Five amber owners on a faint circle, no lines between them. | **Quorum.** The top and the two bottom ones sign; only their triangle is drawn. The circle fades out with the two who didn't sign. |
+
+- **What stays:** the three signers, the triangle, the pyramid and the spinning diamond are all
+  iteration 1's. Only the first 2 seconds change.
+- **Length:** the ring takes 2 s to land and the orbit 2.2 s, so each runs about a second longer
+  than the star did (8.5 s in all).
+- **The star is still in the sketch** as a third option, so iteration 1's GIF below can be
+  regenerated.
+
+**Questions for you:**
+1. **Ring or orbit?** I lean to the **orbit**: it has more depth and matches the 3D diamond it
+   becomes. The ring is calmer and cheaper to draw on the Pico.
+2. **The faint circle:** keep it (it says "these five belong together"), or just the five dots?
 
 ## Iteration 1 (2026-09-26): star to Ethereum
 
@@ -90,9 +129,9 @@ holds). `tools/emu run ethboot` plays it in the emulator; A replays it.
 
 This is a proposal; none of it is wired up yet. Today `firmware/splash.py` draws the boot checklist.
 
-| Boot step | What the star shows |
+| Boot step | What it shows |
 |---|---|
-| Screen up | the star draws in, five amber owners |
+| Screen up | the five owners spin in and land, all amber |
 | WiFi joined | the top signs |
 | The chip answers with its key | the left leg signs |
 | The Safe found, through the service | the right leg signs, the quorum closes |
@@ -127,8 +166,8 @@ telling 0/O and 1/l/I apart, which matters on a device for comparing addresses. 
 ## Run it yourself
 
 ```sh
-tools/emu run ethboot                                   # play it in the emulator; A replays
-tools/bootgifs --sketch ethboot --stills 20,35,46 star  # this page's GIF and stills
+tools/emu run ethboot                                   # play it in the emulator; A = next option
+tools/bootgifs --sketch ethboot --stills 8,16,26 orbit  # an option's GIF and stills
 tools/emu ship ethboot                                  # a one-off run on the Pico
 ```
 
@@ -143,5 +182,8 @@ Edit this list on GitHub: add a line, tick one off, or write under it. Each iter
 - [x] A new boot screen: a 3-of-5 star, the top and legs sign, the triangle becomes the top of a
       rotating Ethereum diamond (iteration 1)
 - [x] Fonts: candidates side by side on real screens ([FONTS.md](FONTS.md))
+- [x] The star can read as a pentagram: the five owners spin in on a ring or an orbit instead
+      (iteration 2)
+- [ ] Pick the ring or the orbit (iteration 2, question 1)
 - [ ] Pick a font set (FONTS.md, question 1)
 - [ ] (add yours)
