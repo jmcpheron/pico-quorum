@@ -283,8 +283,8 @@ ALLOW_SOFT_KEY = True   # if the virtual chip is missing, run the wallet on a so
 
 // RGB565 big-endian frame -> RGBA, for canvases and PNGs.
 export function frameToRGBA(frame, out) {
-  out = out || new Uint8ClampedArray(W * H * 4);
-  for (let i = 0, o = 0; i < FRAME_BYTES; i += 2, o += 4) {
+  out = out || new Uint8ClampedArray(frame.length * 2);
+  for (let i = 0, o = 0; i < frame.length; i += 2, o += 4) {
     const c = (frame[i] << 8) | frame[i + 1];
     out[o] = (c >> 8) & 0xf8; out[o + 1] = (c >> 3) & 0xfc; out[o + 2] = (c << 3) & 0xf8; out[o + 3] = 255;
   }

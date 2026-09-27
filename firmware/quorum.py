@@ -1102,6 +1102,9 @@ def start():
     elif first:
         verify = PROD or bool(getattr(secrets, "QUORUM_TLS_VERIFY", True))
         svc = txservice.Service(first["base"], txservice.checksum(first["addr"]), API_KEY, verify=verify, floor=image.DATE)
+    if state == "boot":
+        splash.step("app", "Starting console", L.GREY)
+    splash.finish(keys, wait=state == "boot")
     splash_until = time.ticks_add(time.ticks_ms(), 1500)
     last_activity = time.ticks_ms()
     dirty = True
