@@ -279,13 +279,29 @@ def who_line(d, q, label, a, y, pc, bg):
 
 
 # ----------------------------------------------------------------------------- home
+def refused_short(why):
+    """The reason a transaction is refused, in a few words for its row on home."""
+    for key, short in (("another Safe", "other Safe"), ("delegatecall", "delegatecall"), ("not a transaction", "malformed"),
+                       ("Operation", "bad operation"), ("safeTxHash", "no hash"), ("hash", "bad hash"), ("decoded", "unreadable")):
+        if key in why:
+            return short
+    return "see why"
+
+
 def draw_home(q):
     d = q.d
     d.fill(c("bg"))
-    x = M + chain_pill(d, q, M, 4) + 6
-    version_pill(d, q, x, 4)
     ok = q.net_ok
-    s = "Synced" if ok else "Offline"
+    many = len(q.WATCH) > 1
+    if many:        # several Safes: how many answered, and the pill is the highlighted row's chain
+        down = sum(1 for w in q.WATCH if w["tried"] and not w["ok"])
+        s = ("%d offline" % down) if down else "%d synced" % len(q.WATCH)
+    else:
+        s = "Synced" if ok else "Offline"
+    x = M + chain_pill(d, q, M, 4, full=not many) + 6
+    v, vok = q.safe_version()
+    if v and (not vok or x + F.width("Safe v" + v, "sans12") + 12 < 230 - F.width(s, "sans12") - 14):
+        version_pill(d, q, x, 4)        # when it fits; always when the version is one this console can't sign for
     txt_r(d, s, 230, 4, "sans12", "muted")
     d.ellipse(230 - F.width(s, "sans12") - 8, 12, 3, 3, c("ok" if ok else "bad"), True)
     blockies.draw(d, q.SAFE_ADDR, M, 30, 4)
@@ -314,8 +330,9 @@ def draw_home(q):
             txt_c(d, "No service", 150, "bold18")
             txt_c(d, q.net_err[:30], 174, "sans14", "muted")
             txt_c(d, (q.BASE or "")[:34], 192, "mono13", "faint")
-    top = max(0, min(q.sel - 3, len(q.queue) - 4))
-    for i in range(top, min(len(q.queue), top + 4)):
+    n = 3 if q.outside else 4        # the outside-signatures warning takes the fourth row
+    top = max(0, min(q.sel - (n - 1), len(q.queue) - n))
+    for i in range(top, min(len(q.queue), top + n)):
         e = q.queue[i]
         lvl = "red" if e["why"] else e["r"]["level"]
         sel = i == q.sel
@@ -327,11 +344,11 @@ def draw_home(q):
         con = e["r"].get("contract")
         lg = "refused" if e["why"] else "send"
         if con and not e["why"]:
-            name, lg, known = ident(q, con)
+            name, lg, known = decode.identify(e["w"]["ctx"], con) if e.get("w") and e["w"]["ctx"] else ident(q, con)
             lg = lg if known and lg else None
         logo(d, lg, 51, y + 12, 7)
         if e["why"]:
-            what = "Refused · " + ("other Safe" if "another Safe" in e["why"] else "bad hash")
+            what = "Refused · " + refused_short(e["why"])
         else:
             what = e["r"]["summary"]
         f = "bold14" if sel else "sans14"
@@ -343,10 +360,17 @@ def draw_home(q):
         elif e["why"]:
             st, sc = "—", "bad"
         else:
-            st, sc = "%d/%d" % (len(e["conf"]), q.threshold()), "muted"
+            st, sc = "%d/%d" % (len(e["conf"]), q.threshold(e["w"])), "muted"
         txt_r(d, st, 226, y + 4, "sans12", sc, fill)
+        if many:        # which chain the row's Safe is on, in its pill colour
+            d.fill_rect(230, y + 5, 3, 15, c(CHAIN.get(e["w"]["chain"], ((120, 120, 120), 0))[0]))
         y += 28
-    footer_hints(d, q, (("A", "Open"), ("B", "Owners"), ("X", "Chip")))
+    if q.outside:
+        rrect(d, 6, 190, 228, 24, 5, "warn_bg")
+        warn_sign(d, 18, 202, 8)
+        txt(d, fit("key used %d\u00d7 outside this console" % q.outside, 200, "sans12"),
+            30, 196, "sans12", "warn_text", "warn_bg")
+    footer_hints(d, q, (("A", "Open"), ("B", "Owners"), ("X", "Device")))
     d.show()
 
 
@@ -632,7 +656,7 @@ def draw_result(q):
 def draw_owners(q):
     d = q.d
     d.fill(c("bg"))
-    txt(d, "Owners", M, 4, "bold18")
+    txt(d, fit(q.SAFE["name"], 110, "bold18") if len(q.WATCH) > 1 else "Owners", M, 4, "bold18")
     if q.owners():
         txt_r(d, "%d of %d must approve" % (q.threshold(), len(q.owners())), 230, 9, "sans12", "muted")
     y = 34
@@ -647,7 +671,10 @@ def draw_owners(q):
             y += 14
         y += 7
     version_pill(d, q, M, 193)
-    txt_r(d, "this key " + (q.fingerprint() or "none"), 230, 195, "sans12", "faint")
+    k = "this key " + (q.fingerprint() or "none")
+    if q.counter is not None:
+        k += " \u00b7 use #%d" % q.counter
+    txt_r(d, k, 230, 195, "sans12", "faint")
     footer_hints(d, q, (("B", "Back"),))
     d.show()
 
@@ -665,10 +692,101 @@ def draw_nochip(q):
     d.show()
 
 
+def notice(q, ok, title, lines, hints=()):
+    """A plain page: a mark, a title and a few lines. The states where the console signs nothing."""
+    d = q.d
+    d.fill(c("bg"))
+    mark(d, ok, 120, 44, 20)
+    txt_c(d, title, 72, "bold26")
+    y = 110
+    for k, s in enumerate(lines):
+        for line in F.wrap(s, 220, "sans14"):
+            if y > 200:
+                break
+            txt_c(d, line, y, "sans14", "text" if k == 0 else "muted")
+            y += 18
+    if hints:
+        footer_hints(d, q, hints)
+    d.show()
+
+
+def draw_pinfail(q):
+    """The chip, slot or key is not the one secrets.QUORUM_EXPECT pins, or nothing is pinned."""
+    d = q.d
+    exp = q.EXPECT or {}
+    d.fill(c("bg"))
+    mark(d, False, 120, 36, 18)
+    txt_c(d, "Not the pinned key" if q.EXPECT else ("Not a pinned chip" if q.EXPECTS else "Not pinned"), 60, "bold18")
+    txt_c(d, fit(q.pin_why or "", 224, "sans14"), 84, "sans14", "bad")
+    y = 110
+    rows = (("chip", q.serial[-8:] or "none", str(exp.get("serial", ""))[-8:] or "-"),
+            ("slot", str(q.sig.slot) if q.sig else "-", str(exp.get("slot", "-"))),
+            ("owner", short(q.me) if q.me else "none", short(str(exp["owner"])) if exp.get("owner") else "-"))
+    txt(d, "here", 64, y, "sans12", "muted")
+    txt(d, "pinned", 156, y, "sans12", "muted")
+    y += 16
+    for k, a, b in rows:
+        txt(d, k, M, y, "sans12", "muted")
+        txt(d, fit(a, 88, "mono13"), 64, y, "mono13", "text" if a == b else "bad")
+        txt(d, fit(b, 80, "mono13"), 156, y, "mono13", "text")
+        y += 18
+    txt_c(d, "Nothing will be signed." if q.EXPECT else "tools/fw pin adds this chip.", 190, "sans14", "muted")
+    footer_hints(d, q, (("A", "Check again"),))
+    d.show()
+
+
+def draw_unconfigured(q):
+    notice(q, False, "No Safe", ["secrets.py has no QUORUM_SAFES.", "This console signs only for the Safes",
+                                "listed there (docs/guide/SETUP.md)."])
+
+
+def draw_crashed(q, why=""):
+    import image
+    notice(q, False, "Stopped", ["The console failed %d times in a row and signs nothing now." % q.fails,
+                                why[:60], "build " + image.BUILD, "B restarts it; error.log has the details."],
+           (("B", "Restart"),))
+
+
+def draw_device(q):
+    import image, gc
+    d = q.d
+    d.fill(c("bg"))
+    txt(d, "Device", M, 4, "bold18")
+    txt_r(d, image.IMAGE + " " + image.BUILD, 230, 9, "sans12", "muted")
+    import chips
+    name = q.chip["name"] + " \u00b7 " if q.chip else ""
+    rows = [("Chip", (name + (q.serial[-8:] if q.serial else (q.sig.name if q.sig else "none")))[:22]),
+            ("Slot", "%d%s \u00b7 %s" % (q.sig.slot if q.sig else -1, " locked" if q.row and q.row.get("locked") else "",
+                                         chips.PROFILE_SHORT.get(q.profile, q.profile or "-"))),
+            ("Key", q.fingerprint() or "none"),
+            ("Pin", "ok" if q.pin_ok and q.EXPECT else ("dev: none" if q.pin_ok else "FAIL")),
+            ("Key uses", "#%d" % q.counter if q.counter is not None else "not counted"),
+            ("Service", ("%s \u00b7 %d req" % (q.svc.tls, q.svc.requests)) if q.svc else "none"),
+            ("Polls", "%d s / %d s idle" % (q.POLL_MS // 1000, q.IDLE_POLL_MS // 1000)),
+            ("Memory", "%d KB free" % (gc.mem_free() // 1024))]
+    y = 32
+    for k, v in rows:
+        txt(d, k, M, y, "sans14", "muted")
+        txt_r(d, v, 230, y, "mono13", "bad" if v == "FAIL" else "text")
+        y += 20
+    if q.net_err and not q.net_ok:
+        txt(d, fit("Last error: " + q.net_err, 220, "sans12"), M, y + 2, "sans12", "warn")
+    footer_hints(d, q, (("B", "Back"),))
+    d.show()
+
+
 def draw(q):
     s = q.state
     if s == "nochip":
         draw_nochip(q)
+    elif s == "pinfail":
+        draw_pinfail(q)
+    elif s == "unconfigured":
+        draw_unconfigured(q)
+    elif s == "crashed":
+        draw_crashed(q)
+    elif s == "device":
+        draw_device(q)
     elif s in ("review", "hold"):
         draw_review(q)
     elif s == "result":

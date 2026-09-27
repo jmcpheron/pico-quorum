@@ -80,7 +80,23 @@ ATECC508A complete datasheet (DS20005927A), and cryptoauthlib. Confidence is hig
 Not verified on silicon: the Lock error code for a refused lock, CountMatch before the data lock,
 and the factory contents of the data slots.
 
-### Recommendation
+### Chip #2 and later: quorum v1
+
+Fresh chips don't get this table. They get quorum v1: one sealed signing key, slots 1-15 dead,
+CountMatch off, and each zone locked against a CRC the chip checks. The ceremony is in the ceremony
+image. See [PROVISIONING.md](PROVISIONING.md).
+
+Chip #1 stays as it is. The console pins it with `QUORUM_EXPECT = {"serial": "0123f3acfd2a826bee",
+"slot": 0, "owner": "0x2843705391b7E2cf06b0b964b532Ad9891535E53", "locked": True}` (`tools/fw pin`).
+The chip map no longer writes the test table or locks a zone without a CRC. Its data zone stays
+open: no CountMatch trap is sprung.
+
+### Decision (2026-09-25)
+
+Slot 0 only, after rung 2. **Done:** slot 0 is sealed and the data zone is still open. Slot 2 is
+the scratch key and slot 7 is free. The next chips get their own config and a full ceremony.
+
+### Recommendation (as written before the decision)
 
 - **Lock slot 0 only, and only after the ladder has proven it.**
   - Leave the data zone open on this chip. Its lock buys nothing for the multisig, and it springs
@@ -97,13 +113,23 @@ and the factory contents of the data slots.
 
 - [x] Owner address for slot 0's key = the factory's `getSigner` on Base Sepolia, Base, Ethereum
 - [x] A real chip signature (slot 2) passes Safe's passkey signer onchain on all three
-- [ ] A slot 0 signature passes onchain too (one count: 7 → 8)
-- [ ] The new console firmware on the board shows `0x2843…5E53` for "This key" (`tools/emu ship quorum`)
-- [ ] Rung 1 with the real Pico: approve on the fork, and it executes ([LADDER.md](LADDER.md))
-- [ ] Rung 2: api.safe.global accepts slot 0's confirmation on Base Sepolia, and `live exec` executes it
-- [ ] Then LOCK SLOT 0 from the chip map (`ALLOW_LOCK = True`, armed, hold A), and afterwards:
-  - [ ] SlotLocked bit 0 is clear (bytes 88–89 = `fe ff`)
-  - [ ] the public key is unchanged: `9fad2e82…`
-  - [ ] NEW KEY on slot 0 is refused
-  - [ ] a signature still verifies onchain (counter + 1)
-  - [ ] `ALLOW_LOCK` back to False
+- [x] A slot 0 signature passes onchain too: the Pico's rung 1 approval (safeTxHash `0xdb29…0788`),
+      `isValidSignatureForSigner` = `0x1626ba7e` on Base Sepolia, Base and Ethereum. Counter 0 went
+      7 → 8 (2026-09-25).
+- [x] The new console firmware on the board computes `0x2843…5e53` for "This key" itself
+- [x] Rung 1 with the real Pico: approved on the fork, and it executed in 109,488 gas ([LADDER.md](LADDER.md))
+- [x] Rung 2: api.safe.global accepted slot 0's confirmation on Base Sepolia (201), and `live exec`
+      executed it: Safe `0xEDED…0a43` #1, [tx](https://sepolia.basescan.org/tx/0xe719116d86a019098679ba9b7d5e5263fed8c6fc4cd7181f573b4b3fa3860fde)
+      (2026-09-25). The Pico signed, but its own POST failed on memory (OSError 12), so its held
+      signature was posted from the laptop unchanged. The firmware fix is in `txservice.py`.
+- [x] `ALLOW_GENKEY = False` on the board before the lock. Slot 0's menu has NEW KEY beside LOCK
+      SLOT, and one slip would replace the enrolled key and then seal the wrong one.
+- [x] **LOCK SLOT 0**, 2026-09-25: from the chip map, armed, held A: KEY SEALED. Afterwards:
+  - [x] SlotLocked bytes 88–89 = `fe ff` (bit 0 clear). Config still locked (`00`), data zone still open (`55`).
+  - [x] the public key is unchanged, `9fad2e82…da78e178…` byte for byte: the sealed key is the enrolled owner `0x2843…5E53`
+  - [x] a new signature after the lock (counter 14) passes `isValidSignatureForSigner` on Base
+        Sepolia, Base and Ethereum, and the Pico's own proxy's `isValidSignature` on Base Sepolia
+  - [x] `ALLOW_LOCK` and `ALLOW_GENKEY` both False on the board
+  - Not done on purpose: asking the chip for a NEW KEY on slot 0 to watch it refuse. If the lock
+    had somehow not taken, that test would itself replace the key. The SlotLocked bit and two
+    datasheets are the evidence instead.

@@ -19,8 +19,8 @@ as things land, and link the evidence (a buildlog entry, an explorer link).
 | # | Rung | Where | Who signs | Status |
 |---|---|---|---|---|
 | 0 | **Simulated** | `tools/quorum serve`, no chain | Alice and Bob (simulated), the real Pico | ✅ 2026-09-24, the real Pico ([buildlog](../buildlog/BUILDLOG.md)) |
-| 1 | **Local fork** | `tools/quorum up`: Safe 1.4.1 on an Anvil fork of Base, chain 31337 | Alice and Bob, the chip | ✅ emulator (`tools/quorum e2e`) · ☐ real Pico |
-| 2 | **Base Sepolia** | testnet: the Safe web app and `api.safe.global` | your browser wallet, the chip | ☐ rehearsal with the emulator · ☐ real Pico |
+| 1 | **Local fork** | `tools/quorum up`: Safe 1.4.1 on an Anvil fork of Base, chain 31337 | Alice and Bob, the chip | ✅ emulator (`tools/quorum e2e`) · ✅ real Pico, 2026-09-25 ([buildlog](../buildlog/BUILDLOG.md)) |
+| 2 | **Base Sepolia** | testnet: the Safe web app and `api.safe.global` | your browser wallet, the chip | ✅ rehearsal with the emulator · ✅ real Pico, end to end over HTTPS, 2026-09-25 ([buildlog](../buildlog/BUILDLOG.md)) |
 | 3 | **Base** | a few dollars | your browser wallet, the chip | ☐ |
 | 4 | **Ethereum mainnet** | a few dollars (base fee about 0.05 gwei in Sept 2026) | your browser wallet, the chip | ☐ |
 
@@ -38,6 +38,7 @@ Everything is `tools/quorum`. `tools/quorum doctor` checks what's installed.
 | `live status --chain C --safe 0x…` | the Safe and its queue, every signature checked here |
 | `live rehearse --chain C` | the emulator's console, with a throwaway key, signs on the real service: the spike before the Pico |
 | `live exec --chain C NONCE` | execute, with the signatures laid out right (see [Known issues](#known-issues)) |
+| `live pico --chain C[,C…]` | point the board's console at the Safe recorded for each chain (`QUORUM_SAFES`); several chains are watched together ([guide/NETWORKS.md](guide/NETWORKS.md)) |
 
 `C` is `local`, `basesep`, `base` or `eth`.
 
@@ -56,7 +57,7 @@ web app: `live` opens a one-page form on 127.0.0.1 and the wallet shows the tran
 - [x] The chip's signature through the signer proxy, checked with `isValidSignature`, and the transaction executes (`e2e`, about 110k gas with the precompile)
 - [x] Refusals still hold on a real chain: the tampered transaction is never signed
 - [x] The live tools rehearsed against it: `live enroll`, `live rehearse`, and `live exec` through the wallet page
-- [ ] **The real Pico** (with you at the board):
+- [x] **The real Pico**, 2026-09-25 (with you at the board):
   1. `tools/quorum up`. It prints the `QUORUM_URL` line.
   2. Put that line in the board's `secrets.py`, then `tools/emu ship quorum`.
   3. The Pico announces, and its signer proxy becomes an owner.
@@ -69,9 +70,13 @@ web app: `live` opens a one-page form on 127.0.0.1 and the wallet shows the tran
 - [ ] A browser wallet (MetaMask, Rabby…) with some Base Sepolia ETH, from the Superchain faucet
       (console.optimism.io/faucet), Coinbase's CDP faucet, or Sepolia ETH bridged over.
 - [ ] A Safe API key from developer.safe.global:
-  - `export SAFE_API_KEY=…` in your shell for the tools.
-  - `QUORUM_API_KEY` in the board's `secrets.py`.
-  - Never in the repo. Without a key the service allows 2 requests a second and 5,000 a month.
+  - For the tools: `SAFE_API_KEY=` in the repo's `.env`, which is gitignored (copy `.env.example`;
+    `tools/quorum doctor` says whether it's set without showing it). Paste it in with your editor,
+    not on the command line, so it doesn't land in your shell history.
+  - For the Pico: `QUORUM_API_KEY` in the board's own `secrets.py`, set at the switch to this rung.
+    The board's copy isn't the same file as `firmware/secrets.py`, so add the line; don't copy the
+    laptop's file over it.
+  - Never in the repo or a chat. Without a key the service allows 2 requests a second and 5,000 a month.
 
 **Rehearsal: the emulator's throwaway key.** No hardware, and it settles the biggest unknown, whether
 `api.safe.global` takes the console's confirmation.
@@ -99,14 +104,53 @@ the rehearsal Safe as an owner.
 
 ## Rung 3: Base, a few dollars
 
-Same steps as rung 2 with `--chain base` and `QUORUM_URL = ".../tx-service/base"`.
+Same steps as rung 2 with `--chain base` and `QUORUM_URL = ".../tx-service/base"`. The plan
+(2026-09-25):
+
+1. [x] **The signer.** `tools/quorum live enroll --chain base` for the sealed slot 0 key, owner
+   `0x2843…5E53`. The deploy is paid from MetaMask, about $0.002:
+   [tx](https://basescan.org/tx/0xe5e8ad92e571fe4b66927d5d0ce079b4f22ec3f0bc498e2b0d4fcc230f030dab).
+2. [ ] **The Safe.** Jason creates it in app.safe.global on **Base**:
+   - owners: MetaMask `0x61D2…637F`, the Pico `0x2843…5E53`, and his other wallet `0x1289…f2DA`
+   - threshold 2
+   - **Not the emulator's key**, which is public.
+   The Safe: [`0xDebDE58b3ed0867d19285f6C8B0d81AdBC326Da9`](https://basescan.org/address/0xDebDE58b3ed0867d19285f6C8B0d81AdBC326Da9).
+   Its owners are MetaMask, the Pico and `0xb78e…AdBD8` (an EOA, not the `0x1289…` in the plan;
+   Jason to confirm it's his).
+3. [x] **The check** (2026-09-25): Safe 1.5.0 L2, whose singleton and handler match safe-deployments
+   for 8453. 2 of 3, nonce 0, no guard, no modules. `live status --chain base --safe 0x…`, plus the version, owners, threshold,
+   modules and guard read onchain, and the singleton and handler matched against safe-deployments.
+4. [ ] **Funding.** A small amount of ETH to the Safe, about $1.
+5. [ ] **The Pico switches to Base:** `tools/quorum live pico --chain base`, or `--chain basesep,base`
+   to keep watching the Sepolia Safe too (`QUORUM_SAFES`; each chain's service comes from
+   `quorum_cfg.py`, so `QUORUM_URL` goes). The same API key.
+6. [ ] **One approval:**
+   - Propose a small send in the web app and sign it with MetaMask.
+   - The Pico approves over HTTPS.
+   - Try Execute in the web app. Expect GS021, and capture it for
+     [upstream](upstream/safe-wallet-gs021/): a screenshot, the simulation link, the app version.
+   - Then `live exec --chain base`.
+7. [ ] **The milestone:** the same with the Pico on another Wi-Fi (a phone hotspot will do).
 
 **Costs.** About $5 of ETH on Base in your wallet is plenty. Each of these is a fraction of a cent:
 signer 110k gas, a Safe 310k, an execution 110k.
 
 **Before any real money, on the board** (and the chip: [LOCKING.md](LOCKING.md)):
-- [ ] `ENABLE_NETWORK_CONSOLE = False`. The network console is a passwordless REPL, and it can sign.
-- [ ] `ALLOW_GENKEY = False` and `ALLOW_LOCK = False`.
+- [x] The production image, `tools/fw push console`. It boots straight into the console, and
+      nothing else on the board can sign or touch the chip. `tools/fw verify` should be all green,
+      and the build id shows on Device (X). *Build `20464b0`, 2026-09-26.*
+- [ ] A backup from `tools/fw backup`, copied somewhere outside the repo (it holds `secrets.py`).
+      *Taken 2026-09-26 (`backups/025997e61befcde3/`); the copy outside the repo is still to do.*
+- [x] The pin, `tools/fw pin`: the chip's serial, slot 0 locked, owner `0x2843…5E53`. The console
+      signs nothing else.
+- [x] TLS verified: Device (X) says `verified`. On the board, the compiled image from a mount
+      passed 8 of 8 verified polls, and badssl.com's four bad certificates were refused on the
+      certificate itself (buildlog 2026-09-26).
+- [x] The watchdog tested once: the board resets itself on a hang, and `log.txt` says so.
+      *Interrupts off for 12 s: it reset, and the console came back by itself.*
+- [x] `ENABLE_NETWORK_CONSOLE = False`. The network console is a passwordless REPL, and it can sign
+      (the production image ignores it anyway).
+- [x] `ALLOW_GENKEY = False` and `ALLOW_LOCK = False` (ignored by the production image too).
 - [ ] Don't make a new key in slot 0 while it owns a Safe. The owner address comes from the key, so
       a new key is a new owner, and the old one is gone. The plan is to lock slot 0 (only) once rung 2
       has proven it: [LOCKING.md](LOCKING.md).
@@ -118,11 +162,17 @@ signer 110k gas, a Safe 310k, an execution 110k.
 
 ## Rung 4: Ethereum mainnet, a few dollars
 
-Same steps with `--chain eth` and `QUORUM_URL = ".../tx-service/eth"`.
+Same steps with `--chain eth`. The console can watch it alongside Base: `live pico --chain base,eth`.
 
 - Checked onchain: the passkey factory has the same code as on Base, and the Daimo verifier, the
   P-256 precompile (Fusaka, EIP-7951), Safe 1.4.1 and `api.safe.global/tx-service/eth` are all
   there.
+- [x] **The console's config for chain 1** (2026-09-26). `quorum_cfg.py` lists are per chain now,
+  with Ethereum's USDC, and MultiSendCallOnly 1.4.1/1.3.0 and Permit2 under `"*"`. All of them
+  have code on mainnet. `node tools/vectors/webauthn.mjs --chain eth` passes every vector:
+  `getSigner` gives the same owners as on Base Sepolia, `isValidSignatureForSigner` accepts them,
+  and the precompile at 0x100 is live. Nothing was sent.
+- [ ] `live enroll --chain eth`, then a Safe on Ethereum (real gas: say yes first).
 - At 0.05 gwei an execution is about 5.5e-6 ETH. Check `cast base-fee` first: L1 gas moves more
   than Base's.
 - [ ] The same checklist as rung 3, then one approval.
@@ -134,8 +184,14 @@ Same steps with `--chain eth` and `QUORUM_URL = ".../tx-service/eth"`.
   `tools/quorum live exec`.
 - **The signer proxy must be deployed before the console confirms.** The service checks the
   signature with an `eth_call` to it. `live enroll` does the deploy.
-- **Service quota.** The console polls every `QUORUM_POLL_S` seconds, then every
-  `QUORUM_IDLE_POLL_S` (default 120) after 10 quiet minutes. Each poll is 2 requests.
+- **Service quota.** 50,000 requests a month with an API key, 5,000 without. With several Safes
+  the console asks about one per poll, in turn, so the rate stays the same.
+  - Over HTTPS with a key, the console polls every 20 s, then every 600 s after 10 quiet minutes.
+    Without a key it is 60 s / 1800 s. `QUORUM_POLL_S` and `QUORUM_IDLE_POLL_S` override these.
+  - A poll is one request: the Safe's owners and nonce are fetched every 5th poll, when the queue
+    changes, and after a confirmation.
+  - That comes to about 12,000 a month with an hour of active use a day. Device (X) counts the
+    requests since boot.
 - **Rejecting on the console doesn't reject on the Safe.** Y only hides the transaction on that
   console, and the queue stays blocked at that nonce until someone replaces it. Rejecting it on the
   Safe itself would need its own proposal.
@@ -149,7 +205,11 @@ Same steps with `--chain eth` and `QUORUM_URL = ".../tx-service/eth"`.
 
 - Should Y also offer to propose the Safe's own rejection (a zero-value self-call at the same
   nonce)?
-- Which slot, and when to lock it: slot 0 as it is now, or a fresh key in a dedicated slot for real
-  money?
+- ~~Which slot, and when to lock it?~~ Slot 0, sealed (LOCKING.md). Fresh chips get quorum v1 and
+  its ceremony ([PROVISIONING.md](PROVISIONING.md)).
+- Owner, threshold and module changes stay signable with the 3 s red hold; the chip swap needs
+  `swapOwner`. Refuse them on the Pico instead, or ask for the 4-hex verify code?
+- The console reads the Safe's owners and threshold from the service. Should it check them onchain
+  over an RPC too? It would need its own pinned certificate.
 - Is a browser-wallet executor enough for rung 3 and up, or does the console want to execute too
   (it would need gas money on a hot key)?

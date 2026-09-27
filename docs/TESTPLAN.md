@@ -43,7 +43,8 @@ Plug USB. If the Pico has no MicroPython yet: hold BOOTSEL while plugging, drop 
 
 ```sh
 tools/usb                       # opens the REPL; Ctrl-] leaves. Confirms the port and the build.
-tools/usb push                  # copies firmware/*.py (not secrets.example.py) and resets
+tools/usb push                  # copies firmware/*.py (never secrets.py) and resets; a dev board only.
+                                # The production console goes on with tools/fw push console
 ```
 
 `tools/usb` finds `/dev/ttyACM*` or `/dev/tty.usbmodem*`; set `PICO_PORT=` if it picks wrong.

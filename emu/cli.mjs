@@ -153,7 +153,7 @@ try {
     case "ship": {
       if (!rest[0]) throw new Error("usage: tools/emu ship MODULE [--port /dev/cu.usbmodemN] [--wifi]");
       const pi = rest.indexOf("--port");
-      const r = await ship(rest[0], { target: rest.includes("--wifi") ? "wifi" : "usb", port: pi >= 0 ? rest[pi + 1] : undefined, boot: rest.includes("--boot") });
+      const r = await ship(rest[0], { target: rest.includes("--wifi") ? "wifi" : "usb", port: pi >= 0 ? rest[pi + 1] : undefined, boot: rest.includes("--boot"), force: rest.includes("--force") });
       for (const l of r.lines || []) console.log(l);
       if (r.error) console.error("emu: " + r.error);
       else console.log(`${r.ok ? "running" : "failed"} ${modName(rest[0])} on ${r.port}${r.blocking ? " (blocking loop, left running)" : ""}${r.copiedLcd ? ", lcd.py copied too" : ""}`);

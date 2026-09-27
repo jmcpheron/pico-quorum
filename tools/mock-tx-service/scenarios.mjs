@@ -2,13 +2,13 @@
 // for "conflict"), built from the pinned config's names so the console's address book matches.
 // The first group are ordinary; the rest are the red screens and the lies the console must catch.
 import { concat, encodeFunctionData, encodePacked, maxUint256, parseAbi, parseEther, parseUnits, size } from "viem";
-import { BOOK, CFG, propose, signAs } from "./sim.mjs";
+import { BOOK, CFG, forChain, propose, signAs } from "./sim.mjs";
 
-const USDC = Object.keys(CFG.tokens)[0];
-const MULTISEND = Object.keys(CFG.batchers)[0];                   // MultiSendCallOnly 1.4.1
+const USDC = Object.keys(forChain("tokens", 31337))[0];
+const MULTISEND = Object.keys(forChain("batchers", 31337))[0];                   // MultiSendCallOnly 1.4.1
 const STRANGER = "0xdead00000000000000000000000000000000beef";    // in no address book
 const MYSTERY = "0xc0ffee254729296a45a3885639ac7e10f9d54979";     // a contract nobody described
-const [PERMIT2, UNI_ROUTER] = Object.entries(CFG.contracts).filter(([, k]) => k[1] === "uniswap").map(([a]) => a);
+const [PERMIT2, UNI_ROUTER] = Object.entries(forChain("contracts", 31337)).filter(([, k]) => k[1] === "uniswap").map(([a]) => a);
 const OTHER_SAFE = "0x5afe00000000000000000000000000000000bad0";
 
 const erc20 = parseAbi(["function transfer(address to, uint256 amount)"]);

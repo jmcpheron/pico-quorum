@@ -1,28 +1,102 @@
 #!/usr/bin/env python3
-"""Prove firmware/atecc.py's ATECC608 config table is the proven one before anyone locks a chip.
+"""Prove the ATECC608 config tables in firmware/ are the reviewed ones before anyone locks a chip.
 
-Compares it byte for byte to the table reference/pi/provision.py wrote into the wallet's working
-chip (chip #1, serial 01235e6763cc8d97ee) and checks the fingerprint the firmware asserts at
-import. Exit 0 = safe. Anything else: do not provision a chip until it is 0.
+  legacy-test (firmware/atecc.py CONFIG): byte for byte the table reference/pi/provision.py wrote
+      into chip #1 (serial 0123f3acfd2a826bee), and its fingerprint.
+  quorum-v1 (firmware/chipcfg.py QUORUM_V1): its fingerprint, and every slot decoded again HERE,
+      from the datasheet's bit tables, independently of atecc.decode_slot: slot 0 the sealed signing
+      key, slots 1-15 dead, the header off. Plus atecc.write_policy for all 16 WriteConfig codes and
+      the CRC against the wake reply's own.
+
+Exit 0 = safe. Anything else: do not provision a chip until it is 0.
     python3 tools/check_config
+    python3 tools/check_config --summary SNAPSHOT.bin   the config CRC a fresh chip must match at C3
+                                                        (SNAPSHOT: its 128 factory bytes, from C1)
 """
 import hashlib, importlib.util, os, re, sys, types
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.modules["machine"] = types.SimpleNamespace(I2C=object, SoftI2C=object, Pin=object)
-spec = importlib.util.spec_from_file_location("atecc", os.path.join(ROOT, "firmware/atecc.py"))
-atecc = importlib.util.module_from_spec(spec)
+sys.path.insert(0, os.path.join(ROOT, "firmware"))
+fails = []
+
+
+def check(ok, what):
+    print(("ok: " if ok else "FAIL: ") + what)
+    if not ok:
+        fails.append(what)
+
+
 try:
-    spec.loader.exec_module(atecc)
+    import atecc
+    import chipcfg
 except AssertionError as e:
-    print("FAIL: firmware/atecc.py refuses to import:", e); sys.exit(2)
+    print("FAIL: the firmware refuses to import:", e)
+    sys.exit(2)
+
+# --- legacy-test: chip #1's table ------------------------------------------------------------
 t = open(os.path.join(ROOT, "reference/pi/provision.py")).read()
 m = re.search(r"ATECC608_CONFIG\s*=\s*bytes\(\[(.*?)\]\)", t, re.S)
 pi = bytes(int(x, 16) for x in re.findall(r"0x([0-9A-Fa-f]{2})", re.sub(r"#.*", "", m.group(1))))
 bad = [i for i in range(128) if not (i < 16 or 84 <= i < 88) and pi[i] != atecc.CONFIG[i]]
-if bad:
-    print("FAIL: firmware table differs from the Pi's proven table at bytes", bad)
-    for i in bad: print("  byte %3d: pi 0x%02x firmware 0x%02x" % (i, pi[i], atecc.CONFIG[i]))
-    sys.exit(1)
-print("ok: firmware CONFIG == reference/pi/provision.py on every writable byte")
-print("ok: slot 0 SlotConfig %s KeyConfig %s (P-256 private key, GenKey allowed)" % (atecc.CONFIG[20:22].hex(), atecc.CONFIG[96:98].hex()))
-print("ok: fingerprint", hashlib.sha256(atecc.CONFIG).hexdigest()[:16], "matches CONFIG_SHA256")
+check(not bad, "legacy-test == reference/pi/provision.py on every writable byte" + (" (differs at %s)" % bad if bad else ""))
+check(hashlib.sha256(atecc.CONFIG).hexdigest() == atecc.CONFIG_SHA256 == "c759db6c849668ed53957ded37264023479dfca9b719af4e22d087a1d8a7eacf",
+      "legacy-test fingerprint c759db6c...")
+
+# --- quorum-v1, decoded from the datasheet's tables, not from atecc.decode_slot ---------------
+T = chipcfg.QUORUM_V1
+check(hashlib.sha256(T).hexdigest() == chipcfg.QUORUM_V1_SHA256 == "aadcf1ea51b86a8f71c19823c5eea2adbd683221180496622db2c54b66e8abef",
+      "quorum-v1 fingerprint aadcf1ea...")
+
+
+def slot_config(n):
+    v = T[20 + 2 * n] | T[21 + 2 * n] << 8
+    # SlotConfig: ReadKey 3:0, NoMac 4, LimitedUse 5, EncryptRead 6, IsSecret 7, WriteKey 11:8, WriteConfig 15:12
+    return {"readKey": v & 0xF, "noMac": v >> 4 & 1, "limitedUse": v >> 5 & 1, "encryptRead": v >> 6 & 1,
+            "isSecret": v >> 7 & 1, "writeKey": v >> 8 & 0xF, "writeConfig": v >> 12}
+
+
+def key_config(n):
+    v = T[96 + 2 * n] | T[97 + 2 * n] << 8
+    # KeyConfig: Private 0, PubInfo 1, KeyType 4:2, Lockable 5, ReqRandom 6, ReqAuth 7, AuthKey 11:8,
+    # PersistentDisable 12, RFU 13, X509id 15:14
+    return {"private": v & 1, "pubInfo": v >> 1 & 1, "keyType": v >> 2 & 7, "lockable": v >> 5 & 1, "reqRandom": v >> 6 & 1,
+            "reqAuth": v >> 7 & 1, "authKey": v >> 8 & 0xF, "persistentDisable": v >> 12 & 1, "rfu": v >> 13 & 1, "x509id": v >> 14}
+
+
+s0, k0 = slot_config(0), key_config(0)
+# private key ReadKey bits: 0 external sign, 1 internal sign, 2 ECDH, 3 ECDH output to slot N+1
+check(s0["readKey"] == 0b0001, "slot 0: external Sign only (ReadKey 0001: no internal sign, no ECDH)")
+check(s0["limitedUse"] == 1 and s0["isSecret"] == 1 and s0["encryptRead"] == 0, "slot 0: LimitedUse (counter 0), IsSecret")
+# private key WriteConfig: Write command never (001x); bit 13 GenKey allowed; bit 14 PrivWrite allowed
+check(s0["writeConfig"] == 0b0010, "slot 0: WriteConfig 0010 = Write never, GenKey allowed, PrivWrite forbidden")
+check(k0 == {"private": 1, "pubInfo": 1, "keyType": 4, "lockable": 1, "reqRandom": 0, "reqAuth": 0, "authKey": 0,
+             "persistentDisable": 0, "rfu": 0, "x509id": 0}, "slot 0: KeyConfig P-256 private, PubInfo, Lockable, no ReqAuth")
+for n in range(1, 16):
+    sc, kc = slot_config(n), key_config(n)
+    ok = (sc["isSecret"] == 1 and sc["writeConfig"] >> 3 == 1 and sc["writeConfig"] & 4 == 0 and sc["readKey"] == 0xF
+          and sc["limitedUse"] == 0 and kc["private"] == 0 and kc["keyType"] == 7 and kc["lockable"] == 0 and kc["reqAuth"] == 0
+          and kc["pubInfo"] == 0)
+    check(ok, "slot %2d: dead (data, secret, Write never, not a key, not lockable, ReadKey F)" % n)
+check(T[16] == 0xC0, "I2C address byte C0 (0x60 on the bus)")
+check(T[18] == 0x00, "CountMatch off: no slot-10 cap on counter 0")
+check(T[19] == 0x00, "ChipMode 0: 1.3 s watchdog, as the driver assumes")
+check(T[52:60] == T[60:68] == bytes([0xFF] * 4 + [0] * 4), "counters 0 and 1 start at 0")
+check(T[68:84] == bytes(16), "UseLock, VolatileKeyPermission, SecureBoot, KdfIv off")
+check(T[88:90] == b"\xff\xff", "SlotLocked FF FF at the config lock (slot 0 needs its key first)")
+check(T[90:96] == bytes(6), "ChipOptions 0 (no IO protection, no KDF AES), X509 0")
+
+# --- the driver's decode and CRC ----------------------------------------------------------------
+want = ["clear", "pubinvalid", "never", "never", "encrypted", "encrypted", "encrypted", "encrypted",
+        "never", "never", "never", "never", "encrypted", "encrypted", "encrypted", "encrypted"]
+check([atecc.write_policy(w) for w in range(16)] == want, "atecc.write_policy follows the datasheet for all 16 WriteConfig codes")
+check(atecc.crc16(b"\x04\x11") == b"\x33\x43", "crc16(04 11) = 33 43, the wake reply's own CRC")
+check([chipcfg.identify(x) for x in (T, atecc.CONFIG, chipcfg.FACTORY)] == ["quorum-v1", "legacy-test", "factory"],
+      "chipcfg.identify tells the three tables apart")
+
+if "--summary" in sys.argv:
+    snap = open(sys.argv[sys.argv.index("--summary") + 1], "rb").read()
+    if len(snap) != 128:
+        sys.exit("a snapshot is 128 bytes")
+    print("\nchip %s, %s: its config CRC for the quorum-v1 lock is %04x" % (
+        snap[0:4].hex() + snap[8:13].hex(), chipcfg.identify(snap), chipcfg.config_summary(snap)))
+sys.exit(1 if fails else 0)

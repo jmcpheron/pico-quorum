@@ -54,11 +54,19 @@ What works so far:
   driver and `TrustMAttest` contract, on-device keccak/EIP-712, the screen and button UI, the USB
   wallet, and the emulator.
 
-Next is the [test ladder](docs/LADDER.md), which tracks each step:
-- rung 1 with the real Pico on the fork
-- Base Sepolia with the Safe web app
-- Base with a few dollars
-- then Ethereum mainnet
+- **The production image** (`tools/fw`): the chip pinned, the key sealed, TLS certificates
+  checked, a watchdog, and a signature counter ([walkthrough](docs/firmware-production/README.md)).
+- **Several Safes on several chains**: one console watches up to 4 Safes on Base Sepolia, Base
+  and Ethereum, shows one queue across them, and asks each chain's own service
+  ([networks](docs/guide/NETWORKS.md)).
+
+**Setting one up:** the [owner's guide](docs/guide/README.md).
+
+The [test ladder](docs/LADDER.md) tracks each chain:
+- ✅ the simulated Safe and the local fork, on the real Pico
+- ✅ Base Sepolia, end to end over HTTPS on the real Pico
+- Base with a few dollars: the Safe is ready, and the first approval is next
+- then Ethereum mainnet, whose contracts have been checked onchain
 
 ## Layout
 

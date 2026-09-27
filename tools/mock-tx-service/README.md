@@ -52,10 +52,20 @@ tools/quorum demo             # fresh Safe with the standard queue (on the fork:
 tools/quorum propose refund --by bob
 tools/quorum confirm 2 --as alice
 tools/quorum status | log
-tools/quorum shots [story..]  # docs/quorum-ui/shots, from the emulator (own simulated Safe on 8799)
+tools/quorum shots [story..]  # docs/quorum-ui/shots, from the emulator (own simulated Safes on 8799 and 8797)
 tools/quorum live key|enroll|status|rehearse|exec --chain local|basesep|base|eth   # real chains (live.mjs)
 node tools/mock-tx-service/test.mjs
 ```
+
+**A second simulated Safe**, for a console that watches two (`QUORUM_SAFES`): run another server
+with its own port and state, and name the Safe it simulates:
+
+```sh
+QUORUM_STATE=/tmp/s2.json QUORUM_SIM_SAFE="84532:0x5a5a…5a5a:Test Safe" node tools/mock-tx-service/server.mjs --port 8798
+```
+
+The console's `secrets.py` gives each Safe its own `"url"`. `tools/quorum shots two` does exactly
+this.
 
 The live chains, and how far each one has got, are in [docs/LADDER.md](../../docs/LADDER.md).
 `live` never holds a private key. It sends through your browser wallet (`wallet.html`, served on

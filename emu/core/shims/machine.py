@@ -101,10 +101,16 @@ class I2C:
         import atecc_sim
         return atecc_sim.chip()
 
+    def _here(self):
+        import atecc_sim
+        return atecc_sim.present
+
     def scan(self):
-        return [0x60]
+        return [0x60] if self._here() else []
 
     def writeto(self, addr, buf, stop=True):
+        if not self._here():
+            raise OSError(19, "ENODEV: no I2C device at 0x%02x" % addr)
         if addr == 0:
             self._chip().wake_token()
             return len(buf)
@@ -114,7 +120,7 @@ class I2C:
         return len(buf)
 
     def readfrom(self, addr, n, stop=True):
-        if addr != 0x60:
+        if addr != 0x60 or not self._here():
             raise OSError(19, "ENODEV: no I2C device at 0x%02x" % addr)
         return self._chip().read(n)
 
@@ -204,11 +210,20 @@ class Timer:
 
 
 class WDT:
+    """rp2's watchdog as far as code can tell: the timeout is capped (8388 ms on the Pico 2 W's
+    1.26.1, ValueError above it) and it cannot be stopped. The emulator never resets on it; it
+    counts feeds so a test can see that something keeps feeding it."""
+    MAX_MS = 8388
+    started = None      # the timeout, once one was created
+    feeds = 0
+
     def __init__(self, id=0, timeout=5000):
-        pass
+        if timeout > WDT.MAX_MS:
+            raise ValueError("timeout exceeds %d" % WDT.MAX_MS)
+        WDT.started = timeout
 
     def feed(self):
-        pass
+        WDT.feeds += 1
 
 
 class RTC:

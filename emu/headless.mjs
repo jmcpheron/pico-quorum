@@ -9,6 +9,7 @@
 //   --shot PATH.png      save the screen (2x) as PNG
 //   --app URL            wallet app for requests (default http://localhost:3001)
 //   --secrets PATH.py    lines added to the generated secrets.py (QUORUM_URL, QUORUM_SAFE, ...)
+//   --file NAME=PATH     one more file on the flash (build.py for the production image, say)
 //   --chip PATH.json     keep the virtual ATECC608's state in this file (default: blank chip, forgotten at exit)
 //   --heap BYTES         MicroPython heap (default 448 KB)
 //   --quiet              no Python stdout
@@ -24,6 +25,7 @@ import { encodePNG, scaleRGBA } from "./core/png.mjs";
 
 const argv = process.argv.slice(2);
 let mod = null; const steps = []; let app = "http://localhost:3001"; let heap; let quiet = false; let chipFile = null; let secrets = "";
+const extra = {};
 for (let i = 0; i < argv.length; i++) {
   const a = argv[i];
   if (a.startsWith("--")) {
@@ -31,7 +33,9 @@ for (let i = 0; i < argv.length; i++) {
     if (k === "quiet") { quiet = true; continue; }
     const v = argv[++i];
     if (k === "app") app = v; else if (k === "heap") heap = +v; else if (k === "chip") chipFile = v;
-    else if (k === "secrets") secrets = "\n" + readFileSync(v, "utf8"); else steps.push([k, v]);
+    else if (k === "secrets") secrets = "\n" + readFileSync(v, "utf8");
+    else if (k === "file") { const [n, p] = v.split("="); extra[n] = readFileSync(p, "utf8"); }
+    else steps.push([k, v]);
   } else mod = a;
 }
 if (!mod) { console.error("usage: headless.mjs MODULE [--wait MS] [--key K[:MS]] [--exec CODE] [--shot out.png]"); process.exit(2); }
@@ -40,7 +44,7 @@ const keys = new Int32Array(16);
 let failed = false;
 const dev = await createDevice({
   loadMicroPython, keys, heapsize: heap,
-  files: readWorkspace(), shims: readShims(), appUrl: app, secrets,
+  files: { ...readWorkspace(), ...extra }, shims: readShims(), appUrl: app, secrets,
   http: curl,
   chip: chipFile ? { load: () => (existsSync(chipFile) ? readFileSync(chipFile, "utf8") : null), save: (s) => writeFileSync(chipFile, s) } : undefined,
   onStdout: (l) => { if (!quiet) console.log(l); if (/^Traceback/.test(l)) failed = true; },

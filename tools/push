@@ -3,7 +3,7 @@
 # Requires ENABLE_NETWORK_CONSOLE=True and is unsafe while the wallet holds value.
 cd "$(dirname "$0")/.." || exit 1
 for f in firmware/*.py; do
-  case "$f" in *secrets.example.py) continue;; esac
+  case "$(basename "$f")" in secrets.py|secrets_*.py|secrets.example.py) continue;; esac   # the board keeps its own
   ./tools/pico cp "$f" ":$(basename "$f")" || exit 1
 done
 # schedule the reset so mpremote returns before the socket drops

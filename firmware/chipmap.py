@@ -387,13 +387,16 @@ def cfg_actions(ui):
     out = [("raw", "RAW BYTES", "safe", "")]
     if ui.snap is not None:
         out.append(("diff", "COMPARE WITH SAVED", "safe", ""))
+    # A fresh chip gets PicoQuorum's own table, quorum v1, through PROVISION (provision.py), which
+    # locks each zone with a CRC the chip checks. Microchip's test table and the unchecked locks
+    # stay readable here but can no longer be written or sealed from the chip map.
     if not cfg:
-        out.append(("writecfg", "WRITE WALLET CONFIG", "rev", "" if state != "wallet" else "the chip holds it already"))
+        out.append(("writecfg", "WRITE TEST CONFIG", "rev", "fresh chips: PROVISION (quorum v1)"))
         if ui.snap is not None:
             out.append(("restore", "RESTORE SAVED CONFIG", "rev", "" if state != "original" else "the chip holds it already"))
-        out.append(("lockcfg", "LOCK CONFIG FOREVER", "perm", ui.sig.gate("lock") or ("" if state == "wallet" else "write the wallet config first")))
+        out.append(("lockcfg", "LOCK CONFIG FOREVER", "perm", "PROVISION locks it, with a CRC"))
     elif not data:
-        out.append(("lockdata", "LOCK DATA ZONE", "perm", ui.sig.gate("lock")))
+        out.append(("lockdata", "LOCK DATA ZONE", "perm", "PROVISION locks it, with a CRC (LOCKING.md)"))
     out.append(("refresh", "RE-READ", "safe", ""))
     return out
 

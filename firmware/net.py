@@ -68,11 +68,13 @@ def retry():
 
 
 def joined():
-    """Call once the network is up (boot, or a later retry): LED on, the console if secrets.py wants it."""
+    """Call once the network is up (boot, or a later retry): LED on, the console if secrets.py wants it.
+    Never on the production console image: that console is a passwordless REPL that can sign."""
     global up
     up = True
     led.on()
-    if _listen is None and getattr(secrets, "ENABLE_NETWORK_CONSOLE", False):
+    import image
+    if _listen is None and getattr(secrets, "ENABLE_NETWORK_CONSOLE", False) and not image.PRODUCTION:
         console()
 
 
@@ -89,6 +91,8 @@ def _accept(ls):
 def short_err(e):
     """A network error in the width of one status row: the usual OSErrors by name, the rest as repr."""
     a = getattr(e, "args", ())
+    if isinstance(e, ValueError) and "verif" in str(e).lower():
+        return "certificate rejected"       # mbedTLS refused the server's certificate (vhttp.py)
     if isinstance(e, OSError) and a and isinstance(a[0], int):
         return {-2: "dns: host not found", 104: "connection reset", 110: "timed out",
                 111: "connection refused", 113: "host unreachable"}.get(a[0], "OSError %d" % a[0])

@@ -433,3 +433,299 @@ Gotchas:
   unless slot 10 is written first.
 - While the data zone is open, a plaintext PrivWrite can put a known key into any private slot.
   Only a slot lock stops that.
+
+## 2026-09-25 — rung 1 on the real Pico: the chip's approval executes on a real Safe
+
+The console with layer 3 (`firmware/webauthn.py`) went on the board with `tools/emu ship quorum`,
+and `main.py` wasn't touched. Behind it, `tools/quorum up` ran a real Safe 1.4.1 on an Anvil fork
+of Base (chain 31337, block 51760581): the Family Safe at `0xf77e…7666`.
+
+**The run:**
+- The Pico announced key `9fad2e82…` (slot 0). The laptop computed its signer proxy `0x2843…5E53`,
+  the board computed the same address itself, and the passkey factory's `getSigner` agreed.
+- The factory deployed the proxy on the fork and it became the third owner (2 of 3).
+- `tools/quorum demo` queued the stories. Jason opened **#0 Send 0.05 ETH** (Alice had signed) and
+  held A.
+  - The console posted a WebAuthn contract signature.
+  - The service checked it with the proxy's own `isValidSignature`.
+  - The Safe executed it: `execTransaction` in 109,488 gas, nonce 0 → 1.
+- The same slot 0 signature, checked against the real deployed signer on Base Sepolia, Base and
+  Ethereum with `isValidSignatureForSigner`, answered `0x1626ba7e` on all three. The s value was
+  low. Counter 0 went 7 → 8. Nothing locked.
+
+**Bug of the day:** the first attempt failed on memory, not on the chain. Jason had toured the chip
+map (the lock ceremony, the key's QR). After that, the console's biggest font (`qf_bold26.bin`,
+one 10.9 KB block, loaded on first use) no longer fit in the fragmented heap, and every redraw of
+a review page raised `MemoryError`.
+- The screen stopped updating, and #0 got rejected twice from a console that couldn't draw. The
+  rejects were console-only and never reached the Safe.
+- Fixed now by a fresh start plus loading both big fonts by hand. Fixed for good by `quorum.start()`
+  loading every font while the heap is whole.
+
+Gotchas:
+- The demo queue on the fork looks exactly like the simulated one, on purpose. The tells are the
+  Safe's address (`0xf77e…7666`), "This key" on the owners page, and the dashboard's "a real Safe
+  on the Anvil fork of Base".
+- The console fetches only from its home screen; on the chip map it doesn't poll.
+
+## 2026-09-25 — rung 2: the chip's approval on Base Sepolia, accepted by Safe's own service
+
+**Setup:**
+- Jason's MetaMask (`0x61D2…637F`, Base Sepolia ETH from a faucet) paid for two `createSigner`
+  calls through `tools/quorum live enroll`: the emulator's key (`0xaA87…77b3`) and the Pico's slot 0
+  (`0x2843…5E53`).
+- In the Safe web app he made a 2-of-3 Safe with those three owners: `0xEDEDC0063B23A309f4cAdA5e1225Ef21D8A30a43`.
+  It's Safe 1.5.0 L2, and its code and fallback handler match safe-deployments.
+- The Safe API key is in the repo's gitignored `.env`. With it the service allows 50,000 requests
+  a month, against 5,000 without.
+
+**Rehearsal: the emulator.**
+- Jason proposed #0 (0.0001 ETH) in the web app and signed it with MetaMask.
+- `live rehearse` ran the console on the emulator against api.safe.global. It showed #0, signed it,
+  and the service took the contract signature: 2 of 2.
+- `live exec` sent `execTransaction` through MetaMask:
+  [tx](https://sepolia.basescan.org/tx/0x1b2adb3e8a860ab0c8802aaa4af48a13260b4b42749a9e53a135e846d4f370d8).
+  - The trace: the Safe's part was 105,584 gas, with the P-256 precompile (3,450) doing the check.
+  - The rest of the 270k was MetaMask. Jason's account is an EIP-7702 smart account (MetaMask's
+    DeleGator), so MetaMask relayed the call through its DelegationManager with fee hooks.
+
+**The real Pico:**
+- Two memory fixes first:
+  - The chip map now loads only on X. At start it had left no block over 8 KB, and TLS failed with
+    OSError 12.
+  - An HTTPS reserve.
+- The console then read the Safe straight from api.safe.global.
+- Jason proposed #1 and the Pico showed it with the hash verified. He held A and the chip signed in
+  155 ms, but the POST failed with OSError 12: after the review the heap was in pieces again (154 KB
+  free, nothing over 8 KB).
+- The console kept the signature. It was copied off the board and checked against the Pico's proxy
+  on Base Sepolia (`isValidSignature` = `0x1626ba7e`), then posted unchanged from the laptop. The
+  service answered **201**.
+- `live exec`: [tx](https://sepolia.basescan.org/tx/0xe719116d86a019098679ba9b7d5e5263fed8c6fc4cd7181f573b4b3fa3860fde),
+  `ExecutionSuccess`, nonce 2.
+- That completes the slot 0 checklist's last gate before the lock (docs/LOCKING.md).
+
+**Fixes on the board for the Pico's own POST:**
+- `txservice.py` holds a 32 KB block from the start and frees it only during each HTTPS call.
+- HTTPS calls get a 15 s timeout: a full TLS handshake on the Pico takes 1–2 s, sometimes more than
+  the LAN's 5 s.
+
+Gotchas:
+- The Safe web app with a 1.5.0 Safe: the version pill `Safe v1.5.0+L2` runs into "Synced" on the
+  console's home screen. Cosmetic.
+- MicroPython doesn't flush a file until it is closed. A one-line `open(...).write(...)` backup came
+  out 0 bytes.
+
+**Later the same evening: the Pico alone.** With the reserve and the 15 s timeout, every poll in a
+three-minute watch succeeded. Jason proposed #2 (0.000067 ETH back to his MetaMask). The Pico
+fetched it from api.safe.global, showed it, and signed after the hold (154 ms). It posted the
+confirmation itself (`confirmed #2`), and `live exec` executed it:
+[tx](https://sepolia.basescan.org/tx/0xa046bd0c4289c9c8e75bb75aca40b6a09afea4c5f446f80e24c5fb6a393d9daf),
+Safe nonce 3. Counter 0: 13. Slot 0 still `9fad2e82…`, unlocked.
+
+## 2026-09-25 — slot 0 sealed
+
+The last gate in docs/LOCKING.md was rung 2, now passed, so Jason locked slot 0 on the board.
+- Before: `ALLOW_GENKEY` was set to False, because NEW KEY sits beside LOCK SLOT in slot 0's menu.
+- The lock: X → DATA → slot 0 → `! LOCK SLOT FOREVER`, armed with B+Y, hold A. **KEY SEALED.**
+
+**Checked from the laptop right after:**
+- SlotLocked bytes 88–89 = `fe ff`: slot 0 locked, the others open. The config zone is still
+  locked, and the data zone is still open by design (CountMatch in slot 10 stays unsprung).
+- The public key read back byte for byte as the enrolled one. The sealed key is Safe owner
+  `0x2843705391b7E2cf06b0b964b532Ad9891535E53` on every chain.
+- The chip still signs. A new WebAuthn signature (counter 13 → 14) passed the passkey factory's
+  `isValidSignatureForSigner` on Base Sepolia, Base and Ethereum, and the deployed proxy's own
+  `isValidSignature` on Base Sepolia.
+- `ALLOW_LOCK` and `ALLOW_GENKEY` are both back to False on the board.
+
+Not done on purpose: asking the chip for a NEW KEY on slot 0 to watch it refuse. If the lock had
+not taken, that test would have replaced the key.
+
+## 2026-09-26 — the production console, and quorum v1 for fresh chips
+
+Branch `firmware-production`. The walkthrough with every new screen is in
+[docs/firmware-production/](../docs/firmware-production/).
+
+**The console image.**
+- `firmware/manifest.json` lists exactly what goes on the board. `main_console.py` boots straight
+  into the console, and B at power-up gives maintenance.
+- The legacy wallet, the USB wallet, the demos and the chip map are out of the image.
+- In this image:
+  - `QUORUM_EXPECT` pins the chip, slot and owner, checked at start and before each signature.
+  - Counter 0 is shown and checked for signatures made outside the console.
+  - A delegatecall to a contract that isn't pinned is refused.
+  - HTTPS checks the certificate against three pinned roots.
+  - There is a deadline watchdog, `log.txt`, and a crashed state.
+  - The `ALLOW_*` flags, the software key and the WiFi REPL are ignored.
+- `tools/fw` builds, backs up, pushes, verifies, pins and restores, checking every hash.
+
+**Quorum v1** is PicoQuorum's own ATECC608 table ([docs/PROVISIONING.md](../docs/PROVISIONING.md)).
+- Slot 0 is the only key: external Sign only, LimitedUse, no PrivWrite, sealed after GenKey.
+- Slots 1-15 are dead, CountMatch is off, and there is no IO protection.
+- Both zone locks carry the CRC the chip checks.
+- The ceremony (C1-C10) runs on the virtual chip, on a 608A and a 608B, with a reboot after every
+  step.
+
+**Mistakes:**
+- The first `tools/fw backup` read files over `mpremote resume` while the board's console was
+  running. Something the console printed landed inside the transfer: mpremote failed to parse
+  `atecc.py`'s bytes, and a minute later the Pico's USB serial stopped answering, even to a raw
+  write. It needs a replug. Nothing was written to the board. `tools/fw` now pauses whatever app
+  runs (and holds the watchdog off) while it reads, then resumes it.
+- `atecc.decode_slot` had decoded WriteConfig wrong since the fork: `wc >> 1` indexing is right only
+  for `0000`. The chip map labelled slot 0 "pubinvalid" when it is "never". Only `== "clear"` was
+  ever acted on, so nothing wrong was done with it.
+- MicroPython strings have no `ljust`. The OTP record would have raised at C8 on the board; the
+  ceremony's dry run caught it.
+
+**On the board, 2026-09-26, nothing written to flash:**
+- **Backup:** `tools/fw backup` got 52 files, every hash checked, with the wallet paused while
+  reading. `verify --baseline` read chip #1 as expected:
+  - `0123f3acfd2a826bee`, 608A
+  - key `9fad2e82…`, owner `0x2843…5E53`, computed on the laptop
+  - lock bytes `55 00 fe ff`
+  - counter 0 = 16: 14 at the seal, +1 the Base mainnet GS021 confirmation, +1 not yet accounted for
+- **TLS hazard confirmed:** plain `requests` on the board accepted `self-signed.badssl.com`.
+- **Dates are checked:** before NTP the board's clock said 2021 and a verified call was refused
+  ("validity starts in the future").
+- **The console image compiled on the Pico failed to start.** It was run from `mpremote mount`, so
+  nothing went to flash. It had 191 KB free, but no block over 5.7 KB, and a 5.8 KB font would not
+  load. Compiling modules on the device leaves the heap in pieces.
+- **The fix:**
+  - `tools/fw build` now compiles every module but `boot.py` and `main.py` with mpy-cross 1.26.1
+    (`.mpy` v6.3, the board's own).
+  - `main_console.py` loads the fonts and the HTTPS reserve before anything else.
+- **The same image, compiled, from the mount:**
+  - It starts. Not pinned (no `QUORUM_EXPECT` in the test file), TLS mode `verified`.
+  - 8 of 8 verified polls to api.safe.global, 0.8–1.0 s typically, 7 s at worst.
+  - 114 KB free after polling, largest block 10.7 KB, the 32 KB reserve back after every call.
+  - badssl.com refused on the certificate itself: expired, wrong host (CN mismatch), self-signed,
+    untrusted root.
+
+**The production console on the board, 2026-09-26.**
+- **Pin:** `tools/fw pin` read chip #1 and computed owner `0x2843…5E53` on the laptop, equal to
+  the enrolled one (live.json), then wrote `QUORUM_EXPECT`.
+- **Push:** `tools/fw push console` (build `20464b0`) took a fresh backup, copied 28 files
+  (compiled `.mpy`, `main.py`, the roots, `build.py`), deleted the 36 legacy files, and checked
+  every hash.
+- **Mistake:** the push's "is it back?" probe right after the reset sent Ctrl-C (every mpremote
+  command does) while `main.py` was still starting. `quorum` never finished importing, so the
+  console never started (it left no log, and no watchdog was running).
+  - Fixed: after a reset, `tools/fw` waits for the port and then leaves the board alone for 30 s.
+  - `tools/fw restart` does that plus `verify`.
+  - The flag read now executes the file itself, instead of a `secrets` module the running app had
+    imported before the pin was written.
+- **After the restart:**
+  - home on the Base Safe, pinned, watchdog on
+  - TLS `verified`, connected, this key an owner
+  - counter 16 (first look), 67 KB free
+- **The queue:** #0 "Send 0.000001 ETH", 2 of 2, signed by this key. That is the GS021 evidence
+  transaction, still waiting for `live exec`.
+- **Log:** boot, pin ok, counter, watchdog on. The reset cause is 3 even for `machine.reset()`: on
+  the RP2350 it goes through the watchdog.
+
+**The production console's first real approval, Base Sepolia, 2026-09-26.**
+- **Watchdog:** interrupts off for 12 s over USB. The board reset itself, and the console came back
+  by itself (a second boot in `log.txt`: pin ok, watchdog on).
+- **Approval:**
+  1. `live pico --chain basesep`, then Jason proposed #4 (0.0000067 ETH) in the Safe web app and
+     signed with MetaMask.
+  2. The Pico fetched it over verified TLS. Jason paged through and held A. The log says
+     `signed #4 … counter 17`, `confirmed #4`, with real timestamps now that NTP has set the clock.
+  3. `live exec` checked both confirmations onchain and executed:
+     [tx](https://sepolia.basescan.org/tx/0x52c6d35fd2dde9b63fe65a7de4b9df2016de0551b178d19a4ae0fc20d170cd1b).
+     The Safe's nonce is 5.
+- **Back to Base:** `live pico --chain base`. `tools/fw verify`: pinned, TLS verified, watchdog on,
+  counter 17, all flags off.
+- **Small fix:** `live pico` piled up its own comment line on every switch.
+- **Power cycle** (Jason unplugged and replugged it). Reset cause 1 (power-on). The console came
+  up by itself in 7 s: pin ok, watchdog on, home on the Base Safe, TLS verified, counter still 17,
+  so nothing was signed outside the console.
+
+## 2026-09-26 — chip 2 (`01230e6b8fa23e70ee`): quorum v1 on silicon
+
+The first of five new Adafruit 4314 breakouts. It's also the first run of the three details only
+silicon can settle (docs/PROVISIONING.md): the byte order of the CRC summary, the data-CRC layout,
+and 4-byte writes into the secret slots' tails.
+
+**Setup:**
+- The dual image (build `814299d`) boots chip 1 into the Base console, and this chip into the
+  ceremony: `chips.json` has it as chip 2, factory, light.
+- `tools/fw allow on` refuses while the pinned chip is on the bus. It was run with chip 2 in, then
+  `tools/fw restart`.
+
+**Just before, with chip 1:** Base mainnet #0, the GS021 transaction (0.000001 ETH, confirmed by
+MetaMask and chip 1), executed with `live exec`:
+[tx](https://basescan.org/tx/0x1b682d376629601808c21cf52cbaddb6e17f57779ef1affd81222c50f1262abb).
+The Safe's nonce is 1.
+
+**C1-C3 on chip 2:**
+- **C1:** all 8 checks passed, including SelfTest on an unlocked chip (not seen on silicon
+  before). The factory table matches the known Adafruit dump except the serial and read-only byte
+  14. It is an ATECC608A (`6002`). Snapshot saved.
+- **C2:** the laptop computed config CRC `2232` from the pulled snapshot
+  (`tools/check_config --summary`). The Pico showed `2232` after writing quorum v1.
+- **C3:** the CRC-checked config lock (mode `0x00`, summary `2232`) was **accepted by the chip**.
+  That settles the summary's byte order (`crc[0] | crc[1] << 8`) on silicon. Read from the
+  laptop: lock bytes `55 00`, still quorum v1, Random live.
+- **UI:** the first arm showed no feedback while B+Y were held, so a bar was added, plus "let go
+  early: not armed" (build `d7c3493`).
+- **C4:** GenKey made key `e199b2d7…` in slot 0; KeyValid, the public key reads back, GenKey on
+  slot 1 refused. The owner was computed on the laptop and confirmed by the passkey factory's
+  `getSigner` on Base and Base Sepolia: `0x99eDACCAd92537B9146dD0804635bC6dEF7f6b88`.
+- **C5:** a plain digest and a WebAuthn assertion both signed and verified on the Pico; Sign on
+  slot 1 refused.
+- **C6:** slot 0 sealed, SlotLocked `fe ff`, the same key read back. Counter 0 = 4: C5's two test
+  signatures, plus one before and one after the seal.
+- **UI:** B+Y arm in either order, and a full bar waits for the let-go (build `2eaca51`).
+- **C7:** the Pico showed `0x99edaccad92537b9146dd0804635bc6def7f6b88`, the same as the laptop
+  and the factory.
+- **C8 stopped: the third unknown, settled on silicon.** Before the data lock, the chip refuses
+  4-byte writes (`0x0F`) into these secret, never-write slots. It accepts 32-byte writes, including
+  one that starts at a slot's last, partial block (bytes 32-35 of slots 1-7, bytes 64-71 of slots
+  9-15), presumably keeping the bytes that fit.
+  - Probed from the laptop with zeros only, the same bytes C8 writes. The OTP zone was not touched:
+    C8 stops before the record.
+  - Fix: C8 writes whole 32-byte blocks, the last one at the tail. The virtual chip now refuses
+    4-byte writes into those slots before the data lock, as this chip does. The data-CRC lock
+    at C9 checks that the tails really hold zeros, and refuses (locking nothing) if not.
+- **C8 (again), with the tail fix:** all green, data CRC `b10e`.
+- **C9:** the CRC-checked data lock (mode `0x01`, summary `b10e`) was **accepted by the chip**.
+  Lock bytes `00 00`. That settles the last two silicon questions: the tails took the zeros, and
+  the data CRC is every slot that is not a private key, then the OTP zone. The laptop recomputed
+  `b10e` from the record independently.
+- **The OTP record:** quorum v1, `01230e6b8fa23e70ee`, slot 0, owner `0x99ed…6b88`, 2026-09-26
+  05:46:37 UTC, build `c5226e9`, counter 4. Its key hash matches `e199b2d7…`.
+- **Every silicon unknown from PROVISIONING.md is now answered.**
+  - The config CRC summary's byte order: `crc[0] | crc[1] << 8`.
+  - The data CRC's layout: as documented.
+  - 4-byte writes into secret slots before the data lock: refused. A 32-byte write at a slot's
+    partial last block works instead.
+  - Chips 3-5 get the same ceremony (build `c5226e9` or later), with no probing.
+- **C10:** sealed. Counter 0 read 7, where the ceremony's signatures account for 5. After a restart
+  with nothing signed, it read 8.
+  - **Found:** on this chip, once the data zone is locked, a public-key read (GenKey mode 0) counts
+    as a use of the LimitedUse key. Tested directly: counter 8, one public-key read, 9; Info
+    KeyValid, still 9. Chip 1 (data zone open) never counted them, and the datasheet reading in
+    PROVISIONING.md said GenKey ignores LimitedUse. Every extra count came from the ceremony and
+    console re-reading the key.
+  - **Fix:** the console takes the count before it reads the key, both at boot and before
+    signing. It re-reads only the serial of a sealed slot before a signature. The number is
+    relabelled "key use #N". The virtual chip counts public-key reads after the data lock.
+  - Tests: ceremony 78, console 77. With a sealed chip: boots and a signature raise nothing, and a
+    use from outside is flagged.
+- `tools/fw allow off`, restart. Chip 2 boots the console in light, "Not pinned" (it is not an
+  owner yet).
+- **First boot of the fix: 3 uses flagged, all explained by the log.** One was the laptop's
+  deliberate public-key read (the test above). Two were "Check again" presses on the pin-fail screen
+  (the two `pin FAIL` lines at +199 s and +201 s), each re-reading the key. Fixed: the console saves
+  the count after a re-check. Build `63e5041`: the next boot flags nothing (count 12 → 13, its own
+  read).
+- **Chip 2's state:** quorum v1, sealed, key `e199b2d7…`, owner `0x99ed…6b88`, counter 13, not
+  yet an owner of any Safe.
+- **Enrolled on Base:** chip 2's signer proxy was deployed with the passkey factory's
+  `createSigner` ([tx](https://basescan.org/tx/0x113273caa009c8211e05408521767ef5e01db590f776791f81a82fa24f73931e)).
+  `0x99eD…6b88` now has code on Base. The factory on Ethereum mainnet has the same code and gives
+  the same address; chip 2 is not deployed there yet (only when a Safe there needs it). Not yet an
+  owner of any Safe.

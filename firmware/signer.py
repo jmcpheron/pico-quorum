@@ -64,7 +64,11 @@ def armed():
 
 
 def flag(name):
-    """A secrets.py flag; False when secrets.py is missing."""
+    """A secrets.py flag; False when secrets.py is missing, and always False on the production
+    console image, so an ALLOW_* left in a pushed secrets.py can never arm anything there."""
+    import image
+    if image.PRODUCTION:
+        return False
     try:
         import secrets
     except ImportError:
@@ -314,13 +318,9 @@ class ChipSigner:
         return "config zone locked"
 
     def provision(self):
-        """The app's lock-config command: write the wallet config, then lock it. PERMANENT."""
-        if not _allowed("ALLOW_LOCK"):
-            raise Exception(_refused("lock"))
-        self.write_config()
-        self.chip.lock_config()
-        self._slots = None
-        return "config zone written and locked"
+        """The legacy app's lock-config command. Retired: a fresh chip gets quorum v1 through the
+        ceremony (provision.py), zone by zone, each lock checked by the chip against a CRC."""
+        raise Exception("provisioning is the ceremony now: the PROVISION screen (docs/PROVISIONING.md)")
 
     def lock_data(self):
         if not _allowed("ALLOW_LOCK"):
@@ -397,13 +397,29 @@ def summary(slots):
     return out
 
 
-def load():
-    """ChipSigner if an ATECC answers on the bus, else the software key."""
+class NoSigner:
+    """What load(soft=False) returns when no chip answers: it has no key and can sign nothing."""
+    name = "none"
+    slot = 0
+
+    def pubkey(self, slot=None):
+        raise Exception("no chip")
+
+    def sign(self, digest, slot=None):
+        raise Exception("no chip")
+
+
+def load(soft=True):
+    """ChipSigner if an ATECC answers on the bus, else the software key (soft=True), else NoSigner.
+    The production console passes soft=False: SoftSigner's first pubkey() writes a key to flash."""
     try:
         s = ChipSigner()
         s.chip.wake()
         s.chip.sleep()
         return s
     except Exception as e:
+        if not soft:
+            print("no chip (%s)" % e)
+            return NoSigner()
         print("no chip (%s), using software key" % e)
         return SoftSigner()

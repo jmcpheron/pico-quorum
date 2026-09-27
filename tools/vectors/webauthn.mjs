@@ -7,19 +7,32 @@
 //     Safe makes through the owner's proxy at execution time
 // Nothing is written unless the chain agrees with every vector.
 //
-//   cd tools/vectors && npm install && node webauthn.mjs
+// --chain base|eth puts the same vectors to that chain's deployment instead, and writes nothing:
+// a check that the passkey signer there gives this key the same owner and accepts its signatures
+// (before a Safe on that chain is trusted to the console; docs/LADDER.md). It also asks the P-256
+// precompile at 0x100 directly, since the verifiers fall back to Daimo's contract without it.
+//
+//   cd tools/vectors && npm install && node webauthn.mjs [--chain base|eth]
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { p256 } from "@noble/curves/p256";
 import {
   concat, createPublicClient, encodeAbiParameters, getContractAddress, http, pad, parseAbi, size, toHex,
 } from "viem";
-import { baseSepolia } from "viem/chains";
+import { base, baseSepolia, mainnet } from "viem/chains";
 
 const ROOT = new URL("../../", import.meta.url);
 const src = readFileSync(new URL("firmware/quorum_cfg.py", ROOT), "utf8");
 const SIGNER = JSON.parse(src.slice(src.indexOf("{", src.indexOf("CFG =")))).signer;
-const RPC = process.env.BASE_SEPOLIA_RPC || "https://sepolia.base.org";
+const CHAINS = {
+  basesep: [baseSepolia, process.env.BASE_SEPOLIA_RPC || "https://sepolia.base.org"],
+  base: [base, process.env.BASE_RPC || "https://mainnet.base.org"],
+  eth: [mainnet, process.env.ETH_RPC || "https://ethereum-rpc.publicnode.com"],
+};
+const argv = process.argv.slice(2);
+const NET = argv.includes("--chain") ? argv[argv.indexOf("--chain") + 1] : "basesep";
+if (!CHAINS[NET]) throw new Error(`--chain ${NET}: one of ${Object.keys(CHAINS).join(", ")}`);
+const [CHAIN, RPC] = CHAINS[NET];
 
 const sha256 = (b) => createHash("sha256").update(b).digest();
 const hex = (b) => "0x" + Buffer.from(b).toString("hex");
@@ -73,8 +86,18 @@ const vectors = [
   vector("zero-hash", 4, "0x" + "00".repeat(32)),
 ];
 
-const client = createPublicClient({ chain: baseSepolia, transport: http(RPC) });
+const client = createPublicClient({ chain: CHAIN, transport: http(RPC) });
 let bad = 0;
+{
+  // the precompile itself (RIP-7212 on the L2s, EIP-7951 on Ethereum): 1 for a good signature
+  const k = p256.utils.randomPrivateKey();
+  const pub = p256.getPublicKey(k, false);
+  const msg = sha256(Buffer.from("picoquorum precompile check"));
+  const sg = p256.sign(msg, k, { prehash: false });
+  const input = concat([hex(msg), pad(toHex(sg.r)), pad(toHex(sg.s)), hex(pub.slice(1, 33)), hex(pub.slice(33))]);
+  const { data } = await client.call({ to: "0x0000000000000000000000000000000000000100", data: input });
+  console.log(`${data && BigInt(data) === 1n ? "pass" : "note"}  P-256 precompile at 0x100 on ${CHAIN.name}: ${data && BigInt(data) === 1n ? "live" : "absent (Daimo's verifier is used, about 4x the gas)"}`);
+}
 for (const v of vectors) {
   const onchain = (await client.readContract({ address: SIGNER.factory, abi: factoryAbi, functionName: "getSigner",
     args: [BigInt(v.qx), BigInt(v.qy), BigInt(SIGNER.verifiers)] })).toLowerCase();
@@ -85,8 +108,12 @@ for (const v of vectors) {
   console.log(`${ok ? "pass" : "FAIL"}  ${v.name.padEnd(24)} owner ${v.owner}${onchain === v.owner ? "" : " != chain " + onchain}  isValidSignature ${magic}`);
 }
 if (bad) {
-  console.error(`${bad} vector(s) disagree with the deployed contracts on Base Sepolia; nothing written`);
+  console.error(`${bad} vector(s) disagree with the deployed contracts on ${CHAIN.name}; nothing written`);
   process.exit(1);
+}
+if (NET !== "basesep") {
+  console.log(`all ${vectors.length} vectors agree with the passkey signer on ${CHAIN.name} (chain ${CHAIN.id}); nothing written`);
+  process.exit(0);
 }
 const out = new URL("test-vectors/webauthn.json", ROOT);
 writeFileSync(out, JSON.stringify({

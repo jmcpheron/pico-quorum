@@ -8,9 +8,10 @@
 //   4. the console opens the tampered #1: refused, and nothing is sent
 // Then the chain itself is asked: the Safe's nonce, Carol's balance, the execution receipt.
 // Exit 1 on any failure. Needs Foundry (anvil) and emu/node_modules. QUORUM_E2E_KEEP=1 keeps the
-// screenshot of the console after signing.
+// screenshot of the console after signing. QUORUM_E2E_PRODUCTION=1 runs the production image: a
+// build.py, and QUORUM_EXPECT pinning the virtual chip, its slot 0 and the owner its key gives.
 import { spawn, spawnSync } from "node:child_process";
-import { copyFileSync, mkdtempSync, rmSync } from "node:fs";
+import { copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -18,6 +19,8 @@ import { createPublicClient, getAddress, http, parseEther } from "viem";
 import { forkBlock, startAnvil } from "./fork.mjs";
 import { BOOK, CFG } from "./sim.mjs";
 import { SAFE_ABI } from "./chain.mjs";
+import { p256Owner } from "./sigs.mjs";
+import { p256 } from "@noble/curves/p256";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 const ANVIL_PORT = Number(process.env.QUORUM_E2E_ANVIL_PORT || 8546);
@@ -62,7 +65,21 @@ try {
 
   const chip = join(tmp, "chip.json");
   copyFileSync(new URL("emu-chip.json", import.meta.url), chip);
-  const r = spawnSync(process.execPath, [join(ROOT, "emu/headless.mjs"), "quorum", "--app", BASE, "--chip", chip, "--quiet",
+  const prod = [];
+  if (process.env.QUORUM_E2E_PRODUCTION) {
+    const st = JSON.parse(readFileSync(chip, "utf8"));
+    const cfg = Buffer.from(st.config, "hex");
+    const pub = p256.getPublicKey(BigInt("0x" + st.keys["0"]), false);
+    const hex = (b) => "0x" + Buffer.from(b).toString("hex");
+    const owner = p256Owner(CFG.signer, hex(pub.slice(1, 33)), hex(pub.slice(33, 65)));
+    const serial = Buffer.concat([cfg.subarray(0, 4), cfg.subarray(8, 13)]).toString("hex");
+    writeFileSync(join(tmp, "build.py"), 'IMAGE = "console"\nBUILD = "e2e"\nDATE = 0\n');
+    writeFileSync(join(tmp, "pin.py"), `QUORUM_EXPECT = {"serial": "${serial}", "slot": 0, "owner": "${owner.toLowerCase()}", "locked": False}\n`
+      + `QUORUM_SAFE = {"chainId": 31337, "address": "${SAFE.toLowerCase()}", "name": "Family Safe"}\n`);
+    prod.push("--file", `build.py=${join(tmp, "build.py")}`, "--secrets", join(tmp, "pin.py"));
+    console.log(`production image: pinned to chip ${serial}, slot 0, owner ${owner}`);
+  }
+  const r = spawnSync(process.execPath, [join(ROOT, "emu/headless.mjs"), "quorum", "--app", BASE, "--chip", chip, "--quiet", ...prod,
     "--wait", "4000",
     "--key", "A", "--wait", "300", "--key", "down", "--wait", "300", "--key", "A", "--wait", "300",   // open #0, page, to verify
     "--hold", "A", "--wait", "2400", "--release", "A", "--wait", "5000", "--shot", shot,             // hold to sign; the service executes

@@ -15,3 +15,17 @@ tools/mock-tx-service/chain-state.json
 tools/mock-tx-service/fork.json
 tools/mock-tx-service/live.json
 tools/fonts/src/
+
+# secrets for the laptop tools (tools/quorum): never committed; .env.example is the template
+.env
+
+# local scratch: screenshots with personal addresses, macOS metadata
+temp-safe-screenshots/
+.DS_Store
+
+# tools/fw: board backups (they hold the board's secrets.py) and built images
+backups/
+build/
+
+# chips/: the local datasheet of every ATECC608 (CHIPS.md); stays on this Mac
+chips/

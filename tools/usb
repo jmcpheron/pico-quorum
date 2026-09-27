@@ -1,7 +1,10 @@
 #!/bin/sh
 # Talk to the Pico over USB serial. The same mpremote commands as tools/pico, no WiFi console needed.
 #   tools/usb                      find the port and open the REPL (Ctrl-] to leave)
-#   tools/usb push                 copy every firmware/*.py (never secrets.example.py) and *.bin, and reset
+#   tools/usb push                 copy every firmware/*.py and *.bin, and reset. Never the secrets
+#                                  (secrets.py, secrets_*.py, secrets.bak): the board keeps its own
+#                                  WiFi, API key and Safe. Refused on a board with the production
+#                                  image (tools/fw push manages that one).
 #   tools/usb ls | exec 'print(1)' | cp firmware/x.py :x.py | run firmware/chipcheck.py
 # Port: $PICO_PORT, else the first /dev/ttyACM* (Linux) or /dev/cu.usbmodem* (macOS).
 # push is one mpremote session: no `resume`, so mpremote soft-resets first (the running module's
@@ -18,9 +21,18 @@ fi
 mp="$(command -v mpremote || echo "$HOME/.local/bin/mpremote")"
 case "$1" in
   push)
+    # The production image (tools/fw push) marks its main.py; a blanket copy would undo its manifest.
+    if "$mp" connect "$port" resume exec "
+try:
+    print('PRODUCTION-IMAGE' if '# picoquorum-image:' in open('main.py').read() else 'dev')
+except OSError:
+    print('dev')" 2>/dev/null | grep -q PRODUCTION-IMAGE; then
+      echo "this board runs the production image: use tools/fw push (tools/usb push would copy every module)" >&2
+      exit 1
+    fi
     set -- connect "$port"
     for f in firmware/*.py; do
-      case "$f" in *secrets.example.py) continue;; esac
+      case "$(basename "$f")" in secrets.py|secrets_*.py|secrets.example.py) continue;; esac
       set -- "$@" cp "$f" ":$(basename "$f")" +
     done
     for f in firmware/*.bin; do         # qr.bin and the fonts (qf_*.bin)

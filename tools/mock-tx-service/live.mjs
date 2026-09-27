@@ -16,6 +16,11 @@
 //                       the console on the emulator, with its throwaway virtual chip (live key --emu),
 //                       against the real service: it opens the first transaction waiting for it, pages
 //                       through, holds A, and the service's answer is printed. The spike before the Pico.
+//   live pico --chain C[,C..] [--safe 0x..] [--name NAME]   several chains: a Safe on each (QUORUM_SAFES)
+//                       point the Pico's console at chain C (or several): the board's secrets.py gets
+//                       each chain's pinned Safe (QUORUM_SAFES; the console finds each chain's service
+//                       itself), the old file is kept as secrets.bak, and the console restarts. The API key and everything else stay.
+//                       --chain local: tools/quorum on this Mac (the fork or the simulation), no QUORUM_SAFE.
 //   --chain local       the rehearsal against tools/quorum up --manual-exec (the fork, anvil's account 0;
 //                       --browser uses the wallet page there too, with a wallet pointed at the fork)
 //
@@ -25,8 +30,9 @@
 // Foundry keystore (~/.foundry/keystores) after you type yes (--yes skips that on Base Sepolia,
 // never on Base or Ethereum). Either way the terminal first shows the destination, the value, what it does and
 // the estimated cost, and every send is logged in live.json.
-// SAFE_API_KEY (developer.safe.global) goes to the service as a bearer token; without one the
-// service allows only a few thousand requests a month.
+// The Safe API key (developer.safe.global) goes to the service as a bearer token: SAFE_API_KEY, from
+// the repo's gitignored .env (cli.mjs loads it) or the shell. Without one the service allows only
+// a few thousand requests a month.
 import { spawn, spawnSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
@@ -71,6 +77,8 @@ function die(msg) {
   process.exit(1);
 }
 
+const API_KEY = (process.env.SAFE_API_KEY || "").trim();
+
 const link = (n, kind, x) => (n.explorer ? `${n.explorer}/${kind}/${x}` : x);
 
 const saved = () => (existsSync(LIVE_FILE) ? JSON.parse(readFileSync(LIVE_FILE, "utf8")) : { safes: {} });
@@ -79,7 +87,7 @@ const keep = (live) => writeFileSync(LIVE_FILE, JSON.stringify(live, null, 2) + 
 function net() {
   const name = opt("--chain");
   if (!CHAINS[name]) die(`--chain ${Object.keys(CHAINS).join(" | ")}`);
-  if (name !== "local" && !process.env.SAFE_API_KEY) console.error("(no SAFE_API_KEY: the service allows a few thousand requests a month without one)");
+  if (name !== "local" && !API_KEY) console.error("(no SAFE_API_KEY in .env: the service allows a few thousand requests a month without one)");
   const c = CHAINS[name];
   return { name, ...c, pub: createPublicClient({ chain: c.chain, transport: http(c.rpc) }) };
 }
@@ -92,7 +100,7 @@ function theKey() {
 }
 
 async function service(n, path) {
-  const headers = process.env.SAFE_API_KEY ? { Authorization: "Bearer " + process.env.SAFE_API_KEY } : {};
+  const headers = API_KEY && n.name !== "local" ? { Authorization: "Bearer " + API_KEY } : {};
   const r = await fetch(n.service + path, { headers });
   if (r.status === 404) return null;
   if (!r.ok) die(`${n.service}${path}: HTTP ${r.status} ${(await r.text()).slice(0, 200)}`);
@@ -254,7 +262,14 @@ async function enroll() {
     to: CFG.signer.factory, value: 0n, data: encodeFunctionData({ abi: PASSKEY_ABI, functionName: "createSigner", args }),
     what: `Deploy the signer proxy for key ${k.qx.slice(2, 10)}: Safe's passkey factory createSigner, making ${k.owner}. Moves no funds.`,
   });
-  if (!(await n.pub.getCode({ address: k.owner }))) die(`sent (${receipt.transactionHash}) but no code at ${k.owner} yet`);
+  // A public RPC is several servers behind a load balancer, and the one that answers getCode can be
+  // a block behind the one that returned the receipt (seen on mainnet.base.org), so ask a few times.
+  let code;
+  for (let i = 0; i < 10 && !code; i++) {
+    code = await n.pub.getCode({ address: k.owner });
+    if (!code) await new Promise((r) => setTimeout(r, 1500));
+  }
+  if (!code) die(`sent (${receipt.transactionHash}) but no code at ${k.owner} after 15 s: check ${link(n, "address", k.owner)}`);
   console.log(`deployed: ${link(n, "tx", receipt.transactionHash)}\nowner to add in the Safe web app: ${k.owner}`);
 }
 
@@ -367,7 +382,7 @@ async function rehearse() {
   const secrets = join(dir, "live_secrets.py");
   writeFileSync(secrets, [`QUORUM_URL = ${JSON.stringify(n.service)}`,
     `QUORUM_SAFE = {"chainId": ${n.chain.id}, "address": ${JSON.stringify(safe.toLowerCase())}, "name": "Rehearsal"}`,
-    process.env.SAFE_API_KEY ? `QUORUM_API_KEY = ${JSON.stringify(process.env.SAFE_API_KEY)}` : "", "QUORUM_POLL_S = 30", ""].join("\n"));
+    API_KEY && n.name !== "local" ? `QUORUM_API_KEY = ${JSON.stringify(API_KEY)}` : "", "QUORUM_POLL_S = 30", ""].join("\n"));
   const chip = join(dir, "chip.json");
   copyFileSync(new URL("emu-chip.json", import.meta.url), chip);
   const [home, signed] = [join(dir, "1-queue.png"), join(dir, "2-after-signing.png")];
@@ -387,6 +402,84 @@ async function rehearse() {
   console.log(`next: tools/quorum live exec --chain ${n.name} ${mine[0].nonce}`);
 }
 
-const cmds = { key, enroll, status, exec, rehearse };
-if (!cmds[sub]) die("usage: tools/quorum live key | enroll | status | rehearse | exec   (see tools/mock-tx-service/live.mjs)");
+// ----------------------------------------------------------------------------- pico
+async function pico() {
+  // --chain basesep,base,eth: the console watches a Safe on each (QUORUM_SAFES), each asked about
+  // at its own chain's service (firmware/quorum_cfg.py "services"). local stands alone: the
+  // laptop's service, at QUORUM_URL.
+  const names = (opt("--chain") || "").split(",").filter(Boolean);
+  if (!names.length || names.some((x) => !CHAINS[x])) die(`--chain ${Object.keys(CHAINS).join(" | ")}, or several: --chain basesep,base,eth`);
+  if (names.includes("local") && names.length > 1) die("--chain local stands alone (the laptop's service)");
+  if (names.length > 1 && (opt("--safe") || opt("--name"))) die("--safe and --name are for one chain; with several, each chain's Safe comes from live.json");
+  let lines;
+  if (names[0] === "local") {
+    const ip = spawnSync("ipconfig", ["getifaddr", "en0"], { encoding: "utf8" }).stdout.trim();
+    if (!ip) die("no LAN address on en0 for the Pico to reach this Mac");
+    lines = [`QUORUM_URL = ${JSON.stringify(`http://${ip}:${process.env.QUORUM_PORT || 8787}`)}`];
+  } else {
+    const live = saved();
+    const safes = names.map((name) => {
+      const c = CHAINS[name];
+      const safe = theSafe({ ...c, name });
+      const label = (names.length === 1 && opt("--name")) || live.names?.[name] || `${c.chain.name} Safe`;
+      live.names = { ...live.names, [name]: label };
+      return { chainId: c.chain.id, address: safe.toLowerCase(), name: label };
+    });
+    keep(live);
+    lines = [`QUORUM_SAFES = [\n    ${safes.map((x) => JSON.stringify(x)).join(",\n    ")}\n]`];
+  }
+  console.log(`the Pico's console, to ${names.map((x) => CHAINS[x].chain.name).join(" + ")}:\n  ${lines.join("\n  ")}`);
+  const code = `import os
+new = ${JSON.stringify(lines.join("\n"))}
+with open('secrets.py') as f:
+    old = f.read()
+with open('secrets.bak', 'w') as f:
+    f.write(old)
+keep, skip = [], False
+for l in old.split(chr(10)):
+    k = l.split('=')[0].strip()
+    if skip:
+        skip = not l.startswith(']')
+        continue
+    if k == 'QUORUM_SAFES' and l.rstrip().endswith('['):
+        skip = True
+        continue
+    if k in ('QUORUM_URL', 'QUORUM_SAFE', 'QUORUM_SAFES') or l.startswith('# Base Sepolia (docs/LADDER.md') or l.startswith('# the network, written by'):
+        continue
+    keep.append(l)
+while keep and not keep[-1].strip():
+    keep.pop()
+with open('secrets.py', 'w') as f:
+    f.write(chr(10).join(keep) + chr(10) + '# the network, written by tools/quorum live pico' + chr(10) + new + chr(10))
+if hasattr(os, 'sync'): os.sync()
+print('WROTE', len(old), '->', os.stat('secrets.py')[6], 'bytes; the old file is secrets.bak')`;
+  let r = spawnSync(`${ROOT}tools/usb`, ["exec", code], { encoding: "utf8" });
+  const wrote = (r.stdout || "").match(/WROTE .*/);
+  if (!wrote) die(`the board did not take it:\n${r.stdout}${r.stderr}`);
+  console.log("  " + wrote[0]);
+  console.log("restarting the console...");
+  // A production image (tools/fw push) starts the console itself at power-up: a reset is the
+  // restart. A development board gets the console shipped and started, as before.
+  const main = spawnSync(`${ROOT}tools/usb`, ["exec", "print('MAIN', open('main.py').read()[:60])"], { encoding: "utf8" }).stdout || "";
+  if (/picoquorum-image: (console|dual)/.test(main)) {
+    // then hands off for 30 s: any mpremote command starts with Ctrl-C, which would stop the
+    // console mid-start (tools/fw restart, 2026-09-26)
+    spawnSync(`${ROOT}tools/usb`, ["exec", "import machine; machine.reset()"], { encoding: "utf8", timeout: 10000 });
+    await new Promise((res) => setTimeout(res, 30000));
+  } else {
+    r = spawnSync(`${ROOT}tools/emu`, ["ship", "quorum"], { encoding: "utf8", timeout: 180000 });
+    if (!/running quorum/.test(r.stdout + r.stderr)) die(`the restart did not report back:\n${(r.stdout + r.stderr).slice(-600)}`);
+  }
+  const check = "import quorum as q; print('NOW', 'net', q.net_ok, q.net_err, '|', ' | '.join('%d %s %s nonce %s me-owner %s' % (w['chain'], w['addr'], w['name'], w['info'].get('nonce'), q.me in q.owners(w)) for w in q.WATCH))";
+  for (let i = 0; i < 12; i++) {
+    await new Promise((res) => setTimeout(res, 5000));
+    r = spawnSync(`${ROOT}tools/usb`, ["exec", check], { encoding: "utf8" });
+    const now = (r.stdout || "").match(/NOW .*/);
+    if (now && / net True /.test(now[0])) return console.log("  " + now[0]);
+    if (i === 11) console.log("  " + (now ? now[0] : "no answer from the board") + "\n  (still joining WiFi or the service? it keeps trying)");
+  }
+}
+
+const cmds = { key, enroll, status, exec, rehearse, pico };
+if (!cmds[sub]) die("usage: tools/quorum live key | enroll | status | rehearse | exec | pico   (see tools/mock-tx-service/live.mjs)");
 await cmds[sub]();
