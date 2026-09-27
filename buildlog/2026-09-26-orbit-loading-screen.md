@@ -36,3 +36,26 @@ The animation clock starts after that lead-in, preserving the full animation dur
 Optimization: replaced the all-commands-in-every-strip replay with commands grouped by their
 vertical bounds. Text remains one command per label rather than many per-glyph commands.
 The nine before/after PNG hashes are identical, and full-frame versus strip references pass.
+
+## Optimized hardware measurements
+
+Installed commit 5f1bcff2 and verified all 41 firmware files. The console returned to Home with
+the pinned chip and Safe online. Timed the same six frames on the Pico, with garbage collection
+before each sample and the console timer paused; restored Home and its timer afterward.
+
+| Frame | Before (ms) | Optimized (ms) |
+|---|---:|---:|
+| 12 | 126 | 101 |
+| 110 | 111 | 101 |
+| 150 | 137 | 115 |
+| 186 | 118 | 102 |
+| 256 | 169 | 128 |
+| 300 | 166 | 128 |
+
+Mean frame time fell from 137.8 to 112.5 ms (18.4% less). The text-heavy frames improved about
+24%. This remains roughly 8–10 FPS, limited in part by sending the full panel over SPI.
+
+The optimized animation's code/data used 10,160 bytes while loaded. The largest sampled
+free-heap drop was 35,280 bytes, versus 43,536 before. After unloading and collecting garbage,
+free memory returned to within 80 bytes of baseline; the 32,768-byte TLS reserve stayed intact.
+These are samples, not a guarantee of maximum memory use across every frame.
