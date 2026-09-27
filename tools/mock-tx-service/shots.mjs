@@ -8,7 +8,7 @@ import { copyFileSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSyn
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { DEMO } from "./scenarios.mjs";
+import { DEMO, NAMED_BOOK, NAMED_SEEN } from "./scenarios.mjs";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 const SHOTS = join(ROOT, "docs", "quorum-ui", "shots");
@@ -76,6 +76,8 @@ const STORIES = [
     "keys B,down,down,A,down", "shot 35-light-red-page", "key down", "shot 36-light-verify"]],
 ];
 
+const NAMES = ["send-ens", "send-cold", "send-first", "send-repeat", "send-poison"];
+
 // Build 1 (docs/build1-ui/README.md): the same Safe, reviewed with the knob. "turn cw[:N]" turns it
 // N detents clockwise (next), "push" presses it, "hold push" holds it (signing).
 const BUILD1_STORIES = [
@@ -89,6 +91,14 @@ const BUILD1_STORIES = [
   ["lie", DEMO, ["turn cw:3", "push", "shot b11-lie-refused"]],
   ["unknown", DEMO, ["turn cw:4", "push", "turn cw", "shot b12-unknown-red-page", "turn cw", "shot b13-unknown-calldata"]],
   ["owners", DEMO, ["turn cw:5", "push", "shot b14-owners"]],
+  // round 1: names. The console's own book pins vitalik.eth and "Cold storage"; it has paid one
+  // address 3 times before (seen.json).
+  ["names", NAMES, [
+    "shot b20-names-home", "push", "shot b21-ens-summary", "turn cw", "shot b22-ens-page", "push", "turn cw:2", "push",
+    "turn cw", "push", "shot b23-cold-summary", "turn cw", "shot b24-cold-page", "push", "turn cw:2", "push",
+    "turn cw", "push", "shot b25-first-summary", "turn cw", "shot b26-first-page", "push", "turn cw:2", "push",
+    "turn cw", "push", "shot b27-repeat-summary", "turn cw", "shot b28-repeat-page", "push", "turn cw:2", "push",
+    "turn cw", "push", "shot b29-poison-summary", "turn cw", "shot b30-poison-page"], { names: true }],
 ];
 
 // A few screens that show every size of type, for comparing font sets (docs/quorum-ui/v2/FONTS.md).
@@ -142,6 +152,9 @@ for (const b of [BASE, BASE2]) {
     await new Promise((r) => setTimeout(r, 100));
   }
 }
+const namesSecrets = join(tmp, "names.py"), namesSeen = join(tmp, "seen.json");
+writeFileSync(namesSecrets, NAMED_BOOK);
+writeFileSync(namesSeen, NAMED_SEEN);
 const twoSecrets = join(tmp, "two.py");
 writeFileSync(twoSecrets, `QUORUM_SAFES = [
     {"chainId": 31337, "address": "0xf77e6235ea5ce79d6d823b332276cac99ea77666", "name": "Family Safe", "url": "${BASE}"},
@@ -166,6 +179,7 @@ for (const fontset of fontsets) {
     const r = spawnSync(process.execPath, [join(ROOT, "emu/headless.mjs"), "quorum", "--app", app, "--chip", chip, "--quiet",
       ...(board ? ["--board", board] : []),
       ...(opts.two ? ["--secrets", twoSecrets] : []),
+      ...(opts.names ? ["--secrets", namesSecrets, "--file", "seen.json=" + namesSeen] : []),
       "--wait", "3000", ...args(steps, OUT)], { cwd: join(ROOT, "emu"), encoding: "utf8" });
     const shots = (r.stdout.match(/\[shot\]/g) || []).length;
     const bad = r.status !== 0 || /Traceback/.test(r.stdout + r.stderr);

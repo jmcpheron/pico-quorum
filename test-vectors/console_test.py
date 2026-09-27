@@ -176,7 +176,7 @@ def fresh(prod=True, url="https://api.safe.global/tx-service/basesep", expect="a
     for m in ("secrets", "build", "image", "quorum", "signer", "net", "txservice", "atecc", "qlog", "watch"):
         sys.modules.pop(m, None)
     for f in os.listdir():
-        if not keep and (f.startswith("counter-") or f == "slot.txt"):
+        if not keep and (f.startswith("counter-") or f in ("slot.txt", "seen.json")):
             os.remove(f)
     import txservice
     txservice.requests = SVC
@@ -618,8 +618,47 @@ def case_safes():
     check(Q.WATCH[0]["base"].endswith("/basesep") and Q.WATCH[1]["base"] == "http://10.0.0.2:8788", "a Safe's own \"url\" overrides its chain's service, for that Safe only")
 
 
+VIT = "0xd8da6bf26964af9d7eed9e03e53415d37aa96045"
+LOOK = "0xd8da3b1e5f7c9a2d4e6f8b0c1d3e5f7a9b2c6045"     # vitalik.eth's first 4 and last 4
+STRANGER = "0x7c3e5a9d1b8f2e6c4a0d7b3f9e1c5a8d2b6f4e90"
+
+
+def case_names():
+    import decode
+    book = 'QUORUM_BOOK = {"*": {"%s": "vitalik.eth"}, "%d": {"%s": ["Cold", "cold.eth"]}, "1": {"%s": "mainnet only"}}' % (
+        VIT, CHAIN, OTHER, STRANGER)
+    Q = fresh(extra=book)
+    check(Q.BOOK_WHY == "" and decode.name(Q.ctx, VIT) == "vitalik.eth" and decode.ens_of(Q.ctx, VIT) == "vitalik.eth",
+          "QUORUM_BOOK: a pinned ENS name, on every chain")
+    check(decode.name(Q.ctx, OTHER) == "Cold" and decode.ens_of(Q.ctx, OTHER) == "cold.eth", "a label with its ENS name, on this chain")
+    check(decode.name(Q.ctx, STRANGER) is None, "a name pinned for chain 1 only is not used on Base Sepolia")
+    serve(Q, [tx(Q, 0, to=VIT, value=10**18), tx(Q, 1, to=LOOK, value=10**18), tx(Q, 2, to=STRANGER, value=10**17),
+              tx(Q, 3, to=OTHER, value=10**17)])
+    by = {e["n"]: e for e in Q.queue}
+    it = by[0]["r"]["items"][0]
+    check(by[0]["r"]["level"] == "ok" and not it.get("lookalike"), "a send to the pinned name: ok")
+    it = by[1]["r"]["items"][0]
+    check(by[1]["r"]["level"] == "red" and it.get("lookalike") == "vitalik.eth" and "poisoning" in it["text"],
+          "an address with vitalik.eth's first and last characters: red, named as a lookalike")
+    it = by[2]["r"]["items"][0]
+    check(it.get("seen") == 0 and it["level"] == "ok", "a stranger never paid: seen 0 (first time), not red")
+    check(sign(Q, by[2], 2100), "signed the send to the stranger")
+    check(json.load(open("seen.json")).get(str(CHAIN), {}).get(STRANGER) == 1, "seen.json counts the payment, for this chain")
+    Q = fresh(extra=book, keep=True)
+    serve(Q, [tx(Q, 4, to=STRANGER, value=10**17)])
+    check(Q.queue[0]["r"]["items"][0].get("seen") == 1, "after a restart, the next send there says: paid once before")
+    serve(Q, [tx(Q, 5, to=STRANGER[:-4] + "ffff", value=1)])
+    check(Q.queue[0]["r"]["items"][0].get("lookalike") is None, "a different ending is not a lookalike")
+    serve(Q, [tx(Q, 6, to=STRANGER[:6] + "0" * 32 + STRANGER[-4:], value=1)])
+    check(Q.queue[0]["r"]["items"][0].get("lookalike", "").startswith("0x7c3e"),
+          "an address made to look like one this console paid: red too")
+    Q = fresh(extra='QUORUM_BOOK = {"*": {"0x1234": "short", "%s": "fine"}}' % VIT)
+    check("bad entry" in Q.BOOK_WHY and decode.name(Q.ctx, VIT) == "fine", "a bad QUORUM_BOOK entry is dropped and said, the rest kept")
+
+
 def main():
-    for case in (case_pin, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_safes, case_watchdog):
+    for case in (case_pin, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_safes, case_watchdog,
+                 case_names):
         print("--", case.__name__[5:])
         try:
             case()

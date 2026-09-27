@@ -294,25 +294,75 @@ def knob_choices(d, q, items, focus, hint, y=222, bg="bg"):
         txt(d, hint, M + 19, y - 8, "sans12", "faint", bg)
 
 
-def who_line(d, q, label, a, y, pc, bg):
-    """label + who the address is (logo and name, a name from the book, or a flag), then the
-    address itself in full. Returns the y after it."""
+def tag_for(q, a, it=None):
+    """The one tag a paid address gets: ("lookalike", "not <name>"), ("pinned", ...), ("first", ...),
+    ("seen", "paid 3 times before"), or None. Only for items that pay or allow someone (it given)."""
+    if it and it.get("lookalike"):
+        return "lookalike", "LOOKALIKE"
+    if q.ctx and a.lower() in q.ctx.get("pinned", {}):
+        return "pinned", "pinned"
+    if not it or it.get("label", "to") not in decode.PAYS:
+        return None
+    n = it.get("seen", 0)
+    if n:
+        return "seen", "paid once before" if n == 1 else "paid %d times before" % n
+    if ident(q, a)[2]:
+        return None
+    return "first", "first time"
+
+
+def tag_pill(d, kind, s, x, y, pc, bg, right=False):
+    """A tag_for() tag as a pill (or muted text for "seen"). right: x is its right edge."""
+    if kind == "seen":
+        if right:
+            x -= F.width(s, "sans12")
+        txt(d, s, x, y + 1, "sans12", pc["muted"], bg)
+        return F.width(s, "sans12")
+    plain = bg == "bg"
+    fill, ink = {"lookalike": ("bad_bar", "on_bad"),
+                 "pinned": ("surface" if plain else pc["head"], "ok" if plain else pc["on_head"]),
+                 "first": ("warn_bg" if plain else pc["head"], "warn" if plain else pc["on_head"])}[kind]
+    if right:
+        x -= F.width(s, "sans12") + 12
+    return pill(d, s, x, y, "sans12", fill, ink)
+
+
+def who_line(d, q, label, a, y, pc, bg, it=None):
+    """label + who the address is (logo and name, a pinned name and its ENS, a name from the book,
+    or a flag) and its tag, then the address itself in full beside its identicon. Returns the y
+    after it."""
     name, lg, known = ident(q, a)
+    tag = tag_for(q, a, it)
+    tw = 0
+    if tag:
+        tw = tag_pill(d, tag[0], tag[1], R, y, pc, bg, True) + 8
     x = txt(d, label + " ", M, y + 1, "sans12", pc["muted"], bg)
-    if lg:
+    room = R - tw - x
+    if tag and tag[0] == "lookalike":
+        warn_sign(d, x + 8, y + 9, 8, "bad_bar", "on_bad")
+        txt(d, fit("looks like " + it["lookalike"], room - 20, "bold14"), x + 20, y, "bold14", pc["text"], bg)
+    elif lg:
         logo(d, lg, x + 7, y + 9, 7)
-        x = txt(d, name, x + 18, y, "bold14", pc["text"], bg)
-        txt(d, " known", x, y + 1, "sans12", "ok" if bg == "bg" else pc["muted"], bg)
+        x = txt(d, fit(name, room - 18, "bold14"), x + 18, y, "bold14", pc["text"], bg)
+        if F.width(" known", "sans12") <= R - tw - x:
+            txt(d, " known", x, y + 1, "sans12", "ok" if bg == "bg" else pc["muted"], bg)
     elif name:
-        txt(d, name, x, y, "bold14", pc["text"], bg)
+        ens = decode.ens_of(q.ctx, a) if q.ctx else None
+        x = txt(d, fit(name, room, "bold14"), x, y, "bold14", pc["text"], bg)
+        if ens and ens != name and F.width(" \u00b7 " + ens, "sans12") <= R - tw - x:
+            txt(d, " \u00b7 " + ens, x, y + 1, "sans12", pc["muted"], bg)
     elif label == "contract":
         warn_sign(d, x + 8, y + 9, 8)
         txt(d, "unknown contract", x + 20, y, "bold14", "warn" if bg == "bg" else pc["text"], bg)
     else:
-        txt(d, "not in the address book", x, y + 1, "sans12", "warn" if bg == "bg" else pc["text"], bg)
+        txt(d, fit("not in the address book", room, "sans12"), x, y + 1, "sans12", "warn" if bg == "bg" else pc["text"], bg)
     y += 18
+    x = M
+    if W >= 300:                # the identicon fits beside the address only on the wider screen
+        blockies.draw(d, a.lower(), M, y + 2, 3)
+        x += 32
     for line in addr_lines(a):
-        txt(d, line, M, y, "mono13", pc["stake"], bg)
+        txt(d, line, x, y, "mono13", pc["stake"], bg)
         y += 15
     return y + 5
 
@@ -525,14 +575,20 @@ def draw_summary(q):
     elif len(items) == 1 and items[0].get("to") and items[0]["to"] != con:
         to = items[0]["to"]
         name, lg, known = ident(q, to)
+        tag = tag_for(q, to, items[0])
         x = txt(d, items[0].get("label", "to") + " ", M, y + 2, "sans14", "muted")
-        if lg:
+        if tag and tag[0] == "lookalike":
+            x = txt(d, short(to), x, y + 3, "mono13", "bad")
+        elif lg:
             logo(d, lg, x + 7, y + 11, 7)
-            txt(d, name, x + 18, y + 2, "bold14")
+            x = txt(d, name, x + 18, y + 2, "bold14")
         elif name:
-            txt(d, name, x, y + 2, "bold14")
+            x = txt(d, name, x, y + 2, "bold14")
         else:
             x = txt(d, short(to), x, y + 3, "mono13")
+        if tag:
+            tag_pill(d, tag[0], tag[1], x + 6, y + 2, page_colors("ok"), "bg")
+        elif not name and not lg:
             pill(d, "unknown", x + 6, y + 2, "sans12", "warn_bg", "warn")
         y += 22
     elif len(items) > 1:
@@ -604,7 +660,7 @@ def draw_item(q, i):
         y += 4
     for label, a in ((it.get("frm_label", "from"), it.get("frm")), (it.get("label", "to"), it.get("to"))):
         if a:
-            y = who_line(d, q, label, a, y, pc, bg)
+            y = who_line(d, q, label, a, y, pc, bg, it if a == it.get("to") else None)
     if it.get("text"):
         para(d, it["text"], M, y, TW, "sans14", pc["text"], bg, 17, PAGE_ROW - 2)
 

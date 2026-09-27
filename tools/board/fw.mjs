@@ -21,6 +21,11 @@
 //   restart                  machine.reset(), hands off for 30 s while the console starts, then verify
 //   chips                    the chips this board has seen (chips.json): number, name, theme, what they hold
 //   allow on|off             ALLOW_LOCK and ALLOW_GENKEY in the board's secrets.py, for the ceremony only
+//   book [ls]                the console's own names (QUORUM_BOOK in the board's secrets.py)
+//   book add NAME.eth|0x… [--label L] [--chain N]   resolve an ENS name (or an address's primary
+//                            name) both ways on mainnet ($ETH_RPC), show it, and pin it for every
+//                            chain (or only chain N) after a typed "yes"
+//   book rm 0x…              drop an address from it
 //
 // Port: $PICO_PORT, else the first /dev/cu.usbmodem* (mac) or /dev/ttyACM* (linux).
 import { spawnSync } from "node:child_process";
@@ -585,6 +590,67 @@ async function allow(onOff) {
   console.log("restart the board for it to take effect: tools/fw restart");
 }
 
+// ----------------------------------------------------------------------------- book
+// QUORUM_BOOK: the names the console shows for addresses (docs/build1-ui/README.md, round 1). Read
+// and written whole; a name the laptop resolved is only a hint until you type "yes" to it.
+const BOOK_PY = `import json
+try:
+    _s = {}
+    exec(open("secrets.py").read(), _s)
+    print("BOOK:" + json.dumps(_s.get("QUORUM_BOOK") or {}))
+except OSError:
+    print("BOOK:{}")`;
+
+function bookLine(b) {
+  const rows = [];
+  for (const [chain, names] of Object.entries(b)) {
+    if (!Object.keys(names).length) continue;
+    rows.push(`    ${JSON.stringify(chain)}: {\n` + Object.entries(names).map(([a, v]) => `        ${JSON.stringify(a)}: ${JSON.stringify(v)},`).join("\n") + "\n    },");
+  }
+  return rows.length ? `QUORUM_BOOK = {\n${rows.join("\n")}\n}` : "QUORUM_BOOK = {}";
+}
+
+function bookShow(b) {
+  const rows = Object.entries(b).flatMap(([chain, names]) => Object.entries(names).map(([a, v]) => [chain, a, v]));
+  if (!rows.length) return console.log("QUORUM_BOOK is empty: every address shows as not in the address book");
+  for (const [chain, a, v] of rows) {
+    const [label, ens] = Array.isArray(v) ? v : [v, v.endsWith(".eth") ? v : null];
+    console.log(`${chain === "*" ? "all chains" : "chain " + chain}`.padEnd(12) + ` ${a}  ${label}${ens && ens !== label ? " · " + ens : ""}`);
+  }
+}
+
+async function book(sub = "ls") {
+  const b = tagged(run(BOOK_PY), "BOOK") || {};
+  if (sub === "ls") return bookShow(b);
+  const chainAt = argv.indexOf("--chain"), labelAt = argv.indexOf("--label");
+  const chain = chainAt > 0 ? String(argv[chainAt + 1]) : "*";
+  if (sub === "rm") {
+    const a = String(argv[2] || die("book rm 0x…")).toLowerCase();
+    const where = Object.keys(b).filter((k) => b[k][a] !== undefined);
+    if (!where.length) die(`${a} is not in QUORUM_BOOK`);
+    for (const k of where) delete b[k][a];
+  } else if (sub === "add") {
+    const what = argv[2] || die("book add NAME.eth|0x… [--label L] [--chain N]");
+    const { resolve } = await import("../mock-tx-service/ens.mjs");
+    const r = await resolve(what);
+    if (!r.address) die(`${r.name} does not resolve to an address on mainnet`);
+    console.log(`address   ${r.address}`);
+    console.log(`ENS       ${r.name || "(no primary name)"}${r.name ? (r.agrees ? "  = resolves both ways" : "  !! only one way: " + (r.reverse ? `the address's primary name is ${r.reverse}` : "the address has no primary name")) : ""}`);
+    const label = labelAt > 0 ? argv[labelAt + 1] : null;
+    const ens = r.name && (r.agrees || r.name === what.toLowerCase()) ? r.name : null;
+    const v = label ? (ens ? [label, ens] : [label]) : (ens || die("no name to show: give it one with --label"));
+    const a = r.address.toLowerCase();
+    for (const k of Object.keys(b)) delete b[k][a];
+    (b[chain] ||= {})[a] = v;
+    console.log(`the console will show ${a.slice(0, 6)}…${a.slice(-4)} as ${JSON.stringify(v)} on ${chain === "*" ? "every chain" : "chain " + chain}`);
+    console.log("check the address above against one you trust (the recipient, in person or on a call): the console will call it by this name from now on");
+  } else die("book ls | add NAME.eth|0x… [--label L] [--chain N] | rm 0x…");
+  const line = bookLine(b);
+  console.log("\n" + line);
+  if (!(await ask("The old secrets.py is kept as secrets.bak."))) die("nothing changed");
+  console.log(setSecrets([line.replace(/\n\s*/g, " ")], "the owner's names, written by tools/fw book") + " bytes; restart the console to use them");
+}
+
 const CHIP_SERIAL_PY = `import atecc, json
 print("SERIAL:" + json.dumps("".join("%02x" % b for b in atecc.ATECC608().serial())))`;
 
@@ -622,6 +688,7 @@ const cmds = {
   restart: async () => { await restartHandsOff(); await verify(); },
   chips: () => chipsList(),
   allow: () => allow(argv[1]),
+  book: () => book(argv[1]),
 };
-if (!cmds[cmd]) die("usage: tools/fw build IMAGE | backup | verify [--baseline] | logs | pin | push IMAGE | restore DIR [--exact] [--secrets] | restart | chips | allow on|off | measure tls");
+if (!cmds[cmd]) die("usage: tools/fw build IMAGE | backup | verify [--baseline] | logs | pin | push IMAGE | restore DIR [--exact] [--secrets] | restart | chips | allow on|off | book [ls|add|rm] | measure tls");
 await cmds[cmd]();

@@ -15,16 +15,75 @@ round and work through both.
 Four rounds. Each one is pushed with its pictures:
 
 0. **Build 1 in the emulator.** The 320×240 screen and the knob, and today's screens as a
-   baseline. *(This round.)*
+   baseline. *(Done.)*
 1. **Names.** An address book pinned on the device that can hold ENS names. A laptop tool
    (`tools/quorum book add vitalik.eth`) resolves the name forward and back and asks you to
    confirm it. The recipient line also tells you whether this console has sent here before or
-   this is the first time.
+   this is the first time. *(Done: round 1 below.)*
 2. **Validator operations.** Partial withdrawals and exits (EIP-7002), consolidations and the
    switch to compounding (EIP-7251), and deposits and top-ups, decoded into plain pages. There are
    red pages for anything that can't be undone or that sends funds somewhere other than this Safe.
 3. **Hash checks.** The full EIP-712 digest labelled the ERC-8213 way, the Domain and Message
    hashes a co-signer's Ledger shows, and a QR so a phone can check it too.
+
+## Round 1 (2026-09-27): who gets paid
+
+You asked: show ENS names, and keep a list of known addresses, especially for outgoing funds.
+
+Three things are new. Each one is only on the device, never from the service:
+- **Your own address book.** `QUORUM_BOOK` in the board's `secrets.py` holds names for addresses,
+  either for every chain or for one chain.
+  - A name can be an ENS name (`vitalik.eth`), a label (`"Cold storage"`), or both
+    (`["Cold storage", "family.eth"]`).
+  - `tools/fw book add vitalik.eth` resolves the name on mainnet in both directions (name → address,
+    then the address's primary name) and prints what it found. It writes to the board only after
+    you type "yes".
+  - The console never looks ENS up itself. A name on its screen is one you pinned.
+- **What this console has paid before.** After each signature, the console counts every address the
+  transaction pays or approves, per chain, in `seen.json` on flash (the 64 most-used are kept). A
+  recipient is then **first time** or **paid 3 times before**.
+- **Lookalikes.** Address poisoning sends you a dust transfer from an address with the same first
+  and last characters as one you use, hoping you copy it from your history. Any recipient that
+  shares the first 4 and last 4 hex characters with an address the console knows is marked red. The
+  known addresses are the book, the pinned contracts, this Safe, and every address it has paid.
+  "Known" counts even the ones it paid without a name.
+
+Every recipient now gets a tag on the right: **pinned** (green), **first time** (amber), **paid N
+times before** (grey), or **LOOKALIKE** (red). The full address stays underneath, and on the 320-wide
+screen it has an identicon next to it, so a lookalike also looks different.
+
+| | |
+|---|---|
+| <img src="shots/b20-names-home.png" width="320"> | <img src="shots/b21-ens-summary.png" width="320"> |
+| **Five sends queued:** to vitalik.eth, to Cold storage, to a stranger, to an address paid before, and to a lookalike (fifth, below the fold). | **To vitalik.eth, pinned.** The summary names the recipient and tags it. |
+| <img src="shots/b22-ens-page.png" width="320"> | <img src="shots/b24-cold-page.png" width="320"> |
+| **The send page:** the ENS name, pinned, then the address in full beside its identicon. | **A label with no ENS name:** "Cold storage", pinned, 2,000 USDC. |
+| <img src="shots/b25-first-summary.png" width="320"> | <img src="shots/b26-first-page.png" width="320"> |
+| **A stranger:** `0x7c3e…4e90`, **first time**. Not red, since paying someone new is normal, but it's the one to double-check. | **Its page:** "not in the address book", first time, and the full address. |
+| <img src="shots/b27-repeat-summary.png" width="320"> | <img src="shots/b28-repeat-page.png" width="320"> |
+| **Paid 3 times before:** an unnamed address this console has signed payments to (an exchange deposit address, say). | **Its page.** Still "not in the address book": being paid before isn't a name. |
+| <img src="shots/b29-poison-summary.png" width="320"> | <img src="shots/b30-poison-page.png" width="320"> |
+| **The lookalike:** `0xd8da…6045`, the same start and end as vitalik.eth, is a different address. The headline goes red, **LOOKALIKE**, and the red page has to be read and held for 3 s. | **Its page** says whose address it imitates, and why that matters. The identicon is visibly not vitalik.eth's. |
+
+Also changed on the 240×240 screen (`docs/quorum-ui/shots`): only the summary pill. An unknown
+recipient now says "first time" instead of "unknown".
+
+How to pin names:
+```sh
+tools/fw book add vitalik.eth                      # every chain
+tools/fw book add 0x4b8a…6071 --label "Cold storage" --chain 8453
+tools/fw book                                      # list them
+tools/fw book rm 0x4b8a…6071
+```
+
+**Questions for you:**
+1. **First time: amber pill, or a yellow page?** Today a first-time recipient is only a pill; the
+   page stays green. Should a first payment above some amount turn the page yellow (warn)?
+2. **Which addresses count as "paid"?** Today it's the ones this console signed for. Should
+   executed transactions from other owners count too? That needs the service's history, which is a
+   claim the console can't check.
+3. **Pinning on the device:** a "Save this recipient" action after signing would be convenient, but
+   it lets whoever proposed the payment choose a name you'll trust later. I left it out. Agree?
 
 ## Round 0 (2026-09-27): Build 1 in the emulator, today's screens
 
@@ -37,19 +96,19 @@ room to spare. Rounds 1–3 use it.
 
 | | |
 |---|---|
-| <img src="shots/b01-home.png" width="320"> | <img src="shots/b02-send-summary.png" width="320"> |
+| <img src="shots/round0/b01-home.png" width="320"> | <img src="shots/round0/b02-send-summary.png" width="320"> |
 | **Home.** Four waiting, one queued. The knob's hint at the bottom left, and Owners and Device to turn onto. | **Summary.** "to Carol" is the only mention of the recipient: no address and no sign of whether Carol is known. *(Round 1)* |
-| <img src="shots/b03-send-page.png" width="320"> | <img src="shots/b04-send-verify.png" width="320"> |
+| <img src="shots/round0/b03-send-page.png" width="320"> | <img src="shots/round0/b04-send-verify.png" width="320"> |
 | **The send page.** The name, then the full address in 4-character groups over two lines. At 320 wide it fits on one line and a half, with room for an identicon and a "pinned" or "first time" badge. *(Round 1)* | **Verify.** The headline is the last 8 characters, `1f6f 0788`. ERC-8213 warns that a prefix or suffix can be ground: an attacker can mine a transaction whose hash ends the same way. The full hash is below it, smaller. *(Round 3)* |
-| <img src="shots/b05-send-actions.png" width="320"> | <img src="shots/b06-send-hold.png" width="320"> |
+| <img src="shots/round0/b05-send-actions.png" width="320"> | <img src="shots/round0/b06-send-hold.png" width="320"> |
 | **Turn past the last page onto the actions.** SIGN is green because every page has been seen. | **Holding the knob** to sign, 1 s in. |
-| <img src="shots/b07-send-signed.png" width="320"> | <img src="shots/b08-batch-summary.png" width="320"> |
+| <img src="shots/round0/b07-send-signed.png" width="320"> | <img src="shots/round0/b08-batch-summary.png" width="320"> |
 | **Signed.** | **A batch.** A validator UI that batches several withdrawals would look like this, but today each one would be a red unknown call. *(Round 2)* |
-| <img src="shots/b09-batch-call-1.png" width="320"> | <img src="shots/b10-owner-red-page.png" width="320"> |
+| <img src="shots/round0/b09-batch-call-1.png" width="320"> | <img src="shots/round0/b10-owner-red-page.png" width="320"> |
 | **One page per call** in the batch. | **A red page** (adding an owner). |
-| <img src="shots/b11-lie-refused.png" width="320"> | <img src="shots/b12-unknown-red-page.png" width="320"> |
+| <img src="shots/round0/b11-lie-refused.png" width="320"> | <img src="shots/round0/b12-unknown-red-page.png" width="320"> |
 | **Refused:** the service's hash isn't what the fields hash to. | **An unknown call.** This is what a withdrawal request to `0x0000…7002` looks like today. *(Round 2)* |
-| <img src="shots/b13-unknown-calldata.png" width="320"> | <img src="shots/b14-owners.png" width="320"> |
+| <img src="shots/round0/b13-unknown-calldata.png" width="320"> | <img src="shots/round0/b14-owners.png" width="320"> |
 | **Calldata:** the selector and the ERC-8213 calldata digest. | **Owners.** |
 
 ## Research: what the standards say

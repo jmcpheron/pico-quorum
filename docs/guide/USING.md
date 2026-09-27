@@ -46,6 +46,15 @@ to someone.
 Names like **USDC · known** come only from the list built into the console, and only for that
 chain. Every screen that shows a name shows the full address too.
 
+Your own names (ENS names or labels) come from `QUORUM_BOOK` in the board's `secrets.py`, which
+`tools/fw book add vitalik.eth` writes after resolving the name both ways and asking you. Each
+recipient is tagged:
+- **pinned**: a name you added;
+- **first time**: this console has never signed a payment there;
+- **paid N times before**: it has signed N payments there;
+- **LOOKALIKE** (red): the same first and last 4 characters as an address the console knows, but a
+  different address. That is address poisoning: reject it.
+
 ## Rejecting
 
 Y hides the transaction **on this console only**. It doesn't reject it on the Safe. The Safe's

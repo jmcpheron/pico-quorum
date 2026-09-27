@@ -91,19 +91,42 @@ def for_chain(cfg, key, chain):
     return out
 
 
-def context(cfg, safe, names=None, chain=None):
+def pinned_for(book, chain):
+    """secrets.QUORUM_BOOK for this chain -> {address: (label, ens)}: the "*" entries and the
+    chain's own. A name is "label", "name.eth", or ["label", "name.eth"]: the owner of this console
+    pinned it (tools/quorum book add), after the laptop resolved the ENS name both ways."""
+    out = {}
+    for k in ("*", str(chain)):
+        for a, v in (book or {}).get(k, {}).items():
+            if isinstance(v, (list, tuple)):
+                label, ens = str(v[0]), (str(v[1]) if len(v) > 1 and v[1] else None)
+            else:
+                v = str(v)
+                label, ens = v, (v if v.endswith(".eth") else None)
+            out[a.lower()] = (label, ens)
+    return out
+
+
+def context(cfg, safe, names=None, chain=None, pinned=None, seen=None):
     """What review() needs from the pinned config, with lowercase keys, for a Safe on this chain.
     names: extra {address: name}, such as this console's own owner address. chain: the pinned
     address book (Alice, Bob...) is the laptop's Anvil accounts, so it names addresses only on the
     chains in cfg["bookChains"]; on Base mainnet those same addresses carry sweeper code
-    (docs/LADDER.md). Tokens, batchers, contracts and delegates are this chain's (for_chain)."""
+    (docs/LADDER.md). Tokens, batchers, contracts and delegates are this chain's (for_chain).
+    pinned: secrets.QUORUM_BOOK, the console owner's own names (pinned_for). seen: {address: n},
+    how many times this console signed a payment to each address on this chain (quorum.py keeps
+    it on flash); the same dict, so a signature counts from the next review on."""
     book = {}
     if chain is None or chain in cfg.get("bookChains", [31337]):
         for a, n in cfg["book"].items():
             book[a.lower()] = n
+    pin = pinned_for(pinned, chain)
+    for a, (label, ens) in pin.items():
+        book[a] = label
     for a, n in (names or {}).items():
         book[a.lower()] = n
-    return {"safe": safe.lower(), "book": book, "tokens": for_chain(cfg, "tokens", chain),
+    return {"safe": safe.lower(), "book": book, "pinned": pin, "seen": seen if seen is not None else {},
+            "tokens": for_chain(cfg, "tokens", chain),
             "batchers": for_chain(cfg, "batchers", chain), "contracts": for_chain(cfg, "contracts", chain),
             "delegates": for_chain(cfg, "delegates", chain)}
 
@@ -125,6 +148,64 @@ def identify(ctx, a):
     if n:
         return n, None, True
     return None, None, False
+
+
+def ens_of(ctx, a):
+    """The ENS name pinned for this address, or None."""
+    p = ctx.get("pinned", {}).get(a.lower())
+    return p[1] if p else None
+
+
+# ----------------------------------------------------------------------------- recipients
+# Who gets paid is where a Safe loses money: to a stranger, or to an address made to look like one
+# the owners use (address poisoning: the same first and last characters, which is all most people
+# compare). Every item that pays or allows someone (label "to" or "spender") is checked against
+# every address this console knows: the book, pinned contracts, this Safe, and the ones it has
+# paid before.
+PAYS = ("to", "spender")
+
+
+def _looks(a, b):
+    return a != b and a[2:6] == b[2:6] and a[-4:] == b[-4:]
+
+
+def lookalike(ctx, a):
+    """The name (or short form) of a known address that a differs from but looks like, or None."""
+    a = a.lower()
+    if a in ctx["book"] or a in ctx["contracts"] or a == ctx["safe"]:
+        return None
+    for k, n in ctx["book"].items():
+        if _looks(a, k):
+            return n
+    for k, v in ctx["contracts"].items():
+        if _looks(a, k):
+            return v[0]
+    if _looks(a, ctx["safe"]):
+        return "This Safe"
+    for k in ctx.get("seen", {}):
+        if _looks(a, k):
+            return k[:6] + "\u2026" + k[-4:]
+    return None
+
+
+def _recipients(items, ctx):
+    for it in items:
+        a = it.get("to")
+        if not a or it.get("label", "to") not in PAYS:
+            continue
+        a = a.lower()
+        it["seen"] = ctx.get("seen", {}).get(a, 0)
+        like = lookalike(ctx, a)
+        if like:
+            it["lookalike"] = like
+            it["level"] = "red"
+            it["text"] = ("Same start and end as %s, but a different address: address poisoning. " % like
+                          + it.get("text", "")).strip()
+
+
+def paid(r):
+    """The addresses a reviewed transaction pays or allows, for quorum.py's count of them."""
+    return [it["to"].lower() for it in r["items"] if it.get("to") and it.get("label", "to") in PAYS]
 
 
 # ----------------------------------------------------------------------------- ABI words
@@ -347,6 +428,7 @@ def review(tx, ctx):
     g = _gas(tx, ctx)
     if g:
         items.append(g)
+    _recipients(items, ctx)
     # the contract the Safe calls first (a token, the batch helper, itself), for the header
     return {"summary": summary, "level": worst(items), "items": items, "contract": to if data else None,
             "refuse": refuse}

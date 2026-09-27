@@ -135,3 +135,41 @@ def poll_defaults(base, api_key):
     if api_key:
         return 20, 600
     return 60, 1800
+
+
+MAX_BOOK = 64       # pinned names, all chains together
+
+
+def book(given):
+    """secrets.QUORUM_BOOK, the owner's own names, checked: {"<chainId>" or "*": {address: name}},
+    a name being "label", "name.eth" or ["label", "name.eth"] (tools/quorum book add writes it).
+    -> (book, why): why says what was dropped, or ""."""
+    if not given:
+        return {}, ""
+    if not isinstance(given, dict):
+        return {}, "QUORUM_BOOK is not a dict"
+    out, n, why = {}, 0, ""
+    for k, names in given.items():
+        k = str(k)
+        if k != "*" and not k.isdigit():
+            why = why or "QUORUM_BOOK: %s is not a chain id" % k
+            continue
+        if not isinstance(names, dict):
+            why = why or "QUORUM_BOOK[%s] is not a dict" % k
+            continue
+        for a, v in names.items():
+            a = str(a).lower()
+            if isinstance(v, (list, tuple)):
+                v = [str(x)[:32] for x in v[:2] if x]
+                ok = bool(v)
+            else:
+                v = str(v)[:32]
+                ok = bool(v)
+            if not is_address(a) or not ok:
+                why = why or "QUORUM_BOOK: a bad entry for %s" % a[:12]
+                continue
+            if n == MAX_BOOK:
+                return out, "more than %d names in QUORUM_BOOK: the rest are not used" % MAX_BOOK
+            out.setdefault(k, {})[a] = v
+            n += 1
+    return out, why

@@ -55,6 +55,8 @@ _given, SAFES_WHY = policy.safes(getattr(secrets, "QUORUM_SAFES", None), getattr
 UNCONFIGURED = PROD and not _given
 SAFES = _given or policy.safes(None, CFG["safes"][0])[0]
 URL = (getattr(secrets, "QUORUM_URL", None) or getattr(secrets, "APP_URL", None)) if secrets else None
+# The owner's own names (tools/quorum book add): ENS names and labels, pinned per chain or for all.
+BOOK, BOOK_WHY = policy.book(getattr(secrets, "QUORUM_BOOK", None)) if secrets else ({}, "")
 
 
 def new_watch(s):
@@ -176,8 +178,10 @@ def read_key():
         qx = qy = ""
         _log("no key: %r" % e)
     me = my_owner()
+    load_seen()
     for w in WATCH:
-        w["ctx"] = decode.context(CFG, w["addr"], {me: "This key"} if me else None, chain=w["chain"])
+        w["ctx"] = decode.context(CFG, w["addr"], {me: "This key"} if me else None, chain=w["chain"], pinned=BOOK,
+                                  seen=SEEN.setdefault(str(w["chain"]), {}))
         w["cache"].clear()
         w["announced"] = 0
     focus(W)
@@ -666,6 +670,7 @@ def sign_it():
         t0 = time.ticks_ms()
         ad, fields, digest = webauthn.assertion(e["mine"])    # e["mine"]: checked equal to the service's hash in entry()
         r, s = sig.sign(digest)
+        count_paid(e)
         counter = read_counter()
         if counter is not None:
             store_counter(counter)
@@ -678,6 +683,40 @@ def sign_it():
         qlog.write("sign #%d failed: %r" % (e["n"], ex))
     state, dirty = "result", True
     start_timer()
+
+
+# Who this console has paid: {chain: {address: signatures}}, so the review can say "sent here 3x
+# before" or "first time", and catch an address made to look like one of them. Kept on flash; at
+# most SEEN_MAX addresses a chain, the least used dropped first.
+SEEN_FILE = "seen.json"
+SEEN_MAX = 64
+SEEN = {}
+
+
+def load_seen():
+    import json
+    try:
+        s = json.load(open(SEEN_FILE))
+        if isinstance(s, dict):
+            for k, v in s.items():
+                SEEN.setdefault(str(k), {}).update({str(a).lower(): int(n) for a, n in v.items()})
+    except (OSError, ValueError, AttributeError, TypeError):
+        pass
+
+
+def count_paid(e):
+    """After a signature: one more for each address this transaction pays or allows."""
+    import json
+    got = SEEN.setdefault(str(e["w"]["chain"]), {})
+    for a in decode.paid(e["r"]):
+        got[a] = got.get(a, 0) + 1
+    while len(got) > SEEN_MAX:
+        del got[min(got, key=lambda a: got[a])]
+    try:
+        with open(SEEN_FILE, "w") as f:
+            json.dump(SEEN, f)
+    except OSError as ex:
+        qlog.write("seen not saved: %r" % ex)
 
 
 UNSENT_FILE = "unsent.json"

@@ -10,6 +10,18 @@ const STRANGER = "0xdead00000000000000000000000000000000beef";    // in no addre
 const MYSTERY = "0xc0ffee254729296a45a3885639ac7e10f9d54979";     // a contract nobody described
 const [PERMIT2, UNI_ROUTER] = Object.entries(forChain("contracts", 31337)).filter(([, k]) => k[1] === "uniswap").map(([a]) => a);
 const OTHER_SAFE = "0x5afe00000000000000000000000000000000bad0";
+// The owner's own names (secrets.QUORUM_BOOK, tools/quorum book add) and what the console has paid
+// before (seen.json), for the "names" stories: an ENS name, a label, one paid three times, and an
+// address made to look like the ENS one (address poisoning: same first 4 and last 4 characters).
+export const NAMED = {
+  vitalik: "0xd8da6bf26964af9d7eed9e03e53415d37aa96045",     // vitalik.eth, resolved both ways
+  cold: "0x4b8a2f9c1d7e3a5b6c0d9e8f7a1b2c3d4e5f6071",        // "Cold storage", no ENS name
+  repeat: "0x9e1f3c8d2a7b4e6f0c5d1a8b3e7f2c9d4a6b0e18",      // an exchange deposit address, paid 3 times
+  first: "0x7c3e5a9d1b8f2e6c4a0d7b3f9e1c5a8d2b6f4e90",       // never seen
+  poison: "0xd8da3b1e5f7c9a2d4e6f8b0c1d3e5f7a9b2c6045",      // looks like vitalik.eth
+};
+export const NAMED_BOOK = `QUORUM_BOOK = {"*": {"${NAMED.vitalik}": "vitalik.eth", "${NAMED.cold}": ["Cold storage"]}}\n`;
+export const NAMED_SEEN = JSON.stringify({ 31337: { [NAMED.repeat]: 3, [NAMED.vitalik]: 1 } });
 
 const erc20 = parseAbi(["function transfer(address to, uint256 amount)"]);
 const safeAbi = parseAbi(["function addOwnerWithThreshold(address owner, uint256 _threshold)",
@@ -57,6 +69,26 @@ export const SCENARIOS = {
   threshold: {
     about: "Alice lowers the threshold to 1 (red), and signs it", by: "alice", sign: true,
     build: (safe) => [{ to: safe, data: encodeFunctionData({ abi: safeAbi, functionName: "changeThreshold", args: [1n] }) }],
+  },
+  "send-ens": {
+    about: "Alice sends 1.5 ETH to vitalik.eth (pinned in QUORUM_BOOK), and signs it", by: "alice", sign: true,
+    build: () => [{ to: NAMED.vitalik, value: parseEther("1.5") }],
+  },
+  "send-cold": {
+    about: "Bob moves 2,000 USDC to the owners' Cold storage (a pinned label), and signs it", by: "bob", sign: true,
+    build: () => [{ to: USDC, data: usdc(NAMED.cold, "2000") }],
+  },
+  "send-first": {
+    about: "Alice sends 0.2 ETH to an address this console has never paid, and signs it", by: "alice", sign: true,
+    build: () => [{ to: NAMED.first, value: parseEther("0.2") }],
+  },
+  "send-repeat": {
+    about: "Bob sends 500 USDC to an address this console has paid 3 times, and signs it", by: "bob", sign: true,
+    build: () => [{ to: USDC, data: usdc(NAMED.repeat, "500") }],
+  },
+  "send-poison": {
+    about: "Alice sends 1.5 ETH to an address made to look like vitalik.eth's (red), and signs it", by: "alice", sign: true,
+    build: () => [{ to: NAMED.poison, value: parseEther("1.5") }],
   },
   refund: {
     about: "A send to Carol that also pays a USDC gas refund to a stranger (red)", by: "alice", sign: true,
