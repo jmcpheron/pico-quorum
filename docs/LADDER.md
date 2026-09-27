@@ -38,6 +38,7 @@ Everything is `tools/quorum`. `tools/quorum doctor` checks what's installed.
 | `live status --chain C --safe 0x…` | the Safe and its queue, every signature checked here |
 | `live rehearse --chain C` | the emulator's console, with a throwaway key, signs on the real service: the spike before the Pico |
 | `live exec --chain C NONCE` | execute, with the signatures laid out right (see [Known issues](#known-issues)) |
+| `live pico --chain C[,C…]` | point the board's console at the Safe recorded for each chain (`QUORUM_SAFES`); several chains are watched together ([guide/NETWORKS.md](guide/NETWORKS.md)) |
 
 `C` is `local`, `basesep`, `base` or `eth`.
 
@@ -120,10 +121,9 @@ Same steps as rung 2 with `--chain base` and `QUORUM_URL = ".../tx-service/base"
    for 8453. 2 of 3, nonce 0, no guard, no modules. `live status --chain base --safe 0x…`, plus the version, owners, threshold,
    modules and guard read onchain, and the singleton and handler matched against safe-deployments.
 4. [ ] **Funding.** A small amount of ETH to the Safe, about $1.
-5. [ ] **The Pico switches to Base:**
-   - the Sepolia settings kept on the board as `secrets_basesep.py`
-   - `QUORUM_URL = ".../tx-service/base"`, `QUORUM_SAFE` for chain 8453
-   - the same API key
+5. [ ] **The Pico switches to Base:** `tools/quorum live pico --chain base`, or `--chain basesep,base`
+   to keep watching the Sepolia Safe too (`QUORUM_SAFES`; each chain's service comes from
+   `quorum_cfg.py`, so `QUORUM_URL` goes). The same API key.
 6. [ ] **One approval:**
    - Propose a small send in the web app and sign it with MetaMask.
    - The Pico approves over HTTPS.
@@ -162,11 +162,17 @@ signer 110k gas, a Safe 310k, an execution 110k.
 
 ## Rung 4: Ethereum mainnet, a few dollars
 
-Same steps with `--chain eth` and `QUORUM_URL = ".../tx-service/eth"`.
+Same steps with `--chain eth`. The console can watch it alongside Base: `live pico --chain base,eth`.
 
 - Checked onchain: the passkey factory has the same code as on Base, and the Daimo verifier, the
   P-256 precompile (Fusaka, EIP-7951), Safe 1.4.1 and `api.safe.global/tx-service/eth` are all
   there.
+- [x] **The console's config for chain 1** (2026-09-26). `quorum_cfg.py` lists are per chain now,
+  with Ethereum's USDC, and MultiSendCallOnly 1.4.1/1.3.0 and Permit2 under `"*"`. All of them
+  have code on mainnet. `node tools/vectors/webauthn.mjs --chain eth` passes every vector:
+  `getSigner` gives the same owners as on Base Sepolia, `isValidSignatureForSigner` accepts them,
+  and the precompile at 0x100 is live. Nothing was sent.
+- [ ] `live enroll --chain eth`, then a Safe on Ethereum (real gas: say yes first).
 - At 0.05 gwei an execution is about 5.5e-6 ETH. Check `cast base-fee` first: L1 gas moves more
   than Base's.
 - [ ] The same checklist as rung 3, then one approval.
@@ -178,7 +184,8 @@ Same steps with `--chain eth` and `QUORUM_URL = ".../tx-service/eth"`.
   `tools/quorum live exec`.
 - **The signer proxy must be deployed before the console confirms.** The service checks the
   signature with an `eth_call` to it. `live enroll` does the deploy.
-- **Service quota.** 50,000 requests a month with an API key, 5,000 without.
+- **Service quota.** 50,000 requests a month with an API key, 5,000 without. With several Safes
+  the console asks about one per poll, in turn, so the rate stays the same.
   - Over HTTPS with a key, the console polls every 20 s, then every 600 s after 10 quiet minutes.
     Without a key it is 60 s / 1800 s. `QUORUM_POLL_S` and `QUORUM_IDLE_POLL_S` override these.
   - A poll is one request: the Safe's owners and nonce are fetched every 5th poll, when the queue
