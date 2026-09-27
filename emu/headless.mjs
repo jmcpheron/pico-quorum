@@ -3,7 +3,8 @@
 //   node emu/headless.mjs mock --wait 300 --key right --wait 200 --shot shots/1.png
 // Steps run in order:
 //   --wait MS            let timers run for MS ms
-//   --key NAME[:MS]      press a key (A B X Y up down left right press) for MS ms (default 80)
+//   --key NAME[:MS]      press a key (A B X Y up down left right press; push on build1) for MS ms (default 80)
+//   --knob cw|ccw[:N]    turn Build 1's knob N detents (default 1): cw is "next"
 //   --hold NAME / --release NAME
 //   --exec CODE          one REPL line
 //   --shot PATH.png      save the screen (2x) as PNG
@@ -12,6 +13,7 @@
 //   --file NAME=PATH     one more file on the flash (build.py for the production image, say)
 //   --chip PATH.json     keep the virtual ATECC608's state in this file (default: blank chip, forgotten at exit)
 //   --heap BYTES         MicroPython heap (default 448 KB)
+//   --board build1       Build 1: the 320x240 screen and the knob (default waveshare, 240x240)
 //   --quiet              no Python stdout
 // Exit code 1 if the module raised during import. Modules with a blocking loop (demo) never
 // return from import here, so the steps after it never run; use the page for those.
@@ -19,12 +21,12 @@ import { writeFileSync, mkdirSync, existsSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { execFileSync } from "node:child_process";
 import { loadMicroPython } from "@micropython/micropython-webassembly-pyscript";
-import { createDevice, KEY_ORDER, frameToRGBA, W, H } from "./core/runtime.mjs";
+import { createDevice, KEY_ORDER, KNOB_CW, KNOB_CCW, frameToRGBA } from "./core/runtime.mjs";
 import { readWorkspace, readShims, entryFor } from "./core/workspace.mjs";
 import { encodePNG, scaleRGBA } from "./core/png.mjs";
 
 const argv = process.argv.slice(2);
-let mod = null; const steps = []; let app = "http://localhost:3001"; let heap; let quiet = false; let chipFile = null; let secrets = "";
+let mod = null; const steps = []; let app = "http://localhost:3001"; let heap; let quiet = false; let chipFile = null; let secrets = ""; let board;
 const extra = {};
 for (let i = 0; i < argv.length; i++) {
   const a = argv[i];
@@ -33,6 +35,7 @@ for (let i = 0; i < argv.length; i++) {
     if (k === "quiet") { quiet = true; continue; }
     const v = argv[++i];
     if (k === "app") app = v; else if (k === "heap") heap = +v; else if (k === "chip") chipFile = v;
+    else if (k === "board") board = v;
     else if (k === "secrets") secrets = "\n" + readFileSync(v, "utf8");
     else if (k === "file") { const [n, p] = v.split("="); extra[n] = readFileSync(p, "utf8"); }
     else steps.push([k, v]);
@@ -43,7 +46,7 @@ if (!mod) { console.error("usage: headless.mjs MODULE [--wait MS] [--key K[:MS]]
 const keys = new Int32Array(16);
 let failed = false;
 const dev = await createDevice({
-  loadMicroPython, keys, heapsize: heap,
+  loadMicroPython, keys, heapsize: heap, board,
   files: { ...readWorkspace(), ...extra }, shims: readShims(), appUrl: app, secrets,
   http: curl,
   chip: chipFile ? { load: () => (existsSync(chipFile) ? readFileSync(chipFile, "utf8") : null), save: (s) => writeFileSync(chipFile, s) } : undefined,
@@ -57,14 +60,23 @@ const idx = (k) => { const i = KEY_ORDER.indexOf(k); if (i < 0) throw new Error(
 for (const [k, v] of steps) {
   if (k === "wait") await sleep(+v);
   else if (k === "key") { const [n, ms] = v.split(":"); keys[idx(n)] = 1; await sleep(+(ms || 80)); keys[idx(n)] = 0; await sleep(60); }
+  else if (k === "knob") {
+    const [dir, n] = v.split(":");
+    const seq = dir === "cw" ? KNOB_CW : dir === "ccw" ? KNOB_CCW : null;
+    if (!seq) throw new Error("--knob cw or ccw, not " + dir);
+    for (let t = 0; t < +(n || 1); t++) {
+      for (const [a, b] of seq) { keys[idx("encA")] = a; keys[idx("encB")] = b; await sleep(12); }
+      await sleep(60);
+    }
+  }
   else if (k === "hold") keys[idx(v)] = 1;
   else if (k === "release") keys[idx(v)] = 0;
   else if (k === "exec") dev.exec(v);
   else if (k === "send") dev.writeStdin(v + "\n");
   else if (k === "shot") {
-    const rgba = scaleRGBA(frameToRGBA(dev.frame), W, H, 2);
+    const rgba = scaleRGBA(frameToRGBA(dev.frame), dev.W, dev.H, 2);
     mkdirSync(dirname(v), { recursive: true });
-    writeFileSync(v, encodePNG(W * 2, H * 2, rgba));
+    writeFileSync(v, encodePNG(dev.W * 2, dev.H * 2, rgba));
     console.log("[shot]", v, "frames so far:", dev.frames);
   } else console.error("unknown step --" + k);
 }

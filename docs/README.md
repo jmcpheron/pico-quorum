@@ -9,7 +9,7 @@ troubleshooting.
 - [`PROVISIONING.md`](PROVISIONING.md): the quorum v1 chip config and the fresh-chip ceremony
 - [`LOCKING.md`](LOCKING.md): what each ATECC608 lock does to the multisig
 - [`LADDER.md`](LADDER.md): the test ladder from a simulated Safe to Ethereum mainnet, and the `tools/quorum live` runbook
-- [`firmware-production/`](firmware-production/README.md) and [`quorum-ui/`](quorum-ui/README.md): screenshot walkthroughs
+- [`firmware-production/`](firmware-production/README.md), [`quorum-ui/`](quorum-ui/README.md) and [`build1-ui/`](build1-ui/README.md) (Build 1's 320×240 screen and knob): screenshot walkthroughs
 - [`KICKOFF.md`](KICKOFF.md): what PicoQuorum is, goals, hardware, firmware layers, open decisions
 - [`UPSTREAM-TRACKING.md`](UPSTREAM-TRACKING.md): fork point, unmerged upstream work, how to merge
 - [`HEGOTA-WATCH.md`](HEGOTA-WATCH.md): EIPs in the next Ethereum fork that touch the console

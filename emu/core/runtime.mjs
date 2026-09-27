@@ -17,17 +17,33 @@
 //   opts.chip             { load() -> string|null, save(string) }: where the virtual ATECC608 keeps
 //                         its state between reboots (default: this device only)
 //   opts.heapsize         MicroPython heap in bytes (default ~ a Pico 2 W)
+//   opts.board            "waveshare" (default: 240x240, joystick) or "build1" (320x240, the EC11
+//                         knob on GP3/GP2 with its push on GP1, firmware/board.py). secrets.py gets
+//                         the matching BOARD/SCREEN lines, and dev.W/dev.H say the screen's size.
 
-export const KEY_ORDER = ["A", "B", "X", "Y", "up", "down", "left", "right", "press"];
-// GPIO -> key, from firmware/lcd.py
+// encA/encB/push are Build 1's knob: the two quadrature pins and the push, held = pulled low.
+export const KEY_ORDER = ["A", "B", "X", "Y", "up", "down", "left", "right", "press", "encA", "encB", "push"];
+// GPIO -> key, from firmware/board.py
 export const KEY_PINS = { 15: "A", 17: "B", 19: "X", 21: "Y", 2: "up", 18: "down", 16: "left", 20: "right", 3: "press" };
+export const BUILD1_PINS = { 15: "A", 17: "B", 19: "X", 21: "Y", 3: "encA", 2: "encB", 1: "push" };
 export const W = 240, H = 240, FRAME_BYTES = W * H * 2;
+export const BOARDS = {
+  waveshare: { W: 240, H: 240, pins: KEY_PINS, secrets: "" },
+  build1: { W: 320, H: 240, pins: BUILD1_PINS, secrets: 'BOARD = "build1"\nSCREEN = "2.8"\n' },
+};
+// One knob detent as the EC11 makes it: A and B each go low and come back, a quarter step apart.
+// Clockwise (A leads) is what knob.py counts as "down", the next page. [encA, encB] per step.
+export const KNOB_CW = [[1, 0], [1, 1], [0, 1], [0, 0]];
+export const KNOB_CCW = [[0, 1], [1, 1], [1, 0], [0, 0]];
 export const DEFAULT_HEAP = 448 * 1024;
 
 const SHIMS = ["machine", "network", "requests", "socket", "rp2", "atecc_sim"];
 
 export async function createDevice(opts) {
   const keys = opts.keys;
+  const B = BOARDS[opts.board || "waveshare"];
+  if (!B) throw new Error("no board " + opts.board);
+  const W = B.W, H = B.H, FRAME_BYTES = W * H * 2, PINS = B.pins;
   const stdout = opts.onStdout || (() => {});
   // Serial input, the Pico's USB stdin. opts.stdin (a byte getter, null when empty) lets a host
   // feed bytes from another thread; without it writeStdin() queues bytes here.
@@ -113,7 +129,7 @@ export async function createDevice(opts) {
   let irqPoll = null;
   const bridge = {
     pin_read(id) {
-      const k = KEY_PINS[id];
+      const k = PINS[id];
       if (k !== undefined) return keys[KEY_ORDER.indexOf(k)] ? 0 : 1;
       const v = pinOut.get(id);
       return v === undefined ? 1 : v;
@@ -200,7 +216,7 @@ export async function createDevice(opts) {
   for (const name of SHIMS) FS.writeFile(`/lib/${name}.py`, opts.shims[name]);
   FS.writeFile("/lib/_bootstrap.py", opts.shims._bootstrap);
   for (const [name, data] of Object.entries(opts.files || {})) writeFile(name, data);
-  writeFile("secrets.py", secretsPy(opts.appUrl || "http://localhost:3001") + (opts.secrets || ""));
+  writeFile("secrets.py", secretsPy(opts.appUrl || "http://localhost:3001") + B.secrets + (opts.secrets || ""));
   // A fixed throwaway software key, so the virtual wallet's address survives reboots and a vault
   // deployed against it on anvil keeps working across runs. Never a real key.
   writeFile("key.bin", Uint8Array.from({ length: 32 }, (_, i) => i + 1));
@@ -246,7 +262,7 @@ export async function createDevice(opts) {
     if (irqPoll) clearInterval(irqPoll);
   }
 
-  return { mp, run, exec, writeFile, writeStdin, listFiles, dispose, frame, get frames() { return frames; } };
+  return { mp, run, exec, writeFile, writeStdin, listFiles, dispose, frame, W, H, get frames() { return frames; } };
 }
 
 // Python for "import NAME fresh, then ENTRY", with the traceback printed instead of raised.

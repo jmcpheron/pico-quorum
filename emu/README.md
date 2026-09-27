@@ -17,6 +17,7 @@ tools/emu devices         # boards on USB (serial ports, bootloader drives)
 tools/emu ship hello      # copy hello.py (+ imports) to the Pico on USB and run it (--port /dev/cu.usbmodemN, --boot: run at power-up too)
 tools/emu flash --port /dev/cu.usbmodemN [--wifi]   # MicroPython onto any board (also works on a BOOTSEL drive without --port)
 tools/emu headless mock --wait 300 --key right --shot emu/shots/x.png    # no browser
+tools/emu headless quorum --board build1 --knob cw --key push --shot x.png   # Build 1: 320x240 and the knob
 ```
 
 Page: the device menu lists every board on USB; for one that is not running MicroPython the

@@ -24,6 +24,13 @@ const tmp = mkdtempSync(join(tmpdir(), "quorum-shots-"));
 // candidate font set (tools/fonts/gen.py --try) into docs/quorum-ui/v2/fonts/SET/
 let only = process.argv.slice(3);
 let fontsets = [null];
+// tools/quorum shots --board build1 [story ...]: BUILD1_STORIES on Build 1's 320x240 screen, driven
+// by the knob, into docs/build1-ui/shots/
+let board = null;
+if (only[0] === "--board") {
+  board = only[1];
+  only = only.slice(2);
+}
 if (only[0] === "--fonts") {
   fontsets = only[1].split(",");
   only = only.slice(2);
@@ -69,6 +76,21 @@ const STORIES = [
     "keys B,down,down,A,down", "shot 35-light-red-page", "key down", "shot 36-light-verify"]],
 ];
 
+// Build 1 (docs/build1-ui/README.md): the same Safe, reviewed with the knob. "turn cw[:N]" turns it
+// N detents clockwise (next), "push" presses it, "hold push" holds it (signing).
+const BUILD1_STORIES = [
+  ["home", DEMO, ["shot b01-home"]],
+  ["approve", DEMO, [
+    "push", "shot b02-send-summary", "turn cw", "shot b03-send-page", "turn cw", "shot b04-send-verify",
+    "turn cw", "shot b05-send-actions", "frozen-hold 1000", "shot b06-send-hold",
+    "hold push", "wait 2300", "release push", "wait 800", "shot b07-send-signed"]],
+  ["batch", DEMO, ["turn cw", "push", "shot b08-batch-summary", "turn cw", "shot b09-batch-call-1"]],
+  ["owner", DEMO, ["turn cw:2", "push", "turn cw", "shot b10-owner-red-page"]],
+  ["lie", DEMO, ["turn cw:3", "push", "shot b11-lie-refused"]],
+  ["unknown", DEMO, ["turn cw:4", "push", "turn cw", "shot b12-unknown-red-page", "turn cw", "shot b13-unknown-calldata"]],
+  ["owners", DEMO, ["turn cw:5", "push", "shot b14-owners"]],
+];
+
 // A few screens that show every size of type, for comparing font sets (docs/quorum-ui/v2/FONTS.md).
 const FONT_STORIES = [
   ["home", DEMO, ["shot 01-home"]],
@@ -85,10 +107,12 @@ function args(steps, OUT) {
     const v = rest.join(" ");
     if (k === "key") out.push("--key", v, "--wait", "250");
     else if (k === "keys") for (const x of v.split(",")) out.push("--key", x, "--wait", "250");
+    else if (k === "turn") out.push("--knob", v, "--wait", "250");
+    else if (k === "push") out.push("--key", "push", "--wait", "250");
     else if (k === "hold" || k === "release" || k === "wait" || k === "exec") out.push("--" + k, v);
     else if (k === "shot") out.push("--wait", "150", "--shot", join(OUT, v + ".png"));
     else if (k === "frozen-hold") {
-      out.push("--exec", `import time, quorum_ui; quorum.timer.deinit(); quorum.msg = ""; quorum.state = "hold"; quorum.hold_t0 = time.ticks_add(time.ticks_ms(), -${v}); quorum_ui.draw(quorum)`);
+      out.push("--exec", `import time, quorum_ui; quorum.timer.deinit(); quorum.msg = ""; quorum.state = "hold"; quorum.hold_t0 = time.ticks_add(time.ticks_ms(), -${v}); quorum.hold_key = "press" if quorum.KNOB else quorum.SIGN; quorum.d.frames(quorum_ui.draw, quorum)`);
       out.push("--shot", "@next");
       out.push("--exec", `quorum.state = "review"; quorum.dirty = True; quorum.start_timer()`);
     } else throw new Error("bad step " + s);
@@ -127,9 +151,10 @@ writeFileSync(twoSecrets, `QUORUM_SAFES = [
 
 let failed = 0;
 for (const fontset of fontsets) {
-  const OUT = fontset ? join(ROOT, "docs", "quorum-ui", "v2", "fonts", fontset) : SHOTS;
+  const OUT = fontset ? join(ROOT, "docs", "quorum-ui", "v2", "fonts", fontset)
+    : board ? join(ROOT, "docs", `${board}-ui`, "shots") : SHOTS;
   mkdirSync(OUT, { recursive: true });
-  for (let [name, queue, steps, opts = {}] of fontset ? FONT_STORIES : STORIES) {
+  for (let [name, queue, steps, opts = {}] of fontset ? FONT_STORIES : board ? BUILD1_STORIES : STORIES) {
     if (only.length && !only.includes(name)) continue;
     if (fontset) steps = [`exec import fonts; fonts.use('${fontset}'); quorum.dirty = True`, "wait 300", ...steps];
     for (const f of readdirSync(OUT)) if (steps.some((s) => s === `shot ${f.replace(/\.png$/, "")}`)) rmSync(join(OUT, f));
@@ -139,6 +164,7 @@ for (const fontset of fontsets) {
     copyFileSync(new URL("emu-chip.json", import.meta.url), chip);
     const app = queue ? BASE : "http://localhost:1";      // "offline": nothing answers
     const r = spawnSync(process.execPath, [join(ROOT, "emu/headless.mjs"), "quorum", "--app", app, "--chip", chip, "--quiet",
+      ...(board ? ["--board", board] : []),
       ...(opts.two ? ["--secrets", twoSecrets] : []),
       "--wait", "3000", ...args(steps, OUT)], { cwd: join(ROOT, "emu"), encoding: "utf8" });
     const shots = (r.stdout.match(/\[shot\]/g) || []).length;

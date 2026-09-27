@@ -13,7 +13,7 @@
 //   status                         the Safe, its owners and the queue
 //   log [N]                        the last N events
 //   ip                             this Mac's LAN address, for QUORUM_URL in the Pico's secrets.py
-//   shots                          regenerate docs/quorum-ui/shots with the emulator (shots.mjs)
+//   shots [--board build1]         regenerate docs/quorum-ui/shots (or docs/build1-ui/shots) with the emulator (shots.mjs)
 import { execSync, spawn, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
