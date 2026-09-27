@@ -4,7 +4,7 @@
 #
 #   1. Five owners arrive, all amber: ready to sign. Three ways in:
 #        ring    they spin round a circle, trailing light, and slow to a stop
-#        orbit   they orbit in space, tilted and far, and swing round to face us
+#        orbit   they orbit in space, tilted and far, and swing round to face us: just the dots
 #        star    a star drawn in one stroke (iteration 1; it reads as a pentagram)
 #   2. Three sign (the top, then the two bottom ones) and turn Ethereum blue. Their lines close
 #      into the tall triangle those three make.
@@ -26,7 +26,7 @@ import quorum_ui as U
 
 d = L.LCD()
 keys = L.Keys()
-OPTIONS = ("ring", "orbit", "star")
+OPTIONS = ("orbit", "ring", "star")     # orbit is the pick (iteration 2); the others for the record
 RING_IN, ORBIT_IN = 40, 44          # frames the ring and orbit take to land; the star's is 20
 FRAMES = {"ring": 170, "orbit": 174, "star": 150}     # literal: tools/bootgifs reads them; 130 + the way in
 T = U.THEMES["dark"]
@@ -92,10 +92,10 @@ def born_at(k):
     return DRAW0 + (DRAW1 - DRAW0) * STROKE.index(k) / 5
 
 
-def draw_star(i, lines=True):
+def draw_star(i, lines=True, hoop_too=True):
     gone = smooth(span(i, 46, 58))              # the two who didn't sign fade away
     line = mix(BG, WAIT, 0.32 * (1 - gone))
-    if not lines:                               # the ring they spun in, in place of the star
+    if not lines and hoop_too:                  # the ring they spun in, in place of the star
         if gone < 1:
             hoop(SX, SY, SR, mix(BG, WAIT, RING_INK * (1 - gone)))
     t = span(i, DRAW0, DRAW1) * 5 if lines else 0   # the stroke, one edge after another
@@ -248,11 +248,11 @@ def yaw_at(i):
     return math.radians(deg)
 
 
-def draw_star_to_eth(i, lines=True):
+def draw_star_to_eth(i, lines=True, hoop_too=True):
     d.fill(col(BG))
     counter(i)
     if i < 58:
-        draw_star(i, lines)
+        draw_star(i, lines, hoop_too)
         return
     u = smooth(span(i, 58, 98))
     rise = smooth(span(i, 74, 98))
@@ -343,7 +343,7 @@ def orbit_xy(k, spin, tilt, yaw, scale):
 
 def draw_orbit(i):
     if i >= ORBIT_IN:
-        return draw_star_to_eth(i - ORBIT_IN + 20, lines=False)
+        return draw_star_to_eth(i - ORBIT_IN + 20, lines=False, hoop_too=False)
     d.fill(col(BG))
     face = smooth(span(i, 6, ORBIT_IN - 4))             # swinging round to face us
     tilt, yaw = math.radians(74) * (1 - face), math.radians(-28) * (1 - face)
@@ -353,13 +353,6 @@ def draw_orbit(i):
         c = mix(BG, (b, b, b + 20), fade * ease(span(i, 0, 8)))
         d.pixel(int(x - i * 0.4) % 240, y, col(c))
     spin = spin_at(i, ORBIT_IN, -504)                   # 1.4 turns, landing top-up
-    path = mix(BG, WAIT, RING_INK * ease(span(i, 0, 12)))
-    prev = None
-    for s in range(37):                                 # the orbit itself
-        x, y, _, _ = orbit_xy(0, s * 10, tilt, yaw, scale)
-        if prev:
-            d.line(int(prev[0]), int(prev[1]), int(x), int(y), col(path))
-        prev = (x, y)
     owners = []
     for k in range(5):
         born = ease(span(i, 2 * k, 2 * k + 7))

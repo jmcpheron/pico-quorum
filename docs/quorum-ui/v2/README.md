@@ -11,8 +11,8 @@ there is where this one starts.
 
 ## The plan
 
-1. **The boot screen:** a 3-of-5 quorum that becomes the Ethereum diamond. Iteration 2 replaces
-   the star with five owners spinning in: two options below.
+1. **The boot screen:** a 3-of-5 quorum that becomes the Ethereum diamond. **Picked: the orbit,
+   just dots** (iteration 3).
 2. **Wire it to the real boot.** Each signature is a real boot step finishing, and the spin
    covers the slow ones (see [On the device](#on-the-device)).
 3. **Type.** Five candidate sets on a specimen card and on six real screens: see
@@ -20,6 +20,29 @@ there is where this one starts.
 4. **Colour and graphics.** Bring the boot screen's palette and shapes into the approval screens:
    the home screen, the approvals row, and the moment of signing.
 5. **Every screen, redone,** with before/after pairs like the v1 walkthrough.
+
+## Iteration 3 (2026-09-27): the orbit, just dots
+
+You picked the orbit, without the circle. The orbit's path is gone, and so is the faint circle
+the owners landed on. There are only five dots, then only the triangle of the three who sign.
+
+<img src="boot/orbit.gif" width="60%">
+
+| | |
+|---|---|
+| <img src="boot/orbit-008.png"> | <img src="boot/orbit-016.png"> |
+| **Five owners in space,** small and tipped back, stars drifting behind. The far ones are dimmer. | **Swinging round** to face you as they slow. |
+| <img src="boot/orbit-026.png"> | <img src="boot/orbit-044.png"> |
+| **Nearly there.** The stars fade out. | **Landed:** five amber dots, one at the top. Nothing joins them. |
+| <img src="boot/orbit-060.png"> | <img src="boot/orbit-068.png"> |
+| **Signing:** the top, then the bottom left. | **Quorum:** the bottom right signs and the triangle closes. |
+| <img src="boot/orbit-086.png"> | <img src="boot/orbit-104.png"> |
+| **The triangle is a pyramid's face,** and it starts to turn. | **The inverted pyramid rises** underneath. |
+| <img src="boot/orbit-173.png"> | |
+| **The Ethereum diamond** lands on the logo's pose, and the name comes up. | |
+
+It's now the first option in the emulator (`tools/emu run ethboot`). A still cycles to the ring
+and the star.
 
 ## Iteration 2 (2026-09-27): no star, two ways in
 
@@ -54,7 +77,7 @@ Both land here, and the signing starts:
 - **The star is still in the sketch** as a third option, so iteration 1's GIF below can be
   regenerated.
 
-**Questions for you:**
+**Questions for you** (answered: the orbit, just dots):
 1. **Ring or orbit?** I lean to the **orbit**: it has more depth and matches the 3D diamond it
    becomes. The ring is calmer and cheaper to draw on the Pico.
 2. **The faint circle:** keep it (it says "these five belong together"), or just the five dots?
@@ -184,6 +207,6 @@ Edit this list on GitHub: add a line, tick one off, or write under it. Each iter
 - [x] Fonts: candidates side by side on real screens ([FONTS.md](FONTS.md))
 - [x] The star can read as a pentagram: the five owners spin in on a ring or an orbit instead
       (iteration 2)
-- [ ] Pick the ring or the orbit (iteration 2, question 1)
+- [x] Pick the ring or the orbit: the orbit, just dots, no circle (iteration 3)
 - [ ] Pick a font set (FONTS.md, question 1)
 - [ ] (add yours)
