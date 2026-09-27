@@ -1,10 +1,13 @@
 # Hardware handoff: Build 1
 
-*2026-09-26.* This file is for the next person or AI session to pick up from: what's on the bench,
+*2026-09-26, updated 2026-09-27.* This file is for the next person or AI session to pick up from: what's on the bench,
 how it's wired, what to do next and what's still open.
 
 It links to the wiring rather than repeating it:
 
+- [wiring/BREADBOARD.md](wiring/BREADBOARD.md): **where the bench is now.** The chip, the screen and
+  the knob on a breadboard with jumper wires, the chip wired straight to 3.3 V, no jacks. It has 19
+  numbered wires, a picture of the knob's legs, and troubleshooting
 - [wiring/BUILD1.md](wiring/BUILD1.md): the pin map, the detect and power logic, and the key
 - [wiring/build1-wiring.svg](wiring/build1-wiring.svg): the diagram
 
@@ -30,9 +33,9 @@ It runs on USB, and it only reads the chip.
 | part | unblocks |
 |---|---|
 | Pico 2 W | everything |
-| 2.0″ ST7789 240×320 SPI screen, 8-pin | step 3 (screen), firmware 1 |
-| EC11 rotary encoder with push, one | step 4 (knob), firmware 2 |
-| 3.5 mm and 2.5 mm TRRS jacks and plugs | steps 2, 5 and 6 (jacks and key) |
+| 2.0″ ST7789 240×320 SPI screen, 8-pin | step 2 (screen), firmware 1 |
+| EC11 rotary encoder with push, one | step 3 (knob), firmware 2 |
+| 3.5 mm and 2.5 mm TRRS jacks and plugs | steps 4–8 (jacks and key) |
 | ATECC608 STEMMA QT breakouts, a pack, unconfigured; STEMMA QT cables | step 1 (today) and step 6. One is the sacrificial chip for firmware 4 |
 | 18650 cell and clips | nothing yet: waits for the protected TP4056 |
 
@@ -97,22 +100,27 @@ Never use GP23, GP24, GP25 or GP29 in firmware. They belong to the radio.
 ## 4. Build order
 
 Each step has a pass test. `bench1` means `firmware/bench1.py`; see
-[BUILD1.md](wiring/BUILD1.md#firmware-bench1py) for how to run it.
+[BREADBOARD.md](wiring/BREADBOARD.md#try-it) for how to run it.
 
-- [ ] **1. ATECC608 alone.** Wire a breakout to pins 36, 8, 6 and 7, as in
-      [SOLDERING.md section 1](wiring/SOLDERING.md#1-the-chip-four-wires).
-      *Passes when* `bench1.probe()` prints `key bus scan: ['0x60']`, a serial number, and
+**Now: the breadboard, no jacks** ([BREADBOARD.md](wiring/BREADBOARD.md), `JACKS = False` in `bench1.py`).
+
+- [ ] **1. ATECC608 alone.** Wires 1–6: the power rails and the chip.
+      *Passes when* `import bench1` prints `key bus scan: ['0x60']`, a serial number, and
       `config open, data open`.
-- [ ] **2. Mark the jack lugs.** Put the matching plug in each jack. Beep each plug contact (tip,
+- [ ] **2. Screen.** Wires 7–14.
+      *Passes when* `bench1` shows the TL mark top left, the bars read red, green, blue and white in
+      that order, and the text isn't mirrored. If not, fix it with `MADCTL` and `INVERT`.
+- [ ] **3. Knob.** Wires 15–19.
+      *Passes when* one click moves the count by exactly 1, clockwise goes up, PUSH shows DOWN while
+      the knob is pressed, and a 2 s hold prints the chip report.
+
+**Later: the jacks and the key** ([BUILD1.md](wiring/BUILD1.md), `JACKS = True`). The chip comes off
+the red rail and into the key.
+
+- [ ] **4. Mark the jack lugs.** Put the matching plug in each jack. Beep each plug contact (tip,
       ring 1, ring 2, sleeve) to the lugs, and label them. Note any switch lugs; Build 1 doesn't use
       them.
       *Passes when* every lug of both jacks has a label.
-- [ ] **3. Screen.**
-      *Passes when* `bench1` shows the TL mark top left, the bars read red, green, blue and white in
-      that order, and the text isn't mirrored. If not, fix it with `MADCTL` and `INVERT`.
-- [ ] **4. Knob.**
-      *Passes when* one click moves the count by exactly 1, clockwise goes up, PUSH shows DOWN while
-      the knob is pressed, and a 2 s hold prints the chip report.
 - [ ] **5. Jacks to the console.** Before power, check continuity from each lug to its Pico pin, and
       check that J2's tip (GP6) doesn't beep to ground. Then put a test plug in J1 with ring 2
       shorted to its sleeve.
@@ -196,6 +204,8 @@ Compared with the Waveshare dev console, the joystick is gone:
 
 ## 9. Where the notes are
 
+- [wiring/BREADBOARD.md](wiring/BREADBOARD.md), [build1-breadboard.svg](wiring/build1-breadboard.svg),
+  [knob-ec11.svg](wiring/knob-ec11.svg), and `tools/wiring-breadboard`, which draws them
 - [wiring/BUILD1.md](wiring/BUILD1.md), [wiring/build1-wiring.svg](wiring/build1-wiring.svg), and
   `tools/wiring-build1`, which redraws the diagram; `--check` compares the tables
 - `firmware/bench1.py`: the bench test

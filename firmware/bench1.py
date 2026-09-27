@@ -1,16 +1,21 @@
-# Build 1 bench test (hardware/wiring/BUILD1.md): the 2.0" ST7789 240x320 screen, the EC11 knob, the
-# two key jacks, and the ATECC608 key. It only reads the chip: no config write, no lock, no GenKey.
+# Build 1 bench test (hardware/wiring/BREADBOARD.md, BUILD1.md): the 2.0" ST7789 240x320 screen, the
+# EC11 knob, and the ATECC608, wired straight to the Pico or behind the two key jacks. It only reads
+# the chip: no config write, no lock, no GenKey.
 # Pins match the table in tools/wiring-build1; `tools/wiring-build1 --check` says whether they still do.
 #
-# Run: `tools/usb run firmware/bench1.py`, or copy it over and `import bench1` at the REPL. On a board
-# whose main.py starts the wallet, stop it first (`import wallet; wallet.stop()`) or boot with main.py
-# held back: the wallet drives the same SPI pins and reads GP2/GP3 as the joystick. It runs from a
-# 20 ms Timer so the REPL stays free; bench1.stop() ends it and cuts key power.
+# Run: `tools/usb push`, then `tools/usb` for the REPL and `import bench1`. On a board whose main.py
+# starts the wallet, stop it first (`import wallet; wallet.stop()`) or boot with main.py held back:
+# the wallet drives the same SPI pins and reads GP2/GP3 as the joystick. It runs from a 20 ms Timer
+# so the REPL stays free; bench1.stop() ends it (and cuts key power with JACKS).
+#
+# JACKS = False (the default, hardware/wiring/BREADBOARD.md): the chip is wired straight to 3.3 V,
+# GP4 and GP5. bench1 reads it at start and on every knob press, and never touches GP6 or GP7.
+# JACKS = True (hardware/wiring/BUILD1.md): the chip lives in a key behind the two jacks, as below.
 #
 # On the screen and the REPL:
-#   knob      turn: the count moves one per click. Press: scan the key bus now, key or no key.
+#   knob      turn: the count moves one per click. Press: scan the chip's bus now.
 #             Hold 2 s: the full read-only chip report (chipcheck.py) on the REPL.
-#   key       DETECT (J1 ring 2) low for 200 ms -> key power (GP6) on -> scan -> read the chip.
+#   key       (JACKS only) DETECT (J1 ring 2) low for 200 ms -> key power (GP6) on -> scan -> read the chip.
 #             DETECT high -> key power off at once and the I2C pins let go. Nothing that answers
 #             at a known address within 3 tries -> power off again, "not a key" (a headset, say).
 import time
@@ -33,6 +38,7 @@ KEY_DETECT = 7
 KEY_RST = 26            # J2 ring 1; left alone here (a Trust M key soft-resets over I2C)
 KEY_ID = 27             # J2 ring 2; open on every Build 1 key
 
+JACKS = False           # True once the key jacks are wired (BUILD1.md); False: chip wired straight to 3V3
 W, H = 320, 240         # landscape
 MADCTL = 0x60           # MX|MV: landscape. Upside down: 0xA0. Mirrored: flip 0x40 or 0x80. Red and blue swapped: add 0x08
 INVERT = True           # IPS ST7789 panels want inversion on; colors look like a negative -> False
@@ -122,11 +128,13 @@ def clicks():
 
 
 # --- key: detect, power, bus ---------------------------------------------------------------------
-_detect = Pin(KEY_DETECT, Pin.IN, Pin.PULL_UP)
-try:
-    _pwr = Pin(KEY_PWR, Pin.OUT, value=0, drive=Pin.DRIVE_3)   # 12 mA drive where the port has it
-except (AttributeError, TypeError, ValueError):
-    _pwr = Pin(KEY_PWR, Pin.OUT, value=0)
+_detect = _pwr = None
+if JACKS:
+    _detect = Pin(KEY_DETECT, Pin.IN, Pin.PULL_UP)
+    try:
+        _pwr = Pin(KEY_PWR, Pin.OUT, value=0, drive=Pin.DRIVE_3)   # 12 mA drive where the port has it
+    except (AttributeError, TypeError, ValueError):
+        _pwr = Pin(KEY_PWR, Pin.OUT, value=0)
 
 
 def release_bus():
@@ -136,6 +144,8 @@ def release_bus():
 
 
 def power(on):
+    if not JACKS:
+        return          # the chip is on 3V3 all the time
     if not on:
         release_bus()
     _pwr.value(1 if on else 0)
@@ -193,8 +203,9 @@ def draw(scr, st):
     row("KNOB", "%+d" % clicks())
     scr.text("%d steps" % steps, 230, y - 16, GREY)
     row("PUSH", "DOWN" if st["down"] else "up", GREEN if st["down"] else WHITE)
-    row("DETECT", "key in" if st["present"] else "no key", GREEN if st["present"] else WHITE)
-    row("POWER", "ON  GP6" if st["powered"] else "off", ORANGE if st["powered"] else WHITE)
+    if JACKS:
+        row("DETECT", "key in" if st["present"] else "no key", GREEN if st["present"] else WHITE)
+        row("POWER", "ON  GP6" if st["powered"] else "off", ORANGE if st["powered"] else WHITE)
     p = st["probe"]
     if p is None:
         row("BUS", "-")
@@ -234,8 +245,10 @@ def tick(_=None):
     try:
         now = time.ticks_ms()
         # key presence and power
-        present = _detect.value() == 0
-        if not present:
+        present = JACKS and _detect.value() == 0
+        if not JACKS:
+            pass
+        elif not present:
             _low_since = None
             _refused = False
             if st["powered"]:
@@ -264,13 +277,13 @@ def tick(_=None):
             st["msg"] = "chip report on the REPL"
             import chipcheck
             chipcheck.main()
-            if not st["powered"]:
+            if JACKS and not st["powered"]:
                 release_bus()
         elif not down and _down_at is not None:
             if not _held:
                 st["probe"] = probe()
-                st["msg"] = "scanned" + ("" if st["powered"] else " (GP6 off: 3V3-wired chip only)")
-                if not st["powered"]:
+                st["msg"] = "scanned" + ("" if st["powered"] or not JACKS else " (GP6 off: 3V3-wired chip only)")
+                if JACKS and not st["powered"]:
                     release_bus()
             _down_at = None
         st["down"] = down
@@ -287,9 +300,11 @@ def start():
     from machine import Timer
     power(False)
     scr = Screen()
+    if not JACKS:
+        st["probe"] = probe()
     draw(scr, st)
     timer = Timer(period=20, mode=Timer.PERIODIC, callback=tick)
-    print("bench1 running: turn the knob, press it, plug the key. bench1.stop() to stop.")
+    print("bench1 running: turn the knob, press it%s. bench1.stop() to stop." % (", plug the key" if JACKS else ""))
 
 
 def stop():
@@ -298,7 +313,7 @@ def stop():
         timer.deinit()
     power(False)
     st["powered"] = False
-    print("bench1: stopped, key power off")
+    print("bench1: stopped" + (", key power off" if JACKS else ""))
 
 
 start()

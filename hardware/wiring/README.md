@@ -2,6 +2,8 @@
 
 Console and key schematics and pinouts. Draft only.
 
+Build 1 on a breadboard, no jacks: [BREADBOARD.md](BREADBOARD.md), drawn by `tools/wiring-breadboard`.
+
 Build 1 (Pico 2 W, 2.0″ screen, EC11 knob, 3.5 mm + 2.5 mm TRRS jacks, ATECC608 stand-in key):
 [BUILD1.md](BUILD1.md), drawn by `tools/wiring-build1`.
 
