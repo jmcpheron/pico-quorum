@@ -5,8 +5,9 @@
 #   1. Five owners arrive, all amber: ready to sign. Three ways in:
 #        ring    they spin round a circle, trailing light, and slow to a stop
 #        orbit   they orbit in space, tilted and far, and swing round to face us: just the dots.
-#                The pick. Signing is green, the triangle turns solid green and blends into the
-#                diamond's blue, and a status line at the bottom names each boot step.
+#                The pick. Signing is green; green pours into the triangle, which holds a beat
+#                and then turns: it's one face of the diamond, and the faces coming round are
+#                Ethereum blue. A status line at the bottom names each boot step.
 #        star    a star drawn in one stroke (iteration 1; it reads as a pentagram)
 #   2. Three sign (the top, then the two bottom ones) and turn Ethereum blue. Their lines close
 #      into the tall triangle those three make.
@@ -30,7 +31,7 @@ d = L.LCD()
 keys = L.Keys()
 OPTIONS = ("orbit", "ring", "star")     # orbit is the pick (iteration 2); the others for the record
 RING_IN, ORBIT_IN = 40, 64          # frames the ring and orbit take to land; the star's is 20
-FRAMES = {"ring": 170, "orbit": 234, "star": 150}     # literal: tools/bootgifs reads them
+FRAMES = {"ring": 170, "orbit": 248, "star": 150}     # literal: tools/bootgifs reads them
 T = U.THEMES["dark"]
 BG, INK, MUTED = T["bg"], T["text"], T["muted"]
 WAIT = T["warn"]                    # amber: an owner who can sign and hasn't yet
@@ -40,7 +41,7 @@ OK = T["ok"]                        # signed, in the orbit: the green of every o
 OK_DARK, OK_LIGHT = (0, 96, 36), (120, 255, 150)         # the green triangle's shading
 # What the drawing below uses; each option's draw function sets it for its frames.
 #   sign     the colour an owner turns when it signs, and the quorum's lines
-#   green    the triangle turns solid green, then blends into the diamond's blue
+#   green    green pours into the triangle; it stays the diamond's green face as it turns away
 #   status   the bottom line names boot steps (and the counter and "3 of 5 · ready" go)
 #   clock    the frame the waiting owners breathe by, when the timeline is paused around them
 STYLE = {"sign": ETH, "green": False, "status": False, "clock": None}
@@ -121,9 +122,12 @@ def draw_star(i, lines=True, hoop_too=True):
         f = ease(span(i, at, at + 6))
         if f > 0:
             thick(a[0], a[1], int(a[0] + (b[0] - a[0]) * f), int(a[1] + (b[1] - a[1]) * f), STYLE["sign"], 3)
-    fill = smooth(span(i, 48, 57))              # the triangle fills in: the pyramid's front face
-    if fill > 0:
-        draw_diamond(0.0, fill, green=1.0 if STYLE["green"] else 0.0)
+    if STYLE["green"]:                          # green pours in from the tip, then a flash
+        pour(ease(span(i, 47, 54)), 1 - span(i, 54, 58) if i >= 54 else 0.0)
+    else:
+        fill = smooth(span(i, 48, 57))          # the triangle fills in: the pyramid's front face
+        if fill > 0:
+            draw_diamond(0.0, fill)
     for k, (x, y) in enumerate(STAR):
         born = ease(span(i, born_at(k), born_at(k) + 5))
         if born <= 0:
@@ -145,6 +149,18 @@ def draw_star(i, lines=True, hoop_too=True):
         else:
             rgb = mix(WAIT, STYLE["sign"], span(i, at, at + 3))
         node(x, y, int((9 + (3 if at <= i < at + 3 else 0)) * born), rgb)
+
+
+def pour(f, flash):
+    """The quorum's triangle filled with green down to fraction f of its height."""
+    if f <= 0:
+        return
+    y = TOP[1] + (LEFT[1] - TOP[1]) * f
+    xl, xr = TOP[0] + (LEFT[0] - TOP[0]) * f, TOP[0] + (RIGHT[0] - TOP[0]) * f
+    rgb = mix(FACE_GREEN, (255, 255, 255), 0.45 * flash)
+    d.poly(0, 0, array("h", [TOP[0], TOP[1], int(xr), int(y), int(xl), int(y)]), col(rgb), True)
+    if f < 1:                                   # the surface, brighter
+        thick(int(xl), int(y), int(xr), int(y), OK_LIGHT, 2)
 
 
 def counter(i):
@@ -177,6 +193,9 @@ K1, OY1 = 82, 86                    # the logo: pixels per unit, and where y = 0
 LIGHT = (-0.55, -0.55, 0.63)        # from the upper left, toward the viewer
 _l = math.sqrt(sum(v * v for v in LIGHT))
 LIGHT = tuple(v / _l for v in LIGHT)
+# The front face's green, head-on: its normal is (0, -s, 1), so this is what draw_diamond gives it
+_n = math.sqrt(S0 * S0 + 1)
+FACE_GREEN = mix(OK_DARK, OK_LIGHT, 0.12 + 0.88 * max(0.0, (-S0 * LIGHT[1] + LIGHT[2]) / _n))
 
 
 def box(s, y):
@@ -187,7 +206,7 @@ def box(s, y):
 def draw_diamond(u, alpha=1.0, yaw=0.0, el=0.0, chev=None, chev_alpha=0.0, pts=None, green=0.0):
     """The diamond at zoom u (0 = the star's triangle filling the screen, 1 = the logo).
     chev is how far below its place the inverted pyramid is (None: not there yet). green: how
-    much of the top pyramid is still the quorum's green (0: all Ethereum blue)."""
+    much of the top pyramid's front face (the quorum's triangle) is still green."""
     s = S0 + (S1 - S0) * u
     k0 = LEFT[1] - TOP[1]
     k = k0 + (K1 - k0) * u                                              # pixels per unit
@@ -203,13 +222,13 @@ def draw_diamond(u, alpha=1.0, yaw=0.0, el=0.0, chev=None, chev_alpha=0.0, pts=N
     tris = []
     top, base = (0.0, -1.0, 0.0), box(s, 0.0)
     for j in range(4):
-        tris.append(((top, base[j], base[(j + 1) % 4]), (0.0, -0.3, 0.0), alpha, 1))
+        tris.append(((top, base[j], base[(j + 1) % 4]), (0.0, -0.3, 0.0), alpha, 1, j))
     if chev is not None:
         rim, foot = box(s, GAP + chev), (0.0, FOOT + chev, 0.0)
         for j in range(4):
-            tris.append(((rim[j], rim[(j + 1) % 4], foot), (0.0, GAP + 0.4 + chev, 0.0), chev_alpha, 0))
+            tris.append(((rim[j], rim[(j + 1) % 4], foot), (0.0, GAP + 0.4 + chev, 0.0), chev_alpha, 0, j))
     polys = []
-    for (tri, inside, a, layer) in tris:
+    for (tri, inside, a, layer, j) in tris:
         v = [view(p) for p in tri]
         ux, uy, uz = v[1][0] - v[0][0], v[1][1] - v[0][1], v[1][2] - v[0][2]
         wx, wy, wz = v[2][0] - v[0][0], v[2][1] - v[0][1], v[2][2] - v[0][2]
@@ -223,7 +242,7 @@ def draw_diamond(u, alpha=1.0, yaw=0.0, el=0.0, chev=None, chev_alpha=0.0, pts=N
         lit = max(0.0, (nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2]) / m)
         rgb = mix(ETH_DARK, ETH_LIGHT, 0.12 + 0.88 * lit)
         dark = ETH_DARK
-        if green > 0 and layer == 1:
+        if green > 0 and layer == 1 and j == 0:     # the quorum's face
             rgb = mix(rgb, mix(OK_DARK, OK_LIGHT, 0.12 + 0.88 * lit), green)
             dark = mix(ETH_DARK, OK_DARK, green)
         if a < 1:                                   # fade in through its own dark shade
@@ -275,10 +294,9 @@ def draw_star_to_eth(i, lines=True, hoop_too=True):
     u = smooth(span(i, 58, 98))
     rise = smooth(span(i, 74, 98))
     nodes = 1 - span(i, 60, 80)
-    green = 1 - smooth(span(i, 62, 86)) if STYLE["green"] else 0.0    # green to Ethereum blue
+    green = 1 - span(i, 92, 100) if STYLE["green"] else 0.0   # its face goes blue once it's round the back
     draw_diamond(u, 1.0, yaw_at(i), EL * u, 0.5 * (1 - rise) if rise > 0 else None, rise,
-                 (int(9 * nodes), mix(ETH, STYLE["sign"], green) if STYLE["green"] else STYLE["sign"])
-                 if nodes > 0.1 else None, green)
+                 (int(9 * nodes), STYLE["sign"]) if nodes > 0.1 else None, green)
     t = ease(span(i, 100, 116))                     # the name
     if t > 0:
         yy = int(172 + 12 * (1 - t))
@@ -364,7 +382,7 @@ def orbit_xy(k, spin, tilt, yaw, scale):
 
 # The orbit's timeline. The star's (which the rest is drawn in) pauses before each signature, so
 # each boot step gets its moment: STALLS are (star frame, frames to hold there).
-STALLS = ((20, 10), (30, 15), (39, 15))
+STALLS = ((20, 10), (30, 15), (39, 15), (58, 14))   # the last: the green triangle's beat
 
 
 def star_frame(i):
@@ -391,7 +409,7 @@ NAME = orbit_frame(100)
 STATUS = ((0, "Starting up", False), (22, "Joining WiFi", False),
           (WIFI, "WiFi connected", True), (WIFI + 12, "Checking the chip", False),
           (CHIP, "Chip verified", True), (CHIP + 12, "Finding the Safe", False),
-          (SAFE, "Family Safe \u00b7 3 of 5", True), (SAFE + 22, "Loading the queue", False),
+          (SAFE, "Family Safe \u00b7 3 of 5", True), (orbit_frame(62), "Loading the queue", False),
           (NAME, "Ready", True))
 SLIDE = 6                           # frames a line takes to slide in (and the old one out)
 
