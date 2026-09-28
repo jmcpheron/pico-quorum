@@ -2,20 +2,50 @@
 # Capture boot screen animations from a sketch in emu/sketches/ as GIFs.
 #   tools/bootgifs [option ...]                               bootfx's options into docs/quorum-ui/boot/
 #   tools/bootgifs --sketch ethboot [--out DIR] [--stills 20,40] [option ...]
+#   tools/bootgifs --sketch ethboot --lite orbit      a light GIF too: OPTION-lite.gif, the panel's
+#                                                     own 240 px, every other frame (10 a second)
+#                                                     and 48 colours, for slow viewers
 # The sketch lists its options and their frame counts in FRAMES = {...} and draws frame i of an
 # option with render(option, i). Each frame is drawn by the sketch itself in the emulator, saved
 # as a PNG, and the PNGs become a GIF at the firmware's 50 ms tick, the last frame held 1.5 s,
 # with one 128-colour palette drawn from frames across the whole animation.
 # --stills also keeps the listed frames as PNGs (the emulator's 2x), OPTION-NNN.png, for docs.
 cd "$(dirname "$0")/.." || exit 1
+
+# gif OPTION DST SIZE STEP COLOURS: the frames in $tmp as a GIF, SIZE px square (240 = the panel's
+# own pixels, kept sharp), every STEP-th frame at STEP x 50 ms, one palette for the whole GIF from
+# frames across it (the last frame alone may miss colours), the last frame held 1.5 s.
+gif() {
+  uv run --quiet --python 3.11 --with pillow python - "$tmp" "$@" <<'PY'
+import glob, sys
+from PIL import Image
+tmp, name, dst, size, step, colours = sys.argv[1:]
+size, step, colours = int(size), int(step), int(colours)
+paths = sorted(glob.glob("%s/%s-*.png" % (tmp, name)))
+paths = paths[::step] + ([paths[-1]] if (len(paths) - 1) % step else [])
+how = Image.NEAREST if size == 240 else Image.LANCZOS
+frames = [Image.open(p).convert("RGB").resize((size, size), how) for p in paths]
+picks = frames[::max(1, len(frames) // 15)] + [frames[-1]]
+sheet = Image.new("RGB", (size, size * len(picks)))
+for k, f in enumerate(picks):
+    sheet.paste(f, (0, size * k))
+pal = sheet.quantize(colors=colours, method=Image.Quantize.MEDIANCUT)
+q = [f.quantize(palette=pal, dither=Image.Dither.NONE) for f in frames]
+q[0].save(dst, save_all=True, append_images=q[1:], duration=[50 * step] * (len(q) - 1) + [1500], loop=0,
+          optimize=True, disposal=1)
+print("%-10s %d frames -> %s" % (name, len(q), dst))
+PY
+}
 sketch=bootfx
 out=
 stills=
+lite=
 while [ $# -gt 0 ]; do
   case "$1" in
     --sketch) sketch=$2; shift 2 ;;
     --out) out=$2; shift 2 ;;
     --stills) stills=$2; shift 2 ;;
+    --lite) lite=1; shift ;;
     *) break ;;
   esac
 done
@@ -41,20 +71,7 @@ for o in $opts; do
     f=$(printf %03d "$s")
     cp "$tmp/$o-$f.png" "$out/$o-$f.png" || exit 1
   done
-  uv run --quiet --python 3.11 --with pillow python - "$tmp" "$o" "$out/$o.gif" <<'PY'
-import glob, sys
-from PIL import Image
-tmp, name, dst = sys.argv[1:]
-frames = [Image.open(p).convert("RGB").resize((360, 360), Image.LANCZOS) for p in sorted(glob.glob("%s/%s-*.png" % (tmp, name)))]
-# one palette for the whole GIF, from frames across it (the last frame alone may miss colours)
-picks = frames[::max(1, len(frames) // 15)] + [frames[-1]]
-sheet = Image.new("RGB", (360, 360 * len(picks)))
-for k, f in enumerate(picks):
-    sheet.paste(f, (0, 360 * k))
-pal = sheet.quantize(colors=128, method=Image.Quantize.MEDIANCUT)
-q = [f.quantize(palette=pal, dither=Image.Dither.NONE) for f in frames]
-q[0].save(dst, save_all=True, append_images=q[1:], duration=[50] * (len(q) - 1) + [1500], loop=0, optimize=True, disposal=1)
-print("%-10s %d frames -> %s" % (name, len(q), dst))
-PY
+  gif "$o" "$out/$o.gif" 360 1 128
+  [ -z "$lite" ] || gif "$o" "$out/$o-lite.gif" 240 2 48
 done
 rm -rf "$tmp"

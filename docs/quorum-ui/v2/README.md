@@ -36,7 +36,11 @@ drawn, the green triangle dead still before it lurched into the turn. The orbit 
 clock that never stops. Between steps the waiting owners keep breathing, and every move eases in
 and out.
 
-<img src="boot/orbit.gif" width="60%">
+<img src="boot/orbit-lite.gif" width="60%">
+
+This is the **lite GIF** (2026-09-28): the panel's own 240 px, 10 frames a second and 48
+colours, 0.2 MB, for slower viewers. The full one, 360 px at 20 frames a second (1.1 MB), is
+[here](boot/orbit.gif).
 
 | | |
 |---|---|
@@ -283,6 +287,7 @@ telling 0/O and 1/l/I apart, which matters on a device for comparing addresses. 
 ```sh
 tools/emu run ethboot                                   # play it in the emulator; A = next option
 tools/bootgifs --sketch ethboot --stills 8,16,26 orbit  # an option's GIF and stills
+tools/bootgifs --sketch ethboot --lite orbit            # plus orbit-lite.gif: 240 px, 10 a second
 tools/emu ship ethboot                                  # a one-off run on the Pico
 ```
 
