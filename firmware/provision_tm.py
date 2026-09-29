@@ -80,6 +80,15 @@ class Ceremony:
     def index(self, st):
         return int(st[1:]) if st[0] == "T" else 0
 
+    def picture(self, st, result=False):
+        """The owner address's blockie (blockies.py), lowercase as the seed: on T5's result, and
+        on the steps that follow it while the key can still be looked at."""
+        if not self.key or st not in ("T5", "T6", "T7"):
+            return None
+        if st == "T5" and not result and not self.owner_seen:
+            return None
+        return self.owner().lower()
+
     def subtitle(self):
         f = tmcfg.uid_fields(self.uid)
         return "%s fw %s" % (self.serial[-12:], f["build"])

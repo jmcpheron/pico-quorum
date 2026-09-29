@@ -104,6 +104,10 @@ class Ceremony:
     def index(self, st):
         return int(st[1:]) if st[0] == "C" else 0
 
+    def picture(self, st, result=False):
+        """The address whose blockie the screen draws, or None (the ATECC ceremony shows none)."""
+        return None
+
     def subtitle(self):
         return "%s %s" % (self.serial, chipcfg.REVISIONS.get(self.revision, self.revision)[-4:])
 
@@ -511,9 +515,10 @@ class UI:
         c = self.c
         st = c.step()                       # once, not once per strip
         why = self.need(st) if st not in c.FINAL else ""
-        self.d.frames(self._paint, st, why, c.subtitle()[:29], c.note())
+        pic = c.picture(st, bool(self.result))
+        self.d.frames(self._paint, st, why, c.subtitle()[:29], c.note(), pic)
 
-    def _paint(self, st, why, subtitle, note):
+    def _paint(self, st, why, subtitle, note, pic=None):
         d, c = self.d, self.c
         d.fill(self.p["bg"])
         d.text(c.HEADER, 4, 4, self.p["accent"])
@@ -526,6 +531,9 @@ class UI:
                 d.text(("ok " if good else "NO ") + label[:26], 4, y, self.p["ok"] if good else self.p["bad"])
                 y += 11
             y = self.lines(msg, y + 6, self.p["fg"])
+            if pic:
+                import blockies
+                blockies.draw(d, pic, 4, y + 8, 8)          # 64 px: the picture to compare in the Safe app
             d.text("press: continue" if self.knob else "A: continue", 4, 226, self.p["fg"])
             d.show()
             return
@@ -543,6 +551,10 @@ class UI:
             y += 15
         if note:
             d.text(note[:29], 4, y, self.p["muted"])
+        if pic:
+            import blockies
+            blockies.draw(d, pic, 4, 128, 6)                # 48 px, above the hold bar
+            d.text("owner picture", 60, 148, self.p["muted"])
         if self.knob:
             self._paint_knob(st, why)
             d.show()

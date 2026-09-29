@@ -52,6 +52,13 @@ CA"; a real chip reads "CA 101".
 | <img src="shots/58-trustm-chip-3.png" width="240"> | <img src="shots/61-trustm-chip-6.png" width="240"> |
 | **Factory certificate.** Issuer, subject, serial, validity, and **the CA check, done on the Pico at boot** against the pinned Infineon CA key (a real chip reads "CA 101"). The next page shows the certificate's own key: E0F0, the factory key. | **Signing key**, continued. The binding (E0F0 signed this key, verified under the certificate) and when and by which build the record was written. The pages before it show E0F1, whether it is sealed, its access rules, the public key and the owner. |
 
+**Blockies for addresses** (you asked for these). The pixel avatar an address gets is now drawn wherever you compare an address by eye:
+- **Ceremony T5** shows the new owner's blockie under the address, and it stays on T6 and T7.
+- **Owners screen (B):** one for every owner.
+- **Address on an approval page:** for example the "new owner" of an add-owner transaction, so it is the same picture you saw at T5.
+
+They are the standard 8x8 blockies of the lowercase address (`firmware/blockies.py`), the same picture at any size. I have not checked them against the Safe web app's own avatars: compare with the address, not only the picture.
+
 **For you to decide:** are four lines under Signing too many? The other candidates are the wafer
 position and the firmware build (`fw 80101071 build 0809, wafer 98,108`); they are in the list,
 but only the first four are shown.

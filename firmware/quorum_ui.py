@@ -310,6 +310,7 @@ def who_line(d, q, label, a, y, pc, bg):
         txt(d, "unknown contract", x + 20, y, "bold14", "warn" if bg == "bg" else pc["text"], bg)
     else:
         txt(d, "not in the address book", x, y + 1, "sans12", "warn" if bg == "bg" else pc["text"], bg)
+    blockies.draw(d, a.lower(), R - 16, y, 2)           # 16 px: an address seen before looks the same
     y += 18
     for line in addr_lines(a):
         txt(d, line, M, y, "mono13", pc["stake"], bg)
@@ -749,6 +750,7 @@ def draw_owners(q):
     for a in q.owners()[:4]:
         nm = ident(q, a)[0]
         x = txt(d, nm or "Not in the address book", M, y, "bold14", "text" if nm else "warn")
+        blockies.draw(d, a.lower(), R - 24, y, 3)          # 8x8 cells at 3 px: 24 px, the same picture at any size
         if a == q.me:
             pill(d, "you", x + 6, y + 1, "sans12", "stake", "bg")
         y += 19

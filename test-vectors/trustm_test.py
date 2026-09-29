@@ -479,6 +479,17 @@ def case_ui():
             ok = False
             sys.print_exception(e)
     check(ok and ui.c.step() == "T8", "the ceremony screen draws every Trust M step and its result")
+    only_trustm()
+    c2, S2, P2 = ceremony()
+    for st in ("T1", "T2", "T3", "T4"):
+        run(c2, st)
+    check(c2.picture("T5") is None, "T5 before the owner is shown: no picture on the step screen yet")
+    run(c2, "T5")
+    own = c2.owner().lower()
+    check(c2.picture("T5", True) == own and c2.picture("T6") == own and c2.picture("T1") is None,
+          "after T5: the owner's blockie seed is the lowercase owner address, on T5-T7 only")
+    import blockies
+    check(blockies.build(own, 8) == blockies.build(c2.owner().lower(), 8), "same address, same picture")
     try:
         P.draw_map(d, c.sig, provision.palette("dark"))
         check(True, "the Trust M object map draws")
