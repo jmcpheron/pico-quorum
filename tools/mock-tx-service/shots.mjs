@@ -75,7 +75,10 @@ const STORIES = [
     "shot 53-trustm-sending",
     "exec quorum.work_info[:] = []; quorum.dirty = True; quorum.start_timer()", "wait 300",
     "key A", "hold A", "wait 2300", "release A", "wait 800", "shot 54-trustm-signed",
-    "key A", "wait 1500", "key X", "wait 400", "shot 55-trustm-device"], { trustm: true }],
+    "key A", "wait 1500", "key X", "wait 400", "shot 55-trustm-device",
+    "key A", "wait 600", "shot 56-trustm-chip-1", "key A", "wait 300", "shot 57-trustm-chip-2", "key A", "wait 300", "shot 58-trustm-chip-3",
+    "key A", "wait 300", "shot 59-trustm-chip-4", "key A", "wait 300", "shot 60-trustm-chip-5", "key A", "wait 300", "shot 61-trustm-chip-6"],
+    { trustm: true }],
   ["light", DEMO, ["exec import quorum_ui; quorum_ui.use('light'); quorum.dirty = True", "shot 33-light-home", "key A", "shot 34-light-summary",
     "keys B,down,down,A,down", "shot 35-light-red-page", "key down", "shot 36-light-verify"]],
 ];

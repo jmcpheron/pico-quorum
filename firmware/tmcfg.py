@@ -227,9 +227,30 @@ def cert_parse(der):
     _, ns, ne = _tlv(tbs, j)
     issuer, at = _cn(tbs, ne)
     subject, _ = _cn(tbs, at)
+    # validity: after the serial, the signature algorithm and the issuer
+    valid = (None, None)
+    try:
+        _, _, e = _tlv(tbs, ne)             # signature algorithm
+        _, _, e = _tlv(tbs, e)              # issuer
+        _, vs, _ = _tlv(tbs, e)             # validity
+        _, a0, a1 = _tlv(tbs, vs)
+        _, b0, b1 = _tlv(tbs, a1)
+        valid = (_date(tbs[a0:a1]), _date(tbs[b0:b1]))
+    except (IndexError, ValueError):
+        pass
     return {"tbs": tbs, "r": int.from_bytes(sig[rs:re_], "big"), "s": int.from_bytes(sig[ss:se], "big"),
             "qx": int.from_bytes(tbs[k:k + 32], "big"), "qy": int.from_bytes(tbs[k + 32:k + 64], "big"),
-            "serial": hexlify(tbs[ns:ne]).decode(), "issuer": issuer, "subject": subject}
+            "serial": hexlify(tbs[ns:ne]).decode(), "issuer": issuer, "subject": subject,
+            "notBefore": valid[0], "notAfter": valid[1]}
+
+
+def _date(t):
+    """UTCTime (YYMMDD...) or GeneralizedTime (YYYYMMDD...) -> "YYYY-MM-DD"."""
+    t = bytes(t).decode()
+    if len(t) >= 13 and t[12] == "Z" or len(t) == 13:
+        y = int(t[0:2])
+        t = ("19" if y >= 50 else "20") + t
+    return "%s-%s-%s" % (t[0:4], t[4:6], t[6:8])
 
 
 def ca_key(issuer):
@@ -346,3 +367,40 @@ def info_lines(uid, issuer=None, key=None, bound=None, sec=None):
     if f:
         out.append("fw %s build %s, wafer %d,%d" % (f["fw"], f["build"], f["x"], f["y"]))
     return out
+
+
+def detail_pages(uid, cert=None, ca_ok=None, key=None, bound=None, rec=None, sec=None, lcsa=None):
+    """The console's Chip pages for a Trust M, every value read off the chip (quorum.open_chip):
+    [(title, [(label, value), ...]), ...]. Values may be long; the screen wraps them."""
+    f = uid_fields(uid)
+    silicon = [("Part", "Infineon OPTIGA Trust M"), ("Certified", "CC EAL6+ secure element"),
+               ("Firmware", "%s build %s" % (f["fw"], f["build"])), ("Serial", serial(uid)),
+               ("Wafer", "X %d, Y %d, batch %s" % (f["x"], f["y"], hexlify(f["batch"]).decode())),
+               ("Lifecycle", "LcsA %s" % lcs_name(lcsa)),
+               ("Security", "%s events. Key use is paid from an idle credit; bursts count and slow the chip"
+                % ("?" if sec is None else sec))]
+    pages = [("The chip", silicon)]
+    if cert:
+        c = [("Issuer", cert["issuer"] or "?"), ("Subject", cert["subject"] or "?"), ("Serial", cert["serial"]),
+             ("Valid", "%s to %s" % (cert.get("notBefore") or "?", cert.get("notAfter") or "?")),
+             ("CA check", {True: "verified on this Pico with the pinned %s key" % short_ca(cert["issuer"]),
+                           False: "FAILED: not signed by a pinned Infineon CA", None: "not checked"}[ca_ok]),
+             ("Its key", "E0F0, the factory key, %08x" % (cert["qx"] >> 224))]
+        pages.append(("Factory certificate", c))
+    if key:
+        k = [("Key", "%04X, %s, made on this chip" % (KEY, key.get("kind", "?"))),
+             ("Sealed", "yes: lifecycle operational, can never be made again" if key.get("locked") else
+              "no: lifecycle %s, it can still be replaced" % lcs_name(key.get("lcso"))),
+             ("Access", "change %s, use %s" % (key.get("change", "-"), key.get("exec", "-")))]
+        if rec:
+            k.append(("Public key", "%08x (record in F1D0)" % (rec["qx"] >> 224)))
+            k.append(("Owner", rec["owner"]))
+        k.append(("Binding", {True: "E0F0 signed this key; verified under the Infineon certificate",
+                              False: "MISSING or does not verify", None: "not checked"}[bound]))
+        if rec and rec.get("date"):
+            import time
+            t = time.gmtime(rec["date"])
+            k.append(("Made", "%04d-%02d-%02d, build %s" % (t[0], t[1], t[2], rec.get("build", "?"))))
+        pages.append(("Signing key", k))
+    return pages
+

@@ -142,6 +142,12 @@ While it signs, the console shows short facts read from the chip itself (`tmcfg.
 - **Sending:** the signing time and the counter after the signature ("unchanged" after idle, "+1" in a burst).
 - **Result:** if the counter rose by more than the signature, the result screen says so and `log.txt` records it.
 - **Device screen:** the Trust M shows `E0F1 locked · Trust M`, and a Security row where the ATECC has Key uses.
+- **Chip pages** (Device → Chip: A, or the knob), for reading at leisure what the Signing screen flashes:
+  - **the chip:** part, CC EAL6+, firmware, serial, wafer, lifecycle, the security counter
+  - **the factory certificate:** issuer, subject, serial, validity, the CA check, the factory key E0F0
+  - **the signing key:** E0F1, sealed or not, its access rules, public key, owner, the binding, when the record was written
+  - All of it is read off the chip when the pages open; long rows continue on the next page. An ATECC gets a page of its own (part, config, slot 0).
+- **Boot checks both links of the chain:** the certificate against the pinned Infineon CA key, and the binding under the certificate (about 4 s in all on the Pico). "Bound to Infineon cert" is shown only when both pass.
 - **ATECC:** its own lines (part, sealed slot, key uses).
 
 Walkthrough: `docs/quorum-ui/README.md`, iteration 5.

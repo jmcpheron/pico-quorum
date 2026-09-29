@@ -859,7 +859,53 @@ def draw_device(q):
         y += 20
     if q.net_err and not q.net_ok:
         txt(d, fit("Last error: " + q.net_err, TW, "sans12"), M, y + 2, "sans12", "warn")
-    footer_hints(d, q, (("B", "Back"),))
+    if q.KNOB:
+        knob_choices(d, q, (("chip", "Chip"), ("back", "Back")), q.dfoot, "turn \u00b7 press")
+    else:
+        footer_hints(d, q, (("A", "Chip"), ("B", "Back")))
+    d.show()
+
+
+CHIP_LW, CHIP_TOP, CHIP_BOTTOM = 78, 32, 204      # the Chip pages: label column, text area
+
+
+def chip_layout(pages):
+    """Split the Chip pages so every row fits: a page that runs over continues on the next, under
+    the same title. Measured here once (quorum.open_chip), not while drawing."""
+    out = []
+    for title, rows in pages:
+        cur, y = [], CHIP_TOP
+        for k, v in rows:
+            h = 15 * len(F.wrap(str(v), TW - CHIP_LW, "sans12")) + 4
+            if cur and y + h - 4 > CHIP_BOTTOM:
+                out.append((title, cur))
+                cur, y = [], CHIP_TOP
+            cur.append((k, v))
+            y += h
+        out.append((title, cur))
+    return out
+
+
+def draw_chip(q):
+    """The Chip pages (quorum.open_chip): the silicon, its factory certificate, the signing key,
+    each value read off the chip when the pages were opened. A turn or A for the next page."""
+    d = q.d
+    d.fill(c("bg"))
+    title, rows = q.chip_pages[q.chip_page]
+    txt(d, title, M, 4, "bold18")
+    n = len(q.chip_pages)
+    txt_r(d, "%d of %d%s" % (q.chip_page + 1, n, " \u00b7 turn" if q.KNOB and n > 1 else ""), R, 9, "sans12", "muted")
+    lw = CHIP_LW
+    y = CHIP_TOP
+    for k, v in rows:
+        lines = F.wrap(str(v), TW - lw, "sans12")
+        txt(d, k, M, y, "sans12", "muted")
+        bad = str(v).startswith(("FAILED", "MISSING"))
+        for line in lines:
+            txt(d, line, M + lw, y, "sans12", "bad" if bad else "text")
+            y += 15
+        y += 4
+    footer_hints(d, q, (("B", "Back"),) if q.KNOB else (("A", "Next page"), ("B", "Back")))
     d.show()
 
 
@@ -875,6 +921,8 @@ def draw(q):
         draw_crashed(q)
     elif s == "device":
         draw_device(q)
+    elif s == "chip":
+        draw_chip(q)
     elif s in ("review", "hold"):
         draw_review(q)
     elif s == "result":

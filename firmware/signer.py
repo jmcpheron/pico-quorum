@@ -276,6 +276,21 @@ class ChipSigner:
         p = chipcfg.identify(cfg)
         return p == "factory" or (p == "quorum-v1" and cfg[86] != 0x00)
 
+    def details(self, row=None, counter=None):
+        """The console's Chip page for an ATECC608: the part and its sealed slot."""
+        import chipcfg
+        rev = "".join("%02x" % b for b in self.chip.revision())
+        cfg = self.config()
+        rows = [("Part", "Microchip ATECC608%s" % {"00006002": "A", "00006003": "B"}.get(rev, "")), ("Revision", rev),
+                ("Serial", self.serial()), ("Config", "%s, zones %s" % (chipcfg.identify(cfg),
+                 "locked" if cfg[86] == 0 and cfg[87] == 0 else "config locked" if cfg[87] == 0 else "open"))]
+        if row:
+            rows += [("Key", "slot %d, %s, %s" % (self.slot, row.get("kind"), "sealed (slot lock)" if row.get("locked") else "not sealed")),
+                     ("Use", "LimitedUse: counter 0 counts every use" if row.get("limitedUse") else "no use counter")]
+        if counter is not None:
+            rows.append(("Key uses", str(counter)))
+        return [("The chip", rows)]
+
     def info(self, row=None, counter=None):
         """Short facts for the Signing and Device screens, from the chip itself."""
         rev = "".join("%02x" % b for b in self.chip.revision())
@@ -459,7 +474,8 @@ class TrustMSigner:
         self._meta = None
         self._rec = None
         self._cert = None
-        self.bound = None           # binding_ok(): None until checked (a P-256 verify, not free)
+        self.ca_ok = None           # cert_ok(): None until checked (a P-256 verify, ~1.4 s on the Pico)
+        self.bound = None           # binding_ok(): None until checked (another verify)
 
     def uid(self, fresh=False):
         if fresh or self._uid is None:
@@ -494,15 +510,27 @@ class TrustMSigner:
             self._cert = (der, tmcfg.cert_parse(der))
         return self._cert
 
+    def cert_ok(self):
+        """The factory certificate is signed by the pinned Infineon CA its issuer names. One verify."""
+        import tmcfg
+        if self.ca_ok is None:
+            try:
+                self.ca_ok = tmcfg.cert_check(self.cert()[1])[0]
+            except Exception as e:
+                print("cert:", e)
+                self.ca_ok = False
+        return self.ca_ok
+
     def binding_ok(self):
-        """F1D1 holds E0F0's signature over this key, under the factory certificate. One verify."""
+        """F1D1 holds E0F0's signature over this key, and E0F0's certificate chains to Infineon's
+        CA: a genuine Trust M holds this key. Two verifies, once."""
         import tmcfg
         if self.bound is None:
             try:
                 rec = self.record()
                 der, c = self.cert()
                 b = tmcfg.binding_decode(self.chip.get(tmcfg.BINDING))
-                self.bound = bool(rec) and tmcfg.binding_check(b, der, c, self.uid(), self.slot, rec["qx"], rec["qy"])
+                self.bound = bool(rec) and self.cert_ok() and tmcfg.binding_check(b, der, c, self.uid(), self.slot, rec["qx"], rec["qy"])
             except Exception as e:
                 print("binding:", e)
                 self.bound = False
@@ -557,6 +585,19 @@ class TrustMSigner:
         except Exception:
             pass
         return tmcfg.info_lines(self.uid(), issuer, row or self.key_row(), self.bound, sec)
+
+    def details(self, row=None, sec=None):
+        """The console's Chip pages: the silicon, the factory certificate, the signing key."""
+        import tmcfg
+        try:
+            cert = self.cert()[1]
+        except Exception:
+            cert = None
+        try:
+            lcsa = self.chip.lcsa()
+        except Exception:
+            lcsa = None
+        return tmcfg.detail_pages(self.uid(), cert, self.ca_ok, row or self.key_row(), self.bound, self.record(), sec, lcsa)
 
     def slots(self):
         return [self.key_row()]

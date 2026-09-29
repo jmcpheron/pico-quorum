@@ -322,6 +322,74 @@ def case_console():
     check(Q.sec == sim.sec_now(), "and the Device screen shows the new count")
 
 
+def case_chip_pages():
+    """Device -> Chip: the silicon, the factory certificate, the signing key, read off the chip,
+    and on an ATECC its own page. Buttons and the knob both get there and back."""
+    import quorum_ui
+    only_trustm()
+    trustm_sim.seal_as_quorum()
+    T, Q = console()
+    check(Q.sig.ca_ok is True and Q.sig.bound is True, "at boot: the certificate chains to the (emulator) CA, and the binding verifies")
+    Q.handle("X")
+    check(Q.state == "device", "X: the Device screen")
+    quorum_ui.draw(Q)
+    Q.handle("A")
+    titles = []
+    for t, _ in Q.chip_pages:
+        if t not in titles:
+            titles.append(t)
+    check(Q.state == "chip" and titles == ["The chip", "Factory certificate", "Signing key"],
+          "A on Device: the Chip pages (the chip, its factory certificate, the signing key)")
+    pages = {}
+    for t, r in Q.chip_pages:
+        pages.setdefault(t, {}).update(dict(r))
+    check(sum(len(r) for _, r in Q.chip_pages) == 7 + 6 + 7, "every row is on a page (long ones continue on the next): nothing cut")
+    check(pages["The chip"]["Part"] == "Infineon OPTIGA Trust M" and "CC EAL6+" in pages["The chip"]["Certified"],
+          "page 1: Infineon OPTIGA Trust M, CC EAL6+")
+    c = pages["Factory certificate"]
+    check(c["Issuer"] == "PicoQuorum emulator CA (not Infineon)" and c["Valid"] == "2019-07-01 to 2039-07-01"
+          and c["CA check"].startswith("verified"), "page 2: issuer, validity, the CA check done on the Pico")
+    k = pages["Signing key"]
+    check(k["Key"].startswith("E0F1") and k["Sealed"].startswith("yes") and k["Binding"].startswith("E0F0 signed")
+          and k["Owner"] == Q.me, "page 3: E0F1 sealed, the factory binding, the owner")
+    ok = True
+    n = len(Q.chip_pages)
+    for i in range(n):
+        try:
+            quorum_ui.draw(Q)
+        except Exception as e:
+            sys.print_exception(e)
+            ok = False
+        Q.handle("A")
+    check(ok and Q.chip_page == 0, "every page draws; A pages through and wraps round (%d pages)" % n)
+    Q.handle("B")
+    check(Q.state == "device", "B: back to Device")
+    Q.KNOB = True
+    Q.knob("down")
+    check(Q.dfoot == "back", "knob on Device: a turn chooses Back")
+    Q.knob("up")
+    Q.knob("press")
+    check(Q.state == "chip", "knob: press on Chip opens the pages")
+    for _ in range(len(Q.chip_pages) + 2):
+        Q.knob("down")
+    check(Q.chip_page == len(Q.chip_pages) - 1, "knob: turning pages, stopping at the last")
+    Q.knob("press")
+    check(Q.state == "device", "knob: press goes back to Device")
+    Q.KNOB = False
+    trustm_sim.bus(trustm=False, atecc=True)
+    atecc_sim.provision_v1()
+    import quorum_cfg, webauthn
+    x, y = p256.pubkey(atecc_sim.chip().keys[0])
+    owner = webauthn.owner_address("0x%064x" % x, "0x%064x" % y, quorum_cfg.CFG["signer"])
+    Q = T.fresh(expect={"serial": T.SERIAL, "slot": 0, "owner": owner, "locked": True})
+    Q.handle("X")
+    Q.handle("A")
+    rows = dict(Q.chip_pages[0][1])
+    check(Q.state == "chip" and rows["Part"].startswith("Microchip ATECC608") and "sealed" in rows["Key"],
+          "on an ATECC: its own Chip page (part, config, sealed slot 0)")
+    quorum_ui.draw(Q)
+
+
 def case_sec():
     """The security event counter as the real chip counts it: key uses paid from an idle credit
     first, then +1 each (2026-09-28: after idle, 8 signatures left it at 0, then it climbed)."""
@@ -330,7 +398,8 @@ def case_sec():
     trustm_sim.seal_as_quorum()
     s = signer.load(soft=False)
     sim = trustm_sim.chip()
-    sim.sec, sim.credit = 0, 3
+    import time
+    sim.sec, sim.credit, sim.sec_t = 0, 3, time.ticks_ms()     # the clock too: idle time earns credit
     d = hashlib.sha256(b"sec").digest()
     seen = []
     for _ in range(5):
@@ -480,7 +549,7 @@ def case_knob():
 
 
 def main():
-    for case in (case_real_chip, case_detect, case_full, case_resume, case_gates, case_other, case_console, case_sec,
+    for case in (case_real_chip, case_detect, case_full, case_resume, case_gates, case_other, case_console, case_chip_pages, case_sec,
                  case_console_pin, case_dual, case_ui, case_knob):
         print("--", case.__name__[5:])
         try:

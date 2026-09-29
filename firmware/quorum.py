@@ -128,6 +128,9 @@ counter = None      # the chip's key-use counter (counter 0) when the slot has L
 boot_count = None   # counter 0 as found at boot, before this console used the key itself
 outside = 0         # signatures the chip made since this console last looked, not made by it
 sec = None          # the Trust M's security event counter when last read (None on other chips)
+chip_pages = []     # the Chip pages (sig.details), read off the chip when they are opened
+chip_page = 0
+dfoot = "chip"      # knob, on the Device screen: "chip" or "back"
 work_info = []      # short facts from the chip, shown under the Signing and Sending screens (sig.info)
 truncated = False   # the queue did not fit in memory: only the first few are shown
 fails = 0           # ticks in a row that raised
@@ -227,8 +230,9 @@ def probe_chip():
     sec = read_sec()
     if sig.name == "trustm" and pin_ok:
         t0 = time.ticks_ms()
-        bound = sig.binding_ok()        # E0F0's signature over this key, under Infineon's certificate
-        qlog.write("trustm binding %s (%d ms)" % ("ok" if bound else "MISSING", time.ticks_diff(time.ticks_ms(), t0)))
+        bound = sig.binding_ok()        # E0F0's signature over this key, and its certificate from Infineon's CA
+        qlog.write("trustm cert %s, binding %s (%d ms)" % ("ok" if sig.ca_ok else "NOT VERIFIED", "ok" if bound else "MISSING",
+                                                         time.ticks_diff(time.ticks_ms(), t0)))
     if not pin_ok and (PROD or EXPECTS):
         state = "pinfail"
 
@@ -707,6 +711,24 @@ def sign_it():
     start_timer()
 
 
+def open_chip():
+    """The Chip pages, read off the chip now (not while drawing: every strip redraws)."""
+    global state, chip_pages, chip_page, sec
+    chip_pages, chip_page = [], 0
+    try:
+        if sig.name == "trustm":
+            sec = read_sec()
+            chip_pages = sig.details(row=row, sec=sec)
+        elif sig.name == "atecc608":
+            chip_pages = sig.details(row=row, counter=counter)
+    except Exception as e:
+        qlog.write("chip pages: %r" % e)
+    if not chip_pages:
+        chip_pages = [("The chip", [("Chip", "none, or it did not answer")])]
+    chip_pages = U.chip_layout(chip_pages)
+    state = "chip"
+
+
 def chip_info():
     """What the chip says about itself while it signs: the Trust M's Infineon facts (its
     certificate's CA, the sealed key, the factory binding, its security event counter), the
@@ -869,7 +891,7 @@ def reject():
 
 # ----------------------------------------------------------------------------- ui tick
 def handle(k):
-    global state, sel, dirty, last_poll
+    global state, sel, dirty, last_poll, chip_page
     if state in ("nochip", "pinfail"):
         if k == "A":
             probe_chip()            # counts first (boot_count), then reads the key: on a sealed chip, a use of it
@@ -897,7 +919,21 @@ def handle(k):
         if outside:
             outside_seen()
         dirty = True
-    elif state in ("owners", "device"):
+    elif state == "device":
+        if k == SIGN:
+            open_chip()
+        elif k in (BACK, REJECT, "left", "X"):
+            state = "home"
+        dirty = True
+    elif state == "chip":
+        if k in (SIGN, "down", "right"):
+            chip_page = (chip_page + 1) % len(chip_pages)
+        elif k == "up":
+            chip_page = (chip_page - 1) % len(chip_pages)
+        elif k in (BACK, REJECT, "left", "X"):
+            state = "device"
+        dirty = True
+    elif state == "owners":
         if k in (BACK, REJECT, SIGN, "left", "X"):
             state = "home"
         dirty = True
@@ -932,7 +968,7 @@ def handle(k):
 def knob(k):
     """A knob turn ("down" clockwise, "up") or press, by state. Turning never does anything but
     move; every action is a press, and signing is a press held down."""
-    global state, sel, foot, act, ract, dirty, crash_t0
+    global state, sel, foot, act, ract, dirty, crash_t0, dfoot, chip_page
     if state in ("nochip", "pinfail"):
         if k == "press":
             handle("A")                 # Check again
@@ -964,7 +1000,24 @@ def knob(k):
         if outside:
             outside_seen()
         dirty = True
-    elif state in ("owners", "device"):
+    elif state == "device":
+        if k in ("down", "up"):
+            dfoot = "back" if dfoot == "chip" else "chip"
+        elif k == "press":
+            if dfoot == "chip":
+                open_chip()
+            else:
+                state, dfoot = "home", "chip"
+        dirty = True
+    elif state == "chip":
+        if k == "down":
+            chip_page = min(len(chip_pages) - 1, chip_page + 1)
+        elif k == "up":
+            chip_page = max(0, chip_page - 1)
+        elif k == "press":
+            state = "device"
+        dirty = True
+    elif state == "owners":
         if k == "press":
             state, dirty = "home", True
     elif state == "review":

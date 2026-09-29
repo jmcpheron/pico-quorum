@@ -407,6 +407,36 @@ def draw_device(q):
         txt(d, k, M, y, "sans12", "muted")
         txt_r(d, fit(v, TW - 36, "sans12"), R, y, "sans12", "bad" if v == "FAIL" else "text")
         y += 15
+    if q.KNOB:
+        choices(d, q, (("chip", "Chip"), ("back", "Back")), q.dfoot)
+    else:
+        footer_press(d, q, "Back")
+    d.show()
+
+
+def chip_layout(pages):
+    """The Chip pages split so each fits the small screen, one row a line."""
+    per = (FOOT - 14 - HEAD - 1) // 13 + 1
+    out = []
+    for title, rows in pages:
+        for i in range(0, len(rows), per):
+            out.append((title, rows[i:i + per]))
+    return out
+
+
+def draw_chip(q):
+    """The Chip pages on the small screen: one value a line, cut to fit."""
+    d = q.d
+    d.fill(c("bg"))
+    title, rows = q.chip_pages[q.chip_page]
+    header(d, title, "%d/%d" % (q.chip_page + 1, len(q.chip_pages)))
+    y = HEAD + 1
+    for k, v in rows:
+        if y > FOOT - 14:
+            break
+        txt(d, fit(k, 44, "sans12"), M, y, "sans12", "muted")
+        txt(d, fit(str(v), TW - 48, "sans12"), M + 48, y, "sans12", "bad" if str(v).startswith(("FAILED", "MISSING")) else "text")
+        y += 13
     footer_press(d, q, "Back")
     d.show()
 
@@ -462,6 +492,8 @@ def draw(q):
         draw_unconfigured(q)
     elif s == "crashed":
         draw_crashed(q)
+    elif s == "chip":
+        draw_chip(q)
     elif s == "device":
         draw_device(q)
     elif s in ("review", "hold"):
