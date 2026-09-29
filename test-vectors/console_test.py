@@ -382,12 +382,55 @@ def case_service():
     check(Q.truncated and len(Q.queue) == 3, "out of memory on the queue: the first 3 are shown, and it says so")
 
 
+def case_owners_pages():
+    """A 3-of-5 or longer Safe: the Owners screen scrolls (down/right, up/left, or the dial) instead of cutting the list."""
+    import quorum_ui
+    chip()
+    Q = fresh()
+    five = [Q.me] + ["0x%040x" % (0x1000 + i) for i in range(1, 7)]      # seven owners
+    serve(Q, [], owners=five, threshold=3)
+    check(Q.owner_pages() == 3 and quorum_ui.OWNERS_PER_PAGE == 3, "seven owners: three pages of three")
+    seen = []
+    Q.handle("B")
+    check(Q.state == "owners" and Q.opage == 0, "B on home: the Owners screen, page 1")
+    for _ in range(3):
+        quorum_ui.draw(Q)
+        page = Q.owners()[Q.opage * 3:(Q.opage + 1) * 3]
+        seen += page
+        Q.handle("down")
+    check(Q.opage == 2 and seen == Q.owners(), "down pages through: every owner was on a page, once")
+    Q.handle("down")
+    check(Q.opage == 2, "down on the last page stays there")
+    Q.handle("up")
+    Q.handle("left")
+    check(Q.opage == 0 and Q.state == "owners", "up and left go back a page")
+    Q.handle("left")
+    check(Q.state == "home", "left on page 1 leaves, as before")
+    Q.handle("B")
+    Q.handle("down")
+    Q.handle("A")
+    check(Q.state == "home", "A leaves from any page")
+    Q.handle("B")
+    check(Q.opage == 0, "opening Owners again starts on page 1")
+    Q.KNOB = True
+    Q.knob("down")
+    Q.knob("down")
+    check(Q.state == "owners" and Q.opage == 2, "the dial: turns page (the second turn of two lands on the last)")
+    for _ in range(3):
+        Q.knob("up")
+    check(Q.opage == 0, "the dial turned back to page 1")
+    Q.knob("press")
+    check(Q.state == "home", "a press leaves")
+    Q.KNOB = False
+
+
 def case_production():
     chip()
     Q = fresh()
     import signer
     check(not signer.flag("ALLOW_LOCK") and not signer.flag("ALLOW_GENKEY"), "production: ALLOW_LOCK/ALLOW_GENKEY in secrets.py count for nothing")
     check(Q.SOFT_OK is False, "production: ALLOW_SOFT_KEY counts for nothing")
+    check("bootart" not in sys.modules, "the single-buffer 240x240 board never loads the boot animation (it ran the heap out at boot, 2026-09-29)")
     Q = fresh(url=None, extra='APP_URL = "http://10.9.8.7:3001"\n')
     check(Q.WATCH[0]["base"] == "https://api.safe.global/tx-service/basesep", "production: a leftover APP_URL is ignored, Safe's own service for the chain is used")
     Q = fresh(url=None, prod=False, extra='APP_URL = "http://10.9.8.7:3001"\n')
@@ -623,7 +666,7 @@ def case_safes():
 
 
 def main():
-    for case in (case_pin, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_safes, case_watchdog):
+    for case in (case_pin, case_owners_pages, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_safes, case_watchdog):
         print("--", case.__name__[5:])
         try:
             case()

@@ -59,6 +59,13 @@ CA"; a real chip reads "CA 101".
 
 They are the standard 8x8 blockies of the lowercase address (`firmware/blockies.py`), the same picture at any size. I have not checked them against the Safe web app's own avatars: compare with the address, not only the picture.
 
+**The Owners screen scrolls** (you asked). It used to cut the list at four. Now it shows three owners a page on the 240x240 screen (four on the small 160x128), and **down / right / a dial turn** goes to the next page, **up / left / a turn back** to the previous one. The header line at the bottom right says which page (`2 of 3 · down`, or `turn` on the dial). B, A, Y, X or a dial press leaves.
+
+| | |
+|---|---|
+| <img src="shots/62-owners-page-1.png" width="240"> | <img src="shots/63-owners-page-2.png" width="240"> |
+| **Page 1** of a 7-owner Safe: Alice, Bob, and this key. | **Page 2** (page 3 has the last owner). Each owner has its blockie. |
+
 **For you to decide:** are four lines under Signing too many? The other candidates are the wafer
 position and the firmware build (`fw 80101071 build 0809, wafer 98,108`); they are in the list,
 but only the first four are shown.

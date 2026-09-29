@@ -53,6 +53,9 @@ const STORIES = [
     "keys down,A", "shot 26-wrong-safe-refused"]],
   ["conflict", ["conflict"], ["shot 27-conflict-home", "key A", "shot 28-conflict-summary", "keys B,down,A,down", "shot 29-conflict-rejection-page"]],
   ["owners", DEMO, ["key B", "shot 30-owners"]],
+  // A Safe with more owners than one page holds (the mock's has three: two more are added on the console for the picture)
+  ["owners-long", DEMO, ["exec quorum.W['info']['owners'] = quorum.W['info']['owners'] + ['0x%040x' % (0x1000 + i) for i in range(1, 5)]; quorum.W['info']['threshold'] = 3",
+    "key B", "shot 62-owners-page-1", "key down", "shot 63-owners-page-2", "key down", "shot 64-owners-page-3"]],
   ["device", DEMO, ["key X", "wait 400", "shot 31-device"]],
   ["offline", null, ["shot 32-no-service"]],
   ["identity", ["send-usdc", "uniswap-approve", "uniswap-swap", "batch", "unknown-call"], [

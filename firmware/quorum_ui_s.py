@@ -368,12 +368,17 @@ def draw_result(q):
     d.show()
 
 
+OWNERS_PER_PAGE = 4
+
+
 def draw_owners(q):
     d = q.d
     d.fill(c("bg"))
-    header(d, "Owners", "%d of %d" % (q.threshold(), len(q.owners())) if q.owners() else "")
+    pages = q.owner_pages()
+    q.opage = page = min(q.opage, pages - 1)
+    header(d, "Owners", ("%d of %d" % (q.threshold(), len(q.owners())) if q.owners() else "") + (" \u00b7 %d/%d" % (page + 1, pages) if pages > 1 else ""))
     y = HEAD + 3
-    for a in q.owners()[:4]:
+    for a in q.owners()[page * OWNERS_PER_PAGE:(page + 1) * OWNERS_PER_PAGE]:
         nm = ident(q, a)[0]
         x = txt(d, fit(nm or short(a), TW - 30, "bold14" if nm else "mono13"), M, y, "bold14" if nm else "mono13",
                 "text" if nm else "warn")

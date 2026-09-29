@@ -133,6 +133,7 @@ outside = 0         # signatures the chip made since this console last looked, n
 sec = None          # the Trust M's security event counter when last read (None on other chips)
 chip_pages = []     # the Chip pages (sig.details), read off the chip when they are opened
 chip_page = 0
+opage = 0           # the Owners page in view: OWNERS_PER_PAGE owners a page, so a 3-of-5 or longer scrolls
 dfoot = "chip"      # knob, on the Device screen: "chip" or "back"
 work_info = []      # short facts from the chip, shown under the Signing and Sending screens (sig.info)
 truncated = False   # the queue did not fit in memory: only the first few are shown
@@ -714,6 +715,11 @@ def sign_it():
     start_timer()
 
 
+def owner_pages():
+    """How many Owners pages the Safe in view needs."""
+    return max(1, (len(owners()) + U.OWNERS_PER_PAGE - 1) // U.OWNERS_PER_PAGE)
+
+
 def open_chip():
     """The Chip pages, read off the chip now (not while drawing: every strip redraws)."""
     global state, chip_pages, chip_page, sec
@@ -894,7 +900,7 @@ def reject():
 
 # ----------------------------------------------------------------------------- ui tick
 def handle(k):
-    global state, sel, dirty, last_poll, chip_page
+    global state, sel, dirty, last_poll, chip_page, opage
     if state in ("nochip", "pinfail"):
         if k == "A":
             probe_chip()            # counts first (boot_count), then reads the key: on a sealed chip, a use of it
@@ -916,7 +922,7 @@ def handle(k):
         elif k in (SIGN, "right") and queue:
             open_entry(queue[sel])
         elif k == BACK:
-            state = "owners"
+            state, opage = "owners", 0
         elif k in ("X", "press"):
             state = "device"
         if outside:
@@ -937,7 +943,11 @@ def handle(k):
             state = "device"
         dirty = True
     elif state == "owners":
-        if k in (BACK, REJECT, SIGN, "left", "X"):
+        if k in NEXT:
+            opage = min(owner_pages() - 1, opage + 1)
+        elif k == "up" or (k == "left" and opage > 0):
+            opage = max(0, opage - 1)
+        elif k in (BACK, REJECT, SIGN, "left", "X"):
             state = "home"
         dirty = True
     elif state == "review":
@@ -971,7 +981,7 @@ def handle(k):
 def knob(k):
     """A knob turn ("down" clockwise, "up") or press, by state. Turning never does anything but
     move; every action is a press, and signing is a press held down."""
-    global state, sel, foot, act, ract, dirty, crash_t0, dfoot, chip_page
+    global state, sel, foot, act, ract, dirty, crash_t0, dfoot, chip_page, opage
     if state in ("nochip", "pinfail"):
         if k == "press":
             handle("A")                 # Check again
@@ -997,7 +1007,7 @@ def knob(k):
                 focus_sel()
         elif k == "press":
             if foot:
-                state = foot
+                state, opage = foot, 0
             elif queue:
                 open_entry(queue[sel])
         if outside:
@@ -1021,8 +1031,13 @@ def knob(k):
             state = "device"
         dirty = True
     elif state == "owners":
-        if k == "press":
-            state, dirty = "home", True
+        if k == "down":
+            opage = min(owner_pages() - 1, opage + 1)
+        elif k == "up":
+            opage = max(0, opage - 1)
+        elif k == "press":
+            state = "home"
+        dirty = True
     elif state == "review":
         if k == "down":
             if act is not None:

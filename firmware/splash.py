@@ -1,5 +1,5 @@
-# Boot display: a four-second black lead-in, then the orbit/diamond branding with real status.
-# Small panels retain the compact checklist. The console calls finish before starting its
+# Boot display: a four-second black lead-in, then the orbit/diamond branding with real status
+# (strip-buffered panels only). Small panels and the single-buffer 240x240 retain the checklist. The console calls finish before starting its
 # timer/watchdog, releasing the animation code before normal transaction-service polling.
 import time
 import lcd as L
@@ -28,7 +28,11 @@ def begin():
     global lcd, _t0, _art
     if lcd is None:
         lcd = L.LCD()
-        if L.H >= 200:
+        if L.H >= 200 and L.BANDS > 1:
+            # The strip-buffered panels (build1's 320x240: a 19 KB buffer). The single-buffer 240x240
+            # (waveshare) holds a 115 KB frame and has ~110 KB left once the console is imported: the
+            # animation ran it out of memory at boot (MemoryError in bootart.render, 2026-09-29), so
+            # it keeps the checklist below.
             # Clear every strip once; leave it black while the rest of startup proceeds.
             lcd.frames(_black)
             _t0 = time.ticks_ms()

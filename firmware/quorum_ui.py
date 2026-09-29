@@ -740,14 +740,19 @@ def draw_result(q):
     d.show()
 
 
+OWNERS_PER_PAGE = 3
+
+
 def draw_owners(q):
     d = q.d
     d.fill(c("bg"))
     txt(d, fit(q.SAFE["name"], 110, "bold18") if len(q.WATCH) > 1 else "Owners", M, 4, "bold18")
+    pages = q.owner_pages()
+    q.opage = page = min(q.opage, pages - 1)
     if q.owners():
         txt_r(d, "%d of %d must approve" % (q.threshold(), len(q.owners())), R, 9, "sans12", "muted")
     y = 34
-    for a in q.owners()[:4]:
+    for a in q.owners()[page * OWNERS_PER_PAGE:(page + 1) * OWNERS_PER_PAGE]:
         nm = ident(q, a)[0]
         x = txt(d, nm or "Not in the address book", M, y, "bold14", "text" if nm else "warn")
         blockies.draw(d, a.lower(), R - 24, y, 3)          # 8x8 cells at 3 px: 24 px, the same picture at any size
@@ -763,6 +768,8 @@ def draw_owners(q):
     if q.counter is not None:
         k += " \u00b7 use #%d" % q.counter
     txt_r(d, k, R, 195, "sans12", "faint")
+    if pages > 1:                            # more owners than fit: down (or a turn) for the next page
+        txt_r(d, "%d of %d \u00b7 %s" % (page + 1, pages, "turn" if q.KNOB else "down"), R, 224, "sans12", "muted")
     footer_hints(d, q, (("B", "Back"),))
     d.show()
 
