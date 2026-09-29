@@ -29,9 +29,8 @@ def begin():
     if lcd is None:
         lcd = L.LCD()
         if L.H >= 200 and L.BANDS > 1:
-            # The strip-buffered panels (build1's 320x240: a 19 KB buffer). The single-buffer 240x240
-            # (waveshare) holds a 115 KB frame and has ~110 KB left once the console is imported: the
-            # animation ran it out of memory at boot (MemoryError in bootart.render, 2026-09-29), so
+            # The strip-buffered panels (both 240x240 and 320x240 now). A single-frame panel has no heap
+            # left for the animation (MemoryError in bootart.render on the 115 KB frame, 2026-09-29), so
             # it keeps the checklist below.
             # Clear every strip once; leave it black while the rest of startup proceeds.
             lcd.frames(_black)

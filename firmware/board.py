@@ -8,7 +8,10 @@
 #                     proven on the bench (2026-09-27), the 2.0" and 2.4" not yet
 #               "1.8": 128x160 ST7735S run landscape as 160x128 (proven the same day)
 # W x H is what the apps draw, X_OFF where that sits on the panel (0 when they draw all of it).
-# BANDS: retain full native resolution, but only buffer 30 rows (19,200 bytes) at a time.
+# BANDS: retain full native resolution, but only buffer 30 rows at a time (19,200 bytes at 320 wide,
+# 14,400 at 240). Any panel whose whole frame would be over 45 KB is drawn this way: the 240x240
+# Waveshare's 115 KB frame left ~109 KB of heap once the console was imported, HTTPS could not find its
+# 16 KB block and the console restarted over and over (OSError 12, 2026-09-29). The 1.8" (41 KB) keeps one frame.
 # The previous 120-row buffer used 76,800 bytes and left too little headroom for TLS.
 try:
     import secrets as _s
@@ -45,6 +48,6 @@ else:
     SPI_BAUD = 62_500_000
     KEYS = dict(BUTTONS, up=2, down=18, left=16, right=20, press=3)
     MAINT = BUTTONS["B"]
-BANDS = 8 if W * H * 2 > 120_000 else 1
+BANDS = 8 if W * H * 2 > 45_000 else 1
 X_OFF, Y_OFF = (PANEL_W - W) // 2, (PANEL_H - H) // 2
 SMALL = W < 200             # a screen too small for the console's 240x240 pages (quorum_ui_s.py)

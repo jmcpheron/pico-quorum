@@ -430,7 +430,8 @@ def case_production():
     import signer
     check(not signer.flag("ALLOW_LOCK") and not signer.flag("ALLOW_GENKEY"), "production: ALLOW_LOCK/ALLOW_GENKEY in secrets.py count for nothing")
     check(Q.SOFT_OK is False, "production: ALLOW_SOFT_KEY counts for nothing")
-    check("bootart" not in sys.modules, "the single-buffer 240x240 board never loads the boot animation (it ran the heap out at boot, 2026-09-29)")
+    import lcd
+    check(lcd.BANDS == 8 and len(lcd._BUF) == 14400, "the 240x240 board is strip-buffered (14 KB, not a 115 KB frame: that left HTTPS no room, 2026-09-29)")
     Q = fresh(url=None, extra='APP_URL = "http://10.9.8.7:3001"\n')
     check(Q.WATCH[0]["base"] == "https://api.safe.global/tx-service/basesep", "production: a leftover APP_URL is ignored, Safe's own service for the chain is used")
     Q = fresh(url=None, prod=False, extra='APP_URL = "http://10.9.8.7:3001"\n')
