@@ -388,6 +388,10 @@ def case_production():
     import signer
     check(not signer.flag("ALLOW_LOCK") and not signer.flag("ALLOW_GENKEY"), "production: ALLOW_LOCK/ALLOW_GENKEY in secrets.py count for nothing")
     check(Q.SOFT_OK is False, "production: ALLOW_SOFT_KEY counts for nothing")
+    Q = fresh(url=None, extra='APP_URL = "http://10.9.8.7:3001"\n')
+    check(Q.WATCH[0]["base"] == "https://api.safe.global/tx-service/basesep", "production: a leftover APP_URL is ignored, Safe's own service for the chain is used")
+    Q = fresh(url=None, prod=False, extra='APP_URL = "http://10.9.8.7:3001"\n')
+    check(Q.WATCH[0]["base"] == "http://10.9.8.7:3001", "a development console still falls back to APP_URL")
     Q = fresh(prod=False)
     import signer
     check(signer.flag("ALLOW_LOCK"), "a development board still honours ALLOW_LOCK")

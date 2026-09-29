@@ -33,7 +33,11 @@ QUORUM_SAFES = [
 ]
 ```
 
-`tools/quorum live pico --chain base,eth` writes this for you.
+`tools/quorum live pico --chain base,eth` writes this for you. For several Safes on one chain:
+`tools/quorum live pico --chain basesep --safe 0xAAA…,0xBBB… --name "Name A,Name B"`.
+
+A production console ignores the legacy `APP_URL` in `secrets.py` (an old laptop address) and asks Safe's
+own service for each chain unless `QUORUM_URL` is set.
 
 - **Polling.** The console asks about one Safe per poll, in turn. With an API key it polls every
   20 s, or every 10 minutes after 10 quiet minutes. So with two Safes, each is asked about every

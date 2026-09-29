@@ -54,7 +54,10 @@ PROD = image.PRODUCTION
 _given, SAFES_WHY = policy.safes(getattr(secrets, "QUORUM_SAFES", None), getattr(secrets, "QUORUM_SAFE", None)) if secrets else ([], "")
 UNCONFIGURED = PROD and not _given
 SAFES = _given or policy.safes(None, CFG["safes"][0])[0]
-URL = (getattr(secrets, "QUORUM_URL", None) or getattr(secrets, "APP_URL", None)) if secrets else None
+# APP_URL is the legacy wallet's laptop address: only a development console falls back to it. The
+# production one uses Safe's own service for each chain unless QUORUM_URL says otherwise (a stale
+# APP_URL took over when QUORUM_URL was removed, 2026-09-29: connection reset on both Safes).
+URL = (getattr(secrets, "QUORUM_URL", None) or (None if PROD else getattr(secrets, "APP_URL", None))) if secrets else None
 
 
 def new_watch(s):
