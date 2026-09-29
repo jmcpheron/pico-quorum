@@ -156,24 +156,36 @@ class Ceremony:
         e0f0 = p256.verify(cert["qx"], cert["qy"], probe, r, s)
         k, rec, bnd = self.meta[tmcfg.KEY], self.meta[tmcfg.RECORD], self.meta[tmcfg.BINDING]
         lcs_op = "LcsO<op"
+        # A ceremony started elsewhere (another board, or the laptop) and not sealed: E0F1 holds a
+        # key and F1D0 our record for this chip. Resume: T3 then proves the key matches the record.
+        ours = self.rec is not None and self.rec["serial"] == self.serial and self.rec["oid"] == tmcfg.KEY
+        if ours:
+            key_check = ("E0F1: the record's key, unsealed", k["algo"] == 0x03 and tmcfg.ac_text(k["change"]) == lcs_op
+                         and k["lcso"] < tmcfg.OPERATIONAL)
+            rec_check = ("record: ours, this serial", True)
+        else:
+            key_check = ("E0F1 empty, Change %s" % tmcfg.ac_text(k["change"]), k["algo"] is None and tmcfg.ac_text(k["change"]) == lcs_op
+                         and k["lcso"] < tmcfg.OPERATIONAL)
+            rec_check = ("no record yet", self.rec is None)
         checks = [("UID %s" % self.serial[-8:], len(self.uid) == 27),
                   ("LcsA operational", c.lcsa() == tmcfg.OPERATIONAL),
                   ("security events: %s" % self.sec, self.sec is not None and self.sec < SEC_CALM),
                   ("cert from %s" % tmcfg.short_ca(cert["issuer"]), ca_ok),
                   ("E0F0 matches the cert", e0f0),
-                  ("E0F1 empty, Change %s" % tmcfg.ac_text(k["change"]), k["algo"] is None and tmcfg.ac_text(k["change"]) == lcs_op
-                   and k["lcso"] < tmcfg.OPERATIONAL),
+                  key_check,
                   ("E0F1 Execute %s" % tmcfg.ac_text(k["exec"]), tmcfg.ac_text(k["exec"]) == "ALW"),
                   ("F1D0/F1D1 open, %d/%d bytes" % (rec["max"] or 0, bnd["max"] or 0),
                    tmcfg.ac_text(rec["change"]) == lcs_op and tmcfg.ac_text(bnd["change"]) == lcs_op and (rec["max"] or 0) >= 110
                    and (bnd["max"] or 0) >= 83 and rec["lcso"] < tmcfg.OPERATIONAL and bnd["lcso"] < tmcfg.OPERATIONAL),
-                  ("no record yet", self.rec is None)]
+                  rec_check]
         ok = all(v for _, v in checks)
         if ok:
-            self.save_snapshot(der, cert)
+            self.save_snapshot(der, cert, "resumed mid-ceremony" if ours else "factory")
+        if ok and ours:
+            return ok, checks, "resuming a ceremony started elsewhere: T3 checks the key matches the record"
         return ok, checks, ("metadata saved as %s" % snapshot_path(self.serial)) if ok else (why or "stop here: this is not a fresh chip as expected")
 
-    def save_snapshot(self, der, cert):
+    def save_snapshot(self, der, cert, state="factory"):
         c = self.chip
         objs = {}
         for oid in (0xE0C0, 0xE0C5, 0xE0E0, 0xE0F0, 0xE0F1, 0xE0F2, 0xE0F3, 0xE120, 0xE140, 0xF1D0, 0xF1D1):
@@ -183,7 +195,7 @@ class Ceremony:
                 objs["%04X" % oid] = "error %s" % e
         snap = {"uid": "".join("%02x" % b for b in self.uid), "serial": self.serial, "metadata": objs,
                 "cert": "".join("%02x" % b for b in der), "issuer": cert["issuer"], "certSerial": cert["serial"],
-                "sec": self.sec, "time": time.time()}
+                "sec": self.sec, "time": time.time(), "state": state}
         with open(snapshot_path(self.serial), "w") as f:
             json.dump(snap, f)
 

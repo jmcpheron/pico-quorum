@@ -171,6 +171,26 @@ def case_resume():
         got, ok, bad, msg = run(c2, st)
         check(got == st and ok, "resumed %s %s" % (st, "" if ok else (bad, msg)))
     check(ceremony()[0].step() == "T8", "sealed: a reboot goes straight to T8")
+    # started elsewhere (the laptop, 2026-09-28): key and record on the chip, no snapshot on this board
+    secrets()
+    only_trustm()
+    c, S, P = ceremony()
+    for st in ("T1", "T2", "T3", "T4", "T5", "T6"):
+        run(c, st)
+    for f in os.listdir():
+        if f.startswith("snapshot-tm-"):
+            os.remove(f)
+    c3 = ceremony()[0]
+    got, ok, bad, msg = run(c3, "T1")
+    check(got == "T1" and ok and "resuming" in msg, "a ceremony started elsewhere: T1 accepts our own key and record (%s)" % (bad or msg))
+    check(c3.step() == "T3" and c3.key == c.key, "and resumes at T3 with the record's key")
+    trustm_sim.chip().objs[0xF1D0]["data"] = bytes(100)       # a key but no record: not ours
+    trustm_sim.chip().save()
+    for f in os.listdir():
+        if f.startswith("snapshot-tm-"):
+            os.remove(f)
+    got, ok, bad, msg = run(ceremony()[0], "T1")
+    check(not ok, "a key in E0F1 without our record: T1 stops")
 
 
 def case_gates():
