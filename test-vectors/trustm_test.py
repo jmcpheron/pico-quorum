@@ -379,9 +379,70 @@ def case_ui():
         check(False, "the Trust M object map draws")
 
 
+def case_knob():
+    """Build 1 has a knob, not A/B/X/Y: turn to choose, press to act, one 3 s hold arms and a second
+    does a gated step. Every screen goes out strip by strip (d.frames), or a 320x240 panel stays black."""
+    import splash, time
+    secrets()
+    only_trustm()
+    c, S, P = ceremony()
+    import provision                        # after secrets(): the same signer module as S
+    S.disarm()
+
+    class K:
+        down = False
+
+        def held(self, k):
+            return k == "press" and self.down
+    keys = K()
+    d = splash.begin()
+    framed = [0]
+    real = d.frames
+
+    def frames(fn, *a):
+        framed[0] += 1
+        return real(fn, *a)
+    d.frames = frames
+    ui = provision.UI(d, keys, c.sig, "dark", c)
+    ui.knob = True
+    ui.draw()
+    check(framed[0] == 1, "the step screen is drawn through d.frames (every strip of a 320x240 panel)")
+    ui.tick(["press"])
+    check(ui.result and ui.result[0] == "T1" and ui.result[1] and framed[0] >= 2, "press: T1 runs (its working screen framed too)")
+    ui.tick(["press"])
+    check(ui.result is None and c.step() == "T2", "press again: back to the steps, at T2")
+
+    def hold():
+        keys.down = True
+        ui.tick([])
+        ui.hold = time.ticks_add(time.ticks_ms(), -3100)
+        ui.tick([])
+        keys.down = False
+        ui.tick([])
+    ui.tick(["press"])                      # a tap on a gated step does nothing
+    check(ui.result is None and trustm_sim.chip().objs[0xE0F1].get("key") is None, "a tap on T2: nothing")
+    hold()
+    check(S.armed() > 0 and ui.result is None and trustm_sim.chip().objs[0xE0F1].get("key") is None, "the first 3 s hold arms, and makes no key")
+    hold()
+    check(ui.result and ui.result[0] == "T2" and ui.result[1] and trustm_sim.chip().objs[0xE0F1].get("key"), "the second 3 s hold does T2")
+    ui.tick(["press"])
+    ui.tick(["down"])
+    check(ui.choice == 1, "a turn: back is chosen")
+    check(ui.tick(["press"]) == "back", "press on back: leaves the ceremony")
+    import chipapp
+    chipapp.d, chipapp.keys, chipapp.sig = d, keys, c.sig
+    chipapp.identify()
+    before = framed[0]
+    chipapp.banner()
+    check(framed[0] == before + 1 and [w for _, w in chipapp.choices()] == ["prov", "map"], "the banner is framed; PROVISION and the objects")
+    chipapp.open_choice("map")
+    check(framed[0] == before + 2 and chipapp.ui == "map", "the object map is framed")
+    chipapp.ui = None
+
+
 def main():
     for case in (case_real_chip, case_detect, case_full, case_resume, case_gates, case_other, case_console,
-                 case_console_pin, case_dual, case_ui):
+                 case_console_pin, case_dual, case_ui, case_knob):
         print("--", case.__name__[5:])
         try:
             case()

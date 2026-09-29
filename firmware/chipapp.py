@@ -2,7 +2,9 @@
 # for a signing console, then A for the provisioning ceremony (provision.py: quorum v1 on a fresh
 # ATECC608; provision_tm.py: quorum-tm1 on a fresh Trust M) or X for the chip map (slots.py; on a
 # Trust M, its objects' metadata, read-only). Every permanent action in either still needs
-# ALLOW_LOCK / ALLOW_GENKEY in secrets.py and the B+Y arm (signer.py).
+# ALLOW_LOCK / ALLOW_GENKEY in secrets.py and the arm (signer.py): B+Y, or on build1 a 3 s knob hold.
+# On build1 the knob drives it: turn to choose, press to open. Every screen is drawn through
+# d.frames, so the strip-buffered 320x240 panel gets all of it.
 import time
 import machine
 import lcd as L
@@ -13,6 +15,7 @@ d = keys = sig = ui = prov = timer = None
 chip = None         # this chip's entry in chips.json (name, theme): which chip is in, at a glance
 profile = ""
 _busy = False
+sel = 0             # the knob's choice on the banner: 0 PROVISION, 1 the map
 STATE = {"factory": "FRESH: ready for PROVISION", "quorum-v1": "sealed or in progress: quorum v1",
          "quorum-tm1": "sealed: Trust M quorum-tm1", "quorum-tm1-open": "in progress: Trust M",
          "legacy-test": "test table (chip #1 style)", "unknown": "unknown table"}
@@ -32,7 +35,30 @@ def identify():
         print("chip:", e)
 
 
+def choices():
+    """The banner's entries: (label, what). The ATECC's chip map is button-driven, so on the knob
+    only a Trust M's read-only object map is offered next to PROVISION."""
+    tm = sig is not None and sig.name == "trustm"
+    out = [("PROVISION (Trust M)" if tm else "PROVISION (quorum v1)", "prov")]
+    if tm:
+        out.append(("its objects", "map"))
+    elif not L.KNOB:
+        out.append(("the chip map", "slots"))
+    return out
+
+
 def banner():
+    d.frames(_banner, serial_tail())
+
+
+def serial_tail():
+    try:
+        return sig.serial()[-8:] if S.is_chip(sig) else ""
+    except Exception:
+        return ""
+
+
+def _banner(tail):
     import provision
     p = provision.palette(chip["theme"] if chip else "dark")
     d.fill(p["bg"])
@@ -43,19 +69,45 @@ def banner():
         y += 12
     y += 10
     if chip:
-        d.center_text("%s  %s" % (chip["name"].upper(), sig.serial()[-8:]), y, p["accent"], 1)
+        d.center_text("%s  %s" % (chip["name"].upper(), tail), y, p["accent"], 1)
         d.center_text(STATE.get(profile, profile), y + 14, p["ok"] if profile == "factory" else p["fg"])
     else:
         d.center_text("NO CHIP on the bus", y, p["bad"])
     y += 44
-    for line in (("A: PROVISION (Trust M)", "X: its objects") if sig.name == "trustm" else ("A: PROVISION (quorum v1)", "X: the chip map")):
-        d.center_text(line, y, p["fg"])
+    for i, (label, _) in enumerate(choices()):
+        if L.KNOB:
+            d.center_text(("> %s <" if i == sel else "  %s  ") % label, y, p["accent"] if i == sel else p["fg"])
+        else:
+            d.center_text(("A: " if i == 0 else "X: ") + label, y, p["fg"])
         y += 14
+    if L.KNOB:
+        d.center_text("turn: choose   press: open", y + 10, p["muted"])
     d.show()
 
 
+def open_choice(what):
+    global prov, ui
+    import provision
+    if what == "prov" and chip is not None:
+        if sig.name == "trustm":
+            import provision_tm
+            prov = provision.UI(d, keys, sig, chip["theme"], provision_tm.Ceremony(sig))
+        else:
+            prov = provision.UI(d, keys, sig, chip["theme"])
+        prov.draw()
+    elif what == "map":
+        import provision_tm
+        ui = "map"
+        provision_tm.draw_map(d, sig, provision.palette(chip["theme"] if chip else "dark"))
+    elif what == "slots":
+        import slots
+        ui = slots.SlotsUI(d, sig, lambda: None)
+        ui.open("zones")
+        ui.draw()
+
+
 def tick(t):
-    global _busy, ui, prov
+    global _busy, ui, prov, sel
     if _busy:
         return
     _busy = True
@@ -75,24 +127,15 @@ def tick(t):
             if ui.tick(pressed, keys) == "home":
                 ui = None
                 banner()
-        elif "A" in pressed and chip is not None:
-            import provision
-            if sig.name == "trustm":
-                import provision_tm
-                prov = provision.UI(d, keys, sig, chip["theme"], provision_tm.Ceremony(sig))
-            else:
-                prov = provision.UI(d, keys, sig, chip["theme"])
-            prov.draw()
-        elif "X" in pressed and sig.name == "trustm":
-            import provision
-            import provision_tm
-            ui = "map"
-            provision_tm.draw_map(d, sig, provision.palette(chip["theme"] if chip else "dark"))
-        elif "X" in pressed:
-            import slots
-            ui = slots.SlotsUI(d, sig, lambda: None)
-            ui.open("zones")
-            ui.draw()
+        elif "A" in pressed:
+            open_choice("prov")
+        elif "X" in pressed and choices()[1:]:
+            open_choice(choices()[1][1])
+        elif ("up" in pressed or "down" in pressed) and len(choices()) > 1:
+            sel = 1 - sel
+            banner()
+        elif "press" in pressed:
+            open_choice(choices()[min(sel, len(choices()) - 1)][1])
     except Exception as e:
         import sys
         sys.print_exception(e)
@@ -110,6 +153,7 @@ def start():
     splash.TITLE = "ceremony"
     d = splash.begin()
     keys = L.Keys()
+    splash.finish(keys, wait=False)     # the boot art's code out of RAM before the ceremony's screens
     sig = S.load(soft=False)
     identify()
     banner()

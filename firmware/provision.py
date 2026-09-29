@@ -328,10 +328,16 @@ def palette(theme):
 
 
 class UI:
-    """framebuf's 8 px font on the plain LCD: 29 characters a line."""
+    """framebuf's 8 px font on the plain LCD: 29 characters a line. Drawn through d.frames, so the
+    strip-buffered 320x240 panels (build1) get every strip. Driven by A/B/X/Y, or on build1 by the
+    knob: a turn switches between "do it" and "back", a press does it; on a permanent or GenKey
+    step one 3 s hold arms (the B+Y arm's place) and a second 3 s hold does it."""
 
     def __init__(self, d, keys, sig, theme="dark", ceremony=None):
+        import lcd as L
         self.d, self.keys = d, keys
+        self.knob = bool(getattr(L, "KNOB", False))
+        self.choice = 0         # knob: 0 "do it", 1 "back"
         self.p = palette(theme)
         self.c = ceremony or Ceremony(sig)
         self.result = None      # (step, ok, checks, message) after a run
@@ -352,7 +358,8 @@ class UI:
 
     def tick(self, pressed):
         """Returns "back" to leave."""
-        import lcd as L
+        if self.knob and not any(k in pressed for k in ("A", "B", "X", "Y")):
+            return self.tick_knob(pressed)
         st = self.c.step()
         b, y = self.keys.held("B"), self.keys.held("Y")
         # The arm: B and Y held together, in either order. The bar fills over ARM_MS; once full it
@@ -420,8 +427,59 @@ class UI:
             self.dirty = True
         return None
 
+    def tick_knob(self, pressed):
+        """The knob (build1): turn to choose do it / back, press to act, hold 3 s to arm and
+        again to do a permanent or GenKey step."""
+        st = self.c.step()
+        held = self.keys.held("press")
+        if not held:
+            self.released = True
+        if self.result:
+            if "press" in pressed:
+                self.result, self.dirty, self.released = None, True, False
+            return None
+        if "up" in pressed or "down" in pressed:
+            self.choice, self.hold, self.dirty = 1 - self.choice, None, True
+            return None
+        if self.choice == 1:
+            if "press" in pressed:
+                self.choice = 0
+                return "back"
+            return None
+        if st in self.c.FINAL:
+            if "press" in pressed:
+                self.result, self.dirty = (st,) + self.c.run(st), True
+            return None
+        gated = st in self.c.PERMANENT or st in self.c.GENKEY
+        if not gated:
+            if "press" in pressed:
+                self.busy(st)
+                self.result, self.dirty = (st,) + self.c.run(st), True
+            return None
+        why = self.need(st)
+        if why and not why.startswith("not armed"):
+            return None                     # an ALLOW_* flag is off: nothing to hold for
+        if held and self.released:
+            if self.hold is None:
+                self.hold = time.ticks_ms()
+            if time.ticks_diff(time.ticks_ms(), self.hold) >= HOLD_MS:
+                self.hold, self.released = None, False
+                if not S.armed():
+                    S.arm()                 # the first hold arms; let go, then hold again
+                else:
+                    self.busy(st)
+                    self.result = (st,) + self.c.run(st)
+            self.dirty = True
+        elif self.hold is not None:
+            self.hold, self.dirty = None, True
+        if S.armed() and time.ticks_ms() % 1000 < 60:
+            self.dirty = True
+        return None
+
     def busy(self, st):
-        import lcd as L
+        self.d.frames(self._busy, st)
+
+    def _busy(self, st):
         d = self.d
         d.fill(self.p["bg"])
         d.center_text(st + " " + self.c.TITLES[st], 100, self.p["accent"], 2)
@@ -447,14 +505,19 @@ class UI:
         return y
 
     def draw(self):
-        import lcd as L
         if not self.dirty:
             return
         self.dirty = False
+        c = self.c
+        st = c.step()                       # once, not once per strip
+        why = self.need(st) if st not in c.FINAL else ""
+        self.d.frames(self._paint, st, why, c.subtitle()[:29], c.note())
+
+    def _paint(self, st, why, subtitle, note):
         d, c = self.d, self.c
         d.fill(self.p["bg"])
         d.text(c.HEADER, 4, 4, self.p["accent"])
-        d.text(c.subtitle()[:29], 4, 16, self.p["muted"])
+        d.text(subtitle, 4, 16, self.p["muted"])
         if self.result:
             st, ok, checks, msg = self.result
             d.text("%s %s: %s" % (st, c.TITLES[st], "OK" if ok else "STOPPED"), 4, 34, self.p["ok"] if ok else self.p["bad"])
@@ -463,10 +526,9 @@ class UI:
                 d.text(("ok " if good else "NO ") + label[:26], 4, y, self.p["ok"] if good else self.p["bad"])
                 y += 11
             y = self.lines(msg, y + 6, self.p["fg"])
-            d.text("A: continue", 4, 226, self.p["fg"])
+            d.text("press: continue" if self.knob else "A: continue", 4, 226, self.p["fg"])
             d.show()
             return
-        st = c.step()
         n = c.index(st)
         d.text("%s/%d %s" % (st, c.NSTEPS, c.TITLES[st]) if n else c.TITLES[st], 4, 34, self.p["accent"] if st in c.PERMANENT else self.p["fg"])
         step_w = 230 // c.NSTEPS
@@ -479,9 +541,12 @@ class UI:
         if c.key:
             d.text("key " + c.fingerprint(), 4, y + 4, self.p["muted"])
             y += 15
-        if c.note():
-            d.text(c.note()[:29], 4, y, self.p["muted"])
-        why = self.need(st) if st not in c.FINAL else ""
+        if note:
+            d.text(note[:29], 4, y, self.p["muted"])
+        if self.knob:
+            self._paint_knob(st, why)
+            d.show()
+            return
         if self.armdone:
             d.text("armed: let go of B+Y", 4, 186, self.p["ok"])
             d.fill_rect(4, 198, 232, 6, self.p["ok"])
@@ -505,3 +570,24 @@ class UI:
             d.text("A: do it", 4, 216, self.p["fg"])
         d.text("Y: back   B+Y 3 s: arm", 4, 228, self.p["muted"])
         d.show()
+
+    def _paint_knob(self, st, why):
+        """The bottom of a step screen on build1: what the knob does here, and the hold bar."""
+        d, c = self.d, self.c
+        gated = st in c.PERMANENT or st in c.GENKEY
+        if self.choice == 0 and st not in c.FINAL and gated:
+            left = S.armed()
+            if why and not why.startswith("not armed"):
+                self.lines(why, 186, self.p["bad"])
+            else:
+                d.text("armed %ds: hold 3 s to do it" % left if left else "not armed: hold 3 s to arm", 4, 190,
+                       self.p["ok"] if left else self.p["accent"])
+                if self.hold is not None:
+                    frac = min(1, time.ticks_diff(time.ticks_ms(), self.hold) / HOLD_MS)
+                    d.fill_rect(4, 202, 232, 6, self.p["dim"])
+                    d.fill_rect(4, 202, int(232 * frac), 6, self.p["bad"] if left else self.p["accent"])
+        pick = self.p["accent"]
+        d.text(("> " if self.choice == 0 else "  ") + ("check" if st in c.FINAL else "do it"), 4, 214,
+               pick if self.choice == 0 else self.p["fg"])
+        d.text(("> " if self.choice == 1 else "  ") + "back", 120, 214, pick if self.choice == 1 else self.p["fg"])
+        d.text("turn: choose   press: go", 4, 228, self.p["muted"])

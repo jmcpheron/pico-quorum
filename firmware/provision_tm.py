@@ -294,19 +294,28 @@ OIDS = ((0xE0F0, "factory key"), (0xE0F1, "Safe key"), (0xE0E0, "Infineon cert")
 
 
 def draw_map(d, sig, p):
-    """X on a Trust M: each object's lifecycle and access conditions, read-only."""
-    d.fill(p["bg"])
-    d.text("TRUST M objects", 4, 4, p["accent"])
-    d.text(sig.serial()[-20:], 4, 16, p["muted"])
-    y = 32
+    """X on a Trust M (the knob's second choice on build1): each object's lifecycle and access
+    conditions, read-only. Read once, then drawn strip by strip."""
+    rows = []
     for oid, what in OIDS:
         try:
             m = sig.chip.meta(oid)
-            d.text("%04X %s" % (oid, what), 4, y, p["fg"])
-            d.text(" %s ch %s ex %s" % ({0x01: "cre", 0x03: "init", 0x07: "OP", 0x0F: "term"}.get(m["lcso"], "-"),
-                                         tmcfg.ac_text(m["change"])[:9], tmcfg.ac_text(m["exec"])[:6]), 4, y + 10, p["muted"])
+            rows.append(("%04X %s" % (oid, what), " %s ch %s ex %s" % (
+                {0x01: "cre", 0x03: "init", 0x07: "OP", 0x0F: "term"}.get(m["lcso"], "-"),
+                tmcfg.ac_text(m["change"])[:9], tmcfg.ac_text(m["exec"])[:6]), True))
         except Exception as e:
-            d.text("%04X %s" % (oid, str(e)[:18]), 4, y, p["bad"])
+            rows.append(("%04X %s" % (oid, str(e)[:18]), "", False))
+    d.frames(_paint_map, d, sig.serial()[-20:], rows, p)
+
+
+def _paint_map(d, serial, rows, p):
+    d.fill(p["bg"])
+    d.text("TRUST M objects", 4, 4, p["accent"])
+    d.text(serial, 4, 16, p["muted"])
+    y = 32
+    for top, sub, ok in rows:
+        d.text(top, 4, y, p["fg"] if ok else p["bad"])
+        d.text(sub, 4, y + 10, p["muted"])
         y += 25
     d.text("any key: back", 4, 228, p["muted"])
     d.show()
