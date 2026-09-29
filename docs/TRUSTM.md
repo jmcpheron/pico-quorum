@@ -100,10 +100,15 @@ The chip: Adafruit 4351, UID `cd16338401001c000100000a091b5c000b0062006c80101071
 - E0F0 signs, and its signature verifies under the certificate's key. CalcSign takes about 150 ms, including opening a session.
 
 **The security event counter (E0C5):**
-- Every CalcSign raises it by 1, with E0F0 and with E0F1 alike.
+- **A private-key use is paid from an idle credit first.** The chip builds the credit while it
+  sits idle. Only once the credit is spent does a CalcSign raise the counter, by 1, with E0F0 and
+  E0F1 alike.
+  - On the console after about 10 minutes idle, 8 signatures in a row left the counter at 0.
+    From then on it rose by 1 per signature, reaching 7 after 12.
+  - Right after a busy spell (the first bench runs), every signature counted at once.
 - Refused commands do not raise it (tried: a bad OID, CalcSign on an empty key, reading a key object).
 - It falls back by 1 about every 5 s. This is the Trust M's brake on bursts: past a threshold the chip slows down.
-- So the console expects +1 per signature, and flags only a rise beyond that.
+- So a normal approval reads "0 → 0", and a signature adds at most 1. The console flags only a rise larger than 1.
 
 **Error codes (F1C2):** 0x01 unknown OID, 0x07 reading a key object's data, 0x0B CalcSign with an empty key.
 
@@ -120,6 +125,12 @@ The chip: Adafruit 4351, UID `cd16338401001c000100000a091b5c000b0062006c80101071
 
 The emulator models these the way the manual describes them (`emu/core/shims/trustm_sim.py`).
 
+**The console on the real chip (2026-09-28).** The dual image ran with TM1 pinned as `locked: False`, against the laptop's mock Safe (`tools/quorum serve`), with nothing on chain.
+- **Boot:** the pin passed, the factory binding verified in 2.6 s, and 147 KB of heap was free.
+- **Signing:** the console joined the Family Safe as owner `0x47c0…8f35`, and you approved #0.
+- **The mock:** it verified the WebAuthn P-256 signature (low s), and #0 executed.
+- **The board's log:** "signed #0 … sec 0->0". That reading is what uncovered the idle credit.
+
 ## On the screens
 
 While it signs, the console shows short facts read from the chip itself (`tmcfg.info_lines`, `quorum.chip_info`):
@@ -128,7 +139,7 @@ While it signs, the console shows short facts read from the chip itself (`tmcfg.
   - "Key E0F1 made on-chip, sealed (LcsO op)"
   - "Bound to Infineon cert, CA 101" (checked once at boot)
   - "Security event counter: n"
-- **Sending:** the signing time and the counter after the signature ("+1, this signature").
+- **Sending:** the signing time and the counter after the signature ("unchanged" after idle, "+1" in a burst).
 - **Result:** if the counter rose by more than the signature, the result screen says so and `log.txt` records it.
 - **Device screen:** the Trust M shows `E0F1 locked · Trust M`, and a Security row where the ATECC has Key uses.
 - **ATECC:** its own lines (part, sealed slot, key uses).

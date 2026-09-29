@@ -299,15 +299,17 @@ def case_console():
           and any("Bound to Infineon cert" in l for l in sign_info[0]) and any("Security event counter:" in l for l in sign_info[0]),
           "the Signing screen says what the chip is: Infineon Trust M, E0F1 sealed, the factory binding, its security events")
     sent_info = [i for t, i in seen if t == "Sending"]
-    check(sent_info and any(l.startswith("Signed in") and "E0F1" in l for l in sent_info[0]) and any("+1, this signature" in l for l in sent_info[0]),
-          "the Sending screen: signed by E0F1 in n ms, security events +1 for this signature (as the real chip counts)")
+    check(sent_info and any(l.startswith("Signed in") and "E0F1" in l for l in sent_info[0])
+          and any(l.startswith("Security events:") and ("unchanged" in l or "+1" in l) for l in sent_info[0]),
+          "the Sending screen: signed by E0F1 in n ms, and the counter after it (unchanged from idle credit, or +1)")
     check(not Q.work_info, "the lines are cleared after signing")
     # a security event during a signature: flagged on the result
     sim = trustm_sim.chip()
     real_calc = sim.calc_sign
 
     def noisy(param, data):
-        sim.sec_event()                     # something besides the signature
+        sim.sec_event()                     # two suspect events besides the signature: more than
+        sim.sec_event()                     # one signature can explain, credit or not
         return real_calc(param, data)
     sim.calc_sign = noisy
     try:
@@ -318,6 +320,23 @@ def case_console():
     check(Q.result and Q.result[0] and any("besides this signature" in l for l in Q.result[2]),
           "the chip counted more than the signature itself: the result says so")
     check(Q.sec == sim.sec_now(), "and the Device screen shows the new count")
+
+
+def case_sec():
+    """The security event counter as the real chip counts it: key uses paid from an idle credit
+    first, then +1 each (2026-09-28: after idle, 8 signatures left it at 0, then it climbed)."""
+    import hashlib, signer
+    only_trustm()
+    trustm_sim.seal_as_quorum()
+    s = signer.load(soft=False)
+    sim = trustm_sim.chip()
+    sim.sec, sim.credit = 0, 3
+    d = hashlib.sha256(b"sec").digest()
+    seen = []
+    for _ in range(5):
+        s.sign(d)
+        seen.append(s.sec())
+    check(seen == [0, 0, 0, 1, 2], "three signatures from the idle credit, then +1 each (%r)" % seen)
 
 
 def case_console_pin():
@@ -461,7 +480,7 @@ def case_knob():
 
 
 def main():
-    for case in (case_real_chip, case_detect, case_full, case_resume, case_gates, case_other, case_console,
+    for case in (case_real_chip, case_detect, case_full, case_resume, case_gates, case_other, case_console, case_sec,
                  case_console_pin, case_dual, case_ui, case_knob):
         print("--", case.__name__[5:])
         try:

@@ -71,7 +71,7 @@ const STORIES = [
   ["trustm", DEMO, ["shot 51-trustm-home", "key A", "key down",
     `exec import quorum_ui; quorum.timer.deinit(); quorum.work_info[:] = quorum.chip_info(); quorum.d.frames(quorum_ui.draw_working, quorum, "Signing", "The chip signs the hash computed here")`,
     "shot 52-trustm-signing",
-    `exec import quorum_ui; quorum.work_info[:] = quorum.signed_info(148, 0, 1); quorum.d.frames(quorum_ui.draw_working, quorum, "Sending", "To the transaction service")`,
+    `exec import quorum_ui; quorum.work_info[:] = quorum.signed_info(132, 0, 0); quorum.d.frames(quorum_ui.draw_working, quorum, "Sending", "To the transaction service")`,
     "shot 53-trustm-sending",
     "exec quorum.work_info[:] = []; quorum.dirty = True; quorum.start_timer()", "wait 300",
     "key A", "hold A", "wait 2300", "release A", "wait 800", "shot 54-trustm-signed",

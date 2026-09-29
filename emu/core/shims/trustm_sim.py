@@ -11,9 +11,10 @@
 # "LcsO < op", Read ALW; the security event counter E0C5 at 0. The certificate is signed by a test
 # CA (CA_PUB), which tmcfg.py accepts only off the Pico.
 #
-# The security event counter as the real chip showed it (2026-09-28): every CalcSign, with E0F0
-# or E0F1, raises it by one; refused commands do not; it falls back by one about every 5 s.
-# GenKeyPair's effect on it is not measured yet.
+# The security event counter as the real chip showed it (2026-09-28): a CalcSign (E0F0 or E0F1)
+# is paid from a credit the chip builds while idle (one per ~5 s, at least 8), and only then
+# raises the counter by one; refused commands do not count; it falls back by one about every 5 s.
+# So a lone approval after idle leaves it at 0 and a burst makes it climb. GenKeyPair: not measured.
 #
 # Modeled as the chip documents them, NOT yet confirmed on silicon (a sacrificial chip will): that
 # GenKeyPair checks the key object's Change condition; that metadata can be written only while
@@ -28,6 +29,7 @@ import time
 import _emu
 
 SEC_DECAY_MS = 5000     # one count back about every 5 s (measured on the real chip)
+SEC_CREDIT_MAX = 8      # key uses the chip absorbs after an idle spell (at least 8 seen, 2026-09-28)
 
 ADDR = 0x30
 N = 0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551
@@ -175,6 +177,7 @@ class Chip:
         self.uid = None
         self.sec = 0
         self.sec_t = time.ticks_ms()
+        self.credit = 0
         self.err = 0
         self.ptr = 0x82
         self.pending = b""
@@ -300,17 +303,28 @@ class Chip:
         return o
 
     def sec_now(self):
-        """The counter after its decay since it was last touched."""
+        """The counter after the time since it was last touched: each 5 s tick takes one count off,
+        or, with the counter at 0, adds one to the idle credit."""
         steps = time.ticks_diff(time.ticks_ms(), self.sec_t) // SEC_DECAY_MS
         if steps > 0:
-            self.sec = max(0, self.sec - steps)
+            dec = min(self.sec, steps)
+            self.sec -= dec
+            self.credit = min(SEC_CREDIT_MAX, self.credit + steps - dec)
             self.sec_t = time.ticks_add(self.sec_t, steps * SEC_DECAY_MS)
-        if self.sec == 0:
-            self.sec_t = time.ticks_ms()
         return self.sec
 
     def sec_event(self):
+        """Something suspect: the counter goes up."""
         self.sec = min(255, self.sec_now() + 1)
+
+    def key_use(self):
+        """A private-key use: paid from the idle credit while there is any, else a security event
+        (the real chip: after ~10 min idle the first 8 signatures left it at 0, then +1 each)."""
+        self.sec_now()
+        if self.credit > 0:
+            self.credit -= 1
+        else:
+            self.sec_event()
 
     def ac(self, o, which):
         """Is the object's access condition met? ALW, NEV and LcsO/LcsA comparisons; anything else
@@ -447,7 +461,7 @@ class Chip:
         if not self.ac(o, "exec"):
             raise _Fail(ERR_AC)
         r, s = p256.sign(o["key"], digest)
-        self.sec_event()                    # a private-key use counts as a security event
+        self.key_use()                      # a private-key use: from the idle credit, else +1
         if _rand(1)[0] & 1:
             s = N - s                       # a chip does not promise low s
         return _int(r) + _int(s)

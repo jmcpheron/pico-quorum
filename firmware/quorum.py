@@ -722,10 +722,12 @@ def chip_info():
 
 
 def read_sec():
-    """The Trust M's security event counter (E0C5), None on other chips. It rises on every use of
-    a private key and on events the chip finds suspect, falls back by one about every 5 s, and
-    past a threshold the chip slows every command down: the Trust M's own brake on a burst of
-    signatures (measured on the real chip, 2026-09-28)."""
+    """The Trust M's security event counter (E0C5), None on other chips. A private-key use is paid
+    from a credit the chip builds while idle, and only then raises it by one; events the chip finds
+    suspect raise it too. It falls back by one about every 5 s, and past a threshold the chip slows
+    every command down: the Trust M's own brake on bursts (measured on the real chip, 2026-09-28:
+    a lone approval after idle reads 0 -> 0, a burst of 12 signatures climbed to 7). A signature
+    adds at most one, so only a larger rise is flagged."""
     if sig is None or sig.name != "trustm":
         return None
     try:
@@ -744,9 +746,9 @@ def sec_extra(before, after, signed=1):
 def signed_info(ms, sec0, sec1):
     out = ["Signed in %d ms by %s" % (ms, "key %04X" % sig.slot if sig.name == "trustm" else "slot %d" % sig.slot)]
     if sec1 is not None:
-        n = sec_extra(sec0, sec1)
-        out.append("Security events: %d (%s)" % (sec1, "+1, this signature" if not n else "%d more than this signature" % n))
-        out.append("Fades ~1 per 5 s; bursts throttle it")
+        rise = sec1 - sec0 if sec0 is not None else 0
+        out.append("Security events: %d (%s)" % (sec1, "unchanged" if rise <= 0 else "+%d" % rise))
+        out.append("Idle credit covers key use; bursts count")
     if counter is not None:
         out.append("Key use #%d" % counter)
     return out
