@@ -24,7 +24,7 @@ export const KEY_PINS = { 15: "A", 17: "B", 19: "X", 21: "Y", 2: "up", 18: "down
 export const W = 240, H = 240, FRAME_BYTES = W * H * 2;
 export const DEFAULT_HEAP = 448 * 1024;
 
-const SHIMS = ["machine", "network", "requests", "socket", "rp2", "atecc_sim"];
+const SHIMS = ["machine", "network", "requests", "socket", "rp2", "atecc_sim", "trustm_sim"];
 
 export async function createDevice(opts) {
   const keys = opts.keys;

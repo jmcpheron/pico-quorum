@@ -336,7 +336,15 @@ def draw_working(q, title, sub):
     txt_c(d, title, 38, "bold18")
     if q.cur:
         txt_c(d, fit("#%d %s" % (q.cur["n"], q.cur["r"]["summary"]), TW, "sans12"), 66, "sans12", "text")
-    para(d, sub, M, 84, TW, "sans12", "muted", "bg", 14, H)
+    info = getattr(q, "work_info", None) or ()
+    if info:                                    # the chip's own facts (quorum.chip_info): two fit here
+        txt_c(d, fit(sub, TW, "sans12"), 84, "sans12", "muted")
+        y = 100
+        for line in info[:2]:
+            txt_c(d, fit(line, TW, "sans12"), y, "sans12", "muted")
+            y += 13
+    else:
+        para(d, sub, M, 84, TW, "sans12", "muted", "bg", 14, H)
     d.show()
 
 
@@ -387,10 +395,11 @@ def draw_device(q):
     header(d, "Device", image.IMAGE)
     name = q.chip["name"] + " " if q.chip else ""
     rows = [("chip", (name + (q.serial[-8:] if q.serial else (q.sig.name if q.sig else "none")))),
-            ("slot", "%d%s %s" % (q.sig.slot if q.sig else -1, " locked" if q.row and q.row.get("locked") else "",
+            ("slot", "%s%s %s" % (q.slot_label(), " locked" if q.row and q.row.get("locked") else "",
                                    chips.PROFILE_SHORT.get(q.profile, q.profile or "-"))),
             ("key", q.fingerprint() or "none"),
             ("pin", "ok" if q.pin_ok and q.EXPECT else ("dev: none" if q.pin_ok else "FAIL")),
+            ("sec", "%d events" % q.sec) if q.sec is not None else
             ("uses", "#%d" % q.counter if q.counter is not None else "not counted"),
             ("free", "%d KB \u00b7 %s" % (gc.mem_free() // 1024, image.BUILD))]
     y = HEAD + 1
@@ -421,7 +430,7 @@ def notice(q, ok, title, lines, press=None):
 
 
 def draw_nochip(q):
-    notice(q, False, "No chip", ["No ATECC608 answered on I2C.", "The console only signs with a key inside the chip."],
+    notice(q, False, "No chip", ["No secure element answered on I2C.", "The console only signs with a key inside the chip."],
            "Check again")
 
 

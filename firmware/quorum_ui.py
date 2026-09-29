@@ -714,6 +714,10 @@ def draw_working(q, title, sub):
     if q.cur:
         txt_c(d, "#%d %s" % (q.cur["n"], q.cur["r"]["summary"]), 126, "sans14", "text")
     txt_c(d, sub, 148, "sans12", "muted")
+    y = 172
+    for line in (getattr(q, "work_info", None) or ())[:4]:     # the chip's own facts (quorum.chip_info)
+        txt_c(d, fit(line, TW, "sans12"), y, "sans12", "muted")
+        y += 15
     d.show()
 
 
@@ -767,7 +771,7 @@ def draw_nochip(q):
     mark(d, False, W // 2, 60, 22)
     txt_c(d, "No chip", 94, "bold26")
     y = 136
-    for line in ("No ATECC608 answered on I2C.", "The console only signs with", "a key inside the chip.", "",
+    for line in ("No secure element answered on I2C.", "The console only signs with", "a key inside the chip.", "",
                  "Wire the chip, then press " + ("the knob." if q.KNOB else "A.")):
         txt_c(d, line, y, "sans14", "muted")
         y += 19
@@ -802,7 +806,7 @@ def draw_pinfail(q):
     txt_c(d, fit(q.pin_why or "", W - 16, "sans14"), 84, "sans14", "bad")
     y = 110
     rows = (("chip", q.serial[-8:] or "none", str(exp.get("serial", ""))[-8:] or "-"),
-            ("slot", str(q.sig.slot) if q.sig else "-", str(exp.get("slot", "-"))),
+            ("slot", q.slot_label(), q.slot_label(exp["slot"]) if "slot" in exp else "-"),
             ("owner", short(q.me) if q.me else "none", short(str(exp["owner"])) if exp.get("owner") else "-"))
     txt(d, "here", 64, y, "sans12", "muted")
     txt(d, "pinned", 156, y, "sans12", "muted")
@@ -839,10 +843,11 @@ def draw_device(q):
     import chips
     name = q.chip["name"] + " \u00b7 " if q.chip else ""
     rows = [("Chip", (name + (q.serial[-8:] if q.serial else (q.sig.name if q.sig else "none")))[:22]),
-            ("Slot", "%d%s \u00b7 %s" % (q.sig.slot if q.sig else -1, " locked" if q.row and q.row.get("locked") else "",
+            ("Slot", "%s%s \u00b7 %s" % (q.slot_label(), " locked" if q.row and q.row.get("locked") else "",
                                          chips.PROFILE_SHORT.get(q.profile, q.profile or "-"))),
             ("Key", q.fingerprint() or "none"),
             ("Pin", "ok" if q.pin_ok and q.EXPECT else ("dev: none" if q.pin_ok else "FAIL")),
+            ("Security", "%d event%s" % (q.sec, "" if q.sec == 1 else "s")) if q.sec is not None else
             ("Key uses", "#%d" % q.counter if q.counter is not None else "not counted"),
             ("Service", ("%s \u00b7 %d req" % (q.svc.tls, q.svc.requests)) if q.svc else "none"),
             ("Polls", "%d s / %d s idle" % (q.POLL_MS // 1000, q.IDLE_POLL_MS // 1000)),

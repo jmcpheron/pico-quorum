@@ -4,6 +4,7 @@
 # every boot:
 #   a pinned chip (secrets.QUORUM_EXPECT, one or a list) -> the console, production rules
 #   a fresh chip, or a quorum v1 chip not yet sealed -> the ceremony (provision.py)
+#   a fresh Trust M, or one not yet sealed           -> the ceremony (provision_tm.py)
 #   anything else, or no chip                        -> the console (it says Not pinned / No chip)
 # Once the new chip is sealed, enrolled and pinned, the board goes back to the console image.
 #
@@ -23,8 +24,9 @@ def _maintenance():
 
 
 def which():
-    """("console" | "ceremony", serial, profile) for the chip on the bus. The ceremony only for a
-    chip that is not the pinned one and is fresh, or half way through quorum v1 (data zone open)."""
+    """("console" | "ceremony", serial, profile) for the chip on the bus, an ATECC608 or a Trust M
+    (signer.load finds it). The ceremony only for a chip that is not the pinned one and is fresh, or
+    half way through its ceremony (quorum v1 with the data zone open; a Trust M not yet sealed)."""
     try:
         import secrets
         exp = getattr(secrets, "QUORUM_EXPECT", None)
@@ -33,17 +35,18 @@ def which():
     import policy
     pinned = policy.pins(exp)
     try:
-        import atecc
-        import chipcfg
-        c = atecc.ATECC608()
-        serial = "".join("%02x" % b for b in c.serial())
-        cfg = c.read_config_all()
-        profile = chipcfg.identify(cfg)
+        import signer
+        s = signer.load(soft=False, pins=pinned)
+        if not signer.is_chip(s):
+            return "console", "", ""
+        serial = s.serial()
+        profile = s.profile()
+        need = s.needs_ceremony()
     except Exception:
         return "console", "", ""
     if policy.pick(pinned, serial):
         return "console", serial, profile
-    if profile == "factory" or (profile == "quorum-v1" and cfg[86] != 0x00):
+    if need:
         return "ceremony", serial, profile
     return "console", serial, profile
 

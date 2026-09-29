@@ -33,6 +33,27 @@ They can be combined: **1 or 2 as the first second, then 4 while WiFi joins.** W
 
 ## Iteration log
 
+### Iteration 5 (2026-09-28): the OPTIGA Trust M, and what the chip says while it signs
+
+The console now signs with either secure element. It finds out at boot whether an ATECC608 or an
+OPTIGA Trust M is on the bus. While it signs, it shows short facts that it reads from the chip
+itself. Details: [docs/TRUSTM.md](../TRUSTM.md). These shots use the emulator's virtual Trust M,
+which has been sealed as quorum-tm1. Its certificate comes from a test CA, so it reads "emulator
+CA"; a real chip reads "CA 101".
+
+| | |
+|---|---|
+| <img src="shots/51-trustm-home.png" width="240"> | <img src="shots/52-trustm-signing.png" width="240"> |
+| **Home on a Trust M.** Nothing changes: the queue and the Safe are the same whichever chip signs. | **Signing.** The chip's own facts, most telling first. It is an Infineon OPTIGA Trust M (CC EAL6+). Its key E0F1 was made on the chip and is sealed (lifecycle operational). The key is bound to the chip's Infineon factory certificate, checked once at boot. The last line is its security event counter. |
+| <img src="shots/53-trustm-sending.png" width="240"> | <img src="shots/54-trustm-signed.png" width="240"> |
+| **Sending.** How long the signature took and which key made it. Below that, the counter after the signature. **The real chip counts +1 for every signature and fades about 1 every 5 s**; bursts make it slow down. That is Infineon's own brake, measured on the real chip. Only a rise beyond the signature's own +1 is flagged on the result. | **Signed.** As before. With an ATECC the result adds its key-use count, and with a Trust M it adds a line only if the security counter rose by more than the signature. |
+| <img src="shots/55-trustm-device.png" width="240"> | |
+| **Device (X).** The slot is `E0F1 locked · Trust M`. Where the ATECC shows **Key uses**, the Trust M shows **Security**, its event count. | |
+
+**For you to decide:** are four lines under Signing too many? The other candidates are the wafer
+position and the firmware build (`fw 80101071 build 0809, wafer 98,108`); they are in the list,
+but only the first four are shown.
+
 ### Iteration 4 (2026-09-26): several Safes, several chains
 
 The console now watches a list of Safes (`QUORUM_SAFES`, up to 4, any mix of chains). Home shows

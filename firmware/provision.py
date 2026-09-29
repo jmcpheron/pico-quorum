@@ -92,6 +92,24 @@ def lock_data_crc(sig, summary):
 
 
 class Ceremony:
+    # what the screen (UI) needs to know about a ceremony; provision_tm.Ceremony has its own
+    HEADER = "PROVISION quorum v1"
+    NSTEPS = 10
+    PERMANENT = PERMANENT
+    GENKEY = ("C4",)
+    FINAL = ("C10", "other")
+    TITLES = TITLES
+    WHAT = WHAT
+
+    def index(self, st):
+        return int(st[1:]) if st[0] == "C" else 0
+
+    def subtitle(self):
+        return "%s %s" % (self.serial, chipcfg.REVISIONS.get(self.revision, self.revision)[-4:])
+
+    def note(self):
+        return "counter 0: %d" % self.counter if self.counter is not None else ""
+
     def __init__(self, sig):
         self.sig = sig
         self.chip = sig.chip
@@ -312,10 +330,10 @@ def palette(theme):
 class UI:
     """framebuf's 8 px font on the plain LCD: 29 characters a line."""
 
-    def __init__(self, d, keys, sig, theme="dark"):
+    def __init__(self, d, keys, sig, theme="dark", ceremony=None):
         self.d, self.keys = d, keys
         self.p = palette(theme)
-        self.c = Ceremony(sig)
+        self.c = ceremony or Ceremony(sig)
         self.result = None      # (step, ok, checks, message) after a run
         self.hold = None
         self.armhold = None
@@ -326,9 +344,9 @@ class UI:
         self.dirty = True
 
     def need(self, st):
-        if st in PERMANENT:
+        if st in self.c.PERMANENT:
             return S.gate("lock")
-        if st == "C4":
+        if st in self.c.GENKEY:
             return S.gate("genkey")
         return ""
 
@@ -375,14 +393,14 @@ class UI:
             return None
         if not self.keys.held("A"):
             self.released = True
-        if st in ("C10", "other"):
+        if st in self.c.FINAL:
             if "A" in pressed:
                 self.result = (st,) + self.c.run(st)
                 self.dirty = True
             return None
         if self.need(st):
             return None
-        hold_ms = HOLD_MS if st in PERMANENT or st == "C4" else 0
+        hold_ms = HOLD_MS if st in self.c.PERMANENT or st in self.c.GENKEY else 0
         if hold_ms:
             if self.keys.held("A") and self.released:
                 if self.hold is None:
@@ -406,7 +424,7 @@ class UI:
         import lcd as L
         d = self.d
         d.fill(self.p["bg"])
-        d.center_text(st + " " + TITLES[st], 100, self.p["accent"], 2)
+        d.center_text(st + " " + self.c.TITLES[st], 100, self.p["accent"], 2)
         d.center_text("working...", 130, self.p["fg"])
         d.show()
 
@@ -435,11 +453,11 @@ class UI:
         self.dirty = False
         d, c = self.d, self.c
         d.fill(self.p["bg"])
-        d.text("PROVISION quorum v1", 4, 4, self.p["accent"])
-        d.text("%s %s" % (c.serial, chipcfg.REVISIONS.get(c.revision, c.revision)[-4:]), 4, 16, self.p["muted"])
+        d.text(c.HEADER, 4, 4, self.p["accent"])
+        d.text(c.subtitle()[:29], 4, 16, self.p["muted"])
         if self.result:
             st, ok, checks, msg = self.result
-            d.text("%s %s: %s" % (st, TITLES[st], "OK" if ok else "STOPPED"), 4, 34, self.p["ok"] if ok else self.p["bad"])
+            d.text("%s %s: %s" % (st, c.TITLES[st], "OK" if ok else "STOPPED"), 4, 34, self.p["ok"] if ok else self.p["bad"])
             y = 50
             for label, good in checks:
                 d.text(("ok " if good else "NO ") + label[:26], 4, y, self.p["ok"] if good else self.p["bad"])
@@ -449,20 +467,21 @@ class UI:
             d.show()
             return
         st = c.step()
-        n = int(st[1:]) if st[0] == "C" else 0
-        d.text("%s/10 %s" % (st, TITLES[st]) if n else TITLES[st], 4, 34, self.p["accent"] if st in PERMANENT else self.p["fg"])
-        for i in range(1, 11):
-            d.fill_rect(4 + (i - 1) * 23, 48, 20, 4, self.p["ok"] if i < n else (self.p["accent"] if i == n else self.p["dim"]))
-        y = self.lines(WHAT[st], 60, self.p["fg"])
+        n = c.index(st)
+        d.text("%s/%d %s" % (st, c.NSTEPS, c.TITLES[st]) if n else c.TITLES[st], 4, 34, self.p["accent"] if st in c.PERMANENT else self.p["fg"])
+        step_w = 230 // c.NSTEPS
+        for i in range(1, c.NSTEPS + 1):
+            d.fill_rect(4 + (i - 1) * step_w, 48, step_w - 3, 4, self.p["ok"] if i < n else (self.p["accent"] if i == n else self.p["dim"]))
+        y = self.lines(c.WHAT[st], 60, self.p["fg"])
         y += 6
-        if st in PERMANENT:
+        if st in c.PERMANENT:
             y = self.lines("PERMANENT. It cannot be undone.", y, self.p["bad"])
         if c.key:
             d.text("key " + c.fingerprint(), 4, y + 4, self.p["muted"])
             y += 15
-        if c.counter is not None:
-            d.text("counter 0: %d" % c.counter, 4, y, self.p["muted"])
-        why = self.need(st) if st not in ("C10", "other") else ""
+        if c.note():
+            d.text(c.note()[:29], 4, y, self.p["muted"])
+        why = self.need(st) if st not in c.FINAL else ""
         if self.armdone:
             d.text("armed: let go of B+Y", 4, 186, self.p["ok"])
             d.fill_rect(4, 198, 232, 6, self.p["ok"])
@@ -475,7 +494,7 @@ class UI:
             d.text("let go early: not armed", 4, 190, self.p["bad"])
         elif why:
             y = self.lines(why, 190, self.p["bad"])
-        elif st in PERMANENT or st == "C4":
+        elif st in c.PERMANENT or st in c.GENKEY:
             left = S.armed()
             d.text("armed %ds" % left if left else "", 4, 196, self.p["ok"])
             if self.hold is not None:

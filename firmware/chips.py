@@ -61,4 +61,5 @@ def seen(serial, profile=None, **extra):
     return e, new
 
 
-PROFILE_SHORT = {"quorum-v1": "quorum v1", "legacy-test": "test table", "factory": "fresh", "unknown": "unknown table"}
+PROFILE_SHORT = {"quorum-v1": "quorum v1", "legacy-test": "test table", "factory": "fresh", "unknown": "unknown table",
+                 "quorum-tm1": "Trust M", "quorum-tm1-open": "Trust M, open"}

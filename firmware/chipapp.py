@@ -1,6 +1,7 @@
 # The ceremony image's only app, on a 50 ms timer: a banner first, so nobody mistakes this board
 # for a signing console, then A for the provisioning ceremony (provision.py: quorum v1 on a fresh
-# chip) or any other key for the chip map (slots.py). Every permanent action in either still needs
+# ATECC608; provision_tm.py: quorum-tm1 on a fresh Trust M) or X for the chip map (slots.py; on a
+# Trust M, its objects' metadata, read-only). Every permanent action in either still needs
 # ALLOW_LOCK / ALLOW_GENKEY in secrets.py and the B+Y arm (signer.py).
 import time
 import machine
@@ -13,20 +14,20 @@ chip = None         # this chip's entry in chips.json (name, theme): which chip 
 profile = ""
 _busy = False
 STATE = {"factory": "FRESH: ready for PROVISION", "quorum-v1": "sealed or in progress: quorum v1",
+         "quorum-tm1": "sealed: Trust M quorum-tm1", "quorum-tm1-open": "in progress: Trust M",
          "legacy-test": "test table (chip #1 style)", "unknown": "unknown table"}
 
 
 def identify():
-    """The chip on the bus: register it (chips.py) and say what it holds (chipcfg.identify)."""
+    """The chip on the bus: register it (chips.py) and say what it holds (sig.profile)."""
     global chip, profile
     chip, profile = None, ""
-    if sig is None or sig.name != "atecc608":
+    if not S.is_chip(sig):
         return
     try:
-        import chipcfg
         import chips
-        profile = chipcfg.identify(sig.config())
-        chip, new = chips.seen(sig.serial(), profile)
+        profile = sig.profile()
+        chip, new = chips.seen(sig.serial(), profile, kind=sig.name)
     except Exception as e:
         print("chip:", e)
 
@@ -47,7 +48,7 @@ def banner():
     else:
         d.center_text("NO CHIP on the bus", y, p["bad"])
     y += 44
-    for line in ("A: PROVISION (quorum v1)", "X: the chip map"):
+    for line in (("A: PROVISION (Trust M)", "X: its objects") if sig.name == "trustm" else ("A: PROVISION (quorum v1)", "X: the chip map")):
         d.center_text(line, y, p["fg"])
         y += 14
     d.show()
@@ -66,14 +67,27 @@ def tick(t):
                 banner()
             else:
                 prov.draw()
+        elif ui == "map":
+            if pressed:
+                ui = None
+                banner()
         elif ui is not None:
             if ui.tick(pressed, keys) == "home":
                 ui = None
                 banner()
         elif "A" in pressed and chip is not None:
             import provision
-            prov = provision.UI(d, keys, sig, chip["theme"])
+            if sig.name == "trustm":
+                import provision_tm
+                prov = provision.UI(d, keys, sig, chip["theme"], provision_tm.Ceremony(sig))
+            else:
+                prov = provision.UI(d, keys, sig, chip["theme"])
             prov.draw()
+        elif "X" in pressed and sig.name == "trustm":
+            import provision
+            import provision_tm
+            ui = "map"
+            provision_tm.draw_map(d, sig, provision.palette(chip["theme"] if chip else "dark"))
         elif "X" in pressed:
             import slots
             ui = slots.SlotsUI(d, sig, lambda: None)

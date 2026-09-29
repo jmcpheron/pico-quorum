@@ -14,8 +14,16 @@
 #   config() -> bytes                the 128 config bytes (the software signer fakes them)
 #   random() -> bytes                32 bytes from the chip's RNG, a harmless "is it alive" test
 #   name
+# The console's view of a chip, the same on both kinds (quorum.py):
+#   serial(fresh=False) -> str       cached; fresh reads it off the chip again
+#   key_row() -> dict                the key's slot row: kind, extSign, locked, limitedUse (atecc.decode_slot's shape)
+#   profile() -> str                 quorum-v1, factory, ... / quorum-tm1, ...
+#   use_counter() -> int | None      a count the chip raises on every use of the key, if it keeps one
+#   needs_ceremony() -> bool         a fresh chip, or one half way through its ceremony
+#   info() -> [str]                  short facts from the chip for the screens
 # SoftSigner: P-256 keys in files on the Pico's flash, one per slot. Only until the ATECC608 is wired.
-# ChipSigner: the ATECC608 over I2C. The keys never leave the chip.
+# ChipSigner: the ATECC608 over I2C. TrustMSigner: the OPTIGA Trust M. The keys never leave the chip.
+# detect() says which of them answer on I2C0; load() picks one.
 import os
 import time
 import p256
@@ -229,18 +237,56 @@ class SoftSigner:
 class ChipSigner:
     name = "atecc608"
 
-    def __init__(self):
+    def __init__(self, addr=None):
         from atecc import ATECC608
-        self.chip = ATECC608()
+        self.chip = ATECC608(addr=addr)
         self.slot = _read_slot()
         self._pub = {}
         self._slots = None      # cached table; every key op invalidates it
         self._serial = None
 
-    def serial(self):
+    def serial(self, fresh=False):
+        if fresh:
+            return "".join("%02x" % b for b in self.chip.serial())
         if self._serial is None:
-            self._serial = "".join("%02x" % b for b in self.chip.serial())
+            self._serial = self.serial(True)
         return self._serial
+
+    # --- the console's view (the same methods on TrustMSigner) --------------------
+    def key_row(self):
+        import atecc
+        return atecc.decode_slot(self.config(), self.slot)
+
+    def profile(self):
+        import chipcfg
+        return chipcfg.identify(self.config())
+
+    def fresh_pubkey(self):
+        """The slot's public key read off the chip now, not the cached one."""
+        return self.chip.pubkey(self.slot)
+
+    def use_counter(self):
+        """Counter 0: every use of a LimitedUse slot raises it (quorum v1's slot 0, chip 1's)."""
+        return self.chip.counter(0)
+
+    def needs_ceremony(self):
+        """A fresh chip, or quorum v1 with its data zone still open: main_dual.py's rule."""
+        import chipcfg
+        cfg = self.config()
+        p = chipcfg.identify(cfg)
+        return p == "factory" or (p == "quorum-v1" and cfg[86] != 0x00)
+
+    def info(self, row=None, counter=None):
+        """Short facts for the Signing and Device screens, from the chip itself."""
+        rev = "".join("%02x" % b for b in self.chip.revision())
+        out = ["Microchip ATECC608%s" % {"00006002": "A", "00006003": "B"}.get(rev, " rev " + rev)]
+        if row:
+            out.append("Slot %d: P-256, %s" % (self.slot, "sealed (slot lock)" if row.get("locked") else "not sealed"))
+            if row.get("limitedUse"):
+                out.append("LimitedUse: counter 0 counts every use")
+        if counter is not None:
+            out.append("Key uses so far: %d" % counter)
+        return out
 
     def pubkey(self, slot=None):
         slot = self.slot if slot is None else slot
@@ -397,6 +443,189 @@ def summary(slots):
     return out
 
 
+class TrustMSigner:
+    """The OPTIGA Trust M (trustm_q.py). One key, E0F1 (tmcfg.KEY), made on the chip by the
+    Trust M ceremony (provision_tm.py). Its public key comes from the record in F1D0: a Trust M
+    never gives a private-key object's public key back. The console checks that record against
+    the board's pin (secrets.QUORUM_EXPECT's owner), so a record that lied would fail the pin."""
+    name = "trustm"
+
+    def __init__(self):
+        import tmcfg
+        import trustm_q
+        self.chip = trustm_q.TrustM()
+        self.slot = tmcfg.KEY
+        self._uid = None
+        self._meta = None
+        self._rec = None
+        self._cert = None
+        self.bound = None           # binding_ok(): None until checked (a P-256 verify, not free)
+
+    def uid(self, fresh=False):
+        if fresh or self._uid is None:
+            self._uid = self.chip.uid()
+        return self._uid
+
+    def serial(self, fresh=False):
+        import tmcfg
+        return tmcfg.serial(self.uid(fresh))
+
+    def forget(self):
+        """After anything that changes the chip: read it again next time."""
+        self._meta = self._rec = None
+        self.bound = None
+
+    def key_meta(self):
+        if self._meta is None:
+            self._meta = self.chip.meta(self.slot)
+        return self._meta
+
+    def record(self):
+        import tmcfg
+        if self._rec is None:
+            self._rec = tmcfg.record_decode(self.chip.get(tmcfg.RECORD)) or False
+        return self._rec or None
+
+    def cert(self):
+        """The factory certificate (E0E0): (der, parsed)."""
+        import tmcfg
+        if self._cert is None:
+            der = tmcfg.cert_der(self.chip.get_all(tmcfg.CERT))
+            self._cert = (der, tmcfg.cert_parse(der))
+        return self._cert
+
+    def binding_ok(self):
+        """F1D1 holds E0F0's signature over this key, under the factory certificate. One verify."""
+        import tmcfg
+        if self.bound is None:
+            try:
+                rec = self.record()
+                der, c = self.cert()
+                b = tmcfg.binding_decode(self.chip.get(tmcfg.BINDING))
+                self.bound = bool(rec) and tmcfg.binding_check(b, der, c, self.uid(), self.slot, rec["qx"], rec["qy"])
+            except Exception as e:
+                print("binding:", e)
+                self.bound = False
+        return self.bound
+
+    def pubkey(self, slot=None):
+        rec = self.record()
+        if rec is None or rec["oid"] != (self.slot if slot is None else slot):
+            raise Exception("no key record in F1D0: run the Trust M ceremony")
+        return rec["qx"], rec["qy"]
+
+    def fresh_pubkey(self):
+        """The key from F1D0 read again (the record is sealed with the key)."""
+        self._rec = None
+        return self.pubkey()
+
+    def sign(self, digest, slot=None):
+        r, s = self.chip.sign(self.slot if slot is None else slot, digest)
+        if s > p256.N // 2:
+            s = p256.N - s
+        return r, s
+
+    def genkey(self, slot=None):
+        """Only when secrets.ALLOW_GENKEY is True: a NEW key in E0F1, replacing any key there."""
+        if not _allowed("ALLOW_GENKEY"):
+            raise Exception(_refused("genkey"))
+        self.forget()
+        return self.chip.gen_keypair(self.slot if slot is None else slot)
+
+    def key_row(self):
+        import tmcfg
+        return tmcfg.key_row(self.key_meta())
+
+    def profile(self):
+        import tmcfg
+        return tmcfg.identify(self.key_meta(), self.record())
+
+    def use_counter(self):
+        return None         # quorum-tm1 puts no use limit on the key (no Luc counter)
+
+    def needs_ceremony(self):
+        return self.profile() in ("factory", "quorum-tm1-open")
+
+    def sec(self):
+        return self.chip.sec()
+
+    def info(self, row=None, counter=None, sec=None):
+        import tmcfg
+        issuer = None
+        try:
+            issuer = self.cert()[1]["issuer"]
+        except Exception:
+            pass
+        return tmcfg.info_lines(self.uid(), issuer, row or self.key_row(), self.bound, sec)
+
+    def slots(self):
+        return [self.key_row()]
+
+    def allowed(self, what):
+        return _allowed("ALLOW_GENKEY" if what == "genkey" else "ALLOW_LOCK")
+
+    def gate(self, what):
+        return gate(what)
+
+    def random(self):
+        return self.chip.random(32)
+
+    def status(self):
+        st = {"chip": "trustm", "serial": self.serial(), "activeSlot": self.slot, "profile": self.profile()}
+        st["allowLock"], st["allowGenkey"] = flag("ALLOW_LOCK"), flag("ALLOW_GENKEY")
+        st["armed"] = armed()
+        try:
+            st["fingerprint"] = _fp(self.pubkey()[0])
+            st["hasKey"] = True
+        except Exception:
+            st["hasKey"] = False
+        return st
+
+
+def _trustm_here(i2c, tries=40):
+    """A Trust M at 0x30? Asleep it NACKs its address, so i2c.scan() alone can miss it: poll its
+    state register a few times (trustm_q.present, without importing the driver)."""
+    for _ in range(tries):
+        try:
+            i2c.writeto(0x30, b"\x82")
+            time.sleep_us(100)
+            return len(i2c.readfrom(0x30, 4)) == 4
+        except OSError:
+            time.sleep_ms(1)
+    return False
+
+
+def detect():
+    """The secure elements on I2C0: [("atecc608", addr), ("trustm", 0x30)], either, both or none.
+    One wake token for a sleeping ATECC, one scan, then a short poll at 0x30."""
+    try:
+        import atecc
+        found = atecc.scan()
+        out = [("atecc608", a) for a in atecc.KNOWN_ADDRS if a in found][:1]
+        if 0x30 in found or _trustm_here(atecc.make_i2c(atecc.SDA, atecc.SCL, 100_000)):
+            out.append(("trustm", 0x30))
+        return out
+    except Exception as e:
+        print("detect:", e)
+        return []
+
+
+def is_chip(sig):
+    """A secure element, not the software key or nothing."""
+    return sig is not None and sig.name in ("atecc608", "trustm")
+
+
+def _open(kind, addr):
+    if kind == "trustm":
+        s = TrustMSigner()
+        s.uid()                 # answers, or raises
+    else:
+        s = ChipSigner(addr)
+        s.chip.wake()
+        s.chip.sleep()
+    return s
+
+
 class NoSigner:
     """What load(soft=False) returns when no chip answers: it has no key and can sign nothing."""
     name = "none"
@@ -409,17 +638,32 @@ class NoSigner:
         raise Exception("no chip")
 
 
-def load(soft=True):
-    """ChipSigner if an ATECC answers on the bus, else the software key (soft=True), else NoSigner.
-    The production console passes soft=False: SoftSigner's first pubkey() writes a key to flash."""
-    try:
-        s = ChipSigner()
-        s.chip.wake()
-        s.chip.sleep()
-        return s
-    except Exception as e:
-        if not soft:
-            print("no chip (%s)" % e)
-            return NoSigner()
-        print("no chip (%s), using software key" % e)
-        return SoftSigner()
+def load(soft=True, pins=None):
+    """The chip on the bus as a signer: an ATECC608 (ChipSigner) or an OPTIGA Trust M
+    (TrustMSigner). With both on the bus, the one whose serial is pinned (pins: policy.pins of
+    secrets.QUORUM_EXPECT); unpinned, the ATECC first, as before the Trust M. No chip: the software
+    key (soft=True), else NoSigner. The production console passes soft=False: SoftSigner's first
+    pubkey() writes a key to flash."""
+    err = "nothing answers on I2C0"
+    found = []
+    for kind, addr in detect():
+        try:
+            found.append(_open(kind, addr))
+        except Exception as e:
+            err = "%s at 0x%02x: %s" % (kind, addr, e)
+    if found:
+        if len(found) > 1:
+            want = [str(p.get("serial", "")).lower() for p in (pins or [])]
+            for s in found:
+                try:
+                    if s.serial() in want:
+                        return s
+                except Exception:
+                    pass
+            print("two chips on the bus, none pinned: using the %s" % found[0].name)
+        return found[0]
+    if not soft:
+        print("no chip (%s)" % err)
+        return NoSigner()
+    print("no chip (%s), using software key" % err)
+    return SoftSigner()

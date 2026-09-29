@@ -21,7 +21,8 @@ ceremony image.
   - The ATECC608 has no lockout after failed attempts. At about 40 tries a second over I2C, a
     6-digit PIN falls in about 7 hours.
   - A PIN's rules can only be tested after the irreversible data lock.
-  - See [the PIN variant](#the-pin-variant-costed-not-chosen) below. Revisit it with the Trust M,
+  - See [the PIN variant](#the-pin-variant-costed-not-chosen) below. The Trust M has its own
+    profile and ceremony now ([TRUSTM.md](TRUSTM.md)), also without a PIN. Revisit it with the Trust M,
     which does lock out.
 - **A key-use counter.** LimitedUse on slot 0 ties every use of the key to counter 0, which the
   console shows. CountMatch is off, so the only cap is the counter's own maximum of 2,097,151.
