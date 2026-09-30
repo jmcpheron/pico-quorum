@@ -54,7 +54,10 @@ PROD = image.PRODUCTION
 _given, SAFES_WHY = policy.safes(getattr(secrets, "QUORUM_SAFES", None), getattr(secrets, "QUORUM_SAFE", None)) if secrets else ([], "")
 UNCONFIGURED = PROD and not _given
 SAFES = _given or policy.safes(None, CFG["safes"][0])[0]
-URL = (getattr(secrets, "QUORUM_URL", None) or getattr(secrets, "APP_URL", None)) if secrets else None
+# APP_URL is the legacy wallet's laptop address: only a development console falls back to it. The
+# production one uses Safe's own service for each chain unless QUORUM_URL says otherwise (a stale
+# APP_URL took over when QUORUM_URL was removed, 2026-09-29: connection reset on both Safes).
+URL = (getattr(secrets, "QUORUM_URL", None) or (None if PROD else getattr(secrets, "APP_URL", None))) if secrets else None
 
 
 def new_watch(s):
@@ -119,14 +122,20 @@ result = None       # (ok, title, lines) after a signing attempt
 unsent = None       # (entry, signature) when the service did not take it: A tries again
 declined = set()    # safeTxHashes rejected on this console
 serial = ""         # the chip's serial number
-row = None          # atecc.decode_slot for the signing slot (None on a software key)
-profile = ""        # which config the chip holds: quorum-v1, legacy-test, factory, unknown (chipcfg.identify)
+row = None          # the signing key's slot row, sig.key_row(): atecc.decode_slot's shape on either chip (None on a software key)
+profile = ""        # what the chip holds: quorum-v1, legacy-test, factory, unknown (chipcfg) / quorum-tm1, ... (tmcfg)
 chip = None         # its entry in chips.json: name and theme (chips.py; cosmetic only)
 pin_ok = False      # the chip, slot and owner match QUORUM_EXPECT (always True on a dev board without one)
 pin_why = ""
 counter = None      # the chip's key-use counter (counter 0) when the slot has LimitedUse, else None
 boot_count = None   # counter 0 as found at boot, before this console used the key itself
 outside = 0         # signatures the chip made since this console last looked, not made by it
+sec = None          # the Trust M's security event counter when last read (None on other chips)
+chip_pages = []     # the Chip pages (sig.details), read off the chip when they are opened
+chip_page = 0
+opage = 0           # the Owners page in view: OWNERS_PER_PAGE owners a page, so a 3-of-5 or longer scrolls
+dfoot = "chip"      # knob, on the Device screen: "chip" or "back"
+work_info = []      # short facts from the chip, shown under the Signing and Sending screens (sig.info)
 truncated = False   # the queue did not fit in memory: only the first few are shown
 fails = 0           # ticks in a row that raised
 saved_checked = False   # send_saved() ran after this boot
@@ -197,13 +206,13 @@ def focus_sel():
 
 def probe_chip():
     global sig, state
-    sig = S.load(soft=not PROD)     # the production image never falls back to a key on flash
-    if sig.name != "atecc608" and not SOFT_OK:
+    sig = S.load(soft=not PROD, pins=EXPECTS)   # the production image never falls back to a key on flash
+    if not S.is_chip(sig) and not SOFT_OK:
         state = "nochip"
         return
     global EXPECT
     EXPECT = None
-    if EXPECTS and sig.name == "atecc608":
+    if EXPECTS and S.is_chip(sig):
         try:
             EXPECT = policy.pick(EXPECTS, sig.serial())
         except Exception:
@@ -216,11 +225,18 @@ def probe_chip():
     try:
         # before reading the key: on a chip with its data zone locked (quorum v1) a public-key
         # read counts as a use of a LimitedUse key too (seen on chip 2, 2026-09-26)
-        boot_count = sig.chip.counter(0) if sig.name == "atecc608" else None
+        boot_count = sig.use_counter() if S.is_chip(sig) else None
     except Exception:
         boot_count = None
     read_key()
     check_pin()
+    global sec
+    sec = read_sec()
+    if sig.name == "trustm" and pin_ok:
+        t0 = time.ticks_ms()
+        bound = sig.binding_ok()        # E0F0's signature over this key, and its certificate from Infineon's CA
+        qlog.write("trustm cert %s, binding %s (%d ms)" % ("ok" if sig.ca_ok else "NOT VERIFIED", "ok" if bound else "MISSING",
+                                                         time.ticks_diff(time.ticks_ms(), t0)))
     if not pin_ok and (PROD or EXPECTS):
         state = "pinfail"
 
@@ -230,17 +246,14 @@ def check_pin():
     own config zone, so it works on chip #1's test table and on quorum v1 alike."""
     global serial, row, pin_ok, pin_why, profile, chip
     serial, row, profile, chip = "", None, "", None
-    if sig.name == "atecc608":
+    if S.is_chip(sig):
         try:
-            import atecc
-            import chipcfg
             serial = sig.serial()
-            cfg = sig.config()
-            row = atecc.decode_slot(cfg, sig.slot)
-            profile = chipcfg.identify(cfg)
+            row = sig.key_row()
+            profile = sig.profile()
         except Exception as e:
             pin_why = "chip: %r" % e
-        chip, new = chips.seen(serial, profile or None)
+        chip, new = chips.seen(serial, profile or None, kind=sig.name)
         if chip:
             U.use(chip["theme"])            # which chip is in, at a glance: chip 1 dark, chip 2 light
             if new:
@@ -265,9 +278,9 @@ def counter_file():
 def read_counter():
     """Counter 0, which the chip raises on every signature by a LimitedUse slot (chip #1's slot 0 and
     quorum v1's). None when the slot has no LimitedUse: then the number means nothing."""
-    if sig.name != "atecc608" or not row or not row.get("limitedUse"):
+    if not S.is_chip(sig) or not row or not row.get("limitedUse"):
         return None
-    return sig.chip.counter(0)
+    return sig.use_counter()
 
 
 def stored_counter():
@@ -329,6 +342,14 @@ def own_reads(before):
         qlog.write("counter %d: %d use%s of the key outside this console" % (before, before - counter, "" if before - counter == 1 else "s"))
     counter = now
     store_counter(now)
+
+
+def slot_label(slot=None):
+    """The key's place on the chip as the chip names it: ATECC slot 0, Trust M object E0F1."""
+    if slot is None:
+        slot = sig.slot if sig else -1
+    slot = int(slot)
+    return "%04X" % slot if slot >= 0xE000 else str(slot)
 
 
 def fingerprint():
@@ -637,23 +658,25 @@ def same_chip():
     """Right before a signature: the chip on the bus is still the one read at start. Its serial,
     read again from the chip; and the slot's public key too unless the slot is locked (a locked
     slot's key cannot change, and on a quorum v1 chip each read of it is a use of the key)."""
-    if sig.name != "atecc608":
+    if not S.is_chip(sig):
         return True
-    s = "".join("%02x" % b for b in sig.chip.serial())
+    s = sig.serial(fresh=True)
     if row and row.get("locked"):
         return s == serial
-    x, y = sig.chip.pubkey(sig.slot)
+    x, y = sig.fresh_pubkey()
     return s == serial and "0x%064x" % x == qx and "0x%064x" % y == qy
 
 
 def sign_it():
-    global state, result, dirty, counter, outside, unsent
+    global state, result, dirty, counter, outside, unsent, sec
     e = cur
     state = "working"
     unsent = None           # a failure below must never offer to resend an older signature
+    work_info[:] = chip_info()
     d.frames(U.draw_working, sys.modules[__name__], "Signing", "The chip signs the hash computed here")
     timer.deinit()
     watch.extend(30000)
+    sec0 = sec1 = None
     try:
         if not pin_ok or (EXPECT and sig.slot != int(EXPECT.get("slot", 0))):
             raise Exception("the key no longer matches the pin")
@@ -663,21 +686,103 @@ def sign_it():
             qlog.write("counter %d before signing, %d expected: %d outside this console" % (c0, counter, c0 - counter))
         if not same_chip():
             raise Exception("the chip or its key changed since start")
+        sec0 = read_sec()
         t0 = time.ticks_ms()
         ad, fields, digest = webauthn.assertion(e["mine"])    # e["mine"]: checked equal to the service's hash in entry()
         r, s = sig.sign(digest)
+        ms = time.ticks_diff(time.ticks_ms(), t0)
         counter = read_counter()
         if counter is not None:
             store_counter(counter)
-        _log("signed #%d in %d ms" % (e["n"], time.ticks_diff(time.ticks_ms(), t0)))
-        qlog.write("signed #%d %s counter %s" % (e["n"], e["h"], counter))
+        sec1 = read_sec()
+        if sec1 is not None:
+            sec = sec1
+        _log("signed #%d in %d ms" % (e["n"], ms))
+        qlog.write("signed #%d %s counter %s%s" % (e["n"], e["h"], counter, "" if sec1 is None else " sec %s->%s" % (sec0, sec1)))
+        work_info[:] = signed_info(ms, sec0, sec1)
         post(e, signature_for(e, ad, fields, r, s))
+        if sec_extra(sec0, sec1) and result and result[0]:
+            result = (result[0], result[1], result[2] + ["The chip logged %d security event%s besides this signature"
+                                                         % (sec_extra(sec0, sec1), "" if sec_extra(sec0, sec1) == 1 else "s")])
     except Exception as ex:
         result = (False, "Not signed", ["The chip said:", repr(ex)[:80]])
         _log("sign: %r" % ex)
         qlog.write("sign #%d failed: %r" % (e["n"], ex))
+        if sec_extra(sec0, read_sec(), signed=0):
+            result = (False, "Not signed", result[2] + ["The chip logged a security event"])
+    work_info[:] = []
     state, dirty = "result", True
     start_timer()
+
+
+def owner_pages():
+    """How many Owners pages the Safe in view needs."""
+    return max(1, (len(owners()) + U.OWNERS_PER_PAGE - 1) // U.OWNERS_PER_PAGE)
+
+
+def open_chip():
+    """The Chip pages, read off the chip now (not while drawing: every strip redraws)."""
+    global state, chip_pages, chip_page, sec
+    chip_pages, chip_page = [], 0
+    try:
+        if sig.name == "trustm":
+            sec = read_sec()
+            chip_pages = sig.details(row=row, sec=sec)
+        elif sig.name == "atecc608":
+            chip_pages = sig.details(row=row, counter=counter)
+    except Exception as e:
+        qlog.write("chip pages: %r" % e)
+    if not chip_pages:
+        chip_pages = [("The chip", [("Chip", "none, or it did not answer")])]
+    chip_pages = U.chip_layout(chip_pages)
+    state = "chip"
+
+
+def chip_info():
+    """What the chip says about itself while it signs: the Trust M's Infineon facts (its
+    certificate's CA, the sealed key, the factory binding, its security event counter), the
+    ATECC's part, sealed slot and key-use count."""
+    try:
+        if sig.name == "trustm":
+            return sig.info(row=row, sec=read_sec())
+        if sig.name == "atecc608":
+            return sig.info(row=row, counter=counter)
+    except Exception as e:
+        qlog.write("chip info: %r" % e)
+    return []
+
+
+def read_sec():
+    """The Trust M's security event counter (E0C5), None on other chips. A private-key use is paid
+    from a credit the chip builds while idle, and only then raises it by one; events the chip finds
+    suspect raise it too. It falls back by one about every 5 s, and past a threshold the chip slows
+    every command down: the Trust M's own brake on bursts (measured on the real chip, 2026-09-28:
+    a lone approval after idle reads 0 -> 0, a burst of 12 signatures climbed to 7). A signature
+    adds at most one, so only a larger rise is flagged."""
+    if sig is None or sig.name != "trustm":
+        return None
+    try:
+        return sig.sec()
+    except Exception:
+        return None
+
+
+def sec_extra(before, after, signed=1):
+    """Security events beyond the `signed` signatures this console just made (each is one)."""
+    if before is None or after is None:
+        return 0
+    return max(0, after - before - signed)
+
+
+def signed_info(ms, sec0, sec1):
+    out = ["Signed in %d ms by %s" % (ms, "key %04X" % sig.slot if sig.name == "trustm" else "slot %d" % sig.slot)]
+    if sec1 is not None:
+        rise = sec1 - sec0 if sec0 is not None else 0
+        out.append("Security events: %d (%s)" % (sec1, "unchanged" if rise <= 0 else "+%d" % rise))
+        out.append("Idle credit covers key use; bursts count")
+    if counter is not None:
+        out.append("Key use #%d" % counter)
+    return out
 
 
 UNSENT_FILE = "unsent.json"
@@ -795,7 +900,7 @@ def reject():
 
 # ----------------------------------------------------------------------------- ui tick
 def handle(k):
-    global state, sel, dirty, last_poll
+    global state, sel, dirty, last_poll, chip_page, opage
     if state in ("nochip", "pinfail"):
         if k == "A":
             probe_chip()            # counts first (boot_count), then reads the key: on a sealed chip, a use of it
@@ -817,14 +922,32 @@ def handle(k):
         elif k in (SIGN, "right") and queue:
             open_entry(queue[sel])
         elif k == BACK:
-            state = "owners"
+            state, opage = "owners", 0
         elif k in ("X", "press"):
             state = "device"
         if outside:
             outside_seen()
         dirty = True
-    elif state in ("owners", "device"):
-        if k in (BACK, REJECT, SIGN, "left", "X"):
+    elif state == "device":
+        if k == SIGN:
+            open_chip()
+        elif k in (BACK, REJECT, "left", "X"):
+            state = "home"
+        dirty = True
+    elif state == "chip":
+        if k in (SIGN, "down", "right"):
+            chip_page = (chip_page + 1) % len(chip_pages)
+        elif k == "up":
+            chip_page = (chip_page - 1) % len(chip_pages)
+        elif k in (BACK, REJECT, "left", "X"):
+            state = "device"
+        dirty = True
+    elif state == "owners":
+        if k in NEXT:
+            opage = min(owner_pages() - 1, opage + 1)
+        elif k == "up" or (k == "left" and opage > 0):
+            opage = max(0, opage - 1)
+        elif k in (BACK, REJECT, SIGN, "left", "X"):
             state = "home"
         dirty = True
     elif state == "review":
@@ -858,7 +981,7 @@ def handle(k):
 def knob(k):
     """A knob turn ("down" clockwise, "up") or press, by state. Turning never does anything but
     move; every action is a press, and signing is a press held down."""
-    global state, sel, foot, act, ract, dirty, crash_t0
+    global state, sel, foot, act, ract, dirty, crash_t0, dfoot, chip_page, opage
     if state in ("nochip", "pinfail"):
         if k == "press":
             handle("A")                 # Check again
@@ -884,15 +1007,37 @@ def knob(k):
                 focus_sel()
         elif k == "press":
             if foot:
-                state = foot
+                state, opage = foot, 0
             elif queue:
                 open_entry(queue[sel])
         if outside:
             outside_seen()
         dirty = True
-    elif state in ("owners", "device"):
-        if k == "press":
-            state, dirty = "home", True
+    elif state == "device":
+        if k in ("down", "up"):
+            dfoot = "back" if dfoot == "chip" else "chip"
+        elif k == "press":
+            if dfoot == "chip":
+                open_chip()
+            else:
+                state, dfoot = "home", "chip"
+        dirty = True
+    elif state == "chip":
+        if k == "down":
+            chip_page = min(len(chip_pages) - 1, chip_page + 1)
+        elif k == "up":
+            chip_page = max(0, chip_page - 1)
+        elif k == "press":
+            state = "device"
+        dirty = True
+    elif state == "owners":
+        if k == "down":
+            opage = min(owner_pages() - 1, opage + 1)
+        elif k == "up":
+            opage = max(0, opage - 1)
+        elif k == "press":
+            state = "home"
+        dirty = True
     elif state == "review":
         if k == "down":
             if act is not None:

@@ -90,39 +90,42 @@ class SPI:
 
 
 class I2C:
-    """One device on the bus: a virtual ATECC608 at 0x60 (atecc_sim.py), so firmware/atecc.py and
-    signer.ChipSigner run here unchanged. A write to address 0 is the wake token. Every other
+    """The key bus: a virtual ATECC608 at 0x60 (atecc_sim.py) and a virtual OPTIGA Trust M at
+    0x30 (trustm_sim.py), each there or not, so firmware/atecc.py, trustm.py and signer.py run here
+    unchanged. A write to address 0 is the ATECC's wake token. An asleep Trust M NACKs its address,
+    so scan() does not list it (as on the real bus); addressed directly it answers. Every other
     address fails with ENODEV, like an empty bus."""
 
     def __init__(self, id=0, **kw):
         self.id = id
 
-    def _chip(self):
-        import atecc_sim
-        return atecc_sim.chip()
-
-    def _here(self):
-        import atecc_sim
-        return atecc_sim.present
+    def _dev(self, addr):
+        if addr == 0x60:
+            import atecc_sim
+            if atecc_sim.present:
+                return atecc_sim.chip()
+        elif addr == 0x30:
+            import trustm_sim
+            if trustm_sim.present:
+                return trustm_sim.chip()
+        raise OSError(19, "ENODEV: no I2C device at 0x%02x" % addr)
 
     def scan(self):
-        return [0x60] if self._here() else []
+        import atecc_sim
+        return [0x60] if atecc_sim.present else []
 
     def writeto(self, addr, buf, stop=True):
-        if not self._here():
-            raise OSError(19, "ENODEV: no I2C device at 0x%02x" % addr)
         if addr == 0:
-            self._chip().wake_token()
+            import atecc_sim
+            if not atecc_sim.present:
+                raise OSError(19, "ENODEV: no I2C device at 0x00")
+            atecc_sim.chip().wake_token()
             return len(buf)
-        if addr != 0x60:
-            raise OSError(19, "ENODEV: no I2C device at 0x%02x" % addr)
-        self._chip().write(bytes(buf))
+        self._dev(addr).write(bytes(buf))
         return len(buf)
 
     def readfrom(self, addr, n, stop=True):
-        if addr != 0x60 or not self._here():
-            raise OSError(19, "ENODEV: no I2C device at 0x%02x" % addr)
-        return self._chip().read(n)
+        return self._dev(addr).read(n)
 
     def readfrom_into(self, addr, buf, stop=True):
         buf[:] = self.readfrom(addr, len(buf))

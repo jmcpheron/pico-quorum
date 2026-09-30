@@ -36,7 +36,8 @@ How the conflicts were resolved (keep this in mind on the next merge):
 Checked after the merge: `tools/check_config` ok; `test-vectors` 9/9 on CPython and
 MicroPython; the emulator boots the WiFi wallet, the chip map and the USB wallet, and USB setup
 provisions a blank virtual chip; `forge test` 40/40, including TrustMAttest 6/6. Not checked:
-anything on real hardware, and `trustm.py` has not run against a Trust M in this repo.
+anything on real hardware, and `trustm.py` has not run against a Trust M in this repo. (It has
+since: 2026-09-28, unchanged, under `trustm_q.py`. See docs/TRUSTM.md.)
 
 ## How to merge
 

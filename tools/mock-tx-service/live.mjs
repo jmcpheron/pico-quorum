@@ -16,7 +16,8 @@
 //                       the console on the emulator, with its throwaway virtual chip (live key --emu),
 //                       against the real service: it opens the first transaction waiting for it, pages
 //                       through, holds A, and the service's answer is printed. The spike before the Pico.
-//   live pico --chain C[,C..] [--safe 0x..] [--name NAME]   several chains: a Safe on each (QUORUM_SAFES)
+//   live pico --chain C[,C..] [--safe 0x..] [--name NAME]   several chains: a Safe on each (QUORUM_SAFES);
+//                       one chain: --safe A,B[,..] --name N1,N2[,..] watches several Safes there (up to 4)
 //                       point the Pico's console at chain C (or several): the board's secrets.py gets
 //                       each chain's pinned Safe (QUORUM_SAFES; the console finds each chain's service
 //                       itself), the old file is kept as secrets.bak, and the console restarts. The API key and everything else stay.
@@ -418,14 +419,27 @@ async function pico() {
     lines = [`QUORUM_URL = ${JSON.stringify(`http://${ip}:${process.env.QUORUM_PORT || 8787}`)}`];
   } else {
     const live = saved();
-    const safes = names.map((name) => {
-      const c = CHAINS[name];
-      const safe = theSafe({ ...c, name });
-      const label = (names.length === 1 && opt("--name")) || live.names?.[name] || `${c.chain.name} Safe`;
-      live.names = { ...live.names, [name]: label };
-      return { chainId: c.chain.id, address: safe.toLowerCase(), name: label };
-    });
-    keep(live);
+    // --safe A,B (and --name N1,N2) on ONE chain: the console watches several Safes there. Nothing is
+    // saved as the chain's default Safe in live.json (theSafe does that for a single --safe).
+    const many = names.length === 1 && (opt("--safe") || "").includes(",");
+    if (many && (opt("--safe").split(",").length > 4)) die("the console watches at most 4 Safes");
+    let safes;
+    if (many) {
+      const c = CHAINS[names[0]];
+      const labels = (opt("--name") || "").split(",").filter(Boolean);
+      safes = opt("--safe").split(",").map((a, i) => ({ chainId: c.chain.id, address: getAddress(a.trim()).toLowerCase(),
+        name: labels[i] || (i === 0 ? live.names?.[names[0]] || `${c.chain.name} Safe` : `${c.chain.name} Safe ${i + 1}`) }));
+      if (new Set(safes.map((x) => x.address)).size !== safes.length) die("the same Safe twice");
+    } else {
+      safes = names.map((name) => {
+        const c = CHAINS[name];
+        const safe = theSafe({ ...c, name });
+        const label = (names.length === 1 && opt("--name")) || live.names?.[name] || `${c.chain.name} Safe`;
+        live.names = { ...live.names, [name]: label };
+        return { chainId: c.chain.id, address: safe.toLowerCase(), name: label };
+      });
+      keep(live);
+    }
     lines = [`QUORUM_SAFES = [\n    ${safes.map((x) => JSON.stringify(x)).join(",\n    ")}\n]`];
   }
   console.log(`the Pico's console, to ${names.map((x) => CHAINS[x].chain.name).join(" + ")}:\n  ${lines.join("\n  ")}`);

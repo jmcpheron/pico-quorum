@@ -166,8 +166,10 @@ the red rail and into the key.
    `genkey_new`, from the chip page behind the hold-A red screens that already exist. Run it on the
    sacrificial chip first, and only after the slot plan is decided (see
    [CHIPMAP.md](../docs/CHIPMAP.md) and [LOCKING.md](../docs/LOCKING.md)).
-5. **`trustm.py` when the boards arrive.** `bench1` already reports a Trust M at 0x30. Next, after
-   GP6 is on, run `trustm.bus(4, 5)` and do a read-only identity read. Nothing permanent.
+5. **`trustm.py` when the boards arrive.** Done on 2026-09-28, on the Build 1 bench. The console, the
+   dual image and the ceremony image detect a Trust M (`signer.detect`). The quorum-tm1 ceremony
+   ran T1–T6 on the first chip; the seal (T7) is not done yet. See [docs/TRUSTM.md](../docs/TRUSTM.md).
+   Still to do: `bench1.probe()` stops at 0x30, and the Trust M's current draw on GP6.
 6. **Emulator.** Add a 320×240 screen, a knob, and a virtual key jack (DETECT plus GP6) to
    `emu/core/shims/machine.py` and the page, so steps 1–3 can be rehearsed without the board.
 

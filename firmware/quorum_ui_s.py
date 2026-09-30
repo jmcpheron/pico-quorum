@@ -336,7 +336,15 @@ def draw_working(q, title, sub):
     txt_c(d, title, 38, "bold18")
     if q.cur:
         txt_c(d, fit("#%d %s" % (q.cur["n"], q.cur["r"]["summary"]), TW, "sans12"), 66, "sans12", "text")
-    para(d, sub, M, 84, TW, "sans12", "muted", "bg", 14, H)
+    info = getattr(q, "work_info", None) or ()
+    if info:                                    # the chip's own facts (quorum.chip_info): two fit here
+        txt_c(d, fit(sub, TW, "sans12"), 84, "sans12", "muted")
+        y = 100
+        for line in info[:2]:
+            txt_c(d, fit(line, TW, "sans12"), y, "sans12", "muted")
+            y += 13
+    else:
+        para(d, sub, M, 84, TW, "sans12", "muted", "bg", 14, H)
     d.show()
 
 
@@ -360,12 +368,17 @@ def draw_result(q):
     d.show()
 
 
+OWNERS_PER_PAGE = 4
+
+
 def draw_owners(q):
     d = q.d
     d.fill(c("bg"))
-    header(d, "Owners", "%d of %d" % (q.threshold(), len(q.owners())) if q.owners() else "")
+    pages = q.owner_pages()
+    q.opage = page = min(q.opage, pages - 1)
+    header(d, "Owners", ("%d of %d" % (q.threshold(), len(q.owners())) if q.owners() else "") + (" \u00b7 %d/%d" % (page + 1, pages) if pages > 1 else ""))
     y = HEAD + 3
-    for a in q.owners()[:4]:
+    for a in q.owners()[page * OWNERS_PER_PAGE:(page + 1) * OWNERS_PER_PAGE]:
         nm = ident(q, a)[0]
         x = txt(d, fit(nm or short(a), TW - 30, "bold14" if nm else "mono13"), M, y, "bold14" if nm else "mono13",
                 "text" if nm else "warn")
@@ -387,10 +400,11 @@ def draw_device(q):
     header(d, "Device", image.IMAGE)
     name = q.chip["name"] + " " if q.chip else ""
     rows = [("chip", (name + (q.serial[-8:] if q.serial else (q.sig.name if q.sig else "none")))),
-            ("slot", "%d%s %s" % (q.sig.slot if q.sig else -1, " locked" if q.row and q.row.get("locked") else "",
+            ("slot", "%s%s %s" % (q.slot_label(), " locked" if q.row and q.row.get("locked") else "",
                                    chips.PROFILE_SHORT.get(q.profile, q.profile or "-"))),
             ("key", q.fingerprint() or "none"),
             ("pin", "ok" if q.pin_ok and q.EXPECT else ("dev: none" if q.pin_ok else "FAIL")),
+            ("sec", "%d events" % q.sec) if q.sec is not None else
             ("uses", "#%d" % q.counter if q.counter is not None else "not counted"),
             ("free", "%d KB \u00b7 %s" % (gc.mem_free() // 1024, image.BUILD))]
     y = HEAD + 1
@@ -398,6 +412,36 @@ def draw_device(q):
         txt(d, k, M, y, "sans12", "muted")
         txt_r(d, fit(v, TW - 36, "sans12"), R, y, "sans12", "bad" if v == "FAIL" else "text")
         y += 15
+    if q.KNOB:
+        choices(d, q, (("chip", "Chip"), ("back", "Back")), q.dfoot)
+    else:
+        footer_press(d, q, "Back")
+    d.show()
+
+
+def chip_layout(pages):
+    """The Chip pages split so each fits the small screen, one row a line."""
+    per = (FOOT - 14 - HEAD - 1) // 13 + 1
+    out = []
+    for title, rows in pages:
+        for i in range(0, len(rows), per):
+            out.append((title, rows[i:i + per]))
+    return out
+
+
+def draw_chip(q):
+    """The Chip pages on the small screen: one value a line, cut to fit."""
+    d = q.d
+    d.fill(c("bg"))
+    title, rows = q.chip_pages[q.chip_page]
+    header(d, title, "%d/%d" % (q.chip_page + 1, len(q.chip_pages)))
+    y = HEAD + 1
+    for k, v in rows:
+        if y > FOOT - 14:
+            break
+        txt(d, fit(k, 44, "sans12"), M, y, "sans12", "muted")
+        txt(d, fit(str(v), TW - 48, "sans12"), M + 48, y, "sans12", "bad" if str(v).startswith(("FAILED", "MISSING")) else "text")
+        y += 13
     footer_press(d, q, "Back")
     d.show()
 
@@ -421,7 +465,7 @@ def notice(q, ok, title, lines, press=None):
 
 
 def draw_nochip(q):
-    notice(q, False, "No chip", ["No ATECC608 answered on I2C.", "The console only signs with a key inside the chip."],
+    notice(q, False, "No chip", ["No secure element answered on I2C.", "The console only signs with a key inside the chip."],
            "Check again")
 
 
@@ -453,6 +497,8 @@ def draw(q):
         draw_unconfigured(q)
     elif s == "crashed":
         draw_crashed(q)
+    elif s == "chip":
+        draw_chip(q)
     elif s == "device":
         draw_device(q)
     elif s in ("review", "hold"):

@@ -33,6 +33,43 @@ They can be combined: **1 or 2 as the first second, then 4 while WiFi joins.** W
 
 ## Iteration log
 
+### Iteration 5 (2026-09-28): the OPTIGA Trust M, and what the chip says while it signs
+
+The console now signs with either secure element. It finds out at boot whether an ATECC608 or an
+OPTIGA Trust M is on the bus. While it signs, it shows short facts that it reads from the chip
+itself. Details: [docs/TRUSTM.md](../TRUSTM.md). These shots use the emulator's virtual Trust M,
+which has been sealed as quorum-tm1. Its certificate comes from a test CA, so it reads "emulator
+CA"; a real chip reads "CA 101".
+
+| | |
+|---|---|
+| <img src="shots/51-trustm-home.png" width="240"> | <img src="shots/52-trustm-signing.png" width="240"> |
+| **Home on a Trust M.** Nothing changes: the queue and the Safe are the same whichever chip signs. | **Signing.** The chip's own facts, most telling first. It is an Infineon OPTIGA Trust M (CC EAL6+). Its key E0F1 was made on the chip and is sealed (lifecycle operational). The key is bound to the chip's Infineon factory certificate, checked once at boot. The last line is its security event counter. |
+| <img src="shots/53-trustm-sending.png" width="240"> | <img src="shots/54-trustm-signed.png" width="240"> |
+| **Sending.** How long the signature took and which key made it. Below that, the counter after the signature. **The real chip pays for key uses from a credit it builds while idle.** So a normal approval reads *unchanged*; in a burst it climbs by 1 per signature and fades about 1 every 5 s, and past a threshold the chip slows down. That is Infineon's own brake, measured on the real chip. A signature adds at most 1, so only a larger rise is flagged on the result. | **Signed.** As before. With an ATECC the result adds its key-use count, and with a Trust M it adds a line only if the security counter rose by more than a signature can explain. |
+| <img src="shots/55-trustm-device.png" width="240"> | <img src="shots/56-trustm-chip-1.png" width="240"> |
+| **Device (X).** The slot is `E0F1 locked · Trust M`. Where the ATECC shows **Key uses**, the Trust M shows **Security**, its event count. **A (or the knob on Chip) opens the Chip pages.** | **The chip** (you asked for this: the Signing screen goes by too fast). Part, certification, firmware, serial, wafer position, lifecycle, security counter. Everything is read off the chip when the pages open. Long rows continue on the next page, so nothing is cut: 6 pages on this 240-wide screen, fewer on the 2.8". |
+| <img src="shots/58-trustm-chip-3.png" width="240"> | <img src="shots/61-trustm-chip-6.png" width="240"> |
+| **Factory certificate.** Issuer, subject, serial, validity, and **the CA check, done on the Pico at boot** against the pinned Infineon CA key (a real chip reads "CA 101"). The next page shows the certificate's own key: E0F0, the factory key. | **Signing key**, continued. The binding (E0F0 signed this key, verified under the certificate) and when and by which build the record was written. The pages before it show E0F1, whether it is sealed, its access rules, the public key and the owner. |
+
+**Blockies for addresses** (you asked for these). The pixel avatar an address gets is now drawn wherever you compare an address by eye:
+- **Ceremony T5** shows the new owner's blockie under the address, and it stays on T6 and T7.
+- **Owners screen (B):** one for every owner.
+- **Address on an approval page:** for example the "new owner" of an add-owner transaction, so it is the same picture you saw at T5.
+
+They are the standard 8x8 blockies of the lowercase address (`firmware/blockies.py`), the same picture at any size. I have not checked them against the Safe web app's own avatars: compare with the address, not only the picture.
+
+**The Owners screen scrolls** (you asked). It used to cut the list at four. Now it shows three owners a page on the 240x240 screen (four on the small 160x128), and **down / right / a dial turn** goes to the next page, **up / left / a turn back** to the previous one. The header line at the bottom right says which page (`2 of 3 · down`, or `turn` on the dial). B, A, Y, X or a dial press leaves.
+
+| | |
+|---|---|
+| <img src="shots/62-owners-page-1.png" width="240"> | <img src="shots/63-owners-page-2.png" width="240"> |
+| **Page 1** of a 7-owner Safe: Alice, Bob, and this key. | **Page 2** (page 3 has the last owner). Each owner has its blockie. |
+
+**For you to decide:** are four lines under Signing too many? The other candidates are the wafer
+position and the firmware build (`fw 80101071 build 0809, wafer 98,108`); they are in the list,
+but only the first four are shown.
+
 ### Iteration 4 (2026-09-26): several Safes, several chains
 
 The console now watches a list of Safes (`QUORUM_SAFES`, up to 4, any mix of chains). Home shows

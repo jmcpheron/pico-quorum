@@ -15,10 +15,12 @@ const closure = (...mods) => [...new Set(mods.flatMap((m) => dependencies(m)))].
 
 // Apps and screens that can use the chip other than the console's one signature path.
 const NOT_IN_CONSOLE = ["wallet.py", "usbwallet.py", "main_usb.py", "main.py", "demo.py", "mock.py", "keytest.py", "vid.py",
-  "trustm.py", "eip712.py", "power.py", "chipcheck.py", "slots.py", "chipmap.py", "learn.py", "snakelab.py", "ceremony.py",
-  "chipapp.py", "provision.py", "qrcode.py", "main_ceremony.py"];
-// Signer and driver calls that change the chip. Only signer.py and atecc.py may even name them.
-const PERMANENT = /\.(genkey\w*|lock_\w+|provision\w*|write_config|restore_snapshot|write_note|write_data|write_otp|write_record\w*)\(/;
+  "eip712.py", "power.py", "chipcheck.py", "slots.py", "chipmap.py", "learn.py", "snakelab.py", "ceremony.py",
+  "chipapp.py", "provision.py", "provision_tm.py", "qrcode.py", "main_ceremony.py"];
+// Signer and driver calls that change the chip. Only signer.py and the drivers may even name them
+// (atecc.py; trustm_q.py for the Trust M: trustm.py itself has none).
+const PERMANENT = /\.(genkey\w*|lock_\w+|provision\w*|write_config|restore_snapshot|write_note|write_data|write_otp|write_record\w*|gen_keypair|set_data|set_lifecycle|set_meta\w*)\(/;
+const DRIVERS = ["signer.py", "atecc.py", "trustm_q.py"];
 
 for (const [name, img] of Object.entries(M.images)) {
   const files = [...img.files].sort();
@@ -35,11 +37,11 @@ const con = M.images.console.files;
 const bad = con.filter((f) => NOT_IN_CONSOLE.includes(f));
 check(!bad.length, "console: none of the legacy apps, the chip map or the ceremony" + (bad.length ? ` (found ${bad})` : ""));
 check(/import quorum/.test(src("main_console.py")) && !/wallet/.test(src("main_console.py")), "console: main imports quorum, not the wallet");
-for (const f of con.filter((f) => f.endsWith(".py") && f !== "signer.py" && f !== "atecc.py")) {
+for (const f of con.filter((f) => f.endsWith(".py") && !DRIVERS.includes(f))) {
   const hits = src(f).split("\n").filter((l) => PERMANENT.test(l) && !/^\s*#/.test(l));
   check(!hits.length, `console: ${f} calls nothing that changes the chip` + (hits.length ? `: ${hits[0].trim()}` : ""));
 }
-const signs = con.filter((f) => f.endsWith(".py") && f !== "signer.py" && f !== "atecc.py")
+const signs = con.filter((f) => f.endsWith(".py") && !DRIVERS.includes(f))
   .flatMap((f) => src(f).split("\n").map((l, i) => [f, i, l])).filter(([, , l]) => /\bsig\.sign\(|\.chip\.sign\(/.test(l));
 const q = src("quorum.py").split("\n");
 const inSignIt = (i) => { for (let j = i; j >= 0; j--) if (/^def /.test(q[j])) return q[j].startsWith("def sign_it("); return false; };

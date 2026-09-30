@@ -310,6 +310,7 @@ def who_line(d, q, label, a, y, pc, bg):
         txt(d, "unknown contract", x + 20, y, "bold14", "warn" if bg == "bg" else pc["text"], bg)
     else:
         txt(d, "not in the address book", x, y + 1, "sans12", "warn" if bg == "bg" else pc["text"], bg)
+    blockies.draw(d, a.lower(), R - 16, y, 2)           # 16 px: an address seen before looks the same
     y += 18
     for line in addr_lines(a):
         txt(d, line, M, y, "mono13", pc["stake"], bg)
@@ -714,6 +715,10 @@ def draw_working(q, title, sub):
     if q.cur:
         txt_c(d, "#%d %s" % (q.cur["n"], q.cur["r"]["summary"]), 126, "sans14", "text")
     txt_c(d, sub, 148, "sans12", "muted")
+    y = 172
+    for line in (getattr(q, "work_info", None) or ())[:4]:     # the chip's own facts (quorum.chip_info)
+        txt_c(d, fit(line, TW, "sans12"), y, "sans12", "muted")
+        y += 15
     d.show()
 
 
@@ -735,16 +740,22 @@ def draw_result(q):
     d.show()
 
 
+OWNERS_PER_PAGE = 3
+
+
 def draw_owners(q):
     d = q.d
     d.fill(c("bg"))
     txt(d, fit(q.SAFE["name"], 110, "bold18") if len(q.WATCH) > 1 else "Owners", M, 4, "bold18")
+    pages = q.owner_pages()
+    q.opage = page = min(q.opage, pages - 1)
     if q.owners():
         txt_r(d, "%d of %d must approve" % (q.threshold(), len(q.owners())), R, 9, "sans12", "muted")
     y = 34
-    for a in q.owners()[:4]:
+    for a in q.owners()[page * OWNERS_PER_PAGE:(page + 1) * OWNERS_PER_PAGE]:
         nm = ident(q, a)[0]
         x = txt(d, nm or "Not in the address book", M, y, "bold14", "text" if nm else "warn")
+        blockies.draw(d, a.lower(), R - 24, y, 3)          # 8x8 cells at 3 px: 24 px, the same picture at any size
         if a == q.me:
             pill(d, "you", x + 6, y + 1, "sans12", "stake", "bg")
         y += 19
@@ -757,6 +768,8 @@ def draw_owners(q):
     if q.counter is not None:
         k += " \u00b7 use #%d" % q.counter
     txt_r(d, k, R, 195, "sans12", "faint")
+    if pages > 1:                            # more owners than fit: down (or a turn) for the next page
+        txt_r(d, "%d of %d \u00b7 %s" % (page + 1, pages, "turn" if q.KNOB else "down"), R, 224, "sans12", "muted")
     footer_hints(d, q, (("B", "Back"),))
     d.show()
 
@@ -767,7 +780,7 @@ def draw_nochip(q):
     mark(d, False, W // 2, 60, 22)
     txt_c(d, "No chip", 94, "bold26")
     y = 136
-    for line in ("No ATECC608 answered on I2C.", "The console only signs with", "a key inside the chip.", "",
+    for line in ("No secure element answered on I2C.", "The console only signs with", "a key inside the chip.", "",
                  "Wire the chip, then press " + ("the knob." if q.KNOB else "A.")):
         txt_c(d, line, y, "sans14", "muted")
         y += 19
@@ -802,7 +815,7 @@ def draw_pinfail(q):
     txt_c(d, fit(q.pin_why or "", W - 16, "sans14"), 84, "sans14", "bad")
     y = 110
     rows = (("chip", q.serial[-8:] or "none", str(exp.get("serial", ""))[-8:] or "-"),
-            ("slot", str(q.sig.slot) if q.sig else "-", str(exp.get("slot", "-"))),
+            ("slot", q.slot_label(), q.slot_label(exp["slot"]) if "slot" in exp else "-"),
             ("owner", short(q.me) if q.me else "none", short(str(exp["owner"])) if exp.get("owner") else "-"))
     txt(d, "here", 64, y, "sans12", "muted")
     txt(d, "pinned", 156, y, "sans12", "muted")
@@ -839,10 +852,11 @@ def draw_device(q):
     import chips
     name = q.chip["name"] + " \u00b7 " if q.chip else ""
     rows = [("Chip", (name + (q.serial[-8:] if q.serial else (q.sig.name if q.sig else "none")))[:22]),
-            ("Slot", "%d%s \u00b7 %s" % (q.sig.slot if q.sig else -1, " locked" if q.row and q.row.get("locked") else "",
+            ("Slot", "%s%s \u00b7 %s" % (q.slot_label(), " locked" if q.row and q.row.get("locked") else "",
                                          chips.PROFILE_SHORT.get(q.profile, q.profile or "-"))),
             ("Key", q.fingerprint() or "none"),
             ("Pin", "ok" if q.pin_ok and q.EXPECT else ("dev: none" if q.pin_ok else "FAIL")),
+            ("Security", "%d event%s" % (q.sec, "" if q.sec == 1 else "s")) if q.sec is not None else
             ("Key uses", "#%d" % q.counter if q.counter is not None else "not counted"),
             ("Service", ("%s \u00b7 %d req" % (q.svc.tls, q.svc.requests)) if q.svc else "none"),
             ("Polls", "%d s / %d s idle" % (q.POLL_MS // 1000, q.IDLE_POLL_MS // 1000)),
@@ -854,7 +868,53 @@ def draw_device(q):
         y += 20
     if q.net_err and not q.net_ok:
         txt(d, fit("Last error: " + q.net_err, TW, "sans12"), M, y + 2, "sans12", "warn")
-    footer_hints(d, q, (("B", "Back"),))
+    if q.KNOB:
+        knob_choices(d, q, (("chip", "Chip"), ("back", "Back")), q.dfoot, "turn \u00b7 press")
+    else:
+        footer_hints(d, q, (("A", "Chip"), ("B", "Back")))
+    d.show()
+
+
+CHIP_LW, CHIP_TOP, CHIP_BOTTOM = 78, 32, 204      # the Chip pages: label column, text area
+
+
+def chip_layout(pages):
+    """Split the Chip pages so every row fits: a page that runs over continues on the next, under
+    the same title. Measured here once (quorum.open_chip), not while drawing."""
+    out = []
+    for title, rows in pages:
+        cur, y = [], CHIP_TOP
+        for k, v in rows:
+            h = 15 * len(F.wrap(str(v), TW - CHIP_LW, "sans12")) + 4
+            if cur and y + h - 4 > CHIP_BOTTOM:
+                out.append((title, cur))
+                cur, y = [], CHIP_TOP
+            cur.append((k, v))
+            y += h
+        out.append((title, cur))
+    return out
+
+
+def draw_chip(q):
+    """The Chip pages (quorum.open_chip): the silicon, its factory certificate, the signing key,
+    each value read off the chip when the pages were opened. A turn or A for the next page."""
+    d = q.d
+    d.fill(c("bg"))
+    title, rows = q.chip_pages[q.chip_page]
+    txt(d, title, M, 4, "bold18")
+    n = len(q.chip_pages)
+    txt_r(d, "%d of %d%s" % (q.chip_page + 1, n, " \u00b7 turn" if q.KNOB and n > 1 else ""), R, 9, "sans12", "muted")
+    lw = CHIP_LW
+    y = CHIP_TOP
+    for k, v in rows:
+        lines = F.wrap(str(v), TW - lw, "sans12")
+        txt(d, k, M, y, "sans12", "muted")
+        bad = str(v).startswith(("FAILED", "MISSING"))
+        for line in lines:
+            txt(d, line, M + lw, y, "sans12", "bad" if bad else "text")
+            y += 15
+        y += 4
+    footer_hints(d, q, (("B", "Back"),) if q.KNOB else (("A", "Next page"), ("B", "Back")))
     d.show()
 
 
@@ -870,6 +930,8 @@ def draw(q):
         draw_crashed(q)
     elif s == "device":
         draw_device(q)
+    elif s == "chip":
+        draw_chip(q)
     elif s in ("review", "hold"):
         draw_review(q)
     elif s == "result":

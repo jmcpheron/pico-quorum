@@ -174,6 +174,7 @@ o = None
 if q:
     import image
     o = {"image": image.IMAGE, "build": image.BUILD, "state": q.state, "me": q.me, "serial": q.serial, "slot": q.sig.slot if q.sig else None,
+         "chipKind": q.sig.name if q.sig else None, "sec": getattr(q, "sec", None),
          "pin_ok": q.pin_ok, "pin_why": q.pin_why, "counter": q.counter, "outside": q.outside, "net_ok": q.net_ok, "net_err": q.net_err,
          "safes": ["%s %s %s: %s, %s" % (w["chain"], w["addr"], w["name"], "ok" if w["ok"] else w["err"], "owner" if q.me in q.owners(w) else "NOT an owner")
                    for w in getattr(q, "WATCH", [])],
@@ -190,19 +191,39 @@ if q:
 c = sys.modules.get("chipapp")
 if c and not o:
     o = {"image": "ceremony", "chip": "%s (%s, %s)" % (c.chip["name"], c.profile, c.chip["theme"]) if c.chip else None,
-         "serial": c.sig.serial() if c.sig and c.sig.name == "atecc608" else None}
+         "serial": c.sig.serial() if c.sig and c.sig.name in ("atecc608", "trustm") else None}
 print("LIVE:" + json.dumps(o))`;
 
-// The chip itself: serial, slot 0's public key, the lock bytes and counter 0. Read-only.
-const CHIP_PY = `import json, atecc
-c = atecc.ATECC608()
-cfg = c.read_config_all()
-x, y = c.pubkey(0)
-row = atecc.decode_slot(cfg, 0)
-print("CHIP:" + json.dumps({"serial": "".join("%02x" % b for b in c.serial()), "revision": "".join("%02x" % b for b in c.revision()),
+// The chip itself, whichever is on the bus (signer.load). ATECC608: serial, slot 0's public key,
+// the lock bytes and counter 0. Trust M: serial, E0F1's key from the F1D0 record, its metadata,
+// the profile and the security event counter. Read-only.
+const CHIP_PY = `import json, signer
+s = signer.load(soft=False)
+o = {"kind": s.name}
+if s.name == "atecc608":
+    import atecc
+    c = s.chip
+    cfg = c.read_config_all()
+    x, y = c.pubkey(0)
+    row = atecc.decode_slot(cfg, 0)
+    o.update({"serial": "".join("%02x" % b for b in c.serial()), "revision": "".join("%02x" % b for b in c.revision()), "slot": 0,
       "qx": "0x%064x" % x, "qy": "0x%064x" % y, "lockBytes": "".join("%02x" % b for b in cfg[86:90]),
       "slot0": {"kind": row["kind"], "locked": row["locked"], "limitedUse": row["limitedUse"], "extSign": row["extSign"]},
-      "counter0": c.counter(0)}))`;
+      "counter0": c.counter(0)})
+elif s.name == "trustm":
+    import tmcfg
+    row = s.key_row()
+    f = tmcfg.uid_fields(s.uid())
+    o.update({"serial": s.serial(), "revision": "Trust M fw %s build %s" % (f["fw"], f["build"]), "slot": s.slot,
+      "profile": s.profile(), "sec": s.sec(),
+      "slot0": {"kind": row["kind"], "locked": row["locked"], "limitedUse": False, "extSign": row["extSign"]}})
+    try:
+        x, y = s.pubkey()
+        o["qx"], o["qy"] = "0x%064x" % x, "0x%064x" % y
+    except Exception as e:
+        o["qx"] = o["qy"] = None
+        o["noKey"] = str(e)
+print("CHIP:" + json.dumps(o))`;
 
 async function ask(q) {
   if (has("--yes")) return true;
@@ -318,7 +339,7 @@ async function verify({ baseline = false } = {}) {
     const chip = tagged(run(CHIP_PY), "CHIP");
     console.log("chip:");
     for (const [k, v] of Object.entries(chip)) console.log(`  ${k}: ${JSON.stringify(v)}`);
-    console.log(`  owner (computed here): ${await ownerOf(chip.qx, chip.qy)}`);
+    if (chip.qx) console.log(`  owner (computed here): ${await ownerOf(chip.qx, chip.qy)}`);
   }
   unpause();
   console.log(ok ? "verify: all as expected" : "verify: see the lines above");
@@ -485,26 +506,30 @@ async function pin() {
   const live = tagged(run(LIVE_PY), "LIVE");
   let chip;
   if (live && live.serial && live.qx) {
-    const rev = tagged(run("import atecc, json\nprint('REV:' + json.dumps(''.join('%02x' % b for b in atecc.ATECC608().revision())))"), "REV");
-    chip = { serial: live.serial, revision: rev, qx: live.qx, qy: live.qy, slot0: { kind: live.kind, locked: live.locked } };
+    const rev = live.chipKind === "trustm" ? "Trust M" :
+      tagged(run("import atecc, json\nprint('REV:' + json.dumps(''.join('%02x' % b for b in atecc.ATECC608().revision())))"), "REV");
+    chip = { kind: live.chipKind, serial: live.serial, revision: rev, slot: live.slot ?? 0, qx: live.qx, qy: live.qy,
+      slot0: { kind: live.kind, locked: live.locked } };
   } else {
     pause();
     chip = tagged(run(CHIP_PY), "CHIP");
     unpause();
   }
+  if (!chip.qx) die(`the ${chip.kind} on the bus has no key yet${chip.noKey ? ": " + chip.noKey : ""}`);
   const owner = await ownerOf(chip.qx, chip.qy);
   const livePath = join(ROOT, "tools/mock-tx-service/live.json");
   const known = existsSync(livePath) ? JSON.parse(readFileSync(livePath, "utf8")).key : null;
-  const expect = { serial: chip.serial, slot: 0, owner, locked: chip.slot0.locked };
+  const expect = { serial: chip.serial, slot: chip.slot ?? 0, owner, locked: chip.slot0.locked, ...(chip.kind === "trustm" ? { chip: "trustm" } : {}) };
+  const where = chip.kind === "trustm" ? "E0F1" : `slot ${expect.slot}`;
   // The board may pin several chips: this one is added (or its entry replaced); --only keeps it alone.
   const flags = tagged(run(FLAGS_PY), "FLAGS") || {};
   const had = flags.QUORUM_EXPECT ? (Array.isArray(flags.QUORUM_EXPECT) ? flags.QUORUM_EXPECT : [flags.QUORUM_EXPECT]) : [];
   const others = has("--only") ? [] : had.filter((p) => String(p.serial).toLowerCase() !== chip.serial);
   const list = [...others, expect];
-  console.log(`chip ${chip.serial} (revision ${chip.revision}), slot 0: ${chip.slot0.kind}, ${chip.slot0.locked ? "locked" : "NOT locked"}, key ${chip.qx.slice(2, 10)}`);
+  console.log(`chip ${chip.serial} (${chip.revision}), ${where}: ${chip.slot0.kind}, ${chip.slot0.locked ? "locked" : "NOT locked"}, key ${chip.qx.slice(2, 10)}`);
   console.log(`owner computed here: ${owner}`);
   if (known?.owner) console.log(`owner enrolled (live.json): ${known.owner} ${known.owner.toLowerCase() === owner.toLowerCase() ? "= same" : "!! DIFFERENT"}`);
-  if (!chip.slot0.locked) console.log("!! slot 0 is not locked: the console will refuse it unless the pin says locked: False");
+  if (!chip.slot0.locked) console.log(`!! ${where} is not locked: the console will refuse it unless the pin says locked: False`);
   const py = (o) => JSON.stringify(o).replace(/true/g, "True").replace(/false/g, "False");
   const line = `QUORUM_EXPECT = [\n${list.map((p) => "    " + py(p) + ",").join("\n")}\n]`;
   console.log(`\npinned chips after this (${list.length}):`);
@@ -545,7 +570,7 @@ function chipsList() {
   const rows = Object.entries(d).sort((a, b) => a[1].n - b[1].n);
   if (!rows.length) return console.log("no chips.json on the board yet (the console or the ceremony image writes it at boot)");
   for (const [serial, e] of rows)
-    console.log(`${e.name.padEnd(8)} ${serial}  ${(e.theme || "").padEnd(5)}  ${(e.profile || "?").padEnd(11)}${e.owner ? "  owner " + e.owner : ""}`);
+    console.log(`${e.name.padEnd(8)} ${serial.padEnd(20)}  ${(e.kind || "atecc608").padEnd(8)}  ${(e.theme || "").padEnd(5)}  ${(e.profile || "?").padEnd(15)}${e.owner ? "  owner " + e.owner : ""}`);
 }
 
 // Rewrite some NAME = value lines of the board's secrets.py (the old file kept as secrets.bak).
@@ -585,8 +610,9 @@ async function allow(onOff) {
   console.log("restart the board for it to take effect: tools/fw restart");
 }
 
-const CHIP_SERIAL_PY = `import atecc, json
-print("SERIAL:" + json.dumps("".join("%02x" % b for b in atecc.ATECC608().serial())))`;
+const CHIP_SERIAL_PY = `import signer, json
+s = signer.load(soft=False)
+print("SERIAL:" + json.dumps(s.serial() if signer.is_chip(s) else ""))`;
 
 // ----------------------------------------------------------------------------- measure
 // One script with the roots and vhttp.py inlined, run from RAM after a soft reset (the app on the

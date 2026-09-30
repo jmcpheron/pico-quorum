@@ -1,7 +1,7 @@
 // tools/quorum shots: every screen in docs/quorum-ui/README.md, captured from the emulator running
 // the real firmware against the simulated Safe. Same input, same pixels: the Safe starts fresh
 // for each story, and the console's chip is emu-chip.json (a virtual ATECC608 with a throwaway key
-// in slot 0; copied per story, so the file never changes). Runs its own mock on port 8799 with
+// in slot 0; copied per story, so the file never changes), or emu-trustm.json for the Trust M story. Runs its own mock on port 8799 with
 // its own state, so a session on 8787 is left alone.
 import { spawn, spawnSync } from "node:child_process";
 import { copyFileSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
@@ -53,6 +53,9 @@ const STORIES = [
     "keys down,A", "shot 26-wrong-safe-refused"]],
   ["conflict", ["conflict"], ["shot 27-conflict-home", "key A", "shot 28-conflict-summary", "keys B,down,A,down", "shot 29-conflict-rejection-page"]],
   ["owners", DEMO, ["key B", "shot 30-owners"]],
+  // A Safe with more owners than one page holds (the mock's has three: two more are added on the console for the picture)
+  ["owners-long", DEMO, ["exec quorum.W['info']['owners'] = quorum.W['info']['owners'] + ['0x%040x' % (0x1000 + i) for i in range(1, 5)]; quorum.W['info']['threshold'] = 3",
+    "key B", "shot 62-owners-page-1", "key down", "shot 63-owners-page-2", "key down", "shot 64-owners-page-3"]],
   ["device", DEMO, ["key X", "wait 400", "shot 31-device"]],
   ["offline", null, ["shot 32-no-service"]],
   ["identity", ["send-usdc", "uniswap-approve", "uniswap-swap", "batch", "unknown-call"], [
@@ -65,6 +68,20 @@ const STORIES = [
   ["vold", ["send-eth"], ["shot 45-version-too-old", "key A", "shot 46-version-too-old-summary"], { version: "1.1.1" }],
   ["two", ["send-eth", "send-usdc"], ["wait 3000", "shot 47-two-safes-home", "keys down,down", "shot 48-two-safes-other-chain",
     "key A", "shot 49-two-safes-review", "keys B,B", "shot 50-two-safes-owners"], { two: ["send-eth"] }],
+  // The console on an OPTIGA Trust M (emu-trustm.json: a virtual Trust M sealed as quorum-tm1, no ATECC on the bus).
+  // Signing is one blocking step on the device, so its two screens are drawn here with the console's
+  // own functions, the timer stopped, before the real hold signs.
+  ["trustm", DEMO, ["shot 51-trustm-home", "key A", "key down",
+    `exec import quorum_ui; quorum.timer.deinit(); quorum.work_info[:] = quorum.chip_info(); quorum.d.frames(quorum_ui.draw_working, quorum, "Signing", "The chip signs the hash computed here")`,
+    "shot 52-trustm-signing",
+    `exec import quorum_ui; quorum.work_info[:] = quorum.signed_info(132, 0, 0); quorum.d.frames(quorum_ui.draw_working, quorum, "Sending", "To the transaction service")`,
+    "shot 53-trustm-sending",
+    "exec quorum.work_info[:] = []; quorum.dirty = True; quorum.start_timer()", "wait 300",
+    "key A", "hold A", "wait 2300", "release A", "wait 800", "shot 54-trustm-signed",
+    "key A", "wait 1500", "key X", "wait 400", "shot 55-trustm-device",
+    "key A", "wait 600", "shot 56-trustm-chip-1", "key A", "wait 300", "shot 57-trustm-chip-2", "key A", "wait 300", "shot 58-trustm-chip-3",
+    "key A", "wait 300", "shot 59-trustm-chip-4", "key A", "wait 300", "shot 60-trustm-chip-5", "key A", "wait 300", "shot 61-trustm-chip-6"],
+    { trustm: true }],
   ["light", DEMO, ["exec import quorum_ui; quorum_ui.use('light'); quorum.dirty = True", "shot 33-light-home", "key A", "shot 34-light-summary",
     "keys B,down,down,A,down", "shot 35-light-red-page", "key down", "shot 36-light-verify"]],
 ];
@@ -136,7 +153,7 @@ for (const fontset of fontsets) {
     if (queue) await post("/sim/reset", { scenarios: queue, keepDevices: false, version: opts.version });
     if (opts.two) await post("/sim/reset", { scenarios: opts.two, keepDevices: false }, BASE2);
     const chip = join(tmp, "chip.json");
-    copyFileSync(new URL("emu-chip.json", import.meta.url), chip);
+    copyFileSync(new URL(opts.trustm ? "emu-trustm.json" : "emu-chip.json", import.meta.url), chip);
     const app = queue ? BASE : "http://localhost:1";      // "offline": nothing answers
     const r = spawnSync(process.execPath, [join(ROOT, "emu/headless.mjs"), "quorum", "--app", app, "--chip", chip, "--quiet",
       ...(opts.two ? ["--secrets", twoSecrets] : []),

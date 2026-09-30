@@ -76,6 +76,8 @@ class Chip:
             return
         try:
             st = json.loads(raw)
+            if "config" not in st:
+                return          # only the Trust M's state (or the bus) is stored so far
             self.cfg = bytearray(bytes.fromhex(st["config"]))
             self.keys = {int(k): int(v, 16) for k, v in st.get("keys", {}).items()}
             self.counters = list(st.get("counters", [0, 0]))
@@ -90,7 +92,12 @@ class Chip:
               "counters": self.counters, "data": {str(k): "".join("%02x" % b for b in v) for k, v in self.data.items()},
               "otp": "".join("%02x" % b for b in self.otp)}
         try:
-            _emu.chip_save(json.dumps(st))
+            old = json.loads(_emu.chip_load() or "{}")     # keep what else is stored (the Trust M's)
+        except Exception:
+            old = {}
+        old.update(st)
+        try:
+            _emu.chip_save(json.dumps(old))
         except Exception as e:
             print("atecc_sim: could not save state: %s" % e)
 
@@ -383,8 +390,15 @@ class _Fail(Exception):
         self.code = code
 
 
+def _on_bus():
+    try:
+        return json.loads(_emu.chip_load() or "{}").get("bus", {}).get("atecc608", True)
+    except Exception:
+        return True
+
+
 _chip = None
-present = True      # False: nothing answers on the bus, as with the chip unplugged (tests)
+present = _on_bus()     # False: nothing answers at 0x60, as with the chip unplugged (tests, tools/emu chip trustm)
 
 
 def chip():

@@ -12,6 +12,7 @@
 //   tools/emu reset              reboot the device and re-run the main module
 //   tools/emu main MODULE        set which module boots by default
 //   tools/emu chip [fresh|ready|show]   the virtual ATECC608: blank part / config locked + key in slot 0 / state
+//   tools/emu chip trustm-fresh|trustm-sealed|both|atecc   the virtual Trust M alone (fresh or sealed), both, or the ATECC alone
 //   tools/emu devices            every board on USB (serial ports and bootloader drives)
 //   tools/emu ship MODULE        copy MODULE (and what it imports) to the Pico on USB and import it
 //                                (--port /dev/cu.usbmodemN, --boot: also make it run at power-up, --wifi: the wallet Pico)
@@ -128,9 +129,22 @@ try {
         const r2 = await send({ cmd: "reset" });
         for (const l of r2.lines || []) console.log(l);
       } else if (what === "show") {
-        const r = await send({ cmd: "exec", code: "import atecc_sim; print(atecc_sim.state())" });
+        const r = await send({ cmd: "exec", code: "import atecc_sim, trustm_sim; print(atecc_sim.state()); print('trustm', trustm_sim.state())" });
         for (const l of r.lines || []) console.log(l);
-      } else throw new Error("usage: tools/emu chip fresh|ready|show");
+      } else if (["trustm-fresh", "trustm-sealed", "both", "atecc"].includes(what)) {
+        // the virtual Trust M (trustm_sim.py): alone and factory-fresh, alone and sealed as quorum-tm1,
+        // on the bus with the ATECC, or gone again (the ATECC alone, as before)
+        const code = {
+          "trustm-fresh": "import trustm_sim; trustm_sim.bus(trustm=True, atecc=False); print(trustm_sim.wipe())",
+          "trustm-sealed": "import trustm_sim; trustm_sim.bus(trustm=True, atecc=False); trustm_sim.wipe(); print(trustm_sim.seal_as_quorum())",
+          "both": "import trustm_sim; print(trustm_sim.bus(trustm=True, atecc=True))",
+          "atecc": "import trustm_sim; print(trustm_sim.bus(trustm=False, atecc=True))",
+        }[what];
+        const r = await send({ cmd: "exec", code });
+        for (const l of r.lines || []) console.log(l);
+        const r2 = await send({ cmd: "reset" });
+        for (const l of r2.lines || []) console.log(l);
+      } else throw new Error("usage: tools/emu chip fresh|ready|show|trustm-fresh|trustm-sealed|both|atecc");
       break;
     }
     case "devices": {
