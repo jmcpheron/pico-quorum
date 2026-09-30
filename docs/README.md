@@ -12,7 +12,7 @@ troubleshooting.
 - [`firmware-production/`](firmware-production/README.md) and [`quorum-ui/`](quorum-ui/README.md): screenshot walkthroughs
 - [`KICKOFF.md`](KICKOFF.md): what PicoQuorum is, goals, hardware, firmware layers, open decisions
 - [`UPSTREAM-TRACKING.md`](UPSTREAM-TRACKING.md): fork point, unmerged upstream work, how to merge
-- [`ceremony-themes/`](ceremony-themes/README.md): three story skins for the Trust M ceremony, as emulator mockups
+- [`ceremony-themes/`](ceremony-themes/README.md): story skins for the Trust M ceremony, as emulator mockups (round 2, the futuristic ones: [futuristic.md](ceremony-themes/futuristic.md))
 - [`HEGOTA-WATCH.md`](HEGOTA-WATCH.md): EIPs in the next Ethereum fork that touch the console
 
 The dev console's notes, from picowallet: [`picowallet.md`](picowallet.md) (build guide),

@@ -1,5 +1,9 @@
 # Ceremony themes: three story skins for the Trust M signing ceremony
 
+> **Round 2 is [futuristic.md](futuristic.md):** the space and cyberpunk directions, with an invented
+> company running each one, a sealing press instead of an explosion, and one pod that stays
+> recognisable from screen to screen. This page is round 1.
+
 > **Mockups, not firmware.** Every screen below was drawn by one emulator sketch,
 > [`emu/sketches/gatescenes.py`](../../emu/sketches/gatescenes.py), and captured from the
 > emulator's 240×240 screen. Nothing here is wired to the real ceremony (`firmware/provision_tm.py`)
