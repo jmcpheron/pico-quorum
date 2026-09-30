@@ -1218,6 +1218,7 @@ def start():
     keys = L.Keys()
     splash.step("chip", "probing i2c...", L.GREY)
     probe_chip()
+    gc.collect()                # the Trust M's certificate checks leave the heap in pieces: tidy before the next frame
     if state == "nochip":
         splash.step("chip", "none on i2c", L.RED)
     else:

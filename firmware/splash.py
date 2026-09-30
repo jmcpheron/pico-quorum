@@ -90,9 +90,23 @@ def draw():
         elapsed = time.ticks_diff(time.ticks_ms(), _t0) - BLACK_LEAD_MS
         if elapsed < 0:
             return
-        _art.render(lcd, elapsed // 30, _status, _status_color)
+        try:
+            _art.render(lcd, elapsed // 30, _status, _status_color)
+        except MemoryError:
+            # A frame of the animation is not worth the console: the Trust M's certificate checks leave
+            # the heap in pieces (MemoryError in bootart.render on the 240x240 board, 2026-09-30). Skip it.
+            _skipped()
     else:
-        lcd.frames(_draw)
+        try:
+            lcd.frames(_draw)
+        except MemoryError:
+            _skipped()
+
+
+def _skipped():
+    import gc
+    lcd.y0 = 0
+    gc.collect()
 
 
 def _black():
