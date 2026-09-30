@@ -21,6 +21,80 @@ there is where this one starts.
    the home screen, the approvals row, and the moment of signing.
 5. **Every screen, redone,** with before/after pairs like the v1 walkthrough.
 
+## Iteration 6 (2026-09-27): smooth all the way, filled from the bottom, a name in front
+
+You asked:
+- Fill the green from the bottom up, like it's being filled.
+- It still felt herky-jerky, pausing at awkward spots. Make it feel like it's booting up
+  smoothly.
+- Keep the Ethereum diamond spinning. Put PicoQuorum in front, with the diamond behind it, and a
+  cycling tagline.
+
+**Why it was jerky:** to give each boot step time on screen, the animation's clock *stopped*
+before each signature. Anything mid-motion froze: a signing ring halfway out, a line partway
+drawn, the green triangle dead still before it lurched into the turn. The orbit now has its own
+clock that never stops. Between steps the waiting owners keep breathing, and every move eases in
+and out.
+
+<img src="boot/orbit-lite.gif" width="60%">
+
+This is the **lite GIF** (2026-09-28): the panel's own 240 px, 10 frames a second and 48
+colours, 0.2 MB, for slower viewers. The full one, 360 px at 20 frames a second (1.1 MB), is
+[here](boot/orbit.gif).
+
+| | |
+|---|---|
+| <img src="boot/orbit-132.png"> | <img src="boot/orbit-144.png"> |
+| **Signing:** each ring now spreads out and fades smoothly (0.8 s), and each line eases in. | **Green fills from the bottom,** with a bright surface line, as the two who didn't sign fade. |
+| <img src="boot/orbit-150.png"> | <img src="boot/orbit-160.png"> |
+| **Filling up:** 1.1 s, easing in and out. | **Full,** with a soft glow that swells and fades instead of a flash. |
+| <img src="boot/orbit-186.png"> | <img src="boot/orbit-198.png"> |
+| **It turns straight out of the glow:** one face of the pyramid, blue coming round. | **The green face turns away,** the inverted pyramid rises. |
+| <img src="boot/orbit-214.png"> | <img src="boot/orbit-256.png"> |
+| **The Ethereum diamond,** still spinning; it never stops now. | **Behind the name:** it grows, centres and dims, and **PicoQuorum** comes up in front, with the quorum mark (five owners, three signed, their green triangle). |
+| <img src="boot/orbit-300.png"> | <img src="boot/orbit-340.png"> |
+| **Taglines cycle** under the name, about 2 s each… | **…and the diamond keeps turning** behind, slowly, for as long as the screen is up. |
+
+- **Taglines** (placeholders, yours to rewrite): "Your keys, your quorum", "Nothing signs unseen",
+  "Hardware approvals for Safe", "Every hash checked here".
+- **The mark** next to the name is new: the boot screen in miniature. It could become the app
+  icon and the home screen's corner mark.
+- **Length:** 10.8 s to "Ready", then the name and taglines. The GIF runs 20 s to show all four
+  taglines. On the device, the home screen would follow as soon as the queue loads.
+
+**Questions for you:**
+1. **The taglines:** keep, cut, or write your own? Cycle them, or pick one?
+2. **The mark:** keep it next to the name, or just the word?
+3. **On the device:** stay on the name until a button is pressed, or go straight to the queue
+   when it's ready?
+
+## Iteration 5 (2026-09-27): the green triangle, redone
+
+You said the green triangle's timing felt awkward. Frame by frame, three things were off:
+- **It faded up from black,** so for half a second it was a murky dark triangle, not a green one.
+- **There was no beat.** It reached full green and started moving at once.
+- **The whole pyramid went a washed-out teal** on the way to blue, because every face blended
+  from green to blue at the same time.
+
+Now:
+
+<img src="boot/iter5/orbit.gif" width="60%">
+
+| | |
+|---|---|
+| <img src="boot/iter5/orbit-131.png"> | <img src="boot/iter5/orbit-135.png"> |
+| **The quorum closes.** | **Green pours in** from the tip, with a bright surface line, in a third of a second. |
+| <img src="boot/iter5/orbit-143.png"> | <img src="boot/iter5/orbit-166.png"> |
+| **A flash, then a beat:** it holds, solid green, for about a second. | **It turns, and it's one face of a pyramid.** The face coming round is Ethereum blue. |
+| <img src="boot/iter5/orbit-178.png"> | <img src="boot/iter5/orbit-190.png"> |
+| **The green face turns away** as the camera pulls back… | **…and goes out of sight.** Only blue is left, and the diamond settles as before. |
+
+The first half (the orbit, the status line, the signatures) and the ending are iteration 4's.
+The loading screen is 0.7 s longer (12.4 s) for the beat.
+
+**Question for you:** is the beat the right length? About 1 s now (the pour, the flash and the
+hold).
+
 ## Iteration 4 (2026-09-27): more time, a status line, green signatures
 
 You asked:
@@ -29,19 +103,19 @@ You asked:
 - Make the three signers green, start the solid triangle green, and blend it into the Ethereum
   logo.
 
-<img src="boot/orbit.gif" width="60%">
+<img src="boot/iter4/orbit.gif" width="60%">
 
 | | |
 |---|---|
-| <img src="boot/orbit-012.png"> | <img src="boot/orbit-050.png"> |
+| <img src="boot/iter4/orbit-012.png"> | <img src="boot/iter4/orbit-050.png"> |
 | **Starting up.** Five owners far out in space. The orbit now takes 3.2 s and 2.4 turns (was 2.2 s and 1.4). | **Joining WiFi** while they swing round to face you. |
-| <img src="boot/orbit-081.png"> | <img src="boot/orbit-104.png"> |
+| <img src="boot/iter4/orbit-081.png"> | <img src="boot/iter4/orbit-104.png"> |
 | **WiFi connected: the top signs,** and turns green. Each step's line slides up and out as the next slides in. | **Chip verified: the bottom left signs,** with a green line to the top. |
-| <img src="boot/orbit-130.png"> | <img src="boot/orbit-140.png"> |
+| <img src="boot/iter4/orbit-130.png"> | <img src="boot/iter4/orbit-140.png"> |
 | **The Safe found: the bottom right signs** and the triangle closes. "Family Safe · 3 of 5". | **The triangle turns solid green.** The two who didn't sign fade away. |
-| <img src="boot/orbit-158.png"> | <img src="boot/orbit-166.png"> |
+| <img src="boot/iter4/orbit-158.png"> | <img src="boot/iter4/orbit-166.png"> |
 | **Loading the queue:** the pyramid turns, and its green blends into Ethereum's blue… | **…and the inverted pyramid rises** underneath. |
-| <img src="boot/orbit-233.png"> | |
+| <img src="boot/iter4/orbit-233.png"> | |
 | **Ready.** The diamond lands on the logo's pose, with the name above the last line. | |
 
 - **The status line** is one row at the bottom. A spinner and grey text mean working ("Joining
@@ -213,6 +287,7 @@ telling 0/O and 1/l/I apart, which matters on a device for comparing addresses. 
 ```sh
 tools/emu run ethboot                                   # play it in the emulator; A = next option
 tools/bootgifs --sketch ethboot --stills 8,16,26 orbit  # an option's GIF and stills
+tools/bootgifs --sketch ethboot --lite orbit            # plus orbit-lite.gif: 240 px, 10 a second
 tools/emu ship ethboot                                  # a one-off run on the Pico
 ```
 
@@ -233,5 +308,9 @@ Edit this list on GitHub: add a line, tick one off, or write under it. Each iter
 - [x] Orbit one more turn, more time overall (iteration 4)
 - [x] A status line at the bottom: joining WiFi, checking the chip… (iteration 4)
 - [x] Signers green, the triangle solid green, blending into the Ethereum logo (iteration 4)
+- [x] The green triangle's timing felt awkward: it pours in, holds a beat, and turns away as one
+      face of the diamond (iteration 5)
+- [x] Fill from the bottom up; smooth, no pauses; the diamond keeps spinning behind the name, with
+      cycling taglines (iteration 6)
 - [ ] Pick a font set (FONTS.md, question 1)
 - [ ] (add yours)
