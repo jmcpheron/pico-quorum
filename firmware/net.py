@@ -32,8 +32,11 @@ def connect(timeout_s=12, progress=None):
     if not wlan.isconnected():
         wlan.connect(secrets.WIFI_SSID, secrets.WIFI_PASS)
         t0 = time.ticks_ms()
+        n = 0
         while not wlan.isconnected() and time.ticks_diff(time.ticks_ms(), t0) < timeout_s * 1000:
-            led.toggle()
+            if n % 3 == 0:
+                led.toggle()
+            n += 1
             if progress:
                 try:
                     if progress(time.ticks_diff(time.ticks_ms(), t0)):
@@ -41,7 +44,7 @@ def connect(timeout_s=12, progress=None):
                         break
                 except Exception:
                     pass
-            time.sleep_ms(150)
+            time.sleep_ms(50)       # the boot mark animates on progress; the LED still blinks at 150 ms
     if wlan.isconnected():
         led.on()
         print("wifi up:", wlan.ifconfig()[0], "hostname:", secrets.HOSTNAME)

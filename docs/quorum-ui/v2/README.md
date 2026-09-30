@@ -21,6 +21,38 @@ there is where this one starts.
    the home screen, the approvals row, and the moment of signing.
 5. **Every screen, redone,** with before/after pairs like the v1 walkthrough.
 
+## The light mark (2026-09-30): the loading screen the Pico can keep up with
+
+The orbit redraws and sends the whole panel every frame: 100–130 ms a frame on the Pico
+(8–10 fps), of which about 50 ms is just the 150 KB going over SPI to the 2.8". The new default
+is the orbit's end mark on its own, drawn as flat shapes: five owners pop in, three sign (green,
+a ring going out), their triangle closes and fills from the base, the two left out stay amber, and
+PicoQuorum fades in under it. The real boot status is the bottom line, as before.
+
+<img src="boot/mark.gif" width="60%">
+
+**Why it's smooth:** each frame sends only what changed since the last one: a dot's square, an
+edge as far as it has got, the rows the green rose through, the name while it fades, the status
+line when it changes. Across the animation that's about 6% of the bytes whole frames would take;
+the busiest frame is 26–30 KB and 17 of 131 frames send nothing. The drawing is a dozen framebuf
+calls per rectangle, in C. Only the first frame paints the whole panel (about the cost of one orbit
+frame). It lasts 3.5 s after a 0.3 s black lead-in (the orbit: 9.6 s after 4 s of black).
+
+| | |
+|---|---|
+| <img src="boot/mark-025.png"> | <img src="boot/mark-045.png"> |
+| <img src="boot/mark-060.png"> | <img src="boot/mark-085.png"> |
+| <img src="boot/mark-130.png"> | |
+
+It fits every panel we have, including the 1.8" (which had only the checklist):
+
+<img src="boot/mark-panels.png">
+
+`secrets.BOOT_ART` picks the boot screen: `"mark"` (the default), `"still"` (the finished mark at
+once, then only the status line changes), `"orbit"` (the full animation above) or `"checklist"`.
+`node test-vectors/run-bootmark.mjs` checks that after every frame the panel equals the whole
+scene painted afresh, on all three panels, and prints the bytes sent.
+
 ## Iteration 6 (2026-09-27): smooth all the way, filled from the bottom, a name in front
 
 You asked:
