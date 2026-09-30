@@ -544,6 +544,11 @@ def case_unsent():
         check(not sign(Q, Q.queue[0], 2100) and Q.unsent and "unsent.json" in os.listdir(), "OSError 12 on the confirmation: kept in RAM and on flash")
     finally:
         SVC.post = real_post
+    import txservice
+    check(txservice.why(422, {"nonFieldErrors": ["Signature is not valid"]}) == "HTTP 422: Signature is not valid"
+          and txservice.why(400, {"detail": "no"}) == "HTTP 400: no" and txservice.why(502, {}) == "HTTP 502"
+          and txservice.why(400, {"signature": ["bad"]}) == "HTTP 400: signature: bad" and txservice.why(201, {}) == "",
+          "a refused confirmation says what the service said (detail, nonFieldErrors, any field), never nothing")
     Q = fresh(keep=True)                    # a restart (the RAM copy is gone)
     serve(Q, [t])
     check(SVC.posted and t["safeTxHash"] in SVC.posted[-1][0] and "unsent.json" not in os.listdir(),

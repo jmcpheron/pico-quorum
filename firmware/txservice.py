@@ -49,6 +49,27 @@ class ServiceError(Exception):
     pass
 
 
+def why(code, out):
+    """What the service said, for the screen and the log: its `detail`, else the first message it gave
+    under any other name (Safe's validation errors come as {"nonFieldErrors": [...]}, {"signature": [...]}),
+    else the bare HTTP code. Kept short. It used to read only `detail`, so a rejected signature showed
+    "the service said: " and nothing (2026-09-30)."""
+    if code in (200, 201):
+        return ""
+    msg = ""
+    if isinstance(out, dict):
+        msg = out.get("detail") or ""
+        if not msg:
+            for k, v in out.items():
+                v = v[0] if isinstance(v, (list, tuple)) and v else v
+                if v and not isinstance(v, (dict, list, tuple)):
+                    msg = "%s: %s" % (k, v) if k not in ("nonFieldErrors", "non_field_errors") else str(v)
+                    break
+    elif out:
+        msg = str(out)
+    return ("HTTP %s" % code + (": " + msg if msg else ""))[:120]
+
+
 class Service:
     def __init__(self, base, safe, api_key=None, verify=True, floor=0):
         """verify: check the server's certificate against the pinned roots (vhttp.py). Only a
@@ -165,7 +186,7 @@ class Service:
 
     def confirm(self, safe_tx_hash, signature):
         code, out = self._post("/api/v1/multisig-transactions/%s/confirmations/" % safe_tx_hash, {"signature": signature})
-        return code in (200, 201), out.get("detail", "") if isinstance(out, dict) else str(out)
+        return code in (200, 201), why(code, out)
 
     # --- the simulation's own endpoints (tools/quorum). Never sent to a real service: they would
     # spend its quota and hand it this key's public key for nothing.
