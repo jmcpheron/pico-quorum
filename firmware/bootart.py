@@ -207,8 +207,8 @@ BACK0, BACK1 = 100, 128
 
 TAG0, TAG_EACH = 134, 38
 
-TAGS = ("Your keys, your quorum", "Nothing signs unseen", "Hardware approvals for Safe",
-        "Every hash checked here")
+import taglines
+TAGS = taglines.cycle()                  # secrets.BOOT_TAGLINES; one after another
 
 V_BACK = 1.2
 

@@ -27,7 +27,7 @@ The orbit redraws and sends the whole panel every frame: 100–130 ms a frame on
 (8–10 fps), of which about 50 ms is just the 150 KB going over SPI to the 2.8". The new default
 is the orbit's end mark on its own, drawn as flat shapes: five owners pop in, three sign (green,
 a ring going out), their triangle closes and fills from the base, the two left out stay amber, and
-PicoQuorum fades in under it. The real boot status is the bottom line, as before.
+PicoQuorum fades in under it, then a tagline. The real boot status is the bottom line, as before.
 
 <img src="boot/mark.gif" width="60%">
 
@@ -36,7 +36,7 @@ edge as far as it has got, the rows the green rose through, the name while it fa
 line when it changes. Across the animation that's about 6% of the bytes whole frames would take;
 the busiest frame is 26–30 KB and 17 of 131 frames send nothing. The drawing is a dozen framebuf
 calls per rectangle, in C. Only the first frame paints the whole panel (about the cost of one orbit
-frame). It lasts 3.5 s after a 0.3 s black lead-in (the orbit: 9.6 s after 4 s of black).
+frame). It lasts 3.8 s after a 0.3 s black lead-in (the orbit: 9.6 s after 4 s of black).
 
 | | |
 |---|---|
@@ -44,9 +44,18 @@ frame). It lasts 3.5 s after a 0.3 s black lead-in (the orbit: 9.6 s after 4 s o
 | <img src="boot/mark-060.png"> | <img src="boot/mark-085.png"> |
 | <img src="boot/mark-130.png"> | |
 
-It fits every panel we have, including the 1.8" (which had only the checklist):
+It fits every panel we have, including the 1.8" (which had only the checklist; no room there for
+a tagline):
 
 <img src="boot/mark-panels.png">
+
+**Taglines** ([`firmware/taglines.py`](../../../firmware/taglines.py)): one per boot on the mark,
+cycling on the orbit. `secrets.BOOT_TAGLINES` picks `"serious"` (the default), `"fun"`, `"all"` or
+`"none"`. The serious ones are claims about the console, so each has to stay true of the firmware
+(the file says which code backs which claim). The fun ones are films and shows, cyberpunk and
+the demoscene. Each fits 220 px; the test checks.
+
+<img src="boot/mark-taglines.png">
 
 `secrets.BOOT_ART` picks the boot screen: `"mark"` (the default), `"still"` (the finished mark at
 once, then only the status line changes), `"orbit"` (the full animation above) or `"checklist"`.

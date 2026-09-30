@@ -1,10 +1,11 @@
 # The light boot screen: the PicoQuorum mark as flat vectors (five owners, three sign, their
-# triangle fills green, the other two stay amber), the name under it, the real boot status last.
+# triangle fills green, the other two stay amber), the name and a tagline (taglines.py) under it,
+# the real boot status last.
 # The orbit (bootart.py) redraws and sends the whole panel every frame, about 110 ms a frame on
 # the Pico. This sends only what changed since the last frame: a dot's square, an edge as far as
 # it has got, the rows the green rose through. Most frames are a few KB of SPI and a dozen
 # framebuf calls, and a frame where nothing changed costs nothing.
-#   secrets.BOOT_ART = "mark"  (the default) this, animated, about 3.5 s
+#   secrets.BOOT_ART = "mark"  (the default) this, animated, about 3.8 s
 #                      "still" the finished mark at once; only the status line changes after
 #                      "orbit" the full orbit animation (bootart.py)
 # Visual branding only: the three green dots do not report actual signatures.
@@ -14,6 +15,7 @@ from array import array
 import board
 import lcd as L
 import fonts as F
+import taglines
 
 LEAD_MS = 300           # black before the first frame (splash)
 IN_MS = True            # splash passes render the time in ms (the orbit takes a frame number)
@@ -23,11 +25,13 @@ FACE = (95, 222, 126)   # the orbit's lit green face (bootart.FACE_GREEN)
 SIGNERS = (0, 3, 2)     # top, lower left, lower right: the quorum; 1 and 4 stay amber
 SMALL = L.H < 200       # the 1.8": 160x128
 R = 30 if SMALL else 62                     # the owners' circle
-CX, CY = L.W // 2, 40 if SMALL else 92
+CX, CY = L.W // 2, 40 if SMALL else 84
 DOT = 5 if SMALL else 8
 EDGE = 2 if SMALL else 3
 RING = 12 if SMALL else 22                  # how far a signer's ring goes out
-NAME_FONT, NAME_Y = ("bold18", 78) if SMALL else ("bold26", 172)
+NAME_FONT, NAME_Y = ("bold18", 78) if SMALL else ("bold26", 150)
+TAG_FONT, TAG_Y = "sans14", None if SMALL else 185     # no room for a tagline on the 1.8"
+TAG_INK = (200, 205, 214)                   # a step brighter than the status line under it
 STATUS_FONT = "sans12" if SMALL else "sans14"
 STATUS_Y = L.H - (18 if SMALL else 26)
 PTS = [(int(CX + R * math.cos(math.radians(-90 + 72 * k))),
@@ -42,7 +46,8 @@ EDGE_MS, RING_MS = 300, 420
 SETTLE0, SETTLE1 = 2050, 2450               # the two who didn't sign shrink a little
 POUR0, POUR1 = 2350, 2900                   # the triangle fills from its base up
 NAME0, NAME1 = 2700, 3300                   # the name fades in
-DURATION_MS = 3500                          # splash holds the boot screen this long
+TAG0, TAG1 = 3150, 3650                     # then the tagline
+DURATION_MS = 3800                          # splash holds the boot screen this long
 STILL = 1 << 30                             # "still": every element at its end
 
 
@@ -111,6 +116,10 @@ def name_look(t):
     return int(8 * span(t, NAME0, NAME1))
 
 
+def tag_look(t):
+    return int(8 * span(t, TAG0, TAG1)) if TAG_Y else 0
+
+
 def draw_fill(d, ox, oy, h):
     if h <= 0:
         return
@@ -136,19 +145,22 @@ def draw_edge(d, ox, oy, e, pct):
 
 
 class Mark:
-    def __init__(self, lcd):
+    def __init__(self, lcd, tagline=None):
         self.lcd = lcd
+        self.tag = (taglines.pick() if tagline is None else tagline) if TAG_Y else ""
+        self.tag_w = F.width(self.tag, TAG_FONT) if self.tag else 0
         self.shown = None       # the looks on the panel now; None: nothing yet (the panel is black)
         self.status = ("", MUTED, 0)   # text cut to fit, colour, width
         self.sent = 0           # bytes over SPI, for the record (test-vectors/run-bootmark.mjs)
 
     def looks(self, t):
         return ([dot_look(k, t) for k in range(5)], [ring_look(k, t) for k in range(5)],
-                [edge_look(e, t) for e in range(3)], fill_look(t), name_look(t), self.status)
+                [edge_look(e, t) for e in range(3)], fill_look(t), name_look(t), self.status,
+                tag_look(t) if self.tag else 0)
 
     def scene(self, d, ox, oy, lk):
         """Everything, shifted by (-ox, -oy) into d; framebuf clips what falls outside."""
-        dots, rings, edges, fill, name, status = lk
+        dots, rings, edges, fill, name, status, tag = lk
         d.fill(L.color(*BG))
         draw_fill(d, ox, oy, fill)
         for e in range(3):
@@ -166,6 +178,8 @@ class Mark:
         if name:
             w = F.width("PicoQuorum", NAME_FONT)
             F.text(d, "PicoQuorum", (L.W - w) // 2 - ox, NAME_Y - oy, NAME_FONT, mix(BG, INK, name / 8), BG)
+        if tag:
+            F.text(d, self.tag, (L.W - self.tag_w) // 2 - ox, TAG_Y - oy, TAG_FONT, mix(BG, TAG_INK, tag / 8), BG)
         s, rgb, w = status
         if s:
             F.text(d, s, (L.W - w) // 2 - ox, STATUS_Y - oy, STATUS_FONT, rgb, BG)
@@ -193,6 +207,8 @@ class Mark:
         if old[4] != new[4]:
             w = F.width("PicoQuorum", NAME_FONT)
             out.append(((L.W - w) // 2 - 2, NAME_Y - 4, w + 4, F.height(NAME_FONT) + 8))
+        if old[6] != new[6]:
+            out.append(((L.W - self.tag_w) // 2 - 2, TAG_Y - 4, self.tag_w + 4, F.height(TAG_FONT) + 8))
         if old[5] != new[5]:
             out.append((0, STATUS_Y - 4, L.W, F.height(STATUS_FONT) + 8))
         return out
@@ -234,7 +250,8 @@ _mark = None
 
 
 def render(screen, t, status, status_color, still=False):
-    """splash's entry: t is ms since the lead-in. The first call paints the whole panel once."""
+    """splash's entry: t is ms since the lead-in. The first call paints the whole panel once and
+    picks this boot's tagline."""
     global _mark
     if _mark is None or _mark.lcd is not screen:
         _mark = Mark(screen)

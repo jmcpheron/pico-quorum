@@ -3,7 +3,7 @@
   "images": {
     "console": {
       "main": "main_console.py",
-      "files": ["atecc.py", "board.py", "bootart.py", "bootmark.py", "blockies.py", "boot.py", "chipcfg.py", "chips.py", "decode.py", "fonts.py", "icons.py", "image.py", "keccak.py", "knob.py",
+      "files": ["atecc.py", "board.py", "bootart.py", "bootmark.py", "taglines.py", "blockies.py", "boot.py", "chipcfg.py", "chips.py", "decode.py", "fonts.py", "icons.py", "image.py", "keccak.py", "knob.py",
                 "lcd.py", "main_console.py", "net.py", "p256.py", "policy.py", "qf_bold14.bin", "qf_bold18.bin",
                 "qf_bold26.bin", "qf_mono13.bin", "qf_monob28.bin", "qf_sans12.bin", "qf_sans14.bin", "qlog.py",
                 "quorum.py", "quorum_cfg.py", "quorum_ui.py", "quorum_ui_s.py", "safe_tx.py", "signer.py", "splash.py", "theme.py",
@@ -12,7 +12,7 @@
     },
     "ceremony": {
       "main": "main_ceremony.py",
-      "files": ["blockies.py", "atecc.py", "board.py", "bootart.py", "bootmark.py", "boot.py", "ceremony.py", "chipapp.py", "chipcfg.py", "chipmap.py", "icons.py", "image.py",
+      "files": ["blockies.py", "atecc.py", "board.py", "bootart.py", "bootmark.py", "taglines.py", "boot.py", "ceremony.py", "chipapp.py", "chipcfg.py", "chipmap.py", "icons.py", "image.py",
                 "fonts.py", "qf_bold14.bin", "qf_bold18.bin", "qf_bold26.bin", "qf_mono13.bin",
                 "qf_monob28.bin", "qf_sans12.bin", "qf_sans14.bin",
                 "keccak.py", "knob.py", "lcd.py", "learn.py", "main_ceremony.py", "net.py", "p256.py", "provision.py", "qrcode.py", "chips.py",
@@ -20,7 +20,7 @@
     },
     "dual": {
       "main": "main_dual.py",
-      "files": ["atecc.py", "board.py", "bootart.py", "bootmark.py", "blockies.py", "boot.py", "ca_amazon_root1.bin", "ca_amazon_root3.bin",
+      "files": ["atecc.py", "board.py", "bootart.py", "bootmark.py", "taglines.py", "blockies.py", "boot.py", "ca_amazon_root1.bin", "ca_amazon_root3.bin",
                 "ca_starfield_g2.bin", "ceremony.py", "chipapp.py", "chipcfg.py", "chipmap.py", "chips.py",
                 "decode.py", "fonts.py", "icons.py", "image.py", "keccak.py", "knob.py", "lcd.py", "learn.py",
                 "main_dual.py", "net.py", "p256.py", "policy.py",

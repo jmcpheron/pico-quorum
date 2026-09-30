@@ -20,9 +20,11 @@ QUORUM_URL = "http://<mac-lan-ip>:8787"
 # QUORUM_POLL_S = 20
 # QUORUM_IDLE_POLL_S = 120
 QUORUM_THEME = "dark"   # or "light"
-# The boot screen: "mark" (the default: the PicoQuorum mark drawn in ~3.5 s, light on the Pico),
+# The boot screen: "mark" (the default: the PicoQuorum mark drawn in ~3.8 s, light on the Pico),
 # "still" (the finished mark at once), "orbit" (the full orbit animation, ~8-10 fps) or "checklist".
 # BOOT_ART = "mark"
+# Its taglines (firmware/taglines.py): "serious" (the default), "fun", "all" or "none".
+# BOOT_TAGLINES = "serious"
 # The console pins which chip, slot and key it signs with (tools/fw pin writes this line). The
 # production image signs nothing without it, or when the chip in the board doesn't match.
 # QUORUM_EXPECT = {"serial": "0123...", "slot": 0, "owner": "0x...", "locked": True}

@@ -1,7 +1,7 @@
 // The light boot mark (firmware/bootmark.py) on each panel: every frame it sends only the rectangles
 // that changed, so after any run of frames the panel must equal the whole scene painted afresh.
 // Checked at every frame on 240x240 (Waveshare, strip-buffered), 320x240 (build1 2.8") and 160x128
-// (build1 1.8", one frame buffer). Prints the SPI bytes per frame against a whole-panel frame, and
+// (build1 1.8", one frame buffer), with the tagline under the name where there is room. Prints the SPI bytes per frame against a whole-panel frame, and
 // writes the Waveshare frames to emu/shots/bootmark/ (NNNN.png, 30 ms apart) plus a still per panel.
 //   node test-vectors/run-bootmark.mjs
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -34,6 +34,7 @@ for (const p of PANELS) {
     // Waveshare the real LCD is used as well, so the emulator's own SPI capture is checked too.
     dev.mp.runPython(`
 import bootmark, lcd as L, board, binascii
+TAG = 'See what you sign'
 PW, PH = board.PANEL_W, board.PANEL_H
 class Pin:
     def __call__(self, v): pass
@@ -58,12 +59,12 @@ def status_at(t):
     return s
 def fresh(t, status):
     ref = Panel()
-    m = bootmark.Mark(ref)
+    m = bootmark.Mark(ref, TAG)
     m.frame(t, status)
     return ref.ram, m.sent
 panel = Panel()
-mark = bootmark.Mark(panel)
-real = bootmark.Mark(L.LCD()) if ${p.real ? 'True' : 'False'} else None
+mark = bootmark.Mark(panel, TAG)
+real = bootmark.Mark(L.LCD(), TAG) if ${p.real ? 'True' : 'False'} else None
 sent = []
 `);
     let frames = 0;
@@ -90,7 +91,7 @@ if real:
     // "still": everything at its end in one paint, then only the status line.
     dev.mp.runPython(`
 still = Panel()
-m = bootmark.Mark(still)
+m = bootmark.Mark(still, TAG)
 m.frame(bootmark.STILL, 'app: Starting console')
 _one = m.sent
 m.frame(bootmark.STILL, 'app: Starting console')
@@ -120,13 +121,20 @@ _stats = json.dumps([sum(sent), max(sent[1:]), len([s for s in sent if s == 0]),
 import splash, sys
 splash.begin()
 assert splash._art.__name__ == 'bootmark' and not splash._still
-assert splash.BLACK_LEAD_MS + splash.ANIMATION_MS == 3800
+assert splash.BLACK_LEAD_MS + splash.ANIMATION_MS == 4100
 assert splash._gap == 30
 splash.step('app', 'Starting console')
 splash.finish(wait=False)
 assert splash._art is None and 'bootmark' not in sys.modules and 'bootart' not in sys.modules
+assert 'taglines' not in sys.modules
+import taglines, fonts as F
+wide = [t for t in taglines.SERIOUS + taglines.FUN if F.width(t, 'sans14') > 220]
+assert not wide, 'too wide for the 240x240: %r' % wide
+assert taglines.pool() == taglines.SERIOUS and taglines.pick() in taglines.SERIOUS
+assert sorted(taglines.cycle()) == sorted(taglines.SERIOUS)
 `);
-    console.log('bootmark: splash picks the mark by default, 3.8 s hold, released at finish');
+    console.log('bootmark: splash picks the mark by default, 4.1 s hold, released at finish; ' +
+      'every tagline fits 220 px, serious by default');
   } catch (e) { console.error(`bootmark splash: ${String(e)}`); failed = true; } finally { dev.dispose(); }
 }
 if (failed) process.exitCode = 1;
