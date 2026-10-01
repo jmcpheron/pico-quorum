@@ -28,6 +28,10 @@ original idea, drawn the light way: the green triangle becomes the top of the Et
 spins until the whole logo is there. Then PicoQuorum, with a small version of the mark to its left,
 fades in over the logo, which keeps turning. And no pauses: as quick as it can go.
 
+**Update, same day:** on the board it ran fast and smooth until the name came up, then stuttered
+and froze. That was the console starting up behind it (below), so the diamond now **slows to a
+stop on the logo's pose** as the name fades in, rather than freezing mid-turn.
+
 <img src="boot/mark-eth.gif" width="60%">
 
 | | |
@@ -39,7 +43,7 @@ fades in over the logo, which keeps turning. And no pauses: as quick as it can g
 | <img src="boot/mark-eth-084.png"> | <img src="boot/mark-eth-092.png"> |
 | **2.5 s: all Ethereum blue,** and the lower pyramid rises in. | **2.8 s: the logo,** spinning. |
 | <img src="boot/mark-eth-110.png"> | <img src="boot/mark-eth-150.png"> |
-| **3.3 s:** it slows, grows and dims, and **the small mark and PicoQuorum fade in over it.** | **4.5 s:** the tagline, and the logo still turning slowly behind. It turns for as long as the boot screen is up. |
+| **3.3 s:** it slows, grows and dims, and **the small mark and PicoQuorum fade in over it.** | **4.5 s:** the tagline, and the logo at rest on its own pose behind. |
 
 The small mark is the boot screen in miniature: five owners, three signed in green, two amber,
 their triangle.
@@ -51,14 +55,23 @@ On every panel (this is `BOOT_ART = "still"`, the end of it drawn at once):
 - **Length:** the logo is spinning by 2.8 s and the name is up by 3.4 s. Splash holds 3.7 s after
   the 0.3 s black (the corner version held 5.3 s and the plain mark 3.8 s). Any key still skips.
 - **Cost:** each frame repaints the box the diamond was in and the box it's in now. While it's
-  big and turning that's up to half the panel (58 KB), so this is heavier than the plain mark: 21%
-  of what whole frames would send, against 6%. That's still about 5× lighter than the orbit. Once
-  it slows behind the name, a frame only goes out when it has turned another whole degree.
+  big and turning that's up to half the panel (58 KB), so this is heavier than the plain mark: 15%
+  of what whole frames would send, against 6%. That's still about 6× lighter than the orbit. Once
+  it lands, frames send nothing but the name's fade and the status line.
+- **Why it stuttered on the board, and a faster boot:** the animation finishes as WiFi joins, about
+  5.3 s after power-on. Then the console starts: `main.py`'s imports (1.1 s), and the chip checks.
+  With the Trust M those were 6.7 s, all without a frame. Two pure-Python P-256 verifies of its
+  factory certificate and key binding took 4.7 s, and the owner address (two keccaks) took 0.7 s.
+  Both are now worked out once and remembered by a hash of exactly the bytes they're computed from
+  (`tmproof.txt`, `owners.txt`). The same chip gives the same answer at once, and any change works
+  them out again. The console is up about 7.8 s after power-on, down from about 13 s.
+  `log.txt` has a `boot ms:` line each boot with where the time went.
 - **The corner version is gone:** its pictures are replaced by these.
 
 **Questions for you:**
-1. **The turn:** about two-thirds of a turn while it becomes the logo, then 30° a second behind the
-   name. Faster, slower?
+1. **The turn:** three-quarters of a turn while it becomes the logo, coming to rest as the name
+   fades in. Faster, slower? It could keep turning, but on the board that means a freeze while the
+   console starts, unless the startup itself is reworked to hand back frames.
 2. **Behind the name:** it dims to about a third. Brighter, so the logo reads more, or darker, so
    the name reads more?
 
