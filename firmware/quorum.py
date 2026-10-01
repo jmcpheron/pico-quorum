@@ -1294,10 +1294,9 @@ def start():
     splash_until = time.ticks_add(time.ticks_ms(), 1500)
     last_activity = time.ticks_ms()
     dirty = True
+    qlog.write("boot ms: " + " ".join(marks))   # before the timer: its first tick (an HTTPS call) runs at once
     start_timer()
     start_watch()
-    mark("timers")
-    qlog.write("boot ms: " + " ".join(marks))
 
 
 def stop():
