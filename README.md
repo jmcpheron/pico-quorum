@@ -50,6 +50,10 @@ What works so far:
     there.
   - `tools/quorum e2e` runs a whole approval with the emulator, no hardware
     ([details](tools/mock-tx-service/README.md)).
+- **Starting a transaction without the web app** (`tools/quorum live propose`): from a wallet, a
+  delegate, or a console's own signature served from the laptop, with or without Safe's service.
+  `tools/quorum e2e-propose` runs it on the fork; it hasn't been tried on a real chain yet
+  ([guide](docs/guide/PROPOSING.md)).
 - Everything inherited from picowallet: the ATECC608 driver and chip explorer, the OPTIGA Trust M
   driver and `TrustMAttest` contract, on-device keccak/EIP-712, the screen and button UI, the USB
   wallet, and the emulator.

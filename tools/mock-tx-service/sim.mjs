@@ -12,7 +12,7 @@
 // console confirmation that verifies here proves the console hashed the same fields it showed.
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { concat, decodeFunctionData, getAddress, hashTypedData, keccak256, parseAbi, recoverAddress } from "viem";
+import { concat, decodeFunctionData, getAddress, hashTypedData, isAddress, keccak256, parseAbi, recoverAddress } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import * as sigs from "./sigs.mjs";
 
@@ -67,6 +67,16 @@ export function safeTxHash(chainId, safe, f) {
   return hashTypedData({ domain: { chainId, verifyingContract: safe }, types: TYPES, primaryType: "SafeTx", message });
 }
 
+// A delegate may propose transactions to Safe's service for a Safe, but its signature never counts
+// toward the threshold. An owner adds one by signing this (the service's /api/v2/delegates/): the
+// delegate's address and the hour since 1970 (TOTP, T0 = 0, Tx = 3600), so the signature expires.
+export const DELEGATE_TYPES = { Delegate: [{ name: "delegateAddress", type: "address" }, { name: "totp", type: "uint256" }] };
+export const totpNow = () => Math.floor(Date.now() / 1000 / 3600);
+export function delegateTypedData(chainId, delegate, totp = totpNow()) {
+  return { domain: { name: "Safe Transaction Service", version: "1.0", chainId }, types: DELEGATE_TYPES, primaryType: "Delegate",
+           message: { delegateAddress: getAddress(delegate), totp: BigInt(totp) } };
+}
+
 // ----------------------------------------------------------------------------- the backend
 let chain = null;       // chain.mjs's Chain while the Safe is the forked one, else simulated
 let autoExec = true;    // false: like Safe's real service, never execute; tools/quorum live exec does
@@ -85,7 +95,7 @@ export function fresh() {
   return {
     chainId: s.chainId, address: getAddress(s.address), name: s.name, nonce: 0, threshold: 2, version: "1.4.1",
     owners: [{ address: PEOPLE.alice.address, name: "Alice", kind: "eoa" }, { address: PEOPLE.bob.address, name: "Bob", kind: "eoa" }],
-    txs: [], log: [], clock: 0,
+    txs: [], delegates: [], log: [], clock: 0,
   };
 }
 
@@ -240,6 +250,117 @@ async function record(st, tx, owner, type, signature, note) {
   say(st, `${owner.name} confirmed #${tx.nonce} (${note}): ${tx.confirmations.length} of ${st.threshold}`);
   await execute(st);
   return { ok: true, owner: owner.address, name: owner.name };
+}
+
+// ----------------------------------------------------------------------------- proposals from outside
+// POST /api/v1/safes/{safe}/multisig-transactions/, as Safe's service takes it (tools/quorum live
+// propose sends it). The rules are the real service's: the hash must be the fields' hash, the
+// nonce not spent, the sender an owner or a delegate, and its signature, if any, valid and the
+// sender's. An owner's signature is the first confirmation; a delegate's only proposes.
+// -> [HTTP code, body].
+export async function proposeFromApi(st, b) {
+  st.delegates ||= [];
+  const bad = (msg) => [422, { nonFieldErrors: [msg] }];
+  if (!isAddress(b.safe || "") || getAddress(b.safe) !== st.address) return bad(`safe=${b.safe} is not this Safe`);
+  if (!isAddress(b.to || "") || !isAddress(b.sender || "")) return bad("to and sender must be addresses");
+  let f;
+  try {
+    f = { to: getAddress(b.to), value: String(BigInt(b.value)), data: b.data || "0x", operation: Number(b.operation),
+          safeTxGas: String(BigInt(b.safeTxGas)), baseGas: String(BigInt(b.baseGas)), gasPrice: String(BigInt(b.gasPrice)),
+          gasToken: getAddress(b.gasToken || ZERO), refundReceiver: getAddress(b.refundReceiver || ZERO), nonce: String(BigInt(b.nonce)) };
+  } catch (e) {
+    return bad(`bad field: ${e.shortMessage || e.message}`);
+  }
+  if (![0, 1].includes(f.operation)) return bad(`operation=${b.operation}`);
+  const trueHash = safeTxHash(st.chainId, st.address, f);
+  if (String(b.contractTransactionHash || "").toLowerCase() !== trueHash) {
+    return bad(`Contract-transaction-hash=${trueHash} does not match provided contract-tx-hash=${b.contractTransactionHash}`);
+  }
+  if (Number(f.nonce) < st.nonce) return bad(`Nonce=${f.nonce} too low for safe with nonce=${st.nonce}`);
+  const sender = getAddress(b.sender);
+  const owner = st.owners.find((o) => o.address === sender);
+  const delegate = st.delegates.some((d) => d.delegate === sender && (!d.safe || d.safe === st.address));
+  if (!owner && !delegate) return bad(`Sender=${sender} is not an owner or delegate. Current owners=${st.owners.map((o) => o.address)}`);
+  let signed = null;
+  if (b.signature && b.signature !== "0x") {
+    let p;
+    try {
+      p = sigs.parse(b.signature);
+    } catch (e) {
+      return bad(e.message);
+    }
+    if (p.kind === "ecdsa") {
+      signed = await recoverAddress({ hash: trueHash, signature: b.signature });
+    } else if (p.kind === "contract") {
+      const o = st.owners.find((o) => o.address === p.owner);
+      if (!o) return bad(`Signer=${p.owner} is not an owner`);
+      const why = await contractCheck(o, trueHash, p);
+      if (why) return bad(`Signature=${b.signature.slice(0, 20)}.. for owner=${p.owner} is not valid: ${why}`);
+      signed = p.owner;
+    } else {
+      return bad("only ECDSA and contract signatures here");
+    }
+    if (signed !== sender) return bad(`Signer=${signed} does not match sender=${sender}`);
+  }
+  if (chain) await chain.checkHash(st, f, trueHash);
+  let tx = find(st, trueHash);
+  if (!tx) {
+    tx = { safe: st.address, ...f, safeTxHash: trueHash, trueHash, proposer: sender, submissionDate: stamp(st), confirmations: [],
+           isExecuted: false, executionDate: null, transactionHash: null, scenario: b.origin ? `from ${b.origin}` : "", declined: [] };
+    st.txs.push(tx);
+    say(st, `${nameOf(st, sender)}${owner ? "" : " (a delegate)"} proposed #${tx.nonce} ${trueHash.slice(0, 10)}.. through the API`);
+  }
+  if (signed && owner) {
+    const kind = sigs.parse(b.signature).kind;
+    const r = await record(st, tx, owner, kind === "ecdsa" ? "EOA" : "CONTRACT_SIGNATURE", b.signature, kind === "ecdsa" ? "ECDSA" : "contract signature, checked");
+    if (!r.ok && !/already confirmed/.test(r.error)) return bad(r.error);
+  }
+  return [201, apiTx(st, tx)];
+}
+
+// POST /api/v2/delegates/ and DELETE /api/v2/delegates/{delegate}/. The delegator signs
+// delegateTypedData; the service takes this hour's TOTP or the one before. This simulation checks
+// ECDSA signatures only. -> the addresses the signature recovers to, one per TOTP.
+function delegateSigners(st, delegate, signature) {
+  return Promise.all([totpNow(), totpNow() - 1].map((t) =>
+    recoverAddress({ hash: hashTypedData(delegateTypedData(st.chainId, delegate, t)), signature }).catch(() => null)));
+}
+
+export async function addDelegate(st, b) {
+  st.delegates ||= [];
+  if (!isAddress(b.delegate || "") || !isAddress(b.delegator || "")) return [400, { detail: "delegate and delegator must be addresses" }];
+  if (b.safe && getAddress(b.safe) !== st.address) return [400, { detail: `safe=${b.safe} is not this Safe` }];
+  const [delegate, delegator] = [getAddress(b.delegate), getAddress(b.delegator)];
+  if (!st.owners.some((o) => o.address === delegator)) return [400, { detail: `Provided delegator=${delegator} is not an owner of Safe=${st.address}` }];
+  if (!(await delegateSigners(st, delegate, b.signature || "0x")).includes(delegator)) {
+    return [400, { detail: `Signature does not match provided delegator=${delegator}` }];
+  }
+  st.delegates = st.delegates.filter((d) => d.delegate !== delegate);
+  const d = { safe: b.safe ? st.address : null, delegate, delegator, label: String(b.label || ""), expiryDate: null };
+  st.delegates.push(d);
+  say(st, `${nameOf(st, delegator)} made ${delegate} a delegate ("${d.label}"): it may propose, never sign`);
+  return [201, d];
+}
+
+export function listDelegates(st, q) {
+  let r = st.delegates || [];
+  if (q.get("safe")) r = r.filter((d) => !d.safe || d.safe.toLowerCase() === q.get("safe").toLowerCase());
+  if (q.get("delegator")) r = r.filter((d) => d.delegator.toLowerCase() === q.get("delegator").toLowerCase());
+  return { count: r.length, next: null, previous: null, results: r };
+}
+
+export async function removeDelegate(st, delegate, b) {
+  st.delegates ||= [];
+  if (!isAddress(delegate) || !isAddress(b.delegator || "")) return [400, { detail: "delegate and delegator must be addresses" }];
+  delegate = getAddress(delegate);
+  const delegator = getAddress(b.delegator);
+  const signers = await delegateSigners(st, delegate, b.signature || "0x");
+  if (!signers.includes(delegator) && !signers.includes(delegate)) return [400, { detail: "Signature is not the delegator's or the delegate's" }];
+  const before = st.delegates.length;
+  st.delegates = st.delegates.filter((d) => !(d.delegate === delegate && d.delegator === delegator));
+  if (st.delegates.length === before) return [404, { detail: "Not found." }];
+  say(st, `${delegate} is no longer a delegate`);
+  return [204, ""];
 }
 
 export function decline(st, tx, by) {

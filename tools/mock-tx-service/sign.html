@@ -1,0 +1,114 @@
+<!doctype html>
+<!-- tools/quorum live propose and delegate: typed data handed to the browser's wallet to sign
+     (eth_signTypedData_v4). Served on 127.0.0.1 by live.mjs, which fills /req and checks the
+     signature it gets back on /signed. Signing sends nothing onchain. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign with your wallet</title>
+<style>
+  :root { --bg: #f6f6f4; --panel: #ffffff; --ink: #16181d; --dim: #666b75; --line: #e2e2de; --go: #1f8f4e; --go-ink: #fff; --bad: #c0392b; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0f1115; --panel: #181b22; --ink: #e8e8ea; --dim: #8a8f98; --line: #262a33; --go: #3ecf6e; --go-ink: #07140c; --bad: #ff6b5e; }
+  }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 -apple-system, system-ui, sans-serif; }
+  main { max-width: 640px; margin: 0 auto; padding: 24px 16px; }
+  h1 { font-size: 20px; margin: 0 0 4px; } .dim { color: var(--dim); }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin: 14px 0; }
+  dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 10px 0 0; }
+  dt { color: var(--dim); } dd { margin: 0; font-family: ui-monospace, Menlo, monospace; font-size: 13px; overflow-wrap: anywhere; }
+  button { font: inherit; font-weight: 600; border-radius: 8px; padding: 10px 16px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; }
+  button.go { background: var(--go); color: var(--go-ink); border-color: var(--go); }
+  button:disabled { opacity: .45; cursor: default; }
+  details pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; max-height: 200px; overflow: auto; }
+  .bad { color: var(--bad); } .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  a { color: inherit; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Sign with your wallet</h1>
+  <div class="dim">From <code>tools/quorum live</code>. Your wallet shows what it signs and asks first. A signature sends nothing onchain and costs no gas.</div>
+  <section>
+    <div id="what">Loading…</div>
+    <dl id="fields"></dl>
+    <details><summary class="dim">What the wallet signs (EIP-712)</summary><pre id="data"></pre></details>
+  </section>
+  <section>
+    <div class="row">
+      <button id="connect">Connect wallet</button>
+      <button id="switch" hidden>Switch network</button>
+      <button id="send" class="go" disabled>Sign in wallet</button>
+    </div>
+    <p id="status" class="dim"></p>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const eth = window.ethereum;
+let req, account;
+const say = (msg, bad) => { $("status").textContent = msg; $("status").className = bad ? "bad" : "dim"; };
+const hex = (n) => "0x" + Number(n).toString(16);
+
+async function load() {
+  req = await (await fetch("/req")).json();
+  $("what").textContent = req.what;
+  const rows = [["Network", `${req.chainName} (${req.chainId})`], ...req.rows];
+  $("fields").innerHTML = rows.map(() => "<dt></dt><dd></dd>").join("");
+  [...$("fields").querySelectorAll("dt")].forEach((dt, i) => (dt.textContent = rows[i][0]));
+  [...$("fields").querySelectorAll("dd")].forEach((dd, i) => (dd.textContent = rows[i][1]));
+  $("data").textContent = JSON.stringify(req.typedData, null, 2);
+  if (!eth) say("No wallet in this browser. Open this page where MetaMask, Rabby or another wallet extension is installed.", true);
+}
+
+async function check() {
+  const id = parseInt(await eth.request({ method: "eth_chainId" }), 16);
+  const right = id === req.chainId;
+  $("switch").hidden = right;
+  $("switch").textContent = `Switch to ${req.chainName}`;
+  $("send").disabled = !right || !account;
+  say(right ? `Connected: ${account}` : `Your wallet is on chain ${id}. Switch it to ${req.chainName}: the signature names the chain.`, !right);
+}
+
+$("connect").onclick = async () => {
+  if (!eth) return say("No wallet in this browser.", true);
+  try {
+    [account] = await eth.request({ method: "eth_requestAccounts" });
+    $("connect").textContent = "Connected";
+    $("connect").disabled = true;
+    await check();
+    eth.on?.("chainChanged", check);
+    eth.on?.("accountsChanged", (a) => { account = a[0]; check(); });
+  } catch (e) { say(e.message, true); }
+};
+
+$("switch").onclick = async () => {
+  try {
+    await eth.request({ method: "wallet_switchEthereumChain", params: [{ chainId: hex(req.chainId) }] });
+  } catch (e) {
+    if (e.code !== 4902) return say(e.message, true);
+    await eth.request({ method: "wallet_addEthereumChain", params: [{ chainId: hex(req.chainId), chainName: req.chainName,
+      rpcUrls: [req.rpc], nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 }, blockExplorerUrls: req.explorer ? [req.explorer] : [] }] });
+  }
+  await check();
+};
+
+$("send").onclick = async () => {
+  $("send").disabled = true;
+  say("Waiting for your wallet…");
+  try {
+    const signature = await eth.request({ method: "eth_signTypedData_v4", params: [account, JSON.stringify(req.typedData)] });
+    const r = await fetch("/signed", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ account, signature }) });
+    if (!r.ok) throw new Error((await r.json()).error || `HTTP ${r.status}`);
+    say("Signed. The terminal takes it from here; you can close this page.");
+  } catch (e) {
+    $("send").disabled = false;
+    say(e.message, true);
+  }
+};
+
+load();
+</script>
+</body>
+</html>

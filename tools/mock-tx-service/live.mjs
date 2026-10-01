@@ -16,12 +16,26 @@
 //                       the console on the emulator, with its throwaway virtual chip (live key --emu),
 //                       against the real service: it opens the first transaction waiting for it, pages
 //                       through, holds A, and the service's answer is printed. The spike before the Pico.
+//   live propose --chain C WHAT --by console|browser | --account NAME [--nonce N] [--dry-run]
+//                       start a transaction without the Safe web app (propose.mjs, docs/guide/PROPOSING.md).
+//                       WHAT: send TO ETH | call TO DATA [--value ETH] | swap-owner OLD NEW [OLD NEW..] |
+//                       add-owner NEW [--threshold N] | remove-owner OLD [--threshold N] | threshold N | reject NONCE.
+//                       --account/--browser: an owner's wallet or a delegate's signs it, and it goes to the service.
+//                       --by console: this laptop serves it to consoles on the LAN (live pico --stage points
+//                       one here); the first console signature goes to the service as the proposal, and
+//                       --collect forwards the rest. --by console --no-service: never ask Safe's service;
+//                       collect the consoles' signatures here and execute at the threshold.
+//                       --chain local only: --by alice|bob, the simulated owners.
+//   live delegate list|add DELEGATE [--label L]|remove DELEGATE --chain C (--account NAME | --browser)
+//                       a delegate may propose but never sign; an owner's ordinary wallet adds or removes one
 //   live pico --chain C[,C..] [--safe 0x..] [--name NAME]   several chains: a Safe on each (QUORUM_SAFES);
 //                       one chain: --safe A,B[,..] --name N1,N2[,..] watches several Safes there (up to 4)
 //                       point the Pico's console at chain C (or several): the board's secrets.py gets
 //                       each chain's pinned Safe (QUORUM_SAFES; the console finds each chain's service
 //                       itself), the old file is kept as secrets.bak, and the console restarts. The API key and everything else stay.
 //                       --chain local: tools/quorum on this Mac (the fork or the simulation), no QUORUM_SAFE.
+//                       --stage (one chain): the Safe is asked about at this laptop's live propose --by
+//                       console instead of Safe's service; run it again without --stage to point back.
 //   --chain local       the rehearsal against tools/quorum up --manual-exec (the fork, anvil's account 0;
 //                       --browser uses the wallet page there too, with a wallet pointed at the fork)
 //
@@ -37,18 +51,19 @@
 import { spawn, spawnSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
-import { tmpdir } from "node:os";
+import { networkInterfaces, tmpdir } from "node:os";
 import { join } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
 import {
-  createPublicClient, encodeFunctionData, formatEther, getAddress, hashMessage, http, recoverAddress, size, slice, toHex,
+  createPublicClient, encodeFunctionData, formatEther, getAddress, hashTypedData, http, isAddress, recoverAddress, size, toHex,
 } from "viem";
 import { base, baseSepolia, foundry, mainnet } from "viem/chains";
-import { CFG, safeTxHash } from "./sim.mjs";
-import { ERC1271_ABI, EXECUTOR, PASSKEY_ABI, SAFE_ABI, execArgs, reason } from "./chain.mjs";
+import { CFG, PEOPLE, delegateTypedData, safeTxHash } from "./sim.mjs";
+import { EXECUTOR, PASSKEY_ABI, SAFE_ABI, execArgs, reason } from "./chain.mjs";
 import { foundryBin } from "./fork.mjs";
 import { p256Owner, packSignatures, parse } from "./sigs.mjs";
+import { KINDS, Stage, build, fields, proposalBody, safeOnchain, safeTxTypedData, signerOf, typedJson } from "./propose.mjs";
 
 export const CHAINS = {
   basesep: { chain: baseSepolia, rpc: process.env.BASE_SEPOLIA_RPC || "https://sepolia.base.org",
@@ -63,14 +78,13 @@ export const CHAINS = {
            service: `http://localhost:${process.env.QUORUM_PORT || 8787}`, explorer: null, unlocked: EXECUTOR.address },
 };
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
-const LIVE_FILE = fileURLToPath(new URL("live.json", import.meta.url));
-const MAGIC = "0x1626ba7e";
+const LIVE_FILE = process.env.QUORUM_LIVE_FILE || fileURLToPath(new URL("live.json", import.meta.url));
 
 const [, ...rest] = process.argv.slice(2);
 const sub = rest[0];
 const opt = (k, d) => (rest.includes(k) ? rest[rest.indexOf(k) + 1] : d);
 const flag = (k) => rest.includes(k);
-const BOOLEAN = ["--usb", "--emu", "--yes", "--no-open", "--browser"];
+const BOOLEAN = ["--usb", "--emu", "--yes", "--no-open", "--browser", "--no-service", "--collect", "--dry-run", "--stage"];
 const words = rest.slice(1).filter((w, i, a) => !w.startsWith("--") && !(i > 0 && a[i - 1].startsWith("--") && !BOOLEAN.includes(a[i - 1])));
 
 function die(msg) {
@@ -106,6 +120,41 @@ async function service(n, path) {
   if (r.status === 404) return null;
   if (!r.ok) die(`${n.service}${path}: HTTP ${r.status} ${(await r.text()).slice(0, 200)}`);
   return r.json();
+}
+
+// A write to the service: -> [status, parsed body].
+async function servicePost(n, path, body, method = "POST") {
+  const headers = { "content-type": "application/json", ...(API_KEY && n.name !== "local" ? { Authorization: "Bearer " + API_KEY } : {}) };
+  let r;
+  try {
+    r = await fetch(n.service + path, { method, headers, body: JSON.stringify(body) });
+  } catch (e) {
+    return [0, { detail: `${n.service} did not answer: ${e.cause?.code || e.message}` }];
+  }
+  const text = await r.text();
+  let out;
+  try {
+    out = text ? JSON.parse(text) : {};
+  } catch {
+    out = { detail: text.slice(0, 200) };
+  }
+  return [r.status, out];
+}
+
+// The service's complaint in one line ({"nonFieldErrors": [..]}, {"detail": ..}, {"field": [..]}).
+const complaint = (out) => (out.detail || out.nonFieldErrors?.[0] || Object.entries(out).map(([k, v]) => `${k}: ${[v].flat()[0]}`)[0] || "").toString();
+
+// This computer's address on the LAN, for a Pico to reach: en0/en1 on a Mac, else the first
+// non-internal IPv4 interface.
+function lanIp() {
+  for (const ifc of ["en0", "en1"]) {
+    const ip = spawnSync("ipconfig", ["getifaddr", ifc], { encoding: "utf8" }).stdout?.trim();
+    if (ip) return ip;
+  }
+  for (const list of Object.values(networkInterfaces())) {
+    for (const a of list || []) if (a.family === "IPv4" && !a.internal) return a.address;
+  }
+  return "";
 }
 
 function theSafe(n) {
@@ -292,18 +341,9 @@ async function checked(n, safe, t, info) {
     let ok = false;
     let kind = "?";
     try {
-      const p = parse(c.signature);
-      kind = p.kind;
-      if (p.kind === "contract") {
-        ok = p.owner === who && (await n.pub.readContract({ address: who, abi: ERC1271_ABI, functionName: "isValidSignature", args: [mine, p.data] }).catch(() => "")) === MAGIC;
-      } else if (p.kind === "ecdsa") {
-        const v = Number(BigInt(slice(c.signature, 64, 65)));
-        const signed = v > 30 ? await recoverAddress({ hash: hashMessage({ raw: mine }), signature: slice(c.signature, 0, 64) + toHex(v - 4, { size: 1 }).slice(2) })
-                              : await recoverAddress({ hash: mine, signature: c.signature });
-        ok = signed === who;
-      } else if (p.kind === "approved") {
-        ok = true;      // approveHash onchain: the Safe checks approvedHashes itself
-      }
+      kind = parse(c.signature).kind;
+      if (kind === "approved") ok = true;      // approveHash onchain: the Safe checks approvedHashes itself
+      else ok = (await signerOf(n.pub, mine, c.signature)).owner === who;
     } catch (e) {
       kind = e.message;
     }
@@ -355,10 +395,13 @@ async function exec() {
   const c = await checked(n, safe, t, info);
   if (c.problems.length) die(c.problems.join("\n"));
   for (const g of c.good) console.log(`  ${g.ok ? "valid  " : "INVALID"} ${g.kind.padEnd(8)} ${g.owner}`);
-  const valid = c.good.filter((g) => g.ok);
-  if (valid.length < Number(info.threshold)) die(`${valid.length} valid of ${info.threshold} needed`);
-  const signatures = packSignatures(valid.slice(0, Number(info.threshold)));
-  const args = execArgs(t, signatures);
+  await executeWith(n, safe, t, c.mine, c.good.filter((g) => g.ok), Number(info.threshold));
+}
+
+// execTransaction with the first `threshold` of these checked confirmations, laid out right.
+async function executeWith(n, safe, t, hash, valid, threshold) {
+  if (valid.length < threshold) die(`${valid.length} valid of ${threshold} needed`);
+  const args = execArgs(t, packSignatures(valid.slice(0, threshold)));
   try {
     await n.pub.simulateContract({ address: safe, abi: SAFE_ABI, functionName: "execTransaction", args });
   } catch (e) {
@@ -367,8 +410,8 @@ async function exec() {
   const moves = `${formatEther(BigInt(t.value))} ETH to ${getAddress(t.to)}${t.data && t.data !== "0x" ? ` with ${size(t.data)} bytes of call data` : ""}`;
   const receipt = await send(n, {
     to: safe, value: 0n, data: encodeFunctionData({ abi: SAFE_ABI, functionName: "execTransaction", args }),
-    what: `Execute Safe transaction #${t.nonce} (${c.mine.slice(0, 10)}..${c.mine.slice(-8)}) on ${safe}: the Safe sends ${moves}. ` +
-          `${valid.length} of ${info.threshold} confirmations checked here.`,
+    what: `Execute Safe transaction #${t.nonce} (${hash.slice(0, 10)}..${hash.slice(-8)}) on ${safe}: the Safe sends ${moves}. ` +
+          `${valid.length} of ${threshold} confirmations checked here.`,
   });
   console.log(`executed: ${link(n, "tx", receipt.transactionHash)}`);
 }
@@ -403,6 +446,221 @@ async function rehearse() {
   console.log(`next: tools/quorum live exec --chain ${n.name} ${mine[0].nonce}`);
 }
 
+// ----------------------------------------------------------------------------- propose
+// Someone other than the Safe web app signs: the simulated owners on the fork, a Foundry keystore
+// (an owner or a delegate), or the browser's wallet. typed: EIP-712 data with bigints.
+// -> {signer, signature}, the signer recovered from the signature itself.
+async function signTyped(n, typed, what, rows) {
+  const hash = hashTypedData(typed);
+  const by = opt("--by");
+  let signature;
+  if (n.name === "local" && PEOPLE[by]) {
+    signature = await PEOPLE[by].sign({ hash });
+  } else if (opt("--account")) {
+    const bin = foundryBin("cast");
+    if (!bin) die("no cast: foundryup -i v1.8.3");
+    const pw = opt("--password-file");
+    console.log(`\nsigning with keystore ${opt("--account")} (it signs ${hash}; nothing is sent onchain)`);
+    const r = spawnSync(bin, ["wallet", "sign", "--no-hash", hash, "--account", opt("--account"), ...(pw ? ["--password-file", pw] : [])],
+                        { stdio: ["inherit", "pipe", "inherit"], encoding: "utf8" });
+    signature = (r.stdout || "").trim().match(/0x[0-9a-fA-F]{130}/)?.[0];
+    if (r.status !== 0 || !signature) die("cast wallet sign failed");
+  } else if (by === "browser" || flag("--browser")) {
+    signature = await browserSign(n, typed, what, rows);
+  } else {
+    die(`who signs? --account NAME (a Foundry keystore) | --browser${n.name === "local" ? " | --by alice|bob" : ""}`);
+  }
+  return { signer: await recoverAddress({ hash, signature }), signature };
+}
+
+// The browser's wallet signs typed data (eth_signTypedData_v4) on a page on 127.0.0.1, as
+// browserSend has it send a transaction. -> the signature.
+async function browserSign(n, typed, what, rows) {
+  const port = Number(process.env.QUORUM_WALLET_PORT || 8790);
+  const page = readFileSync(new URL("sign.html", import.meta.url), "utf8");
+  const body = JSON.stringify({ chainId: n.chain.id, chainName: n.chain.name, rpc: n.rpc, explorer: n.explorer, what, rows, typedData: typedJson(typed) });
+  const hash = hashTypedData(typed);
+  return new Promise((resolve, reject) => {
+    const server = createServer(async (req, res) => {
+      if (req.method === "GET" && req.url === "/") return res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" }).end(page);
+      if (req.method === "GET" && req.url === "/req") return res.writeHead(200, { "Content-Type": "application/json" }).end(body);
+      if (req.method === "POST" && req.url === "/signed") {
+        let raw = "";
+        for await (const c of req) raw += c;
+        let got = {};
+        try {
+          got = JSON.parse(raw);
+        } catch {}
+        const signer = /^0x[0-9a-fA-F]{130}$/.test(got.signature || "") ? await recoverAddress({ hash, signature: got.signature }).catch(() => null) : null;
+        if (!signer || !isAddress(got.account || "") || signer !== getAddress(got.account)) {
+          return res.writeHead(400, { "Content-Type": "application/json" }).end(JSON.stringify({ error: "the signature is not that account's" }));
+        }
+        res.writeHead(200, { "Content-Type": "application/json" }).end("{}");
+        server.close();
+        console.log(`  signed in the browser by ${signer}`);
+        return resolve(got.signature);
+      }
+      res.writeHead(404).end();
+    });
+    server.on("error", reject);
+    server.listen(port, "127.0.0.1", () => {
+      const url = `http://127.0.0.1:${port}/`;
+      console.log(`\nOpen ${url} in the browser that has your wallet, check it there, and sign. Signing sends nothing onchain.`);
+      if (!flag("--no-open")) spawn("open", [url], { stdio: "ignore" }).on("error", () => {});
+    });
+  });
+}
+
+async function propose() {
+  const n = net();
+  const safe = theSafe(n);
+  const byConsole = opt("--by") === "console";
+  const noService = flag("--no-service");
+  if (noService && !byConsole) die("--no-service goes with --by console: with no service, the consoles sign at this laptop");
+  if (!words.length) die(`what to propose?\n  ${Object.values(KINDS).join("\n  ")}`);
+  const info = await safeOnchain(n.pub, safe);
+  let call;
+  try {
+    call = build(words, info, { value: opt("--value"), threshold: opt("--threshold") });
+  } catch (e) {
+    die(e.message);
+  }
+  // The nonce: the one given, or the next free one: after the Safe's own and after the service's queue.
+  let nonce = call.nonce ?? (opt("--nonce") !== undefined ? Number(opt("--nonce")) : info.nonce);
+  let waiting = [];
+  if (!noService) {
+    const q = await service(n, `/api/v2/safes/${safe}/multisig-transactions/?executed=false&nonce__gte=${info.nonce}&ordering=nonce&limit=20`);
+    if (!q) die(`${n.service} does not know ${safe}. Add it in the Safe web app, or use --by console --no-service`);
+    waiting = q.results;
+    if (call.nonce === undefined && opt("--nonce") === undefined && waiting.length) nonce = Math.max(...waiting.map((t) => Number(t.nonce))) + 1;
+  }
+  if (!Number.isInteger(nonce) || nonce < info.nonce) die(`nonce ${nonce}: the Safe is at ${info.nonce}, so anything below is spent`);
+  const f = fields(call, nonce);
+  const hash = safeTxHash(n.chain.id, safe, f);
+  const onchain = await n.pub.readContract({ address: safe, abi: SAFE_ABI, functionName: "getTransactionHash", args: [
+    f.to, BigInt(f.value), f.data, f.operation, 0n, 0n, 0n, f.gasToken, f.refundReceiver, BigInt(f.nonce)] });
+  if (onchain !== hash) die(`the Safe hashes it to ${onchain}, this tool to ${hash}: stop and find out why`);
+  const code = hash.slice(-8);
+  const rows = [["Safe", `${safe} on ${n.chain.name}, ${info.threshold} of ${info.owners.length}`], ["To", f.to],
+                ["Value", `${formatEther(BigInt(f.value))} ETH`], ["Data", `${size(f.data)} bytes`],
+                ["Operation", f.operation ? "delegatecall (MultiSend)" : "call"], ["Nonce", String(nonce)], ["safeTxHash", hash], ["Verify code", code]];
+  console.log(`\n${call.what}\n${rows.map(([k, v]) => `  ${k.padEnd(11)} ${v}`).join("\n")}`);
+  for (const t of waiting.filter((t) => Number(t.nonce) === nonce)) {
+    console.log(`  !! #${nonce} already waits in the queue (${t.safeTxHash.slice(0, 10)}..): only one of them can ever execute`);
+  }
+  if (flag("--dry-run")) return console.log("\n--dry-run: nothing signed, nothing sent");
+
+  if (byConsole) return proposeByConsole(n, safe, f, hash, info, noService);
+
+  const { signer, signature } = await signTyped(n, safeTxTypedData(n.chain.id, safe, f), call.what, rows);
+  const owner = info.owners.includes(signer);
+  console.log(`  ${signer} signed it: ${owner ? `an owner, so it counts as 1 of ${info.threshold}` : "not an owner, so the service takes it only from a delegate, and it counts for nothing"}`);
+  await submit(n, safe, f, hash, signer, signature);
+  console.log(`\nqueued #${nonce}. Consoles show it at their next poll, verify code ${code}.\n` +
+              `When ${info.threshold} have signed: tools/quorum live exec --chain ${n.name} ${nonce}`);
+}
+
+async function submit(n, safe, f, hash, sender, signature) {
+  const [status, out] = await servicePost(n, `/api/v1/safes/${safe}/multisig-transactions/`, proposalBody(safe, f, hash, sender, signature));
+  if (status !== 201 && status !== 200) die(`the service refused the proposal (HTTP ${status}): ${complaint(out)}`);
+  console.log(`  ${n.service} took the proposal from ${sender}`);
+}
+
+// The console path: this laptop is Safe's service for this one transaction, on the LAN. Every
+// confirmation is checked onchain as it arrives and kept in live.json, so a restart with the same
+// command picks them up again.
+async function proposeByConsole(n, safe, f, hash, info, noService) {
+  const port = Number(process.env.QUORUM_STAGE_PORT || 8791);
+  const remember = (t) => {
+    const live = saved();
+    live.staged = { ...live.staged, [hash]: { chain: n.name, safe, fields: f, confirmations: t.confirmations } };
+    keep(live);
+  };
+  const stage = new Stage({ pub: n.pub, safe, port, onChange: remember });
+  const kept = (saved().staged?.[hash]?.confirmations || []).filter((c) => info.owners.includes(c.owner));
+  const t = stage.add(f, hash, kept);
+  try {
+    await stage.start();
+  } catch (e) {
+    die(`can't serve on port ${port}: ${e.code || e.message} (QUORUM_STAGE_PORT picks another)`);
+  }
+  const url = `http://${lanIp() || "<this computer's LAN address>"}:${port}`;
+  console.log(`\nServing it to consoles at ${url}${noService ? ". Safe's service is never asked." : ": Safe's service gets it once a console signs."}`);
+  if (kept.length) console.log(`  ${kept.length} signature(s) kept from before (live.json)`);
+  console.log(`Point a console here (a board on USB):  tools/quorum live pico --chain ${n.name} --stage` +
+              `\n  or in its secrets.py: QUORUM_SAFES = [{"chainId": ${n.chain.id}, "address": "${safe.toLowerCase()}", "name": "Stage", "url": "${url}"}]` +
+              `\nOn the console: open it, read every page, check the verify code ${hash.slice(-8)}, hold Sign.` +
+              `\nAfterwards point it back:  tools/quorum live pico --chain ${n.name}\n`);
+  const valid = () => t.confirmations.filter((c) => info.owners.includes(c.owner));
+  const done = () => {
+    stage.close();
+    const live = saved();
+    delete live.staged?.[hash];
+    keep(live);
+  };
+  if (noService) {
+    console.log(`waiting for ${info.threshold} signatures...`);
+    await stage.until(() => valid().length >= info.threshold);
+    stage.close();
+    await executeWith(n, safe, t, hash, valid(), info.threshold);
+    return done();
+  }
+  console.log("waiting for a console's signature...");
+  await stage.until(() => valid().length >= 1);
+  const [first, ...more] = valid();
+  await submit(n, safe, f, hash, first.owner, first.signature);
+  const sent = new Set([first.owner]);
+  const forward = async () => {
+    for (const c of valid().filter((c) => !sent.has(c.owner))) {
+      const [status, out] = await servicePost(n, `/api/v1/multisig-transactions/${hash}/confirmations/`, { signature: c.signature });
+      if (status === 201 || status === 200) console.log(`  forwarded ${c.owner}'s signature`);
+      else console.log(`  !! the service refused ${c.owner}'s signature (HTTP ${status}): ${complaint(out)}`);
+      sent.add(c.owner);
+    }
+  };
+  if (more.length) await forward();
+  if (flag("--collect")) {
+    console.log(`--collect: forwarding each new signature until ${info.threshold}; Ctrl-C to stop`);
+    await stage.until(async () => {
+      await forward();
+      return sent.size >= info.threshold;
+    });
+  }
+  done();
+  console.log(`\nqueued #${f.nonce} at Safe's service with ${sent.size} of ${info.threshold}. Point the console back:` +
+              `  tools/quorum live pico --chain ${n.name}\nWhen ${info.threshold} have signed: tools/quorum live exec --chain ${n.name} ${f.nonce}`);
+}
+
+// ----------------------------------------------------------------------------- delegate
+async function delegate() {
+  const n = net();
+  const safe = theSafe(n);
+  const [verb, who] = words;
+  if (verb === "list" || !verb) {
+    const q = await service(n, `/api/v2/delegates/?safe=${safe}&limit=50`);
+    if (!q?.results?.length) return console.log(`${safe} on ${n.chain.name}: no delegates`);
+    for (const d of q.results) console.log(`  ${d.delegate}  added by ${d.delegator}${d.label ? `  "${d.label}"` : ""}${d.safe ? "" : "  (every Safe of that owner)"}`);
+    return;
+  }
+  if (!["add", "remove"].includes(verb)) die("live delegate list | add DELEGATE [--label L] | remove DELEGATE");
+  if (!isAddress(who || "")) die(`live delegate ${verb} DELEGATE: the delegate's address`);
+  const d = getAddress(who);
+  const info = await safeOnchain(n.pub, safe);
+  if (verb === "add" && info.owners.includes(d)) die(`${d} is already an owner; a delegate is for an address that is not`);
+  const what = verb === "add" ? `Let ${d} propose transactions for ${safe} (it can never sign one)` : `Stop ${d} proposing for ${safe}`;
+  console.log(`\n${what}\n  the signature is good for this hour only, and moves nothing`);
+  const { signer, signature } = await signTyped(n, delegateTypedData(n.chain.id, d), what,
+    [["Safe", `${safe} on ${n.chain.name}`], ["Delegate", d], ["Signs", "an owner (to add), or the owner or the delegate (to remove)"]]);
+  if (verb === "add" && !info.owners.includes(signer)) die(`${signer} is not an owner of ${safe}: only an owner adds a delegate`);
+  const delegator = getAddress(opt("--delegator") || signer);
+  const [status, out] = verb === "add"
+    ? await servicePost(n, "/api/v2/delegates/", { safe, delegate: d, delegator, signature, label: opt("--label", "PicoQuorum proposer") })
+    : await servicePost(n, `/api/v2/delegates/${d}/`, { safe, delegator, signature }, "DELETE");
+  if (status < 200 || status > 299) die(`the service refused it (HTTP ${status}): ${complaint(out)}`);
+  console.log(verb === "add" ? `${d} may now propose for ${safe}: tools/quorum live propose --chain ${n.name} ... --account <its keystore>`
+                             : `${d} is no longer a delegate of ${safe}`);
+}
+
 // ----------------------------------------------------------------------------- pico
 async function pico() {
   // --chain basesep,base,eth: the console watches a Safe on each (QUORUM_SAFES), each asked about
@@ -411,11 +669,12 @@ async function pico() {
   const names = (opt("--chain") || "").split(",").filter(Boolean);
   if (!names.length || names.some((x) => !CHAINS[x])) die(`--chain ${Object.keys(CHAINS).join(" | ")}, or several: --chain basesep,base,eth`);
   if (names.includes("local") && names.length > 1) die("--chain local stands alone (the laptop's service)");
+  if (flag("--stage") && (names.length > 1 || (opt("--safe") || "").includes(","))) die("--stage is for one Safe on one chain");
   if (names.length > 1 && (opt("--safe") || opt("--name"))) die("--safe and --name are for one chain; with several, each chain's Safe comes from live.json");
   let lines;
   if (names[0] === "local") {
-    const ip = spawnSync("ipconfig", ["getifaddr", "en0"], { encoding: "utf8" }).stdout.trim();
-    if (!ip) die("no LAN address on en0 for the Pico to reach this Mac");
+    const ip = lanIp();
+    if (!ip) die("no LAN address for the Pico to reach this computer");
     lines = [`QUORUM_URL = ${JSON.stringify(`http://${ip}:${process.env.QUORUM_PORT || 8787}`)}`];
   } else {
     const live = saved();
@@ -439,6 +698,12 @@ async function pico() {
         return { chainId: c.chain.id, address: safe.toLowerCase(), name: label };
       });
       keep(live);
+    }
+    if (flag("--stage")) {
+      // the Safe asked about at this laptop's live propose --by console, not at Safe's service
+      const ip = lanIp();
+      if (!ip) die("no LAN address for the Pico to reach this computer");
+      safes[0].url = `http://${ip}:${process.env.QUORUM_STAGE_PORT || 8791}`;
     }
     lines = [`QUORUM_SAFES = [\n    ${safes.map((x) => JSON.stringify(x)).join(",\n    ")}\n]`];
   }
@@ -494,6 +759,6 @@ print('WROTE', len(old), '->', os.stat('secrets.py')[6], 'bytes; the old file is
   }
 }
 
-const cmds = { key, enroll, status, exec, rehearse, pico };
-if (!cmds[sub]) die("usage: tools/quorum live key | enroll | status | rehearse | exec | pico   (see tools/mock-tx-service/live.mjs)");
+const cmds = { key, enroll, status, exec, rehearse, pico, propose, delegate };
+if (!cmds[sub]) die("usage: tools/quorum live key | enroll | status | rehearse | exec | pico | propose | delegate   (see tools/mock-tx-service/live.mjs)");
 await cmds[sub]();

@@ -12,7 +12,10 @@
 //   (or: tools/quorum serve, tools/quorum up)
 import { createServer } from "node:http";
 import { readFileSync } from "node:fs";
-import { apiList, apiSafe, apiTx, confirm, decline, find, fresh, freshSafe, joinDevice, load, nameOf, save, say, signAs, stateFile, useChain } from "./sim.mjs";
+import {
+  addDelegate, apiList, apiSafe, apiTx, confirm, decline, find, fresh, freshSafe, joinDevice, listDelegates, load, nameOf, proposeFromApi,
+  removeDelegate, save, say, signAs, stateFile, useChain,
+} from "./sim.mjs";
 import { DEMO, SCENARIOS, run } from "./scenarios.mjs";
 
 const argv = process.argv.slice(2);
@@ -46,7 +49,7 @@ function send(res, code, body) {
   const text = typeof body === "string" ? body : JSON.stringify(body);
   res.writeHead(code, {
     "Content-Type": typeof body === "string" ? "text/html; charset=utf-8" : "application/json",
-    "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "content-type",
+    "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "content-type", "Access-Control-Allow-Methods": "GET, POST, DELETE",
   });
   res.end(text);
 }
@@ -77,6 +80,20 @@ const routes = [
     if (!r.ok) say(st, `refused a confirmation for #${t.nonce}: ${r.error}`);
     return r.ok ? [201, { signature: body.signature }] : [400, { detail: r.error }];
   }],
+  // A proposal from outside (tools/quorum live propose), and the delegates who may make one.
+  ["POST", /^\/api\/v[12]\/safes\/(0x[0-9a-fA-F]{40})\/multisig-transactions\/?$/, async (m, q, b) => {
+    if (m[1].toLowerCase() !== st.address.toLowerCase()) return [404, { detail: "Not found." }];
+    await fromChain();
+    const [code, out] = await proposeFromApi(st, { ...b, safe: b.safe || m[1] });
+    if (code >= 400) say(st, `refused a proposal: ${out.nonFieldErrors?.[0] || out.detail}`);
+    return [code, out];
+  }],
+  ["GET", /^\/api\/v2\/delegates\/?$/, (m, q) => [200, listDelegates(st, q)]],
+  ["POST", /^\/api\/v2\/delegates\/?$/, async (m, q, b) => {
+    await fromChain();
+    return addDelegate(st, b);
+  }],
+  ["DELETE", /^\/api\/v2\/delegates\/(0x[0-9a-fA-F]{40})\/?$/, (m, q, b) => removeDelegate(st, m[1], b)],
   // --- the simulation -------------------------------------------------------------------------------
   ["GET", /^\/$/, () => [200, readFileSync(new URL("dashboard.html", import.meta.url), "utf8")]],
   ["GET", /^\/sim\/state$/, async () => {
@@ -120,7 +137,7 @@ createServer(async (req, res) => {
     const m = url.pathname.match(re);
     if (!m || method !== req.method) continue;
     try {
-      const [code, body] = await fn(m, url.searchParams, req.method === "POST" ? await readJson(req) : {});
+      const [code, body] = await fn(m, url.searchParams, req.method !== "GET" ? await readJson(req) : {});
       save(st);
       if (req.method !== "GET" || code >= 400) console.log(`  ${req.method} ${url.pathname} -> ${code}`);  // polls stay quiet
       return send(res, code, body);

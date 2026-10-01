@@ -16,6 +16,13 @@ Safe in one of two modes:
   - `POST /api/v1/multisig-transactions/{hash}/confirmations/`
 
   The console's code (`firmware/txservice.py`) needs only a URL change to talk to `api.safe.global`.
+- **Proposals and delegates from outside**, for `live propose` and `live delegate --chain local`:
+  - `POST /api/v1/safes/{safe}/multisig-transactions/`
+  - `GET`, `POST /api/v2/delegates/` and `DELETE /api/v2/delegates/{delegate}/`
+
+  These apply the real service's rules: the hash must be the fields' hash, the sender an owner or
+  a delegate, and the signature the sender's. An owner's signature is the first confirmation; a
+  delegate's only proposes.
 - **The Safe.** It is `firmware/quorum_cfg.py`'s: the Family Safe on chain 31337, 2 of 3.
   - ALICE and BOB are simulated co-signers. They are anvil's test accounts 1 and 2, and they sign
     real ECDSA.
@@ -47,13 +54,16 @@ tools/quorum doctor           # node, python3, anvil, the emulator, the fork RPC
 tools/quorum serve            # simulated: port 8787 (QUORUM_PORT), state in state.json; dashboard at /
 tools/quorum up [--refork]    # forked: anvil on 127.0.0.1:8545 + the service on 8787; Ctrl-C stops both
 tools/quorum e2e              # the console on the emulator approves on a fork (ports 8546, 8798)
+tools/quorum e2e-propose      # the console starts transactions itself, with and without the service (8547, 8799, stage 8792)
 tools/quorum scenarios        # the stories: sends, a batch, red ones, a lying service, a conflict
 tools/quorum demo             # fresh Safe with the standard queue (on the fork: rolled back to setup)
 tools/quorum propose refund --by bob
 tools/quorum confirm 2 --as alice
 tools/quorum status | log
 tools/quorum shots [story..]  # docs/quorum-ui/shots, from the emulator (own simulated Safes on 8799 and 8797)
-tools/quorum live key|enroll|status|rehearse|exec --chain local|basesep|base|eth   # real chains (live.mjs)
+tools/quorum live key|enroll|status|rehearse|exec|pico --chain local|basesep|base|eth   # real chains (live.mjs)
+tools/quorum live propose --chain C WHAT --by console|--browser|--account K    # start one (propose.mjs, docs/guide/PROPOSING.md)
+tools/quorum live delegate list|add|remove --chain C                           # a proposer that can never sign
 node tools/mock-tx-service/test.mjs
 ```
 
@@ -69,7 +79,9 @@ this.
 
 The live chains, and how far each one has got, are in [docs/LADDER.md](../../docs/LADDER.md).
 `live` never holds a private key. It sends through your browser wallet (`wallet.html`, served on
-127.0.0.1), or with `--account` from a Foundry keystore.
+127.0.0.1), or with `--account` from a Foundry keystore. `live propose` and `live delegate` sign
+typed data the same two ways (`sign.html`), and `live propose --by console` serves its transaction
+to consoles on the LAN from port 8791 (`QUORUM_STAGE_PORT`, `propose.mjs` `Stage`).
 
 ## The forked Safe (`up`)
 

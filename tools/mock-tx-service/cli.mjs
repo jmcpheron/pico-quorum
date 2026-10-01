@@ -4,8 +4,9 @@
 //                                  it, in the foreground; Ctrl-C stops both (chain.mjs, fork.mjs).
 //                                  --manual-exec: nothing executes until `live exec --chain local`
 //   e2e                            the console on the emulator approves on the fork (e2e.mjs)
+//   e2e-propose                    the console starts transactions itself, with and without the service (e2e-propose.mjs)
 //   doctor                         is everything here that up, e2e and the tests need
-//   live key|enroll|status|rehearse|exec   the console's key on Base Sepolia, Base or Ethereum (live.mjs, docs/LADDER.md)
+//   live key|enroll|status|rehearse|exec|pico|propose|delegate   the console's key on Base Sepolia, Base or Ethereum (live.mjs, docs/LADDER.md)
 //   demo                           fresh Safe with the standard queue (scenarios.mjs DEMO)
 //   reset [scenario ...] [--version 1.3.0]   fresh Safe (registered consoles stay owners), then those
 //   propose SCENARIO [--by bob]    queue one story; `scenarios` lists them
@@ -137,6 +138,8 @@ if (cmd === "serve") {
   await up();
 } else if (cmd === "e2e") {
   await import("./e2e.mjs");
+} else if (cmd === "e2e-propose") {
+  await import("./e2e-propose.mjs");
 } else if (cmd === "doctor") {
   await doctor();
 } else if (cmd === "live") {
@@ -167,6 +170,6 @@ if (cmd === "serve") {
 } else if (cmd === "shots") {
   await import("./shots.mjs");
 } else {
-  console.error("usage: tools/quorum serve | up [--refork] [--manual-exec] | e2e | doctor | live key|enroll|status|rehearse|exec | demo | reset [scenario..] | propose SCENARIO [--by bob] | confirm NONCE --as alice | status | log [N] | scenarios | ip | shots");
+  console.error("usage: tools/quorum serve | up [--refork] [--manual-exec] | e2e | e2e-propose | doctor | live key|enroll|status|rehearse|exec|pico|propose|delegate | demo | reset [scenario..] | propose SCENARIO [--by bob] | confirm NONCE --as alice | status | log [N] | scenarios | ip | shots");
   process.exit(2);
 }

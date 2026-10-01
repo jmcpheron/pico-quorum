@@ -31,6 +31,10 @@ result screen tries again, and it's sent after a restart too.
 **The console never executes.** When a transaction has enough approvals, someone executes it:
 today that's `tools/quorum live exec --chain C NONCE`.
 
+**The console never starts a transaction either.** It signs what is already queued. When the
+wallet that usually proposes is gone, see [PROPOSING.md](PROPOSING.md): a delegate, or a console
+itself, can start one.
+
 ## Red pages and refusals
 
 **Red** is signable with the long hold, after a hard look. Examples: a call to a contract the

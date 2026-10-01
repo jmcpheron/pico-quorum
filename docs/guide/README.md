@@ -13,6 +13,7 @@ its chip, but only after you have seen every page and held the green button.
 | [SETUP.md](SETUP.md) | From a board with the console image to a console that signs for your Safes |
 | [USING.md](USING.md) | The screens and buttons, approving, rejecting, and what red means |
 | [NETWORKS.md](NETWORKS.md) | Which chains work, watching several Safes at once, adding a chain |
+| [PROPOSING.md](PROPOSING.md) | Starting a transaction without the Safe web app: a wallet, a delegate, or the consoles alone |
 | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | What each stop screen means and what to do |
 
 **How it fits together.**

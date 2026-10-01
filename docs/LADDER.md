@@ -38,6 +38,8 @@ Everything is `tools/quorum`. `tools/quorum doctor` checks what's installed.
 | `live status --chain C --safe 0x…` | the Safe and its queue, every signature checked here |
 | `live rehearse --chain C` | the emulator's console, with a throwaway key, signs on the real service: the spike before the Pico |
 | `live exec --chain C NONCE` | execute, with the signatures laid out right (see [Known issues](#known-issues)) |
+| `live propose --chain C WHAT --by console\|--browser\|--account K` | start a transaction without the web app; a console's signature can be the proposal ([PROPOSING](guide/PROPOSING.md)) |
+| `live delegate add\|list\|remove` | a delegate: a laptop key that may propose but never sign |
 | `live pico --chain C[,C…]` | point the board's console at the Safe recorded for each chain (`QUORUM_SAFES`); several chains are watched together ([guide/NETWORKS.md](guide/NETWORKS.md)) |
 
 `C` is `local`, `basesep`, `base` or `eth`.
