@@ -1,11 +1,12 @@
 # The light boot screen: the PicoQuorum mark as flat vectors (five owners, three sign, their
 # triangle fills green, the other two stay amber), the name and a tagline (taglines.py) under it,
-# the real boot status last.
+# then the Ethereum diamond fades in spinning beside it and lands in the top-left corner; the real
+# boot status last.
 # The orbit (bootart.py) redraws and sends the whole panel every frame, about 110 ms a frame on
 # the Pico. This sends only what changed since the last frame: a dot's square, an edge as far as
 # it has got, the rows the green rose through. Most frames are a few KB of SPI and a dozen
 # framebuf calls, and a frame where nothing changed costs nothing.
-#   secrets.BOOT_ART = "mark"  (the default) this, animated, about 3.8 s
+#   secrets.BOOT_ART = "mark"  (the default) this, animated, about 5.3 s
 #                      "still" the finished mark at once; only the status line changes after
 #                      "orbit" the full orbit animation (bootart.py)
 # Visual branding only: the three green dots do not report actual signatures.
@@ -47,8 +48,23 @@ SETTLE0, SETTLE1 = 2050, 2450               # the two who didn't sign shrink a l
 POUR0, POUR1 = 2350, 2900                   # the triangle fills from its base up
 NAME0, NAME1 = 2700, 3300                   # the name fades in
 TAG0, TAG1 = 3150, 3650                     # then the tagline
-DURATION_MS = 3800                          # splash holds the boot screen this long
+ETH0, ETH1 = 3500, 4000                     # the Ethereum diamond fades in beside the owners, spinning
+SPIN0, SPIN1 = 3500, 5100                   # one turn, slowing to land on the logo's pose
+GO0, GO1 = 4300, 5100                       # and glides up into the top-left corner, where it stays
+DURATION_MS = 5300                          # splash holds the boot screen this long
 STILL = 1 << 30                             # "still": every element at its end
+
+# The diamond is bootart.py's: a square pyramid over an inverted one, seen from 30° above, lit from
+# the upper left. It looks the same every quarter turn, so it lands on the logo (a corner toward
+# you) at 45°. Where: (x, y of the upper pyramid's base, pixels per unit; the apex is 1 unit up).
+ETH_FROM = (17, CY, 20) if SMALL else (24, CY, 35)      # beside the owners, left of their ring
+ETH_TO = (11, 15, 13) if SMALL else (18, 26, 23)        # the corner
+ETH_TURNS = 1
+ETH_DARK, ETH_LIGHT = (30, 36, 92), (218, 226, 255)
+ETH_S, ETH_GAP, ETH_FOOT = 0.37, 0.12, 0.97             # half-base, the gap, the lower tip
+ETH_CE, ETH_SE = math.cos(math.radians(30)), math.sin(math.radians(30))
+_l = math.sqrt(0.55 * 0.55 * 2 + 0.63 * 0.63)
+ETH_LIGHT_DIR = (-0.55 / _l, -0.55 / _l, 0.63 / _l)
 
 
 def mix(a, b, t):
@@ -120,6 +136,66 @@ def tag_look(t):
     return int(8 * span(t, TAG0, TAG1)) if TAG_Y else 0
 
 
+def eth_look(t):
+    """(yaw in whole degrees mod 90, x, y, pixels per unit, fade 0-10), or None before it appears."""
+    a = span(t, ETH0, ETH1)
+    if a <= 0:
+        return None
+    g = ease(span(t, GO0, GO1))
+    x, y, k = [int(f + (e - f) * g + 0.5) for f, e in zip(ETH_FROM, ETH_TO)]
+    deg = int(45 - 360 * ETH_TURNS * (1 - ease(span(t, SPIN0, SPIN1)))) % 90
+    return (deg, x, y, k, int(10 * a))
+
+
+def eth_box(lk):
+    """Everything the diamond can cover at this look: |x| <= 0.53 units, y from -0.87 to 0.85."""
+    _, x, y, k, _ = lk
+    w = int(0.53 * k) + 2
+    return (x - w, y - int(0.88 * k) - 2, 2 * w + 1, int(1.75 * k) + 5)
+
+
+def eth_polys(lk):
+    """The diamond's visible triangles at this look, far to near: [(depth, xy, colour)]."""
+    deg, x0, y0, k, a = lk
+    a /= 10
+    cy, sy = math.cos(math.radians(deg)), math.sin(math.radians(deg))
+
+    def view(p):
+        x, y, z = p
+        x, z = x * cy + z * sy, -x * sy + z * cy                    # turn about the axis
+        return x, y * ETH_CE + z * ETH_SE, -y * ETH_SE + z * ETH_CE  # from a little above
+
+    s, g = ETH_S, ETH_GAP
+    top, foot = (0.0, -1.0, 0.0), (0.0, ETH_FOOT, 0.0)
+    base = ((-s, 0.0, s), (s, 0.0, s), (s, 0.0, -s), (-s, 0.0, -s))
+    rim = ((-s, g, s), (s, g, s), (s, g, -s), (-s, g, -s))
+    tris = [((top, base[j], base[(j + 1) % 4]), (0.0, -0.3, 0.0), 1) for j in range(4)]
+    tris += [((rim[j], rim[(j + 1) % 4], foot), (0.0, g + 0.4, 0.0), 0) for j in range(4)]
+    out = []
+    for tri, inside, layer in tris:
+        v = [view(p) for p in tri]
+        ux, uy, uz = v[1][0] - v[0][0], v[1][1] - v[0][1], v[1][2] - v[0][2]
+        wx, wy, wz = v[2][0] - v[0][0], v[2][1] - v[0][1], v[2][2] - v[0][2]
+        nx, ny, nz = uy * wz - uz * wy, uz * wx - ux * wz, ux * wy - uy * wx
+        c = view(inside)
+        if nx * (v[0][0] - c[0]) + ny * (v[0][1] - c[1]) + nz * (v[0][2] - c[2]) < 0:
+            nx, ny, nz = -nx, -ny, -nz                  # point it out of the solid
+        m = math.sqrt(nx * nx + ny * ny + nz * nz) or 1.0
+        if nz / m < 0.02:
+            continue                                    # facing away, or edge-on
+        lit = max(0.0, (nx * ETH_LIGHT_DIR[0] + ny * ETH_LIGHT_DIR[1] + nz * ETH_LIGHT_DIR[2]) / m)
+        rgb = mix(ETH_DARK, ETH_LIGHT, 0.12 + 0.88 * lit)
+        if a < 1:                                       # fade in through its own dark shade
+            rgb = mix(mix(BG, ETH_DARK, min(1.0, 2 * a)), rgb, a)
+        xy = array("h", [0] * 6)
+        for j in range(3):
+            xy[2 * j] = int(x0 + v[j][0] * k)
+            xy[2 * j + 1] = int(y0 + v[j][1] * k)
+        out.append((layer * 10 + (v[0][2] + v[1][2] + v[2][2]) / 3, xy, L.color(*rgb)))
+    out.sort(key=lambda p: p[0])                        # the lower pyramid first, then far to near
+    return out
+
+
 def draw_fill(d, ox, oy, h):
     if h <= 0:
         return
@@ -152,16 +228,22 @@ class Mark:
         self.shown = None       # the looks on the panel now; None: nothing yet (the panel is black)
         self.status = ("", MUTED, 0)   # text cut to fit, colour, width
         self.sent = 0           # bytes over SPI, for the record (test-vectors/run-bootmark.mjs)
+        self._eth = (None, None)   # the diamond's look and its triangles, worked out once a frame
 
     def looks(self, t):
         return ([dot_look(k, t) for k in range(5)], [ring_look(k, t) for k in range(5)],
                 [edge_look(e, t) for e in range(3)], fill_look(t), name_look(t), self.status,
-                tag_look(t) if self.tag else 0)
+                tag_look(t) if self.tag else 0, eth_look(t))
 
     def scene(self, d, ox, oy, lk):
         """Everything, shifted by (-ox, -oy) into d; framebuf clips what falls outside."""
-        dots, rings, edges, fill, name, status, tag = lk
+        dots, rings, edges, fill, name, status, tag, eth = lk
         d.fill(L.color(*BG))
+        if eth:
+            if self._eth[0] != eth:
+                self._eth = (eth, eth_polys(eth))
+            for _, xy, c in self._eth[1]:
+                d.poly(-ox, -oy, xy, c, True)
         draw_fill(d, ox, oy, fill)
         for e in range(3):
             draw_edge(d, ox, oy, e, edges[e])
@@ -211,6 +293,10 @@ class Mark:
             out.append(((L.W - self.tag_w) // 2 - 2, TAG_Y - 4, self.tag_w + 4, F.height(TAG_FONT) + 8))
         if old[5] != new[5]:
             out.append((0, STATUS_Y - 4, L.W, F.height(STATUS_FONT) + 8))
+        if old[7] != new[7]:                    # where it was and where it is, as one rectangle
+            bs = [eth_box(v) for v in (old[7], new[7]) if v]
+            x0, y0 = min(b[0] for b in bs), min(b[1] for b in bs)
+            out.append((x0, y0, max(b[0] + b[2] for b in bs) - x0, max(b[1] + b[3] for b in bs) - y0))
         return out
 
     def paint(self, x, y, w, h, lk):

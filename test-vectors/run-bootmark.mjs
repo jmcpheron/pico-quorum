@@ -13,7 +13,7 @@ import { readWorkspace, readShims } from '../emu/core/workspace.mjs';
 const OUT = 'emu/shots/bootmark';
 mkdirSync(OUT, { recursive: true });
 const STEP = 30;          // ms between frames: the pace draw() sees during the WiFi join and the hold
-const END = 3900;
+const END = 5400;
 // Real boot status lines, changing at roughly the points the console's start() reaches them.
 const STATUS = [[0, 'screen: ok'], [400, 'chip: probing i2c...'], [700, 'chip: ATECC608 · 3f9a…c21 · pinned'],
   [900, 'wifi: join emulator A skips'], [2600, 'wifi: 192.168.1.40'], [3000, 'app: safe svc api.safe.global'],
@@ -121,7 +121,7 @@ _stats = json.dumps([sum(sent), max(sent[1:]), len([s for s in sent if s == 0]),
 import splash, sys
 splash.begin()
 assert splash._art.__name__ == 'bootmark' and not splash._still
-assert splash.BLACK_LEAD_MS + splash.ANIMATION_MS == 4100
+assert splash.BLACK_LEAD_MS + splash.ANIMATION_MS == 5600
 assert splash._gap == 30
 splash.step('app', 'Starting console')
 splash.finish(wait=False)
@@ -133,7 +133,7 @@ assert not wide, 'too wide for the 240x240: %r' % wide
 assert taglines.pool() == taglines.SERIOUS and taglines.pick() in taglines.SERIOUS
 assert sorted(taglines.cycle()) == sorted(taglines.SERIOUS)
 `);
-    console.log('bootmark: splash picks the mark by default, 4.1 s hold, released at finish; ' +
+    console.log('bootmark: splash picks the mark by default, 5.6 s hold, released at finish; ' +
       'every tagline fits 220 px, serious by default');
   } catch (e) { console.error(`bootmark splash: ${String(e)}`); failed = true; } finally { dev.dispose(); }
 }

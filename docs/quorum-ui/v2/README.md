@@ -21,6 +21,48 @@ there is where this one starts.
    the home screen, the approvals row, and the moment of signing.
 5. **Every screen, redone,** with before/after pairs like the v1 walkthrough.
 
+## The light mark, then Ethereum (2026-09-30)
+
+You asked: keep our mark up front, then have the spinning Ethereum diamond fade in and end up in
+the left corner.
+
+<img src="boot/mark-eth.gif" width="60%">
+
+The mark plays as before. Then, at 3.5 s, the diamond fades in to the left of the owners, already
+turning, and glides up into the top-left corner as it slows. It lands on the logo's pose, a corner
+toward you, at 5.1 s and stays there as a badge. The diamond is the orbit's own: a square pyramid
+over an inverted one, seen from 30° above, lit from the upper left. It looks the same every quarter
+turn, so it always lands on the logo.
+
+| | |
+|---|---|
+| <img src="boot/mark-eth-124.png"> | <img src="boot/mark-eth-140.png"> |
+| **3.7 s: it fades in** through its own dark shade, spinning, beside the owners. | **4.2 s: full colour,** still turning, before it starts to move. |
+| <img src="boot/mark-eth-152.png"> | <img src="boot/mark-eth-164.png"> |
+| **4.6 s: gliding up** and getting smaller as it slows. | **4.9 s: almost in the corner,** almost on the logo's pose. |
+| <img src="boot/mark-eth-180.png"> | |
+| **Landed.** The Ethereum logo in the corner, the mark in front. | |
+
+It's drawn the same light way as the rest of the mark. Each frame repaints only the box the diamond
+was in and the box it's in now: at most about 11 KB a frame on the 240x240, with four or five
+triangles. Over the whole animation that's 6.3% of the bytes whole frames would take.
+
+On every panel, including the 1.8":
+
+<img src="boot/mark-eth-panels.png">
+
+- **Length:** the mark now holds 5.3 s after the 0.3 s black, up from 3.8 s. That's the extra
+  1.5 s for the diamond. Any key still skips it.
+- **"still"** (`BOOT_ART = "still"`) draws it all at once, with the diamond already in the corner.
+
+**Questions for you:**
+1. **Where it lands:** the top-left corner, about 40 px tall. Bigger, smaller, or tucked closer to
+   the edge?
+2. **The spin:** one turn, slowing to a stop. More turns, or keep it turning slowly in the corner?
+   (A slow turn costs a few KB a frame for as long as the boot screen is up.)
+3. **The chain:** today it's always the Ethereum diamond. Your Safes are on Base Sepolia. Show
+   Base's mark there instead when the Safe in view is on Base?
+
 ## The light mark (2026-09-30): the loading screen the Pico can keep up with
 
 The orbit redraws and sends the whole panel every frame: 100–130 ms a frame on the Pico
@@ -353,5 +395,8 @@ Edit this list on GitHub: add a line, tick one off, or write under it. Each iter
       face of the diamond (iteration 5)
 - [x] Fill from the bottom up; smooth, no pauses; the diamond keeps spinning behind the name, with
       cycling taglines (iteration 6)
+- [x] A light boot screen: the mark, sending only what changed (the light mark)
+- [x] After the mark, the spinning Ethereum diamond fades in and lands in the top-left corner
+      (the light mark, then Ethereum)
 - [ ] Pick a font set (FONTS.md, question 1)
 - [ ] (add yours)
