@@ -2,9 +2,10 @@
 # in, three sign and their triangle fills green. With no hold, that triangle is the front face of the
 # Ethereum diamond seen head-on: it starts to turn, the signers ride its corners away, the two who
 # didn't sign fade, the lower pyramid rises in and the green face goes blue round the back. The
-# Ethereum logo, spinning. It slows, grows and dims, and the small mark and PicoQuorum fade in over
-# it, then a tagline (taglines.py); it keeps turning for as long as the boot screen is up. The real
-# boot status is the last line.
+# Ethereum logo, spinning. It slows to a stop on the logo's pose as it grows and dims, and the small
+# mark and PicoQuorum fade in over it, then a tagline (taglines.py). The real boot status is the
+# last line. It stops rather than turning on: after WiFi the console's start takes the Pico for a
+# few seconds without a frame, and a diamond frozen mid-turn looks like a hang (2026-09-30).
 # The orbit (bootart.py) redraws and sends the whole panel every frame, about 110 ms a frame on the
 # Pico. This sends only what changed since the last frame: a dot's square, an edge as far as it has
 # got, the rows the green rose through, the box the diamond was in and is in now. A frame where
@@ -55,7 +56,7 @@ SETTLE0, SETTLE1 = 1300, 1550               # the two who didn't sign shrink a l
 POUR0, POUR1 = 1400, 1750                   # the triangle fills from its base up
 TURN0, TURN1 = 1750, 2750                   # the diamond takes over from it and becomes the logo
 RISE0 = 2100                                # the lower pyramid rises in
-BACK0, BACK1 = 2750, 3250                   # it slows, grows and dims behind the name
+BACK0, BACK1 = 2750, 3250                   # it slows to a stop, grows and dims behind the name
 NAME0, NAME1 = 2950, 3350                   # the small mark and the name fade in over it
 TAG0, TAG1 = 3250, 3650                     # then the tagline
 DURATION_MS = 3700                          # splash holds the boot screen this long
@@ -70,7 +71,10 @@ S1, GAP, FOOT = 0.37, 0.12, 0.97            # the logo's half-base, the gap, the
 EL = math.radians(30)
 K1, OY1, KB, OYB = (40, 52, 44, 54) if SMALL else (80, 100, 88, 104)   # the logo; behind the name
 BACK_DIM = 0.66
-SPIN_V, BACK_V, ACC = 0.30, 0.03, 400       # degrees a ms turning and behind the name; the run-up
+# Degrees a ms while it turns, and after it stops (0); the run-up. 60° in the run-up, 180° at full
+# speed and 75° slowing down come to 315°: a quarter turn short of the start's 45° mod 90, so it
+# lands on the logo (test-vectors/run-bootmark.mjs checks). Change one, change the others.
+SPIN_V, BACK_V, ACC = 0.30, 0.0, 400
 _l = math.sqrt(0.55 * 0.55 * 2 + 0.63 * 0.63)
 LIGHT = (-0.55 / _l, -0.55 / _l, 0.63 / _l)
 
@@ -164,7 +168,7 @@ def tag_look(t):
 
 
 def yaw_at(t):
-    """Degrees turned: it runs up, turns, slows behind the name and never stops."""
+    """Degrees turned: it runs up, turns, and slows to a stop on the logo's pose behind the name."""
     if t >= STILL:
         return 45.0                             # the logo's own pose: a corner toward you
     a = t - TURN0
@@ -188,7 +192,7 @@ def eth_look(t):
     deg = yaw_at(t)
     green = 0 if t >= STILL else 1 - span(deg, 60, 120)     # the quorum's face goes blue round the back
     return (int(64 * smooth(span(t, TURN0, TURN1))),
-            int(deg) % (360 if green > 0 else 90),      # the same every quarter turn once all blue
+            int(deg + 0.5) % (360 if green > 0 else 90),    # the same every quarter turn once all blue
             int(32 * smooth(span(t, RISE0, TURN1))), int(16 * green), int(8 * span(t, TURN0, TURN0 + 300)),
             int(32 * smooth(span(t, BACK0, BACK1))), int(DOT * (1 - span(t, TURN0 + 50, TURN0 + 450)) + 0.5))
 

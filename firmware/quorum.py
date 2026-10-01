@@ -167,13 +167,38 @@ def _log(s):
 
 
 # ----------------------------------------------------------------------------- the key
+OWNERS = "owners.txt"   # remembered owner addresses: the SHA-256 of webauthn.owner_inputs, the address
+
+
 def my_owner():
     """This key's owner address: the SafeWebAuthnSignerProxy the passkey factory deploys for it,
     computed here from the key and the pinned factory (webauthn.owner_address). The simulated and
-    the forked Safe use the same rule, and the factory's getSigner agrees (test-vectors)."""
+    the forked Safe use the same rule, and the factory's getSigner agrees (test-vectors). The two
+    keccaks take ~0.7 s of every boot, so the answer is remembered by the hash of exactly the bytes
+    it is computed from: the same key and factory give it back at once, anything else computes it."""
     if not qx:
         return ""
-    return webauthn.owner_address(qx, qy, CFG["signer"])
+    import hashlib
+    from binascii import hexlify
+    inputs = webauthn.owner_inputs(qx, qy, CFG["signer"])
+    h = hashlib.sha256(inputs[0])
+    h.update(inputs[1])
+    k = hexlify(h.digest()).decode()
+    try:
+        with open(OWNERS) as f:
+            for line in f:
+                p = line.split()
+                if len(p) == 2 and p[0] == k:
+                    return p[1]
+    except OSError:
+        pass
+    a = webauthn.owner_address(qx, qy, CFG["signer"], inputs)
+    try:
+        with open(OWNERS, "a") as f:
+            f.write("%s %s\n" % (k, a))
+    except OSError:
+        pass
+    return a
 
 
 def read_key():

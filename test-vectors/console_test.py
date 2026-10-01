@@ -256,6 +256,32 @@ def case_pin():
     check(Q.state == "home" and Q.pin_ok, "a development board without a pin works as before")
     Q = fresh(safe=False)
     check(Q.state == "unconfigured" and Q.svc is None, "production with no QUORUM_SAFE: unconfigured, no service")
+    # The owner address (two keccaks, ~0.7 s on the Pico) is remembered by the hash of its inputs.
+    try:
+        os.remove("owners.txt")
+    except OSError:
+        pass
+    import webauthn
+    o0, o2 = owner_of(0), owner_of(2)       # the test's own expectations, before counting
+    pin0 = {"serial": SERIAL, "slot": 0, "owner": o0, "locked": True}
+    real, n = webauthn.keccak256, [0]
+
+    def counted(b):
+        n[0] += 1
+        return real(b)
+    webauthn.keccak256 = counted
+    try:
+        Q = fresh(expect=pin0)
+        first = n[0]
+        n[0] = 0
+        Q = fresh(expect=pin0)
+        check(first == 2 and n[0] == 0 and Q.me == o0 and Q.pin_ok,
+              "the owner address: computed once (two keccaks), then remembered by its inputs' hash")
+        n[0] = 0
+        Q = fresh(expect={"serial": SERIAL, "slot": 2, "owner": o2, "locked": True})
+        check(n[0] == 2 and Q.me == o2, "another key's owner is computed, not taken from the remembered one")
+    finally:
+        webauthn.keccak256 = real
 
 
 def case_refusals():

@@ -78,11 +78,17 @@ def contract_signature(owner, ad, fields, r, s):
     return bytes(12) + _b(owner) + _u256(65) + b"\x00" + _u256(len(data)) + data
 
 
-def owner_address(qx, qy, signer):
+def owner_inputs(qx, qy, signer):
+    """(factory, init code): everything owner_address depends on."""
+    return _b(signer["factory"]), (_b(signer["proxyCode"]) + bytes(12) + _b(signer["singleton"]) + _u256(qx) + _u256(qy)
+                                   + _u256(signer["verifiers"]))
+
+
+def owner_address(qx, qy, signer, inputs=None):
     """The SafeWebAuthnSignerProxy the factory deploys for this key: CREATE2 with salt 0 over the
     proxy's creation code and its constructor arguments (singleton, x, y, verifiers). signer is
-    quorum_cfg.CFG["signer"]; its verifiers are part of the address, so they can never change."""
-    init = (_b(signer["proxyCode"]) + bytes(12) + _b(signer["singleton"]) + _u256(qx) + _u256(qy)
-            + _u256(signer["verifiers"]))
-    h = keccak256(b"\xff" + _b(signer["factory"]) + bytes(32) + keccak256(init))
+    quorum_cfg.CFG["signer"]; its verifiers are part of the address, so they can never change.
+    Two pure-Python keccaks over ~0.6 KB: about 0.7 s on the Pico."""
+    factory, init = inputs or owner_inputs(qx, qy, signer)
+    h = keccak256(b"\xff" + factory + bytes(32) + keccak256(init))
     return "0x" + hexlify(h[12:]).decode()

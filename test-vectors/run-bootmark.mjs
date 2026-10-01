@@ -123,6 +123,8 @@ splash.begin()
 assert splash._art.__name__ == 'bootmark' and not splash._still
 assert splash.BLACK_LEAD_MS + splash.ANIMATION_MS == 4000
 assert splash._gap == 30
+import bootmark as B
+assert int(B.yaw_at(B.BACK1) + 0.5) % 90 == 45 and B.eth_look(B.BACK1 + 9000)[1] == 45 and B.yaw_at(B.BACK1 + 9000) == B.yaw_at(B.BACK1), 'the diamond lands on the logo pose'
 splash.step('app', 'Starting console')
 splash.finish(wait=False)
 assert splash._art is None and 'bootmark' not in sys.modules and 'bootart' not in sys.modules
@@ -133,7 +135,7 @@ assert not wide, 'too wide for the 240x240: %r' % wide
 assert taglines.pool() == taglines.SERIOUS and taglines.pick() in taglines.SERIOUS
 assert sorted(taglines.cycle()) == sorted(taglines.SERIOUS)
 `);
-    console.log('bootmark: splash picks the mark by default, 4.0 s hold, released at finish; ' +
+    console.log('bootmark: splash picks the mark by default, 4.0 s hold, released at finish; the diamond lands on the logo; ' +
       'every tagline fits 220 px, serious by default');
   } catch (e) { console.error(`bootmark splash: ${String(e)}`); failed = true; } finally { dev.dispose(); }
 }
