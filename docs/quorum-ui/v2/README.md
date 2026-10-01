@@ -21,47 +21,46 @@ there is where this one starts.
    the home screen, the approvals row, and the moment of signing.
 5. **Every screen, redone,** with before/after pairs like the v1 walkthrough.
 
-## The light mark, then Ethereum (2026-09-30)
+## The light mark turns into Ethereum (2026-09-30)
 
-You asked: keep our mark up front, then have the spinning Ethereum diamond fade in and end up in
-the left corner.
+You said the diamond fading in and flying to the corner didn't work. You asked to go back to the
+original idea, drawn the light way: the green triangle becomes the top of the Ethereum logo, which
+spins until the whole logo is there. Then PicoQuorum, with a small version of the mark to its left,
+fades in over the logo, which keeps turning. And no pauses: as quick as it can go.
 
 <img src="boot/mark-eth.gif" width="60%">
 
-The mark plays as before. Then, at 3.5 s, the diamond fades in to the left of the owners, already
-turning, and glides up into the top-left corner as it slows. It lands on the logo's pose, a corner
-toward you, at 5.1 s and stays there as a badge. The diamond is the orbit's own: a square pyramid
-over an inverted one, seen from 30° above, lit from the upper left. It looks the same every quarter
-turn, so it always lands on the logo.
-
 | | |
 |---|---|
-| <img src="boot/mark-eth-124.png"> | <img src="boot/mark-eth-140.png"> |
-| **3.7 s: it fades in** through its own dark shade, spinning, beside the owners. | **4.2 s: full colour,** still turning, before it starts to move. |
-| <img src="boot/mark-eth-152.png"> | <img src="boot/mark-eth-164.png"> |
-| **4.6 s: gliding up** and getting smaller as it slows. | **4.9 s: almost in the corner,** almost on the logo's pose. |
-| <img src="boot/mark-eth-180.png"> | |
-| **Landed.** The Ethereum logo in the corner, the mark in front. | |
+| <img src="boot/mark-eth-050.png"> | <img src="boot/mark-eth-062.png"> |
+| **1.5 s: the quorum.** Three signed, the triangle filling. The signatures now come 0.3 s apart (they were 0.5 s), with no holds. | **1.9 s: no beat.** The filled triangle *is* the diamond's front face seen head-on. It brightens and starts to turn. |
+| <img src="boot/mark-eth-067.png"> | <img src="boot/mark-eth-072.png"> |
+| **2.0 s: it turns.** The signers ride its corners and shrink away, and the two who didn't sign fade out. | **2.2 s: the green face goes round the side** as the camera rises to the logo's 30°. |
+| <img src="boot/mark-eth-084.png"> | <img src="boot/mark-eth-092.png"> |
+| **2.5 s: all Ethereum blue,** and the lower pyramid rises in. | **2.8 s: the logo,** spinning. |
+| <img src="boot/mark-eth-110.png"> | <img src="boot/mark-eth-150.png"> |
+| **3.3 s:** it slows, grows and dims, and **the small mark and PicoQuorum fade in over it.** | **4.5 s:** the tagline, and the logo still turning slowly behind. It turns for as long as the boot screen is up. |
 
-It's drawn the same light way as the rest of the mark. Each frame repaints only the box the diamond
-was in and the box it's in now: at most about 11 KB a frame on the 240x240, with four or five
-triangles. Over the whole animation that's 6.3% of the bytes whole frames would take.
+The small mark is the boot screen in miniature: five owners, three signed in green, two amber,
+their triangle.
 
-On every panel, including the 1.8":
+On every panel (this is `BOOT_ART = "still"`, the end of it drawn at once):
 
 <img src="boot/mark-eth-panels.png">
 
-- **Length:** the mark now holds 5.3 s after the 0.3 s black, up from 3.8 s. That's the extra
-  1.5 s for the diamond. Any key still skips it.
-- **"still"** (`BOOT_ART = "still"`) draws it all at once, with the diamond already in the corner.
+- **Length:** the logo is spinning by 2.8 s and the name is up by 3.4 s. Splash holds 3.7 s after
+  the 0.3 s black (the corner version held 5.3 s and the plain mark 3.8 s). Any key still skips.
+- **Cost:** each frame repaints the box the diamond was in and the box it's in now. While it's
+  big and turning that's up to half the panel (58 KB), so this is heavier than the plain mark: 21%
+  of what whole frames would send, against 6%. That's still about 5× lighter than the orbit. Once
+  it slows behind the name, a frame only goes out when it has turned another whole degree.
+- **The corner version is gone:** its pictures are replaced by these.
 
 **Questions for you:**
-1. **Where it lands:** the top-left corner, about 40 px tall. Bigger, smaller, or tucked closer to
-   the edge?
-2. **The spin:** one turn, slowing to a stop. More turns, or keep it turning slowly in the corner?
-   (A slow turn costs a few KB a frame for as long as the boot screen is up.)
-3. **The chain:** today it's always the Ethereum diamond. Your Safes are on Base Sepolia. Show
-   Base's mark there instead when the Safe in view is on Base?
+1. **The turn:** about two-thirds of a turn while it becomes the logo, then 30° a second behind the
+   name. Faster, slower?
+2. **Behind the name:** it dims to about a third. Brighter, so the logo reads more, or darker, so
+   the name reads more?
 
 ## The light mark (2026-09-30): the loading screen the Pico can keep up with
 
@@ -396,7 +395,10 @@ Edit this list on GitHub: add a line, tick one off, or write under it. Each iter
 - [x] Fill from the bottom up; smooth, no pauses; the diamond keeps spinning behind the name, with
       cycling taglines (iteration 6)
 - [x] A light boot screen: the mark, sending only what changed (the light mark)
-- [x] After the mark, the spinning Ethereum diamond fades in and lands in the top-left corner
-      (the light mark, then Ethereum)
+- [x] ~~After the mark, the spinning Ethereum diamond fades in and lands in the top-left corner~~
+      (didn't work, dropped)
+- [x] The light way, the original idea: the green triangle becomes the top of the Ethereum logo,
+      which spins; the small mark and PicoQuorum fade in over it; no pauses (the light mark turns
+      into Ethereum)
 - [ ] Pick a font set (FONTS.md, question 1)
 - [ ] (add yours)

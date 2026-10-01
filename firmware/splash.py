@@ -178,7 +178,7 @@ def _draw():
 
 
 def finish(keys=None, wait=True):
-    """Let the branding reach the name (the mark: 0.3 s black + 5.3 s; the orbit: 4 s + 9.6 s); any key skips.
+    """Let the branding reach the name (the mark: 0.3 s black + 3.7 s; the orbit: 4 s + 9.6 s); any key skips.
     Called before the console starts its timer/watchdog. Release animation code before TLS.
     Errors bypass this hold and go straight to the console's error screen.
     """
