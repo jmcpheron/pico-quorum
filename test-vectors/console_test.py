@@ -430,6 +430,21 @@ def case_production():
     import signer
     check(not signer.flag("ALLOW_LOCK") and not signer.flag("ALLOW_GENKEY"), "production: ALLOW_LOCK/ALLOW_GENKEY in secrets.py count for nothing")
     check(Q.SOFT_OK is False, "production: ALLOW_SOFT_KEY counts for nothing")
+    import splash, time
+
+    class Boom:
+        def render(self, *a):
+            raise MemoryError("allocating 1280 bytes")
+    splash.begin()
+    was, t0 = splash._art, splash._t0
+    splash._art, splash._t0, splash._finished = Boom(), time.ticks_add(time.ticks_ms(), -30000), False
+    try:
+        splash.draw()
+        ok = True
+    except MemoryError:
+        ok = False
+    splash._art, splash._t0 = was, t0
+    check(ok, "a boot-animation frame that runs out of memory is skipped, not fatal (it took the console down, 2026-09-30)")
     import lcd
     check(lcd.BANDS == 8 and len(lcd._BUF) == 14400, "the 240x240 board is strip-buffered (14 KB, not a 115 KB frame: that left HTTPS no room, 2026-09-29)")
     Q = fresh(url=None, extra='APP_URL = "http://10.9.8.7:3001"\n')
@@ -529,6 +544,11 @@ def case_unsent():
         check(not sign(Q, Q.queue[0], 2100) and Q.unsent and "unsent.json" in os.listdir(), "OSError 12 on the confirmation: kept in RAM and on flash")
     finally:
         SVC.post = real_post
+    import txservice
+    check(txservice.why(422, {"nonFieldErrors": ["Signature is not valid"]}) == "HTTP 422: Signature is not valid"
+          and txservice.why(400, {"detail": "no"}) == "HTTP 400: no" and txservice.why(502, {}) == "HTTP 502"
+          and txservice.why(400, {"signature": ["bad"]}) == "HTTP 400: signature: bad" and txservice.why(201, {}) == "",
+          "a refused confirmation says what the service said (detail, nonFieldErrors, any field), never nothing")
     Q = fresh(keep=True)                    # a restart (the RAM copy is gone)
     serve(Q, [t])
     check(SVC.posted and t["safeTxHash"] in SVC.posted[-1][0] and "unsent.json" not in os.listdir(),

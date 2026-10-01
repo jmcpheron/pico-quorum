@@ -108,12 +108,27 @@ def draw():
         elapsed = time.ticks_diff(time.ticks_ms(), _t0) - BLACK_LEAD_MS
         if elapsed < 0:
             return
-        if getattr(_art, "IN_MS", False):          # the mark: time in ms
-            _art.render(lcd, elapsed, _status, _status_color, _still)
-        else:                                       # the orbit: its frame, 30 ms each
-            _art.render(lcd, elapsed // 30, _status, _status_color)
+        try:
+            if getattr(_art, "IN_MS", False):          # the mark: time in ms
+                _art.render(lcd, elapsed, _status, _status_color, _still)
+            else:                                       # the orbit: its frame, 30 ms each
+                _art.render(lcd, elapsed // 30, _status, _status_color)
+        except MemoryError:
+            # A frame of the animation is not worth the console: the Trust M's certificate checks leave
+            # the heap in pieces (MemoryError in bootart.render on the 240x240 board, 2026-09-30). Skip it.
+            # The mark keeps what it last sent until a frame completes, so the next one repaints the rest.
+            _skipped()
     else:
-        lcd.frames(_draw)
+        try:
+            lcd.frames(_draw)
+        except MemoryError:
+            _skipped()
+
+
+def _skipped():
+    import gc
+    lcd.y0 = 0
+    gc.collect()
 
 
 def _black():
