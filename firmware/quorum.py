@@ -235,8 +235,8 @@ def probe_chip():
     if sig.name == "trustm" and pin_ok:
         t0 = time.ticks_ms()
         bound = sig.binding_ok()        # E0F0's signature over this key, and its certificate from Infineon's CA
-        qlog.write("trustm cert %s, binding %s (%d ms)" % ("ok" if sig.ca_ok else "NOT VERIFIED", "ok" if bound else "MISSING",
-                                                         time.ticks_diff(time.ticks_ms(), t0)))
+        qlog.write("trustm cert %s, binding %s (%d ms%s)" % ("ok" if sig.ca_ok else "NOT VERIFIED", "ok" if bound else "MISSING",
+                                                           time.ticks_diff(time.ticks_ms(), t0), ", remembered" if sig.remembered else ""))
     if not pin_ok and (PROD or EXPECTS):
         state = "pinfail"
 
@@ -1204,6 +1204,15 @@ def start_watch():
 
 def start():
     global d, keys, svc, dirty, splash_until, last_activity, state
+    # Where the boot goes, one line in log.txt at the end: "boot ms: art 2100 wifi 4800 start 6012
+    # fonts 40 probe 310 ...": when the boot art started, WiFi was up (boot.py) and this began, in
+    # ms since reset, then each step's own time.
+    marks, last = ["art %d wifi %d start %d" % (splash._t0, getattr(splash, "wifi_at", 0), time.ticks_ms())], [time.ticks_ms()]
+
+    def mark(what):
+        now = time.ticks_ms()
+        marks.append("%s %d" % (what, time.ticks_diff(now, last[0])))
+        last[0] = now
     splash.TITLE = "picoquorum"
     qlog.write("boot %s %s reset cause %d" % (image.IMAGE, image.BUILD, machine.reset_cause()))
     U.use(getattr(secrets, "QUORUM_THEME", "dark") if secrets else "dark")
@@ -1214,11 +1223,13 @@ def start():
     for name in fonts.FILES:
         fonts.get(name)
     gc.collect()
+    mark("fonts")
     d = splash.begin()
     keys = L.Keys()
     splash.step("chip", "probing i2c...", L.GREY)
     probe_chip()
     gc.collect()                # the Trust M's certificate checks leave the heap in pieces: tidy before the next frame
+    mark("probe")
     if state == "nochip":
         splash.step("chip", "none on i2c", L.RED)
     else:
@@ -1226,6 +1237,7 @@ def start():
         name = (chip["name"] + " \u00b7 ") if chip else ""
         splash.step("chip", "%s%s%s" % (name, fingerprint() or "no key", pinned), L.RED if not qx or not pin_ok else L.GREEN)
         check_counter()
+    mark("counter")
     w = network.WLAN(network.STA_IF)
     if secrets and not w.isconnected() and not net.tried:
         try:
@@ -1234,6 +1246,7 @@ def start():
         except Exception as e:
             print("wifi:", e)
     splash.wifi_row(w, SSID if secrets else "")
+    mark("wifi")
     served = [x for x in WATCH if x["base"]]
     first = ([x for x in served if x["base"].startswith("https")] or served or [None])[0]
     if len(WATCH) > 1:
@@ -1248,14 +1261,18 @@ def start():
     elif first:
         verify = PROD or bool(getattr(secrets, "QUORUM_TLS_VERIFY", True))
         svc = txservice.Service(first["base"], txservice.checksum(first["addr"]), API_KEY, verify=verify, floor=image.DATE)
+    mark("service")
     if state == "boot":
         splash.step("app", "Starting console", L.GREY)
     splash.finish(keys, wait=state == "boot")
+    mark("finish")
     splash_until = time.ticks_add(time.ticks_ms(), 1500)
     last_activity = time.ticks_ms()
     dirty = True
     start_timer()
     start_watch()
+    mark("timers")
+    qlog.write("boot ms: " + " ".join(marks))
 
 
 def stop():

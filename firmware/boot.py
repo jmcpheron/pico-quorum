@@ -27,6 +27,8 @@ def _normal_boot():
     wlan = net.start(progress=_spin)
     if splash:
         splash.wifi_row(wlan, _ssid)
+        import time
+        splash.wifi_at = time.ticks_ms()    # for quorum's "boot ms" line in log.txt
 
 if board.MAINTENANCE:
     Pin("LED", Pin.OUT).on()

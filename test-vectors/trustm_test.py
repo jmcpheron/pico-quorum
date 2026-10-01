@@ -319,7 +319,58 @@ def case_console():
         sim.calc_sign = real_calc
     check(Q.result and Q.result[0] and any("besides this signature" in l for l in Q.result[2]),
           "the chip counted more than the signature itself: the result says so")
-    check(Q.sec == sim.sec_now(), "and the Device screen shows the new count")
+    # The console read the counter when it signed; the chip takes one count off every 5 s of wall
+    # time, so one tick may have passed by now (it did once the factory checks were remembered and
+    # the boot got faster). Anything else is wrong.
+    _now = sim.sec_now()
+    check(Q.sec in (_now, _now + 1), "and the Device screen shows the new count (%s, the chip now %s)" % (Q.sec, _now))
+
+
+def case_proof():
+    """The factory checks (two P-256 verifies) pass once and are remembered by the hash of the
+    bytes they read (tmcfg.proof): the same bytes skip the math; one changed byte runs both again,
+    and a failure is never remembered."""
+    import signer, tmcfg
+    only_trustm()
+    trustm_sim.seal_as_quorum()
+    try:
+        os.remove(tmcfg.PROOF_FILE)
+    except OSError:
+        pass
+    calls = [0]
+    real = p256.verify
+
+    def counted(*a):
+        calls[0] += 1
+        return real(*a)
+    p256.verify = counted
+    sim = trustm_sim.chip()
+    saved = sim.objs[0xF1D1]["data"]
+    try:
+        s = signer.TrustMSigner()
+        check(s.binding_ok() is True and s.ca_ok and not s.remembered and calls[0] == 2,
+              "first boot: both verifies run and pass, and the pass is remembered")
+        calls[0] = 0
+        s = signer.TrustMSigner()
+        check(s.binding_ok() is True and s.ca_ok and s.remembered and calls[0] == 0,
+              "next boot, the same bytes: the pass is remembered, no verify")
+        b = bytearray(saved)
+        b[10] ^= 1                          # one bit of E0F0's signature
+        sim.objs[0xF1D1]["data"] = bytes(b)
+        calls[0] = 0
+        s = signer.TrustMSigner()
+        check(s.binding_ok() is False and not s.remembered and calls[0] == 2,
+              "one bit of F1D1 changed: both checks run again, and the binding fails")
+        calls[0] = 0
+        s = signer.TrustMSigner()
+        check(s.binding_ok() is False and calls[0] == 2, "and the failure is not remembered: checked again on the next boot")
+        sim.objs[0xF1D1]["data"] = saved
+        calls[0] = 0
+        s = signer.TrustMSigner()
+        check(s.binding_ok() is True and s.remembered and calls[0] == 0, "the original bytes back: remembered again")
+    finally:
+        p256.verify = real
+        sim.objs[0xF1D1]["data"] = saved
 
 
 def case_chip_pages():
@@ -560,7 +611,7 @@ def case_knob():
 
 
 def main():
-    for case in (case_real_chip, case_detect, case_full, case_resume, case_gates, case_other, case_console, case_chip_pages, case_sec,
+    for case in (case_real_chip, case_detect, case_full, case_resume, case_gates, case_other, case_console, case_proof, case_chip_pages, case_sec,
                  case_console_pin, case_dual, case_ui, case_knob):
         print("--", case.__name__[5:])
         try:

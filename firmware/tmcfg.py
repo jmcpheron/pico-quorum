@@ -336,6 +336,53 @@ def binding_check(bind, cert_der_bytes, cert, uid, oid, qx, qy):
     return p256.verify(cert["qx"], cert["qy"], binding_digest(uid, oid, qx, qy), bind["r"], bind["s"])
 
 
+# ----------------------------------------------------------------------------- a remembered pass
+# cert_check and binding_check are two P-256 verifies, about 2.3 s each on the Pico, over bytes the
+# chip only gives out: its UID, E0E0, F1D1, F1D0 (and the key's OID and the pinned CA key). Their
+# answer is a function of those bytes, so a pass is remembered by their hash: a boot that reads
+# the same bytes has the same answer without the math. Only a pass is kept; anything else runs
+# both checks again. Not handed to the chip's own VerifySign: these ask whether the chip is
+# genuine, and a counterfeit would say yes. The file is on the board's flash, which is no weaker
+# than the firmware beside it.
+PROOF_FILE = "tmproof.txt"
+PROOF_DOMAIN = b"PicoQuorum Trust M proof v1"   # change it when either check changes
+
+
+def proof(uid, oid, der, binding, record, issuer):
+    """The hash of everything the two checks decide from, or None (no pinned CA for this issuer)."""
+    ca = ca_key(issuer)
+    if ca is None:
+        return None
+    h = hashlib.sha256(PROOF_DOMAIN)
+    for part in (bytes(uid), oid.to_bytes(2, "big"), bytes(der), bytes(binding), bytes(record), _b32(ca[0]), _b32(ca[1])):
+        h.update(len(part).to_bytes(2, "big"))
+        h.update(part)
+    return hexlify(h.digest()).decode()
+
+
+def _proofs():
+    try:
+        with open(PROOF_FILE) as f:
+            return dict(line.split() for line in f if line.strip())
+    except (OSError, ValueError):
+        return {}
+
+
+def proof_known(serial, p):
+    return _proofs().get(serial) == p
+
+
+def proof_keep(serial, p):
+    d = _proofs()
+    d[serial] = p
+    try:
+        with open(PROOF_FILE, "w") as f:
+            for k in d:
+                f.write("%s %s\n" % (k, d[k]))
+    except OSError:
+        pass                                # a full flash costs the next boot the checks, nothing else
+
+
 # ----------------------------------------------------------------------------- what the screens say
 def short_ca(issuer):
     """ "Infineon OPTIGA(TM) Trust M CA 101" -> "CA 101"."""

@@ -474,8 +474,10 @@ class TrustMSigner:
         self._meta = None
         self._rec = None
         self._cert = None
-        self.ca_ok = None           # cert_ok(): None until checked (a P-256 verify, ~1.4 s on the Pico)
+        self.ca_ok = None           # cert_ok(): None until checked (a P-256 verify, ~2.3 s on the Pico)
         self.bound = None           # binding_ok(): None until checked (another verify)
+        self.remembered = False     # binding_ok() knew both from an earlier pass (tmcfg.proof)
+        self._rec_raw = b""
 
     def uid(self, fresh=False):
         if fresh or self._uid is None:
@@ -499,7 +501,8 @@ class TrustMSigner:
     def record(self):
         import tmcfg
         if self._rec is None:
-            self._rec = tmcfg.record_decode(self.chip.get(tmcfg.RECORD)) or False
+            self._rec_raw = bytes(self.chip.get(tmcfg.RECORD))
+            self._rec = tmcfg.record_decode(self._rec_raw) or False
         return self._rec or None
 
     def cert(self):
@@ -523,14 +526,24 @@ class TrustMSigner:
 
     def binding_ok(self):
         """F1D1 holds E0F0's signature over this key, and E0F0's certificate chains to Infineon's
-        CA: a genuine Trust M holds this key. Two verifies, once."""
+        CA: a genuine Trust M holds this key. Two verifies, once per set of bytes: a pass is
+        remembered by the hash of everything both depend on (tmcfg.proof), and a later boot that
+        reads the same bytes from the chip skips the math."""
         import tmcfg
         if self.bound is None:
+            self.remembered = False
             try:
                 rec = self.record()
                 der, c = self.cert()
-                b = tmcfg.binding_decode(self.chip.get(tmcfg.BINDING))
-                self.bound = bool(rec) and self.cert_ok() and tmcfg.binding_check(b, der, c, self.uid(), self.slot, rec["qx"], rec["qy"])
+                raw = bytes(self.chip.get(tmcfg.BINDING))
+                p = tmcfg.proof(self.uid(), self.slot, der, raw, self._rec_raw, c["issuer"]) if rec else None
+                if p and tmcfg.proof_known(self.serial(), p):
+                    self.ca_ok = self.bound = self.remembered = True
+                else:
+                    b = tmcfg.binding_decode(raw)
+                    self.bound = bool(rec) and self.cert_ok() and tmcfg.binding_check(b, der, c, self.uid(), self.slot, rec["qx"], rec["qy"])
+                    if self.bound and p:
+                        tmcfg.proof_keep(self.serial(), p)
             except Exception as e:
                 print("binding:", e)
                 self.bound = False
