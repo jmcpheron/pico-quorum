@@ -7,6 +7,8 @@ Console and key electronics. Nothing designed yet; see [`../docs/KICKOFF.md`](..
   [`wiring/BUILD1.md`](wiring/BUILD1.md), and on a breadboard in [`wiring/BREADBOARD.md`](wiring/BREADBOARD.md)
 - [`bom/`](bom/): the parts list and sourcing notes
 - [`key-pcb/`](key-pcb/): the board inside the key handle
+- [`STEMMA-BREAKOUT.md`](STEMMA-BREAKOUT.md): the outline, holes and connector positions shared by
+  the ATECC608 and Trust M breakouts, for designing cases
 
 The inherited picowallet wiring (Pico + Waveshare LCD + ATECC608 + 18650) is in
 [`wiring/SOLDERING.md`](wiring/SOLDERING.md) and `tools/wiring`.
