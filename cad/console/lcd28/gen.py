@@ -7,13 +7,14 @@ and open at the bottom, with 2.5 mm walls and a 2.5 mm face plate. The face plat
 68 x 48 screen window, a 12 mm dial hole, a 7 mm button hole and a 30 x 40 chip slot (open for
 now). Keep editing the shell in Onshape, export it over the STEP, and run this again.
 
-This script changes two things:
+This script changes three things:
 - It fills the draft's screen window and cuts a smaller one. The 64.3 x 47.5 glass would not
   cover a 68 x 48 window, and the mounting holes sit inside the old window's width.
 - It adds four posts under the face plate for the Lonely Binary 2.8-inch LCD board
   (ASIN B0GR4HRVV2). They work like the key tray's (cad/key/tray.py): a boss the board's front
   face rests on, and a chamfered peg in each mounting hole. Each post has a pilot hole, so a
   self-tapping screw from behind can clamp the board; the pegs only locate it.
+- It notches the plate over the LCD's ribbon connector, on the left edge seen from the front.
 
 The case prints face down, so the posts print standing up, with no supports.
 
@@ -31,7 +32,7 @@ import cadquery as cq
 HERE = os.path.dirname(os.path.abspath(__file__))
 STEP_IN = os.path.join(HERE, "dial-and-button.step")
 OUT = os.path.join(HERE, "out")
-VERSION = "v2"
+VERSION = "v3"
 
 # --- the shell (read off the STEP; checked below) ---------------------------------------------
 PLATE_UNDER_Z = 27.5   # face plate underside
@@ -52,6 +53,8 @@ GLASS_X = 64.3
 GLASS_Y = 47.5
 GLASS_OFFSET = (0.0, 0.0)   # glass centre minus board centre ("looks about centred")
 GLASS_Z = STACK_T - PCB_T   # 2.2: glass front above the board's front face
+CONN_LEN = 21.1        # ribbon connector housing on the board's left edge (seen from the front),
+                       # along the edge, about centred top to bottom; the cable leaves out the back
 
 # --- estimated, not measured (LCD-REFERENCE.md, section 1) -------------------------------------
 ACTIVE_EST = (56.9, 42.7)   # active image, landscape, from the diagonal; assumed centred on the glass
@@ -67,9 +70,15 @@ PEG_SHORT = 0.3        # peg tip stops this far inside the board, so a screw hea
 PEG_CHAMFER = 0.4
 PILOT_D = 2.5          # for an M3 self-tapping screw; 0 for solid pegs
 PLATE_KEEP = 1.0       # the pilot hole stops this far short of the face
+CONN_SIDE = -1         # -x: the left edge, looking at the face
+CONN_CLEAR = 0.5       # notch beyond the housing, each end
+CONN_NOTCH_FRAC = 0.5  # how much of the plate strip beside the window the notch takes, from the wall in
 
 BOARD_C = SCREEN_C
 GLASS_C = (BOARD_C[0] + GLASS_OFFSET[0], BOARD_C[1] + GLASS_OFFSET[1])
+STRIP = INNER_X / 2 - WINDOW[0] / 2          # plate strip between the window and the wall
+CONN_NOTCH = (CONN_SIDE * (INNER_X / 2 - STRIP * CONN_NOTCH_FRAC / 2), BOARD_C[1],
+              STRIP * CONN_NOTCH_FRAC, CONN_LEN + 2 * CONN_CLEAR)   # centre x, centre y, width, length
 HOLES = [(BOARD_C[0] + sx * (PCB_X / 2 - HOLE_INSET), BOARD_C[1] + sy * (PCB_Y / 2 - HOLE_INSET))
          for sx in (-1, 1) for sy in (-1, 1)]
 BOARD_FRONT_Z = PLATE_UNDER_Z - GLASS_Z - GLASS_GAP   # board front face, facing the plate
@@ -92,7 +101,9 @@ def shell():
         "the STEP changed size: update the shell numbers at the top of gen.py"
     plate_t = PLATE_TOP_Z - PLATE_UNDER_Z
     s = s.union(rect_prism(SCREEN_C, DRAFT_WINDOW, PLATE_UNDER_Z, plate_t))      # fill the draft window
-    return s.cut(rect_prism(SCREEN_C, WINDOW, PLATE_UNDER_Z - 1, plate_t + 2, WINDOW_R))
+    s = s.cut(rect_prism(SCREEN_C, WINDOW, PLATE_UNDER_Z - 1, plate_t + 2, WINDOW_R))
+    # notch through the plate over the ribbon connector, from the wall in
+    return s.cut(rect_prism(CONN_NOTCH[:2], CONN_NOTCH[2:], PLATE_UNDER_Z - 1, plate_t + 2))
 
 
 def posts():
@@ -128,6 +139,10 @@ def check(case, p):
         gx = abs(hx - GLASS_C[0]) - GLASS_X / 2
         gy = abs(hy - GLASS_C[1]) - GLASS_Y / 2
         assert max(gx, gy) >= BOSS_D / 2 + BOSS_GLASS_GAP, "a boss would press on the glass at (%.1f, %.1f)" % (hx, hy)
+    # the connector notch stays in the plate, clear of the posts
+    notch = rect_prism(CONN_NOTCH[:2], CONN_NOTCH[2:], 0, PLATE_TOP_Z + 1)
+    assert p.intersect(notch).val().Volume() < 1e-6, "the connector notch cuts into a post"
+    assert abs(CONN_NOTCH[0]) + CONN_NOTCH[2] / 2 <= INNER_X / 2 + 1e-6, "the connector notch cuts into the wall"
     # the bosses stay on the board
     assert BOSS_D / 2 <= HOLE_INSET, "a boss hangs off the board edge"
     # the board fits inside the walls with room to spare
@@ -171,6 +186,8 @@ if __name__ == "__main__":
     if PILOT_D:
         case = case.cut(pilots())
     check(case, p)
+    print("connector notch x %.2f..%.2f, y %.2f..%.2f" % (CONN_NOTCH[0] - CONN_NOTCH[2] / 2, CONN_NOTCH[0] + CONN_NOTCH[2] / 2,
+                                                          CONN_NOTCH[1] - CONN_NOTCH[3] / 2, CONN_NOTCH[1] + CONN_NOTCH[3] / 2))
     print("window %.1f x %.1f; posts at %s; boss %.2f long, board front at z %.2f; peg %.2f across, %.2f long" % (
         WINDOW + (", ".join("(%.1f, %.1f)" % h for h in HOLES), PLATE_UNDER_Z - BOARD_FRONT_Z, BOARD_FRONT_Z, PEG_D, PEG_H)))
     name = "console28_" + VERSION

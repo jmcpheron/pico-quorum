@@ -1,10 +1,11 @@
 # 2.8-inch console case
 
 Jason's Onshape draft of a console built around the Lonely Binary 2.8-inch SPI LCD (240 × 320,
-ST7789, ASIN B0GR4HRVV2). [`gen.py`](gen.py) resizes its screen window and adds mounting posts
-for the LCD board. It is not the Waveshare dev console in the folders above.
+ST7789, ASIN B0GR4HRVV2). [`gen.py`](gen.py) resizes its screen window, adds mounting posts for
+the LCD board, and notches the plate over its ribbon connector. It is not the Waveshare dev
+console in the folders above.
 
-![2.8-inch console case v2](out/console28_v2_preview.png)
+![2.8-inch console case v3](out/console28_v3_preview.png)
 
 ```sh
 uv run --python 3.11 --with cadquery python cad/console/lcd28/gen.py
@@ -14,9 +15,10 @@ uv run --python 3.11 --with cadquery python cad/console/lcd28/gen.py
 |---|---|
 | `dial-and-button.step` | the Onshape draft, as exported: the shell, no posts. Source of truth for the shell |
 | `LCD-REFERENCE.md` | what is and isn't known about the LCD, and the measurement worksheet |
-| `out/console28_v2.stl` | the case with posts, face down, ready to slice |
-| `out/console28_v2.step` | the same, in the draft's own frame, to import back into Onshape |
-| `out/console28_v2_coupon.stl` | the face plate around the screen, with the posts. Prints in a fraction of the time; try the real board on it first |
+| `out/console28_v3.stl` | the case with posts, face down, ready to slice |
+| `out/console28_v3.step` | the same, in the draft's own frame, to import back into Onshape |
+| `out/console28_v3_coupon.stl` | the face plate around the screen, with the posts. Prints in a fraction of the time; try the real board on it first |
+| `out/console28_v2*` | v2, kept as printed (coupon only); no connector notch |
 
 ## The draft
 
@@ -32,10 +34,31 @@ The face plate holds:
 - **Blind holes:** two 3 mm holes, 1 mm deep, on the plate's underside at (−37, −25) and
   (−1, −25), flanking the chip slot.
 
-`gen.py` keeps all of that except the screen window, which it fills and re-cuts (v2 below). To
+`gen.py` keeps all of that except the screen window, which it fills and re-cuts (v2 below), and the
+connector notch (v3). To
 change the shell, edit it in Onshape, export it over `dial-and-button.step`, and run `gen.py`
 again. If the shell's size changes, `gen.py` stops and
 asks you to update its shell numbers.
+
+## v3 (2026-10-02): room for the ribbon connector
+
+The v2 coupon showed that the LCD's ribbon connector housing hits the plate. The housing is on the
+board's left edge, seen from the front. It is 21.1 mm long, about centred top to bottom, and its
+cable leaves out the back.
+
+v3 cuts a notch through the plate over it:
+- **Where:** in the strip between the window and the left wall.
+- **Size:** it takes the outer half of that strip, from the wall in: x −42.5 to −36.25,
+  6.25 mm wide.
+- **Length:** 22.1 mm (21.1 plus 0.5 at each end), centred on the board: y 16.95 to 39.05.
+- `gen.py` checks that the notch misses the posts and the wall.
+
+Knobs: `CONN_LEN`, `CONN_CLEAR`, `CONN_NOTCH_FRAC` (0.5 = half the strip), `CONN_SIDE` (−1 =
+left).
+
+On the full case, this notch is a slot through the face beside the screen. Once the housing's
+height above the board is measured, it could become a pocket in the plate's underside that leaves
+the face closed: the plate gives 2.5 mm over the board before the pocket.
 
 ## v2 (2026-10-02): measured board, smaller window, screw pilots
 
@@ -73,7 +96,7 @@ The checks:
 - Nothing in the case overlaps the board or the glass.
 - No post runs into a wall.
 
-**Print the coupon first** (`out/console28_v2_coupon.stl`): just the plate around the screen
+**Print the coupon first** (now `out/console28_v3_coupon.stl`): just the plate around the screen
 and the four posts, 85 × 57 × 6 mm. Check that:
 - the pegs go into all four holes, which checks the 4 mm hole inset
 - the glass sits under the window with dark border showing all round
