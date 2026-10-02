@@ -34,5 +34,9 @@ chips/
 *.kicad_prl
 *-backups/
 fp-info-cache
+# KiCad 10's local history, kept beside each project
+.history/
+# tools/keypcb calc's plots and SPICE runs
+hardware/key-pcb/out/
 *.lck
 \#auto_saved_files\#

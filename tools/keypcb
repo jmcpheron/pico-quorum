@@ -6,6 +6,10 @@
 #                                 in JLCPCB's column format
 #   tools/keypcb render [board]   top and bottom 3D renders into <board>/fab/ (part bodies show only
 #                                 if KiCad's 3D models are installed; the pads, fingers and silk always do)
+#   tools/keypcb calc ...         the numbers behind the design: insert, rise, power, spice
+#                                 (hardware/key-pcb/keycalc.py, run with uv; needs no KiCad)
+#   tools/keypcb gen-cd           rewrites proposals key-c-usbc and key-d-pogo from gen_cd.py (KiCad's own
+#                                 Python, for pcbnew); rev A's boards are never touched
 #
 # board is key-a-soic or key-b-udfn; without one, every board. Run from anywhere.
 import csv, glob, io, os, re, shutil, subprocess, sys, tempfile, zipfile
@@ -27,8 +31,13 @@ def boards(arg):
     return names
 
 
+# On macOS kicad-cli lives inside the app bundle, not on the PATH
+KICAD_CLI = shutil.which("kicad-cli") or next(
+    (p for p in ("/Applications/KiCad/KiCad.app/Contents/MacOS/kicad-cli",) if os.path.exists(p)), None)
+
+
 def kicad(*args):
-    r = subprocess.run(["kicad-cli", *args], capture_output=True, text=True)
+    r = subprocess.run([KICAD_CLI, *args], capture_output=True, text=True)
     if r.returncode not in (0, 5):  # 5: violations found, which the caller reads from the report
         sys.exit(f"kicad-cli {' '.join(args)} failed ({r.returncode}):\n{r.stdout}{r.stderr}")
     return r
@@ -137,9 +146,16 @@ def render(name):
 
 
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] == "gen-cd":
+        py = "/Applications/KiCad/KiCad.app/Contents/Frameworks/Python.framework/Versions/Current/bin/python3"
+        py = py if os.path.exists(py) else "python3"   # on Linux, KiCad's pcbnew is in the system Python
+        os.execvp(py, [py, os.path.join(ROOT, "gen_cd.py"), *sys.argv[2:]])
+    if len(sys.argv) > 1 and sys.argv[1] == "calc":
+        calc = os.path.join(ROOT, "keycalc.py")
+        os.execvp("uv", ["uv", "run", "--quiet", "--python", "3.12", calc, *sys.argv[2:]])
     if len(sys.argv) < 2 or sys.argv[1] not in ("check", "fab", "render"):
         sys.exit(__doc__ or open(__file__).read().split("\nimport")[0])
-    if not shutil.which("kicad-cli"):
+    if not KICAD_CLI:
         sys.exit("kicad-cli not found: install KiCad 9 (https://www.kicad.org/download/)")
     cmd, arg = sys.argv[1], (sys.argv[2] if len(sys.argv) > 2 else None)
     ok = True

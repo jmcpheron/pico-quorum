@@ -1,0 +1,860 @@
+(kicad_sch (version 20250114) (generator "picoquorum_gen") (generator_version "9.0")
+(uuid "f9568a60-38db-4a3d-8c89-4c7d73918360")
+(paper "A4")
+(title_block (title "PicoQuorum key, proposal D: pogo pads and magnets") (date "2026-10-02") (rev "P1") (company "PicoQuorum")
+  (comment 1 "Pogo pads and magnets: see hardware/key-pcb/PROPOSALS.md"))
+(lib_symbols
+(symbol "picoquorum:ATECC608C-SSHDA" (pin_names (offset 1.016)) (exclude_from_sim no) (in_bom yes) (on_board yes)
+(property "Reference" "U" (at 0 8.89 0) (effects (font (size 1.27 1.27))))
+(property "Value" "ATECC608C-SSHDA" (at 0 -8.89 0) (effects (font (size 1.27 1.27))))
+(property "Footprint" "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(property "Datasheet" "https://ww1.microchip.com/downloads/aemDocuments/documents/SCBU/ProductDocuments/DataSheets/ATECC608C-CryptoAuthentication-Summary-Data-Sheet-DS40002513.pdf" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(property "Description" "Microchip CryptoAuthentication secure element, ECC P-256, I2C, SOIC-8" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(symbol "ATECC608C-SSHDA_0_1" (rectangle (start -7.62 7.62) (end 7.62 -7.62) (stroke (width 0.254) (type default)) (fill (type background))))
+(symbol "ATECC608C-SSHDA_1_1"
+(pin power_in line (at 0 10.16 270) (length 2.54) (name "VCC" (effects (font (size 1.27 1.27)))) (number "8" (effects (font (size 1.27 1.27)))))
+(pin power_in line (at 0 -10.16 90) (length 2.54) (name "GND" (effects (font (size 1.27 1.27)))) (number "4" (effects (font (size 1.27 1.27)))))
+(pin bidirectional line (at -10.16 2.54 0) (length 2.54) (name "SDA" (effects (font (size 1.27 1.27)))) (number "5" (effects (font (size 1.27 1.27)))))
+(pin input line (at -10.16 -2.54 0) (length 2.54) (name "SCL" (effects (font (size 1.27 1.27)))) (number "6" (effects (font (size 1.27 1.27)))))
+(pin no_connect line (at 10.16 3.81 180) (length 2.54) (name "NC" (effects (font (size 1.27 1.27)))) (number "1" (effects (font (size 1.27 1.27)))))
+(pin no_connect line (at 10.16 1.27 180) (length 2.54) (name "NC" (effects (font (size 1.27 1.27)))) (number "2" (effects (font (size 1.27 1.27)))))
+(pin no_connect line (at 10.16 -1.27 180) (length 2.54) (name "NC" (effects (font (size 1.27 1.27)))) (number "3" (effects (font (size 1.27 1.27)))))
+(pin no_connect line (at 10.16 -3.81 180) (length 2.54) (name "NC" (effects (font (size 1.27 1.27)))) (number "7" (effects (font (size 1.27 1.27))))))
+(embedded_fonts no))
+(symbol "picoquorum:USBLC6-2SC6" (pin_names (offset 1.016)) (exclude_from_sim no) (in_bom yes) (on_board yes)
+(property "Reference" "U" (at 0 11.43 0) (effects (font (size 1.27 1.27))))
+(property "Value" "USBLC6-2SC6" (at 0 -11.43 0) (effects (font (size 1.27 1.27))))
+(property "Footprint" "Package_TO_SOT_SMD:SOT-23-6" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(property "Datasheet" "https://www.st.com/resource/en/datasheet/usblc6-2.pdf" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(property "Description" "ST 2-line ESD array with a rail clamp, SOT-23-6. Pins 1/6 and 3/4 are flow-through pairs." (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(symbol "USBLC6-2SC6_0_1" (rectangle (start -7.62 10.16) (end 7.62 -10.16) (stroke (width 0.254) (type default)) (fill (type background))))
+(symbol "USBLC6-2SC6_1_1"
+(pin passive line (at -10.16 2.54 0) (length 2.54) (name "IO1" (effects (font (size 1.27 1.27)))) (number "1" (effects (font (size 1.27 1.27)))))
+(pin passive line (at -10.16 -2.54 0) (length 2.54) (name "IO2" (effects (font (size 1.27 1.27)))) (number "3" (effects (font (size 1.27 1.27)))))
+(pin passive line (at 10.16 2.54 180) (length 2.54) (name "IO1" (effects (font (size 1.27 1.27)))) (number "6" (effects (font (size 1.27 1.27)))))
+(pin passive line (at 10.16 -2.54 180) (length 2.54) (name "IO2" (effects (font (size 1.27 1.27)))) (number "4" (effects (font (size 1.27 1.27)))))
+(pin passive line (at 0 12.7 270) (length 2.54) (name "VBUS" (effects (font (size 1.27 1.27)))) (number "5" (effects (font (size 1.27 1.27)))))
+(pin passive line (at 0 -12.7 90) (length 2.54) (name "GND" (effects (font (size 1.27 1.27)))) (number "2" (effects (font (size 1.27 1.27))))))
+(embedded_fonts no))
+(symbol "Device:C"
+		(pin_numbers
+			(hide yes)
+		)
+		(pin_names
+			(offset 0.254)
+		)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(duplicate_pin_numbers_are_jumpers no)
+		(property "Reference" "C"
+			(at 0.635 2.54 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "C"
+			(at 0.635 -2.54 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" ""
+			(at 0.9652 -3.81 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Unpolarized capacitor"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "ki_keywords" "cap capacitor"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "ki_fp_filters" "C_*"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(symbol "C_0_1"
+			(polyline
+				(pts
+					(xy -2.032 0.762) (xy 2.032 0.762)
+				)
+				(stroke
+					(width 0.508)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(polyline
+				(pts
+					(xy -2.032 -0.762) (xy 2.032 -0.762)
+				)
+				(stroke
+					(width 0.508)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+		)
+		(symbol "C_1_1"
+			(pin passive line
+				(at 0 3.81 270)
+				(length 2.794)
+				(name ""
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "1"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin passive line
+				(at 0 -3.81 90)
+				(length 2.794)
+				(name ""
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "2"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+		)
+		(embedded_fonts no)
+	)
+(symbol "Device:R"
+		(pin_numbers
+			(hide yes)
+		)
+		(pin_names
+			(offset 0)
+		)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(duplicate_pin_numbers_are_jumpers no)
+		(property "Reference" "R"
+			(at 2.032 0 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "R"
+			(at 0 0 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at -1.778 0 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Resistor"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "ki_keywords" "R res resistor"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "ki_fp_filters" "R_*"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(symbol "R_0_1"
+			(rectangle
+				(start -1.016 -2.54)
+				(end 1.016 2.54)
+				(stroke
+					(width 0.254)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+		)
+		(symbol "R_1_1"
+			(pin passive line
+				(at 0 3.81 270)
+				(length 1.27)
+				(name ""
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "1"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin passive line
+				(at 0 -3.81 90)
+				(length 1.27)
+				(name ""
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "2"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+		)
+		(embedded_fonts no)
+	)
+(symbol "power:GND"
+		(power global)
+		(pin_numbers
+			(hide yes)
+		)
+		(pin_names
+			(offset 0)
+			(hide yes)
+		)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(duplicate_pin_numbers_are_jumpers no)
+		(property "Reference" "#PWR"
+			(at 0 -6.35 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "GND"
+			(at 0 -3.81 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "ki_keywords" "global power"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(symbol "GND_0_1"
+			(polyline
+				(pts
+					(xy 0 0) (xy 0 -1.27) (xy 1.27 -1.27) (xy 0 -2.54) (xy -1.27 -1.27) (xy 0 -1.27)
+				)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+		)
+		(symbol "GND_1_1"
+			(pin power_in line
+				(at 0 0 270)
+				(length 0)
+				(name ""
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "1"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+		)
+		(embedded_fonts no)
+	)
+(symbol "power:VCC"
+		(power global)
+		(pin_numbers
+			(hide yes)
+		)
+		(pin_names
+			(offset 0)
+			(hide yes)
+		)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(duplicate_pin_numbers_are_jumpers no)
+		(property "Reference" "#PWR"
+			(at 0 -3.81 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "VCC"
+			(at 0 3.556 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"VCC\""
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "ki_keywords" "global power"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(symbol "VCC_0_1"
+			(polyline
+				(pts
+					(xy -0.762 1.27) (xy 0 2.54)
+				)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(polyline
+				(pts
+					(xy 0 2.54) (xy 0.762 1.27)
+				)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(polyline
+				(pts
+					(xy 0 0) (xy 0 2.54)
+				)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+		)
+		(symbol "VCC_1_1"
+			(pin power_in line
+				(at 0 0 90)
+				(length 0)
+				(name ""
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "1"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+		)
+		(embedded_fonts no)
+	)
+(symbol "power:PWR_FLAG"
+		(power global)
+		(pin_numbers
+			(hide yes)
+		)
+		(pin_names
+			(offset 0)
+			(hide yes)
+		)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(duplicate_pin_numbers_are_jumpers no)
+		(property "Reference" "#FLG"
+			(at 0 1.905 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "PWR_FLAG"
+			(at 0 3.81 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Special symbol for telling ERC where power comes from"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "ki_keywords" "flag power"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(symbol "PWR_FLAG_0_0"
+			(pin power_out line
+				(at 0 0 90)
+				(length 0)
+				(name ""
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "1"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+		)
+		(symbol "PWR_FLAG_0_1"
+			(polyline
+				(pts
+					(xy 0 0) (xy 0 1.27) (xy -1.016 1.905) (xy 0 2.54) (xy 1.016 1.905) (xy 0 1.27)
+				)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+		)
+		(embedded_fonts no)
+	)
+(symbol "picoquorum:KeyPads_5P" (pin_names (offset 1.016)) (exclude_from_sim no) (in_bom yes) (on_board yes)
+(property "Reference" "J" (at 0 8.89 0) (effects (font (size 1.27 1.27))))
+(property "Value" "KeyPads_5P" (at 0 -8.89 0) (effects (font (size 1.27 1.27))))
+(property "Footprint" "picoquorum:KeyPads_5P_P2.54mm" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(property "Datasheet" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(property "Description" "The key's contact pads for spring (pogo) pins: 5 at 2.54 mm, on the bottom, no paste" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(symbol "KeyPads_5P_0_1" (rectangle (start -2.54 7.62) (end 2.54 -7.62) (stroke (width 0.254) (type default)) (fill (type background))))
+(symbol "KeyPads_5P_1_1"
+(pin passive line (at 5.08 5.08 180) (length 2.54) (name "GND" (effects (font (size 1.27 1.27)))) (number "1" (effects (font (size 1.27 1.27)))))
+(pin passive line (at 5.08 2.54 180) (length 2.54) (name "SCL" (effects (font (size 1.27 1.27)))) (number "2" (effects (font (size 1.27 1.27)))))
+(pin passive line (at 5.08 0.0 180) (length 2.54) (name "VCC" (effects (font (size 1.27 1.27)))) (number "3" (effects (font (size 1.27 1.27)))))
+(pin passive line (at 5.08 -2.54 180) (length 2.54) (name "SDA" (effects (font (size 1.27 1.27)))) (number "4" (effects (font (size 1.27 1.27)))))
+(pin passive line (at 5.08 -5.08 180) (length 2.54) (name "DETECT" (effects (font (size 1.27 1.27)))) (number "5" (effects (font (size 1.27 1.27))))))
+(embedded_fonts no)))
+(symbol (lib_id "power:VCC") (at 60.96 68.58 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "e991c0a1-1a7f-4eab-88d3-44194f06de8a")
+(property "Reference" "#PWR001" (at 60.96 68.58 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(property "Value" "VCC" (at 60.96 64.77 0) (effects (font (size 1.27 1.27))))
+(property "Footprint" "" (at 60.96 68.58 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(pin "1" (uuid "66c95304-89a1-4160-8b2e-008d8b014f4d"))
+(instances (project "key-d-pogo" (path "/f9568a60-38db-4a3d-8c89-4c7d73918360" (reference "#PWR001") (unit 1)))))
+(wire (pts (xy 60.96 68.58) (xy 68.58 68.58)) (stroke (width 0) (type default)) (uuid "cc049ada-4e5a-41c8-9448-5c3b4403e31f"))
+(symbol (lib_id "power:PWR_FLAG") (at 68.58 68.58 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "1881bc50-8ef2-4fc3-b10a-f772617b5778")
+(property "Reference" "#FLG002" (at 68.58 68.58 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(property "Value" "PWR_FLAG" (at 68.58 64.77 0) (effects (font (size 1.27 1.27))))
+(property "Footprint" "" (at 68.58 68.58 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(pin "1" (uuid "7235ac7f-6e84-4d50-a0ac-9743834d4fb1"))
+(instances (project "key-d-pogo" (path "/f9568a60-38db-4a3d-8c89-4c7d73918360" (reference "#FLG002") (unit 1)))))
+(symbol (lib_id "power:GND") (at 83.82 68.58 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "82533af8-1ea6-4b43-a3e7-2020c98aee57")
+(property "Reference" "#PWR003" (at 83.82 68.58 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(property "Value" "GND" (at 83.82 72.39 0) (effects (font (size 1.27 1.27))))
+(property "Footprint" "" (at 83.82 68.58 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(pin "1" (uuid "042c5a91-249a-4e24-ae96-16c672034835"))
+(instances (project "key-d-pogo" (path "/f9568a60-38db-4a3d-8c89-4c7d73918360" (reference "#PWR003") (unit 1)))))
+(wire (pts (xy 83.82 68.58) (xy 91.44 68.58)) (stroke (width 0) (type default)) (uuid "f6ab4950-b82c-4778-88eb-e816a6331b95"))
+(symbol (lib_id "power:PWR_FLAG") (at 91.44 68.58 180) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "a9f35444-6e80-48fe-81fe-54a7bcffd34c")
+(property "Reference" "#FLG004" (at 91.44 68.58 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(property "Value" "PWR_FLAG" (at 91.44 72.39 0) (effects (font (size 1.27 1.27))))
+(property "Footprint" "" (at 91.44 68.58 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(pin "1" (uuid "f70ffaea-dc6f-421a-abbf-9fc6996e1837"))
+(instances (project "key-d-pogo" (path "/f9568a60-38db-4a3d-8c89-4c7d73918360" (reference "#FLG004") (unit 1)))))
+(symbol (lib_id "picoquorum:USBLC6-2SC6") (at 109.22 88.9 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "61cb041d-3246-4633-9844-0ee180d69d99")
+(property "Reference" "U2" (at 113.03 77.47000000000001 0) (effects (font (size 1.27 1.27)) (justify left)))
+(property "Value" "USBLC6-2SC6" (at 113.03 101.60000000000001 0) (effects (font (size 1.27 1.27)) (justify left)))
+(property "Footprint" "Package_TO_SOT_SMD:SOT-23-6" (at 109.22 88.9 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(property "Datasheet" "https://www.st.com/resource/en/datasheet/usblc6-2.pdf" (at 109.22 88.9 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(property "MPN" "USBLC6-2SC6" (at 109.22 88.9 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(property "LCSC" "C7519" (at 109.22 88.9 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(property "Description" "ESD array on SDA, SCL and VCC: the key is handled and hot-plugged" (at 109.22 88.9 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(pin "1" (uuid "48ed17d2-5d79-4828-ab01-af18158c3296")) (pin "2" (uuid "f9113b21-b858-4de0-996d-07f56538a7db")) (pin "3" (uuid "8396768d-d6ee-4974-97ed-bea3c5a3bfd7")) (pin "4" (uuid "24cdc3fe-15b3-458b-87be-65118a8ea4d0")) (pin "5" (uuid "8df09081-68ff-4067-bbca-239f0696269b")) (pin "6" (uuid "f37fb13a-a4bb-47e1-a277-377a687c2311"))
+(instances (project "key-d-pogo" (path "/f9568a60-38db-4a3d-8c89-4c7d73918360" (reference "U2") (unit 1)))))
+(wire (pts (xy 99.06 86.36) (xy 96.52 86.36)) (stroke (width 0) (type default)) (uuid "c905b3a1-32fa-4ca3-b72a-ee38508cd8e9"))
+(label "SDA" (at 96.52 86.36 180) (fields_autoplaced yes) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "5bdba28c-2dc7-4f34-bb88-325005dc393e"))
+(wire (pts (xy 99.06 91.44000000000001) (xy 96.52 91.44000000000001)) (stroke (width 0) (type default)) (uuid "9fa7be17-ca25-49ad-a3d1-9c7e22cdfec6"))
+(label "SCL" (at 96.52 91.44000000000001 180) (fields_autoplaced yes) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "bab64878-d6fe-4d88-ba5b-0b16c83a44dd"))
+(wire (pts (xy 119.38 86.36) (xy 121.92 86.36)) (stroke (width 0) (type default)) (uuid "06244ec8-bf8e-442d-9554-d92713bfebfc"))
+(label "SDA" (at 121.92 86.36 0) (fields_autoplaced yes) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "955e4fe9-c569-4165-8d7b-d472abfc2ac7"))
+(wire (pts (xy 119.38 91.44000000000001) (xy 121.92 91.44000000000001)) (stroke (width 0) (type default)) (uuid "5265565d-9a5d-4c73-a996-c5e6b64a2652"))
+(label "SCL" (at 121.92 91.44000000000001 0) (fields_autoplaced yes) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "5b7666b6-4a2c-4916-bd73-0ada0e2b860a"))
+(wire (pts (xy 109.22 76.2) (xy 109.22 73.66000000000001)) (stroke (width 0) (type default)) (uuid "cc10b5f4-0b06-4d03-a15a-4ca847eab1af"))
+(symbol (lib_id "power:VCC") (at 109.22 73.66000000000001 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "830f3de7-f57f-4aad-a1b1-26a1e36c9030")
+(property "Reference" "#PWR005" (at 109.22 73.66000000000001 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(property "Value" "VCC" (at 109.22 69.85000000000001 0) (effects (font (size 1.27 1.27))))
+(property "Footprint" "" (at 109.22 73.66000000000001 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(pin "1" (uuid "52188626-eba4-4da7-be2f-797a11a357d3"))
+(instances (project "key-d-pogo" (path "/f9568a60-38db-4a3d-8c89-4c7d73918360" (reference "#PWR005") (unit 1)))))
+(wire (pts (xy 109.22 101.60000000000001) (xy 109.22 104.14)) (stroke (width 0) (type default)) (uuid "eca31032-fd1e-4565-85f0-6845bfb7075e"))
+(symbol (lib_id "power:GND") (at 109.22 104.14 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "c371ce28-c23b-448c-8911-8f1e179ac843")
+(property "Reference" "#PWR006" (at 109.22 104.14 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(property "Value" "GND" (at 109.22 107.95 0) (effects (font (size 1.27 1.27))))
+(property "Footprint" "" (at 109.22 104.14 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(pin "1" (uuid "8dadcd0e-2d87-438a-a078-c1a8c460de5f"))
+(instances (project "key-d-pogo" (path "/f9568a60-38db-4a3d-8c89-4c7d73918360" (reference "#PWR006") (unit 1)))))
+(symbol (lib_id "picoquorum:ATECC608C-SSHDA") (at 147.32 88.9 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "6c2ee468-92c1-4b44-807d-c0e1870e1def")
+(property "Reference" "U1" (at 151.13 80.01 0) (effects (font (size 1.27 1.27)) (justify left)))
+(property "Value" "ATECC608C-SSHDA" (at 151.13 99.06000000000002 0) (effects (font (size 1.27 1.27)) (justify left)))
+(property "Footprint" "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm" (at 147.32 88.9 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(property "Datasheet" "https://ww1.microchip.com/downloads/aemDocuments/documents/SCBU/ProductDocuments/DataSheets/ATECC608C-CryptoAuthentication-Summary-Data-Sheet-DS40002513.pdf" (at 147.32 88.9 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(property "MPN" "ATECC608C-SSHDA-B" (at 147.32 88.9 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(property "LCSC" "C28975195" (at 147.32 88.9 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(property "Description" "Secure element: the key's P-256 signing key lives here" (at 147.32 88.9 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(pin "1" (uuid "0a065333-9634-4c4c-adcf-f0d36803caad")) (pin "2" (uuid "bd5f5f94-4768-467f-a1c2-043d7bbb8c4b")) (pin "3" (uuid "0e17aadf-d155-4976-b3cb-0cb8d7d3a9a7")) (pin "4" (uuid "a4ba3065-9916-46c4-84e1-b6537495fa62")) (pin "5" (uuid "aea44947-3d81-4a16-be9b-30cf81b43045")) (pin "6" (uuid "4eb0dc77-68fb-4ced-bc9d-f2d656acc1dd")) (pin "7" (uuid "e9f0b156-48bb-4ce1-8268-66cd4c60b582")) (pin "8" (uuid "1e7105b5-a323-4b18-8bec-16de39f3d6e2"))
+(instances (project "key-d-pogo" (path "/f9568a60-38db-4a3d-8c89-4c7d73918360" (reference "U1") (unit 1)))))
+(wire (pts (xy 137.16 86.36) (xy 134.62 86.36)) (stroke (width 0) (type default)) (uuid "4de21811-f777-47fe-af93-8517d82e2273"))
+(label "SDA" (at 134.62 86.36 180) (fields_autoplaced yes) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "96f040b1-9656-407e-95c2-a0ac5014033d"))
+(wire (pts (xy 137.16 91.44000000000001) (xy 134.62 91.44000000000001)) (stroke (width 0) (type default)) (uuid "5ae300cc-5936-466f-a77a-9a4f547f5787"))
+(label "SCL" (at 134.62 91.44000000000001 180) (fields_autoplaced yes) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "15d34cce-5119-439a-b509-f051fab3c280"))
+(wire (pts (xy 147.32 78.74000000000001) (xy 147.32 76.2)) (stroke (width 0) (type default)) (uuid "3e341f08-c37b-49ad-8fa6-e02b3e8e11c6"))
+(symbol (lib_id "power:VCC") (at 147.32 76.2 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "8b24e5a8-d036-4acb-b11d-008e30d372b8")
+(property "Reference" "#PWR007" (at 147.32 76.2 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(property "Value" "VCC" (at 147.32 72.39 0) (effects (font (size 1.27 1.27))))
+(property "Footprint" "" (at 147.32 76.2 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(pin "1" (uuid "3b96716d-3b73-40c1-9ee8-3a85b20f5d6a"))
+(instances (project "key-d-pogo" (path "/f9568a60-38db-4a3d-8c89-4c7d73918360" (reference "#PWR007") (unit 1)))))
+(wire (pts (xy 147.32 99.06) (xy 147.32 101.60000000000001)) (stroke (width 0) (type default)) (uuid "c340d1dc-9df2-49e6-8254-6b0d4c508a39"))
+(symbol (lib_id "power:GND") (at 147.32 101.60000000000001 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "53b33743-4f2d-4dbf-8216-600d01b1eeac")
+(property "Reference" "#PWR008" (at 147.32 101.60000000000001 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(property "Value" "GND" (at 147.32 105.41000000000001 0) (effects (font (size 1.27 1.27))))
+(property "Footprint" "" (at 147.32 101.60000000000001 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(pin "1" (uuid "eb622c1a-edb9-4e6e-8636-ad37e50c0ba6"))
+(instances (project "key-d-pogo" (path "/f9568a60-38db-4a3d-8c89-4c7d73918360" (reference "#PWR008") (unit 1)))))
+(text "I2C address 0x60 as shipped (7-bit).\nP-256 only: the Safe signs through its\npasskey (WebAuthn) signer." (exclude_from_sim no) (at 139.7 111.76 0) (effects (font (size 1.27 1.27)) (justify left top)) (uuid "699e663e-59bd-4b34-85fb-20de5e0ef29d"))
+(symbol (lib_id "Device:C") (at 177.8 88.9 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "530da97f-6488-4f3c-8ca8-8b4b507c84ec")
+(property "Reference" "C1" (at 180.34 87.63000000000001 0) (effects (font (size 1.27 1.27)) (justify left)))
+(property "Value" "100n" (at 180.34 90.17 0) (effects (font (size 1.27 1.27)) (justify left)))
+(property "Footprint" "Capacitor_SMD:C_0805_2012Metric" (at 177.8 88.9 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(property "LCSC" "C49678" (at 177.8 88.9 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(property "Description" "Decoupling, as close to U1 pin 8 as it goes" (at 177.8 88.9 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(pin "1" (uuid "1c3dfa3b-ec15-4ef2-8922-39e5b8549d8c")) (pin "2" (uuid "c1deca06-c1a1-47a7-9ff6-1eb60c05963e"))
+(instances (project "key-d-pogo" (path "/f9568a60-38db-4a3d-8c89-4c7d73918360" (reference "C1") (unit 1)))))
+(wire (pts (xy 177.8 85.09) (xy 177.8 82.55000000000001)) (stroke (width 0) (type default)) (uuid "54fbcefb-33c9-4581-9e19-f05982cb4cd8"))
+(symbol (lib_id "power:VCC") (at 177.8 82.55000000000001 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "fe387d39-4ce3-4289-aa2c-b44014c01de6")
+(property "Reference" "#PWR009" (at 177.8 82.55000000000001 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(property "Value" "VCC" (at 177.8 78.74000000000001 0) (effects (font (size 1.27 1.27))))
+(property "Footprint" "" (at 177.8 82.55000000000001 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(pin "1" (uuid "5051117b-7316-4874-94e0-d7e219757316"))
+(instances (project "key-d-pogo" (path "/f9568a60-38db-4a3d-8c89-4c7d73918360" (reference "#PWR009") (unit 1)))))
+(wire (pts (xy 177.8 92.71000000000001) (xy 177.8 95.25)) (stroke (width 0) (type default)) (uuid "5661e14a-a7fa-4037-9253-ef605c50ef4f"))
+(symbol (lib_id "power:GND") (at 177.8 95.25 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "e639afa3-2a48-41bf-9206-6148cb0d121d")
+(property "Reference" "#PWR010" (at 177.8 95.25 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(property "Value" "GND" (at 177.8 99.06 0) (effects (font (size 1.27 1.27))))
+(property "Footprint" "" (at 177.8 95.25 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(pin "1" (uuid "a026eb1f-01d4-40cb-b908-3b2e0879027f"))
+(instances (project "key-d-pogo" (path "/f9568a60-38db-4a3d-8c89-4c7d73918360" (reference "#PWR010") (unit 1)))))
+(symbol (lib_id "picoquorum:KeyPads_5P") (at 63.5 88.9 0) (unit 1) (exclude_from_sim no) (in_bom no) (on_board yes) (dnp no) (uuid "2df86362-4137-4848-ae4c-2bf83d4ffd4f")
+(property "Reference" "J1" (at 67.31 80.01 0) (effects (font (size 1.27 1.27)) (justify left)))
+(property "Value" "KeyPads_5P" (at 67.31 99.06000000000002 0) (effects (font (size 1.27 1.27)) (justify left)))
+(property "Footprint" "picoquorum:KeyPads_5P_P2.54mm" (at 63.5 88.9 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(property "Description" "Contact pads on the bottom, not a part" (at 63.5 88.9 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(pin "1" (uuid "67195ae7-2896-4e44-a764-32e7f812b3fc")) (pin "2" (uuid "19ffccb5-2f82-45bb-abe7-095e82891aa9")) (pin "3" (uuid "a1c6dbd2-bd95-4e3e-9a38-8c28b3e0f3d7")) (pin "4" (uuid "8943288c-1253-4cd2-924b-3f6293052183")) (pin "5" (uuid "ca63a638-f985-4b10-810f-393e9793d453"))
+(instances (project "key-d-pogo" (path "/f9568a60-38db-4a3d-8c89-4c7d73918360" (reference "J1") (unit 1)))))
+(wire (pts (xy 68.58 83.82000000000001) (xy 76.2 83.82000000000001)) (stroke (width 0) (type default)) (uuid "7b0c7483-de6d-499d-9472-26fa1ec50b1b"))
+(symbol (lib_id "power:GND") (at 76.2 83.82000000000001 90) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "b77ca2e3-7edf-448e-b9ae-38e5ab6ce3fd")
+(property "Reference" "#PWR011" (at 76.2 83.82000000000001 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(property "Value" "GND" (at 82.55 83.82000000000001 90) (effects (font (size 1.27 1.27))))
+(property "Footprint" "" (at 76.2 83.82000000000001 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(pin "1" (uuid "067fdfbc-05af-49a6-b520-2a2e2def7b26"))
+(instances (project "key-d-pogo" (path "/f9568a60-38db-4a3d-8c89-4c7d73918360" (reference "#PWR011") (unit 1)))))
+(wire (pts (xy 68.58 86.36000000000001) (xy 76.2 86.36000000000001)) (stroke (width 0) (type default)) (uuid "7071a4a1-7cf1-4b6b-a556-70833ebca317"))
+(label "SCL" (at 76.2 86.36000000000001 0) (fields_autoplaced yes) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "de2e4ba8-6c86-41ed-b18b-42f3b04d8ff5"))
+(wire (pts (xy 68.58 88.9) (xy 76.2 88.9)) (stroke (width 0) (type default)) (uuid "d4a121fa-70da-42ab-aa89-9192954c461f"))
+(symbol (lib_id "power:VCC") (at 76.2 88.9 270) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "9bc0d39f-7822-4ed0-8642-fb7443e465f2")
+(property "Reference" "#PWR012" (at 76.2 88.9 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(property "Value" "VCC" (at 82.55 88.9 270) (effects (font (size 1.27 1.27))))
+(property "Footprint" "" (at 76.2 88.9 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(pin "1" (uuid "ef989047-0158-4e0e-929c-8abdc5e9249e"))
+(instances (project "key-d-pogo" (path "/f9568a60-38db-4a3d-8c89-4c7d73918360" (reference "#PWR012") (unit 1)))))
+(wire (pts (xy 68.58 91.44000000000001) (xy 76.2 91.44000000000001)) (stroke (width 0) (type default)) (uuid "a09113d7-356c-4b7d-8d11-ccde95d2460a"))
+(label "SDA" (at 76.2 91.44000000000001 0) (fields_autoplaced yes) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "ecc9210d-3a32-4677-a5be-97d9fb7d8e7b"))
+(wire (pts (xy 68.58 93.98) (xy 76.2 93.98)) (stroke (width 0) (type default)) (uuid "3cf84186-d380-4aa4-b519-acb6d787174f"))
+(symbol (lib_id "power:GND") (at 76.2 93.98 90) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "2e8dc23d-fed1-41f5-a716-659cb66e4952")
+(property "Reference" "#PWR013" (at 76.2 93.98 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(property "Value" "GND" (at 82.55 93.98 90) (effects (font (size 1.27 1.27))))
+(property "Footprint" "" (at 76.2 93.98 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(pin "1" (uuid "1f5e4375-3c85-4c52-9d6c-997c5ef96333"))
+(instances (project "key-d-pogo" (path "/f9568a60-38db-4a3d-8c89-4c7d73918360" (reference "#PWR013") (unit 1)))))
+(text "Pads on the bottom, for pogo pins, 2.54 mm.\nVCC in the middle, ground at both ends:\nput on backwards, only SDA and SCL swap.\n5 DETECT is tied to GND here: the console's\nGP7 pull-up reads low once the key is on.\nTwo 3 mm magnets in the board pull it down\nonto the pins and line it up." (exclude_from_sim no) (at 55.88 111.76 0) (effects (font (size 1.27 1.27)) (justify left top)) (uuid "5407b031-15ec-4db2-81aa-10e7009ddf5c"))
+(sheet_instances (path "/" (page "1")))
+(embedded_fonts no))

@@ -25,6 +25,8 @@ PicoQuorum additions:
   - `check` runs ERC, then DRC with schematic parity.
   - `fab` writes the Gerber zip, and the BOM and CPL in JLCPCB's format.
   - `render` draws the top and bottom of each board.
+  - `calc` works out the numbers behind the design: finger timing, I2C rise time, key power from
+    a GPIO, and two ngspice runs. See [`../hardware/key-pcb/LEARN.md`](../hardware/key-pcb/LEARN.md).
 
 - [`fonts/`](fonts/): renders the console's anti-aliased fonts (Atkinson Hyperlegible, OFL) into
   `firmware/qf_*.bin`; `firmware/fonts.py` draws them

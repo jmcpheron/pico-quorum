@@ -83,6 +83,9 @@ tries.
 | `lib/` | the project's symbols (`picoquorum.kicad_sym`) and the blade footprint (`picoquorum.pretty`) |
 | `gen.py` | wrote all of the above. Once you edit a board in KiCad, the KiCad files win: don't run it again |
 | [`ORDERING.md`](ORDERING.md) | how to read the design in KiCad, check it, export it and order it |
+| [`LEARN.md`](LEARN.md) | a guided tour of rev A for PCB beginners, with the numbers behind each part |
+| `keycalc.py` | `tools/keypcb calc`: finger timing, I2C rise time, GPIO power and SPICE runs (plots in `out/`, ignored) |
+| [`PROPOSALS.md`](PROPOSALS.md) | proposals C and D: the same circuit on a USB-C receptacle (`key-c-usbc/`) or pogo pads with magnets (`key-d-pogo/`), written by `gen_cd.py` |
 
 `tools/keypcb check` runs ERC, then DRC with schematic parity, on both boards. `fab` rewrites
 `fab/` and `render` redraws the images. Both boards check clean: 0 ERC errors, 0 DRC
