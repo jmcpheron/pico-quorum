@@ -409,8 +409,18 @@ async function waitForBoard(ms = 45000) {
   die("the board did not come back on USB: unplug it and plug it back in holding B (maintenance), then run this again");
 }
 
+// An older console can restart itself just as the tool asks it to write "maint" (Build 1 on
+// cfb25b86, twice on 2026-10-01: the USB link dropped mid-command). Then wait for it and ask again:
+// early in its boot it answers, and once maint is written every restart lands in maintenance.
 async function enterMaintenance() {
-  run("open('maint', 'w').close()\nimport os\nif hasattr(os, 'sync'): os.sync()\nprint('MAINT')");
+  const code = "open('maint', 'w').close()\nimport os\nif hasattr(os, 'sync'): os.sync()\nprint('MAINT')";
+  for (let i = 0; ; i++) {
+    const r = mp(["exec", code]);
+    if (r.code === 0 && /MAINT/.test(r.out)) break;
+    if (i === 3) die(`the board would not take the maint file:\n${r.out.slice(-600)}`);
+    console.log("(the board dropped off USB as maintenance began; waiting for it, then again)");
+    await waitForBoard();
+  }
   // mpremote's reset shortcut uses --no-follow and a delay, allowing the host to close
   // the port before USB disappears. Following exec waits for a reply that reset cannot send.
   const reset = mp(["reset"], { timeout: 8000 });
