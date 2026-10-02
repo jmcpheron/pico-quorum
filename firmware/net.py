@@ -13,6 +13,23 @@ _listen = None
 tried = False       # connect() ran once (boot.py); wallet.start does not wait a second time
 last_try = 0        # ticks_ms of the last join attempt; wallet.net_work retries every 30 s without blocking
 up = False          # joined() ran: LED on, console started if wanted
+_t0 = None          # ticks_ms when begin() asked the radio to join; connect() waits from then
+boot_at = begun_at = 0   # ticks_ms when boot.py started and when begin() returned (quorum's "boot ms")
+
+
+def begin():
+    """Switch the radio on, ask it to join the WiFi in secrets.py and return at once. boot.py calls
+    this before the boot screen, so the join runs while the screen comes up; connect() then only
+    waits for what is left of it."""
+    global _t0, begun_at
+    if secrets is None:
+        return
+    network.hostname(secrets.HOSTNAME)
+    wlan = network.WLAN(network.STA_IF)
+    wlan.active(True)
+    if not wlan.isconnected():
+        wlan.connect(secrets.WIFI_SSID, secrets.WIFI_PASS)
+    _t0 = begun_at = time.ticks_ms()
 
 
 def connect(timeout_s=12, progress=None):
@@ -20,18 +37,21 @@ def connect(timeout_s=12, progress=None):
     while waiting (the boot screen animates on it) and may return True to stop waiting (a key press);
     the LED blinks either way. A network that is not there costs 12 s once, never more: the wallet
     retries in the background (retry) and everything local works without it."""
-    global tried, last_try
+    global tried, last_try, _t0
     tried = True
     last_try = time.ticks_ms()
     wlan = network.WLAN(network.STA_IF)
     if secrets is None:
         print("no secrets.py: not joining WiFi")
         return wlan
-    network.hostname(secrets.HOSTNAME)
-    wlan.active(True)
+    begun, t0, _t0 = _t0 is not None, _t0, None
+    if not begun:
+        network.hostname(secrets.HOSTNAME)
+        wlan.active(True)
     if not wlan.isconnected():
-        wlan.connect(secrets.WIFI_SSID, secrets.WIFI_PASS)
-        t0 = time.ticks_ms()
+        if not begun:                   # begin() already asked; the wait counts from then
+            wlan.connect(secrets.WIFI_SSID, secrets.WIFI_PASS)
+            t0 = time.ticks_ms()
         n = 0
         while not wlan.isconnected() and time.ticks_diff(time.ticks_ms(), t0) < timeout_s * 1000:
             if n % 3 == 0:

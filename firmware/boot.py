@@ -6,11 +6,18 @@ from machine import Pin
 board.MAINTENANCE = "maint" in os.listdir() or Pin(board.MAINT, Pin.IN, Pin.PULL_UP).value() == 0
 
 def _normal_boot():
-    # Runs before main.py: the boot screen, then WiFi and, if secrets.py enables it, the development
-    # console (passwordless; off by default). The screen is best effort: WiFi comes up without it.
+    # Runs before main.py: WiFi asked to join, the boot screen while it does, then the wait for it
+    # and, if secrets.py enables it, the development console (passwordless; off by default). The
+    # screen is best effort: WiFi comes up without it.
     # The WiFi wait is 12 s at most and any key skips it: the wallet, the chip map, the LAB and snake
     # work without a network, and wallet.py keeps retrying in the background.
+    import time
     import net
+    net.boot_at = time.ticks_ms()
+    try:
+        net.begin()                     # the radio joins while the boot screen comes up
+    except Exception as e:
+        print("wifi:", e)
     try:
         import splash
         import lcd
@@ -27,7 +34,6 @@ def _normal_boot():
     wlan = net.start(progress=_spin)
     if splash:
         splash.wifi_row(wlan, _ssid)
-        import time
         splash.wifi_at = time.ticks_ms()    # for quorum's "boot ms" line in log.txt
 
 if board.MAINTENANCE:

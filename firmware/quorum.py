@@ -1229,10 +1229,11 @@ def start_watch():
 
 def start():
     global d, keys, svc, dirty, splash_until, last_activity, state
-    # Where the boot goes, one line in log.txt at the end: "boot ms: art 2100 wifi 4800 start 6012
-    # fonts 40 probe 310 ...": when the boot art started, WiFi was up (boot.py) and this began, in
-    # ms since reset, then each step's own time.
-    marks, last = ["art %d wifi %d start %d" % (splash._t0, getattr(splash, "wifi_at", 0), time.ticks_ms())], [time.ticks_ms()]
+    # Where the boot goes, one line in log.txt at the end: "boot ms: boot 900 radio 1200 art 2100 wifi
+    # 4800 start 6012 fonts 40 probe 310 ...": when boot.py started, the radio was asked to join,
+    # the boot art started, WiFi was up and this began, in ms since reset, then each step's own time.
+    marks, last = ["boot %d radio %d art %d wifi %d start %d" % (net.boot_at, net.begun_at, splash._t0, getattr(splash, "wifi_at", 0),
+                                                               time.ticks_ms())], [time.ticks_ms()]
 
     def mark(what):
         now = time.ticks_ms()
