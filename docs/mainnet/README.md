@@ -18,8 +18,8 @@ the shareable part. The chip profile and its ceremony are in [../TRUSTM.md](../T
 
 **TM1, the first Trust M** (serial `0a091b5c000b0062006c`, owner `0x47c0998C6a7A1955794071b9f4058e7814178f35`):
 - **Sealed.** The key, record and binding were frozen on 2026-09-29.
-- **The other 23 objects** are still at factory state. T9 will freeze them, after a sacrificial
-  chip has shown T9 on silicon.
+- **The other 23 objects** are still at factory state. T9 will freeze them; it has now run on a
+  sacrificial chip (TM2).
 - **Base Sepolia:** an owner of the rehearsal 3-of-5 Safe `0x5617…DC41`. Its signer is deployed
   there, and its first approval executed onchain on 2026-09-30.
 - **Base and Ethereum:** `getSigner` agrees on both chains. The signer is not deployed on either.
@@ -27,8 +27,9 @@ the shareable part. The chip profile and its ceremony are in [../TRUSTM.md](../T
   passes `tools/quorum verify --chain basesep,base,eth`.
 
 **The mainnet chip** will be a fresh one (TM3). The steps before it:
-- [ ] TM2, sacrificial: T1–T7 headless, then T9, plus the refusals that a sealed or frozen object
-      should give. These are the first real-silicon results for T9.
+- [x] TM2, sacrificial (2026-10-01): T1–T10 on the device, T9 froze all 23 spares (only the
+      lifecycle byte changed), and every write, new key and metadata change on a sealed or frozen
+      object was refused ([../TRUSTM.md](../TRUSTM.md), "TM2").
 - [ ] TM1: T9 on the device (`tools/fw ceremony start --unpin`), with an explicit yes.
 - [ ] Decide whether T9 freezes the spare key slots E0F2/E0F3 ([CONFIGURATION.md](CONFIGURATION.md)).
 - [ ] TM3: the full ceremony on the device, `tools/fw attest`, and every co-signer runs `verify`.

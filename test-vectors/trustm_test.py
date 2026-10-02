@@ -257,6 +257,15 @@ def case_gates():
     check(refused(lambda: chip.set_data(0xF1D2, b"config")), "frozen: a spare data object cannot be written")
     check(refused(lambda: chip.gen_keypair(0xE0F2)), "frozen: no key can be made in E0F2")
     check(refused(lambda: chip.set_lifecycle(0xF1D3, 0x03)), "frozen: a spare's lifecycle cannot go back down")
+    def code(fn):
+        try:
+            fn()
+        except Exception as e:
+            return str(e)[-3:-1]
+    check(code(lambda: chip.set_lifecycle(0xF1D3, 0x03)) == "05" and code(lambda: chip.gen_keypair(0xE0F2)) == "07"
+          and code(lambda: chip.set_data(0xF1D2, b"x")) == "07"
+          and code(lambda: chip.command(0x02, 0x01, (0xF1D4).to_bytes(2, "big") + b"\x00\x00" + bytes([0x20, 3, 0xD0, 1, 0x00]), retry=False)) == "07",
+          "the error codes TM2 gave: 05 lowering a lifecycle, 07 for every other refused write")
     only_trustm()
     c3, S, P = ceremony()
     trustm_sim.chip().sec = 40

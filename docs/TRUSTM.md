@@ -5,7 +5,8 @@ uses the same console, the same pin (`QUORUM_EXPECT`) and the same Safe owner sc
 passkey signer). The Trust M gets its own profile, **quorum-tm1**, and its own ceremony. Both
 were built and tested in the emulator first. On a real chip (TM1), every step through the seal has
 run (T7, 2026-09-29), and a Trust M approval has executed onchain (Base Sepolia, 2026-09-30). T9,
-freezing the spare objects, is next: a sacrificial chip first. The shareable docs for a mainnet
+freezing the spare objects, ran on a sacrificial chip (TM2, 2026-10-01) along with the refusals a
+sealed and frozen chip must give; TM1 is next. The shareable docs for a mainnet
 Safe are in [mainnet/](mainnet/README.md).
 
 Decisions (2026-09-28):
@@ -124,13 +125,40 @@ The chip: Adafruit 4351, UID `cd16338401001c000100000a091b5c000b0062006c80101071
 - Owner `0x47c0998C6a7A1955794071b9f4058e7814178f35`, the same on the Pico and on the laptop (viem)
 - E0F1, F1D0 and F1D1 are still at LcsO creation: **not sealed**
 
-**Not yet seen on silicon**, to try on a sacrificial chip:
-- T7 itself.
-- That GenKeyPair on a sealed E0F1 and SetDataObject on a sealed F1D0 are refused.
-- Whether GenKeyPair raises the security event counter.
-- The rules for writing metadata.
+**Not yet seen on silicon:** whether GenKeyPair raises the security event counter (TM2's T2 read
+0 after, but on an idle credit).
 
-The emulator models these the way the manual describes them (`emu/core/shims/trustm_sim.py`).
+## TM2, the sacrificial chip (2026-10-01)
+
+Serial `0a091b5c000b00620076`, same batch as TM1 (firmware 80101071, build 0809, CA 101,
+certificate `34dc2cab`). The whole ceremony on the device (the Waveshare board, dual image), then
+the refusals from the laptop (`tools/board/tm_refusals.py`, which runs only on the serial it names).
+
+**The ceremony:** T1–T10 all green, security counter 0 throughout. Every step's result is in
+the board's `snapshot-tm-<serial>-steps.json`.
+- **T9 on silicon:** all 23 spares went from LcsO creation to operational in 1.2 s. In each
+  object's metadata exactly one byte changed (`C0 01` to `C0 07`). The security counter read 0
+  before and after.
+- **E122 and E123** exist with the same metadata as E120/E121, so the spare list is right.
+
+**The refusals, each tried for real:**
+
+| Tried | Answer |
+|---|---|
+| GenKeyPair on the sealed E0F1 | refused, error 07 |
+| SetDataObject on the sealed F1D0, the same bytes | refused, 07 |
+| SetDataObject on a frozen spare (F1D2) | refused, 07; still zeros |
+| GenKeyPair on a frozen spare key slot (E0F2) | refused, 07 |
+| Lowering a frozen lifecycle (F1D3, op to init) | refused, **05** |
+| Changing a frozen object's Change condition (F1D4 to ALW) | refused, 07 |
+
+Afterwards the key still signed as the record's key, F1D0 was unchanged, and no metadata had
+moved. So "sealed" and "frozen" mean what this profile says: nothing can make a key, write data
+or change the rules of an operational object with Change `LcsO<op`. `tools/quorum verify` on
+TM2's record passes every line, "23 of 23 frozen" included.
+
+The emulator now gives the same codes (`trustm_sim.py`: 05 for a lower lifecycle, checked
+before the access condition; 07 for the rest).
 
 **The console on the real chip (2026-09-28).** The dual image ran with TM1 pinned as `locked: False`, against the laptop's mock Safe (`tools/quorum serve`), with nothing on chain.
 - **Boot:** the pin passed, the factory binding verified in 2.6 s, and 147 KB of heap was free.

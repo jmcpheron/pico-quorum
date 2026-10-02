@@ -18,9 +18,11 @@
 # raises the counter by one; refused commands do not count; it falls back by one about every 5 s.
 # So a lone approval after idle leaves it at 0 and a burst makes it climb. GenKeyPair: not measured.
 #
-# Modeled as the chip documents them, NOT yet confirmed on silicon (a sacrificial chip will): that
-# GenKeyPair checks the key object's Change condition; that metadata can be written only while
-# LcsO is below operational, and LcsO only goes up; the error codes in F1C2.
+# Confirmed on silicon (TM2, a sacrificial chip, 2026-10-01): raising LcsO to operational on the
+# key, the record, the binding and all 23 spares (only C0 changes); then GenKeyPair on a sealed or
+# frozen key object, SetDataObject on a sealed or frozen data object and a metadata write to one
+# are refused with 0x07, and lowering a lifecycle with 0x05 (the value is checked first). Not yet
+# seen: what GenKeyPair does to the security event counter.
 # Not modeled: shielded connection, Luc/Conf/Int/Auto conditions (refused), sleep timing.
 #
 # Asleep, a real Trust M NACKs its address, so i2c.scan() does not list it; here too. present
@@ -58,7 +60,7 @@ UID_TAIL = bytes.fromhex("801010710809")
 
 # Error codes (F1C2). Seen on the real chip: 0x01 an OID it does not have, 0x07 reading a key
 # object's data, 0x0B CalcSign with an empty key. The others are the manual's.
-ERR_OID, ERR_PARAM, ERR_LEN, ERR_AC, ERR_BOUNDS, ERR_CMD, ERR_KEY = 0x01, 0x03, 0x04, 0x07, 0x09, 0x0B, 0x0B
+ERR_OID, ERR_PARAM, ERR_LEN, ERR_DATA, ERR_AC, ERR_BOUNDS, ERR_CMD, ERR_KEY = 0x01, 0x03, 0x04, 0x05, 0x07, 0x09, 0x0B, 0x0B
 
 
 def _crc(data):
@@ -409,8 +411,8 @@ class Chip:
     def set_meta(self, o, tlv):
         """Only while LcsO is below operational; LcsO only goes up; only LcsO and the access
         conditions can be written (as modeled: confirm on silicon)."""
-        if o["meta"].get("lcso", 0x01) >= LCS_OP or not tlv or tlv[0] != 0x20:
-            raise _Fail(ERR_AC)
+        if not tlv or tlv[0] != 0x20:
+            raise _Fail(ERR_PARAM)
         i, end = 2, 2 + tlv[1]
         upd = {}
         while i < end:
@@ -422,7 +424,9 @@ class Chip:
             upd[k] = v[0] if k == "lcso" else bytes(v)
             i += 2 + n
         if "lcso" in upd and upd["lcso"] < o["meta"].get("lcso", 0x01):
-            raise _Fail(ERR_PARAM)
+            raise _Fail(ERR_DATA)           # TM2: 0x05, before the access check
+        if o["meta"].get("lcso", 0x01) >= LCS_OP:
+            raise _Fail(ERR_AC)             # TM2: 0x07 for a metadata write to a frozen object
         o["meta"].update(upd)
         self.save()
         return b""

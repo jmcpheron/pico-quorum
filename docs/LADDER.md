@@ -189,7 +189,8 @@ The same ladder for the OPTIGA Trust M ([TRUSTM.md](TRUSTM.md)). The shareable d
   - Its first approval executed: [0xeae9…6e2f](https://sepolia.basescan.org/tx/0xeae93a631ca677950b3c366ae7cd410ad10b0ec86527d6b450950805aafc6e2f).
 - [x] **The ceremony record** `mainnet/attest/attest-0a091b5c000b0062006c.json` (2026-10-01).
   `tools/quorum verify --chain basesep,base,eth` passes: `getSigner` agrees on all three chains.
-- [ ] **T9 on silicon:** a sacrificial chip (TM2) first, then TM1.
+- [x] **T9 on silicon, the sacrificial chip TM2** (2026-10-01): all 23 spares frozen, and every refusal confirmed ([TRUSTM.md](TRUSTM.md), "TM2").
+- [ ] **T9 on TM1.**
 - [ ] **The mainnet chip:**
   - A fresh chip (TM3), with the F1D2 decision made first.
   - Its ceremony and record.
