@@ -10,6 +10,13 @@ git tag, `fw-<version>`.
 2. `tools/fw push console --all`, which pushes every board on USB in turn.
 3. `git tag fw-<version>` on that commit, then push the tag.
 
+## 2026.10.2 (2026-10-01)
+
+**The fix:** Device → Wi-Fi on Build 1.
+- **What went wrong:** the knob's press that chose Wi-Fi is also Build 1's maintenance key at power-up. The console restarted while the knob was still down, so the board came up in maintenance (a blank screen).
+- **The console now waits** for the knob to be let go before it restarts, and says so on screen.
+- **At boot, a pending Wi-Fi request outranks a held key.** The request is taken once, and the `maint` file still wins.
+
 ## 2026.10.1 (2026-10-01)
 
 The first numbered release. It brings three lines of work together on the production console:

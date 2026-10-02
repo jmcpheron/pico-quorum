@@ -133,7 +133,7 @@ check(_net(None).networks() == [] and _net(None).ssid() == "", "no secrets.py, n
 boot = (FW / "boot.py").read_text()
 
 
-def _boot(nets, image="console", y_held=False):
+def _boot(nets, image="console", y_held=False, files=(), maint_held=False):
     ran = []
     board = types.SimpleNamespace(MAINT=1, SETUP=2)
 
@@ -142,14 +142,14 @@ def _boot(nets, image="console", y_held=False):
             self.p = p
 
         def value(self, *a):
-            return 0 if (self.p == 2 and y_held) else 1
+            return 0 if (self.p == 2 and y_held) or (self.p == 1 and maint_held) else 1
 
     net = types.SimpleNamespace(networks=lambda: nets, ssid=lambda: nets[0][0] if nets else "",
                                 start=lambda progress=None: types.SimpleNamespace(isconnected=lambda: False))
     mods = {"board": board, "machine": types.SimpleNamespace(Pin=Pin), "net": net, "splash": None, "lcd": None,
             "time": types.SimpleNamespace(ticks_ms=lambda: 0),       # boot.py notes when it started (MicroPython's clock)
             "image": types.SimpleNamespace(IMAGE=image), "wifisetup": types.SimpleNamespace(run=lambda: ran.append(1))}
-    with patch.dict(sys.modules, mods), patch("os.listdir", return_value=[]):
+    with patch.dict(sys.modules, mods), patch("os.listdir", return_value=list(files)), patch("os.remove"):
         exec(compile(boot, "boot.py", "exec"), {"print": lambda *a: None})
     return bool(ran)
 
@@ -158,6 +158,11 @@ check(_boot([]), "no network known: setup")
 check(not _boot([("Home", "pw")]), "a network known: no setup")
 check(_boot([("Home", "pw")], y_held=True), "Y held at power-up: setup anyway")
 check(not _boot([], image="ceremony"), "the ceremony image works offline: no setup")
+check(_boot([("Home", "pw")], files=["wifisetup"]), "Device -> Wi-Fi (the wifisetup file): setup")
+check(_boot([("Home", "pw")], files=["wifisetup"], maint_held=True),
+      "the knob still down from that press (build1's maintenance key): setup, not maintenance")
+check(not _boot([("Home", "pw")], maint_held=True), "the knob held with no request: maintenance, no setup")
+check(not _boot([("Home", "pw")], files=["wifisetup", "maint"]), "the maint file beats a request")
 
 # ---- the keyboard, on both inputs
 def _kb(knob):

@@ -3,7 +3,11 @@
 import os
 import board
 from machine import Pin
-board.MAINTENANCE = "maint" in os.listdir() or Pin(board.MAINT, Pin.IN, Pin.PULL_UP).value() == 0
+# A Wi-Fi setup request from the Device screen outranks a held key: on build1 the knob's press that
+# chose Wi-Fi is also the maintenance key, and it may still be down as the board restarts (it was,
+# 2026-10-01: Build 1 came up in maintenance). The request is taken once; the maint file always wins.
+_ask = "wifisetup" in os.listdir()
+board.MAINTENANCE = "maint" in os.listdir() or (not _ask and Pin(board.MAINT, Pin.IN, Pin.PULL_UP).value() == 0)
 
 
 def _asked():

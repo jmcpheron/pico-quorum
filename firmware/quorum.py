@@ -752,6 +752,20 @@ def wifi_setup():
     qlog.write("wifi setup asked for on the Device screen")
     with open("wifisetup", "w") as f:
         f.write("1")
+    # On build1 the knob's press is the maintenance key at power-up: restart only once it is up.
+    try:
+        import board
+        from machine import Pin
+        key = Pin(board.MAINT, Pin.IN, Pin.PULL_UP)
+        if key.value() == 0:
+            d.frames(U.draw_working, sys.modules[__name__], "Wi-Fi setup", "Let go of the knob to restart")
+            t0 = time.ticks_ms()
+            while key.value() == 0 and time.ticks_diff(time.ticks_ms(), t0) < 20000:
+                watch.extend(1000)
+                time.sleep_ms(20)
+            time.sleep_ms(150)          # the switch settles
+    except Exception as e:
+        print("wifi setup:", e)
     try:
         import os
         os.sync()
