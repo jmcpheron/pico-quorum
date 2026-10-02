@@ -4,6 +4,27 @@ import os
 import board
 from machine import Pin
 board.MAINTENANCE = "maint" in os.listdir() or Pin(board.MAINT, Pin.IN, Pin.PULL_UP).value() == 0
+# Y held at power-up: Wi-Fi setup even with a network saved (a new router, a new password).
+board.WIFI_SETUP = not board.MAINTENANCE and Pin(board.SETUP, Pin.IN, Pin.PULL_UP).value() == 0
+
+
+def _wifi_setup(net):
+    """Wi-Fi setup (wifisetup.py) when Y was held, or when no network is known and this image needs
+    one (the ceremony image works offline). It restarts the board when it is done; if it fails,
+    boot carries on without Wi-Fi."""
+    if not board.WIFI_SETUP:
+        if net.networks():
+            return
+        import image
+        if image.IMAGE == "ceremony":
+            return
+    try:
+        import wifisetup
+        wifisetup.run()
+    except Exception as e:
+        import sys
+        sys.print_exception(e)
+
 
 def _normal_boot():
     # Runs before main.py: the boot screen, then WiFi and, if secrets.py enables it, the development
@@ -14,6 +35,7 @@ def _normal_boot():
     # joins while main.py imports and the console checks its chip; quorum.start waits for the rest.
     import time
     import net
+    _wifi_setup(net)
     net.boot_at = time.ticks_ms()
     try:
         import image
@@ -25,10 +47,10 @@ def _normal_boot():
         import lcd
         splash.begin()
         _keys = lcd.Keys()
-        _ssid = getattr(net.secrets, "WIFI_SSID", "") if net.secrets else ""
+        _ssid = net.ssid()
 
         def _spin(ms):
-            splash.spin("wifi", ("join " + _ssid)[:12] + (" press skips" if lcd.KNOB else " A skips") if _ssid else "no secrets.py")
+            splash.spin("wifi", ("join " + _ssid)[:12] + (" press skips" if lcd.KNOB else " A skips") if _ssid else "no Wi-Fi saved")
             return bool(_keys.pressed())
     except Exception as e:
         print("boot screen:", e)

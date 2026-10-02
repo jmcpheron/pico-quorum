@@ -36,7 +36,10 @@ These screens sign nothing.
 
 X (Device) shows the last error; with several Safes it names the Safe.
 
-- **`no wifi`**: the console retries every 30 s. Check `WIFI_SSID` and `WIFI_PASS`.
+- **`no wifi`**: the console retries every 30 s, through every saved network in turn. To
+  change the network, hold Y while plugging in: that opens Wi-Fi setup
+  ([SETUP.md](SETUP.md#wi-fi-without-secretspy-the-setup-screen)). A network in `secrets.py`
+  comes from `WIFI_SSID` and `WIFI_PASS`.
 - **`HTTP 401` / `403`**: the API key is wrong or expired. Fix `QUORUM_API_KEY`.
 - **`HTTP 404`**: the service doesn't know this Safe on that chain. Check the address and the
   chainId in `QUORUM_SAFES`, and that the Safe was made on that chain.
