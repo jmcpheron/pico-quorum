@@ -18,8 +18,10 @@ the shareable part. The chip profile and its ceremony are in [../TRUSTM.md](../T
 
 **TM1, the first Trust M** (serial `0a091b5c000b0062006c`, owner `0x47c0998C6a7A1955794071b9f4058e7814178f35`):
 - **Sealed.** The key, record and binding were frozen on 2026-09-29.
-- **The other 23 objects** are still at factory state. T9 will freeze them; it has now run on a
-  sacrificial chip (TM2).
+- **The other 23 objects, and Infineon's three,** are still at factory state. T9 will freeze all
+  26; it has now run on a sacrificial chip (TM2). TM2 also showed why Infineon's three belong in
+  T9: below operational their rules can be rewritten (see [../TRUSTM.md](../TRUSTM.md), "TM2").
+- **Its record predates the live check:** run `tools/fw attest` on TM1 again.
 - **Base Sepolia:** an owner of the rehearsal 3-of-5 Safe `0x5617…DC41`. Its signer is deployed
   there, and its first approval executed onchain on 2026-09-30.
 - **Base and Ethereum:** `getSigner` agrees on both chains. The signer is not deployed on either.

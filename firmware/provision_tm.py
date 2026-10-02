@@ -12,7 +12,8 @@
 #   T7  seal: LcsO of F1D1, F1D0 and E0F1 raised to operational                       PERMANENT
 #   T8  the seal checked: record, binding, the key still signs
 #   T9  freeze the spares: LcsO operational on every object the profile does not use      PERMANENT
-#       (tmcfg.SPARES; any named in secrets.TRUSTM_KEEP_OPEN are left open)
+#       (tmcfg.SPARES) and on Infineon's E0F0, E0E0, E140 with their rules as they came
+#       (tmcfg.FACTORY_OBJS); any named in secrets.TRUSTM_KEEP_OPEN are left open
 #   T10 final checks and the summary
 #
 # T7 and T9 need ALLOW_LOCK (T2 ALLOW_GENKEY) in secrets.py, the B+Y arm and A held 3 s, as on the
@@ -43,7 +44,7 @@ WHAT = {
     "T6": "Writes the record (F1D0) and the binding (F1D1) and reads both back. Rewritable until T7.",
     "T7": "Raises the lifecycle of F1D1, F1D0 and E0F1 to operational: the key and both records are frozen for good.",
     "T8": "Checks the seal: the record, the binding, and that the key still signs. Changes nothing.",
-    "T9": "Raises the lifecycle of every object the Safe key does not use to operational: nothing else on the chip can ever be written or get a key.",
+    "T9": "Raises the lifecycle of every object the Safe key does not use, and of Infineon's own, to operational: nothing else on the chip can ever be written, get a key or change its rules.",
     "T10": "Done. Enroll the owner address, then add it to the Safe.",
     "other": "E0F1 is sealed but holds no PicoQuorum record. The ceremony is for fresh chips.",
 }
@@ -83,7 +84,7 @@ def freeze(sig, oids):
         raise Exception(S._refused("lock"))
     refused = []
     for oid in oids:
-        if tmcfg.spare_state(sig.chip.meta(oid)) != "open":
+        if tmcfg.object_state(oid, sig.chip.meta(oid)) != "open":
             continue                    # read again just before: only an object still as it came
         try:
             sig.chip.set_lifecycle(oid)
@@ -372,18 +373,27 @@ class Ceremony:
                   ("record: serial and key", rec["serial"] == self.serial and rec["oid"] == tmcfg.KEY),
                   ("binding verifies", bound),
                   ("signs + verifies", self._sign_ok(hashlib.sha256(b"done").digest())),
+                  ("E0F0 = cert's key, live", self._factory_live(cert)),
+                  ("Infineon rules unchanged", not [o for o in tmcfg.FACTORY_OBJS if self.spares.get(o) == "odd"]),
                   ("security events %s" % self.sec, True)]
-        self.checked = all(v for _, v in checks[:5])
+        self.checked = all(v for _, v in checks[:7])
         return self.checked, checks, "owner %s. Spares: %s" % (rec["owner"], tmcfg.spares_text(self.spares))
+
+    def _factory_live(self, cert):
+        """E0F0 signs a fresh digest that verifies under the certificate's key: the factory key is
+        still Infineon's. The stored binding can't show this (TM2: it outlived a swapped E0F0)."""
+        d = hashlib.sha256(b"PicoQuorum T8 factory check" + self.uid + bytes(self.chip.random(16))).digest()
+        r, s = self.chip.sign(tmcfg.FACTORY_KEY, d)
+        return p256.verify(cert["qx"], cert["qy"], d, r, s)
 
     def t9(self):
         if not self.checked:
             return False, [("T8 passed this session", False)], "not frozen: T8 first"
         groups = (("key slots", tmcfg.SPARE_KEYS), ("cert slots", tmcfg.SPARE_CERTS),
-                  ("counters", tmcfg.SPARE_COUNTERS), ("data", tmcfg.SPARE_DATA))
+                  ("counters", tmcfg.SPARE_COUNTERS), ("data", tmcfg.SPARE_DATA), ("Infineon's", tmcfg.FACTORY_OBJS))
         before = self.chip.sec()
         was = {}
-        for oid in tmcfg.SPARES:
+        for oid in tmcfg.FROZEN_AT_T9:
             try:
                 was["%04X" % oid] = _hex(self.chip.metadata(oid))
             except Exception as e:
@@ -402,7 +412,7 @@ class Ceremony:
         checks.append(("E0F1 still signs", self._sign_ok(hashlib.sha256(b"spares frozen").digest())))
         checks.append(("security events %d -> %d" % (before, after), True))
         after_meta = {}
-        for oid in tmcfg.SPARES:
+        for oid in tmcfg.FROZEN_AT_T9:
             try:
                 after_meta["%04X" % oid] = _hex(self.chip.metadata(oid))
             except Exception as e:

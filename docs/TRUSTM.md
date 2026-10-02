@@ -70,8 +70,8 @@ A Trust M pin names the object instead of a slot number:
 | T5 Owner | The owner address, to compare on the laptop | read-only |
 | T6 Record | F1D0 and F1D1 written and read back | yes, until T7 |
 | T7 **Seal** | LcsO operational on F1D1, F1D0, E0F1 (ALLOW_LOCK, the arm, a 3 s hold) | **no** |
-| T8 Sealed | Checks everything is sealed, the record matches, the binding verifies and the key still signs. Registers the chip in `chips.json` | read-only |
-| T9 **Freeze the spares** | LcsO operational on every object the profile doesn't use (`tmcfg.SPARES`, 23 on the real chip), except any `TRUSTM_KEEP_OPEN` names (ALLOW_LOCK, the arm, a 3 s hold) | **no** |
+| T8 Sealed | Checks everything is sealed, the record matches, the binding verifies, the key still signs, and E0F0 still signs as its certificate's key (live) with Infineon's rules unchanged. Registers the chip in `chips.json` | read-only |
+| T9 **Freeze the spares** | LcsO operational on every object the profile doesn't use (`tmcfg.SPARES`, 23 on the real chip) and on Infineon's E0F0, E0E0, E140 with their rules as they came (`tmcfg.FACTORY_OBJS`), except any `TRUSTM_KEEP_OPEN` names (ALLOW_LOCK, the arm, a 3 s hold) | **no** |
 | T10 Done | quorum-tm1 sealed, the spares frozen, the key signs; reminds you to turn ALLOW_* off | read-only |
 
 - **Resuming:** the step is worked out from the chip every time.
@@ -160,6 +160,42 @@ TM2's record passes every line, "23 of 23 frozen" included.
 The emulator now gives the same codes (`trustm_sim.py`: 05 for a lower lifecycle, checked
 before the access condition; 07 for the rest).
 
+**Every other way to rewrite it** (`tools/board/tm_rewrites.py`, later that night):
+
+| Tried on TM2 | Answer |
+|---|---|
+| Frozen F1D2: a write at offset 0 or 100, an erase-and-write | refused, 07 |
+| Frozen F1D2: a write past the end (offset 140) | refused, **08** (the bounds are checked first) |
+| Frozen F1D2: a write of nothing | refused, **04** |
+| Sealed F1D0: one byte at 109 | refused, 07 |
+| Frozen F1E0, E0E1 (cert slot), E0E8 (trust anchor), E120 (8 bytes), the UID | refused, 07 |
+| Frozen counter E120: count +1 | refused, **0E** |
+| Frozen F1D2: Read NEV, or LcsO op + Change ALW | refused, 07 |
+| Sealed E0F1: Execute NEV | refused, 07 |
+| Frozen F1D2: LcsO op again (the same value) | accepted, nothing changes |
+| An empty metadata TLV | refused, 05 |
+| LcsA lowered to initialization | refused, 05 |
+| **E0F0 (factory key, LcsO creation): Change NEV to ALW** | **ACCEPTED** |
+| E0F0, E0E0, E140: LcsO raised to operational | accepted |
+
+- **Below operational, metadata is rewritable whatever Change says.** E0F0 came with Change NEV
+  and LcsO creation, and its Change became ALW. With that, **GenKeyPair replaced TM2's factory key**:
+  135 ms, the security counter 0 before and after. TM2's E0F0 no longer matches its certificate.
+- **What it would cost a sealed chip:** the Safe key, record and binding are untouched. The stored
+  binding still verifies, because it was signed at T4 by the real factory key. Only a *live*
+  check notices. So:
+  - T9 now freezes E0F0, E0E0 and E140 too.
+  - T8 has the factory key sign a fresh digest and checks it under the certificate.
+  - `tools/fw attest` has the factory key sign a challenge from the laptop, and `tools/quorum
+    verify` checks it (`live:`) along with E0F0/E0E0's Change NEV. TM2's record now fails both.
+  - **TM1's existing record predates this:** attest TM1 again.
+- **Error codes seen:**
+  - 04 bad length
+  - 05 bad data (a lower lifecycle, an empty TLV)
+  - 07 access condition
+  - 08 out of bounds
+  - 0E a frozen counter
+
 **The security event counter under a burst** (`tools/board/tm_burst.py`; raw numbers in the local
 `chips/trustm-0a091b5c000b00620076-sec.json`):
 - **No idle credit on a chip just powered up.** TM2 had been unplugged; its first signature
@@ -197,17 +233,22 @@ T9 raises each one's LcsO to operational, and nothing else, exactly as T7 did fo
 then on nothing can write them or make a key in them. Before it writes, T9 reads each object
 again and touches only one that is still as it came.
 
-**E140 is left out.** It is the shielded-connection binding secret, and its Change condition is
-`LcsO < op || Conf(E140)`, so the lifecycle alone would not close it.
+**Infineon's own objects too** (since TM2's rewrite tests). The factory key E0F0, its certificate
+E0E0 and the binding secret E140 also come at LcsO creation. TM2 showed that, below operational,
+an object's metadata can be rewritten whatever its Change condition says, so T9 raises their
+lifecycle as well and leaves their rules as Infineon set them: E0F0 and E0E0 Change NEV, E140
+`LcsO < op || Conf(E140)`. E140 then can't be read any more, which is what it's for. That makes 26
+objects in all. A factory object whose rules already differ counts as tampered, and T8 stops.
 
 **Why freeze them.** The ATECC profile freezes every byte of its chip; until T9 a Trust M had
 three frozen objects and 23 writable ones. Writable spares don't endanger the key. Frozen, the
 chip has nothing else on it to explain.
 
-**Keeping one open.** `TRUSTM_KEEP_OPEN = ["F1D2"]` in `secrets.py` keeps a spare open, for an
-on-chip Safe record later ([mainnet/CONFIGURATION.md](mainnet/CONFIGURATION.md)).
+**Keeping one open.** `TRUSTM_KEEP_OPEN = ["E0F2", "E0F3"]` in `secrets.py` (or `tools/fw ceremony
+start --keep-open E0F2,E0F3`) keeps spares open, such as the spare key slots for a second key later
+([mainnet/CONFIGURATION.md](mainnet/CONFIGURATION.md)).
 
-The console's Chip page shows the spares: "all 23 frozen", or which are still open. It reads them
+The console's Chip page shows them: "all 26 frozen" (23 spares and Infineon's three), or which are still open. It reads them
 when the page opens, never at boot.
 
 ## On the screens

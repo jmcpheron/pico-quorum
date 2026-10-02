@@ -86,6 +86,12 @@ three needed. The other owners can execute without it and rotate it out.
 - It can't make the device sign a transaction other than the one shown, because the device
   recomputes the hash.
 
+**Infineon's own objects before T9.** On a chip that has not been through T9, the factory key's
+rules can be rewritten by anyone on the chip's bus, and the factory key replaced (shown on a test
+chip). That can't touch the Safe key or fake Infineon's certificate. It can only break the chip's
+proof of being genuine. T9 freezes those objects too, and `tools/quorum verify` now checks that the
+factory key still answers a fresh challenge (`live:`) and still has Infineon's rules.
+
 **The chip generation.** TM1 looks like a first-generation Trust M (Infineon CA 101, firmware
 build 0809). This has not been confirmed from Infineon's documents. The later generation's
 authorization features, which a PIN would need, may not be there.

@@ -14,7 +14,8 @@
 #          "LcsO < operational", so from then on nothing can regenerate the key or rewrite either
 #          object, and a lifecycle state never goes down.
 #   spares every object the profile does not use (SPARES) frozen the same way, at T9, so nothing
-#          else on the chip can be written or get a key. E140 stays as it came.
+#          else on the chip can be written or get a key; and Infineon's own E0F0, E0E0 and E140
+#          (FACTORY_OBJS) frozen with the rules they came with, so those can't be changed either.
 #
 # Read off a real Adafruit 4351 on 2026-09-28 (chips/trustm-*-probe.txt): LcsA operational,
 # E0F1-E0F3 empty with Change "LcsO < op", F1D0-F1DB 140 bytes each with the same Change, E0F0 the
@@ -173,13 +174,22 @@ def identify(key_meta, record):
 # key objects, the data objects, the trust anchors, a device-certificate slot and the monotonic
 # counters, all with the factory Change "LcsO < op". T9 raises each one's LcsO to operational and
 # changes nothing else: from then on nothing can write them or make a key in them, as T7 froze the
-# key. Never termination. Not here: E140, the shielded-connection binding secret, whose Change is
-# "LcsO < op || Conf(E140)", so the lifecycle alone would not close it.
+# key. Never termination.
+#
+# FACTORY_OBJS: Infineon's factory key, its certificate and the shielded-connection binding secret
+# come at LcsO creation too. TM2 (2026-10-01) showed that while an object's LcsO is below
+# operational its metadata can be rewritten whatever its Change condition says: E0F0's Change went
+# from NEV to ALW, and then GenKeyPair replaced the factory key. So T9 raises their LcsO as well,
+# leaving their rules as they came (E0F0/E0E0 Change NEV; E140 "LcsO < op || Conf(E140)", which
+# also makes E140 unreadable). A factory object whose rules already differ is "odd": tampered.
 SPARE_KEYS = (0xE0F2, 0xE0F3, 0xE0FC, 0xE0FD)
 SPARE_CERTS = (0xE0E1, 0xE0E8, 0xE0EF)
 SPARE_COUNTERS = (0xE120, 0xE121, 0xE122, 0xE123)
 SPARE_DATA = tuple(range(0xF1D2, 0xF1DC)) + (0xF1E0, 0xF1E1)
 SPARES = SPARE_KEYS + SPARE_CERTS + SPARE_COUNTERS + SPARE_DATA
+FACTORY_OBJS = (0xE0F0, 0xE0E0, 0xE140)
+FACTORY_CHANGE = {0xE0F0: b"\xff", 0xE0E0: b"\xff", 0xE140: b"\xe1\xfc\x07\xfe\x20\xe1\x40"}
+FROZEN_AT_T9 = SPARES + FACTORY_OBJS
 LCSO_BELOW_OP = b"\xe1\xfc\x07"
 
 
@@ -196,6 +206,19 @@ def spare_state(meta):
     return "odd"
 
 
+def object_state(oid, meta):
+    """spare_state for a spare; for a factory object: "frozen" (operational, its rules as they came),
+    "open" (below operational, rules as they came: T9 freezes it), else "odd"."""
+    if oid not in FACTORY_CHANGE:
+        return spare_state(meta)
+    if bytes(meta.get("change") or b"") != FACTORY_CHANGE[oid]:
+        return "odd"
+    lcso = meta.get("lcso")
+    if lcso == OPERATIONAL:
+        return "frozen"
+    return "open" if isinstance(lcso, int) and lcso < OPERATIONAL else "odd"
+
+
 def oid_list(v):
     """secrets.TRUSTM_KEEP_OPEN ("F1D2" or 0xF1D2, one or a list) as a tuple of OIDs."""
     if not v:
@@ -206,7 +229,7 @@ def oid_list(v):
 
 
 def spares_text(states):
-    """{oid: state} in a few words: "all 23 frozen", "19 of 23 frozen; open F1D3 F1E0 ...",
+    """{oid: state} in a few words: "all 26 frozen", "19 of 26 frozen; open F1D3 F1E0 ...",
     with any kept open or odd named."""
     n = len([s for s in states.values() if s != "absent"])
     frozen = [o for o, s in states.items() if s == "frozen"]

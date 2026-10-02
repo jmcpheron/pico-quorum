@@ -62,7 +62,7 @@ py(`Q.handle("A"); Q.d.frames(quorum_ui.draw, Q)`);
 shot("tm-11-chip-page-2-spares-open");
 py(`sim = trustm_sim.chip()
 import tmcfg
-for o in tmcfg.SPARES:
+for o in tmcfg.FROZEN_AT_T9:
     sim.objs[o]["meta"]["lcso"] = 7
 sim.save()
 T, Q = TT.console(keep=True)

@@ -597,16 +597,17 @@ class TrustMSigner:
         return self.profile() in ("factory", "quorum-tm1-open")
 
     def spares(self):
-        """Each spare object's state (tmcfg.spare_state); "absent" where the chip has no such object,
-        "kept" for an open one that secrets.TRUSTM_KEEP_OPEN names. 23 metadata reads: the
+        """Each object T9 freezes (tmcfg.FROZEN_AT_T9: the spares and Infineon's factory objects), its
+        state (tmcfg.object_state); "absent" where the chip has no such object, "kept" for an open
+        one that secrets.TRUSTM_KEEP_OPEN names. 26 metadata reads (436 ms on TM2 for 23): the
         ceremony, the dual image's choice and the Chip page call it, never the console's boot."""
         import tmcfg
         import trustm_q
         keep = tmcfg.oid_list(setting("TRUSTM_KEEP_OPEN"))
         out = {}
-        for oid in tmcfg.SPARES:
+        for oid in tmcfg.FROZEN_AT_T9:
             try:
-                st = tmcfg.spare_state(self.chip.meta(oid))
+                st = tmcfg.object_state(oid, self.chip.meta(oid))
             except trustm_q.Refused:
                 st = "absent"
             out[oid] = "kept" if st == "open" and oid in keep else st

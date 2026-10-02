@@ -154,7 +154,8 @@ def case_full():
     check(c2.step() == "T8" and run(c2, "T8")[1] and c2.step() == "T10", "a reboot: T8 checks the seal again, then straight to T10")
     check(all(sim.objs[o]["meta"]["lcso"] == 0x07 for o in tmcfg.SPARES), "T9: every spare (%d) operational" % len(tmcfg.SPARES))
     check(all(sim.objs[o]["meta"]["change"] == b"\xe1\xfc\x07" for o in tmcfg.SPARES), "T9 wrote only LcsO: every Change condition as it came")
-    check(sim.objs[0xE140]["meta"]["lcso"] == 1 and sim.objs[0xE140]["data"] == bytes(64), "E140 (the binding secret) untouched")
+    check(all(sim.objs[o]["meta"]["lcso"] == 0x07 and bytes(sim.objs[o]["meta"]["change"]) == tmcfg.FACTORY_CHANGE[o] for o in tmcfg.FACTORY_OBJS)
+          and sim.objs[0xE140]["data"] == bytes(64), "T9 froze Infineon's E0F0, E0E0, E140 too, their rules and data as they came")
     snap = json.load(open(P.snapshot_path(c.serial)))
     check(all("%04X" % o in snap["metadata"] for o in tmcfg.SPARES) and snap["metadata"]["E0F1"].startswith("20"),
           "T1's snapshot has every object's factory metadata, the 23 spares too")
@@ -162,11 +163,11 @@ def case_full():
     t9 = [e for e in log if e["step"] == "T9"][-1]
     check([e["step"] for e in log][:10] == ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10"] and all(e["ok"] for e in log[:10]),
           "the steps log has every step's result, in order")
-    check(len(t9["metaBefore"]) == 23 and all(tmcfg.parse_meta(bytes.fromhex(t9["metaAfter"][k]))["lcso"] == 7 for k in t9["metaAfter"])
+    check(len(t9["metaBefore"]) == 26 and all(tmcfg.parse_meta(bytes.fromhex(t9["metaAfter"][k]))["lcso"] == 7 for k in t9["metaAfter"])
           and all(tmcfg.parse_meta(bytes.fromhex(v))["lcso"] == 1 for v in t9["metaBefore"].values()) and t9["refused"] == []
           and "secBefore" in t9 and t9["ms"] >= 0, "T9's entry keeps each spare's metadata before and after, the counter and the time")
-    check(sim.objs[0xE0F0].get("key") and sim.objs[0xE0F0]["meta"]["lcso"] == 1 and tmcfg.cert_der(sim.objs[0xE0E0]["data"]) == der,
-          "the factory key and certificate are untouched")
+    check(sim.objs[0xE0F0].get("key") and tmcfg.cert_der(sim.objs[0xE0E0]["data"]) == der,
+          "the factory key and certificate are the same")
 
 
 def case_resume():
@@ -294,6 +295,24 @@ def case_keep_open():
     secrets()
     c2 = ceremony()[0]
     check(c2.step() == "T8" and run(c2, "T8")[1] and c2.step() == "T9", "without TRUSTM_KEEP_OPEN it is open again: T9 offers to freeze it")
+
+
+def case_tampered_factory():
+    """TM2 (2026-10-01): at LcsO creation E0F0's Change could be set to ALW and the factory key
+    replaced. A sealed chip like that stops at T8, so T9 never freezes the damage in."""
+    import tmcfg
+    secrets()
+    only_trustm()
+    trustm_sim.seal_as_quorum()
+    sim = trustm_sim.chip()
+    sim.objs[0xE0F0]["meta"]["change"] = b"\x00"
+    sim.objs[0xE0F0]["key"] = p256.rand_scalar()
+    sim.save()
+    c, S, P = ceremony()
+    got, ok, bad, msg = run(c, "T8")
+    check(got == "T8" and not ok and "E0F0 = cert's key, live" in bad and "Infineon rules unchanged" in bad,
+          "a swapped factory key: T8 stops (the live check and the rules), though the stored binding still verifies")
+    check(c.step() == "T8" and sim.objs[0xF1D2]["meta"]["lcso"] == 1, "and T9 is never offered")
 
 
 def case_other():
@@ -455,7 +474,7 @@ def case_chip_pages():
     for t, r in Q.chip_pages:
         pages.setdefault(t, {}).update(dict(r))
     check(sum(len(r) for _, r in Q.chip_pages) == 8 + 6 + 7, "every row is on a page (long ones continue on the next): nothing cut")
-    check(pages["The chip"]["Spares"].startswith("0 of 23 frozen; open E0E1 E0E8 E0EF E0F2 E0F3 E0FC +17"), "page 1: the spares, read off the chip (%s)" % pages["The chip"]["Spares"])
+    check(pages["The chip"]["Spares"].startswith("0 of 26 frozen; open E0E0 E0E1 E0E8 E0EF E0F0 E0F2 +20"), "page 1: the spares, read off the chip (%s)" % pages["The chip"]["Spares"])
     check(pages["The chip"]["Part"] == "Infineon OPTIGA Trust M" and "CC EAL6+" in pages["The chip"]["Certified"],
           "page 1: Infineon OPTIGA Trust M, CC EAL6+")
     c = pages["Factory certificate"]
@@ -564,7 +583,7 @@ def case_dual():
     D = boot({"serial": tmcfg.serial(trustm_sim.chip().uid), "slot": 0xE0F1, "owner": rec["owner"], "locked": True})
     check(D.which()[0] == "console", "dual, the pinned Trust M: the console, ALLOW_LOCK or not")
     sim = trustm_sim.chip()
-    for o in tmcfg.SPARES:
+    for o in tmcfg.FROZEN_AT_T9:
         sim.objs[o]["meta"]["lcso"] = 7
     sim.save()
     D = boot()
@@ -681,7 +700,7 @@ def case_knob():
 
 
 def main():
-    for case in (case_real_chip, case_detect, case_full, case_resume, case_gates, case_keep_open, case_other, case_console, case_proof, case_chip_pages, case_sec,
+    for case in (case_real_chip, case_detect, case_full, case_resume, case_gates, case_keep_open, case_tampered_factory, case_other, case_console, case_proof, case_chip_pages, case_sec,
                  case_console_pin, case_dual, case_ui, case_knob):
         print("--", case.__name__[5:])
         try:

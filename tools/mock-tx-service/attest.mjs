@@ -7,7 +7,11 @@
 //   2. the binding (F1D1): the certificate's key (E0F0) signed this UID + E0F1 + this public key
 //   3. the record (F1D0) names this chip and that key, and the owner address follows from the key
 //      through Safe's passkey signer (factory, singleton and verifiers from firmware/quorum_cfg.py)
-//   4. the lifecycle the chip reported: key, record and binding sealed; the spares frozen or not
+//   2b. live: the factory key signed a fresh challenge from the laptop when the record was made, so
+//      the chip still held its certificate's key then (a stored binding outlives a swapped E0F0)
+//   4. the lifecycle the chip reported: key, record and binding sealed; the spares frozen or not;
+//      Infineon's factory key and certificate with their rules as they came (Change NEV): TM2
+//      showed both can be rewritten, and E0F0 replaced, while their LcsO is below operational
 //   5. on each chain: the factory's getSigner gives the same owner; whether its proxy is deployed;
 //      with --safe, whether it is an owner and the Safe's threshold
 // What it cannot show: E0F0 signs whatever it is asked, so the binding proves a genuine Trust M
@@ -113,6 +117,14 @@ const sigOk = okB && !!e0f0 && p256.verify({ r: BigInt("0x" + bind.subarray(3, 3
 row(sameCert && sigOk, "binding (F1D1): the factory key E0F0 signed this UID + E0F1 + this public key",
   "proves a genuine Trust M signed the statement; E0F0 signs what it is asked, so not on its own that the key is inside");
 
+// 2b. the live challenge (records made since 2026-10-01): the chip held the certificate's key then
+if (B.live) {
+  const ld = sha256(Buffer.from("PicoQuorum Trust M attest v1"), uid, hex(B.live.nonce));
+  const liveOk = !!e0f0 && p256.verify({ r: BigInt("0x" + B.live.r), s: BigInt("0x" + B.live.s) }, ld, e0f0, { prehash: false, lowS: false });
+  row(liveOk, "live: the factory key signed a fresh challenge, under the certificate's key",
+    liveOk ? "the chip still held its Infineon key when this record was made" : "the chip's E0F0 is NOT the certificate's key any more");
+} else row(null, "live: not in this record (made before the live challenge existed); run tools/fw attest again");
+
 // 4. the lifecycle, as the chip reported it to the board that read it
 const meta = (oid) => {
   const m = B.metadata?.[oid];
@@ -126,6 +138,9 @@ row(sealed.every(([, m]) => m && m.lcso === OPERATIONAL && m.change === LCSO_BEL
   "sealed (as reported): E0F1, F1D0, F1D1 lifecycle operational, Change LcsO<op", sealed.map(([o, m]) => `${o} ${m ? "LcsO " + m.lcso : "missing"}`).join(", "));
 const k = meta("E0F1");
 row(k && k.algo === "03" && k.exec === "00", "E0F1: a P-256 key, signing open to the board (Execute ALW: no PIN)");
+const f0 = meta("E0F0"), fc = meta("E0E0");
+row(f0 && fc && f0.change === "ff" && fc.change === "ff", "Infineon's factory key and certificate: Change NEV, as they came",
+  `E0F0 Change ${f0 ? f0.change : "?"}, LcsO ${f0 ? f0.lcso : "?"}; E0E0 Change ${fc ? fc.change : "?"}, LcsO ${fc ? fc.lcso : "?"}`);
 const sp = SPARES.map((o) => [o, meta(o)]).filter(([, m]) => m);
 const frozen = sp.filter(([, m]) => m.lcso === OPERATIONAL && ["ff", LCSO_BELOW_OP].includes(m.change));
 const open = sp.filter(([, m]) => m.lcso < OPERATIONAL);
