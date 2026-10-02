@@ -155,6 +155,16 @@ def case_full():
     check(all(sim.objs[o]["meta"]["lcso"] == 0x07 for o in tmcfg.SPARES), "T9: every spare (%d) operational" % len(tmcfg.SPARES))
     check(all(sim.objs[o]["meta"]["change"] == b"\xe1\xfc\x07" for o in tmcfg.SPARES), "T9 wrote only LcsO: every Change condition as it came")
     check(sim.objs[0xE140]["meta"]["lcso"] == 1 and sim.objs[0xE140]["data"] == bytes(64), "E140 (the binding secret) untouched")
+    snap = json.load(open(P.snapshot_path(c.serial)))
+    check(all("%04X" % o in snap["metadata"] for o in tmcfg.SPARES) and snap["metadata"]["E0F1"].startswith("20"),
+          "T1's snapshot has every object's factory metadata, the 23 spares too")
+    log = json.load(open(P.steps_path(c.serial)))
+    t9 = [e for e in log if e["step"] == "T9"][-1]
+    check([e["step"] for e in log][:10] == ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10"] and all(e["ok"] for e in log[:10]),
+          "the steps log has every step's result, in order")
+    check(len(t9["metaBefore"]) == 23 and all(tmcfg.parse_meta(bytes.fromhex(t9["metaAfter"][k]))["lcso"] == 7 for k in t9["metaAfter"])
+          and all(tmcfg.parse_meta(bytes.fromhex(v))["lcso"] == 1 for v in t9["metaBefore"].values()) and t9["refused"] == []
+          and "secBefore" in t9 and t9["ms"] >= 0, "T9's entry keeps each spare's metadata before and after, the counter and the time")
     check(sim.objs[0xE0F0].get("key") and sim.objs[0xE0F0]["meta"]["lcso"] == 1 and tmcfg.cert_der(sim.objs[0xE0E0]["data"]) == der,
           "the factory key and certificate are untouched")
 

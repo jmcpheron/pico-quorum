@@ -53,6 +53,16 @@ def snapshot_path(serial):
     return "snapshot-tm-%s.json" % serial
 
 
+def steps_path(serial):
+    """Every step's result on this board, newest last: what the screens showed, for the inventory
+    and docs/TRUSTM.md. Kept across pushes like the snapshot (manifest "preserve")."""
+    return "snapshot-tm-%s-steps.json" % serial
+
+
+def _hex(b):
+    return "".join("%02x" % x for x in b)
+
+
 def seal(sig):
     """PERMANENT. LcsO operational on the binding, the record, then the key. Needs ALLOW_LOCK and
     the arm. A lifecycle state never goes down."""
@@ -100,6 +110,7 @@ class Ceremony:
         self.owner_seen = False     # T5 was shown this session
         self.written = False        # T6 wrote and read back this session
         self.checked = False        # T8 passed this session: the seal checked before T9
+        self.extra = None           # what the step running now keeps for the steps log (T9: the metadata)
         self.read()
 
     def index(self, st):
@@ -179,12 +190,35 @@ class Ceremony:
     # --- the steps: each returns (ok, [(check, ok), ...], message) -------------------
     def run(self, step):
         fn = getattr(self, "t" + step[1:]) if step.startswith("T") else self.tother
+        self.extra = None
         try:
             out = fn()
         except Exception as e:
             out = (False, [], "%s" % e)
         self.read()
+        self.log_step(step, out)
         return out
+
+    def log_step(self, step, out):
+        """Append this step's result to steps_path: ok, each check, the message, the security
+        counter after it, and anything the step kept (T9: each spare's metadata before and after).
+        A full flash costs the record, never the ceremony."""
+        ok, checks, msg = out
+        e = {"step": step, "ok": ok, "checks": [[l, bool(v)] for l, v in checks], "msg": msg, "sec": self.sec,
+             "time": time.time(), "profile": self.profile}
+        if self.extra:
+            e.update(self.extra)
+        try:
+            try:
+                with open(steps_path(self.serial)) as f:
+                    log = json.load(f)
+            except (OSError, ValueError):
+                log = []
+            log = log[-39:] + [e]
+            with open(steps_path(self.serial), "w") as f:
+                json.dump(log, f)
+        except Exception as ex:
+            print("steps log:", ex)
 
     def _cert(self):
         der, cert = self.sig.cert()
@@ -231,9 +265,9 @@ class Ceremony:
     def save_snapshot(self, der, cert, state="factory"):
         c = self.chip
         objs = {}
-        for oid in (0xE0C0, 0xE0C5, 0xE0E0, 0xE0F0, 0xE0F1, 0xE0F2, 0xE0F3, 0xE120, 0xE140, 0xF1D0, 0xF1D1):
+        for oid in (0xE0C0, 0xE0C5, 0xE0E0, 0xE0F0, 0xE0F1, 0xE140, 0xF1D0, 0xF1D1) + tmcfg.SPARES:
             try:
-                objs["%04X" % oid] = "".join("%02x" % b for b in c.metadata(oid))
+                objs["%04X" % oid] = _hex(c.metadata(oid))
             except Exception as e:
                 objs["%04X" % oid] = "error %s" % e
         snap = {"uid": "".join("%02x" % b for b in self.uid), "serial": self.serial, "metadata": objs,
@@ -348,7 +382,15 @@ class Ceremony:
         groups = (("key slots", tmcfg.SPARE_KEYS), ("cert slots", tmcfg.SPARE_CERTS),
                   ("counters", tmcfg.SPARE_COUNTERS), ("data", tmcfg.SPARE_DATA))
         before = self.chip.sec()
+        was = {}
+        for oid in tmcfg.SPARES:
+            try:
+                was["%04X" % oid] = _hex(self.chip.metadata(oid))
+            except Exception as e:
+                was["%04X" % oid] = "error %s" % e
+        t0 = time.ticks_ms()
         refused = freeze(self.sig, self.open)
+        took = time.ticks_diff(time.ticks_ms(), t0)
         self.sig.forget()
         now = self.sig.spares()
         after = self.chip.sec()
@@ -359,6 +401,15 @@ class Ceremony:
             checks.append(("%s: %d of %d frozen" % (label, len([o for o in mine if now.get(o) == "frozen"]), len(mine)), not left))
         checks.append(("E0F1 still signs", self._sign_ok(hashlib.sha256(b"spares frozen").digest())))
         checks.append(("security events %d -> %d" % (before, after), True))
+        after_meta = {}
+        for oid in tmcfg.SPARES:
+            try:
+                after_meta["%04X" % oid] = _hex(self.chip.metadata(oid))
+            except Exception as e:
+                after_meta["%04X" % oid] = "error %s" % e
+        self.extra = {"metaBefore": was, "metaAfter": after_meta, "refused": [["%04X" % o, why] for o, why in refused],
+                      "secBefore": before, "secAfter": after, "ms": took,
+                      "keptOpen": ["%04X" % o for o, st in now.items() if st == "kept"]}
         msg = tmcfg.spares_text(now)
         if refused:
             msg += ". Refused: " + ", ".join("%04X (%s)" % (o, why[-24:]) for o, why in refused)
