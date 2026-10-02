@@ -1,0 +1,919 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PicoQuorum Brand Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@400;500;700&family=Atkinson+Hyperlegible+Next:wght@400;700;800&display=swap">
+<style>
+/* Layout: one reading column (max 1080px). Hero pairs the live device with the lockup; each section has a label rail on wide screens and stacks on phones. */
+:root {
+  /* Dark first, like the panel. Values are firmware/quorum_ui.py THEMES["dark"]. */
+  --night: #0B0D11;
+  --surface: #181C24;
+  --raised: #282F3A;
+  --line: #303742;
+  --ink: #F2F4F7;
+  --muted: #98A0AC;
+  --faint: #626A76;
+  --signed: #34C759;
+  --waiting: #FFB830;
+  --ether: #7A92FF;
+  --reject: #FF5C54;
+  --mark-tri: #397F4C;
+  --mark-wait: #CE9529;
+  --strike: #FF5C54;
+  /* the device stays a dark object in both themes */
+  --pcb: #101216;
+  --pcb-edge: #23272F;
+  --panel: #0B0D11;
+  --sans: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", system-ui, sans-serif;
+  --mono: "Atkinson Hyperlegible Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --night: #F5F6F8; --surface: #FFFFFF; --raised: #DEE4EC; --line: #D6DBE2;
+    --ink: #101318; --muted: #565E6A; --faint: #969DA8;
+    --signed: #16963E; --waiting: #A86600; --ether: #627EEA; --reject: #D02424;
+    --mark-tri: #7AC191; --mark-wait: #B78231; --strike: #D02424;
+    --pcb-edge: #3A3F48;
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --night: #F5F6F8; --surface: #FFFFFF; --raised: #DEE4EC; --line: #D6DBE2;
+  --ink: #101318; --muted: #565E6A; --faint: #969DA8;
+  --signed: #16963E; --waiting: #A86600; --ether: #627EEA; --reject: #D02424;
+  --mark-tri: #7AC191; --mark-wait: #B78231; --strike: #D02424;
+  --pcb-edge: #3A3F48;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--night);
+  color: var(--ink);
+  font: 400 16px/1.55 var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 1080px; margin: 0 auto; padding-inline: 24px; padding-block: 40px 96px; }
+@media (max-width: 520px) { .wrap { padding-inline: 16px; padding-block: 24px 64px; } }
+
+h1, h2, h3 { margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+h2 { font-size: clamp(26px, 3.4vw, 34px); font-weight: 800; line-height: 1.15; }
+h3 { font-size: 17px; font-weight: 700; }
+p { margin: 0; max-width: 64ch; }
+code, .mono { font-family: var(--mono); font-size: 0.92em; }
+a { color: var(--ink); text-decoration-color: var(--faint); text-underline-offset: 3px; }
+a:hover { text-decoration-color: var(--signed); }
+:focus-visible { outline: 2px solid var(--signed); outline-offset: 3px; border-radius: 4px; }
+.eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.muted { color: var(--muted); }
+
+/* ---------- hero ---------- */
+.hero { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 56px; align-items: center; padding-bottom: 56px; border-bottom: 1px solid var(--line); }
+@media (max-width: 860px) { .hero { grid-template-columns: minmax(0, 1fr); gap: 32px; justify-items: center; } .hero-copy { justify-self: stretch; } }
+
+.device { display: grid; gap: 14px; justify-items: center; width: 100%; max-width: 460px; }
+.board {
+  position: relative; width: 100%;
+  background: var(--pcb); border: 1px solid var(--pcb-edge); border-radius: 18px;
+  padding: 22px 64px 22px 72px;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 24px 60px -30px rgba(0,0,0,0.6);
+}
+.screen { position: relative; background: var(--panel); border-radius: 4px; padding: 8px; box-shadow: 0 0 0 1px #000 inset; }
+.screen canvas { display: block; width: 100%; height: auto; aspect-ratio: 1; image-rendering: auto; }
+.stick { position: absolute; left: 20px; top: 50%; width: 36px; height: 36px; margin-top: -18px; border-radius: 50%; background: #1B1E24; border: 1px solid #2C313A; }
+.stick::after { content: ""; position: absolute; inset: 9px; border-radius: 50%; background: #2A2F38; }
+.keys { position: absolute; right: 18px; top: 22px; bottom: 22px; display: flex; flex-direction: column; justify-content: space-around; align-items: center; }
+.keys span { width: 28px; height: 28px; border-radius: 6px; background: #1B1E24; border: 1px solid #2C313A; color: #6E7684; font: 700 11px/26px var(--mono); text-align: center; }
+@media (max-width: 420px) { .board { padding: 14px 44px 14px 48px; } .stick { left: 10px; width: 28px; height: 28px; margin-top: -14px; } .stick::after { inset: 7px; } .keys { right: 10px; } .keys span { width: 24px; height: 24px; line-height: 22px; font-size: 10px; } }
+
+.player { display: flex; align-items: center; gap: 12px; width: 100%; }
+.player button {
+  flex: none; font: 700 13px/1 var(--sans); color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; cursor: pointer;
+}
+.player button:hover { border-color: var(--faint); }
+.player input[type=range] { flex: 1; min-width: 0; accent-color: var(--signed); }
+.player output { flex: none; font: 500 12px/1 var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; min-width: 9.5ch; text-align: right; }
+.device-note { font-size: 13px; color: var(--muted); text-align: center; max-width: 46ch; }
+
+.hero-copy { display: grid; gap: 22px; }
+.lockup { display: inline-flex; align-items: center; gap: 0.22em; font-weight: 700; line-height: 1; }
+.lockup svg { width: 1.23em; height: 1.23em; flex: none; transform: translateY(0.02em); }
+.hero .lockup { font-size: clamp(38px, 10vw, 76px); letter-spacing: -0.02em; }
+.lede { font-size: 19px; line-height: 1.5; color: var(--ink); max-width: 36ch; }
+.lede-sub { color: var(--muted); max-width: 52ch; }
+.toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.toc a { display: inline-block; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; font-size: 14px; text-decoration: none; color: var(--muted); }
+.toc a:hover { color: var(--ink); border-color: var(--faint); }
+
+/* ---------- sections ---------- */
+section { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 40px; padding-block: 64px; border-bottom: 1px solid var(--line); }
+section:last-of-type { border-bottom: 0; }
+@media (max-width: 860px) { section { grid-template-columns: minmax(0, 1fr); gap: 20px; padding-block: 48px; } }
+.rail { display: grid; align-content: start; gap: 10px; }
+.rail .eyebrow { color: var(--signed); }
+.body { display: grid; gap: 32px; min-width: 0; }
+.intro { display: grid; gap: 12px; }
+
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 24px; min-width: 0; }
+@media (max-width: 520px) { .tile { padding: 18px; } .lockup-demo .lockup { font-size: 34px; } }
+.tile.dark { background: #0B0D11; border-color: #23272F; color: #F2F4F7; }
+.tile.light { background: #F5F6F8; border-color: #D6DBE2; color: #101318; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 720px) { .grid2, .grid3 { grid-template-columns: minmax(0, 1fr); } }
+
+/* name */
+.name-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 720px) { .name-row { grid-template-columns: minmax(0, 1fr); } }
+.wordmark-big { font-size: clamp(34px, 9vw, 64px); font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
+.wordmark-big .cap { color: var(--signed); }
+.say { display: grid; gap: 10px; }
+.say li { list-style: none; }
+.say ul { margin: 0; padding: 0; display: grid; gap: 8px; }
+.wrong { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--strike); text-decoration-thickness: 2px; }
+.right { color: var(--ink); font-weight: 700; }
+.pill { display: inline-block; font: 700 11px/1 var(--sans); letter-spacing: 0.08em; text-transform: uppercase; padding: 5px 8px; border-radius: 999px; }
+.pill.ok { background: color-mix(in srgb, var(--signed) 18%, transparent); color: var(--signed); }
+.pill.no { background: color-mix(in srgb, var(--reject) 16%, transparent); color: var(--reject); }
+.pill.draft { background: color-mix(in srgb, var(--waiting) 18%, transparent); color: var(--waiting); }
+
+/* mark */
+.mark-hero { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 720px) { .mark-hero { grid-template-columns: minmax(0, 1fr); } }
+.construct svg { width: 100%; height: auto; display: block; }
+.mark-pair { display: grid; grid-template-rows: 1fr 1fr; gap: 16px; }
+.mark-pair .tile { display: grid; place-items: center; gap: 10px; padding: 28px 16px; }
+.mark-pair .tile svg { width: 112px; height: 112px; }
+.cap-note { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.6; }
+.ladder { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 28px; }
+.ladder figure { margin: 0; display: grid; justify-items: center; gap: 8px; }
+.ladder figcaption { font: 500 12px/1 var(--mono); color: var(--muted); }
+.spec { display: grid; gap: 14px; }
+.spec dl { margin: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 20px; }
+.spec dt { font-weight: 700; }
+.spec dd { margin: 0; color: var(--muted); }
+.lockup-demo { display: grid; gap: 18px; justify-items: start; }
+.lockup-demo .lockup { font-size: 44px; letter-spacing: -0.015em; }
+.donts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .donts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 440px) { .donts { grid-template-columns: minmax(0, 1fr); } }
+.dont { display: grid; gap: 12px; align-content: start; }
+.dont .tile { display: grid; place-items: center; aspect-ratio: 4 / 3; padding: 12px; position: relative; }
+.dont .tile svg { width: 72px; height: 72px; }
+.dont .tile .x { position: absolute; top: 10px; right: 10px; }
+.dont p { font-size: 14px; color: var(--muted); }
+.dont p b { color: var(--ink); }
+
+/* colour */
+.swatches { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 860px) { .swatches { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .swatches { grid-template-columns: minmax(0, 1fr); } }
+.sw { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--surface); display: grid; grid-template-rows: auto 1fr; }
+.sw .chips { display: grid; grid-template-columns: 2fr 1fr; height: 104px; }
+.sw .chips div { position: relative; }
+.sw .chips span { position: absolute; left: 10px; bottom: 8px; font: 700 10px/1 var(--sans); letter-spacing: 0.1em; text-transform: uppercase; }
+.sw .meta { padding: 14px 16px 16px; display: grid; gap: 6px; align-content: start; }
+.sw .meta h3 { font-size: 16px; }
+.sw .meta p { font-size: 14px; color: var(--muted); }
+.sw .vals { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 12px; font: 500 12px/1.5 var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; margin-top: 4px; }
+.sw .vals b { color: var(--ink); font-weight: 500; }
+.ramps { display: grid; gap: 16px; }
+.ramp { display: grid; gap: 8px; }
+.ramp .bar { height: 44px; border-radius: 8px; position: relative; }
+.ramp .row { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font: 500 12px/1.4 var(--mono); color: var(--muted); }
+.ramp .tick { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--ink); border-radius: 2px; }
+.semantic { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 560px) { .semantic { grid-template-columns: minmax(0, 1fr); } }
+.semantic .item { display: flex; gap: 14px; align-items: flex-start; }
+.semantic .dot { flex: none; width: 40px; height: 40px; border-radius: 10px; }
+.semantic p { font-size: 14px; color: var(--muted); }
+
+/* type */
+.specimen { display: grid; gap: 18px; }
+.specimen .big { font-size: clamp(38px, 10.5vw, 104px); font-weight: 700; line-height: 0.95; letter-spacing: -0.025em; }
+.lookalike { font-size: clamp(19px, 5vw, 38px); letter-spacing: 0.04em; overflow-wrap: anywhere; display: grid; gap: 4px; }
+.lookalike .m { font-family: var(--mono); font-weight: 500; }
+.sizes { display: grid; border-top: 1px solid var(--line); }
+.size { display: grid; grid-template-columns: 96px 150px minmax(0, 1fr); gap: 16px; align-items: baseline; padding-block: 14px; border-bottom: 1px solid var(--line); }
+.size .tok { font: 500 13px/1 var(--mono); color: var(--signed); }
+.size .role { font-size: 13px; color: var(--muted); }
+.size .sample { min-width: 0; overflow-wrap: anywhere; color: var(--ink); }
+@media (max-width: 620px) { .size { grid-template-columns: minmax(0, 1fr); gap: 4px; } }
+
+/* motion */
+.beats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 900px) { .beats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .beats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.beat { margin: 0; display: grid; gap: 10px; align-content: start; }
+.beat canvas { width: 100%; height: auto; aspect-ratio: 1; display: block; border-radius: 8px; border: 1px solid #23272F; background: #0B0D11; cursor: pointer; }
+.beat figcaption { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+.beat figcaption b { color: var(--ink); display: flex; justify-content: space-between; gap: 8px; }
+.beat figcaption b span { font: 500 12px/1.6 var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.rules { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 32px; margin: 0; padding: 0; list-style: none; }
+@media (max-width: 720px) { .rules { grid-template-columns: minmax(0, 1fr); } }
+.rules li { display: grid; gap: 4px; padding-left: 18px; position: relative; }
+.rules li::before { content: ""; position: absolute; left: 0; top: 9px; width: 7px; height: 7px; border-radius: 50%; background: var(--signed); }
+.rules li p { color: var(--muted); font-size: 15px; }
+.curves { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 560px) { .curves { grid-template-columns: minmax(0, 1fr); } }
+.curve { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 16px; align-items: center; }
+.curve svg { width: 88px; height: 88px; display: block; }
+.curve p { font-size: 14px; color: var(--muted); }
+.tl-wrap { overflow-x: auto; }
+table.tl { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 460px; }
+table.tl th, table.tl td { text-align: left; padding: 10px 12px 10px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.tl th { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+table.tl td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; }
+
+/* voice */
+.status-demo { display: grid; gap: 14px; }
+.status { display: flex; align-items: center; gap: 10px; font-size: 17px; }
+.status .spin { width: 16px; height: 16px; border-radius: 50%; border: 2px dotted #98A0AC; flex: none; }
+.status .chk { width: 18px; height: 18px; border-radius: 50%; background: #34C759; flex: none; display: grid; place-items: center; }
+.status.working { color: #98A0AC; }
+.status.done { color: #F2F4F7; }
+.taglines { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.taglines li { font-size: 20px; color: #98A0AC; }
+.taglines li:first-child { color: #F2F4F7; }
+.voice-rules { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
+.voice-rules li { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.voice-rules li:last-child { border-bottom: 0; padding-bottom: 0; }
+@media (max-width: 620px) { .voice-rules li { grid-template-columns: minmax(0, 1fr); gap: 6px; } }
+.voice-rules .ex { font-size: 15px; display: grid; gap: 4px; align-content: start; }
+.voice-rules .why { color: var(--muted); font-size: 15px; }
+
+footer { padding-top: 40px; color: var(--muted); font-size: 14px; display: grid; gap: 6px; }
+
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="hero">
+    <div class="device">
+      <div class="board" aria-label="The PicoQuorum console: a Pico-LCD-1.3 board with a 240 by 240 screen, a joystick and four keys">
+        <div class="stick" aria-hidden="true"></div>
+        <div class="screen"><canvas id="boot" width="480" height="480" aria-label="The PicoQuorum boot screen, animated"></canvas></div>
+        <div class="keys" aria-hidden="true"><span>A</span><span>B</span><span>X</span><span>Y</span></div>
+      </div>
+      <div class="player">
+        <button id="play" type="button" aria-pressed="true">Pause</button>
+        <input id="scrub" type="range" min="0" max="401" value="0" aria-label="Animation frame">
+        <output id="clock" for="scrub">0.00 s</output>
+      </div>
+      <p class="device-note">The boot screen, drawn live from a port of <code>firmware/bootart.py</code>. One frame every 30 ms, as on the Pico. The status line is the emulator's example sequence.</p>
+    </div>
+
+    <div class="hero-copy">
+      <span class="eyebrow">Brand guide · v1 · October 2026</span>
+      <h1 class="lockup" aria-label="PicoQuorum"><span data-mark="hero"></span>PicoQuorum</h1>
+      <p class="lede">A physical approval device for Safe multisig wallets. Several people, several keys, one Safe.</p>
+      <p class="lede-sub">Everything here comes from the boot screen: five owners, three of them sign, and their green triangle turns into the Ethereum diamond. The name, the mark, the colours and the motion all follow from that one picture.</p>
+      <ul class="toc">
+        <li><a href="#name">Name</a></li>
+        <li><a href="#mark">Mark</a></li>
+        <li><a href="#colour">Colour</a></li>
+        <li><a href="#type">Type</a></li>
+        <li><a href="#motion">Motion</a></li>
+        <li><a href="#voice">Voice</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <!-- ===================================================== NAME -->
+  <section id="name">
+    <div class="rail"><span class="eyebrow">Name</span><h2>One word</h2></div>
+    <div class="body">
+      <div class="intro">
+        <p><b>Pico</b> for the Raspberry Pi Pico it runs on. <b>Quorum</b> for the idea at its centre: a Safe needs a set number of owners to agree before anything moves. The multisig is the star, and the name says so.</p>
+      </div>
+      <div class="name-row">
+        <div class="tile" style="display:grid;gap:18px;align-content:start">
+          <div class="wordmark-big"><span class="cap">P</span>ico<span class="cap">Q</span>uorum</div>
+          <p class="muted">One word, two capitals. Set in Atkinson Hyperlegible Next Bold. The capitals are highlighted here only to show where they go.</p>
+        </div>
+        <div class="tile say">
+          <span class="pill ok">Write</span>
+          <ul>
+            <li><span class="right">PicoQuorum</span></li>
+            <li><span class="right">the PicoQuorum console</span> <span class="muted">· the box with the screen</span></li>
+            <li><span class="right">a PicoQuorum key</span> <span class="muted">· the plug-in secure element</span></li>
+          </ul>
+          <span class="pill no" style="margin-top:8px">Never</span>
+          <ul>
+            <li><span class="wrong">Pico Quorum</span> <span class="wrong">Picoquorum</span> <span class="wrong">PICOQUORUM</span> <span class="wrong">PQ</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================== MARK -->
+  <section id="mark">
+    <div class="rail"><span class="eyebrow">Mark</span><h2>Three of five</h2></div>
+    <div class="body">
+      <div class="intro">
+        <p>The boot screen in miniature. Five owners sit evenly on a circle. The top owner and the two at the bottom have signed: they are green, and the triangle between them is filled. The two who didn't sign stay amber and smaller. It reads as a quorum, a tall triangle and a small person, depending on how far away you are.</p>
+      </div>
+
+      <div class="mark-hero">
+        <div class="tile construct">
+          <svg id="construct" viewBox="0 0 360 330" role="img" aria-label="Construction of the mark: five points 72 degrees apart on a circle of radius r; signed dots have radius r/4, waiting dots r/6; owners sign top, then left, then right"></svg>
+        </div>
+        <div class="mark-pair">
+          <div class="tile dark"><span data-mark="dark"></span><span class="cap-note">On night</span></div>
+          <div class="tile light"><span data-mark="light"></span><span class="cap-note">On paper</span></div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="tile spec">
+          <h3>Geometry</h3>
+          <dl>
+            <dt>Points</dt><dd>5, at −90° + 72°·k on a circle of radius <i>r</i></dd>
+            <dt>Signed</dt><dd>Top, lower left, lower right. Dot radius <i>r</i>/4</dd>
+            <dt>Waiting</dt><dd>Upper left and right. Dot radius <i>r</i>/6</dd>
+            <dt>Triangle</dt><dd>Joins the three signed centres, filled with face green at 55%</dd>
+            <dt>Order</dt><dd>Top signs first, then left, then right (as in the animation)</dd>
+          </dl>
+        </div>
+        <div class="tile lockup-demo">
+          <h3>Lockup</h3>
+          <div class="lockup"><span data-mark="lockup"></span>PicoQuorum</div>
+          <p class="muted" style="font-size:14px">On the panel the name is 26 px bold; the ring radius is 12 px and the mark's centre sits 13 px in from the left edge, with the word starting at 34 px. Scale those proportions. The mark always goes on the left, centred on the word.</p>
+        </div>
+      </div>
+
+      <div class="tile">
+        <div class="ladder" id="ladder"></div>
+        <p class="muted" style="font-size:14px;margin-top:16px">Smallest use: 16 px, where the waiting dots shrink to a pixel and a half. Below that, use the green triangle on its own.</p>
+      </div>
+
+      <div class="donts" id="donts"></div>
+    </div>
+  </section>
+
+  <!-- ===================================================== COLOUR -->
+  <section id="colour">
+    <div class="rail"><span class="eyebrow">Colour</span><h2>Every colour means something</h2></div>
+    <div class="body">
+      <div class="intro">
+        <p>Six colours carry the brand, and each one has a job. Amber is an owner who could sign. Green is a signature, or anything else that is done and good. Ether blue is the network. The rest are neutrals for reading. The panel is dark first; the light values are the console's light theme.</p>
+        <p class="muted">Hex and RGB come from <code>firmware/quorum_ui.py</code>. The 565 value is what the Pico sends down the wire to its 16-bit panel.</p>
+      </div>
+      <div class="swatches" id="swatches"></div>
+
+      <div class="ramps tile">
+        <h3>Shading ramps</h3>
+        <p class="muted" style="font-size:14px">The diamond and the quorum's face are lit from the upper left. Each face's colour is picked along one of these ramps by how much it faces the light. Green fills the triangle at the marked point.</p>
+        <div class="ramp">
+          <div class="bar" id="ramp-eth"></div>
+          <div class="row"><span>Diamond · #1E245C</span><span>#DAE2FF</span></div>
+        </div>
+        <div class="ramp">
+          <div class="bar" id="ramp-ok"><span class="tick" id="tick-face"></span></div>
+          <div class="row"><span>Quorum face · #006024</span><span id="face-label">face green</span><span>#78FF96</span></div>
+        </div>
+      </div>
+
+      <div class="tile">
+        <h3 style="margin-bottom:14px">Outside the brand</h3>
+        <div class="semantic">
+          <div class="item"><div class="dot" style="background:var(--reject)"></div><div><b>Reject red</b><p>The Reject button and anything that can't be undone. A red page is red all over. Never decorative.</p></div></div>
+          <div class="item"><div class="dot" style="background:#70D6FF"></div><div><b>Stake cyan</b><p>The thing at stake on a red page: the address that gains power, the amount. The only non-red there.</p></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================== TYPE -->
+  <section id="type">
+    <div class="rail"><span class="eyebrow">Type</span><h2>Made for comparing</h2></div>
+    <div class="body">
+      <div class="intro">
+        <p>The console's job is to make people compare addresses and hashes before they sign. Atkinson Hyperlegible, from the Braille Institute, was drawn to keep look-alike characters apart. <b>Next</b> sets words; <b>Mono</b> sets addresses, hashes and the verify code. Both are SIL Open Font License.</p>
+      </div>
+      <div class="tile specimen">
+        <div class="big">PicoQuorum</div>
+        <div class="lookalike">
+          <div>Il1| O0o rn m 5S 8B 6b</div>
+          <div class="m">Il1| O0o rn m 5S 8B 6b</div>
+        </div>
+        <p class="muted" style="font-size:14px">Capital I, lower-case l and the digit 1 are three different shapes in both. So are O and 0.</p>
+      </div>
+      <div>
+        <h3 style="margin-bottom:6px">The seven sizes</h3>
+        <p class="muted" style="font-size:14px;margin-bottom:14px">The firmware renders exactly these, shown here at the panel's own pixel sizes. Don't add an eighth.</p>
+        <div class="sizes">
+          <div class="size"><span class="tok">bold26</span><span class="role">Headlines · Bold 26</span><span class="sample" style="font:700 26px/1.2 var(--sans)">Send 0.05 ETH</span></div>
+          <div class="size"><span class="tok">bold18</span><span class="role">Titles · Bold 18</span><span class="sample" style="font:700 18px/1.3 var(--sans)">Add a new owner</span></div>
+          <div class="size"><span class="tok">bold14</span><span class="role">Labels · Bold 14</span><span class="sample" style="font:700 14px/1.4 var(--sans)">Family Safe · 3 of 5</span></div>
+          <div class="size"><span class="tok">sans14</span><span class="role">Body · Regular 14</span><span class="sample" style="font:400 14px/1.4 var(--sans)">Nothing signs unseen</span></div>
+          <div class="size"><span class="tok">sans12</span><span class="role">Captions · Regular 12</span><span class="sample" style="font:400 12px/1.4 var(--sans)">Nonce 42 · proposed 2 hours ago</span></div>
+          <div class="size"><span class="tok">mono13</span><span class="role">Addresses · Mono 500 13</span><span class="sample" style="font:500 13px/1.4 var(--mono)">0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed</span></div>
+          <div class="size"><span class="tok">monob28</span><span class="role">Verify code · Mono 700 28</span><span class="sample" style="font:700 28px/1.2 var(--mono);letter-spacing:0.04em">3f9a c217</span></div>
+        </div>
+      </div>
+      <p class="muted" style="font-size:14px">Open question: <code>docs/quorum-ui/v2/FONTS.md</code> compares five other sets for the words (Inter with its I/l alternates is the current suggestion). Atkinson Mono stays for addresses either way.</p>
+    </div>
+  </section>
+
+  <!-- ===================================================== MOTION -->
+  <section id="motion">
+    <div class="rail"><span class="eyebrow">Motion</span><h2>One clock, never stopped</h2></div>
+    <div class="body">
+      <div class="intro">
+        <p>The boot animation tells the brand's story in five beats. Each still below is a real frame; select one to jump the device above to it.</p>
+      </div>
+      <div class="beats" id="beats"></div>
+
+      <ul class="rules">
+        <li><b>Nothing freezes</b><p>Every frame is a function of one clock. While a boot step takes its time, waiting owners keep breathing and the diamond keeps turning.</p></li>
+        <li><b>Fade through the dark</b><p>The panel has no transparency. A fade is a colour mix toward the background, so things arrive through their own dark shade.</p></li>
+        <li><b>Fill from the bottom</b><p>Green pours up into the triangle with a bright surface line, then swells once in a soft glow. No flashes.</p></li>
+        <li><b>Land corner-forward</b><p>The diamond's spin slows into 45° + 90°·n, its logo pose. A square pyramid repeats every 90°, so it can spin as long as boot takes.</p></li>
+      </ul>
+
+      <div class="curves">
+        <div class="tile curve"><svg id="curve-ease" viewBox="0 0 88 88" aria-hidden="true"></svg><div><b>Ease out</b><p><code>1 − (1 − t)³</code>. Arrivals: owners landing, lines drawing, signing rings.</p></div></div>
+        <div class="tile curve"><svg id="curve-smooth" viewBox="0 0 88 88" aria-hidden="true"></svg><div><b>Smoothstep</b><p><code>t²(3 − 2t)</code>. Changes of state: the fill, the turn, the name and taglines.</p></div></div>
+      </div>
+
+      <div class="tl-wrap">
+        <table class="tl">
+          <thead><tr><th>Moment</th><th>Frame</th><th>Time</th></tr></thead>
+          <tbody id="tl"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================== VOICE -->
+  <section id="voice">
+    <div class="rail"><span class="eyebrow">Voice</span><h2>Plain and calm</h2></div>
+    <div class="body">
+      <div class="intro">
+        <p>A signing device should sound like a careful colleague. Short sentences, plain words, no hype. Talk about owners, keys and the Safe, the things people can point at.</p>
+      </div>
+
+      <div class="grid2">
+        <div class="tile dark status-demo">
+          <span class="cap-note">Status line</span>
+          <div class="status working"><span class="spin" aria-hidden="true"></span>Checking the chip…</div>
+          <div class="status done"><span class="chk" aria-hidden="true"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M1.5 5.2 4 7.5 8.6 2.4" fill="none" stroke="#061E0C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Chip verified</div>
+          <div class="status done"><span class="chk" aria-hidden="true"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M1.5 5.2 4 7.5 8.6 2.4" fill="none" stroke="#061E0C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Family Safe · 3 of 5</div>
+        </div>
+        <div class="tile dark" style="display:grid;gap:14px;align-content:start">
+          <span class="cap-note" style="display:flex;gap:10px;align-items:center">Taglines <span class="pill draft">Draft</span></span>
+          <ul class="taglines">
+            <li>Your keys, your quorum</li>
+            <li>Nothing signs unseen</li>
+            <li>Hardware approvals for Safe</li>
+            <li>Every hash checked here</li>
+          </ul>
+        </div>
+      </div>
+
+      <ul class="voice-rules">
+        <li><div class="ex"><span class="right">Joining Wi-Fi…</span><span class="right">Chip verified</span></div><p class="why">A step in progress ends in an ellipsis and sits in slate beside a spinner. When it's done, the ellipsis goes, the text turns white and a green check appears.</p></li>
+        <li><div class="ex"><span><span class="right">3 of 5</span> &nbsp;<span class="wrong">3/5</span></span></div><p class="why">Write counts out. "3 of 5" reads the same aloud as it does on screen.</p></li>
+        <li><div class="ex"><span class="right">Family Safe · 3 of 5</span></div><p class="why">A middle dot separates facts on one line. No pipes, no slashes.</p></li>
+        <li><div class="ex"><span><span class="right">Ready</span> &nbsp;<span class="wrong">Ready!</span></span></div><p class="why">Sentence case, no exclamation marks. Money is moving; the device stays even-tempered.</p></li>
+        <li><div class="ex"><span class="right">Sign</span><span class="right">Reject</span></div><p class="why">Buttons say exactly what they do, one verb each. Sign is green and guarded; Reject is red and easy.</p></li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>
+    <span>PicoQuorum brand guide. Sources: <code>firmware/bootart.py</code>, <code>firmware/quorum_ui.py</code>, <code>tools/fonts/gen.py</code>, <code>docs/quorum-ui/v2</code>.</span>
+    <span>The mark and the boot artwork are branding. Their dots never report real signatures; live state belongs to the approval screens.</span>
+  </footer>
+</div>
+
+<script>
+(() => {
+  // ------------------------------------------------------------------ the boot screen, ported
+  // A line-for-line port of the orbit timeline in firmware/bootart.py (emu/sketches/ethboot.py).
+  // Every frame is a function of its number; colours are mixed toward the background because the
+  // panel has no alpha.
+  const BG = [11, 13, 17], INK = [242, 244, 247], MUTED = [152, 160, 172];
+  const WAIT = [255, 184, 48], OK = [52, 199, 89], ON_OK = [6, 30, 12];
+  const ETH_DARK = [30, 36, 92], ETH_LIGHT = [218, 226, 255];
+  const OK_DARK = [0, 96, 36], OK_LIGHT = [120, 255, 150];
+  const SANS = '"Atkinson Hyperlegible Next", system-ui, sans-serif';
+  const FONTS = { sans14: '400 14px ' + SANS, bold26: '700 26px ' + SANS };
+  const rad = d => d * Math.PI / 180;
+  const T = Math.trunc;
+  const clamp = t => t < 0 ? 0 : t > 1 ? 1 : t;
+  const ease = t => { t = clamp(t); return 1 - (1 - t) ** 3; };
+  const smooth = t => { t = clamp(t); return t * t * (3 - 2 * t); };
+  const span = (i, a, b) => i <= a ? 0 : i >= b ? 1 : (i - a) / (b - a);
+  const mix = (a, b, t) => [T(a[0] + (b[0] - a[0]) * t), T(a[1] + (b[1] - a[1]) * t), T(a[2] + (b[2] - a[2]) * t)];
+  const css = c => `rgb(${c[0]},${c[1]},${c[2]})`;
+
+  const SX = 120, SY = 116, SR = 92;
+  const STAR = [0, 1, 2, 3, 4].map(k => [T(SX + SR * Math.cos(rad(-90 + 72 * k))), T(SY + SR * Math.sin(rad(-90 + 72 * k)))]);
+  const TOP = STAR[0], LEFT = STAR[3], RIGHT = STAR[2];
+  const S0 = (RIGHT[0] - LEFT[0]) / 2 / (LEFT[1] - TOP[1]);
+  const S1 = 0.37, GAP = 0.12, FOOT = 0.97, EL = rad(30), K1 = 82, OY1 = 86;
+  const BACK_K = 96, BACK_OY = 104, BACK_DIM = 0.66;
+  let LIGHT = [-0.55, -0.55, 0.63];
+  { const l = Math.hypot(...LIGHT); LIGHT = LIGHT.map(v => v / l); }
+  const FACE_GREEN = mix(OK_DARK, OK_LIGHT, 0.12 + 0.88 * Math.max(0, (-S0 * LIGHT[1] + LIGHT[2]) / Math.sqrt(S0 * S0 + 1)));
+
+  const SPIN0 = 58, SPIN1 = 74, SLOW0 = 124, SLOW1 = 146, TURNS = 2;
+  const SPEED = (45 + 90 * TURNS) / ((SPIN1 - SPIN0) / 2 + (SLOW0 - SPIN1) + (SLOW1 - SLOW0) / 2);
+  const LAND = 64, AT_TOP = LAND + 12, AT_LEFT = LAND + 36, AT_RIGHT = LAND + 60;
+  const POUR0 = AT_RIGHT + 14, POUR1 = AT_RIGHT + 36, TURN = AT_RIGHT + 50;
+  const SIGNERS = new Map([[0, AT_TOP], [3, AT_LEFT], [2, AT_RIGHT]]);
+  const EDGES = [[TOP, LEFT, AT_LEFT], [TOP, RIGHT, AT_RIGHT], [LEFT, RIGHT, AT_RIGHT + 6]];
+  const BACK0 = 100, BACK1 = 128, TAG0 = 134, TAG_EACH = 38, V_BACK = 1.2;
+  const TAGS = ["Your keys, your quorum", "Nothing signs unseen", "Hardware approvals for Safe", "Every hash checked here"];
+  const READY = TURN + (BACK0 - 58);
+  const STATUS = [[0, "Starting up", false], [22, "Joining WiFi", false],
+    [AT_TOP, "WiFi connected", true], [AT_TOP + 12, "Checking the chip", false],
+    [AT_LEFT, "Chip verified", true], [AT_LEFT + 12, "Finding the Safe", false],
+    [AT_RIGHT, "Family Safe · 3 of 5", true], [TURN + 4, "Loading the queue", false],
+    [READY, "Ready", true]];
+  const SLIDE = 6, FRAMES = 402, MS = 30;
+  const m_at = i => 58 + (i - TURN);
+
+  function rnd(a) {
+    let x = (BigInt(a) * 73856093n) ^ 0x5bd1e995n;
+    x = (x ^ (x >> 13n)) * 1274126177n;
+    return Number((x ^ (x >> 16n)) & 0xffffn);
+  }
+  const SPACE = Array.from({ length: 28 }, (_, k) => [rnd(3 * k) % 240, rnd(3 * k + 1) % 240, 40 + rnd(3 * k + 2) % 90]);
+
+  let c = null;   // the 2D context being drawn, in panel pixels
+  const fillBG = () => { c.fillStyle = css(BG); c.fillRect(0, 0, 240, 240); };
+  const node = (x, y, r, rgb) => { c.fillStyle = css(rgb); c.beginPath(); c.arc(x + 0.5, y + 0.5, r + 0.5, 0, 2 * Math.PI); c.fill(); };
+  const ringAt = (x, y, r, rgb) => { c.strokeStyle = css(rgb); c.lineWidth = 2; c.beginPath(); c.arc(x + 0.5, y + 0.5, r + 1, 0, 2 * Math.PI); c.stroke(); };
+  const thick = (x0, y0, x1, y1, rgb, t = 3) => { c.strokeStyle = css(rgb); c.lineWidth = t; c.lineCap = "round"; c.beginPath(); c.moveTo(x0 + 0.5, y0 + 0.5); c.lineTo(x1 + 0.5, y1 + 0.5); c.stroke(); };
+  const poly = (pts, rgb) => { c.fillStyle = c.strokeStyle = css(rgb); c.lineWidth = 0.6; c.lineJoin = "round"; c.beginPath(); c.moveTo(pts[0], pts[1]); for (let j = 2; j < pts.length; j += 2) c.lineTo(pts[j], pts[j + 1]); c.closePath(); c.fill(); c.stroke(); };
+  const pixel = (x, y, rgb) => { c.fillStyle = css(rgb); c.fillRect(x, y, 1, 1); };
+  const width = (s, f) => { c.font = FONTS[f]; return c.measureText(s).width; };
+  const text = (s, x, y, f, rgb) => { c.font = FONTS[f]; c.textBaseline = "top"; c.fillStyle = css(rgb); c.fillText(s, x, y + (f === "bold26" ? 1 : 2)); };
+  const center = (s, y, f, rgb) => text(s, (240 - width(s, f)) / 2, y, f, rgb);
+
+  const box = (s, y) => [[-s, y, s], [s, y, s], [s, y, -s], [-s, y, -s]];
+
+  function drawDiamond(u, alpha, yaw, el, chev, chevAlpha, pts, green, back) {
+    const s = S0 + (S1 - S0) * u, k0 = LEFT[1] - TOP[1];
+    const k = k0 + (K1 - k0) * u + (BACK_K - K1) * back;
+    const ox = 120, oy = LEFT[1] + (OY1 - LEFT[1]) * u + (BACK_OY - OY1) * back;
+    const cy = Math.cos(yaw), sy = Math.sin(yaw), ce = Math.cos(el), se = Math.sin(el);
+    const view = ([x, y, z]) => { const x2 = x * cy + z * sy, z2 = -x * sy + z * cy; return [x2, y * ce + z2 * se, -y * se + z2 * ce]; };
+    const tris = [], top = [0, -1, 0], base = box(s, 0);
+    for (let j = 0; j < 4; j++) tris.push([[top, base[j], base[(j + 1) % 4]], [0, -0.3, 0], alpha, 1, j]);
+    if (chev !== null) {
+      const rim = box(s, GAP + chev), foot = [0, FOOT + chev, 0];
+      for (let j = 0; j < 4; j++) tris.push([[rim[j], rim[(j + 1) % 4], foot], [0, GAP + 0.4 + chev, 0], chevAlpha, 0, j]);
+    }
+    const polys = [];
+    for (const [tri, inside, a, layer, j] of tris) {
+      const v = tri.map(view);
+      const ux = v[1][0] - v[0][0], uy = v[1][1] - v[0][1], uz = v[1][2] - v[0][2];
+      const wx = v[2][0] - v[0][0], wy = v[2][1] - v[0][1], wz = v[2][2] - v[0][2];
+      let nx = uy * wz - uz * wy, ny = uz * wx - ux * wz, nz = ux * wy - uy * wx;
+      const ci = view(inside);
+      if (nx * (v[0][0] - ci[0]) + ny * (v[0][1] - ci[1]) + nz * (v[0][2] - ci[2]) < 0) { nx = -nx; ny = -ny; nz = -nz; }
+      const m = Math.hypot(nx, ny, nz) || 1;
+      if (nz / m < 0.02) continue;
+      const lit = Math.max(0, (nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2]) / m);
+      let rgb = mix(ETH_DARK, ETH_LIGHT, 0.12 + 0.88 * lit), dark = ETH_DARK;
+      if (green > 0 && layer === 1 && j === 0) {
+        rgb = mix(rgb, mix(OK_DARK, OK_LIGHT, 0.12 + 0.88 * lit), green);
+        dark = mix(ETH_DARK, OK_DARK, green);
+      }
+      if (a < 1) rgb = mix(mix(BG, dark, Math.min(1, 2 * a)), rgb, a);
+      if (back > 0) rgb = mix(rgb, BG, BACK_DIM * back);
+      polys.push([layer * 10 + (v[0][2] + v[1][2] + v[2][2]) / 3, v, rgb]);
+    }
+    polys.sort((p, q) => p[0] - q[0]);
+    for (const [, v, rgb] of polys) poly(v.flatMap(p => [ox + p[0] * k, oy + p[1] * k]), rgb);
+    if (pts) {
+      const [r, rgb] = pts;
+      for (const p of [top, base[0], base[1]]) { const [x, y] = view(p); node(T(ox + x * k), T(oy + y * k), r, rgb); }
+    }
+  }
+
+  const waiting = (k, m) => mix(WAIT, [255, 226, 150], 0.5 + 0.5 * Math.sin(m * 0.45 + k));
+  const onCircle = (k, deg, r = SR) => { const a = rad(-90 + 72 * k + deg); return [r * Math.cos(a), r * Math.sin(a)]; };
+  const spinAt = (i, frames, turn) => turn * (1 - ease(i / frames));
+  function orbitXY(k, spin, tilt, yaw, scale) {
+    let [x, y] = onCircle(k, spin);
+    let z = y * Math.sin(tilt); y = y * Math.cos(tilt);
+    const x2 = x * Math.cos(yaw) + z * Math.sin(yaw); z = -x * Math.sin(yaw) + z * Math.cos(yaw);
+    const p = 320 / (320 - z * scale);
+    return [SX + x2 * scale * p, SY + y * scale * p, z, p];
+  }
+  function yawOrbit(m) {
+    if (m <= SPIN0) return 0;
+    const a = Math.min(m, SPIN1) - SPIN0;
+    let deg = SPEED * a * a / (2 * (SPIN1 - SPIN0));
+    if (m > SPIN1) deg += SPEED * (Math.min(m, BACK0) - SPIN1);
+    if (m > BACK0) { const b = Math.min(m, BACK1) - BACK0, n = BACK1 - BACK0; deg += SPEED * b - (SPEED - V_BACK) * b * b / (2 * n); }
+    if (m > BACK1) deg += V_BACK * (m - BACK1);
+    return rad(deg);
+  }
+
+  function drawOrbitIn(i) {
+    fillBG();
+    const face = smooth(span(i, 20, LAND - 4));
+    const tilt = rad(74) * (1 - face), yaw = rad(-28) * (1 - face);
+    const scale = 0.45 + 0.55 * ease(span(i, 10, LAND - 6));
+    const fade = 1 - span(i, LAND - 16, LAND);
+    for (const [x, y, b] of SPACE) pixel(((T(x - i * 0.4) % 240) + 240) % 240, y, mix(BG, [b, b, b + 20], fade * ease(span(i, 0, 8))));
+    const spin = spinAt(i, LAND, -864), owners = [];
+    for (let k = 0; k < 5; k++) { const born = ease(span(i, 2 * k, 2 * k + 7)); if (born > 0) owners.push([orbitXY(k, spin, tilt, yaw, scale), k, born]); }
+    owners.sort((a, b) => a[0][2] - b[0][2]);
+    for (const [[x, y, z, p], k, born] of owners) {
+      const near = 0.55 + 0.45 * Math.min(1, Math.max(0, (z / SR + 1) / 2 + face));
+      node(T(x), T(y), Math.max(1, T(9 * scale * p * born)), mix(BG, waiting(k, i), born * near));
+    }
+  }
+  function fillUp(f, glow) {
+    if (f <= 0) return;
+    const y = LEFT[1] - (LEFT[1] - TOP[1]) * f;
+    const xl = LEFT[0] + (TOP[0] - LEFT[0]) * f, xr = RIGHT[0] + (TOP[0] - RIGHT[0]) * f;
+    poly([LEFT[0], LEFT[1], RIGHT[0], RIGHT[1], T(xr), T(y), T(xl), T(y)], mix(FACE_GREEN, [200, 255, 215], 0.35 * glow));
+    if (f < 1) thick(T(xl), T(y), T(xr), T(y), OK_LIGHT, 2);
+  }
+  function drawQuorum(i) {
+    fillBG();
+    const gone = smooth(span(i, AT_RIGHT + 8, AT_RIGHT + 28));
+    for (const [a, b, at] of EDGES) {
+      const f = smooth(span(i, at, at + 10));
+      if (f > 0) thick(a[0], a[1], T(a[0] + (b[0] - a[0]) * f), T(a[1] + (b[1] - a[1]) * f), OK, 3);
+    }
+    fillUp(smooth(span(i, POUR0, POUR1)), Math.sin(Math.PI * span(i, POUR1 - 8, TURN)));
+    STAR.forEach(([x, y], k) => {
+      const at = SIGNERS.get(k);
+      if (at === undefined) { if (gone < 1) node(x, y, 9, mix(waiting(k, i), BG, gone)); return; }
+      const q = span(i, at, at + 16);
+      if (q > 0 && q < 1) ringAt(x, y, T(12 + 22 * ease(q)), mix(BG, OK, (1 - q) ** 2));
+      node(x, y, T(9 + 3 * Math.sin(Math.PI * span(i, at, at + 8))), mix(waiting(k, i), OK, smooth(span(i, at, at + 5))));
+    });
+  }
+  function quorumMark(cx, cy, a) {
+    const p = [0, 1, 2, 3, 4].map(k => [T(cx + 12 * Math.cos(rad(-90 + 72 * k))), T(cy + 12 * Math.sin(rad(-90 + 72 * k)))]);
+    poly([p[0][0], p[0][1], p[2][0], p[2][1], p[3][0], p[3][1]], mix(BG, FACE_GREEN, a * 0.55));
+    for (const k of [1, 4]) node(p[k][0], p[k][1], 2, mix(BG, WAIT, a * 0.8));
+    for (const k of [0, 2, 3]) node(p[k][0], p[k][1], 3, mix(BG, OK, a));
+  }
+  function drawOrbitOut(i) {
+    fillBG();
+    const m = m_at(i), u = smooth(span(m, 58, 98)), rise = smooth(span(m, 74, 98));
+    const nodes = 1 - span(m, 60, 80), back = smooth(span(m, BACK0, BACK1));
+    drawDiamond(u, 1, yawOrbit(m), EL * u, rise > 0 ? 0.5 * (1 - rise) : null, rise,
+      nodes > 0.1 ? [T(9 * nodes), OK] : null, 1 - span(m, 92, 100), back);
+    const t = smooth(span(m, BACK0 + 18, BACK1 + 10));
+    if (t > 0) {
+      const w = width("PicoQuorum", "bold26") + 34;
+      const x = T((240 - w) / 2), y = 82 + T(8 * (1 - t));
+      quorumMark(x + 13, y + 17, t);
+      text("PicoQuorum", x + 34, y, "bold26", mix(BG, INK, t));
+    }
+    if (m >= TAG0) {
+      const n = Math.floor((m - TAG0) / TAG_EACH), f = (m - TAG0) % TAG_EACH;
+      const a = smooth(span(f, 0, 8)) * (1 - smooth(span(f, TAG_EACH - 8, TAG_EACH)));
+      center(TAGS[n % TAGS.length], 124 + T(6 * (1 - smooth(span(f, 0, 8)))), "sans14", mix(BG, MUTED, a));
+    }
+  }
+  function statusRow(i, st, dy, a) {
+    if (a <= 0.02) return;
+    const [, s, done] = st;
+    const w = width(s, "sans14") + 22, x = T((240 - w) / 2), y = 214 + dy;
+    if (done) {
+      node(x + 7, y + 9, 7, mix(BG, OK, a));
+      thick(x + 4, y + 9, x + 6, y + 12, ON_OK, 2);
+      thick(x + 6, y + 12, x + 10, y + 6, ON_OK, 2);
+    } else {
+      for (let k = 0; k < 8; k++) {
+        const ang = rad(k * 45), on = Math.floor(i / 2) % 8 === k;
+        const px = T(x + 7 + 5 * Math.cos(ang)), py = T(y + 9 + 5 * Math.sin(ang));
+        if (on) node(px, py, 1, mix(BG, INK, a)); else pixel(px, py, mix(BG, MUTED, a));
+      }
+    }
+    text(s + (done ? "" : "…"), x + 22, y, "sans14", mix(BG, done ? INK : MUTED, a));
+  }
+  function statusLine(i) {
+    let now = 0;
+    while (now + 1 < STATUS.length && STATUS[now + 1][0] <= i) now++;
+    const t = (now || i >= SLIDE) ? ease(span(i, STATUS[now][0], STATUS[now][0] + SLIDE)) : ease(span(i, 0, 10));
+    if (now && t < 0.6) statusRow(i, STATUS[now - 1], -T(18 * t), (1 - t / 0.6) ** 2);
+    statusRow(i, STATUS[now], T(18 * (1 - t)), t * t);
+  }
+  function render(ctx, i) {
+    c = ctx;
+    c.save();
+    c.beginPath(); c.rect(0, 0, 240, 240); c.clip();
+    if (i < LAND) drawOrbitIn(i); else if (i < TURN) drawQuorum(i); else drawOrbitOut(i);
+    statusLine(i);
+    c.restore();
+  }
+  function setup(canvas) {
+    const dpr = Math.min(3, window.devicePixelRatio || 1);
+    const cssW = canvas.getBoundingClientRect().width || 240;
+    const px = Math.max(240, Math.round(cssW * dpr));
+    if (canvas.width !== px) { canvas.width = px; canvas.height = px; }
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(px / 240, 0, 0, px / 240, 0, 0);
+    return ctx;
+  }
+
+  // ------------------------------------------------------------------ the player
+  const boot = document.getElementById("boot"), scrub = document.getElementById("scrub");
+  const clock = document.getElementById("clock"), play = document.getElementById("play");
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let bctx = setup(boot), frame = reduce ? 300 : 0, playing = !reduce, t0 = 0, raf = 0;
+  const HOLD = 50;
+  function show(i) {
+    render(bctx, Math.min(i, FRAMES - 1));
+    scrub.value = Math.min(i, FRAMES - 1);
+    clock.textContent = (Math.min(i, FRAMES - 1) * MS / 1000).toFixed(2) + " s";
+  }
+  function tick(now) {
+    if (!playing) return;
+    if (!t0) t0 = now - frame * MS;
+    let f = Math.floor((now - t0) / MS);
+    if (f >= FRAMES + HOLD) { t0 = now; f = 0; }
+    if (f !== frame || f === 0) { frame = f; show(frame); }
+    raf = requestAnimationFrame(tick);
+  }
+  function setPlaying(p) {
+    playing = p;
+    play.textContent = p ? "Pause" : "Play";
+    play.setAttribute("aria-pressed", String(p));
+    cancelAnimationFrame(raf);
+    if (p) { if (frame >= FRAMES - 1) frame = 0; t0 = 0; raf = requestAnimationFrame(tick); }
+  }
+  play.addEventListener("click", () => setPlaying(!playing));
+  scrub.addEventListener("input", () => { if (playing) setPlaying(false); frame = +scrub.value; show(frame); });
+  window.addEventListener("resize", () => { bctx = setup(boot); show(frame); });
+  if (reduce) { play.textContent = "Play"; play.setAttribute("aria-pressed", "false"); }
+
+  // ------------------------------------------------------------------ the beats
+  const BEATS = [
+    [34, "Arrive", "Five owners swing in from orbit, amber and breathing."],
+    [106, "Sign", "Top, then left, then right. A ring goes out as each turns green."],
+    [150, "Fill", "Green pours up into their triangle. The two who didn't sign fade."],
+    [204, "Turn", "The triangle is one face of a pyramid. It turns into the Ethereum diamond."],
+    [300, "Rest", "The diamond dims and keeps turning behind the name and a tagline."],
+  ];
+  const beatsEl = document.getElementById("beats");
+  const beatCanvases = BEATS.map(([f, name, cap]) => {
+    const fig = document.createElement("figure"); fig.className = "beat";
+    const cv = document.createElement("canvas"); cv.width = 480; cv.height = 480;
+    cv.setAttribute("role", "button"); cv.tabIndex = 0;
+    cv.setAttribute("aria-label", `${name}: show frame ${f} on the device`);
+    const jump = () => { setPlaying(false); frame = f; show(f); boot.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" }); };
+    cv.addEventListener("click", jump);
+    cv.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); jump(); } });
+    const fc = document.createElement("figcaption");
+    fc.innerHTML = `<b>${name}<span>${(f * MS / 1000).toFixed(1)} s</span></b>${cap}`;
+    fig.append(cv, fc); beatsEl.append(fig);
+    return [cv, f];
+  });
+  const drawBeats = () => beatCanvases.forEach(([cv, f]) => render(setup(cv), f));
+
+  // ------------------------------------------------------------------ timeline table
+  const s = f => (f * MS / 1000).toFixed(2) + " s";
+  const rows = [
+    ["Owners land, all amber", `${LAND}`, s(LAND)],
+    ["Top owner signs", `${AT_TOP}`, s(AT_TOP)],
+    ["Left owner signs", `${AT_LEFT}`, s(AT_LEFT)],
+    ["Right owner signs: quorum", `${AT_RIGHT}`, s(AT_RIGHT)],
+    ["Green fills the triangle", `${POUR0}–${POUR1}`, `${s(POUR0)} – ${s(POUR1)}`],
+    ["The pyramid starts to turn", `${TURN}`, s(TURN)],
+    ["The name comes up", `${TURN + BACK0 + 18 - 58}–${TURN + BACK1 + 10 - 58}`, `${s(TURN + BACK0 + 18 - 58)} – ${s(TURN + BACK1 + 10 - 58)}`],
+    ["Taglines, one every", `${TAG_EACH}`, s(TAG_EACH)],
+  ];
+  document.getElementById("tl").innerHTML = rows.map(r => `<tr><td>${r[0]}</td><td class="n">${r[1]}</td><td class="n">${r[2]}</td></tr>`).join("");
+
+  // ------------------------------------------------------------------ curves
+  function curve(id, fn) {
+    const el = document.getElementById(id), P = 8, S = 72;
+    let d = "";
+    for (let k = 0; k <= 40; k++) { const t = k / 40; d += (k ? "L" : "M") + (P + t * S).toFixed(1) + " " + (P + S - fn(t) * S).toFixed(1); }
+    el.innerHTML = `<rect x="${P}" y="${P}" width="${S}" height="${S}" fill="none" stroke="var(--line)"/><path d="${d}" fill="none" stroke="var(--signed)" stroke-width="2.5" stroke-linecap="round"/>`;
+  }
+  curve("curve-ease", ease); curve("curve-smooth", smooth);
+
+  // ------------------------------------------------------------------ the mark
+  function markSVG({ signed = [0, 2, 3], tri = [0, 2, 3], rot = 0, triFill = "var(--mark-tri)", on = "var(--signed)", wait = "var(--mark-wait)", label = "PicoQuorum mark" } = {}) {
+    const p = [0, 1, 2, 3, 4].map(k => [16 + 12 * Math.cos(rad(-90 + 72 * k)), 16 + 12 * Math.sin(rad(-90 + 72 * k))]);
+    const triPts = tri.length ? `<polygon points="${tri.map(k => p[k].map(v => v.toFixed(2)).join(",")).join(" ")}" fill="${triFill}"/>` : "";
+    const dots = p.map(([x, y], k) => signed.includes(k)
+      ? `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="3" fill="${on}"/>`
+      : `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="2" fill="${wait}"/>`).join("");
+    return `<svg viewBox="0 1 32 30" role="img" aria-label="${label}"><g transform="rotate(${rot} 16 16)">${triPts}${dots}</g></svg>`;
+  }
+  const DARK_MARK = { triFill: "#397F4C", on: "#34C759", wait: "#CE9529" };
+  const LIGHT_MARK = { triFill: "#7AC191", on: "#16963E", wait: "#B78231" };
+  document.querySelectorAll("[data-mark]").forEach(el => {
+    const kind = el.dataset.mark;
+    const opts = kind === "dark" ? DARK_MARK : kind === "light" ? LIGHT_MARK : {};
+    el.outerHTML = markSVG({ ...opts, label: kind === "hero" || kind === "lockup" ? "" : "PicoQuorum mark" }).replace('aria-label=""', 'aria-hidden="true"');
+  });
+
+  const ladder = document.getElementById("ladder");
+  ladder.innerHTML = [16, 24, 32, 48, 96, 160].map(px =>
+    `<figure><div style="width:${px}px;height:${px * 30 / 32}px">${markSVG()}</div><figcaption>${px}</figcaption></figure>`).join("");
+
+  // construction drawing
+  (() => {
+    const el = document.getElementById("construct");
+    const cx = 180, cy = 160, R = 112, rs = R / 4, rw = R / 6;
+    const p = [0, 1, 2, 3, 4].map(k => [cx + R * Math.cos(rad(-90 + 72 * k)), cy + R * Math.sin(rad(-90 + 72 * k))]);
+    const f = v => v.toFixed(1);
+    let g = `<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="var(--faint)" stroke-dasharray="3 5"/>`;
+    p.forEach(([x, y]) => { g += `<line x1="${cx}" y1="${cy}" x2="${f(x)}" y2="${f(y)}" stroke="var(--line)" stroke-width="1.2"/>`; });
+    // 72° arc between the top spoke and the next one
+    const a0 = rad(-90), a1 = rad(-18), ar = 40;
+    g += `<path d="M${f(cx + ar * Math.cos(a0))} ${f(cy + ar * Math.sin(a0))} A${ar} ${ar} 0 0 1 ${f(cx + ar * Math.cos(a1))} ${f(cy + ar * Math.sin(a1))}" fill="none" stroke="var(--muted)" stroke-width="1.2"/>`;
+    g += `<text x="${cx + 30}" y="${cy - 48}" fill="var(--muted)" font-size="13" font-family="var(--mono)">72°</text>`;
+    g += `<polygon points="${[0, 2, 3].map(k => p[k].map(f).join(",")).join(" ")}" fill="var(--mark-tri)" opacity="0.9"/>`;
+    // radius label on the lower-left spoke
+    g += `<text x="${f((cx + p[3][0]) / 2 - 18)}" y="${f((cy + p[3][1]) / 2 - 2)}" fill="var(--muted)" font-size="15" font-style="italic" font-family="var(--sans)">r</text>`;
+    p.forEach(([x, y], k) => {
+      const on = [0, 2, 3].includes(k);
+      g += `<circle cx="${f(x)}" cy="${f(y)}" r="${f(on ? rs : rw)}" fill="${on ? "var(--signed)" : "var(--mark-wait)"}"/>`;
+    });
+    const order = { 0: "1", 3: "2", 2: "3" };
+    Object.entries(order).forEach(([k, n]) => { const [x, y] = p[k]; g += `<text x="${f(x)}" y="${f(y + 5)}" text-anchor="middle" fill="#061E0C" font-size="15" font-weight="700" font-family="var(--sans)">${n}</text>`; });
+    g += `<text x="${f(p[1][0])}" y="${f(p[1][1] + rw + 20)}" text-anchor="middle" fill="var(--muted)" font-size="12" font-family="var(--mono)">r/6</text>`;
+    g += `<text x="${f(p[4][0])}" y="${f(p[4][1] + rw + 20)}" text-anchor="middle" fill="var(--muted)" font-size="12" font-family="var(--mono)">waiting</text>`;
+    g += `<text x="${f(p[0][0] + rs + 10)}" y="${f(p[0][1] + 4)}" fill="var(--muted)" font-size="12" font-family="var(--mono)">r/4 · signs first</text>`;
+    el.innerHTML = g;
+  })();
+
+  // don'ts
+  const DONTS = [
+    [markSVG({ signed: [0, 1, 2, 3, 4], tri: [0, 2, 3], label: "Mark with all five dots green" }), "Five green dots", "is unanimity. The mark is always three of five."],
+    [markSVG({ triFill: "color-mix(in srgb, var(--ether) 70%, var(--night))", label: "Mark with a blue triangle" }), "Blue triangle", ": green means signed. Ether blue belongs to the diamond."],
+    [markSVG({ rot: 180, label: "Mark upside down" }), "Upside down or rotated", ": the first signer stays at the top."],
+    [markSVG({ signed: [0, 3], tri: [], label: "Mark showing two signatures" }), "Live progress", ": the dots are artwork, never a status. Real signatures belong on the approval screens."],
+  ];
+  document.getElementById("donts").innerHTML = DONTS.map(([svg, b, rest]) =>
+    `<div class="dont"><div class="tile">${svg}<span class="pill no x">Don't</span></div><p><b>${b}</b>${rest}</p></div>`).join("");
+
+  // ------------------------------------------------------------------ colour
+  const hex = c => "#" + c.map(v => v.toString(16).padStart(2, "0")).join("").toUpperCase();
+  const r565 = ([r, g, b]) => "0x" + (((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3)).toString(16).padStart(4, "0").toUpperCase();
+  const lum = ([r, g, b]) => (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  const SW = [
+    ["Night", "bg", [11, 13, 17], [245, 246, 248], "The ground. Everything fades in from it."],
+    ["Paper", "text", [242, 244, 247], [16, 19, 24], "Names, amounts, anything to read and compare."],
+    ["Slate", "muted", [152, 160, 172], [86, 94, 106], "Taglines, steps still running, second-line detail."],
+    ["Signed green", "ok", [52, 199, 89], [22, 150, 62], "An owner who has signed, a step that is done, the Sign button."],
+    ["Waiting amber", "warn", [255, 184, 48], [168, 102, 0], "An owner who can sign and hasn't yet. Also: look again."],
+    ["Ether", "eth", [122, 146, 255], [98, 126, 234], "The network. The diamond and its shading, the mainnet badge."],
+  ];
+  document.getElementById("swatches").innerHTML = SW.map(([name, tok, d, l, role]) => `
+    <div class="sw">
+      <div class="chips">
+        <div style="background:${hex(d)};color:${lum(d) > 0.55 ? "#101318" : "#F2F4F7"}"><span>Dark</span></div>
+        <div style="background:${hex(l)};color:${lum(l) > 0.55 ? "#101318" : "#F2F4F7"}"><span>Light</span></div>
+      </div>
+      <div class="meta">
+        <h3>${name}</h3>
+        <p>${role}</p>
+        <div class="vals">
+          <span>token</span><b>${tok}</b>
+          <span>hex</span><b>${hex(d)} · ${hex(l)}</b>
+          <span>rgb</span><b>${d.join(" ")}</b>
+          <span>565</span><b>${r565(d)} · ${r565(l)}</b>
+        </div>
+      </div>
+    </div>`).join("");
+
+  const ramp = (a, b) => `linear-gradient(90deg, ${hex(a)}, ${hex(b)})`;
+  document.getElementById("ramp-eth").style.background = ramp(ETH_DARK, ETH_LIGHT);
+  document.getElementById("ramp-ok").style.background = ramp(OK_DARK, OK_LIGHT);
+  const faceT = (FACE_GREEN[1] - OK_DARK[1]) / (OK_LIGHT[1] - OK_DARK[1]);
+  document.getElementById("tick-face").style.left = (faceT * 100).toFixed(1) + "%";
+  document.getElementById("face-label").textContent = "face green " + hex(FACE_GREEN);
+
+  // ------------------------------------------------------------------ go
+  const go = () => { bctx = setup(boot); show(frame); drawBeats(); };
+  go();
+  if (playing) raf = requestAnimationFrame(tick);
+  if (document.fonts && document.fonts.load) {
+    Promise.all([document.fonts.load(FONTS.bold26), document.fonts.load(FONTS.sans14)]).then(go, () => {});
+  }
+})();
+</script>
+</body>
+</html>
