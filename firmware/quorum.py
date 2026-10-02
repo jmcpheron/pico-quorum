@@ -133,7 +133,8 @@ sec = None          # the Trust M's security event counter when last read (None 
 chip_pages = []     # the Chip pages (sig.details), read off the chip when they are opened
 chip_page = 0
 opage = 0           # the Owners page in view: OWNERS_PER_PAGE owners a page, so a 3-of-5 or longer scrolls
-dfoot = "chip"      # knob, on the Device screen: "chip" or "back"
+dfoot = "chip"      # knob, on the Device screen: "chip", "wifi" or "back"
+DFOOT = ("chip", "wifi", "back")
 work_info = []      # short facts from the chip, shown under the Signing and Sending screens (sig.info)
 truncated = False   # the queue did not fit in memory: only the first few are shown
 fails = 0           # ticks in a row that raised
@@ -744,6 +745,21 @@ def owner_pages():
     return max(1, (len(owners()) + U.OWNERS_PER_PAGE - 1) // U.OWNERS_PER_PAGE)
 
 
+def wifi_setup():
+    """Device -> Wi-Fi: restart into Wi-Fi setup (boot.py takes the "wifisetup" file once). The way
+    in on build1, whose knob board has no Y to hold at power-up. Nothing is signed meanwhile; setup
+    can keep the saved network and restart back here."""
+    qlog.write("wifi setup asked for on the Device screen")
+    with open("wifisetup", "w") as f:
+        f.write("1")
+    try:
+        import os
+        os.sync()
+    except AttributeError:
+        pass
+    machine.reset()
+
+
 def open_chip():
     """The Chip pages, read off the chip now (not while drawing: every strip redraws)."""
     global state, chip_pages, chip_page, sec
@@ -955,7 +971,9 @@ def handle(k):
     elif state == "device":
         if k == SIGN:
             open_chip()
-        elif k in (BACK, REJECT, "left", "X"):
+        elif k == REJECT:
+            wifi_setup()
+        elif k in (BACK, "left", "X"):
             state = "home"
         dirty = True
     elif state == "chip":
@@ -1039,10 +1057,12 @@ def knob(k):
         dirty = True
     elif state == "device":
         if k in ("down", "up"):
-            dfoot = "back" if dfoot == "chip" else "chip"
+            dfoot = DFOOT[(DFOOT.index(dfoot) + (1 if k == "down" else -1)) % len(DFOOT)]
         elif k == "press":
             if dfoot == "chip":
                 open_chip()
+            elif dfoot == "wifi":
+                wifi_setup()
             else:
                 state, dfoot = "home", "chip"
         dirty = True

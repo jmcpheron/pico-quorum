@@ -497,7 +497,10 @@ def case_chip_pages():
     check(Q.state == "device", "B: back to Device")
     Q.KNOB = True
     Q.knob("down")
-    check(Q.dfoot == "back", "knob on Device: a turn chooses Back")
+    check(Q.dfoot == "wifi", "knob on Device: a turn chooses Wi-Fi")
+    Q.knob("down")
+    check(Q.dfoot == "back", "and the next, Back")
+    Q.knob("up")
     Q.knob("up")
     Q.knob("press")
     check(Q.state == "chip", "knob: press on Chip opens the pages")

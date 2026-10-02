@@ -869,9 +869,9 @@ def draw_device(q):
     if q.net_err and not q.net_ok:
         txt(d, fit("Last error: " + q.net_err, TW, "sans12"), M, y + 2, "sans12", "warn")
     if q.KNOB:
-        knob_choices(d, q, (("chip", "Chip"), ("back", "Back")), q.dfoot, "turn \u00b7 press")
+        knob_choices(d, q, (("chip", "Chip"), ("wifi", "Wi-Fi"), ("back", "Back")), q.dfoot, "turn \u00b7 press")
     else:
-        footer_hints(d, q, (("A", "Chip"), ("B", "Back")))
+        footer_hints(d, q, (("A", "Chip"), ("Y", "Wi-Fi"), ("B", "Back")))
     d.show()
 
 

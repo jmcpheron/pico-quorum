@@ -3,6 +3,7 @@
 # push an image, verify it, pin its chip, read its log. Details: tools/board/fw.mjs.
 #   tools/fw build console | backup | verify [--baseline] | logs | pin | push console | restore DIR
 #   tools/fw ceremony start [--unpin] [--keep-open F1D2] | ceremony finish
+#   tools/fw push console --all    every board on USB in turn (verify, logs, backup... too)
 cd "$(dirname "$0")/.." || exit 1
 [ -d emu/node_modules ] || (cd emu && npm install --silent) || exit 1
 [ -d tools/mock-tx-service/node_modules ] || (cd tools/mock-tx-service && npm install --silent) || exit 1

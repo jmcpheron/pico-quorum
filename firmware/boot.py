@@ -4,8 +4,24 @@ import os
 import board
 from machine import Pin
 board.MAINTENANCE = "maint" in os.listdir() or Pin(board.MAINT, Pin.IN, Pin.PULL_UP).value() == 0
-# Y held at power-up: Wi-Fi setup even with a network saved (a new router, a new password).
-board.WIFI_SETUP = not board.MAINTENANCE and Pin(board.SETUP, Pin.IN, Pin.PULL_UP).value() == 0
+
+
+def _asked():
+    """The console's Device screen asks for Wi-Fi setup by leaving a file named "wifisetup" and
+    restarting: the way in on a board without a Y button (build1's knob). Taken once, so a setup
+    that fails never comes back by itself."""
+    if "wifisetup" not in os.listdir():
+        return False
+    try:
+        os.remove("wifisetup")
+    except OSError:
+        pass
+    return True
+
+
+# Y held at power-up, or Wi-Fi on the Device screen: Wi-Fi setup even with a network saved (a new
+# router, a new password).
+board.WIFI_SETUP = not board.MAINTENANCE and (Pin(board.SETUP, Pin.IN, Pin.PULL_UP).value() == 0 or _asked())
 
 
 def _wifi_setup(net):

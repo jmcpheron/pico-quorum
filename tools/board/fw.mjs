@@ -32,6 +32,9 @@
 //                            tools/quorum verify FILE
 //   ceremony finish          and back, after one "yes": ALLOW_* off, pin the chip on the bus, push
 //                            console, verify, and compare the pins with ceremony.json.
+//   ... --all                every board on USB, one after another (push, verify, logs, backup,
+//                            restart, attest...): each says which board it is, each push still
+//                            asks its own yes unless --yes, and a summary closes it
 //
 // Port: $PICO_PORT, else the first /dev/cu.usbmodem* (mac) or /dev/ttyACM* (linux).
 import { spawnSync } from "node:child_process";
@@ -808,6 +811,22 @@ function measure(what) {
 }
 
 // ----------------------------------------------------------------------------- main
+// --all: the same command on every board on USB, in turn, each in its own run of this tool.
+if (has("--all")) {
+  const ports = serialPorts();
+  if (!ports.length) die("no Pico on USB");
+  const rest = argv.filter((a) => a !== "--all");
+  const done = [];
+  for (const p of ports) {
+    console.log(`\n=============== ${p}`);
+    const r = spawnSync(process.execPath, [process.argv[1], ...rest], { stdio: "inherit", env: { ...process.env, PICO_PORT: p } });
+    done.push([p, r.status]);
+  }
+  console.log(`\n${rest.join(" ")} --all:`);
+  for (const [p, code] of done) console.log(`  ${p}: ${code === 0 ? "ok" : "!! exit " + code}`);
+  process.exit(done.every(([, c]) => c === 0) ? 0 : 1);
+}
+
 const cmds = {
   build: () => { const b = build(argv[1] || die("build console|ceremony")); console.log(`built ${b.image} ${b.id}: ${b.names.length} files in ${b.dir}`); },
   backup: () => backup(),
@@ -823,5 +842,5 @@ const cmds = {
   attest: () => attest(),
   ceremony: () => (argv[1] === "start" ? ceremonyStart() : argv[1] === "finish" ? ceremonyFinish() : die("ceremony start [--unpin] [--keep-open F1D2] | ceremony finish")),
 };
-if (!cmds[cmd]) die("usage: tools/fw build IMAGE | backup | verify [--baseline] | logs | pin | push IMAGE | restore DIR [--exact] [--secrets] | restart | chips | allow on|off | attest [--out FILE] | ceremony start|finish | measure tls");
+if (!cmds[cmd]) die("usage: tools/fw build IMAGE | backup | verify [--baseline] | logs | pin | push IMAGE | restore DIR [--exact] [--secrets] | restart | chips | allow on|off | attest [--out FILE] | ceremony start|finish | measure tls   (any of them: --all for every board on USB)");
 await cmds[cmd]();

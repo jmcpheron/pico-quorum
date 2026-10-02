@@ -70,4 +70,9 @@ splash.finish(wait=False)
 Q.handle("X"); Q.handle("A"); Q.d.frames(quorum_ui.draw, Q)`);
 py(`Q.handle("A"); Q.d.frames(quorum_ui.draw, Q)`);
 shot("tm-12-chip-page-2-spares-frozen");
+// the Device screen: Wi-Fi setup from the console (Y on buttons; the knob's third choice)
+py(`Q.state = "device"; Q.KNOB = False; Q.d.frames(quorum_ui.draw, Q)`);
+shot("tm-13-device-buttons-wifi");
+py(`Q.KNOB = True; Q.dfoot = "wifi"; Q.d.frames(quorum_ui.draw, Q); Q.KNOB = False`);
+shot("tm-14-device-knob-wifi");
 dev.dispose();
