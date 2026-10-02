@@ -10,6 +10,16 @@ git tag, `fw-<version>`.
 2. `tools/fw push console --all`, which pushes every board on USB in turn.
 3. `git tag fw-<version>` on that commit, then push the tag.
 
+## 2026.10.5 (2026-10-02)
+
+**Fix: Build 1 froze at "screen: ok" on boot.**
+- **The cause:** with two Wi-Fi networks saved (one from Wi-Fi setup, one from `secrets.py`),
+  the boot asked the radio to scan for the one in range at the moment the boot art started
+  drawing on its timer. The scan never came back, and the board stopped answering on USB too.
+- **Now:** the boot joins the newest saved network with no scan. If that one is out of range, the
+  console's retry walks the others, one every 30 s.
+- This is the merge of Wi-Fi setup (#18) with the quick boot.
+
 ## 2026.10.4 (2026-10-01)
 
 **Home is a grid to browse when nothing waits for this key:** each Safe, Recent (the last

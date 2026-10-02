@@ -55,9 +55,11 @@ def _pick(wlan, nets):
 
 
 def begin():
-    """Switch the radio on, ask it to join the first saved network and return at once. boot.py calls
-    this before the boot screen, so the join runs while the screen comes up; connect() then only
-    waits for what is left of it. With several networks saved it scans first (about 2 s)."""
+    """Switch the radio on, ask it to join the newest saved network and return at once. boot.py calls
+    this as the boot art starts on its timer, so the join runs while the screen comes up; connect()
+    then only waits for what is left of it. Never a scan here: a scan while the art's timer drew
+    froze Build 1 at "screen: ok" with two networks saved (2026-10-02). If the newest is not in
+    range, retry() walks the others."""
     global _t0, begun_at, _cur
     nets = networks()
     if not nets:
@@ -66,7 +68,7 @@ def begin():
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
     if not wlan.isconnected():
-        _cur = _pick(wlan, nets)
+        _cur = nets[0]
         wlan.connect(*_cur)
     _t0 = begun_at = time.ticks_ms()
 
