@@ -177,6 +177,26 @@ Same steps with `--chain eth`. The console can watch it alongside Base: `live pi
   than Base's.
 - [ ] The same checklist as rung 3, then one approval.
 
+## The Trust M rung
+
+The same ladder for the OPTIGA Trust M ([TRUSTM.md](TRUSTM.md)). The shareable docs are in
+[mainnet/](mainnet/README.md).
+
+- [x] **TM1 sealed** on the device (T7, 2026-09-29). Owner `0x47c0998C6a7A1955794071b9f4058e7814178f35`.
+- [x] **Base Sepolia** (2026-09-30):
+  - TM1's signer is deployed.
+  - It is an owner of the 3-of-5 `0x5617…DC41`, via `swapOwner`.
+  - Its first approval executed: [0xeae9…6e2f](https://sepolia.basescan.org/tx/0xeae93a631ca677950b3c366ae7cd410ad10b0ec86527d6b450950805aafc6e2f).
+- [x] **The ceremony record** `mainnet/attest/attest-0a091b5c000b0062006c.json` (2026-10-01).
+  `tools/quorum verify --chain basesep,base,eth` passes: `getSigner` agrees on all three chains.
+- [ ] **T9 on silicon:** a sacrificial chip (TM2) first, then TM1.
+- [ ] **The mainnet chip:**
+  - A fresh chip (TM3), with the F1D2 decision made first.
+  - Its ceremony and record.
+  - Every co-signer runs `verify`.
+- [ ] **Mainnet gas, after an explicit yes:** `live enroll --chain eth`, the 3-of-5 Safe, one
+  approval (rung 4's checklist).
+
 ## Known issues
 
 - **The Safe web app can't execute these.** With a threshold of 2 or more, it drops a contract

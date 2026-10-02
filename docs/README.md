@@ -5,6 +5,7 @@ troubleshooting.
 
 - [`guide/`](guide/README.md): the owner's guide ([setup](guide/SETUP.md), [using it](guide/USING.md),
   [networks](guide/NETWORKS.md), [troubleshooting](guide/TROUBLESHOOTING.md))
+- [`mainnet/`](mainnet/README.md): a Trust M signer in a mainnet Safe. Written for co-signers too: checking a chip, the threat model, the recommended configuration, the operator's runbook
 - [`SECURITY.md`](SECURITY.md): the console's trust model, then picowallet's
 - [`PROVISIONING.md`](PROVISIONING.md): the quorum v1 chip config and the fresh-chip ceremony
 - [`LOCKING.md`](LOCKING.md): what each ATECC608 lock does to the multisig

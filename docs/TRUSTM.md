@@ -3,8 +3,10 @@
 The board signs with either secure element. It finds out which one is on I2C0 at every boot and
 uses the same console, the same pin (`QUORUM_EXPECT`) and the same Safe owner scheme (a P-256
 passkey signer). The Trust M gets its own profile, **quorum-tm1**, and its own ceremony. Both
-were built and tested in the emulator first. On a real chip, the steps up to the seal have been
-run. The seal itself has not.
+were built and tested in the emulator first. On a real chip (TM1), every step through the seal has
+run (T7, 2026-09-29), and a Trust M approval has executed onchain (Base Sepolia, 2026-09-30). T9,
+freezing the spare objects, is next: a sacrificial chip first. The shareable docs for a mainnet
+Safe are in [mainnet/](mainnet/README.md).
 
 Decisions (2026-09-28):
 - **The key:** a new P-256 key, made on the chip in **E0F1**.
@@ -67,21 +69,26 @@ A Trust M pin names the object instead of a slot number:
 | T5 Owner | The owner address, to compare on the laptop | read-only |
 | T6 Record | F1D0 and F1D1 written and read back | yes, until T7 |
 | T7 **Seal** | LcsO operational on F1D1, F1D0, E0F1 (ALLOW_LOCK, the arm, a 3 s hold) | **no** |
-| T8 Done | Checks everything is sealed, the record matches, the binding verifies and the key still signs. Registers the chip in `chips.json` | read-only |
+| T8 Sealed | Checks everything is sealed, the record matches, the binding verifies and the key still signs. Registers the chip in `chips.json` | read-only |
+| T9 **Freeze the spares** | LcsO operational on every object the profile doesn't use (`tmcfg.SPARES`, 23 on the real chip), except any `TRUSTM_KEEP_OPEN` names (ALLOW_LOCK, the arm, a 3 s hold) | **no** |
+| T10 Done | quorum-tm1 sealed, the spares frozen, the key signs; reminds you to turn ALLOW_* off | read-only |
 
 - **Resuming:** the step is worked out from the chip every time.
   - Before T6, a reboot means T2 again, because the key's public half exists only in that session.
   - After T6, a reboot resumes at T3 with the key from the record, and T3 proves the record matches the key.
-- **What the ceremony never writes:** E0F0, E0E0, or anything outside E0F1, F1D0 and F1D1.
+- **A chip sealed before T9 existed** (TM1) comes back at T8, then T9. On the dual image it reaches the ceremony only unpinned and with ALLOW_LOCK on (`tools/fw ceremony start --unpin`); a pinned chip always gets the console.
+- **What the ceremony never writes:** E0F0, E0E0 or E140. Outside E0F1, F1D0 and F1D1 it writes only LcsO, and never termination.
 - **No destructive refusal tests:** nothing tries a write that a sealed or factory object ought to refuse. If such a test failed, it would destroy what it was testing.
 
-On the board, the flow matches the ATECC's (`docs/PROVISIONING.md`):
-1. `tools/fw push dual`.
-2. `tools/fw allow on`.
-3. `tools/fw restart`.
-4. A on the ceremony banner, then T1–T8.
-5. `tools/fw allow off`.
-6. `tools/fw pin`.
+On the board (the full runbook: [mainnet/RUNBOOK.md](mainnet/RUNBOOK.md)):
+1. `tools/fw ceremony start` (`--unpin` for a pinned chip, `--keep-open F1D2` to leave a spare open). One yes: ALLOW_* on, the pin out if asked, then the dual image pushed; the board restarts into the ceremony.
+2. A on the ceremony banner, then T1–T10.
+3. `tools/fw ceremony finish`. One yes: ALLOW_* off, `pin`, the console image pushed and verified.
+4. `tools/fw attest`, which only reads, writes the chip's public record to `docs/mainnet/attest/`. `tools/quorum verify` checks it with no board.
+
+The signing console never carries the ceremony (`test-vectors/manifest.mjs`). Flash was never the
+reason: Build 1's filesystem is 2,560 KB with 2,208 KB free, the console image is 176 KB, and the
+Trust M ceremony adds about 22 KB.
 
 X on the banner shows each object's lifecycle and access conditions, read-only.
 
@@ -130,6 +137,32 @@ The emulator models these the way the manual describes them (`emu/core/shims/tru
 - **Signing:** the console joined the Family Safe as owner `0x47c0…8f35`, and you approved #0.
 - **The mock:** it verified the WebAuthn P-256 signature (low s), and #0 executed.
 - **The board's log:** "signed #0 … sec 0->0". That reading is what uncovered the idle credit.
+
+## The spares (T9)
+
+The real chip lists 23 objects that quorum-tm1 doesn't use, all with the factory Change condition
+`LcsO < op`:
+- spare keys E0F2, E0F3, E0FC, E0FD
+- certificate and trust-anchor slots E0E1, E0E8, E0EF
+- the counters E120–E123
+- data objects F1D2–F1DB, F1E0, F1E1
+
+T9 raises each one's LcsO to operational, and nothing else, exactly as T7 did for the key. From
+then on nothing can write them or make a key in them. Before it writes, T9 reads each object
+again and touches only one that is still as it came.
+
+**E140 is left out.** It is the shielded-connection binding secret, and its Change condition is
+`LcsO < op || Conf(E140)`, so the lifecycle alone would not close it.
+
+**Why freeze them.** The ATECC profile freezes every byte of its chip; until T9 a Trust M had
+three frozen objects and 23 writable ones. Writable spares don't endanger the key. Frozen, the
+chip has nothing else on it to explain.
+
+**Keeping one open.** `TRUSTM_KEEP_OPEN = ["F1D2"]` in `secrets.py` keeps a spare open, for an
+on-chip Safe record later ([mainnet/CONFIGURATION.md](mainnet/CONFIGURATION.md)).
+
+The console's Chip page shows the spares: "all 23 frozen", or which are still open. It reads them
+when the page opens, never at boot.
 
 ## On the screens
 
