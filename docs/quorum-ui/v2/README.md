@@ -21,6 +21,27 @@ there is where this one starts.
    the home screen, the approvals row, and the moment of signing.
 5. **Every screen, redone,** with before/after pairs like the v1 walkthrough.
 
+## The chip's blockie at boot (2026-10-01, firmware 2026.10.3)
+
+You asked to see the loaded chip's blockie when the console first loads.
+- **When it appears:** as soon as the console has read the chip and checked its pin, a row comes
+  in under the tagline.
+- **What's in the row:** the owner address's blockie, the chip's name and the address cut short.
+- **The picture:** the same one the ceremony's T5, the Owners screen and every approval show. If
+  you swap a chip in, you can tell before the home screen whether it's the one you expect.
+- **A chip that isn't the pinned one:** its name and address turn red.
+- **How long it shows:** it stays up with the rest of the boot screen, about two seconds on
+  Build 1, without slowing the boot.
+- **The 1.8" panel:** it has no room, and only the status line shows the chip.
+
+| Waveshare, 240×240 | Build 1, 320×240 |
+|---|---|
+| <img src="boot/chip-row-240.png" width="240"> | <img src="boot/chip-row-320.png" width="320"> |
+
+These are drawn by the real firmware in the emulator, with TM1's owner address
+`0x47c0…8f35` and its board name, chip 3. `node test-vectors/run-bootmark.mjs` checks every frame
+of the animation, with the row arriving at 700 ms, against a fresh paint on all three panels.
+
 ## The light mark turns into Ethereum (2026-09-30)
 
 You said the diamond fading in and flying to the corner didn't work. You asked to go back to the

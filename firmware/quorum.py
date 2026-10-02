@@ -1295,6 +1295,8 @@ def start():
         pinned = " \u00b7 pinned" if EXPECT and pin_ok else (" \u00b7 PIN FAIL" if not pin_ok else "")
         name = (chip["name"] + " \u00b7 ") if chip else ""
         splash.step("chip", "%s%s%s" % (name, fingerprint() or "no key", pinned), L.RED if not qx or not pin_ok else L.GREEN)
+        if me:      # its owner's blockie on the boot screen: the picture T5, Owners and approvals show
+            splash.chip(me, "%s%s\u2026%s" % (name, me[:6], me[-4:]), pin_ok)
         check_counter()
     mark("counter")
     w = network.WLAN(network.STA_IF)

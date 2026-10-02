@@ -3,8 +3,9 @@
 # Ethereum diamond seen head-on: it starts to turn, the signers ride its corners away, the two who
 # didn't sign fade, the lower pyramid rises in and the green face goes blue round the back. The
 # Ethereum logo, spinning. It slows to a stop on the logo's pose as it grows and dims, and the small
-# mark and PicoQuorum fade in over it, then a tagline (taglines.py). The real boot status is the
-# last line. It stops rather than turning on: after WiFi the console's start takes the Pico for a
+# mark and PicoQuorum fade in over it, then a tagline (taglines.py). Once the console has read its
+# chip, the owner's blockie and the chip's name and address (set_chip): the same picture as the
+# ceremony's T5, the Owners screen and approvals. The real boot status is the last line. It stops rather than turning on: after WiFi the console's start takes the Pico for a
 # few seconds without a frame, and a diamond frozen mid-turn looks like a hang (2026-09-30).
 # The orbit (bootart.py) redraws and sends the whole panel every frame, about 110 ms a frame on the
 # Pico. This sends only what changed since the last frame: a dot's square, an edge as far as it has
@@ -42,6 +43,10 @@ ICON_W = 2 * ICON_R + 10
 TAG_FONT, TAG_Y = "sans14", None if SMALL else 136     # no room for a tagline on the 1.8"
 TAG_INK = (200, 205, 214)                   # a step brighter than the status line under it
 STATUS_FONT = "sans12" if SMALL else "sans14"
+CHIP_Y = None if SMALL else 164             # the chip row: the owner's blockie and the chip's name
+CHIP_PX = 4                                 # 8x8 cells at 4 px: 32 px
+CHIP_FONT = "sans14"
+CHIP_BAD = (255, 92, 84)
 STATUS_Y = L.H - (18 if SMALL else 26)
 PTS = [(int(CX + R * math.cos(math.radians(-90 + 72 * k))),
         int(CY + R * math.sin(math.radians(-90 + 72 * k)))) for k in range(5)]
@@ -299,6 +304,30 @@ def draw_icon(d, ox, oy, cx, cy, a):
         d.ellipse(pts[k][0], pts[k][1], 2 if SMALL else 3, 2 if SMALL else 3, L.color(*mix(BG, OK, a)), True)
 
 
+_chip = None        # (seed, text, rgb, text width): set_chip, read by every Mark's looks
+
+
+def set_chip(seed, text, ok=True):
+    """The chip the console just read: its owner address (the blockie's seed, lowercase) and a
+    short line, red when it is not the pinned chip. None: no row. No room on the 1.8"."""
+    global _chip
+    if not CHIP_Y or not seed:
+        _chip = None
+        return
+    while F.width(text, CHIP_FONT) > L.W - 20 - 8 * CHIP_PX - 10:
+        text = text[:-1]
+    _chip = (seed.lower(), text, INK if ok else CHIP_BAD, F.width(text, CHIP_FONT))
+
+
+def draw_chip(d, ox, oy, chip):
+    seed, text, rgb, w = chip
+    side = 8 * CHIP_PX
+    x = (L.W - side - 10 - w) // 2
+    import blockies
+    blockies.draw(d, seed, x - ox, CHIP_Y - oy, CHIP_PX)
+    F.text(d, text, x + side + 10 - ox, CHIP_Y + (side - F.height(CHIP_FONT)) // 2 - oy, CHIP_FONT, rgb, BG)
+
+
 class Mark:
     def __init__(self, lcd, tagline=None):
         self.lcd = lcd
@@ -314,11 +343,11 @@ class Mark:
     def looks(self, t):
         return ([dot_look(k, t) for k in range(5)], [ring_look(k, t) for k in range(5)],
                 [edge_look(e, t) for e in range(3)], fill_look(t), name_look(t), self.status,
-                tag_look(t) if self.tag else 0, eth_look(t))
+                tag_look(t) if self.tag else 0, eth_look(t), _chip)
 
     def scene(self, d, ox, oy, lk):
         """Everything, shifted by (-ox, -oy) into d; framebuf clips what falls outside."""
-        dots, rings, edges, fill, name, status, tag, _ = lk
+        dots, rings, edges, fill, name, status, tag, _, chip = lk
         d.fill(L.color(*BG))
         if self.eth_new:
             polys, nodes, nr, _ = self.eth_new[1]
@@ -346,6 +375,8 @@ class Mark:
             F.text(d, NAME, x + ICON_W - ox, y - oy, NAME_FONT, mix(BG, INK, a / 8), BG)
         if tag:
             F.text(d, self.tag, (L.W - self.tag_w) // 2 - ox, TAG_Y - oy, TAG_FONT, mix(BG, TAG_INK, tag / 8), BG)
+        if chip:
+            draw_chip(d, ox, oy, chip)
         s, rgb, w = status
         if s:
             F.text(d, s, (L.W - w) // 2 - ox, STATUS_Y - oy, STATUS_FONT, rgb, BG)
@@ -376,6 +407,8 @@ class Mark:
             out.append(((L.W - self.tag_w) // 2 - 2, TAG_Y - 4, self.tag_w + 4, F.height(TAG_FONT) + 8))
         if old[5] != new[5]:
             out.append((0, STATUS_Y - 4, L.W, F.height(STATUS_FONT) + 8))
+        if old[8] != new[8]:                    # the chip row, whole width: a new name may be shorter
+            out.append((0, CHIP_Y - 2, L.W, 8 * CHIP_PX + 4))
         if old[7] != new[7]:                    # the box it was in and the box it is in, as one
             bs = [g[1][3] for g in (self.eth, self.eth_new) if g]
             x0, y0 = min(b[0] for b in bs), min(b[1] for b in bs)

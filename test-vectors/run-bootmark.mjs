@@ -62,6 +62,8 @@ def fresh(t, status):
     m = bootmark.Mark(ref, TAG)
     m.frame(t, status)
     return ref.ram, m.sent
+OWNER = '0x47c0998c6a7a1955794071b9f4058e7814178f35'     # TM1's, as the console reads it
+bootmark.set_chip(None, '')
 panel = Panel()
 mark = bootmark.Mark(panel, TAG)
 real = bootmark.Mark(L.LCD(), TAG) if ${p.real ? 'True' : 'False'} else None
@@ -72,6 +74,8 @@ sent = []
       dev.mp.runPython(`
 _t = ${t}
 _s = status_at(_t)
+if _t >= 700:       # the chip row arrives with the chip's status line
+    bootmark.set_chip(OWNER, 'chip 3 \u00b7 0x47c0\u20268f35')
 _before = mark.sent
 mark.frame(_t, _s)
 sent.append(mark.sent - _before)
@@ -88,7 +92,7 @@ if real:
         writeFileSync(`${OUT}/${String(frames).padStart(4, '0')}.png`, encodePNG(240, 240, frameToRGBA(bytes)));
       }
     }
-    // "still": everything at its end in one paint, then only the status line.
+    // "still": everything at its end in one paint, then only the status line (the chip row stays set).
     dev.mp.runPython(`
 still = Panel()
 m = bootmark.Mark(still, TAG)
@@ -106,7 +110,7 @@ _stats = json.dumps([sum(sent), max(sent[1:]), len([s for s in sent if s == 0]),
     writeFileSync(`${OUT}/still-${p.name}.png`, encodePNG(p.w, p.h, frameToRGBA(bytes)));
     const [total, peak, idle, n, full, status] = JSON.parse(dev.mp.globals.get('_stats'));
     const pct = (100 * total / (n * full)).toFixed(1);
-    console.log(`bootmark ${p.name} ${p.w}x${p.h}: ${n} frames match a fresh paint; SPI ${total} B in all, ` +
+    console.log(`bootmark ${p.name} ${p.w}x${p.h}: ${n} frames match a fresh paint, the chip row from 700 ms; SPI ${total} B in all, ` +
       `${pct}% of whole-panel frames (${full} B each); busiest frame after the first ${peak} B; ` +
       `${idle} frames sent nothing; still: a status change sends ${status} B`);
   } catch (e) { console.error(`bootmark ${p.name}: ${String(e)}`); failed = true; } finally { dev.dispose(); }

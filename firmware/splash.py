@@ -120,6 +120,15 @@ def step(key, text, color=L.WHITE):
         draw()
 
 
+def chip(seed, text, ok=True):
+    """The chip the console read: its owner's blockie and a short line under the name (the mark only;
+    the other boot screens list it as the chip row). seed: the owner address."""
+    if _art is not None and hasattr(_art, "set_chip"):
+        _art.set_chip(seed, text, ok)
+        if _timer is None:
+            draw()
+
+
 def spin(key, text):
     """A row that is waiting: call it as often as you like, it redraws at most ~8 times a second."""
     global _last, _waiting

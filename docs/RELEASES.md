@@ -10,6 +10,12 @@ git tag, `fw-<version>`.
 2. `tools/fw push console --all`, which pushes every board on USB in turn.
 3. `git tag fw-<version>` on that commit, then push the tag.
 
+## 2026.10.3 (2026-10-01)
+
+**The loaded chip's blockie on the boot screen.** Once the console has read its chip, the owner's
+blockie appears under the tagline, with the chip's name and short address. It's red if the chip
+isn't the pinned one. The walkthrough: [quorum-ui/v2](quorum-ui/v2/README.md).
+
 ## 2026.10.2 (2026-10-01)
 
 **The fix:** Device → Wi-Fi on Build 1.
