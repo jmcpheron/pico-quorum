@@ -38,7 +38,7 @@ The board keeps its own `secrets.py`, and no tool ever copies the laptop's over 
 [`firmware/secrets.example.py`](../../firmware/secrets.example.py):
 
 ```python
-WIFI_SSID = "your-network"
+WIFI_SSID = "your-network"        # optional: leave both out to set Wi-Fi on the console (below)
 WIFI_PASS = "..."
 QUORUM_API_KEY = "..."            # from developer.safe.global
 QUORUM_SAFES = [                   # filled in at step 5
@@ -48,6 +48,26 @@ QUORUM_SAFES = [                   # filled in at step 5
 Put the file on the board with `tools/usb cp secrets.py :secrets.py` from a folder outside the
 repo, then delete the local copy. The key and the WiFi password should never be in the repo or a
 chat.
+
+### Wi-Fi without secrets.py: the setup screen
+
+A console with no Wi-Fi saved opens **Wi-Fi setup** at power-up, instead of the console. That makes
+it possible to prepare a console for someone else (pin, Safes, API key) and let them put it on
+their own Wi-Fi. Holding **Y** while plugging in opens the same screen on any console, for a new
+router or a new password.
+
+- **With a phone:** the console makes its own hotspot and shows a QR code. The phone's camera
+  joins it, and the setup page opens by itself (or go to `http://192.168.4.1`). Pick the network,
+  type the password, Connect.
+- **On the console:** A (on Build 1: press the knob) lists the networks it can see. Pick one and
+  type the password on the on-screen keyboard. The joystick moves around the keys; the knob steps
+  through them in order. Press types; `del` on an empty field goes back.
+
+Either way the console joins first and saves only if it worked. A wrong password comes back on
+the screen (and on the phone's page) as **wrong password**. The networks go in `wifi.json` on the
+board (up to 4, the newest first), which the console tries before `secrets.py`'s `WIFI_SSID`, and
+which no push ever overwrites. The hotspot's page can set Wi-Fi and nothing else. The console isn't
+running while it's up. The ceremony image works offline and never opens setup by itself.
 
 ## 4. Pin the chip
 

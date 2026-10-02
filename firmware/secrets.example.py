@@ -1,4 +1,6 @@
 # Copy to secrets.py (gitignored) and fill in.
+# WiFi is optional here: without it the board opens the WiFi setup screen at power-up (wifisetup.py)
+# and keeps what is set there in wifi.json, which it tries first.
 WIFI_SSID = "your-ssid"
 WIFI_PASS = "your-password"
 HOSTNAME = "picowallet"

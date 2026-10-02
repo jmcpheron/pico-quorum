@@ -2,10 +2,11 @@
 # The console is passwordless arbitrary code execution and must remain disabled when holding value.
 import network, socket, os, time
 from machine import Pin
+import wificfg
 try:
     import secrets
 except ImportError:
-    secrets = None      # a board without secrets.py: no WiFi, no console; wallet.py says so on screen
+    secrets = None      # a board without secrets.py: WiFi from wifi.json only, no console
 
 led = Pin("LED", Pin.OUT)
 PORT = 2323
@@ -13,24 +14,62 @@ _listen = None
 tried = False       # connect() ran once (boot.py); wallet.start does not wait a second time
 last_try = 0        # ticks_ms of the last join attempt; wallet.net_work retries every 30 s without blocking
 up = False          # joined() ran: LED on, console started if wanted
+_cur = None         # the (ssid, password) joined or being joined
+_turn = 0           # retry() walks the saved networks in turn
+
+
+def networks():
+    """Every network this board knows, newest first: those set up on the Wi-Fi setup screen
+    (wifi.json, wifisetup.py), then secrets.py's WIFI_SSID. None at all: boot.py opens setup."""
+    out = wificfg.load()
+    s = getattr(secrets, "WIFI_SSID", "") if secrets else ""
+    if s and s != "your-ssid" and all(n[0] != s for n in out):
+        out.append((s, getattr(secrets, "WIFI_PASS", "")))
+    return out
+
+
+def ssid():
+    """The network joined or being joined, else the first one known, else ""."""
+    n = _cur or (networks() or [("", "")])[0]
+    return n[0]
+
+
+def _hostname():
+    return getattr(secrets, "HOSTNAME", "picoquorum") if secrets else "picoquorum"
+
+
+def _pick(wlan, nets):
+    """With several networks known, the first that is in range (one scan, about 2 s)."""
+    if len(nets) == 1:
+        return nets[0]
+    try:
+        near = set(s[0].decode() for s in wlan.scan())
+        for n in nets:
+            if n[0] in near:
+                return n
+    except Exception as e:
+        print("wifi scan:", e)
+    return nets[0]
 
 
 def connect(timeout_s=12, progress=None):
-    """Join the WiFi in secrets.py, waiting at most timeout_s. progress(elapsed_ms), if given, is called
+    """Join a known WiFi (networks()), waiting at most timeout_s. progress(elapsed_ms), if given, is called
     while waiting (the boot screen animates on it) and may return True to stop waiting (a key press);
     the LED blinks either way. A network that is not there costs 12 s once, never more: the wallet
     retries in the background (retry) and everything local works without it."""
-    global tried, last_try
+    global tried, last_try, _cur
     tried = True
     last_try = time.ticks_ms()
     wlan = network.WLAN(network.STA_IF)
-    if secrets is None:
-        print("no secrets.py: not joining WiFi")
+    nets = networks()
+    if not nets:
+        print("no WiFi saved: not joining")
         return wlan
-    network.hostname(secrets.HOSTNAME)
+    network.hostname(_hostname())
     wlan.active(True)
     if not wlan.isconnected():
-        wlan.connect(secrets.WIFI_SSID, secrets.WIFI_PASS)
+        _cur = _pick(wlan, nets)
+        wlan.connect(*_cur)
         t0 = time.ticks_ms()
         while not wlan.isconnected() and time.ticks_diff(time.ticks_ms(), t0) < timeout_s * 1000:
             led.toggle()
@@ -44,7 +83,7 @@ def connect(timeout_s=12, progress=None):
             time.sleep_ms(150)
     if wlan.isconnected():
         led.on()
-        print("wifi up:", wlan.ifconfig()[0], "hostname:", secrets.HOSTNAME)
+        print("wifi up:", wlan.ifconfig()[0], "hostname:", _hostname())
     else:
         led.off()
         print("wifi failed, status", wlan.status())
@@ -52,17 +91,21 @@ def connect(timeout_s=12, progress=None):
 
 
 def retry():
-    """Ask the radio to join again and return at once; isconnected() says later whether it did."""
-    global last_try, up
+    """Ask the radio to join again and return at once; isconnected() says later whether it did.
+    With several networks known, each retry tries the next one."""
+    global last_try, up, _cur, _turn
     last_try = time.ticks_ms()
     up = False
-    if secrets is None:
+    nets = networks()
+    if not nets:
         return
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
     if not wlan.isconnected():
+        _turn += 1
+        _cur = nets[_turn % len(nets)]
         try:
-            wlan.connect(secrets.WIFI_SSID, secrets.WIFI_PASS)
+            wlan.connect(*_cur)
         except OSError as e:
             print("wifi retry:", e)
 

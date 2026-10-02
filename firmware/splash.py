@@ -75,7 +75,7 @@ def wifi_row(wlan, ssid):
     if wlan.isconnected():
         step("wifi", wlan.ifconfig()[0], L.GREEN)
     else:
-        step("wifi", "not found, retrying" if ssid else "no secrets.py", L.RED)
+        step("wifi", "not found, retrying" if ssid else "no Wi-Fi saved", L.RED)
 
 
 def draw():

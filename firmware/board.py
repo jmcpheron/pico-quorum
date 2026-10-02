@@ -48,6 +48,7 @@ else:
     SPI_BAUD = 62_500_000
     KEYS = dict(BUTTONS, up=2, down=18, left=16, right=20, press=3)
     MAINT = BUTTONS["B"]
+SETUP = BUTTONS["Y"]        # held at power-up: Wi-Fi setup (boot.py, wifisetup.py), on both boards
 BANDS = 8 if W * H * 2 > 45_000 else 1
 X_OFF, Y_OFF = (PANEL_W - W) // 2, (PANEL_H - H) // 2
 SMALL = W < 200             # a screen too small for the console's 240x240 pages (quorum_ui_s.py)
