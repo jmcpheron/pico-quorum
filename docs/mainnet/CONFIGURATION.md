@@ -1,13 +1,14 @@
 # Recommended configuration: a Trust M signer in a 3-of-5 Safe on Ethereum
 
-This is a recommendation for you to decide on. Nothing in it has been frozen on a chip.
+This is a recommendation for you to decide on. Nothing in it has been frozen on a chip. The
+shareable co-signer guide draws the chip's objects and the one-key-many-Safes picture:
+[PicoQuorum Trust M signer: guide for co-signers](https://claude.ai/code/artifact/f5ef9f4d-aab4-4925-bf3b-c384c3001822).
 
 **The short version:**
 - The Safe's threshold is the security. The Pico is one owner of five.
-- Lock down only what makes a co-signer's checks stronger.
-- Keep everything on the board reversible until a dedicated mainnet chip has been through its
-  ceremony.
-- Settle the address question before T9 runs on that chip.
+- The chip locks one thing: the key. Which Safes it serves stays in the Pico's config and can
+  change.
+- Settle the spare-key-slot question before T9 runs on a chip.
 
 ## What protects what
 
@@ -52,17 +53,23 @@ the chip.
 
 **(c) (a) now; (b) only on a dedicated mainnet chip, if you still want it after (a) has run for a while.**
 
-**Recommendation: (c).**
-- (a) gives every operational protection that (b) would.
-- (b)'s value is the statement for co-signers, so it belongs on the one chip that will hold real
-  assets, not on a rehearsal chip.
+**Recommendation: (a), the Safe stays off the chip** (2026-10-01, after talking it through).
+- The goal is a key that can never leave the chip and can serve any Safe. One sealed key gives
+  one owner address, the same on every chain, so the same chip can be an owner of several Safes.
+  The console watches up to 4, listed in its config.
+- The Safe address and chain go into the hash the Pico computes, not into the chip. The chip
+  signs 32 bytes and never sees either. So a signature for one Safe can't be replayed on another
+  whatever the chip holds.
+- An on-chip Safe record (b) would add only a frozen label, and the chip could never move to
+  another Safe.
 
-**The one decision that can't wait.** T9 freezes every spare, so a chip whose F1D2 was frozen
-empty can never take option (b).
-- **For TM1** (the plugged-in chip, a Base Sepolia rehearsal signer), freezing everything is fine.
-- **For the mainnet chip,** decide before its T9. To keep (b) open, run the ceremony with
-  `tools/fw ceremony start --keep-open F1D2`. T9 then freezes the other 22 spares and leaves
-  F1D2 writable.
+**Still open: the spare key slots.** T9 freezes E0F2 and E0F3 empty, so each chip holds exactly
+one key and one owner address.
+- Leaving them open (`--keep-open E0F2,E0F3`) would allow a second key per chip later. That key
+  would be a second owner address, for a different Safe or role.
+- The cost: firmware work (the console signs only with E0F1 today), and two more things for
+  co-signers to check.
+- **Decide before T9 runs on a chip.** A frozen empty slot can never get a key.
 
 ## The mainnet Safe
 
@@ -113,7 +120,7 @@ the Safe will hold should be added to `quorum_cfg.py`'s chain 1 list, after chec
 - TM1's key was made headless from the laptop on 2026-09-28, and it has a history of bench tests.
 - A mainnet chip should have:
   - its own ceremony, run on the device
-  - T9 run, with F1D2 decided as above
+  - T9 run, with the spare key slots decided as above
   - a published `attest-<serial>.json`, checked by every co-signer before it is added
 
 **The order:**

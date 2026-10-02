@@ -30,7 +30,7 @@ the shareable part. The chip profile and its ceremony are in [../TRUSTM.md](../T
 - [ ] TM2, sacrificial: T1–T7 headless, then T9, plus the refusals that a sealed or frozen object
       should give. These are the first real-silicon results for T9.
 - [ ] TM1: T9 on the device (`tools/fw ceremony start --unpin`), with an explicit yes.
-- [ ] Decide about F1D2 for the mainnet chip ([CONFIGURATION.md](CONFIGURATION.md)).
+- [ ] Decide whether T9 freezes the spare key slots E0F2/E0F3 ([CONFIGURATION.md](CONFIGURATION.md)).
 - [ ] TM3: the full ceremony on the device, `tools/fw attest`, and every co-signer runs `verify`.
 - [ ] **Gas, after an explicit yes:** `live enroll --chain eth`, and the mainnet Safe.
 
@@ -46,6 +46,6 @@ The chip in the shots is one that was sealed before T9 existed, as TM1 is.
 | <img src="shots/tm-04-T9.png" width="240"> | <img src="shots/tm-05-T9-result.png" width="240"> |
 | **T9, freeze the spares.** PERMANENT: the arm, then a 3 s hold. Only the lifecycle is written, to operational, never termination. | **T9 done.** Each group frozen, the key still signs, the security counter before and after. |
 | <img src="shots/tm-09-T9-keep-open.png" width="240"> | <img src="shots/tm-07-T10-result.png" width="240"> |
-| **With `--keep-open F1D2`,** the screen says what stays open. That keeps the on-chip Safe record (option b) possible. | **T10.** Its last line stays red until `tools/fw ceremony finish` turns `ALLOW_*` off. |
+| **With `--keep-open`** (here F1D2), the screen says what stays open: for example the spare key slots, if a chip should hold a second key later. | **T10.** Its last line stays red until `tools/fw ceremony finish` turns `ALLOW_*` off. |
 | <img src="shots/tm-11-chip-page-2-spares-open.png" width="240"> | <img src="shots/tm-12-chip-page-2-spares-frozen.png" width="240"> |
 | **The console's Chip page** before T9: what is still writable. | **And after:** nothing else on the chip can be written or get a key. |

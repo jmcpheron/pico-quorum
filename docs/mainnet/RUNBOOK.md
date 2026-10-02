@@ -17,7 +17,8 @@ Update both after every step below.
       somewhere else. It holds `secrets.py`.
 - [ ] **For a fresh chip:** label the breakout with the next TM number in marker, and fill in its
       row.
-- [ ] **For the mainnet chip:** decide about F1D2 (CONFIGURATION.md, "Address lock-down").
+- [ ] **Before T9 on any chip:** decide whether it freezes the spare key slots E0F2/E0F3
+      (CONFIGURATION.md, "Still open").
 
 ## 1. The ceremony (on the device)
 
@@ -27,7 +28,7 @@ Update both after every step below.
 ```sh
 tools/fw ceremony start                 # a fresh chip
 tools/fw ceremony start --unpin         # a pinned chip that needs T9 (TM1)
-tools/fw ceremony start --keep-open F1D2   # the mainnet chip, if option (b) stays open
+tools/fw ceremony start --keep-open E0F2,E0F3   # if a second key per chip stays possible
 ```
 - One `yes` covers the whole start. It does three things:
   - writes `ALLOW_LOCK` and `ALLOW_GENKEY`
