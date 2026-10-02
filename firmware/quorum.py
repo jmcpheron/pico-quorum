@@ -1273,6 +1273,7 @@ def start():
             print("wifi:", e)
     splash.wifi_row(w, SSID if secrets else "")
     mark("wifi")
+    marks.append("up %d" % (time.ticks_ms() if w.isconnected() else 0))   # WiFi joined, ms since reset
     served = [x for x in WATCH if x["base"]]
     first = ([x for x in served if x["base"].startswith("https")] or served or [None])[0]
     if len(WATCH) > 1:

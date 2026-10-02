@@ -6,18 +6,20 @@ from machine import Pin
 board.MAINTENANCE = "maint" in os.listdir() or Pin(board.MAINT, Pin.IN, Pin.PULL_UP).value() == 0
 
 def _normal_boot():
-    # Runs before main.py: WiFi asked to join, the boot screen while it does, then the wait for it
-    # and, if secrets.py enables it, the development console (passwordless; off by default). The
-    # screen is best effort: WiFi comes up without it.
+    # Runs before main.py: the boot screen, then WiFi and, if secrets.py enables it, the development
+    # console (passwordless; off by default). The screen is best effort: WiFi comes up without it.
     # The WiFi wait is 12 s at most and any key skips it: the wallet, the chip map, the LAB and snake
     # work without a network, and wallet.py keeps retrying in the background.
+    # The console image does not wait here: its art draws itself on a timer (splash.run) and WiFi
+    # joins while main.py imports and the console checks its chip; quorum.start waits for the rest.
     import time
     import net
     net.boot_at = time.ticks_ms()
     try:
-        net.begin()                     # the radio joins while the boot screen comes up
-    except Exception as e:
-        print("wifi:", e)
+        import image
+        console = image.IMAGE == "console"
+    except Exception:
+        console = False
     try:
         import splash
         import lcd
@@ -31,6 +33,13 @@ def _normal_boot():
     except Exception as e:
         print("boot screen:", e)
         splash = _spin = None
+    if console and splash and splash._art is not None:
+        splash.run()
+        try:
+            net.begin()                 # the radio joins while the console starts
+        except Exception as e:
+            print("wifi:", e)
+        return
     wlan = net.start(progress=_spin)
     if splash:
         splash.wifi_row(wlan, _ssid)

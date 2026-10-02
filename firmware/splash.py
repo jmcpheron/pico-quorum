@@ -27,6 +27,47 @@ _finished = False
 _status = "Starting up"
 _status_color = (152, 160, 172)
 _waiting = None     # the row that is spinning, if any
+_timer = None       # run(): the art draws itself on a soft timer while the console starts
+_busy = False       # a frame is being drawn: the timer skips its turn rather than nest
+_paused = False     # pause(): the timer draws nothing (around the console's big allocations)
+
+
+def run(period=30):
+    """Keep the art moving by itself: a soft timer draws a frame every period ms, between the
+    Python steps of whatever runs meanwhile, so boot.py need not wait for WiFi and the console's
+    start (imports, the chip) goes on under a moving screen. One core and no thread on purpose:
+    MicroPython's second core on the RP2 has no GIL and its garbage collector does not stop the
+    other core, so two cores allocating can free an object in use. A soft timer runs where the VM
+    is between bytecodes, every object rooted. Only C work (an .mpy loading) holds a frame up.
+    finish() or stop() ends it."""
+    global _timer
+    if _art is None or _timer is not None or _finished:
+        return
+    from machine import Timer
+    _timer = Timer(period=period, mode=Timer.PERIODIC, callback=_tick)
+
+
+def _tick(_t):
+    if _busy or _paused or _finished:
+        return
+    try:
+        draw()
+    except Exception as e:      # a broken frame stops the animation, never the boot
+        print("splash:", e)
+        stop()
+
+
+def stop():
+    """No more frames from the timer (finish(), and main.py's error screen)."""
+    global _timer
+    if _timer is not None:
+        _timer.deinit()
+        _timer = None
+
+
+def pause(on=True):
+    global _paused
+    _paused = on
 
 
 def _choice():
@@ -75,7 +116,8 @@ def step(key, text, color=L.WHITE):
         rows.sort(key=lambda r: ORDER.index(r[0]) if r[0] in ORDER else 9)
     if _waiting == key and color != L.GREY:
         _waiting = None
-    draw()
+    if _timer is None:          # with the timer running, its next frame shows it
+        draw()
 
 
 def spin(key, text):
@@ -98,12 +140,20 @@ def wifi_row(wlan, ssid):
 
 def draw():
     """One frame. Each call advances the leg chase, so a periodic redraw animates it."""
-    global _frame
+    global _frame, _busy
     if lcd is None:
         return
     _frame += 1
-    if _finished:
+    if _finished or _busy:
         return
+    _busy = True
+    try:
+        _draw_frame()
+    finally:
+        _busy = False
+
+
+def _draw_frame():
     if _art is not None:
         elapsed = time.ticks_diff(time.ticks_ms(), _t0) - BLACK_LEAD_MS
         if elapsed < 0:
@@ -183,6 +233,7 @@ def finish(keys=None, wait=True):
     Errors bypass this hold and go straight to the console's error screen.
     """
     global _art, _finished
+    stop()                      # from here this loop draws, as without the timer
     if _art is None:
         return
     import gc
