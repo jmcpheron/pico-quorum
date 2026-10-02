@@ -16,7 +16,8 @@ const closure = (...mods) => [...new Set(mods.flatMap((m) => dependencies(m)))].
 // Apps and screens that can use the chip other than the console's one signature path.
 const NOT_IN_CONSOLE = ["wallet.py", "usbwallet.py", "main_usb.py", "main.py", "demo.py", "mock.py", "keytest.py", "vid.py",
   "eip712.py", "power.py", "chipcheck.py", "slots.py", "chipmap.py", "learn.py", "snakelab.py", "ceremony.py",
-  "chipapp.py", "provision.py", "provision_tm.py", "qrcode.py", "main_ceremony.py"];
+  "chipapp.py", "provision.py", "provision_tm.py", "main_ceremony.py"];
+// qrcode.py is not on the list: it only turns text into a picture (the Wi-Fi setup screen, wifisetup.py).
 // Signer and driver calls that change the chip. Only signer.py and the drivers may even name them
 // (atecc.py; trustm_q.py for the Trust M: trustm.py itself has none).
 const PERMANENT = /\.(genkey\w*|lock_\w+|provision\w*|write_config|restore_snapshot|write_note|write_data|write_otp|write_record\w*|gen_keypair|set_data|set_lifecycle|set_meta\w*)\(/;

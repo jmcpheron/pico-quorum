@@ -76,7 +76,6 @@ API_KEY = getattr(secrets, "QUORUM_API_KEY", None) if secrets else None
 EXPECTS = policy.pins(getattr(secrets, "QUORUM_EXPECT", None) if secrets else None)
 EXPECT = None       # the entry for the chip on the bus (probe_chip), from EXPECTS
 NAME = getattr(secrets, "DEVICE_NAME", "picoquorum") if secrets else "picoquorum"
-SSID = getattr(secrets, "WIFI_SSID", "") if secrets else ""
 SOFT_OK = not PROD and bool(getattr(secrets, "ALLOW_SOFT_KEY", False) if secrets else False)
 _poll, _idle = policy.poll_defaults(URL or BASE, API_KEY)
 POLL_MS = int(getattr(secrets, "QUORUM_POLL_S", _poll) if secrets else _poll) * 1000
@@ -561,7 +560,7 @@ def net_work():
     if not wlan.isconnected():
         if time.ticks_diff(time.ticks_ms(), net.last_try) > 30000:
             net.retry()
-            _log("wifi: retrying " + SSID)
+            _log("wifi: retrying " + net.ssid())
         net_ok, net_err = False, "no wifi"
         for x in WATCH:                     # no wifi: every Safe is offline, and waits the poll period
             x["tried"], x["ok"], x["err"] = True, False, "no wifi"
@@ -1227,13 +1226,13 @@ def start():
         splash.step("chip", "%s%s%s" % (name, fingerprint() or "no key", pinned), L.RED if not qx or not pin_ok else L.GREEN)
         check_counter()
     w = network.WLAN(network.STA_IF)
-    if secrets and not w.isconnected() and not net.tried:
+    if net.networks() and not w.isconnected() and not net.tried:
         try:
             skip = " press skips" if KNOB else " A skips"
-            net.connect(progress=lambda ms: splash.spin("wifi", ("join " + SSID)[:12] + skip) or bool(keys.pressed()))
+            net.connect(progress=lambda ms: splash.spin("wifi", ("join " + net.ssid())[:12] + skip) or bool(keys.pressed()))
         except Exception as e:
             print("wifi:", e)
-    splash.wifi_row(w, SSID if secrets else "")
+    splash.wifi_row(w, net.ssid())
     served = [x for x in WATCH if x["base"]]
     first = ([x for x in served if x["base"].startswith("https")] or served or [None])[0]
     if len(WATCH) > 1:
