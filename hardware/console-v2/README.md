@@ -47,14 +47,17 @@ interrupts on MicroPython need. **This has not been run on the board yet.** To t
   the screen catches up.
 
 **One more thing to check on the bench:** `STEPS_PER_CLICK = 4` suits an EC11 that goes through a
-full quadrature cycle per detent. That's most of them, such as a 20-detent, 20-pulse part. A
-30-detent, 15-pulse encoder makes half a cycle per detent and needs 2. With 4, it moves only on
+full quadrature cycle per detent, such as Bourns' 24-detent, 24-pulse PEC11R. Many encoders make
+only half a cycle per detent and need 2. Alps' own EC11E15244G1 is one of them, with 30 detents and
+15 pulses, and so is the RKJXT. A clone EC11 can be either kind. With 4, it moves only on
 every other click, which also feels "slow". In `bench1`, turn one click at a time and watch
 KNOB. If it moves on every other click, set it to 2.
 
 **Later firmware,** if it's still not crisp enough:
 - Decode quadrature in a PIO state machine. The counting then happens in hardware and costs Python
-  nothing.
+  nothing. MicroPython's `machine.Encoder` doesn't exist on rp2. Peter Hinch's
+  [`encoder_rp2.py`](https://github.com/peterhinch/micropython-samples/blob/master/encoders/encoder_rp2.py)
+  is the known PIO decoder.
 - Redraw only what the knob changed, instead of the full eight-band frame.
 
 Better hardware still helps. A good encoder bounces less, has a firmer detent, and lasts longer.
@@ -65,10 +68,10 @@ But it won't fix lost interrupts. Do the firmware first, and judge the part afte
 | option | feel | for a fab | GPIO | verdict |
 |---|---|---|---|---|
 | **Genuine EC11-pattern encoder** (Alps EC11E, Bourns PEC11R) | crisp detents, low bounce | through-hole. JLCPCB solders THT, or you do. The footprint is the same as the clone's | 3 | **rev A.** It's what Build 1 has, only better, and every EC11 fits one footprint |
-| **Alps RKJXT1F42001** "multi control device": dial + 4-way tilt + push in one | car-stereo knob | SMD/THT hybrid, one part | 7 | **evaluate.** Dial for paging, tilt for left/right between Safes, push for select. Worth a bench test |
-| Illuminated RGB encoder (Bourns PEL12T) | as a PEC11, with an LED in the shaft | THT, 3 LED pins | 3 + 3 | no: the glow belongs on Sign, not on the knob |
-| 5-way nav switch (Alps SKQU/SKRH, the Waveshare's joystick) | small, clicky | SMD, cheap | 5 | no: it's what the dev console has, and nobody liked paging with it |
-| Thumbwheel encoder (side-mounted, like a mouse wheel) | fast scrolling, one thumb | SMD/THT | 3 | later, if the case becomes a handheld you grip |
+| **Alps RKJXT1F42001** "multi control device": dial + 4-way tilt + push on one shaft. 17 × 17 × 10.5 mm, 30 detents / 15 pulses | car-stereo knob | THT, one part, LCSC C160841, $5.27, 6,300 in stock | 7 | **evaluate.** Dial for paging, tilt for left/right between Safes, push for select. Worth a bench test |
+| Illuminated RGB encoder (Bourns PEL12T) | as a PEC11, with an LED in the shaft | THT, 3 LED pins. Not on LCSC, $7 at Digi-Key | 3 + 3 | no: the glow belongs on Sign, not on the knob |
+| 5-way nav switch (Alps SKRHABE010, the Waveshare's kind of joystick) | small, clicky | SMD, LCSC C139794, $0.78 | 5 | no: it's what the dev console has, and nobody liked paging with it |
+| Thumbwheel encoder (Alps EC10E1260507, horizontal; Mitsumi SIQ-02FVS3, a side jog wheel) | fast scrolling, one thumb | THT or SMD, LCSC C470633 / C2925423 | 3 | later, if the case becomes a handheld you grip |
 | Magnetic angle sensor (AS5600) + magnet, or a haptic knob (SmartKnob) | contactless, no bounce, programmable detents | an I2C sensor plus mechanics, or a BLDC motor and driver | I2C | v3 idea. Lovely, but it's a project in itself |
 
 **Pick for rev A:** an EC11-pattern footprint with a genuine part fitted (§7 has the numbers).
@@ -103,8 +106,17 @@ exactly this by the thousand, and every part is made for assembly by a fab:
 - **A hot-swap socket** (Kailh, for MX or for Choc) is reflowed onto the PCB by the fab. The switch
   presses in by hand and can be changed without solder. That lets the Sign switch be heavy and
   tactile while Reject is light, and anyone can try their own.
-- **A reverse-mount addressable RGB LED** (SK6812MINI-E) sits on the PCB's underside and shines up
-  through a hole into the switch's LED window. JLCPCB places it.
+- **A reverse-mount addressable RGB LED** (SK6812MINI-E, LCSC C5149201, about $0.07) sits on the
+  PCB's underside and shines up through a hole into the switch's LED window. JLCPCB places it.
+  That makes the board two-sided for assembly, which costs a second setup fee. Everything else
+  goes on top.
+  - **It needs 3.7–5.5 V, not 3.3 V.** Its data input wants 0.7 × VDD, which 3.3 V logic can't
+    reach at 5 V.
+  - So the LEDs run from VSYS. That's 3.5–4.2 V on the cell and about 4.7 V on USB.
+  - A one-gate buffer, powered from VSYS, lifts the data line. It needs to be one whose input reads
+    3.3 V as high at any supply, such as TI's SN74LV1T34.
+  - Below about 3.7 V on a nearly flat cell, the LEDs dim and shift colour. That's out of spec but
+    harmless, and the battery warning has shown by then.
 - **A translucent or frosted keycap.** Clear and "pudding" MX caps are stock items. A
   resin-printed cap with SIGN engraved also works.
 - **One GPIO drives every light:** Sign, Reject and the status LED, chained. MicroPython's
@@ -117,8 +129,8 @@ unguarded and instant, as before.
 
 | other ways to light the button | why not first |
 |---|---|
-| A tact switch with a built-in LED (12 mm, single colour) | One colour: it can't show amber for red-screen transactions. A smaller cap, and a cheaper feel |
-| A 16 mm metal panel button with an RGB ring (Adafruit and others) | Lovely feel and looks. But it's panel-mount, so it's wired by hand into the case, the ring needs a resistor per colour, and three GPIOs |
+| A tact switch with a built-in LED (E-Switch TL1265, 7 mm, one colour) | One colour: it can't show amber for red-screen transactions. Small, and out of stock at LCSC and Digi-Key on 2026-10-02 |
+| A 16 mm metal panel button with an RGB ring (Adafruit 3350, 3–6 V, resistors built in) | Lovely feel and looks. But it's panel-mount, so it's wired by hand into the case, and the ring takes three PWM GPIOs. Out of stock on 2026-10-02 |
 | An arcade button with an LED | Too big for a pocket console. It's the right choice for a desk-sized one |
 
 ## 4. The board
@@ -147,8 +159,14 @@ unguarded and instant, as before.
 - **The screen stays a module** on an 8-pin header, the same 8 wires as Build 1, so `lcd.py`
   doesn't change. A bare panel on an FPC connector saves height and cost, and it comes later.
 - **Key power gets a real load switch.** It replaces GP6 feeding the key directly, and closes
-  HANDOFF's open decision. GP6 becomes the switch's enable. The switch limits current, and its
-  quick output discharge drops VCC fast when DETECT lifts.
+  HANDOFF's open decision. GP6 becomes the switch's enable.
+  - TI's TPS22917 (LCSC C2681320, $0.36) has quick output discharge, which drops VCC fast when
+    DETECT lifts.
+  - It doesn't limit current, though. A shorted key would pull from the 3.3 V rail until the Pico's
+    regulator folds back.
+  - The kickoff asks for a current limit. That needs a current-limited switch instead (a
+    USB-style power switch with a set limit around 200 mA), or a PTC fuse after the TPS22917.
+    Pick one when the board is drawn.
 - **DETECT gets a hard interrupt** that turns VCC off at once, as the key interface asks (1 ms),
   instead of waiting for the next UI tick.
 - **The I2C pull-ups go to 4.7 kΩ** to switched key VCC, as key-pcb's open list suggests.
@@ -210,9 +228,9 @@ anything is committed to copper.
 
 | part | qty | why | about |
 |---|---|---|---|
-| Bourns PEC11R-4220F-S0024 (20 detents, 20 pulses, push) | 2 | the genuine EC11-pattern knob | $2–3 |
-| Alps EC11E15244G1 (push) | 2 | the other genuine one, to compare | $2–3 |
-| Alps RKJXT1F42001 (dial + 4-way + push) | 1–2 | dial-plus-tilt | $5–8 |
+| Bourns PEC11R-4220F-S0024 (24 detents, 24 pulses, push; bounce ≤ 2 ms) | 2 | the genuine EC11-pattern knob. LCSC C143797, Digi-Key | $2.58 |
+| Alps EC11E18244A5 (36 detents, 18 pulses, push) | 2 | Alps' feel, to compare. `STEPS_PER_CLICK = 2`. LCSC C255515 | $2.42 |
+| Alps RKJXT1F42001 (dial + 4-way + push) | 1–2 | dial-plus-tilt. `STEPS_PER_CLICK = 2`. LCSC C160841 | $5.27 |
 | Adafruit NeoKey Socket Breakout (4978): one MX hot-swap socket + a reverse-mount NeoPixel | 2–3 | exactly the Sign design, on jumper wires | $2 |
 | MX switches: a tactile and a linear, a few of each | 4–6 | the Sign feel vs the Reject feel | $5 |
 | clear or frosted MX keycaps | a pack | the glow through the cap | $5–10 |
@@ -222,13 +240,14 @@ anything is committed to copper.
 
 | part | ref | why |
 |---|---|---|
-| EC11-pattern encoder with push (Bourns PEC11R or Alps EC11E) | ENC1 | the knob, THT |
-| Kailh MX hot-swap socket, ×2 | SW1, SW2 | Sign and Reject |
-| SK6812MINI-E, ×3 | LED1–3 | Sign, Reject, status |
-| card-edge socket, 0.100″, 8/16 positions | J1 | the key. THT, hand-soldered: the Sullins body isn't reflow-rated |
-| USBLC6-2SC6 | U3 | ESD at the key socket |
-| load switch with quick output discharge (e.g. TI TPS22917) | U4 | switched KEY_VCC |
-| MCP73831-2 or equivalent LiPo charger | U5 | charging from USB |
+| EC11-pattern encoder with push: Bourns PEC11R-4220F-S0024 | ENC1 | the knob. LCSC C143797, THT |
+| Kailh MX hot-swap socket CPG151101S11, ×2 | SW1, SW2 | Sign and Reject. LCSC C2803348 is **out of stock**: send JLCPCB a bag (consigned parts), or draw the footprint for soldered-in MX switches |
+| SK6812MINI-E, ×3 | LED1–3 | Sign, Reject, status. LCSC C5149201, on VSYS |
+| SN74LV1T34 (or any single buffer that reads 3.3 V as high at 5 V) | U6 | LED data, 3.3 V to VSYS |
+| card-edge socket, 0.100″, 8/16 positions, 0.062″ card: Sullins EBC08DRXN | J1 | the key. Digi-Key, THT, hand-soldered: the body isn't reflow-rated. LCSC has none confirmed for 1.6 mm cards; WingTAT's ED14BGFBK (C5173291, "ISA slot") is worth a test fit |
+| USBLC6-2SC6 | U3 | ESD at the key socket. LCSC C7519 |
+| TPS22917DBVR, plus a current limit (§4) | U4 | switched KEY_VCC. LCSC C2681320 |
+| MCP73831T-2ACI/OT | U5 | charging from USB, 4.20 V, up to 500 mA. LCSC C424093 |
 | Schottky (e.g. MBR120 / 1N5817 in SMD), slide switch, JST-PH | | battery path |
 | 4.7 k ×2, 10 k ×1, 100 k ×2, 100 nF, 4.7 µF | | pull-ups, ID, battery divider, decoupling |
 | Pico 2 W | U1 | hand-soldered, or on sockets |
@@ -239,7 +258,7 @@ anything is committed to copper.
 | | rev A (now) | rev B (if it gets used) |
 |---|---|---|
 | MCU | a Pico 2 W module | RP2350 chip-down + RM2 radio module + QSPI flash |
-| screen | a module on a header | a bare panel on an FPC connector |
+| screen | a module on a header | a bare panel on an FPC connector, such as the 2.0″ ST7789 HS20HS072RX (LCSC C5329582, $3.40). Its FPC pinout is unchecked: the datasheet wouldn't download |
 | assembly | JLCPCB places the SMD parts. The Pico, the screen, the encoder and the key socket are soldered by hand | everything by the fab except the cell |
 | quantity | 5 | 20–100 |
 | hand time per console | about 30 min | about 5 min |
@@ -270,7 +289,8 @@ a screen and a cell, with the BOM and the firmware image.
 - [ ] Dial only, or the RKJXT's dial-plus-tilt
 - [ ] MX or Choc (low-profile) for Sign and Reject. Choc makes a thinner console, and MX has more
       switches and caps
-- [ ] SK6812MINI-E supply: 3.3 V, or a 5 V/VSYS rail with a level shifter on the data line (§7 notes)
+- [ ] Hot-swap sockets are out of stock at LCSC: consign them, or solder the switches in
+- [ ] Key VCC current limit: a current-limited switch, or a PTC after the TPS22917
 - [ ] Pico 2 W soldered flat by its castellations, or on sockets
 - [ ] 2.0″ or 2.8″ screen for v2 (the 2.8″ is proven on the bench)
 - [ ] Case: a handheld you grip, or a desk console you put down

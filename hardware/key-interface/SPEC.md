@@ -54,8 +54,9 @@ powered.
 **Supply**
 
 - The console must give 3.3 V ±5 % on VCC, at up to 100 mA continuous.
-- The console must switch VCC with a load switch or an equivalent current-limited high-side switch. A
-  GPIO pin as the supply is a bench shortcut, not compliance.
+- The console must switch VCC with a load switch, and should limit it to about 200 mA, so that a
+  shorted key can't pull down the console. A GPIO pin as the supply is a bench shortcut, not
+  compliance.
 - When it switches off, VCC should fall below 0.3 V within 10 ms. An output-discharge load switch
   does this.
 - A key must draw no more than 50 mA on average, with peaks up to 100 mA, and should hold no more
