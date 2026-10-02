@@ -557,7 +557,7 @@ async function pin() {
   if (others.length < had.length - (had.some((p) => String(p.serial).toLowerCase() === chip.serial) ? 1 : 0))
     console.log(`  (--only: ${had.length - others.length} other pinned chip(s) dropped)`);
   if (!(await ask("The old secrets.py is kept as secrets.bak."))) die("nothing changed");
-  console.log(writePins(line) + " bytes; restart the console (unplug and plug in) to use it");
+  console.log(writePins(line) + " bytes" + (assumeYes ? "" : "; restart the console (unplug and plug in) to use it"));
 }
 
 // QUORUM_EXPECT in the board's secrets.py replaced by these lines (the old file kept as secrets.bak).
