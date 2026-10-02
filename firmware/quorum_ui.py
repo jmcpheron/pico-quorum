@@ -848,7 +848,7 @@ def draw_device(q):
     d = q.d
     d.fill(c("bg"))
     txt(d, "Device", M, 4, "bold18")
-    txt_r(d, image.IMAGE + " " + image.BUILD, R, 9, "sans12", "muted")
+    txt_r(d, (image.VERSION + " \u00b7 " + image.BUILD) if image.VERSION else (image.IMAGE + " " + image.BUILD), R, 9, "sans12", "muted")
     import chips
     name = q.chip["name"] + " \u00b7 " if q.chip else ""
     rows = [("Chip", (name + (q.serial[-8:] if q.serial else (q.sig.name if q.sig else "none")))[:22]),

@@ -1259,7 +1259,7 @@ def start():
         marks.append("%s %d" % (what, time.ticks_diff(now, last[0])))
         last[0] = now
     splash.TITLE = "picoquorum"
-    qlog.write("boot %s %s reset cause %d" % (image.IMAGE, image.BUILD, machine.reset_cause()))
+    qlog.write("boot %s %s %s reset cause %d" % (image.IMAGE, image.VERSION or "-", image.BUILD, machine.reset_cause()))
     U.use(getattr(secrets, "QUORUM_THEME", "dark") if secrets else "dark")
     # Every font now, while the heap is whole. They are loaded on first use otherwise, and bold26
     # alone is one 10.9 KB block: after a tour of the chip map the heap was too fragmented for it,

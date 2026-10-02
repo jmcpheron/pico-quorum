@@ -281,7 +281,7 @@ function build(image, { quiet = false } = {}) {
     } else copyFileSync(join(FIRMWARE, f), join(dir, to));
     files[to] = sha256(readFileSync(join(dir, to))).slice(0, 12);
   }
-  const py = `# written by tools/fw build; never committed\nIMAGE = ${JSON.stringify(image)}\nBUILD = ${JSON.stringify(id)}\nDATE = ${Math.floor(Date.now() / 1000)}\nFILES = ${JSON.stringify(files)}\n`;
+  const py = `# written by tools/fw build; never committed\nIMAGE = ${JSON.stringify(image)}\nVERSION = ${JSON.stringify(M.version || "")}\nBUILD = ${JSON.stringify(id)}\nDATE = ${Math.floor(Date.now() / 1000)}\nFILES = ${JSON.stringify(files)}\n`;
   writeFileSync(join(dir, "build.py"), py);
   return { image, id, dir, names: [...Object.keys(files), "build.py"] };
 }
@@ -336,8 +336,8 @@ async function verify({ baseline = false } = {}) {
   let ok = true;
   const mainSrc = files.some((f) => f.name === "main.py") ? run("print(open('main.py').read()[:120])") : "";
   const image = (/# picoquorum-image: (\w+)/.exec(mainSrc) || [])[1] || null;
-  const onBoard = files.some((f) => f.name === "build.py") ? run("import build\nprint('BUILD:' + build.BUILD)").match(/BUILD:(\S+)/)?.[1] : null;
-  console.log(`image: ${image || "none (a development board: main.py is " + (/wallet/.test(mainSrc) ? "the legacy wallet" : "something else") + ")"}${onBoard ? ", build " + onBoard : ""}`);
+  const onBoard = files.some((f) => f.name === "build.py") ? run("import build\nprint('BUILD:' + getattr(build, 'VERSION', '') + ' ' + build.BUILD)").match(/BUILD:(\S*) (\S+)/) : null;
+  console.log(`image: ${image || "none (a development board: main.py is " + (/wallet/.test(mainSrc) ? "the legacy wallet" : "something else") + ")"}${onBoard ? `, version ${onBoard[1] || "none"}, build ${onBoard[2]}` : ""}`);
   if (image) {
     const b = build(image);          // this checkout, built the same way a push would
     const want = new Map(b.names.filter((n) => n !== "build.py").map((n) => [n, sha256(readFileSync(join(b.dir, n)))]));
@@ -492,7 +492,7 @@ async function push(image) {
   const keep = files.map((f) => f.name).filter((n) => matches(M.preserve, n));
   const flagged = files.map((f) => f.name).filter((n) => matches(M.flag, n));
   const stale = files.map((f) => f.name).filter((n) => !b.names.includes(n) && !matches(M.preserve, n) && !matches(M.flag, n));
-  console.log(`\npush ${image} ${b.id} to ${port()}:`);
+  console.log(`\npush ${image} ${M.version || ""} ${b.id} to ${port()}:`);
   console.log(`  copy (${copy.length}): ${copy.join(" ") || "nothing, it is all there"}`);
   console.log(`  delete, not part of the image (${stale.length}): ${stale.join(" ") || "none"}`);
   console.log(`  keep (${keep.length}): ${keep.join(" ")}`);
@@ -828,7 +828,7 @@ if (has("--all")) {
 }
 
 const cmds = {
-  build: () => { const b = build(argv[1] || die("build console|ceremony")); console.log(`built ${b.image} ${b.id}: ${b.names.length} files in ${b.dir}`); },
+  build: () => { const b = build(argv[1] || die("build console|ceremony")); console.log(`built ${b.image} ${M.version || ""} ${b.id}: ${b.names.length} files in ${b.dir}`); },
   backup: () => backup(),
   verify: async () => process.exit((await verify({ baseline: has("--baseline") })) ? 0 : 1),
   logs: () => logs(),

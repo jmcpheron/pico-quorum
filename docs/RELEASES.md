@@ -1,0 +1,35 @@
+# Firmware releases
+
+A release is **year.month.n**: the n-th of that month. The number is in `firmware/manifest.json`
+(`"version"`). `tools/fw build` writes it into the board's `build.py` next to the commit, the Device
+screen shows `2026.10.1 · <commit>`, and the boot line in `log.txt` carries both. Each release has a
+git tag, `fw-<version>`.
+
+**To make one:**
+1. Set `"version"` and commit.
+2. `tools/fw push console --all`, which pushes every board on USB in turn.
+3. `git tag fw-<version>` on that commit, then push the tag.
+
+## 2026.10.1 (2026-10-01)
+
+The first numbered release. It brings three lines of work together on the production console:
+
+- **The quick boot:** the boot art draws on a timer while WiFi joins and the console starts.
+  - The Trust M's certificate checks are remembered between boots (`tmproof.txt`).
+  - It also has the boot mark and taglines.
+- **Wi-Fi setup at power-up:** the console's own hotspot with a QR code, or the on-screen
+  keyboard (the joystick, or the knob).
+  - Networks are kept in `wifi.json`.
+  - Hold Y while plugging in, or pick **Device → Wi-Fi**, the way in on Build 1's knob.
+- **The Trust M, ready for the mainnet work:**
+  - **T9 freezes the 23 spares and Infineon's own three objects.** TM2 showed those three can
+    otherwise be rewritten.
+  - **T8 checks live** that the factory key is still the certificate's.
+  - **The Chip page** shows the spares.
+  - `tools/fw ceremony start|finish`, `tools/fw attest` and `tools/quorum verify`, with a live
+    challenge.
+  - The details: [TRUSTM.md](TRUSTM.md) and [mainnet/](mainnet/README.md).
+
+**Boards:**
+- The Waveshare (`025997e6…`), with TM1.
+- Build 1 (`aee390c5…`), with ATECC chip 2.

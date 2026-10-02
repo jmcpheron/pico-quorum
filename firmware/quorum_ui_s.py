@@ -406,7 +406,7 @@ def draw_device(q):
             ("pin", "ok" if q.pin_ok and q.EXPECT else ("dev: none" if q.pin_ok else "FAIL")),
             ("sec", "%d events" % q.sec) if q.sec is not None else
             ("uses", "#%d" % q.counter if q.counter is not None else "not counted"),
-            ("free", "%d KB \u00b7 %s" % (gc.mem_free() // 1024, image.BUILD))]
+            ("free", "%d KB \u00b7 %s" % (gc.mem_free() // 1024, image.VERSION or image.BUILD))]
     y = HEAD + 1
     for k, v in rows:
         txt(d, k, M, y, "sans12", "muted")
