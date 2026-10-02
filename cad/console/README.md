@@ -1,6 +1,7 @@
 # Case
 
-The PicoQuorum console enclosure is not drawn yet: screen window, thumb-placed green Sign (guarded)
+The PicoQuorum console enclosure has a first draft in [`lcd28/`](lcd28/README.md): a 2.8-inch LCD
+case with a dial, a button and a chip slot. Still to come: screen window, thumb-placed green Sign (guarded)
 and red Reject buttons, rotary encoder, latching power switch (the 3PDT stomp-switch gag is
 welcome), status LED, and the dual key socket on one rigid jack bracket. Until then this folder is
 the dev console's case, below.
