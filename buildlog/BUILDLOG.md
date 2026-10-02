@@ -729,3 +729,11 @@ The Safe's nonce is 1.
   `0x99eD…6b88` now has code on Base. The factory on Ethereum mainnet has the same code and gives
   the same address; chip 2 is not deployed there yet (only when a Safe there needs it). Not yet an
   owner of any Safe.
+
+## 2026-10-02 — key PCB rev A: the PCB is the plug
+
+The key's first board, designed and checked but not ordered. The board's own edge is the plug:
+gold fingers, staggered so GND mates first and DETECT last, on Build 1's GPIOs. There are two
+boards, key-a (SOIC, hand-soldered) and key-b (UDFN, assembled), both with an ATECC608C.
+Notes: [2026-10-02-key-pcb-blade.md](2026-10-02-key-pcb-blade.md). Design and ordering:
+[hardware/key-pcb](../hardware/key-pcb/README.md).

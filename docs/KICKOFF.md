@@ -103,6 +103,11 @@ What's different here: a multisig-first design, on-device Safe transaction decod
 Build 1 tries a 3.5 mm + 2.5 mm TRRS pair instead (8 contacts: DETECT, key RST and an ID line fit):
 [hardware/wiring/BUILD1.md](../hardware/wiring/BUILD1.md).
 
+The key PCB's rev A, being prototyped, drops the plugs: **the PCB is the plug.** The board has gold
+fingers on one edge and goes into a card-edge socket. Fingers of different lengths do the
+sequencing in copper (GND first, DETECT last), a slot keys it, and it uses Build 1's GPIOs. See
+[hardware/key-pcb](../hardware/key-pcb/README.md).
+
 Design rules:
 
 - The shorter 3.5 mm plug mates last and breaks first, which sequences power mechanically.

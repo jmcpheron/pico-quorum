@@ -19,6 +19,20 @@ For the soldered perfboard version with an 18650 cell (a protected cell or a DW0
 an SPST switch, a 1N5817 Schottky, and an optional 2 × 100 kΩ + 100 nF battery gauge), see
 [hardware/wiring/SOLDERING.md](../wiring/SOLDERING.md#parts).
 
+## Key PCB, rev A
+
+The order itself is in [key-pcb/ORDERING.md](../key-pcb/ORDERING.md).
+
+| part | qty | source | notes |
+|---|---|---|---|
+| key-a bare boards, ENIG, 1.6 mm | 5–10 | JLCPCB, `key-a-soic/fab/key-a-soic-gerbers.zip` | gold-finger option off |
+| ATECC608C-SSHDA-B (SOIC-8) | 10 | Digi-Key 150-ATECC608C-SSHDA-B-ND | out of stock until Jan 2027 on 2026-10-02; see ORDERING.md |
+| USBLC6-2SC6 | 10 | Digi-Key 497-5235-1-ND | |
+| 100 nF 0805 X7R | 10 | any | |
+| key-b boards, assembled | 5 | JLCPCB Economic PCBA, `key-b-udfn/fab/` | ATECC608C-MAHDA-S is C23291019, pre-order if short |
+| Card-edge socket, 0.100″, 0.062″ card, 8/16 positions | 1–2 | Sullins EBC08DRXN (the 5/10 size is Digi-Key S9641-ND) | the console side; hand-solder, never reflow |
+| Sullins PLA-K1 polarizing key | 2 | Digi-Key PLA-K1-ND | optional; check which way it sits |
+
 ## First order for the PicoQuorum console and keys
 
 From the [kickoff](../../docs/KICKOFF.md#first-parts-order). Nothing ordered yet.
