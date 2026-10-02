@@ -180,7 +180,9 @@ the red rail and into the key.
 - [ ] **The slot plan**, before locking any ATECC: which slot signs, what's lockable, and whether
       there's a CheckMac or PIN gate. The config lock freezes all of it.
 - [ ] **The connector.** The kickoff drafts ¼″ plus 3.5 mm TRS; Build 1 uses 3.5 mm plus 2.5 mm
-      TRRS. Measure the jack spacing on the bench for the key body and the case.
+      TRRS. Measure the jack spacing on the bench for the key body and the case. A third
+      candidate is being prototyped: the key PCB as a card-edge plug on the same GPIOs, so the
+      contact order is set in copper ([key-pcb](key-pcb/README.md)).
 - [ ] **The 18650 holder or clips** that go in the case.
 - [ ] **Key power**: GP6 directly, or a PNP high-side switch. Measure whether an ATECC Sign or a
       Trust M holds up on GP6.

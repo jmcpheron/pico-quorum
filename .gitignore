@@ -29,3 +29,10 @@ build/
 
 # chips/: the local datasheet of every ATECC608 (CHIPS.md); stays on this Mac
 chips/
+
+# KiCad's per-user state, backups and caches (hardware/key-pcb)
+*.kicad_prl
+*-backups/
+fp-info-cache
+*.lck
+\#auto_saved_files\#

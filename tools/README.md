@@ -20,6 +20,12 @@ PicoQuorum additions:
 - `wiring-build1`: draws [`../hardware/wiring/build1-wiring.svg`](../hardware/wiring/build1-wiring.svg);
   `--check` compares its pin table with BUILD1.md, hardware/HANDOFF.md and `firmware/bench1.py`
 
+- `keypcb`: the key PCBs in [`../hardware/key-pcb/`](../hardware/key-pcb/), with KiCad 9's
+  `kicad-cli`.
+  - `check` runs ERC, then DRC with schematic parity.
+  - `fab` writes the Gerber zip, and the BOM and CPL in JLCPCB's format.
+  - `render` draws the top and bottom of each board.
+
 - [`fonts/`](fonts/): renders the console's anti-aliased fonts (Atkinson Hyperlegible, OFL) into
   `firmware/qf_*.bin`; `firmware/fonts.py` draws them
 

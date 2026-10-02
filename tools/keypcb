@@ -1,0 +1,157 @@
+#!/usr/bin/env python3
+# The key PCBs in hardware/key-pcb (see its README.md and ORDERING.md). Needs KiCad 9's kicad-cli.
+#
+#   tools/keypcb check [board]    ERC on the schematic, then DRC with schematic parity on the board
+#   tools/keypcb fab [board]      writes <board>/fab/: the Gerber + drill zip, and the BOM and CPL
+#                                 in JLCPCB's column format
+#   tools/keypcb render [board]   top and bottom 3D renders into <board>/fab/ (part bodies show only
+#                                 if KiCad's 3D models are installed; the pads, fingers and silk always do)
+#
+# board is key-a-soic or key-b-udfn; without one, every board. Run from anywhere.
+import csv, glob, io, os, re, shutil, subprocess, sys, tempfile, zipfile
+
+ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "hardware", "key-pcb")
+ROOT = os.path.normpath(ROOT)
+
+# Gerber layers JLCPCB wants for a 2-layer board. Paste layers are only used for assembly orders,
+# and harmless on a bare-board order.
+LAYERS = "F.Cu,B.Cu,F.Paste,B.Paste,F.Silkscreen,B.Silkscreen,F.Mask,B.Mask,Edge.Cuts"
+
+
+def boards(arg):
+    names = sorted(os.path.basename(d) for d in glob.glob(os.path.join(ROOT, "key-*")) if os.path.isdir(d))
+    if arg:
+        if arg not in names:
+            sys.exit(f"no board {arg!r}; boards: {', '.join(names)}")
+        return [arg]
+    return names
+
+
+def kicad(*args):
+    r = subprocess.run(["kicad-cli", *args], capture_output=True, text=True)
+    if r.returncode not in (0, 5):  # 5: violations found, which the caller reads from the report
+        sys.exit(f"kicad-cli {' '.join(args)} failed ({r.returncode}):\n{r.stdout}{r.stderr}")
+    return r
+
+
+def files(name):
+    d = os.path.join(ROOT, name)
+    return d, os.path.join(d, name + ".kicad_sch"), os.path.join(d, name + ".kicad_pcb")
+
+
+def check(name):
+    d, sch, pcb = files(name)
+    ok = True
+    with tempfile.TemporaryDirectory() as t:
+        rpt = os.path.join(t, "erc.rpt")
+        kicad("sch", "erc", "--severity-all", "-o", rpt, sch)
+        text = open(rpt).read()
+        m = re.search(r"ERC messages: (\d+)\s+Errors (\d+)\s+Warnings (\d+)", text)
+        print(f"{name}: ERC  {m.group(2)} errors, {m.group(3)} warnings")
+        if m.group(1) != "0":
+            ok = False
+            print(text.split("\n", 4)[-1].rstrip())
+        rpt = os.path.join(t, "drc.rpt")
+        kicad("pcb", "drc", "--schematic-parity", "--severity-all", "-o", rpt, pcb)
+        text = open(rpt).read()
+        found = {k: int(v) for v, k in re.findall(r"\*\* Found (\d+) (DRC violations|unconnected pads|Footprint errors)", text)}
+        print(f"{name}: DRC  {found.get('DRC violations')} violations, {found.get('unconnected pads')} unconnected, "
+              f"{found.get('Footprint errors')} schematic-parity issues")
+        if any(found.values()) or len(found) != 3:
+            ok = False
+            print(text.split("\n", 3)[-1].rstrip())
+    return ok
+
+
+def jlc_bom(name, sch, out):
+    """JLCPCB's BOM: Comment, Designator, Footprint, LCSC Part #. Only parts with an LCSC number that
+    are fitted; the rest (the fingers, a DNP resistor, a chip you solder yourself) stay off it."""
+    r = kicad("sch", "export", "bom", "--fields", "Reference,Value,Footprint,LCSC,${DNP}",
+              "--labels", "ref,value,fp,lcsc,dnp", "--ref-range-delimiter", "", "-o", "/dev/stdout", sch)
+    rows = {}
+    for row in csv.DictReader(io.StringIO(r.stdout)):
+        if not row["lcsc"] or row["dnp"].strip():
+            continue
+        key = (row["value"], row["fp"].split(":")[-1], row["lcsc"])
+        rows.setdefault(key, []).append(row["ref"])
+    with open(out, "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["Comment", "Designator", "Footprint", "LCSC Part #"])
+        for (value, fp, lcsc), refs in sorted(rows.items(), key=lambda kv: kv[1]):
+            w.writerow([value, ",".join(refs), fp, lcsc])
+    return {ref for refs in rows.values() for ref in refs}
+
+
+def jlc_cpl(pcb, refs, out):
+    """JLCPCB's CPL: Designator, Mid X, Mid Y, Layer, Rotation, for the parts in the BOM. Rotation is
+    KiCad's; JLCPCB's preview shows each part on the board, and that is where a pin 1 that landed
+    in the wrong corner gets fixed (see ORDERING.md)."""
+    with tempfile.TemporaryDirectory() as t:
+        pos = os.path.join(t, "pos.csv")
+        kicad("pcb", "export", "pos", "--format", "csv", "--units", "mm", "--side", "both",
+              "--exclude-dnp", "--use-drill-file-origin", "-o", pos, pcb)
+        rows = list(csv.DictReader(open(pos)))
+    with open(out, "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["Designator", "Mid X", "Mid Y", "Layer", "Rotation"])
+        for r in rows:
+            if r["Ref"] in refs:
+                side = "Top" if r["Side"] == "top" else "Bottom"
+                w.writerow([r["Ref"], f'{float(r["PosX"]):.4f}mm', f'{float(r["PosY"]):.4f}mm', side,
+                            f'{float(r["Rot"]) % 360:.0f}'])
+
+
+def fab(name):
+    d, sch, pcb = files(name)
+    out = os.path.join(d, "fab")
+    os.makedirs(out, exist_ok=True)
+    with tempfile.TemporaryDirectory() as t:
+        # every file measures from the board's drill/place origin, its bottom-left corner
+        kicad("pcb", "export", "gerbers", "--layers", LAYERS, "--subtract-soldermask", "--use-drill-file-origin",
+              "-o", t + "/", pcb)
+        kicad("pcb", "export", "drill", "--format", "excellon", "--excellon-separate-th", "--drill-origin", "plot",
+              "-o", t + "/", pcb)
+        z = os.path.join(out, f"{name}-gerbers.zip")
+        with zipfile.ZipFile(z, "w", zipfile.ZIP_DEFLATED) as zf:
+            for p in sorted(os.listdir(t)):
+                if p.endswith(".gbrjob"):
+                    continue
+                info = zipfile.ZipInfo(p, date_time=(2026, 1, 1, 0, 0, 0))  # same bytes on every run
+                info.compress_type = zipfile.ZIP_DEFLATED
+                zf.writestr(info, open(os.path.join(t, p), "rb").read())
+        print(f"{name}: {os.path.relpath(z)} ({len(zipfile.ZipFile(z).namelist())} files)")
+    refs = jlc_bom(name, sch, os.path.join(out, "bom.csv"))
+    jlc_cpl(pcb, refs, os.path.join(out, "cpl.csv"))
+    print(f"{name}: fab/bom.csv and fab/cpl.csv ({', '.join(sorted(refs)) or 'nothing to place'})")
+
+
+def render(name):
+    d, sch, pcb = files(name)
+    out = os.path.join(d, "fab")
+    os.makedirs(out, exist_ok=True)
+    for side in ("top", "bottom"):
+        png = os.path.join(out, f"{name}-{side}.png")
+        kicad("pcb", "render", "--side", side, "--quality", "high", "--width", "900", "--height", "1100",
+              "--background", "opaque", "--zoom", "1", "-o", png, pcb)
+        print(f"{name}: {os.path.relpath(png)}")
+
+
+def main():
+    if len(sys.argv) < 2 or sys.argv[1] not in ("check", "fab", "render"):
+        sys.exit(__doc__ or open(__file__).read().split("\nimport")[0])
+    if not shutil.which("kicad-cli"):
+        sys.exit("kicad-cli not found: install KiCad 9 (https://www.kicad.org/download/)")
+    cmd, arg = sys.argv[1], (sys.argv[2] if len(sys.argv) > 2 else None)
+    ok = True
+    for name in boards(arg):
+        if cmd == "check":
+            ok &= check(name)
+        elif cmd == "fab":
+            fab(name)
+        else:
+            render(name)
+    sys.exit(0 if ok else 1)
+
+
+if __name__ == "__main__":
+    main()
