@@ -2,7 +2,7 @@
 
 - [`console/`](console/): enclosure, button guard or flip cover, jack bracket; today it holds the
   inherited picowallet case (Waveshare Pico-LCD-1.3) and its Python generators
-- [`key/`](key/): plug handle, end cap, label band
+- [`key/`](key/): plug handle, end cap, label band; today a tray for the ATECC608 breakout
 
 ## Open
 
