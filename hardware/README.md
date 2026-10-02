@@ -9,6 +9,11 @@ Console and key electronics. The goals are in [`../docs/KICKOFF.md`](../docs/KIC
 - [`key-pcb/`](key-pcb/): the key's board. Rev A makes the board itself the plug (gold fingers into
   a card-edge socket). It has two KiCad projects, the fab files, and how to order them
   ([ORDERING.md](key-pcb/ORDERING.md))
+- [`key-interface/`](key-interface/SPEC.md): the key interface, version 0 (draft). This is the blade,
+  the pins, the power sequence and the ID codes that any key and any console agree on
+- [`console-v2/`](console-v2/README.md): the console as one PCB a fab can assemble, with a better
+  knob, a Sign button lit from underneath, a load-switched key socket and a LiPo. This is an
+  exploration, so nothing is laid out yet
 
 The inherited picowallet wiring (Pico + Waveshare LCD + ATECC608 + 18650) is in
 [`wiring/SOLDERING.md`](wiring/SOLDERING.md) and `tools/wiring`.
