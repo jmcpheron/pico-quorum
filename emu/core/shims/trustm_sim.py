@@ -7,8 +7,10 @@
 #
 # The factory state is what a real Adafruit 4351 answered on 2026-09-28 (chips/trustm-*-probe.txt):
 # LcsA operational; E0F0 a factory key (Change NEV, Execute ALW, P-256, usage Auth) certified in
-# E0E0; E0F1-E0F3 empty with Change "LcsO < op"; F1D0-F1DB 140 bytes, 100 used, zeros, Change
-# "LcsO < op", Read ALW; the security event counter E0C5 at 0. The certificate is signed by a test
+# E0E0; E0F1-E0F3, E0FC, E0FD empty with Change "LcsO < op"; F1D0-F1DB 140 bytes, 100 used, zeros,
+# Change "LcsO < op", Read ALW; F1E0/F1E1 1500 bytes; E0E1, E0E8, E0EF empty certificate and trust
+# anchor slots; the counters E120-E123; the binding secret E140 (Change "LcsO < op || Conf(E140)");
+# the security event counter E0C5 at 0. The certificate is signed by a test
 # CA (CA_PUB), which tmcfg.py accepts only off the Pico.
 #
 # The security event counter as the real chip showed it (2026-09-28): a CalcSign (E0F0 or E0F1)
@@ -139,6 +141,18 @@ def factory():
     objs[0xE0E0] = {"data": cert, "meta": {"lcso": 0x01, "max": 1728, "change": b"\xff", "read": b"\x00", "exec": b"\x00", "type": 0x12}}
     for oid in list(range(0xF1D0, 0xF1DC)):
         objs[oid] = {"data": bytes(100), "meta": {"lcso": 0x01, "max": 140, "change": b"\xe1\xfc\x07", "read": b"\x00"}}
+    # the rest of what the probe listed, so T9 (freeze the spares) has the real chip's objects
+    for oid in (0xE0FC, 0xE0FD):
+        objs[oid] = {"meta": _key_meta(b"\xe1\xfc\x07")}       # RSA key objects, empty
+    objs[0xE0E1] = {"data": b"", "meta": {"lcso": 0x01, "max": 1728, "change": b"\xe1\xfc\x07", "read": b"\x00", "exec": b"\x00", "type": 0x12}}
+    for oid in (0xE0E8, 0xE0EF):
+        objs[oid] = {"data": b"", "meta": {"lcso": 0x01, "max": 1200, "change": b"\xe1\xfc\x07", "read": b"\x00", "exec": b"\x00", "type": 0x11}}
+    for oid in (0xE120, 0xE121, 0xE122, 0xE123):
+        objs[oid] = {"data": bytes(8), "meta": {"lcso": 0x01, "max": 8, "change": b"\xe1\xfc\x07", "read": b"\x00", "exec": b"\x00", "type": 0x01}}
+    objs[0xE140] = {"data": bytes(64), "meta": {"lcso": 0x01, "max": 64, "change": b"\xe1\xfc\x07\xfe\x20\xe1\x40", "read": b"\xe1\xfc\x07",
+                                                "exec": b"\x00", "type": 0x22}}
+    for oid in (0xF1E0, 0xF1E1):
+        objs[oid] = {"data": bytes(1500), "meta": {"lcso": 0x01, "max": 1500, "change": b"\xe1\xfc\x07", "read": b"\x00"}}
     return objs
 
 

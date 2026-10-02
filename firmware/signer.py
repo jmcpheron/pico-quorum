@@ -84,6 +84,15 @@ def flag(name):
     return bool(getattr(secrets, name, False))
 
 
+def setting(name, default=None):
+    """A secrets.py value that arms nothing (unlike flag()): the same on every image."""
+    try:
+        import secrets
+    except ImportError:
+        return default
+    return getattr(secrets, name, default)
+
+
 def gate(what):
     """Why a permanent action may not run now: "" when it may."""
     name = "ALLOW_GENKEY" if what == "genkey" else "ALLOW_LOCK"
@@ -587,6 +596,26 @@ class TrustMSigner:
     def needs_ceremony(self):
         return self.profile() in ("factory", "quorum-tm1-open")
 
+    def spares(self):
+        """Each spare object's state (tmcfg.spare_state); "absent" where the chip has no such object,
+        "kept" for an open one that secrets.TRUSTM_KEEP_OPEN names. 23 metadata reads: the
+        ceremony, the dual image's choice and the Chip page call it, never the console's boot."""
+        import tmcfg
+        import trustm_q
+        keep = tmcfg.oid_list(setting("TRUSTM_KEEP_OPEN"))
+        out = {}
+        for oid in tmcfg.SPARES:
+            try:
+                st = tmcfg.spare_state(self.chip.meta(oid))
+            except trustm_q.Refused:
+                st = "absent"
+            out[oid] = "kept" if st == "open" and oid in keep else st
+        return out
+
+    def spares_open(self):
+        """The spares T9 would freeze."""
+        return [o for o, s in self.spares().items() if s == "open"]
+
     def sec(self):
         return self.chip.sec()
 
@@ -610,7 +639,11 @@ class TrustMSigner:
             lcsa = self.chip.lcsa()
         except Exception:
             lcsa = None
-        return tmcfg.detail_pages(self.uid(), cert, self.ca_ok, row or self.key_row(), self.bound, self.record(), sec, lcsa)
+        try:
+            spares = self.spares()
+        except Exception:
+            spares = None
+        return tmcfg.detail_pages(self.uid(), cert, self.ca_ok, row or self.key_row(), self.bound, self.record(), sec, lcsa, spares)
 
     def slots(self):
         return [self.key_row()]

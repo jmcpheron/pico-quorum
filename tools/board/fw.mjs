@@ -21,6 +21,13 @@
 //   restart                  machine.reset(), hands off for 30 s while the console starts, then verify
 //   chips                    the chips this board has seen (chips.json): number, name, theme, what they hold
 //   allow on|off             ALLOW_LOCK and ALLOW_GENKEY in the board's secrets.py, for the ceremony only
+//   ceremony start [--unpin] [--keep-open F1D2,...]
+//                            the swap for a ceremony, after one "yes": the chip on the bus unpinned
+//                            (--unpin, when it is pinned), ALLOW_* on, then push dual: the board
+//                            restarts into the ceremony. Notes what it changed in
+//                            backups/<board-id>/ceremony.json.
+//   ceremony finish          and back, after one "yes": ALLOW_* off, pin the chip on the bus, push
+//                            console, verify, and compare the pins with ceremony.json.
 //
 // Port: $PICO_PORT, else the first /dev/cu.usbmodem* (mac) or /dev/ttyACM* (linux).
 import { spawnSync } from "node:child_process";
@@ -174,7 +181,7 @@ o = None
 if q:
     import image
     o = {"image": image.IMAGE, "build": image.BUILD, "state": q.state, "me": q.me, "serial": q.serial, "slot": q.sig.slot if q.sig else None,
-         "chipKind": q.sig.name if q.sig else None, "sec": getattr(q, "sec", None),
+         "chipKind": q.sig.name if q.sig else None, "profile": q.profile, "sec": getattr(q, "sec", None),
          "pin_ok": q.pin_ok, "pin_why": q.pin_why, "counter": q.counter, "outside": q.outside, "net_ok": q.net_ok, "net_err": q.net_err,
          "safes": ["%s %s %s: %s, %s" % (w["chain"], w["addr"], w["name"], "ok" if w["ok"] else w["err"], "owner" if q.me in q.owners(w) else "NOT an owner")
                    for w in getattr(q, "WATCH", [])],
@@ -225,8 +232,9 @@ elif s.name == "trustm":
         o["noKey"] = str(e)
 print("CHIP:" + json.dumps(o))`;
 
+let assumeYes = false;          // one "yes" for a whole ceremony start/finish
 async function ask(q) {
-  if (has("--yes")) return true;
+  if (has("--yes") || assumeYes) return true;
   const rl = createInterface({ input: process.stdin, output: process.stdout });
   const a = (await rl.question(q + " Type yes to go on: ")).trim();
   rl.close();
@@ -298,13 +306,20 @@ function backup() {
   if (bad.length) die(`the backup in ${dir} does not match the board: ${bad.join(", ")}`);
   writeFileSync(join(dir, "SHA256SUMS"), files.map((f) => `${sha256(readFileSync(join(dir, f.name)))}  ${f.name}`).join("\n") + "\n");
   const flags = tagged(run(FLAGS_PY), "FLAGS");
-  writeFileSync(join(dir, "board.json"), JSON.stringify({ board: uid, when: new Date().toISOString(), files, flags }, null, 1) + "\n");
+  writeFileSync(join(dir, "board.json"), JSON.stringify({ board: uid, when: new Date().toISOString(), files, flags, flash: flash() }, null, 1) + "\n");
   console.log(`backup: ${files.length} files, ${files.reduce((a, f) => a + f.size, 0)} bytes, every hash checked -> ${dir}`);
   if (moved.length) console.log(`  (${moved.join(", ")} changed while copying: the console writes them; the copies are as read)`);
   console.log(`  it holds the board's secrets.py: keep a copy somewhere outside the repo, and never commit it`);
   unpause();
   return { dir, files, uid };
 }
+
+// The board's filesystem: block size times blocks, total and free (os.statvfs).
+function flash() {
+  const [total, free] = tagged(run("import os, json\ns = os.statvfs('/')\nprint('FS:' + json.dumps([s[0] * s[2], s[0] * s[3]]))"), "FS");
+  return { total, free, used: total - free };
+}
+const kb = (n) => `${Math.round(n / 1024)} KB`;
 
 // ----------------------------------------------------------------------------- verify
 async function verify({ baseline = false } = {}) {
@@ -325,6 +340,8 @@ async function verify({ baseline = false } = {}) {
     const stale = files.map((f) => f.name).filter((n) => !want.has(n) && n !== "build.py" && !matches(M.preserve, n));
     if (stale.length) { ok = false; console.log(`  not part of the image: ${stale.join(", ")}`); }
   }
+  const fs = flash();
+  console.log(`flash: ${kb(fs.used)} used of ${kb(fs.total)}, ${kb(fs.free)} free (files ${kb(files.reduce((a, f) => a + f.size, 0))})`);
   const flags = tagged(run(FLAGS_PY), "FLAGS") || {};
   console.log("secrets.py:");
   for (const [k, v] of Object.entries(flags)) console.log(`  ${k} = ${JSON.stringify(v)}`);
@@ -469,7 +486,7 @@ async function push(image) {
   removeOnBoard(stale);
   console.log(`copied ${copy.length}, deleted ${stale.length}, every hash checked. Restarting out of maintenance...`);
   await leaveMaintenance();
-  await verify();
+  return verify();
 }
 
 // ----------------------------------------------------------------------------- restore
@@ -530,13 +547,17 @@ async function pin() {
   console.log(`owner computed here: ${owner}`);
   if (known?.owner) console.log(`owner enrolled (live.json): ${known.owner} ${known.owner.toLowerCase() === owner.toLowerCase() ? "= same" : "!! DIFFERENT"}`);
   if (!chip.slot0.locked) console.log(`!! ${where} is not locked: the console will refuse it unless the pin says locked: False`);
-  const py = (o) => JSON.stringify(o).replace(/true/g, "True").replace(/false/g, "False");
-  const line = `QUORUM_EXPECT = [\n${list.map((p) => "    " + py(p) + ",").join("\n")}\n]`;
+  const line = pinLines(list);
   console.log(`\npinned chips after this (${list.length}):`);
   for (const p of list) console.log(`  ${p.serial}  slot ${p.slot}  owner ${p.owner}${p.serial === chip.serial ? "  <- this chip" : ""}`);
   if (others.length < had.length - (had.some((p) => String(p.serial).toLowerCase() === chip.serial) ? 1 : 0))
     console.log(`  (--only: ${had.length - others.length} other pinned chip(s) dropped)`);
   if (!(await ask("The old secrets.py is kept as secrets.bak."))) die("nothing changed");
+  console.log(writePins(line) + " bytes; restart the console (unplug and plug in) to use it");
+}
+
+// QUORUM_EXPECT in the board's secrets.py replaced by these lines (the old file kept as secrets.bak).
+function writePins(line) {
   const code = `import os
 new = ${JSON.stringify(line)}
 with open('secrets.py') as f:
@@ -561,8 +582,12 @@ with open('secrets.py', 'w') as f:
     f.write(chr(10).join(keep) + chr(10) + '# the pinned chips, written by tools/fw pin' + chr(10) + new + chr(10))
 if hasattr(os, 'sync'): os.sync()
 print('WROTE', os.stat('secrets.py')[6])`;
-  console.log(run(code).match(/WROTE.*/)[0] + " bytes; restart the console (unplug and plug in) to use it");
+  return run(code).match(/WROTE (\d+)/)[1];
 }
+
+const pinsOf = (flags) => (flags.QUORUM_EXPECT ? (Array.isArray(flags.QUORUM_EXPECT) ? flags.QUORUM_EXPECT : [flags.QUORUM_EXPECT]) : []);
+const pyLit = (o) => JSON.stringify(o).replace(/true/g, "True").replace(/false/g, "False");
+const pinLines = (list) => `QUORUM_EXPECT = [\n${list.map((p) => "    " + pyLit(p) + ",").join("\n")}\n]`;
 
 // ----------------------------------------------------------------------------- chips, allow
 function chipsList() {
@@ -614,6 +639,85 @@ const CHIP_SERIAL_PY = `import signer, json
 s = signer.load(soft=False)
 print("SERIAL:" + json.dumps(s.serial() if signer.is_chip(s) else ""))`;
 
+// ----------------------------------------------------------------------------- ceremony
+// The swap for a ceremony, so the signing console never carries the code that makes or seals a
+// key (test-vectors/manifest.mjs): start puts the dual image on with the chip unpinned and ALLOW_*
+// on, and the board boots into the ceremony for it; finish takes ALLOW_* off, pins the chip and
+// puts the console back. Each asks once. secrets.py, chips.json and the snapshots stay on the
+// board through both pushes (manifest "preserve").
+function ceremonyFile(uid) {
+  return join(ROOT, "backups", uid, "ceremony.json");
+}
+
+// The running console's own reading when there is one (pin does the same: on a sealed quorum v1
+// ATECC every public-key read is a use of the key), else the chip read now.
+function chipOnBus(live) {
+  if (live && live.serial && live.chipKind) return { kind: live.chipKind, serial: live.serial, profile: live.profile, qx: live.qx };
+  pause();
+  const chip = tagged(run(CHIP_PY), "CHIP");
+  unpause();
+  return chip;
+}
+
+async function ceremonyStart() {
+  const flags = tagged(run(FLAGS_PY), "FLAGS") || {};
+  const live = tagged(run(LIVE_PY), "LIVE");
+  const chip = chipOnBus(live);
+  if (!chip.serial) die(`no secure element on the bus (${chip.kind})`);
+  const pins = pinsOf(flags);
+  const pinned = pins.some((p) => String(p.serial).toLowerCase() === chip.serial);
+  if (pinned && !has("--unpin"))
+    die(`the chip on the bus (${chip.serial}) is pinned: the ceremony is for an unpinned chip. Pass --unpin to take its pin out for the ceremony (finish pins it again)`);
+  const keep = (argv[argv.indexOf("--keep-open") + 1] || "").split(",").filter((x) => has("--keep-open") && /^[0-9A-Fa-f]{4}$/.test(x)).map((x) => x.toUpperCase());
+  if (has("--keep-open") && !keep.length) die("--keep-open F1D2[,F1D3...]: the Trust M objects T9 should leave open");
+  const uid = boardId();
+  console.log(`ceremony start on ${port()}:`);
+  console.log(`  board ${uid}: ${live ? `${live.image} ${live.build}, ${live.state}` : "no console running"}`);
+  console.log(`  chip on the bus: ${chip.kind} ${chip.serial}, ${chip.profile || "?"}, ${pinned ? "PINNED" : "not pinned"}${chip.qx ? ", key " + chip.qx.slice(2, 10) : ""}`);
+  console.log(`  1. ${pinned ? `its pin taken out of QUORUM_EXPECT (${pins.length - 1} other pin(s) kept)` : "the pins as they are"}`);
+  console.log(`  2. ALLOW_LOCK, ALLOW_GENKEY = True${keep.length ? `; TRUSTM_KEEP_OPEN = ${JSON.stringify(keep)}` : ""} (the console image ignores them)`);
+  console.log(`  3. push dual (a backup first); the board restarts into the ceremony for this chip`);
+  console.log(`  Every permanent step on the board still needs its own arm and 3 s hold there. Undo: tools/fw ceremony finish`);
+  if (!(await ask("\n"))) die("nothing changed");
+  assumeYes = true;
+  mkdirSync(dirname(ceremonyFile(uid)), { recursive: true });
+  writeFileSync(ceremonyFile(uid), JSON.stringify({ started: new Date().toISOString(), serial: chip.serial, kind: chip.kind,
+    profile: chip.profile, pinned, pinsBefore: pins, keepOpen: keep }, null, 1) + "\n");
+  if (pinned) console.log(`unpinned: ${writePins(pinLines(pins.filter((p) => String(p.serial).toLowerCase() !== chip.serial)))} bytes`);
+  const lines = ["ALLOW_LOCK = True", "ALLOW_GENKEY = True", ...(keep.length ? [`TRUSTM_KEEP_OPEN = ${JSON.stringify(keep)}`] : [])];
+  console.log(`flags: ${setSecrets(lines, "the ceremony flags, written by tools/fw ceremony start")} bytes`);
+  await push("dual");
+  const now = tagged(run(LIVE_PY), "LIVE");
+  if (now?.image === "ceremony") console.log(`\nthe board runs the ceremony for ${now.chip}: on the banner, A (or press the knob) for PROVISION`);
+  else console.log(`\n!! the board did not start the ceremony (${now ? now.image + ", " + now.state : "nothing running"}): see tools/fw logs`);
+}
+
+async function ceremonyFinish() {
+  const uid = boardId();
+  const note = existsSync(ceremonyFile(uid)) ? JSON.parse(readFileSync(ceremonyFile(uid), "utf8")) : null;
+  const chip = chipOnBus(tagged(run(LIVE_PY), "LIVE"));
+  console.log(`ceremony finish on ${port()}:`);
+  if (note) console.log(`  started ${note.started} for ${note.serial}${note.pinned ? " (it was pinned)" : ""}`);
+  console.log(`  chip on the bus: ${chip.kind} ${chip.serial}, ${chip.profile || "?"}`);
+  if (note && note.serial !== chip.serial) console.log(`  !! not the chip the ceremony started with (${note.serial})`);
+  console.log("  1. ALLOW_LOCK, ALLOW_GENKEY = False\n  2. pin the chip on the bus\n  3. push console (a backup first), then verify");
+  if (!(await ask("\n"))) die("nothing changed");
+  assumeYes = true;
+  console.log(`flags: ${setSecrets(["ALLOW_LOCK = False", "ALLOW_GENKEY = False"], "the ceremony flags, written by tools/fw ceremony start")} bytes`);
+  await pin();
+  const ok = await push("console");
+  const flags = tagged(run(FLAGS_PY), "FLAGS") || {};
+  const after = pinsOf(flags).map((p) => String(p.serial).toLowerCase()).sort();
+  const before = (note?.pinsBefore || []).map((p) => String(p.serial).toLowerCase());
+  const want = [...new Set([...before, chip.serial])].sort();
+  const pinsOk = JSON.stringify(after) === JSON.stringify(want);
+  const allowOff = !flags.ALLOW_LOCK && !flags.ALLOW_GENKEY;
+  console.log(`\nceremony finish: pins ${pinsOk ? "as before, plus this chip" : `!! ${after.join(", ")} (expected ${want.join(", ")})`}; ` +
+    `ALLOW_* ${allowOff ? "off" : "!! still on"}; console ${ok ? "verified" : "!! see verify above"}`);
+  if (note) writeFileSync(ceremonyFile(uid), JSON.stringify({ ...note, finished: new Date().toISOString(), pinsAfter: pinsOf(flags) }, null, 1) + "\n");
+  if (!(pinsOk && allowOff && ok)) process.exit(1);
+}
+
 // ----------------------------------------------------------------------------- measure
 // One script with the roots and vhttp.py inlined, run from RAM after a soft reset (the app on the
 // board stops; boot.py joins WiFi again). Nothing is written to flash. Unplug and replug afterwards
@@ -648,6 +752,7 @@ const cmds = {
   restart: async () => { await restartHandsOff(); await verify(); },
   chips: () => chipsList(),
   allow: () => allow(argv[1]),
+  ceremony: () => (argv[1] === "start" ? ceremonyStart() : argv[1] === "finish" ? ceremonyFinish() : die("ceremony start [--unpin] [--keep-open F1D2] | ceremony finish")),
 };
-if (!cmds[cmd]) die("usage: tools/fw build IMAGE | backup | verify [--baseline] | logs | pin | push IMAGE | restore DIR [--exact] [--secrets] | restart | chips | allow on|off | measure tls");
+if (!cmds[cmd]) die("usage: tools/fw build IMAGE | backup | verify [--baseline] | logs | pin | push IMAGE | restore DIR [--exact] [--secrets] | restart | chips | allow on|off | ceremony start|finish | measure tls");
 await cmds[cmd]();
