@@ -7,8 +7,8 @@
 #      mpremote connect PORT resume exec "$(cat tools/board/tm_burst.py)"
 # About two minutes. The console or ceremony app is paused while it runs and started again after.
 # Prints one RESULT: line: the burst as [n, ms, counter, error] and the fade as [seconds, counter].
-# TM2 (2026-10-01): +1 per signature from 0 with no slowdown to 78; from about 127 each count adds
-# about 40 ms to a signature (1.0 s at 149, 2.5 s at 187), 5 s near 249; it fades 1 every 5 s.
+# TM2 (2026-10-01): +1 per signature, no slowdown up to a counter of 128; above it each count adds
+# about 40 ms (0.9 s at 144, 4.45 s at 235); 400 in a row settled at 235; it fades 1 every 5 s.
 # Past about 150 a signature outlasts upstream's 1 s wait (trustm.wait_response), so this run
 # waits up to 15 s, in RAM only.
 SACRIFICIAL = ""

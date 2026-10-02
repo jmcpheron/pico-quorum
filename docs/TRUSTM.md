@@ -201,11 +201,13 @@ before the access condition; 07 for the rest).
 - **No idle credit on a chip just powered up.** TM2 had been unplugged; its first signature
   already counted. TM1's credit (above) was after ten minutes powered and idle, so the credit
   seems to build only while the chip has power.
-- **Up to about 127 there is no slowdown:** +1 per signature, about 140 ms each (80 in a row: 11 s,
-  counter 78).
-- **From about 127 the chip brakes:** each count adds about 40 ms to a signature (1.0 s at 149,
-  1.8 s at 170, 2.5 s at 187; a straight-line fit puts 5 s near 249).
-- **It fades 1 every 5 s** at every level measured (78 to 66, and 186 to 175, in a minute each).
+- **Up to 128 there is no slowdown:** +1 per signature, about 140 ms each. The long run: 131
+  signatures in 20 s took the counter to 128; the 132nd took 176 ms, the 133rd 221 ms.
+- **Above 128 the chip brakes:** each count adds about 40 ms to a signature (0.9 s at 144, 2.2 s
+  at 179, 3.1 s at 202, 4.2 s at 228, 4.45 s at 235).
+- **It fades 1 every 5 s** at every level measured, all the way down: 235 to 0 took 20 minutes.
+- **400 signatures in a row took 14 minutes** and left the counter at 235, each signature taking
+  about 4.4 s. The run never reached 255.
 - **So the steady state is about one signature every 5 s.** Above that rate the counter climbs
   and each signature slows until the two meet. The brake limits the rate; it never refuses a
   signature or locks the chip.

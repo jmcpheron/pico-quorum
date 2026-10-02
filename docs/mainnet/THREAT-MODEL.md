@@ -51,8 +51,8 @@ three needed. The other owners can execute without it and rotate it out.
   profile has no such counter.
 - Its "security event counter" only rises under bursts and fades back at 1 every 5 s. It is a
   brake, not a log.
-- Measured on a sacrificial chip, the brake slows a burst; it doesn't stop one. The first ~127
-  signatures in a row run at about 7 a second. After that each one takes longer, settling near
+- Measured on a sacrificial chip, the brake slows a burst; it doesn't stop one. The first ~130
+  signatures in a row run at about 7 a second (the counter reaches 128). After that each one takes longer, settling near
   one every 5 seconds. That's still thousands an hour.
 - So if the device was out of the operator's hands, assume it signed something, and rotate it
   out.
