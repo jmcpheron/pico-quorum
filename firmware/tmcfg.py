@@ -478,7 +478,7 @@ def detail_pages(uid, cert=None, ca_ok=None, key=None, bound=None, rec=None, sec
                ("Lifecycle", "LcsA %s" % lcs_name(lcsa)),
                ("Spares", "not read" if spares is None else
                 "%s: nothing else on the chip can be written or get a key" % spares_text(spares)
-                if all(s in ("frozen", "absent") for s in spares.values()) else spares_text(spares)),
+                if all(s in ("frozen", "absent") for s in spares.values()) else spares_text(spares) + " (ceremony T9 freezes them)"),
                ("Security", "%s events. Key use is paid from an idle credit; bursts count and slow the chip"
                 % ("?" if sec is None else sec))]
     pages = [("The chip", silicon)]

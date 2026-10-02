@@ -26,6 +26,10 @@
 //                            (--unpin, when it is pinned), ALLOW_* on, then push dual: the board
 //                            restarts into the ceremony. Notes what it changed in
 //                            backups/<board-id>/ceremony.json.
+//   attest [--out FILE]      read-only: a Trust M's ceremony record (UID, certificate, record, binding,
+//                            every object's metadata) as public JSON, default
+//                            docs/mainnet/attest/attest-<serial>.json; anyone checks it with
+//                            tools/quorum verify FILE
 //   ceremony finish          and back, after one "yes": ALLOW_* off, pin the chip on the bus, push
 //                            console, verify, and compare the pins with ceremony.json.
 //
@@ -718,6 +722,53 @@ async function ceremonyFinish() {
   if (!(pinsOk && allowOff && ok)) process.exit(1);
 }
 
+// ----------------------------------------------------------------------------- attest
+// The running console's own chip object when there is one (its session stays its own), else the
+// chip read now. One tagged line per part: the console leaves little heap for one big JSON. The
+// OIDs are listed here, not taken from the board's tmcfg, so a board on older firmware answers too.
+const ATTEST_OIDS = ["E0F0", "E0E0", "E0F1", "F1D0", "F1D1", "E140", "E0F2", "E0F3", "E0FC", "E0FD", "E0E1", "E0E8", "E0EF",
+  "E120", "E121", "E122", "E123", "F1D2", "F1D3", "F1D4", "F1D5", "F1D6", "F1D7", "F1D8", "F1D9", "F1DA", "F1DB", "F1E0", "F1E1"];
+const ATTEST_PY = `import sys, json, signer
+q = sys.modules.get("quorum")
+s = q.sig if q and getattr(q, "sig", None) and q.sig.name == "trustm" else signer.load(soft=False)
+h = lambda b: "".join("%02x" % x for x in b)
+if s.name != "trustm":
+    print("AT:" + json.dumps({"kind": s.name}))
+else:
+    c = s.chip
+    print("AT:" + json.dumps({"kind": "trustm", "uid": h(s.uid()), "lcsa": c.lcsa()}))
+    print("AT_CERT:" + json.dumps(h(c.get_all(0xE0E0))))
+    print("AT_REC:" + json.dumps(h(c.get(0xF1D0))))
+    print("AT_BIND:" + json.dumps(h(c.get(0xF1D1))))
+    for o in ${JSON.stringify(ATTEST_OIDS)}:
+        try:
+            m = h(c.metadata(int(o, 16)))
+        except Exception:
+            m = None
+        print("AT_META:" + json.dumps([o, m]))
+print("AT_DONE")`;
+
+async function attest() {
+  const live = tagged(run(LIVE_PY), "LIVE");
+  pause();
+  const out = run(ATTEST_PY);
+  unpause();
+  const at = tagged(out, "AT");
+  if (at.kind !== "trustm") die(`the chip on the bus is ${at.kind}: attest is for a Trust M`);
+  if (!/AT_DONE/.test(out)) die(`the board stopped part way:\n${out.slice(-600)}`);
+  const metadata = Object.fromEntries(out.split(/\r?\n/).filter((l) => l.startsWith("AT_META:")).map((l) => JSON.parse(l.slice(8))).filter(([, m]) => m));
+  const uid = at.uid, serial = uid.slice(22, 42);
+  const bundle = { format: "picoquorum-trustm-attest-1", made: new Date().toISOString(), board: boardId(), firmware: live?.build || null,
+    serial, uid, lcsa: at.lcsa, cert: tagged(out, "AT_CERT"), record: tagged(out, "AT_REC"), binding: tagged(out, "AT_BIND"), metadata,
+    signer: { factory: (await import("../mock-tx-service/sim.mjs")).CFG.signer.factory },
+    note: "Public values only, read off the chip. Check with: tools/quorum verify THIS_FILE --chain eth" };
+  const file = argv.includes("--out") ? argv[argv.indexOf("--out") + 1] : join(ROOT, "docs/mainnet/attest", `attest-${serial}.json`);
+  mkdirSync(dirname(file), { recursive: true });
+  writeFileSync(file, JSON.stringify(bundle, null, 1) + "\n");
+  console.log(`attest: Trust M ${serial}, ${Object.keys(metadata).length} objects' metadata -> ${file}`);
+  console.log(`check it (anyone can, no board needed): tools/quorum verify ${file} --chain basesep,base,eth`);
+}
+
 // ----------------------------------------------------------------------------- measure
 // One script with the roots and vhttp.py inlined, run from RAM after a soft reset (the app on the
 // board stops; boot.py joins WiFi again). Nothing is written to flash. Unplug and replug afterwards
@@ -752,7 +803,8 @@ const cmds = {
   restart: async () => { await restartHandsOff(); await verify(); },
   chips: () => chipsList(),
   allow: () => allow(argv[1]),
+  attest: () => attest(),
   ceremony: () => (argv[1] === "start" ? ceremonyStart() : argv[1] === "finish" ? ceremonyFinish() : die("ceremony start [--unpin] [--keep-open F1D2] | ceremony finish")),
 };
-if (!cmds[cmd]) die("usage: tools/fw build IMAGE | backup | verify [--baseline] | logs | pin | push IMAGE | restore DIR [--exact] [--secrets] | restart | chips | allow on|off | ceremony start|finish | measure tls");
+if (!cmds[cmd]) die("usage: tools/fw build IMAGE | backup | verify [--baseline] | logs | pin | push IMAGE | restore DIR [--exact] [--secrets] | restart | chips | allow on|off | attest [--out FILE] | ceremony start|finish | measure tls");
 await cmds[cmd]();

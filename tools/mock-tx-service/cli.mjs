@@ -6,6 +6,7 @@
 //   e2e                            the console on the emulator approves on the fork (e2e.mjs)
 //   doctor                         is everything here that up, e2e and the tests need
 //   live key|enroll|status|rehearse|exec   the console's key on Base Sepolia, Base or Ethereum (live.mjs, docs/LADDER.md)
+//   verify BUNDLE [--chain C,..] [--safe C:0x..]   a Trust M signer's ceremony record, checked by anyone (attest.mjs)
 //   demo                           fresh Safe with the standard queue (scenarios.mjs DEMO)
 //   reset [scenario ...] [--version 1.3.0]   fresh Safe (registered consoles stay owners), then those
 //   propose SCENARIO [--by bob]    queue one story; `scenarios` lists them
@@ -141,6 +142,8 @@ if (cmd === "serve") {
   await doctor();
 } else if (cmd === "live") {
   await import("./live.mjs");
+} else if (cmd === "verify") {
+  await import("./attest.mjs");
 } else if (cmd === "demo") {
   await call("/sim/reset", { demo: true });
   await status();
@@ -167,6 +170,6 @@ if (cmd === "serve") {
 } else if (cmd === "shots") {
   await import("./shots.mjs");
 } else {
-  console.error("usage: tools/quorum serve | up [--refork] [--manual-exec] | e2e | doctor | live key|enroll|status|rehearse|exec | demo | reset [scenario..] | propose SCENARIO [--by bob] | confirm NONCE --as alice | status | log [N] | scenarios | ip | shots");
+  console.error("usage: tools/quorum serve | up [--refork] [--manual-exec] | e2e | doctor | live key|enroll|status|rehearse|exec | verify BUNDLE | demo | reset [scenario..] | propose SCENARIO [--by bob] | confirm NONCE --as alice | status | log [N] | scenarios | ip | shots");
   process.exit(2);
 }

@@ -345,8 +345,8 @@ class Ceremony:
     def t9(self):
         if not self.checked:
             return False, [("T8 passed this session", False)], "not frozen: T8 first"
-        groups = (("spare keys E0F2 E0F3 E0FC E0FD", tmcfg.SPARE_KEYS), ("cert + trust anchor slots", tmcfg.SPARE_CERTS),
-                  ("counters E120-E123", tmcfg.SPARE_COUNTERS), ("data F1D2-F1DB F1E0 F1E1", tmcfg.SPARE_DATA))
+        groups = (("key slots", tmcfg.SPARE_KEYS), ("cert slots", tmcfg.SPARE_CERTS),
+                  ("counters", tmcfg.SPARE_COUNTERS), ("data", tmcfg.SPARE_DATA))
         before = self.chip.sec()
         refused = freeze(self.sig, self.open)
         self.sig.forget()
@@ -356,7 +356,7 @@ class Ceremony:
         for label, oids in groups:
             mine = [o for o in oids if now.get(o) != "absent"]
             left = [o for o in mine if now.get(o) == "open"]
-            checks.append(("%s: %d frozen" % (label, len([o for o in mine if now.get(o) == "frozen"])), not left))
+            checks.append(("%s: %d of %d frozen" % (label, len([o for o in mine if now.get(o) == "frozen"]), len(mine)), not left))
         checks.append(("E0F1 still signs", self._sign_ok(hashlib.sha256(b"spares frozen").digest())))
         checks.append(("security events %d -> %d" % (before, after), True))
         msg = tmcfg.spares_text(now)
@@ -371,7 +371,7 @@ class Ceremony:
                   ("spares: %s" % tmcfg.spares_text(self.spares), not self.open),
                   ("signs + verifies", self._sign_ok(hashlib.sha256(b"done").digest())),
                   ("security events %s" % self.sec, True),
-                  ("ALLOW_* back to False", not (S.flag("ALLOW_LOCK") or S.flag("ALLOW_GENKEY")))]
+                  ("ALLOW_* off (tools/fw ceremony finish)", not (S.flag("ALLOW_LOCK") or S.flag("ALLOW_GENKEY")))]
         return all(v for _, v in checks[:3]), checks, "owner %s" % rec["owner"]
 
 
