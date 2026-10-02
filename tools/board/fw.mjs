@@ -341,8 +341,10 @@ async function verify({ baseline = false } = {}) {
     const differ = [...want].filter(([n, h]) => files.find((f) => f.name === n)?.sha !== h).map(([n]) => n);
     if (differ.length) { ok = false; console.log(`  differs from this checkout: ${differ.join(", ")}`); }
     else console.log(`  every file of the ${image} image matches this checkout (${want.size})`);
-    const stale = files.map((f) => f.name).filter((n) => !want.has(n) && n !== "build.py" && !matches(M.preserve, n));
+    const extra = files.map((f) => f.name).filter((n) => !want.has(n) && n !== "build.py" && !matches(M.preserve, n));
+    const keys = extra.filter((n) => matches(M.flag, n)), stale = extra.filter((n) => !matches(M.flag, n));
     if (stale.length) { ok = false; console.log(`  not part of the image: ${stale.join(", ")}`); }
+    if (keys.length) { ok = false; console.log(`  !! a software key file is on the board: ${keys.join(", ")} (push keeps it; it is in the backups; delete it by hand once you are sure nothing needs it)`); }
   }
   const fs = flash();
   console.log(`flash: ${kb(fs.used)} used of ${kb(fs.total)}, ${kb(fs.free)} free (files ${kb(files.reduce((a, f) => a + f.size, 0))})`);
@@ -717,7 +719,7 @@ async function ceremonyFinish() {
   const pinsOk = JSON.stringify(after) === JSON.stringify(want);
   const allowOff = !flags.ALLOW_LOCK && !flags.ALLOW_GENKEY;
   console.log(`\nceremony finish: pins ${pinsOk ? "as before, plus this chip" : `!! ${after.join(", ")} (expected ${want.join(", ")})`}; ` +
-    `ALLOW_* ${allowOff ? "off" : "!! still on"}; console ${ok ? "verified" : "!! see verify above"}`);
+    `ALLOW_* ${allowOff ? "off" : "!! still on"}; console ${ok ? "verified" : "!! see the !! lines in verify above"}`);
   if (note) writeFileSync(ceremonyFile(uid), JSON.stringify({ ...note, finished: new Date().toISOString(), pinsAfter: pinsOf(flags) }, null, 1) + "\n");
   if (!(pinsOk && allowOff && ok)) process.exit(1);
 }
