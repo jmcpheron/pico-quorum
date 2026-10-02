@@ -115,7 +115,7 @@ The chip: Adafruit 4351, UID `cd16338401001c000100000a091b5c000b0062006c80101071
     From then on it rose by 1 per signature, reaching 7 after 12.
   - Right after a busy spell (the first bench runs), every signature counted at once.
 - Refused commands do not raise it (tried: a bad OID, CalcSign on an empty key, reading a key object).
-- It falls back by 1 about every 5 s. This is the Trust M's brake on bursts: past a threshold the chip slows down.
+- It falls back by 1 about every 5 s. This is the Trust M's brake on bursts: from a counter of about 127 the chip slows each signature by about 40 ms per count (measured on TM2, below).
 - So a normal approval reads "0 → 0", and a signature adds at most 1. The console flags only a rise larger than 1.
 
 **Error codes (F1C2):** 0x01 unknown OID, 0x07 reading a key object's data, 0x0B CalcSign with an empty key.
@@ -159,6 +159,24 @@ TM2's record passes every line, "23 of 23 frozen" included.
 
 The emulator now gives the same codes (`trustm_sim.py`: 05 for a lower lifecycle, checked
 before the access condition; 07 for the rest).
+
+**The security event counter under a burst** (`tools/board/tm_burst.py`; raw numbers in the local
+`chips/trustm-0a091b5c000b00620076-sec.json`):
+- **No idle credit on a chip just powered up.** TM2 had been unplugged; its first signature
+  already counted. TM1's credit (above) was after ten minutes powered and idle, so the credit
+  seems to build only while the chip has power.
+- **Up to about 127 there is no slowdown:** +1 per signature, about 140 ms each (80 in a row: 11 s,
+  counter 78).
+- **From about 127 the chip brakes:** each count adds about 40 ms to a signature (1.0 s at 149,
+  1.8 s at 170, 2.5 s at 187; a straight-line fit puts 5 s near 249).
+- **It fades 1 every 5 s** at every level measured (78 to 66, and 186 to 175, in a minute each).
+- **So the steady state is about one signature every 5 s.** Above that rate the counter climbs
+  and each signature slows until the two meet. The brake limits the rate; it never refuses a
+  signature or locks the chip.
+- **Past about 150 a signature outlasts upstream's 1 s wait** (`trustm.wait_response`). The driver
+  reports "no response" while the chip is still working. A normal approval never gets near this,
+  so the console keeps the 1 s wait. A console under a burst would show a failed signature,
+  which is fine.
 
 **The console on the real chip (2026-09-28).** The dual image ran with TM1 pinned as `locked: False`, against the laptop's mock Safe (`tools/quorum serve`), with nothing on chain.
 - **Boot:** the pin passed, the factory binding verified in 2.6 s, and 147 KB of heap was free.
