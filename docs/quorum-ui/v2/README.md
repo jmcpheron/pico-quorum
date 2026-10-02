@@ -21,6 +21,53 @@ there is where this one starts.
    the home screen, the approvals row, and the moment of signing.
 5. **Every screen, redone,** with before/after pairs like the v1 walkthrough.
 
+## Home as a grid to browse (2026-10-01, firmware 2026.10.4)
+
+You asked for a home you can browse when nothing needs signing, with the queue list only when a
+request comes in.
+
+**Nothing waits for this key: a grid of tiles.**
+- **Each Safe this console works with,** as that Safe's blockie, with its chain and "3 of 5".
+  - The one you signed for most recently comes first.
+  - A Safe the key isn't an owner of says "not owner" in amber; one that didn't answer says "offline" in red.
+  - The coloured bar under the blockie is the chain's colour, as on the chain pill.
+- **Recent:** the last signatures this console sent, newest first: which #, what, which Safe,
+  when. A dozen are kept in `recent.json` on the board, and every push keeps it. It starts empty
+  and fills as you approve.
+- **The chip:** its owner blockie (the boot screen's picture), its name, "Trust M · sealed" or
+  "ATECC · 41 uses". It opens the Chip pages.
+- **Device:** the firmware version and the Wi-Fi network. It opens the Device screen.
+- **Queue:** only when transactions are queued but none wants this key; it opens the list.
+- **The header** has the same chip blockie, small, with the chip's name, and the sync status.
+
+**A request arrives: the queue list, exactly as before.** Its first row is the waiting
+transaction, and A opens it.
+
+**Keys:**
+- **Joystick:** moves around the grid. **A** opens the tile. **B** opens the Owners screen for the
+  Safe in focus, as on the old home. **X** opens Device.
+- **Build 1's dial:** turn to walk the tiles, press to open.
+
+**The 1.8" panel** keeps the list for now.
+
+| | Waveshare, 240×240 | Build 1, 320×240 |
+|---|---|---|
+| The grid | <img src="home/01-grid-240.png" width="240"> | <img src="home/01-grid-320.png" width="320"> |
+| The chip in focus | <img src="home/02-grid-chip-240.png" width="240"> | <img src="home/02-grid-chip-320.png" width="320"> |
+| The dial's footer | <img src="home/03-grid-knob-240.png" width="240"> | <img src="home/03-grid-knob-320.png" width="320"> |
+| Recent | <img src="home/04-recent-240.png" width="240"> | <img src="home/04-recent-320.png" width="320"> |
+| The Chip pages from the tile (B comes back here) | <img src="home/05-chip-from-grid-240.png" width="240"> | <img src="home/05-chip-from-grid-320.png" width="320"> |
+| A request waiting: the list | <img src="home/06-request-waiting-240.png" width="240"> | <img src="home/06-request-waiting-320.png" width="320"> |
+
+These are drawn by the real firmware in the emulator (`node tools/board/shots_home.mjs`). The
+Recent entries in the shots are made up; on the boards Recent starts empty. The Device tile's
+"test" and "emulator" are the emulator's build and network names.
+
+**Questions for you:**
+- Should a Safe's tile open its Owners, as now, or a Safe page with its owners, nonce and recent
+  activity?
+- Is two columns right on Build 1's wider screen, or should it be three smaller tiles across?
+
 ## The chip's blockie at boot (2026-10-01, firmware 2026.10.3)
 
 You asked to see the loaded chip's blockie when the console first loads.

@@ -10,6 +10,13 @@ git tag, `fw-<version>`.
 2. `tools/fw push console --all`, which pushes every board on USB in turn.
 3. `git tag fw-<version>` on that commit, then push the tag.
 
+## 2026.10.4 (2026-10-01)
+
+**Home is a grid to browse when nothing waits for this key:** each Safe, Recent (the last
+signatures sent, kept in `recent.json`), the chip and the device. When a request arrives, home is
+the queue list as before. The chip's blockie also sits small in the header. Walkthrough:
+[quorum-ui/v2](quorum-ui/v2/README.md).
+
 ## 2026.10.3 (2026-10-01)
 
 **The loaded chip's blockie on the boot screen.** Once the console has read its chip, the owner's

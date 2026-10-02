@@ -151,6 +151,12 @@ dirty = True
 _busy = False
 _n = 0
 log = []
+RECENT_FILE, RECENT_MAX = "recent.json", 12
+recent = []         # this console's last confirmed signatures, newest first (recent.json): the Recent tile
+tile = 0            # home's grid: the tile in focus
+browse = None       # "list": the queue list opened from the grid's Queue tile
+chip_back = "device"    # where the Chip pages go back to: Device, or home when opened from a tile
+rpage = 0           # the Recent screen's page
 
 
 def say(s, secs=3):
@@ -227,6 +233,76 @@ def focus(w):
 def focus_sel():
     """On home, the Safe in view is the highlighted row's (the first Safe's when nothing is queued)."""
     focus(queue[sel]["w"] if queue and 0 <= sel < len(queue) else WATCH[0])
+
+
+# ----------------------------------------------------------------------------- home: the grid
+def grid_home():
+    """Home is a grid to browse unless something waits for this key (then the queue list, as
+    before), or the list was opened from the Queue tile. The 160x128 UI keeps the list."""
+    global browse
+    if not getattr(U, "GRID", False):
+        return False
+    if not queue:
+        browse = None
+    return not browse and not any(waiting(e) for e in queue)
+
+
+def tiles():
+    """The grid: each Safe (the one signed for most recently first), the queue when anything is in
+    it, recent signatures, the chip, the device. [(kind, Safe or None), ...]"""
+    order = []
+    for r in recent:
+        for w in WATCH:
+            if w["addr"].lower() == r.get("safe", "") and w["chain"] == r.get("chain") and not [o for o in order if o is w]:
+                order.append(w)
+    order += [w for w in WATCH if not [o for o in order if o is w]]
+    out = [("safe", w) for w in order]
+    if queue:
+        out.append(("queue", None))
+    return out + [("recent", None), ("chip", None), ("device", None)]
+
+
+def open_tile():
+    global state, opage, browse, sel, chip_back, rpage
+    t = tiles()
+    kind, w = t[min(tile, len(t) - 1)]
+    if kind == "safe":
+        focus(w)
+        state, opage = "owners", 0
+    elif kind == "queue":
+        browse, sel = "list", 0
+        focus_sel()
+    elif kind == "recent":
+        state, rpage = "recent", 0
+    elif kind == "chip":
+        chip_back = "home"
+        open_chip()
+    else:
+        state = "device"
+
+
+def load_recent():
+    global recent
+    try:
+        import json
+        with open(RECENT_FILE) as f:
+            recent = json.load(f)[:RECENT_MAX]
+    except (OSError, ValueError):
+        recent = []
+
+
+def note_recent(n, w, what):
+    """A signature the service took: kept for the Recent tile, newest first, a dozen at most.
+    Only what the screens show: nonce, Safe, chain, a one-line summary, when."""
+    global recent
+    recent = [{"n": n, "safe": w["addr"].lower(), "chain": w["chain"], "name": w["name"], "what": what[:48],
+               "t": time.time()}] + recent[:RECENT_MAX - 1]
+    try:
+        import json
+        with open(RECENT_FILE, "w") as f:
+            json.dump(recent, f)
+    except Exception as ex:
+        print("recent:", ex)        # a full flash costs the list, never the signature
 
 
 def probe_chip():
@@ -740,6 +816,10 @@ def sign_it():
     start_timer()
 
 
+def recent_pages():
+    return max(1, (len(recent) + U.RECENT_PER_PAGE - 1) // U.RECENT_PER_PAGE)
+
+
 def owner_pages():
     """How many Owners pages the Safe in view needs."""
     return max(1, (len(owners()) + U.OWNERS_PER_PAGE - 1) // U.OWNERS_PER_PAGE)
@@ -925,6 +1005,7 @@ def post(e, signature):
         e["w"]["need_info"] = True
         _log("confirmed #%d" % e["n"])
         qlog.write("confirmed #%d" % e["n"])
+        note_recent(e["n"], e["w"], e["r"]["summary"])
     else:
         unsent = (e, signature)
         save_unsent(e, signature)
@@ -954,7 +1035,7 @@ def reject():
 
 # ----------------------------------------------------------------------------- ui tick
 def handle(k):
-    global state, sel, dirty, last_poll, chip_page, opage
+    global state, sel, dirty, last_poll, chip_page, opage, tile, browse, chip_back, rpage
     if state in ("nochip", "pinfail"):
         if k == "A":
             probe_chip()            # counts first (boot_count), then reads the key: on a sealed chip, a use of it
@@ -966,8 +1047,31 @@ def handle(k):
     elif state == "crashed":
         if k == BACK:
             machine.reset()
+    elif state in ("home", "boot") and grid_home():
+        n, cols = len(tiles()), U.GRID_COLS
+        if k == "right":
+            tile = min(n - 1, tile + 1)
+        elif k == "left":
+            tile = max(0, tile - 1)
+        elif k == "down":
+            tile = min(n - 1, tile + cols)
+        elif k == "up":
+            tile = tile - cols if tile >= cols else tile
+        elif k in (SIGN, "press"):
+            open_tile()
+        elif k == BACK:             # as on the list: the Owners screen, for the Safe tile in focus
+            t = tiles()[min(tile, n - 1)]
+            focus(t[1] if t[0] == "safe" else WATCH[0])
+            state, opage = "owners", 0
+        elif k == "X":
+            state = "device"
+        if outside:
+            outside_seen()
+        dirty = True
     elif state in ("home", "boot"):
-        if k == "down" and queue:
+        if k == BACK and browse:
+            browse = None           # back to the grid
+        elif k == "down" and queue:
             sel = min(len(queue) - 1, sel + 1)
             focus_sel()
         elif k == "up":
@@ -984,6 +1088,7 @@ def handle(k):
         dirty = True
     elif state == "device":
         if k == SIGN:
+            chip_back = "device"
             open_chip()
         elif k == REJECT:
             wifi_setup()
@@ -996,7 +1101,15 @@ def handle(k):
         elif k == "up":
             chip_page = (chip_page - 1) % len(chip_pages)
         elif k in (BACK, REJECT, "left", "X"):
-            state = "device"
+            state = chip_back
+        dirty = True
+    elif state == "recent":
+        if k in ("down", "right"):
+            rpage = min(recent_pages() - 1, rpage + 1)
+        elif k == "up":
+            rpage = max(0, rpage - 1)
+        elif k in (BACK, REJECT, SIGN, "left", "X"):
+            state = "home"
         dirty = True
     elif state == "owners":
         if k in NEXT:
@@ -1037,13 +1150,24 @@ def handle(k):
 def knob(k):
     """A knob turn ("down" clockwise, "up") or press, by state. Turning never does anything but
     move; every action is a press, and signing is a press held down."""
-    global state, sel, foot, act, ract, dirty, crash_t0, dfoot, chip_page, opage
+    global state, sel, foot, act, ract, dirty, crash_t0, dfoot, chip_page, opage, tile, browse, chip_back, rpage
     if state in ("nochip", "pinfail"):
         if k == "press":
             handle("A")                 # Check again
     elif state == "crashed":
         if k == "press":
             crash_t0 = time.ticks_ms()  # tick() restarts once it has been held CRASH_HOLD_MS
+    elif state in ("home", "boot") and grid_home():
+        n = len(tiles())
+        if k == "down":
+            tile = min(n - 1, tile + 1)
+        elif k == "up":
+            tile = max(0, tile - 1)
+        elif k == "press":
+            open_tile()
+        if outside:
+            outside_seen()
+        dirty = True
     elif state in ("home", "boot"):
         if k == "down":
             if foot is None and queue and sel < len(queue) - 1:
@@ -1062,7 +1186,9 @@ def knob(k):
                 sel -= 1
                 focus_sel()
         elif k == "press":
-            if foot:
+            if foot == "owners" and browse:
+                browse, foot = None, None   # the list opened from the grid: its first choice goes back
+            elif foot:
                 state, opage = foot, 0
             elif queue:
                 open_entry(queue[sel])
@@ -1074,6 +1200,7 @@ def knob(k):
             dfoot = DFOOT[(DFOOT.index(dfoot) + (1 if k == "down" else -1)) % len(DFOOT)]
         elif k == "press":
             if dfoot == "chip":
+                chip_back = "device"
                 open_chip()
             elif dfoot == "wifi":
                 wifi_setup()
@@ -1086,7 +1213,15 @@ def knob(k):
         elif k == "up":
             chip_page = max(0, chip_page - 1)
         elif k == "press":
-            state = "device"
+            state = chip_back
+        dirty = True
+    elif state == "recent":
+        if k == "down":
+            rpage = min(recent_pages() - 1, rpage + 1)
+        elif k == "up":
+            rpage = max(0, rpage - 1)
+        elif k == "press":
+            state = "home"
         dirty = True
     elif state == "owners":
         if k == "down":
@@ -1288,6 +1423,7 @@ def start():
     splash.step("chip", "probing i2c...", L.GREY)
     probe_chip()
     gc.collect()                # the Trust M's certificate checks leave the heap in pieces: tidy before the next frame
+    load_recent()
     mark("probe")
     if state == "nochip":
         splash.step("chip", "none on i2c", L.RED)
