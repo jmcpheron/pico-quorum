@@ -40,3 +40,8 @@ fp-info-cache
 hardware/key-pcb/out/
 *.lck
 \#auto_saved_files\#
+
+# web/: the Execute page's build deps, its generated config, and local scratch (docs/app/ is the build, committed)
+web/node_modules/
+web/src/config.gen.mjs
+web/.scratch/

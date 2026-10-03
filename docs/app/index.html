@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' https:; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="Execute Safe transactions your PicoQuorum quorum signed, with every confirmation checked in your browser.">
+<title>PicoQuorum</title>
+<link rel="icon" href="../brand/mark-dark.svg" type="image/svg+xml">
+<link rel="stylesheet" href="app.css" integrity="sha384-gOv+13zfQadCeJFuuz0mfqvi7QgaRhVGFtWy1hdN22+6E6hsVHGDkjgL30OrMURu">
+</head>
+<body>
+<header class="top">
+  <a class="lockup" href="#/" aria-label="PicoQuorum home">
+    <picture>
+      <source media="(prefers-color-scheme: light)" srcset="../brand/mark-light.svg">
+      <img src="../brand/mark-dark.svg" width="28" height="26" alt="">
+    </picture>
+    <span>PicoQuorum</span>
+  </a>
+  <nav aria-label="Main">
+    <a href="#/">Safes</a>
+    <a href="#/keys">Keys</a>
+    <a href="#/settings">Settings</a>
+  </nav>
+  <div id="wallet" class="wallet"></div>
+</header>
+<main id="main"><noscript><p>This page needs JavaScript: it checks signatures and talks to your wallet in the browser.</p></noscript></main>
+<footer>
+  <p>Hardware approvals for Safe · <a href="https://github.com/jmcpheron/pico-quorum">Source</a> · <a href="https://github.com/jmcpheron/pico-quorum/tree/main/web">How this page is built</a> · build <code>9c908245</code></p>
+  <p class="muted">Experimental. Use a testnet first and small amounts on mainnet. The Safe's threshold is the real control.</p>
+</footer>
+<script src="app.js" integrity="sha384-x1xf4oPvujPaL/qNmfHt/lWDl3jFqXwNp2GcAiX6agsLEOTH5eIh2gELvd7JXHDW" defer></script>
+</body>
+</html>

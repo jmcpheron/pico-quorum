@@ -7,14 +7,18 @@
 // proxy checks, a WebAuthn assertion whose challenge is the safeTxHash:
 //   r = owner, s = 65, v = 0, then uint256 length, then abi.encode(bytes authenticatorData,
 //   string clientDataFields, uint256 r, uint256 s)
-import { createHash } from "node:crypto";
+//
+// No Node built-ins: the Execute page (web/, docs/app/) bundles this same file, so the browser packs
+// and checks signatures with the code the laptop tools and tests use.
 import { p256 } from "@noble/curves/p256";
+import { sha256 } from "@noble/hashes/sha2";
+import { concatBytes, utf8ToBytes } from "@noble/hashes/utils";
 import {
   bytesToHex, concat, decodeAbiParameters, encodeAbiParameters, getAddress, getContractAddress, hexToBytes, pad,
   size, slice, toHex,
 } from "viem";
 
-const sha256 = (b) => createHash("sha256").update(b).digest();
+const base64url = (bytes) => btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 
 // The proxy the passkey factory deploys for a key: CREATE2, salt 0, over its creation code and
 // constructor arguments. firmware/webauthn.owner_address computes the same thing on the console.
@@ -25,7 +29,8 @@ export function p256Owner(signer, qx, qy) {
                               bytecode: concat(["0x" + signer.proxyCode, args]) });
 }
 
-// One owner's confirmation, as posted to the service. -> {kind: "ecdsa"}, {kind: "approved"}, or {kind: "contract",
+// One owner's confirmation, as posted to the service. -> {kind: "ecdsa"}, {kind: "approved"} (approveHash
+// onchain: r is the owner, v = 1), or {kind: "contract",
 // owner, data, authenticatorData, clientDataFields, r, s}; throws on anything else.
 export function parse(signature) {
   const n = size(signature);
@@ -45,8 +50,8 @@ export function parse(signature) {
 
 // What the proxy has the P-256 key sign for a challenge (the safeTxHash).
 export function webauthnDigest(challenge, authenticatorData, clientDataFields) {
-  const json = `{"type":"webauthn.get","challenge":"${Buffer.from(hexToBytes(challenge)).toString("base64url")}",${clientDataFields}}`;
-  return sha256(Buffer.concat([Buffer.from(hexToBytes(authenticatorData)), sha256(Buffer.from(json))]));
+  const json = `{"type":"webauthn.get","challenge":"${base64url(hexToBytes(challenge))}",${clientDataFields}}`;
+  return sha256(concatBytes(hexToBytes(authenticatorData), sha256(utf8ToBytes(json))));
 }
 
 // The proxy's check, off chain: the UV flag, then P-256 over the WebAuthn digest (any s, as the
@@ -73,7 +78,7 @@ export function packSignatures(confirmations) {
   let offset = 65 * sorted.length;
   for (const c of sorted) {
     const p = parse(c.signature);
-    if (p.kind === "ecdsa") {
+    if (p.kind !== "contract") {        // ECDSA and approveHash fill their own 65-byte slot
       statics.push(c.signature);
       continue;
     }
@@ -88,7 +93,7 @@ export function packSignatures(confirmations) {
 // A contract signature from a software P-256 key: for tests and simulated consoles only. The real
 // console packs its own (firmware/webauthn.py) and tests check that one.
 export function softContractSignature(sk, owner, challenge) {
-  const authenticatorData = bytesToHex(Buffer.concat([sha256(Buffer.from("picoquorum")), Buffer.from([5]), Buffer.alloc(4)]));
+  const authenticatorData = bytesToHex(concatBytes(sha256(utf8ToBytes("picoquorum")), new Uint8Array([5]), new Uint8Array(4)));
   const clientDataFields = '"origin":"picoquorum"';
   const sig = p256.sign(webauthnDigest(challenge, authenticatorData, clientDataFields), sk, { prehash: false, lowS: true });
   const data = encodeAbiParameters([{ type: "bytes" }, { type: "string" }, { type: "uint256" }, { type: "uint256" }],

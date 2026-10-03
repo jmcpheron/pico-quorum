@@ -1,0 +1,139 @@
+/* PicoQuorum page. Colours and type from docs/BRAND.md: dark first, the console's light theme for
+   light mode. Green means signed, amber means waiting, ether blue is the network, red is for what
+   can't be undone. */
+@font-face { font-family: "Atkinson Next"; src: url(fonts/next-400.woff2) format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Atkinson Next"; src: url(fonts/next-700.woff2) format("woff2"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "Atkinson Mono"; src: url(fonts/mono-500.woff2) format("woff2"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "Atkinson Mono"; src: url(fonts/mono-700.woff2) format("woff2"); font-weight: 700; font-display: swap; }
+
+:root {
+  --bg: #0B0D11; --panel: #12151B; --line: #232833; --text: #F2F4F7; --muted: #98A0AC;
+  --ok: #34C759; --ok-ink: #04130A; --ok-soft: #12301C; --warn: #FFB830; --warn-soft: #33270C;
+  --eth: #7A92FF; --eth-soft: #1B2147; --bad: #FF5C54; --bad-soft: #3A1513; --stake: #70D6FF;
+  --radius: 12px;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #F5F6F8; --panel: #FFFFFF; --line: #DDE1E7; --text: #101318; --muted: #565E6A;
+    --ok: #16963E; --ok-ink: #FFFFFF; --ok-soft: #E2F4E8; --warn: #A86600; --warn-soft: #FBEFD9;
+    --eth: #627EEA; --eth-soft: #E7ECFD; --bad: #D02424; --bad-soft: #FBE4E4; --stake: #0068AA;
+    color-scheme: light;
+  }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.5 "Atkinson Next", system-ui, -apple-system, sans-serif; }
+a { color: var(--text); text-underline-offset: 3px; }
+a:hover { color: var(--ok); }
+code, .mono { font-family: "Atkinson Mono", ui-monospace, Menlo, monospace; font-weight: 500; }
+.mono { font-size: 14px; overflow-wrap: anywhere; }
+.muted { color: var(--muted); }
+.small { font-size: 14px; }
+.bad { color: var(--bad); }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+:focus-visible { outline: 2px solid var(--ok); outline-offset: 2px; }
+
+/* header */
+.top { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; max-width: 920px; margin: 0 auto; padding: 16px; }
+.lockup { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 20px; text-decoration: none; }
+.lockup img { display: block; }
+nav { display: flex; gap: 4px; }
+nav a { text-decoration: none; color: var(--muted); padding: 6px 10px; border-radius: 8px; }
+nav a[aria-current] { color: var(--text); background: var(--panel); }
+.wallet { margin-left: auto; }
+.wallet-on { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); }
+.wallet-on .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
+
+main { max-width: 920px; margin: 0 auto; padding: 0 16px 32px; }
+footer { max-width: 920px; margin: 0 auto; padding: 24px 16px 40px; border-top: 1px solid var(--line); font-size: 14px; }
+footer p { margin: 4px 0; }
+
+/* blocks */
+h1 { font-size: 30px; line-height: 1.2; margin: 8px 0; }
+h2 { font-size: 20px; margin: 0 0 12px; }
+h3 { font-size: 18px; margin: 2px 0; }
+h4 { font-size: 15px; margin: 16px 0 6px; color: var(--muted); font-weight: 700; }
+.hero { padding: 24px 0 8px; }
+.lede { font-size: 18px; max-width: 64ch; }
+.hero p { max-width: 70ch; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; margin: 16px 0; }
+.card.quiet { background: transparent; }
+.bad-card { border-color: var(--bad); }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* controls */
+.btn, button.mini, .mini { font: inherit; }
+.btn { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 8px 16px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--panel); color: var(--text); font-weight: 700; cursor: pointer; text-decoration: none; }
+.btn:hover { border-color: var(--muted); color: var(--text); }
+.btn.go { background: var(--ok); border-color: var(--ok); color: var(--ok-ink); }
+.btn:disabled { opacity: .5; cursor: default; }
+.mini { font-size: 13px; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--line); background: transparent; color: var(--muted); cursor: pointer; text-decoration: none; }
+.mini:hover { color: var(--text); border-color: var(--muted); }
+.linkish { background: none; border: 0; padding: 0; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; font: inherit; }
+input, select { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; min-height: 40px; padding: 8px 12px; }
+input[type=text], input[type=url], input[type=password] { width: 100%; }
+label { display: block; font-weight: 700; margin: 14px 0 6px; }
+label.btn { display: inline-flex; margin: 0; }
+.open .row input { flex: 1 1 260px; width: auto; font-family: "Atkinson Mono", ui-monospace, monospace; }
+
+/* badges: tone only by meaning */
+.badge { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 700; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+.badge.ok { background: var(--ok-soft); color: var(--ok); }
+.badge.ok::before { content: "✓"; }
+.badge.warn { background: var(--warn-soft); color: var(--warn); }
+.badge.eth { background: var(--eth-soft); color: var(--eth); }
+.badge.bad { background: var(--bad-soft); color: var(--bad); }
+.badge.muted { background: transparent; color: var(--muted); border: 1px solid var(--line); font-weight: 400; }
+
+/* addresses */
+.addr { display: grid; gap: 2px; min-width: 0; }
+.addr-top { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.addr-line { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.addr-line.big .mono { font-size: 15px; }
+.list, .owners, .confs, .checks, .chains { list-style: none; padding: 0; margin: 0; }
+.list li, .owners li { padding: 12px 0; border-top: 1px solid var(--line); display: grid; gap: 4px; justify-items: start; }
+.list li:first-child, .owners li:first-child { border-top: 0; }
+.list a { text-decoration: none; }
+
+/* a Safe */
+.safe-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; padding-top: 20px; }
+.safe-head h1 { margin-bottom: 6px; }
+.summary { font-size: 18px; margin: 12px 0 0; }
+.tx { border-top: 1px solid var(--line); padding: 16px 0 6px; }
+.tx:first-of-type { border-top: 0; padding-top: 4px; }
+.tx header { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+.vcode { display: grid; justify-items: end; }
+.vcode code { font-weight: 700; font-size: 26px; letter-spacing: .02em; }
+.tx dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 12px 0; }
+.tx dt { color: var(--muted); }
+.tx dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.confs li, .checks li { display: grid; grid-template-columns: 24px 1fr; gap: 8px; padding: 8px 0; align-items: start; }
+.confs li > div, .checks li > div { min-width: 0; }
+.tick { font-weight: 700; text-align: center; }
+.tick.ok { color: var(--ok); } .tick.bad { color: var(--bad); } .tick.note { color: var(--muted); }
+.act { margin: 12px 0 8px; }
+.steps { display: grid; gap: 6px; margin-top: 12px; }
+.step { display: flex; gap: 8px; align-items: center; }
+.step.run { color: var(--muted); }
+.step.ok .tick { color: var(--ok); } .step.bad { color: var(--bad); }
+.spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--muted); animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
+.how { padding-left: 22px; }
+.how li { margin: 6px 0; }
+.chains li { padding: 8px 0; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.result { margin-top: 12px; }
+
+@media (max-width: 560px) {
+  h1 { font-size: 24px; }
+  .top { gap: 10px; }
+  .wallet { margin-left: 0; width: 100%; }
+  .vcode { justify-items: start; }
+  .tx dl { grid-template-columns: 1fr; }
+  .tx dt { margin-top: 6px; }
+}
+.mono-ish, .checks li div, .confs li div { overflow-wrap: anywhere; }
