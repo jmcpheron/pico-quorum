@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; font-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="PicoQuorum: a hardware approval console for Safe multisig wallets. Several people, several keys, one Safe.">
+<title>PicoQuorum · Hardware approvals for Safe</title>
+<link rel="icon" href="brand/mark-dark.svg" type="image/svg+xml">
+<link rel="stylesheet" href="home.css" integrity="%%HOME_CSS_SRI%%">
+</head>
+<body>
+<header class="top">
+  <a class="lockup" href="./" aria-label="PicoQuorum home">
+    <picture>
+      <source media="(prefers-color-scheme: light)" srcset="brand/mark-light.svg">
+      <img src="brand/mark-dark.svg" width="28" height="26" alt="">
+    </picture>
+    <span>PicoQuorum</span>
+  </a>
+  <nav aria-label="Main">
+    <a href="guide/">Guide</a>
+    <a href="app/#/keys">Keys</a>
+    <a href="https://github.com/jmcpheron/pico-quorum">Source</a>
+  </nav>
+  <a class="btn go" href="app/">Launch app</a>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="hero-text">
+      <p class="eyebrow">Hardware approvals for Safe</p>
+      <h1>Several people, several keys, one&nbsp;Safe.</h1>
+      <p class="lede">PicoQuorum is a small approval console for Safe multisig wallets. It shows what a transaction does on its own screen, works out the hash itself, and signs with a key that never leaves its chip, only when you hold Sign.</p>
+      <div class="cta">
+        <a class="btn go big" href="app/">Launch app <span aria-hidden="true">→</span></a>
+        <a class="btn big" href="guide/">Read the owner's guide</a>
+      </div>
+      <p class="muted small">The app runs in your browser: open any Safe, check every confirmation, and execute. It holds no key.</p>
+    </div>
+    <figure class="screen">
+      <img src="quorum-ui/shots/51-trustm-home.png" width="480" height="480" alt="The console's home screen: Family Safe, 2 of 3 approvals, four transactions waiting, one refused for a bad hash.">
+    </figure>
+  </section>
+
+  <section>
+    <h2>How an approval goes</h2>
+    <ol class="steps">
+      <li><span class="n">1</span><h3>Someone proposes</h3><p>In Safe{Wallet} or anywhere else. The transaction waits in Safe's queue for the owners.</p></li>
+      <li><span class="n">2</span><h3>The console reads it</h3><p>It decodes the call into plain language, with red pages for anything that changes who controls the Safe, and computes the Safe transaction hash from the fields it shows.</p></li>
+      <li><span class="n">3</span><h3>You hold Sign</h3><p>The plug-in key, an Infineon Trust M, signs the hash the console computed. It owns the Safe through Safe's audited passkey signer. No seed phrase exists.</p></li>
+      <li><span class="n">4</span><h3>Execute in the app</h3><p>Every confirmation is checked in your browser, the signatures are laid out the way the Safe expects, and your wallet sends it.</p></li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Nothing signs unseen</h2>
+    <div class="shots">
+      <figure><img src="quorum-ui/shots/02-approve-summary.png" width="480" height="480" alt="Send 0.05 ETH to Carol, 1 of 2 signed, yours makes it 2 of 2." loading="lazy"><figcaption><strong>Plain language.</strong> What it does, who it pays, who has signed.</figcaption></figure>
+      <figure><img src="quorum-ui/shots/13-owner-red-page.png" width="480" height="480" alt="A red page: add owner 0xdead…beef, not in the address book." loading="lazy"><figcaption><strong>Red pages.</strong> Owners, thresholds and anything that can't be undone, all in red.</figcaption></figure>
+      <figure><img src="quorum-ui/shots/11-batch-verify.png" width="480" height="480" alt="Check with the proposer: the Safe tx hash ends in f924 aa08, with its blockie." loading="lazy"><figcaption><strong>A verify code.</strong> The hash's last eight characters and its picture, to check with the proposer.</figcaption></figure>
+      <figure><img src="quorum-ui/shots/05-approve-hold.png" width="480" height="480" alt="Keep holding A: a progress bar, 1.0 s to go, let go to cancel." loading="lazy"><figcaption><strong>Hold to sign.</strong> Two seconds on a guarded button. Reject is one easy press.</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="split">
+    <div>
+      <h2>The app</h2>
+      <p>Safe{Wallet} can't execute a transaction when a PicoQuorum key is one of two or more confirmations: it fails with GS021. The PicoQuorum app can, and checks everything on the way.</p>
+      <ul class="ticks">
+        <li><strong>Safes.</strong> Owners, threshold and nonce read from the Safe itself. Save the ones you use, name the owners, back it all up to a file.</li>
+        <li><strong>Queue.</strong> Each transaction's hash recomputed, the console's verify code shown, every confirmation checked.</li>
+        <li><strong>Execute.</strong> Simulated against the chain first, then sent by your browser wallet.</li>
+        <li><strong>Keys.</strong> Each listed key's attestation checked in your browser, and a badge for the owners that pass.</li>
+        <li><strong>Blockies everywhere.</strong> The same picture for an address or a hash as the console, Safe{Wallet} and Etherscan draw.</li>
+      </ul>
+      <a class="btn go big" href="app/">Launch app <span aria-hidden="true">→</span></a>
+    </div>
+    <div class="facts">
+      <h2>Where it stands</h2>
+      <ul class="ladder">
+        <li class="done">A simulated Safe and a local fork, on the real Pico</li>
+        <li class="done">Base Sepolia, end to end over HTTPS</li>
+        <li>Base, with a few dollars: the first approval is next</li>
+        <li>Then Ethereum mainnet</li>
+      </ul>
+      <p class="warn-note"><strong>Experimental.</strong> Early design. Use a testnet first and small amounts on mainnet. The Safe's threshold is the real control.</p>
+      <p class="small"><a href="https://github.com/jmcpheron/pico-quorum/blob/main/docs/LADDER.md">The test ladder</a> · <a href="mainnet/">Mainnet notes</a> · <a href="https://github.com/jmcpheron/pico-quorum/blob/main/docs/SECURITY.md">Security model</a> · <a href="BRAND.html">Brand</a></p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <p>PicoQuorum is a fork of <a href="https://github.com/austintgriffith/picowallet">picowallet</a> by Austin Griffith. MIT licensed. Runs on Raspberry Pi Pico 2 W.</p>
+  <p class="muted">Hardware approvals for Safe · <a href="https://github.com/jmcpheron/pico-quorum">Source</a> · <a href="https://github.com/jmcpheron/pico-quorum/blob/main/docs/README.md">All the docs</a></p>
+</footer>
+</body>
+</html>
