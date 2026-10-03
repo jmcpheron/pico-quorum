@@ -44,7 +44,7 @@ nav a { text-decoration: none; color: var(--muted); padding: 6px 10px; border-ra
 nav a[aria-current] { color: var(--text); background: var(--panel); }
 .wallet { margin-left: auto; }
 .wallet-on { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); }
-.wallet-on .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
+.wallet-on .blockie { margin-left: -6px; }
 
 main { max-width: 920px; margin: 0 auto; padding: 0 16px 32px; }
 footer { max-width: 920px; margin: 0 auto; padding: 24px 16px 40px; border-top: 1px solid var(--line); font-size: 14px; }
@@ -89,8 +89,13 @@ label.btn { display: inline-flex; margin: 0; }
 .badge.bad { background: var(--bad-soft); color: var(--bad); }
 .badge.muted { background: transparent; color: var(--muted); border: 1px solid var(--line); font-weight: 400; }
 
+/* blockies: the same picture the console, Safe{Wallet} and Etherscan draw for an address or hash */
+.blockie { display: block; flex: none; border-radius: 50%; image-rendering: pixelated; background: var(--line); }
+.inline-ident .blockie, .to .blockie { display: inline-block; vertical-align: -5px; margin-right: 6px; }
+
 /* addresses */
-.addr { display: grid; gap: 2px; min-width: 0; }
+.addr { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: center; min-width: 0; }
+.addr-body { display: grid; gap: 2px; min-width: 0; }
 .addr-top { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .addr-line { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .addr-line.big .mono { font-size: 15px; }
@@ -98,20 +103,29 @@ label.btn { display: inline-flex; margin: 0; }
 .list li, .owners li { padding: 12px 0; border-top: 1px solid var(--line); display: grid; gap: 4px; justify-items: start; }
 .list li:first-child, .owners li:first-child { border-top: 0; }
 .list a { text-decoration: none; }
+.list li.safe-row, .owners li.with-ident { grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; justify-items: stretch; }
+.owners li.with-ident { grid-template-columns: auto 1fr; }
+.owners li > .small, .owners li > .linkish { margin-left: 48px; }
+.row.tight { gap: 6px; }
 
 /* a Safe */
 .safe-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; padding-top: 20px; }
 .safe-head h1 { margin-bottom: 6px; }
+.safe-title { display: flex; align-items: center; gap: 16px; min-width: 0; }
 .summary { font-size: 18px; margin: 12px 0 0; }
 .tx { border-top: 1px solid var(--line); padding: 16px 0 6px; }
 .tx:first-of-type { border-top: 0; padding-top: 4px; }
 .tx header { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
-.vcode { display: grid; justify-items: end; }
+.vcode { display: flex; gap: 12px; align-items: center; }
+.vcode > div { display: grid; justify-items: end; }
+.vcode .blockie { border-radius: 8px; }
 .vcode code { font-weight: 700; font-size: 26px; letter-spacing: .02em; }
 .tx dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 12px 0; }
 .tx dt { color: var(--muted); }
 .tx dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
 .confs li, .checks li { display: grid; grid-template-columns: 24px 1fr; gap: 8px; padding: 8px 0; align-items: start; }
+.confs li { grid-template-columns: 24px 28px 1fr; gap: 10px; }
+.confs li.none { grid-template-columns: 1fr; }
 .confs li > div, .checks li > div { min-width: 0; }
 .tick { font-weight: 700; text-align: center; }
 .tick.ok { color: var(--ok); } .tick.bad { color: var(--bad); } .tick.note { color: var(--muted); }
@@ -132,7 +146,9 @@ label.btn { display: inline-flex; margin: 0; }
   h1 { font-size: 24px; }
   .top { gap: 10px; }
   .wallet { margin-left: 0; width: 100%; }
-  .vcode { justify-items: start; }
+  .vcode > div { justify-items: start; }
+  .list li.safe-row { grid-template-columns: auto 1fr; }
+  .list li.safe-row > .row { grid-column: 2; }
   .tx dl { grid-template-columns: 1fr; }
   .tx dt { margin-top: 6px; }
 }

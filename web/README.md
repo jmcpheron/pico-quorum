@@ -1,6 +1,13 @@
-# web: the Execute page
+# web: the front page and the app
 
-A static page, served by GitHub Pages from `docs/app/`, that closes the loop on a PicoQuorum Safe:
+Two static pages, served by GitHub Pages from `docs/`:
+
+- **The front page**, `docs/index.html` (from `src/home.html` and `src/home.css`): what PicoQuorum is,
+  how an approval goes, the console's screens, where it stands, and a big green **Launch app**.
+  No script.
+- **The app**, `docs/app/` (from `src/main.mjs`), described below.
+
+The app closes the loop on a PicoQuorum Safe:
 open any Safe, see its owners and queue, check every confirmation in the browser, and execute with
 the signatures laid out the way the Safe expects. Safe{Wallet} can't do that last step when a
 contract signature (a PicoQuorum key's) is one of two or more confirmations: GS021
@@ -22,20 +29,29 @@ What it does:
   passes gets a **Verified PicoQuorum key** badge. A key's page shows the checks, and deploys its
   signer proxy on a chain from the wallet (`tools/quorum live enroll`). Any bundle can be checked
   locally under **Check a bundle**.
-- **Settings.** Your own Safe API key (developer.safe.global) and RPC endpoints, kept in the browser.
+- **Blockies.** Every Safe, owner, key, recipient and confirmation has its blockie, and each queued
+  transaction shows its hash's blockie beside the verify code. `src/blockies.mjs` draws the same
+  picture as the console (`firmware/blockies.py`), Safe{Wallet}, MetaMask and Etherscan: the seed is
+  the address or hash in lower case.
+- **Saved in the browser.** Saved Safes (rename, remove, with their last-seen threshold), the Safes
+  opened lately, and an address book of names you give owners.
+- **Settings.** The address book; a backup file of saved Safes and names, and restoring one (it
+  merges, and leaves the API key and RPCs out); your own Safe API key (developer.safe.global) and
+  RPC endpoints, kept in the browser.
 
 ## Build and test
 
 ```sh
 cd tools/mock-tx-service && npm ci && cd ../../web
 npm ci
-npm test          # the browser's logic against the CLI verifier, sim.mjs and firmware/safe_tx.py
-npm run build     # writes docs/app/ (commit it: Pages serves the branch)
+npm test          # the browser's logic against the CLI verifier, sim.mjs, firmware/safe_tx.py and firmware/blockies.py
+npm run build     # writes docs/app/, docs/index.html and docs/home.css (commit them: Pages serves the branch)
 ```
 
 `build.mjs` bundles `src/main.mjs` with esbuild (viem and noble pinned in `package.json`), copies the
 Atkinson Hyperlegible fonts (SIL OFL), writes `index.html` with subresource-integrity hashes, and
-records every file's SHA-256 in `docs/app/BUILD.json`. Rebuild from the same commit and compare.
+records every file's SHA-256 in `docs/app/BUILD.json`. It also writes the front page with an integrity
+hash for its stylesheet; the front page uses the app's fonts. Rebuild from the same commit and compare.
 The pinned values (passkey factory, services, known contracts) come from `firmware/quorum_cfg.py`.
 
 ## Trust

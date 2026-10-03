@@ -4,6 +4,7 @@
 // the queue comes from Safe's service and is untrusted.
 import { encodeFunctionData, getAddress, isAddress } from "viem";
 import { verifyBundle } from "./attest.mjs";
+import { blockieSrc } from "./blockies.mjs";
 import {
   CFG, CHAINS, GS, SAFE_ABI, SIGNER_ABI, Service, checkTx, client, consoleRefuses, dataBytes, eth, execCall, knownName, outcome,
   ownerKind, readSafe, reason, verifyCode,
@@ -44,6 +45,36 @@ const short = (a) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 const nameOf = (a) => registryNames[a.toLowerCase()] || store.get("names", {})[a.toLowerCase()] || "";
 const registryNames = {};
 
+// Saved Safes ({chain, address, name, threshold?, owners?}), the ones opened lately, and the names
+// given to owners: all in this browser only, and in the backup file Settings writes.
+const sameSafe = (a, b) => a.chain === b.chain && a.address === b.address;
+const savedSafes = () => store.get("safes", []);
+const savedSafe = (s) => savedSafes().find((x) => sameSafe(x, s));
+function saveSafe(s) {
+  const list = savedSafes();
+  const i = list.findIndex((x) => sameSafe(x, s));
+  if (i >= 0) list[i] = { ...list[i], ...s }; else list.push(s);
+  store.set("safes", list);
+}
+const forgetSafe = (s) => store.set("safes", savedSafes().filter((x) => !sameSafe(x, s)));
+function noteRecent(s) {
+  store.set("recent", [s, ...store.get("recent", []).filter((x) => !sameSafe(x, s))].slice(0, 6));
+}
+function nameSafe(s, fallback) {
+  const label = prompt("A name for this Safe (only kept in this browser):", savedSafe(s)?.name || fallback);
+  if (label == null) return false;
+  saveSafe({ ...s, name: label.trim() || fallback });
+  return true;
+}
+function nameOwner(o) {
+  const n = prompt("A name for this address (only kept in this browser):", nameOf(o));
+  if (n == null) return false;
+  const names = store.get("names", {});
+  if (n.trim()) names[o.toLowerCase()] = n.trim(); else delete names[o.toLowerCase()];
+  store.set("names", names);
+  return true;
+}
+
 function copyButton(text, label = "Copy") {
   const b = h("button", { class: "mini", type: "button", "aria-label": `${label} ${text}`, text: label });
   b.onclick = async () => {
@@ -57,12 +88,17 @@ function explorer(name, kind, x, text = "Explorer") {
 }
 const badge = (tone, text, title) => h("span", { class: `badge ${tone}`, title }, text);
 
-// An address as people compare it: the name, then the whole address in mono.
+// The blockie for an address or a hash (blockies.mjs): the picture the console, Safe{Wallet},
+// MetaMask and Etherscan draw for it. Decoration beside the text, so no alt text of its own.
+const ident = (x, size = 32) => h("img", { class: "blockie", src: blockieSrc(x), width: size, height: size, alt: "", "aria-hidden": "true" });
+
+// An address as people compare it: its blockie, the name, then the whole address in mono.
 function address(name, a, extra = []) {
   const n = nameOf(a);
-  return h("div", { class: "addr" },
-    h("div", { class: "addr-top" }, n ? h("strong", { text: n }) : null, ...extra),
-    h("div", { class: "addr-line" }, h("code", { class: "mono", text: getAddress(a) }), copyButton(getAddress(a)), explorer(name, "address", a)));
+  return h("div", { class: "addr" }, ident(a, 36),
+    h("div", { class: "addr-body" },
+      h("div", { class: "addr-top" }, n ? h("strong", { text: n }) : null, ...extra),
+      h("div", { class: "addr-line" }, h("code", { class: "mono", text: getAddress(a) }), copyButton(getAddress(a)), explorer(name, "address", a))));
 }
 
 function steps() {
@@ -124,7 +160,7 @@ function renderWallet() {
   if (wallet.account) {
     const onChain = Object.values(CHAINS).find((c) => c.id === wallet.chainId);
     fill(slot, h("span", { class: "wallet-on", title: wallet.name },
-      h("span", { class: "dot", "aria-hidden": "true" }), short(wallet.account), onChain ? ` · ${onChain.name}` : ` · chain ${wallet.chainId}`));
+      ident(wallet.account, 20), short(wallet.account), onChain ? ` · ${onChain.name}` : ` · chain ${wallet.chainId}`));
     return;
   }
   const b = h("button", { class: "btn", type: "button", text: "Connect wallet" });
@@ -153,8 +189,22 @@ function parseSafe(text, fallbackChain) {
   return null;
 }
 
+function safeRow(s, saved) {
+  const c = CHAINS[s.chain];
+  const facts = [c?.name || s.chain, s.threshold ? `${s.threshold} of ${s.owners}` : null].filter(Boolean).join(" · ");
+  return h("li", { class: "safe-row" }, ident(s.address, 40),
+    h("div", { class: "addr-body" },
+      h("a", { href: `#/safe/${s.chain}/${s.address}` }, h("strong", { text: s.name || short(s.address) }), h("span", { class: "muted", text: ` · ${facts}` })),
+      h("code", { class: "mono small", text: s.address })),
+    h("div", { class: "row tight" }, saved
+      ? [h("button", { class: "mini", type: "button", text: "Rename", onclick: () => nameSafe(s, s.name || short(s.address)) && route() }),
+         h("button", { class: "mini", type: "button", text: "Remove", onclick: () => confirm(`Remove ${s.name || s.address} from your Safes?`) && (forgetSafe(s), route()) })]
+      : h("button", { class: "mini", type: "button", text: "Save", onclick: () => nameSafe(s, short(s.address)) && route() })));
+}
+
 function home() {
-  const saved = store.get("safes", []);
+  const saved = savedSafes();
+  const recent = store.get("recent", []).filter((r) => !saved.some((s) => sameSafe(s, r)) && CHAINS[r.chain]).slice(0, 4);
   const chainSel = h("select", { id: "chain", "aria-label": "Network" },
     ...Object.entries(CHAINS).map(([k, c]) => h("option", { value: k, text: c.name })));
   const input = h("input", { id: "safe", type: "text", placeholder: "0x… or basesep:0x…", autocomplete: "off", spellcheck: "false",
@@ -176,13 +226,13 @@ function home() {
       h("p", { class: "small muted" }, "Or try ",
         h("a", { href: `#/safe/${DEMO.chain}/${DEMO.address}`, text: DEMO.name }), " on Base Sepolia.")),
     saved.length ? h("section", { class: "card" }, h("h2", { text: "Your Safes" }),
-      h("ul", { class: "list" }, ...saved.map((s) => h("li", {},
-        h("a", { href: `#/safe/${s.chain}/${s.address}` }, h("strong", { text: s.name || short(s.address) }),
-          h("span", { class: "muted", text: ` · ${CHAINS[s.chain]?.name || s.chain}` })),
-        h("code", { class: "mono small", text: s.address }))))) : null,
+      h("ul", { class: "list" }, ...saved.map((s) => safeRow(s, true))),
+      h("p", { class: "small muted" }, "Kept in this browser. ", h("a", { href: "#/settings", text: "Back them up" }), " to move them to another.")) : null,
+    recent.length ? h("section", { class: "card" }, h("h2", { text: "Opened lately" }),
+      h("ul", { class: "list" }, ...recent.map((s) => safeRow(s, false)))) : null,
     h("section", { class: "card quiet" }, h("h2", { text: "What is PicoQuorum?" }),
       h("p", {}, "A hardware approval console for Safe multisig wallets: a Raspberry Pi Pico 2 W with a screen and two buttons, and a sealed Infineon Trust M key that plugs in. It decodes each queued transaction on its own screen, and signs only when you hold Sign."),
-      h("p", {}, h("a", { href: REPO, text: "The project on GitHub" }), " · ", h("a", { href: "#/keys", text: "Verified keys" }))),
+      h("p", {}, h("a", { href: "../", text: "About the project" }), " · ", h("a", { href: REPO, text: "Source" }), " · ", h("a", { href: "#/keys", text: "Verified keys" }))),
   );
   input.focus();
 }
@@ -194,23 +244,20 @@ async function safeView(name, addr) {
   const safe = getAddress(addr);
   const pub = pubFor(name);
   const svc = serviceFor(name);
-  const saved = store.get("safes", []);
-  const mine = saved.find((s) => s.chain === name && s.address === safe);
+  const key = { chain: name, address: safe };
+  const mine = savedSafe(key);
   const title = mine?.name || (safe === DEMO.address && name === DEMO.chain ? DEMO.name : `Safe ${short(safe)}`);
 
   const body = h("div", {}, h("p", { class: "muted", text: "Reading the Safe…" }));
-  const saveBtn = h("button", { class: "btn", type: "button", text: mine ? "Saved" : "Save to your Safes", disabled: !!mine });
-  saveBtn.onclick = () => {
-    const label = prompt("A name for this Safe (only kept in this browser):", title) ?? title;
-    store.set("safes", [...store.get("safes", []).filter((s) => !(s.chain === name && s.address === safe)), { chain: name, address: safe, name: label }]);
-    saveBtn.textContent = "Saved";
-    saveBtn.disabled = true;
-  };
+  const saveBtn = h("button", { class: "btn", type: "button", text: mine ? "Rename" : "Save to your Safes",
+    onclick: () => nameSafe(key, title) && route() });
   const refresh = h("button", { class: "btn", type: "button", text: "Refresh", onclick: () => route() });
   fill($main(), 
     h("section", { class: "safe-head" },
-      h("div", {}, h("h1", { text: title }),
-        h("div", { class: "chips" }, badge(c.test ? "warn" : "eth", c.test ? `${c.name} · testnet` : `${c.name} · mainnet`))),
+      h("div", { class: "safe-title" }, ident(safe, 56),
+        h("div", {}, h("h1", { text: title }),
+          h("div", { class: "chips" }, badge(c.test ? "warn" : "eth", c.test ? `${c.name} · testnet` : `${c.name} · mainnet`),
+            mine ? badge("muted", "Saved") : null))),
       h("div", { class: "row" }, saveBtn, copyButton(location.href, "Copy link"), refresh,
         h("a", { class: "btn", href: `https://app.safe.global/transactions/queue?safe=${name}:${safe}`, target: "_blank", rel: "noopener", text: "Safe{Wallet}" }))),
     h("div", { class: "addr-line big" }, h("code", { class: "mono", text: safe }), copyButton(safe), explorer(name, "address", safe)),
@@ -219,6 +266,9 @@ async function safeView(name, addr) {
   try {
     const [onchain, info, keys] = await Promise.all([readSafe(pub, safe), svc.info(safe).catch((e) => ({ error: e })), byOwner()]);
     if (onchain.missing) throw new Error(`There's no contract at ${safe} on ${c.name}. Check the network.`);
+    const facts = { threshold: onchain.threshold, owners: onchain.owners.length };
+    noteRecent({ ...key, ...facts });
+    if (mine) saveSafe({ ...key, ...facts });
     const kinds = await Promise.all(onchain.owners.map((o) => ownerKind(pub, o)));
     const summary = h("p", { class: "summary" },
       h("strong", { text: `${onchain.threshold} of ${onchain.owners.length}` }), ` · nonce ${onchain.nonce} · v${onchain.version} · ${eth(onchain.balance)} ETH`);
@@ -242,14 +292,7 @@ async function safeView(name, addr) {
 }
 
 function renameLink(o) {
-  return h("button", { class: "linkish small", type: "button", text: nameOf(o) ? "Rename" : "Name this owner", onclick: () => {
-    const n = prompt("A name for this owner (only kept in this browser):", nameOf(o));
-    if (n == null) return;
-    const names = store.get("names", {});
-    if (n.trim()) names[o.toLowerCase()] = n.trim(); else delete names[o.toLowerCase()];
-    store.set("names", names);
-    route();
-  } });
+  return h("button", { class: "linkish small", type: "button", text: nameOf(o) ? "Rename" : "Name this owner", onclick: () => nameOwner(o) && route() });
 }
 
 function describe(chainId, t) {
@@ -278,10 +321,12 @@ async function txCard(name, safe, onchain, t, keys) {
     h("header", {},
       h("div", {}, h("div", { class: "muted small", text: `#${t.nonce}${current ? " · next to run" : ` · after #${onchain.nonce}`}` }),
         h("h3", { text: describe(c.id, t) })),
-      h("div", { class: "vcode", title: "The console's verify code: the last 8 characters of the transaction's hash" },
-        h("span", { class: "muted small", text: "Verify code" }), h("code", { text: verifyCode(check.hash) }))),
+      h("div", { class: "vcode", title: "The console's verify code and picture: the last 8 characters of the transaction's hash, and its blockie" },
+        ident(check.hash, 48),
+        h("div", {}, h("span", { class: "muted small", text: "Verify code" }), h("code", { text: verifyCode(check.hash) })))),
     h("dl", {},
-      h("dt", { text: "To" }), h("dd", {}, h("code", { class: "mono", text: getAddress(t.to) }), knownName(c.id, t.to) ? ` (${knownName(c.id, t.to)})` : ""),
+      h("dt", { text: "To" }), h("dd", { class: "to" }, ident(t.to, 20), h("code", { class: "mono", text: getAddress(t.to) }),
+        knownName(c.id, t.to) || nameOf(t.to) ? ` (${knownName(c.id, t.to) || nameOf(t.to)})` : ""),
       h("dt", { text: "Value" }), h("dd", { text: `${eth(t.value)} ETH` }),
       h("dt", { text: "Data" }), h("dd", { text: dataBytes(t.data) ? `${dataBytes(t.data)} bytes${t.dataDecoded?.method ? ` · the service reads it as ${t.dataDecoded.method}` : ""}` : "none" }),
       h("dt", { text: "Operation" }), h("dd", { class: Number(t.operation) === 1 ? "bad" : "", text: Number(t.operation) === 1 ? "delegatecall" : "call" }),
@@ -291,13 +336,14 @@ async function txCard(name, safe, onchain, t, keys) {
     h("h4", { text: `Confirmations · ${check.valid.length} of ${onchain.threshold}` }),
     h("ul", { class: "confs" }, ...check.confirmations.map((x) => h("li", { class: x.ok ? "" : "invalid" },
       h("span", { class: `tick ${x.ok ? "ok" : "bad"}`, "aria-hidden": "true", text: x.ok ? "✓" : "✕" }),
+      ident(x.owner, 28),
       h("div", {},
         h("div", { class: "addr-top" }, h("strong", { text: nameOf(x.owner) || short(x.owner) }),
           keyBadge(keys[x.owner]), x.console ? badge("muted", "signed on a console", "The WebAuthn data names PicoQuorum. Anyone can write that; the check is the signature.") : null,
           badge("muted", { ecdsa: "wallet signature", contract: "contract signature", approved: "approved onchain" }[x.kind] || x.kind)),
         h("code", { class: "mono small", text: x.owner }),
         x.ok ? null : h("div", { class: "bad small", text: x.why || "not valid" })))),
-      ...(check.confirmations.length ? [] : [h("li", { class: "muted", text: "No confirmations yet." })])),
+      ...(check.confirmations.length ? [] : [h("li", { class: "muted none", text: "No confirmations yet." })])),
   );
   const act = h("div", { class: "act" });
   add(card, act);
@@ -378,17 +424,18 @@ async function keysView() {
       h("label", { class: "btn", for: "bundle", text: "Choose a bundle…" }), file, checkOut));
   try {
     const reg = await registry();
-    fill(list, h("ul", { class: "owners" }, ...reg.map((k) => h("li", {},
-      h("div", { class: "addr-top" }, h("strong", { text: k.name }), keyBadge(k), k.holder ? h("span", { class: "muted small", text: `held by ${k.holder}` }) : null),
-      h("code", { class: "mono", text: k.owner }),
-      h("div", { class: "small" }, h("a", { href: `#/key/${k.owner}`, text: "Checks, and add it to a Safe" }), k.why ? h("span", { class: "bad", text: ` · ${k.why}` }) : null)))));
+    fill(list, h("ul", { class: "owners" }, ...reg.map((k) => h("li", { class: "with-ident" }, ident(k.owner, 36),
+      h("div", { class: "addr-body" },
+        h("div", { class: "addr-top" }, h("strong", { text: k.name }), keyBadge(k), k.holder ? h("span", { class: "muted small", text: `held by ${k.holder}` }) : null),
+        h("code", { class: "mono", text: k.owner }),
+        h("div", { class: "small" }, h("a", { href: `#/key/${k.owner}`, text: "Checks, and add it to a Safe" }), k.why ? h("span", { class: "bad", text: ` · ${k.why}` }) : null))))));
   } catch (e) { fail(list, e); }
 }
 
 function resultCard(r, label) {
   return h("div", { class: "result" },
     h("p", {}, h("strong", { text: label }), " · ", r.failed ? badge("bad", `${r.failed} failed`) : badge("ok", "every check passes")),
-    r.owner ? h("p", {}, "Owner address ", h("code", { class: "mono", text: r.owner }), " ", copyButton(r.owner)) : null,
+    r.owner ? h("p", { class: "inline-ident" }, "Owner address ", ident(r.owner, 20), h("code", { class: "mono", text: r.owner }), " ", copyButton(r.owner)) : null,
     h("ul", { class: "checks" }, ...r.rows.map((x) => h("li", { class: x.ok === false ? "invalid" : "" },
       h("span", { class: `tick ${x.ok === true ? "ok" : x.ok === false ? "bad" : "note"}`, "aria-hidden": "true", text: x.ok === true ? "✓" : x.ok === false ? "✕" : "·" }),
       h("div", {}, h("div", { text: x.what }), x.detail ? h("div", { class: "muted small mono-ish", text: x.detail }) : null)))));
@@ -404,12 +451,12 @@ async function keyView(owner) {
     if (!k) throw new Error(`${o} isn't in the registry.`);
     const deploy = h("div", {});
     fill(out, 
-      h("section", { class: "hero" }, h("h1", { text: k.name }), h("div", { class: "chips" }, keyBadge(k)),
+      h("section", { class: "hero" }, h("div", { class: "safe-title" }, ident(o, 56), h("div", {}, h("h1", { text: k.name }), h("div", { class: "chips" }, keyBadge(k)))),
         k.note ? h("p", { class: "muted", text: k.note }) : null,
         h("p", {}, "Bundle: ", h("a", { href: k.bundleUrl, text: k.bundle.split("/").pop() }), k.holder ? ` · held by ${k.holder}` : "")),
       h("section", { class: "card" }, h("h2", { text: "The checks" }), k.result ? resultCard(k.result, `Trust M ${k.serial}`) : h("p", { class: "bad", text: k.why })),
       h("section", { class: "card" }, h("h2", { text: "Add this key to a Safe" }),
-        h("p", {}, "Its owner address is the same on every chain: ", h("code", { class: "mono", text: o }), " ", copyButton(o)),
+        h("p", { class: "inline-ident" }, "Its owner address is the same on every chain: ", ident(o, 20), h("code", { class: "mono", text: o }), " ", copyButton(o)),
         h("ol", { class: "how" },
           h("li", {}, "Deploy its signer on the chain you use (once per chain). Anyone can, and it moves no funds."),
           h("li", {}, "In Safe{Wallet}, add that address as an owner, and keep the threshold at 2 or more."),
@@ -453,13 +500,65 @@ async function deployRows(where, r, owner) {
 }
 
 // ----------------------------------------------------------------------------- settings
+// What a backup holds: saved Safes and names. Not the API key or the RPCs, which are this browser's.
+const BACKUP = "picoquorum-backup";
+function backupFile() {
+  const body = { kind: BACKUP, version: 1, safes: savedSafes(), names: store.get("names", {}) };
+  const a = h("a", { href: URL.createObjectURL(new Blob([JSON.stringify(body, null, 2) + "\n"], { type: "application/json" })),
+    download: `picoquorum-${new Date().toISOString().slice(0, 10)}.json` });
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+// Merge a backup in: Safes by chain and address (the file's name wins), names by address. Everything
+// is checked, since the file could come from anywhere.
+function restore(B) {
+  if (B?.kind !== BACKUP || !Array.isArray(B.safes) || typeof B.names !== "object") throw new Error("That isn't a PicoQuorum backup.");
+  let safes = 0, names = 0;
+  for (const x of B.safes) {
+    if (!CHAINS[x?.chain] || !isAddress(String(x.address), { strict: false })) continue;
+    const s = { chain: x.chain, address: getAddress(x.address), name: String(x.name || "").slice(0, 80) };
+    if (Number.isInteger(x.threshold) && Number.isInteger(x.owners)) Object.assign(s, { threshold: x.threshold, owners: x.owners });
+    saveSafe(s); safes++;
+  }
+  const book = store.get("names", {});
+  for (const [a, n] of Object.entries(B.names || {})) {
+    if (!isAddress(a, { strict: false }) || typeof n !== "string" || !n.trim()) continue;
+    book[a.toLowerCase()] = n.trim().slice(0, 80); names++;
+  }
+  store.set("names", book);
+  return `Added ${safes} Safe${safes === 1 ? "" : "s"} and ${names} name${names === 1 ? "" : "s"}.`;
+}
+
 function settingsView() {
   const key = h("input", { type: "password", id: "apikey", value: store.get("apiKey", ""), autocomplete: "off", placeholder: "Optional" });
   const rpcs = store.get("rpc", {});
   const rpcInputs = Object.entries(CHAINS).map(([name, c]) => [name, h("input", { type: "url", id: `rpc-${name}`, value: rpcs[name] || "", placeholder: c.rpc })]);
   const saved = h("p", { class: "small muted", role: "status" });
+  const book = Object.entries(store.get("names", {}));
+  const restored = h("p", { class: "small", role: "status" });
+  const file = h("input", { type: "file", accept: ".json,application/json", id: "backup", class: "visually-hidden" });
+  file.onchange = async () => {
+    try { restored.className = "small"; restored.textContent = restore(JSON.parse(await file.files[0].text())); setTimeout(route, 1600); }
+    catch (e) { restored.className = "small bad"; restored.textContent = e.message; }
+  };
   fill($main(), 
     h("section", { class: "hero" }, h("h1", { text: "Settings" }), h("p", { class: "muted", text: "Kept in this browser only. Nothing here is sent anywhere except to the service or RPC it's for." })),
+    h("section", { class: "card" }, h("h2", { text: "Address book" }),
+      h("p", { class: "muted", text: "The names you've given owners. Keys in the registry are named for you." }),
+      book.length
+        ? h("ul", { class: "list" }, ...book.map(([a, n]) => h("li", { class: "safe-row" }, ident(a, 32),
+            h("div", { class: "addr-body" }, h("strong", { text: n }), h("code", { class: "mono small", text: getAddress(a) })),
+            h("div", { class: "row tight" },
+              h("button", { class: "mini", type: "button", text: "Rename", onclick: () => nameOwner(a) && route() }),
+              h("button", { class: "mini", type: "button", text: "Remove", onclick: () => {
+                const names = store.get("names", {}); delete names[a]; store.set("names", names); route();
+              } })))))
+        : h("p", { class: "small muted", text: "No names yet. Name an owner from a Safe's page." })),
+    h("section", { class: "card" }, h("h2", { text: "Back up and restore" }),
+      h("p", {}, `Your ${savedSafes().length} saved Safe${savedSafes().length === 1 ? "" : "s"} and ${book.length} name${book.length === 1 ? "" : "s"}, as a file. Restoring adds to what's here. The API key and RPCs stay out of it.`),
+      h("div", { class: "row" },
+        h("button", { class: "btn", type: "button", text: "Download a backup", onclick: backupFile }),
+        h("label", { class: "btn", for: "backup", text: "Restore from a file…" }), file), restored),
     h("section", { class: "card" }, h("h2", { text: "Safe API key" }),
       h("p", {}, "Safe's transaction service allows a few requests without a key. With your own from ", h("a", { href: "https://developer.safe.global", target: "_blank", rel: "noopener", text: "developer.safe.global" }), ", it allows plenty. It's sent to api.safe.global and nowhere else."),
       h("label", { for: "apikey", text: "API key" }), key),
@@ -473,8 +572,8 @@ function settingsView() {
         saved.textContent = "Saved.";
       } }),
       h("button", { class: "btn", type: "button", text: "Forget everything", onclick: () => {
-        if (!confirm("Forget your saved Safes, names, API key and RPCs in this browser?")) return;
-        for (const k of ["safes", "names", "apiKey", "rpc"]) try { localStorage.removeItem("pq." + k); } catch {}
+        if (!confirm("Forget your saved and recent Safes, names, API key and RPCs in this browser?")) return;
+        for (const k of ["safes", "recent", "names", "apiKey", "rpc"]) try { localStorage.removeItem("pq." + k); } catch {}
         route();
       } })), saved);
 }

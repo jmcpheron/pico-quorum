@@ -1,6 +1,6 @@
 # docs
 
-**Execute a Safe transaction, or check a key: [the Execute page](app/)** (built from [`web/`](../web/README.md); the key list is [`registry/`](registry/README.md)).
+**The site's front page is [`index.html`](index.html); execute a Safe transaction, or check a key, in [the app](app/)** (both built from [`web/`](../web/README.md); the key list is [`registry/`](registry/README.md)).
 
 **Owners start at [`guide/`](guide/README.md)**: setting up a console, using it, networks, and
 troubleshooting.

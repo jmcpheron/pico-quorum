@@ -6,6 +6,8 @@
 //    sim.mjs and firmware/safe_tx.py, both confirmations check, and execTransaction's signatures are
 //    packed with the contract signature's data after the slots (the GS021 case).
 // 3. The verify code matches the console's, and the console's top-level refusals match decode.py.
+// 4. Blockies: the page draws the same picture as the console (firmware/blockies.py) for addresses
+//    and transaction hashes.
 import { spawnSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -117,6 +119,23 @@ check(S.consoleRefuses(8453, { operation: 1, to: "0x9641d764fc13c8b624c04430c735
 check(S.consoleRefuses(8453, { operation: 1, to: "0x9641d764fc13c8b624c04430c7356c1c7c8102e2", data: "0x12345678" }) !== "",
   "refuses: any other call to the batcher by delegatecall");
 
+// ----------------------------------------------------------------------------- 4. blockies
+const { blockie, rgb } = await import("./src/blockies.mjs");
+const seeds = [safe, alice.address, chip, S.ZERO, "0xffffffffffffffffffffffffffffffffffffffff", hash].map((x) => x.toLowerCase());
+const fwBlockies = JSON.parse(spawnSync("python3", ["-c", `import sys, json; sys.path.insert(0, ${JSON.stringify(ROOT + "firmware")})
+import blockies
+out = []
+for seed in json.load(sys.stdin):
+    data, fg, bg, spot = blockies.build(seed)
+    out.append([[min(v, 2) for v in data], [blockies.hsl_to_rgb(c) for c in (fg, bg, spot)]])
+print(json.dumps(out))`], { input: JSON.stringify(seeds), encoding: "utf8" }).stdout);
+seeds.forEach((seed, i) => {
+  const b = blockie(seed);
+  const same = JSON.stringify([b.data.map((v) => Math.min(v, 2)), [b.color, b.bg, b.spot].map(rgb)]) === JSON.stringify(fwBlockies[i]);
+  check(same, `blockie of ${seed.slice(0, 10)}…: the same cells and colours as the console's`);
+});
+check(JSON.stringify(blockie(safe.toLowerCase()).data) !== JSON.stringify(blockie(alice.address.toLowerCase()).data), "blockies: two addresses, two pictures");
+
 // ----------------------------------------------------------------------------- the built page
 try {
   const js = readFileSync(`${ROOT}docs/app/app.js`, "utf8");
@@ -124,6 +143,9 @@ try {
   const built = JSON.parse(readFileSync(`${ROOT}docs/app/BUILD.json`, "utf8"));
   const sha = (await import("node:crypto")).createHash("sha256").update(readFileSync(`${ROOT}docs/app/app.js`)).digest("hex");
   check(built.files["app.js"] === sha, "docs/app/BUILD.json: matches app.js");
+  const home = readFileSync(`${ROOT}docs/index.html`, "utf8");
+  check(/<a class="btn go big" href="app\/">Launch app/.test(home) && !/%%/.test(home) && !/<script/i.test(home),
+    "docs/index.html: the front page launches the app, has no script and no unfilled placeholder");
 } catch (e) {
   check(false, `docs/app: ${e.message} (run npm run build)`);
 }
