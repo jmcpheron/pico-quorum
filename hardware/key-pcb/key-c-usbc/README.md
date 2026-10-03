@@ -1,0 +1,91 @@
+# key-c P2: the USB-C key
+
+> **Status: ordered, in production.** 5 boards, all assembled by JLCPCB. The production file is
+> checked and confirmed. JLCPCB's factory reopens after the Oct 1–4 holiday; estimated ship date
+> 2026-10-04, then 8–13 business days by Global Standard.
+> Order **W2026100307101209** · PCB **Y4-13710122A** · PCBA **SMT026100263772-13710122A** · $38.96
+
+| parts side | back |
+|---|---|
+| ![key-c P2, parts side](renders/key-c-P2-3q-top.jpg) | ![key-c P2, back](renders/key-c-P2-3q-bottom.jpg) |
+
+These are KiCad renders of the ordered board, in the colours ordered: blue mask, white
+silkscreen and silver lead-free HASL pads. KiCad has no 3D model of the HCTL receptacle, so the
+connector shown is a GCT USB4105, a 16-pin receptacle of the same size and pad layout. The
+renders come from a scratch copy of the board; the files below are untouched.
+
+**What it is:** an ATECC608C secure element (I2C, SOIC-8) behind a USB-C receptacle. The
+receptacle is used as plain wires, not USB:
+- D+ carries SDA, D− carries SCL and VBUS is key power.
+- A 5.1 kΩ resistor on each CC pin tells the console a key is in.
+- A USBLC6 ESD array sits between the connector and the chip.
+- Four test pads on the back, and the PicoQuorum mark.
+
+The design is in [../PROPOSALS.md](../PROPOSALS.md), and the full order record is
+[buildlog/2026-10-02-key-c-order.md](../../../buildlog/2026-10-02-key-c-order.md).
+
+| | |
+|---|---|
+| Board | 16 × 36 mm, 2 layers, 1.6 mm, blue mask, white silkscreen, LeadFree HASL |
+| Parts | U1 ATECC608C-SSHDA-T, U2 USBLC6-2SC6, J1 HCTL HC-TYPE-C-16P-01A, C1/C2 100 nF, R1/R2 5.1 kΩ |
+| Files as ordered | commit `ac34fc55` on `key-pcb-learn`; Gerber zip SHA-256 `99a6dbb5…`, in `fab/` |
+| Checks | ERC 0 · DRC 0 · unconnected 0 · parity clean (`tools/keypcb check key-c-usbc`) |
+
+## Next
+
+1. **Before plugging anything in:** build the console's end of the cable
+   ([PROPOSALS.md](../PROPOSALS.md#the-console-end-of-key-c)):
+   - a current-limited, reverse-blocking VBUS switch, enabled by GP6 and never GP6 directly
+   - CC1 and CC2 sensed separately
+   - 2.2 kΩ pull-ups to switched VBUS
+2. **When the boards arrive:**
+   - Look at each one under a loupe, and lightly sand the edges (they weren't deburred).
+   - Meter it:
+     - VCC to GND is not a short.
+     - Each CC pin reads 5.1 kΩ to GND.
+     - SDA and SCL aren't shorted to anything.
+   - Check that the test pads read the same.
+3. **First power-up on the bench:**
+   - Only this key in the port.
+   - Look for `0x60` in an I2C scan.
+   - Read the chip's serial and configuration.
+   - Lock nothing yet.
+4. **Practise provisioning on a spare** before any key becomes a Safe owner.
+
+## Log (newest first)
+
+- **2026-10-02:** status page and renders made.
+- **2026-10-02:** checked the PCBA line's final parts list and the saved placement view.
+  - All 5 parts are selected. C1 and C2 share the C1525 line, with 10 bought.
+  - U1/U2 pin 1 sit at their triangles.
+  - J1's pegs measure exactly on the peg holes.
+- **2026-10-02:** the `cpl.csv` downloadable from the order is byte-identical to the upload. The
+  placement edits live only in JLCPCB's system.
+- **2026-10-02 17:14:** JLCPCB's production file arrived, was compared with the design, and was
+  **confirmed**.
+  - The input is byte-identical.
+  - All 29 drills are at 0.000 mm offset.
+  - Two 1.152 mm tooling holes were added, in plain ground pour.
+  - Copper, silkscreen and mask show only normal fab changes.
+  - Also checked by hand in GerbView.
+- **2026-10-02 16:10:** **ordered**, W2026100307101209, $38.96.
+  - Economic PCBA, LeadFree HASL, Confirm Production file and Confirm Parts Placement.
+  - Deburring didn't make it into the final order.
+- **2026-10-02:** in JLCPCB's placement preview, U1 and U2 were rotated 90° (each pin-1 dot to its
+  triangle) and J1 was nudged onto its pads.
+- **2026-10-02:** **P2.** Redesigned after an outside review.
+  - J1's footprint copy: outer ground pads pulled back to clear the peg holes, which removed the
+    DRC exception.
+  - U2 moved closer to J1, with C2 at its VBUS pin.
+  - Four test pads on the back.
+  - The board grew to 16 × 36 mm.
+  - The review's console-side points went into PROPOSALS.md.
+- **2026-10-02:** first upload, P1, 14 × 32 mm.
+  - J1's yellow flag was only a $0.03 special-handling fee.
+  - Economic assembly wasn't offered with ENIG but was with HASL. Standard would have forced a
+    70 × 70 mm board.
+- **2026-10-02:** the PicoQuorum mark added to the back.
+- **2026-10-02:** **P1** drawn, with key-d (pogo) beside it. The receptacle goes on the key rather
+  than a plug: 16 pins on one side, cheap, assembled at JLCPCB.
+- **2026-10-02:** rev A (the PCB is the plug) arrived on `main`. The spring-contact C1 concept was
+  parked on `key-c1-concept`.
