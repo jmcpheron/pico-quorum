@@ -10,6 +10,11 @@ git tag, `fw-<version>`.
 2. `tools/fw push console --all`, which pushes every board on USB in turn.
 3. `git tag fw-<version>` on that commit, then push the tag.
 
+## 2026.10.6 (2026-10-02)
+
+**Build 1's screen turned 180°** for its new case: MADCTL 0x60 (MX|MV) in place of 0xA0 on the
+2.8". The 1.8" profile and the Waveshare are unchanged.
+
 ## 2026.10.5 (2026-10-02)
 
 **Fix: Build 1 froze at "screen: ok" on boot.**

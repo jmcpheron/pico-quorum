@@ -1,6 +1,6 @@
 {
   "about": "Exactly what each firmware image puts on the board (tools/fw push). main is copied to :main.py. test-vectors/manifest.mjs checks that each list is the import closure of boot.py plus its main, that the console holds nothing else that can use the chip, and that no image carries secrets. preserve: files the board keeps across pushes (never copied, never deleted). flag: files a push asks about before deleting.",
-  "version": "2026.10.5",
+  "version": "2026.10.6",
   "images": {
     "console": {
       "main": "main_console.py",
