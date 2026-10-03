@@ -183,6 +183,8 @@ about owners, keys and the Safe, the things people can point at.
   stays even-tempered.
 - **Buttons.** One verb each, saying exactly what happens. **Sign** is green and guarded; **Reject**
   is red and easy.
+- **Security words.** Say "non-exportable" and "secure element", never "TEE" or "unhackable".
+  The full list is in [LANGUAGE.md](LANGUAGE.md).
 - **The manifesto.** [PRINCIPLES.md](../PRINCIPLES.md) is the one place that argues for something.
   It still uses plain words, no hype and no exclamation marks, and backs each claim with a link.
 

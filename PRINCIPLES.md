@@ -25,27 +25,31 @@ PicoQuorum is our attempt to show what that makes possible, teach it, and build 
 
 ### 1. Keys that can't leak
 
-The private key is generated inside the secure element. It never leaves the chip and never exists
-as a seed phrase. After the provisioning ceremony locks the chip, nothing can read it, replace it
-or make a second one ([PROVISIONING.md](docs/PROVISIONING.md), [LOCKING.md](docs/LOCKING.md)).
+The private key is non-exportable: it's generated inside a secure element, a small fixed-function
+chip that can make a key and sign with it but has no way to give it out. It never leaves the chip
+and never exists as a seed phrase. After the provisioning ceremony locks the chip, nothing can read
+it, replace it or make a second one ([PROVISIONING.md](docs/PROVISIONING.md),
+[LOCKING.md](docs/LOCKING.md)).
 
 A key that can't be copied makes holding it mean something. Someone who steals it can use it while
-they hold it, but they can't keep a copy after you take it back. And you'll notice it's missing.
+they hold it, but they can't keep a copy after you take it back, and you'll notice it's missing.
+That's the point: **no silent compromise.**
 
 ### 2. Lose a key, not the Safe
 
 Every chip key is one owner of a multisig. Losing one costs a signature toward the threshold, never
 the funds. The other owners can still execute, and they rotate the lost key out
 ([SECURITY.md](docs/SECURITY.md)). A key you can't back up is only safe inside a quorum that doesn't
-need it.
+need it: a clone-proof key inside a loss-tolerant quorum.
 
 ### 3. Mix your defences
 
-No single technology should hold more than two keys. The shape we aim for is 3 of 5: a warm wallet
-that proposes and pays gas, a conventional hardware wallet off-site, two PicoQuorum keys with
-trusted people, and a paper seed sealed away for disaster recovery
-([target shape](docs/KICKOFF.md#target-multisig-shape-for-reference)). Chip keys add to good
-practice. They don't replace it.
+No single technology should hold more than two keys, so no single flaw (a bad update, a bad batch of
+chips) can reach the threshold. The shape we aim for is 3 of 5: a warm wallet that proposes and pays
+gas, a conventional hardware wallet off-site, two PicoQuorum keys with trusted people, and a paper
+seed sealed away for disaster recovery
+([target shape](docs/KICKOFF.md#target-multisig-shape-for-reference)). Chip keys add to good practice. They
+don't replace it. The words for all of this are in [LANGUAGE.md](docs/LANGUAGE.md).
 
 ### 4. Nothing signs unseen
 

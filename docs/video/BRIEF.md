@@ -65,7 +65,9 @@ The whole video hangs on six beats, taken from [PRINCIPLES.md](../../PRINCIPLES.
 
 | word | say it like this |
 |---|---|
-| secure element | a security chip built to make and keep a secret it never gives out |
+| secure element | a small security chip that makes a key and signs with it, and has no way to give the key out. Not a "TEE" or an "enclave" ([LANGUAGE.md](../LANGUAGE.md)) |
+| non-exportable | the key can't be read out or copied, only used |
+| no silent compromise | a seed phrase can be copied without anyone knowing; this key can only be misused by taking it, and you'd notice |
 | private key | the secret that signs; whoever can use it can approve |
 | seed phrase | twelve or twenty-four words that are a whole wallet's key, written down |
 | multisig | a shared account that needs several people to approve |
@@ -185,6 +187,9 @@ Two cautions:
 
 - **Not a product pitch.** Nothing is for sale, it isn't an investment, and it isn't financial
   advice. Test networks and pocket change only.
+- **Never "TEE", "enclave", "tamper-proof", "cold storage" or "air-gapped".** The chip is a
+  fixed-function secure element and the console uses Wi-Fi. The full list is in
+  [LANGUAGE.md](../LANGUAGE.md).
 - **Never "unhackable" or "can't be stolen".** A stolen key can sign while the thief holds it. What
   it can't be is copied, so you know it's gone, and the quorum rotates it out.
 - **Nothing on paper shown as real.** The console with the guarded button is a concept and the key

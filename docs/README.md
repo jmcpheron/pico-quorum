@@ -6,6 +6,7 @@ troubleshooting.
 - [`guide/`](guide/README.md): the owner's guide ([setup](guide/SETUP.md), [using it](guide/USING.md),
   [networks](guide/NETWORKS.md), [troubleshooting](guide/TROUBLESHOOTING.md))
 - [`../PRINCIPLES.md`](../PRINCIPLES.md): what the project stands for; [`../CONTRIBUTING.md`](../CONTRIBUTING.md): how to join in
+- [`LANGUAGE.md`](LANGUAGE.md): the words for the key, the console and the multisig, and the ones to avoid
 - [`SECURITY.md`](SECURITY.md): the console's trust model, then picowallet's
 - [`PROVISIONING.md`](PROVISIONING.md): the quorum v1 chip config and the fresh-chip ceremony
 - [`LOCKING.md`](LOCKING.md): what each ATECC608 lock does to the multisig
