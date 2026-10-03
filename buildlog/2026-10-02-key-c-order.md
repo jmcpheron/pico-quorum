@@ -37,9 +37,27 @@ From the order's parts page. The maker is read from the part number.
 
 - **U1 is the SSHDA part, the I2C version.** SSHCZ is single-wire and would never answer the
   console.
-- **JLCPCB buys a few spares** of the small parts (7 of U2 for 5 boards, for example).
-- **The quote:** components $11.70, extended-part fees $9.27 (3 × $3.09), setup $8.24, stencil
-  $1.55.
+**The final list,** from the PCBA line's Product Details (2026-10-02). All five parts are
+selected, none left out:
+
+| ref | LCSC | qty bought | cost |
+|---|---|---|---|
+| J1 | C2894897 | 5 | $0.50 |
+| U2 | C7519 | 7 (2 spare) | $1.24 |
+| U1 | C28975195 | 5 | $9.90 |
+| C1, C2 | C1525 | 10 | $0.05 |
+| R1, R2 | C25905 | 10 | $0.02 |
+
+- **Components $11.71.** The quote also had extended-part fees of $9.27 (3 × $3.09), setup $8.24
+  and stencil $1.55.
+- **PCBA settings:**
+  - Economic, top side, 1 × 1, tooling holes by JLCPCB
+  - High-temperature paste, nitrogen reflow
+  - Antistatic bubble film
+  - No baking, cleaning, coating, flying-probe or function test
+  - **No photo confirmation**, so no pictures of the finished boards before they ship
+  - "Complete File, just proceed with my own files"
+- **Customs:** "Research/Education/DIY/Entertainment/Development Board", HS code 847330.
 
 ## The files
 
@@ -78,6 +96,11 @@ against the design:
 - **J1 was nudged slightly** onto its pads. In the 3D view its pegs drop into the peg holes and its
   shell tabs into the slots.
 - **C1, C2, R1 and R2** were left as placed.
+- **The saved placement view checks out.**
+  - U1's pin-1 dot is at its triangle (top right) and U2's at its triangle (bottom left), with the
+    legs on the pads.
+  - J1's peg marks measure 6.28 mm from the edge and ±2.89 mm from the centre on the image (about
+    39 px/mm). That's exactly the peg holes, with the leg row on the pad row.
 - **These changes live in JLCPCB's system, not in the file.** The `cpl.csv` you can download from
   the order is byte-identical to the one uploaded (same SHA-256 as above). The rotations and the
   nudge will only show up in the parts-placement confirmation.
@@ -85,8 +108,8 @@ against the design:
 ## Still to record
 
 - [x] The PCB's final details, from the order's Product Details (2026-10-02): as above
-- [ ] The PCBA's final parts list, from **Product Details on the PCBA line**. It should confirm C2
-      on the C1525 line and the quantities JLCPCB bought
-- [ ] The parts-placement confirmation
+- [x] The PCBA's final parts list (above): C2 is on the C1525 line, 10 bought
+- [x] The saved placement view (above)
+- [ ] JLCPCB's parts-placement review, if they send one
 - [ ] Tracking, arrival, and the first bench test (the console end needs its protected VBUS switch
       and separate CC sensing first: see PROPOSALS.md)
