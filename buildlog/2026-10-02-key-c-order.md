@@ -76,6 +76,9 @@ against the design:
 - **J1 was nudged slightly** onto its pads. In the 3D view its pegs drop into the peg holes and its
   shell tabs into the slots.
 - **C1, C2, R1 and R2** were left as placed.
+- **These changes live in JLCPCB's system, not in the file.** The `cpl.csv` you can download from
+  the order is byte-identical to the one uploaded (same SHA-256 as above). The rotations and the
+  nudge will only show up in the parts-placement confirmation.
 
 ## Still to record
 
