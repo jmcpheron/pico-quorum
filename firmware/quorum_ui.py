@@ -341,9 +341,40 @@ def sync_status(d, q):
         s = ("%d offline" % down) if down else "%d synced" % len(q.WATCH)
     else:
         s = "Synced" if ok else "Offline"
+    if q.checking:
+        s = "checking\u2026"
     txt_r(d, s, R, 4, "sans12", "muted")
-    d.ellipse(R - F.width(s, "sans12") - 8, 12, 3, 3, c("ok" if ok else "bad"), True)
+    d.ellipse(R - F.width(s, "sans12") - 8, 12, 3, 3, c("muted" if q.checking else "ok" if ok else "bad"), True)
     return s
+
+
+FOOT_Y = 210        # knob_choices' row at its usual y=222, a message in its place included
+
+
+def focus_rows(q):
+    """What a knob turn changes on this screen when it only moves the focus: (layout, [(y0, y1),
+    ...]). quorum.turned redraws only the bands of those rows when the layout is the same before and
+    after the turn. None: anything could change, so the whole screen is drawn."""
+    s = q.state
+    if q.msg or q.outside or q.checking:
+        return None
+    if s == "home" and q.grid_home():
+        t = q.tiles()
+        sel = min(q.tile, len(t) - 1)
+        first = max(0, sel // GRID_COLS - (GRID_ROWS - 1))
+        y = GRID_TOP + (sel // GRID_COLS - first) * (TILE_H + TILE_GAP)
+        return ("grid", first, len(t)), [(y - 2, y + TILE_H + 2)]
+    if s == "home":                 # draw_home's list: 4 rows of 28 from y=92, the Safe in view on top
+        top = max(0, min(q.sel - 3, len(q.queue) - 4))
+        y = 92 + (q.sel - top) * 28
+        return ("list", top, len(q.queue), q.SAFE_ADDR), [(y, y + 25), (FOOT_Y, H)]
+    if s == "device":
+        return ("device",), [(FOOT_Y, H)]
+    if s == "result" and q.unsent:
+        return ("result",), [(FOOT_Y, H)]
+    if s == "review" and q.act is not None:   # moving between SIGN, REJECT and BACK
+        return ("review", q.page, q.cur["h"]), [(BOTTOM, H)]
+    return None
 
 
 def chain_short(q, chain):
@@ -486,12 +517,14 @@ def draw_home(q):
         s = ("%d offline" % down) if down else "%d synced" % len(q.WATCH)
     else:
         s = "Synced" if ok else "Offline"
+    if q.checking:
+        s = "checking\u2026"
     x = M + chain_pill(d, q, M, 4, full=not many) + 6
     v, vok = q.safe_version()
     if v and (not vok or x + F.width("Safe v" + v, "sans12") + 12 < R - F.width(s, "sans12") - 14):
         version_pill(d, q, x, 4)        # when it fits; always when the version is one this console can't sign for
     txt_r(d, s, R, 4, "sans12", "muted")
-    d.ellipse(R - F.width(s, "sans12") - 8, 12, 3, 3, c("ok" if ok else "bad"), True)
+    d.ellipse(R - F.width(s, "sans12") - 8, 12, 3, 3, c("muted" if q.checking else "ok" if ok else "bad"), True)
     blockies.draw(d, q.SAFE_ADDR, M, 30, 4)
     n_own, need = len(q.owners()), q.threshold()
     room = R - 52 - (F.width("%d of %d" % (need, n_own), "bold14") + 8 if n_own else 0)

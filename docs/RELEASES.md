@@ -10,6 +10,22 @@ git tag, `fw-<version>`.
 2. `tools/fw push console --all`, which pushes every board on USB in turn.
 3. `git tag fw-<version>` on that commit, then push the tag.
 
+## 2026.10.7 (2026-10-02)
+
+**Build 1's knob keeps up:** a detent reaches the screen in ~140 ms, down from ~2.1 s.
+- **Redraws:** the screen is drawn in 8 strips, and each strip re-ran the whole screen's code.
+  The blockies rebuilt their pattern every strip (~1.3 s a frame), and text widths were measured
+  again every strip (~0.6 s). Both are kept now, so a whole frame is ~350 ms.
+- **Only what moved:** a turn that only moves the focus (the grid, the queue list, Device, the
+  review's SIGN/REJECT/BACK bar, Send again) redraws just the strips it touches, usually 1-3 of 8.
+- **The encoder's interrupts are hard ones,** so no steps are lost while the board is busy.
+- **Polls stay out of the way:** none starts until the knob has been still for 3 s. One stops
+  between its calls if the knob turns, and is asked again once it is quiet. Turns that piled up
+  meanwhile move the focus at most 3 places. Home shows "checking…" while a poll runs.
+
+**The Sign button only signs** (boards with the knob). On a review it signs as before; anywhere
+else it opens nothing and says "Sign button: only for signing". The knob does the browsing.
+
 ## 2026.10.6 (2026-10-02)
 
 **Build 1's screen turned 180°** for its new case: MADCTL 0x60 (MX|MV) in place of 0xA0 on the

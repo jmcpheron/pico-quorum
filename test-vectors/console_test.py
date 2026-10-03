@@ -787,8 +787,138 @@ def case_grid():
         pass
 
 
+class TurningKnob:
+    """knob.Knob as quorum.poll sees it: something turned, or not."""
+
+    def __init__(self):
+        self.moved = False
+
+    def pending(self):
+        return self.moved
+
+
+def case_knob():
+    """Build 1's knob: a turn that only moves the focus redraws its bands, not the screen; a poll
+    waits until the keys are quiet, stops between its calls when the knob turns, and the turns
+    that piled up meanwhile move the focus at most BACKLOG places."""
+    Q = fresh()
+    serve(Q, [])
+    Q.net_work()
+    Q.KNOB = True
+    check(Q.grid_home() and Q.state == "home", "nothing waits: the grid")
+    bands = []
+    real = Q.U.draw
+    Q.U.draw = lambda q: bands.append(Q.d.y0)
+
+    def tick(pressed=()):
+        Q.keys.pressed = lambda: list(pressed)
+        Q._busy = False
+        Q.tick(None)
+
+    Q.last_poll, Q.splash_until = Q.time.now, 0      # the boot's splash is over
+    Q.dirty, Q.dirty_rows, Q.tile = False, None, 0
+    tick(["down"])
+    check(Q.tile == 1 and 0 < len(bands) < 4, "a turn on the grid: only the focus' bands are drawn (%d)" % len(bands))
+    del bands[:]
+    Q.say("hello")
+    Q.dirty = False
+    tick(["down"])
+    check(len(bands) == Q.L.BANDS, "a turn while a message shows: the whole screen")
+    Q.msg = ""
+    Q.state = "device"
+    Q.dirty = False
+    del bands[:]
+    tick(["down"])
+    check(len(bands) == 1, "a turn on Device: only the footer's band")
+    Q.state = "home"
+
+    n = len(SVC.calls)
+    Q.last_poll, Q.last_key = 0, Q.time.now
+    tick()
+    check(len(SVC.calls) == n, "a poll is due, but the knob turned just now: it waits")
+    Q.time.now += Q.QUIET_MS
+    tick()
+    check(len(SVC.calls) > n, "the keys quiet for QUIET_MS: it polls")
+
+    Q.keys.knob = TurningKnob()
+    Q.keys.knob.moved = True
+    SVC.txs = [tx(Q, 0)]
+    n = len(SVC.calls)
+    Q.WATCH[0]["need_info"] = True
+    Q.last_poll = 0
+    Q.net_work()
+    got = [c[1] for c in SVC.calls[n:]]
+    check(len(got) == 1 and "/multisig-transactions/" not in got[0] and not Q.queue and Q.last_poll == 0,
+          "the knob turns during a poll: it stops after the call under way, the queue as it was, asked again next")
+    Q.keys.knob.moved = False
+    Q.net_work()
+    check(len(Q.queue) == 1, "the knob still: the poll runs to the end")
+    check(Q.backlog(["down"] * 6 + ["press"]) == ["down"] * 3 + ["press"], "turns piled up during a poll: at most BACKLOG of them")
+    Q.U.draw = real
+
+    Q.state, Q.tile = "home", 0
+    tick(["A"])
+    check(Q.state == "home" and Q.msg == Q.SIGN_ONLY, "the Sign button on the grid: opens nothing, says it only signs")
+    Q.msg = ""
+
+    # What reaches the panel after a turn's few bands is what a whole frame would have put there.
+    panel = bytearray(Q.L.W * Q.L.H * 2)
+
+    def show():
+        o = Q.d.y0 * Q.L.W * 2
+        panel[o:o + len(Q.d.buffer)] = Q.d.buffer
+    Q.d.show = show
+
+    def same(what, k="down", skip=None):
+        """skip: (y0, y1), rows that change by themselves between any two frames."""
+        Q.last_poll, Q.dirty = Q.time.now, True
+        tick()
+        tick([k])
+        partial = bytearray(panel)
+        Q.dirty = True
+        tick()
+        whole = bytearray(panel)
+        if skip:
+            a, b = skip[0] * Q.L.W * 2, skip[1] * Q.L.W * 2
+            partial[a:b] = whole[a:b] = bytes(b - a)
+        check(whole == partial, what)
+
+    Q.keys.knob = None
+    SVC.txs = []
+    Q.last_poll = 0
+    Q.net_work()
+    Q.state, Q.tile = "home", 0
+    same("the grid, tile to tile in a row: the same pixels as a whole frame")
+    same("the grid, down a row: the same pixels")
+    same("the grid, back up a row: the same pixels", "up")
+    Q.state, Q.dfoot = "device", "chip"
+    same("Device, along the footer: the same pixels", skip=(172, 192))     # its Memory row
+    Q.state = "home"
+    SVC.txs = [tx(Q, 0), tx(Q, 1, to=BOB), tx(Q, 2)]
+    Q.WATCH[0]["need_info"] = True
+    Q.last_poll = 0
+    Q.net_work()
+    Q.sel, Q.foot = 0, None
+    check(not Q.grid_home(), "transactions waiting: the list")
+    same("the list, row to row: the same pixels")
+    Q.sel = len(Q.queue) - 1
+    same("the list, off the last row onto the footer: the same pixels")
+    Q.foot = None
+    Q.open_entry(Q.queue[0])
+    Q.act = 0
+    same("a review, SIGN to REJECT: the same pixels")
+    same("a review, REJECT back to SIGN: the same pixels", "up")
+    while Q.unseen():
+        Q.turn(1)
+    Q.act = None
+    Q.keys.down.add("A")
+    tick(["A"])
+    Q.keys.down.discard("A")
+    check(Q.state == "hold" and Q.msg != Q.SIGN_ONLY, "the Sign button on a review: it signs (the hold begins)")
+
+
 def main():
-    for case in (case_pin, case_owners_pages, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_safes, case_watchdog, case_grid):
+    for case in (case_pin, case_owners_pages, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_safes, case_watchdog, case_grid, case_knob):
         print("--", case.__name__[5:])
         try:
             case()

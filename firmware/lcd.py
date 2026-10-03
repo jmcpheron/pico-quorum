@@ -118,12 +118,16 @@ class LCD(framebuf.FrameBuffer):
         self._cmd(0x2B, [y >> 8, y & 0xFF, (y + h - 1) >> 8, (y + h - 1) & 0xFF])
         self._cmd(0x2C)
 
-    def frames(self, draw, *args):
-        """Run draw(*args) once per band; draw ends with show() as always. One band: just once."""
+    def frames(self, draw, *args, rows=None):
+        """Run draw(*args) once per band; draw ends with show() as always. One band: just once.
+        rows, [(y0, y1), ...] in screen rows: only the bands they touch; the rest of the panel keeps
+        what it shows (a knob turn that moved the focus, quorum.turned)."""
         if BANDS == 1:
             return draw(*args)
         try:
             for y0 in range(0, H, BAND_H):
+                if rows and not any(a < y0 + BAND_H and b > y0 for a, b in rows):
+                    continue
                 self.y0 = y0
                 draw(*args)
         finally:
