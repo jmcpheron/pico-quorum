@@ -13,6 +13,9 @@
 #   seal   LcsO of E0F1, F1D0 and F1D1 raised to operational. Their factory Change condition is
 #          "LcsO < operational", so from then on nothing can regenerate the key or rewrite either
 #          object, and a lifecycle state never goes down.
+#   spares every object the profile does not use (SPARES) frozen the same way, at T9, so nothing
+#          else on the chip can be written or get a key; and Infineon's own E0F0, E0E0 and E140
+#          (FACTORY_OBJS) frozen with the rules they came with, so those can't be changed either.
 #
 # Read off a real Adafruit 4351 on 2026-09-28 (chips/trustm-*-probe.txt): LcsA operational,
 # E0F1-E0F3 empty with Change "LcsO < op", F1D0-F1DB 140 bytes each with the same Change, E0F0 the
@@ -164,6 +167,78 @@ def identify(key_meta, record):
     if key_meta.get("algo") is None and not record:
         return "factory"
     return "quorum-tm1-open"
+
+
+# ----------------------------------------------------------------------------- the spares
+# Every object quorum-tm1 does not use, as the real chip listed them (2026-09-28 probe): the other
+# key objects, the data objects, the trust anchors, a device-certificate slot and the monotonic
+# counters, all with the factory Change "LcsO < op". T9 raises each one's LcsO to operational and
+# changes nothing else: from then on nothing can write them or make a key in them, as T7 froze the
+# key. Never termination.
+#
+# FACTORY_OBJS: Infineon's factory key, its certificate and the shielded-connection binding secret
+# come at LcsO creation too. TM2 (2026-10-01) showed that while an object's LcsO is below
+# operational its metadata can be rewritten whatever its Change condition says: E0F0's Change went
+# from NEV to ALW, and then GenKeyPair replaced the factory key. So T9 raises their LcsO as well,
+# leaving their rules as they came (E0F0/E0E0 Change NEV; E140 "LcsO < op || Conf(E140)", which
+# also makes E140 unreadable). A factory object whose rules already differ is "odd": tampered.
+SPARE_KEYS = (0xE0F2, 0xE0F3, 0xE0FC, 0xE0FD)
+SPARE_CERTS = (0xE0E1, 0xE0E8, 0xE0EF)
+SPARE_COUNTERS = (0xE120, 0xE121, 0xE122, 0xE123)
+SPARE_DATA = tuple(range(0xF1D2, 0xF1DC)) + (0xF1E0, 0xF1E1)
+SPARES = SPARE_KEYS + SPARE_CERTS + SPARE_COUNTERS + SPARE_DATA
+FACTORY_OBJS = (0xE0F0, 0xE0E0, 0xE140)
+FACTORY_CHANGE = {0xE0F0: b"\xff", 0xE0E0: b"\xff", 0xE140: b"\xe1\xfc\x07\xfe\x20\xe1\x40"}
+FROZEN_AT_T9 = SPARES + FACTORY_OBJS
+LCSO_BELOW_OP = b"\xe1\xfc\x07"
+
+
+def spare_state(meta):
+    """One spare from its metadata: "frozen" (LcsO operational, Change LcsO<op or NEV), "open" (as
+    it came: below operational, Change LcsO<op; T9 freezes it) or "odd" (anything else: T9 leaves
+    it alone and says so)."""
+    ch = bytes(meta.get("change") or b"")
+    lcso = meta.get("lcso")
+    if lcso == OPERATIONAL and ch in (b"\xff", LCSO_BELOW_OP):
+        return "frozen"
+    if isinstance(lcso, int) and lcso < OPERATIONAL and ch == LCSO_BELOW_OP:
+        return "open"
+    return "odd"
+
+
+def object_state(oid, meta):
+    """spare_state for a spare; for a factory object: "frozen" (operational, its rules as they came),
+    "open" (below operational, rules as they came: T9 freezes it), else "odd"."""
+    if oid not in FACTORY_CHANGE:
+        return spare_state(meta)
+    if bytes(meta.get("change") or b"") != FACTORY_CHANGE[oid]:
+        return "odd"
+    lcso = meta.get("lcso")
+    if lcso == OPERATIONAL:
+        return "frozen"
+    return "open" if isinstance(lcso, int) and lcso < OPERATIONAL else "odd"
+
+
+def oid_list(v):
+    """secrets.TRUSTM_KEEP_OPEN ("F1D2" or 0xF1D2, one or a list) as a tuple of OIDs."""
+    if not v:
+        return ()
+    if isinstance(v, (str, int)):
+        v = [v]
+    return tuple(int(x, 16) if isinstance(x, str) else int(x) for x in v)
+
+
+def spares_text(states):
+    """{oid: state} in a few words: "all 26 frozen", "19 of 26 frozen; open F1D3 F1E0 ...",
+    with any kept open or odd named."""
+    n = len([s for s in states.values() if s != "absent"])
+    frozen = [o for o, s in states.items() if s == "frozen"]
+    out = ["all %d frozen" % n if len(frozen) == n else "%d of %d frozen" % (len(frozen), n)]
+    for what, label in (("open", "open"), ("kept", "kept open"), ("odd", "left alone (not factory)")):
+        names = sorted("%04X" % o for o, s in states.items() if s == what)
+        if names:
+            out.append("%s %s" % (label, " ".join(names[:6]) + (" +%d" % (len(names) - 6) if len(names) > 6 else "")))
+    return "; ".join(out)
 
 
 # ----------------------------------------------------------------------------- the certificate
@@ -336,6 +411,53 @@ def binding_check(bind, cert_der_bytes, cert, uid, oid, qx, qy):
     return p256.verify(cert["qx"], cert["qy"], binding_digest(uid, oid, qx, qy), bind["r"], bind["s"])
 
 
+# ----------------------------------------------------------------------------- a remembered pass
+# cert_check and binding_check are two P-256 verifies, about 2.3 s each on the Pico, over bytes the
+# chip only gives out: its UID, E0E0, F1D1, F1D0 (and the key's OID and the pinned CA key). Their
+# answer is a function of those bytes, so a pass is remembered by their hash: a boot that reads
+# the same bytes has the same answer without the math. Only a pass is kept; anything else runs
+# both checks again. Not handed to the chip's own VerifySign: these ask whether the chip is
+# genuine, and a counterfeit would say yes. The file is on the board's flash, which is no weaker
+# than the firmware beside it.
+PROOF_FILE = "tmproof.txt"
+PROOF_DOMAIN = b"PicoQuorum Trust M proof v1"   # change it when either check changes
+
+
+def proof(uid, oid, der, binding, record, issuer):
+    """The hash of everything the two checks decide from, or None (no pinned CA for this issuer)."""
+    ca = ca_key(issuer)
+    if ca is None:
+        return None
+    h = hashlib.sha256(PROOF_DOMAIN)
+    for part in (bytes(uid), oid.to_bytes(2, "big"), bytes(der), bytes(binding), bytes(record), _b32(ca[0]), _b32(ca[1])):
+        h.update(len(part).to_bytes(2, "big"))
+        h.update(part)
+    return hexlify(h.digest()).decode()
+
+
+def _proofs():
+    try:
+        with open(PROOF_FILE) as f:
+            return dict(line.split() for line in f if line.strip())
+    except (OSError, ValueError):
+        return {}
+
+
+def proof_known(serial, p):
+    return _proofs().get(serial) == p
+
+
+def proof_keep(serial, p):
+    d = _proofs()
+    d[serial] = p
+    try:
+        with open(PROOF_FILE, "w") as f:
+            for k in d:
+                f.write("%s %s\n" % (k, d[k]))
+    except OSError:
+        pass                                # a full flash costs the next boot the checks, nothing else
+
+
 # ----------------------------------------------------------------------------- what the screens say
 def short_ca(issuer):
     """ "Infineon OPTIGA(TM) Trust M CA 101" -> "CA 101"."""
@@ -369,7 +491,7 @@ def info_lines(uid, issuer=None, key=None, bound=None, sec=None):
     return out
 
 
-def detail_pages(uid, cert=None, ca_ok=None, key=None, bound=None, rec=None, sec=None, lcsa=None):
+def detail_pages(uid, cert=None, ca_ok=None, key=None, bound=None, rec=None, sec=None, lcsa=None, spares=None):
     """The console's Chip pages for a Trust M, every value read off the chip (quorum.open_chip):
     [(title, [(label, value), ...]), ...]. Values may be long; the screen wraps them."""
     f = uid_fields(uid)
@@ -377,6 +499,9 @@ def detail_pages(uid, cert=None, ca_ok=None, key=None, bound=None, rec=None, sec
                ("Firmware", "%s build %s" % (f["fw"], f["build"])), ("Serial", serial(uid)),
                ("Wafer", "X %d, Y %d, batch %s" % (f["x"], f["y"], hexlify(f["batch"]).decode())),
                ("Lifecycle", "LcsA %s" % lcs_name(lcsa)),
+               ("Spares", "not read" if spares is None else
+                "%s: nothing else on the chip can be written or get a key" % spares_text(spares)
+                if all(s in ("frozen", "absent") for s in spares.values()) else spares_text(spares) + " (ceremony T9 freezes them)"),
                ("Security", "%s events. Key use is paid from an idle credit; bursts count and slow the chip"
                 % ("?" if sec is None else sec))]
     pages = [("The chip", silicon)]

@@ -5,7 +5,7 @@ import { createDevice, frameToRGBA } from '../emu/core/runtime.mjs';
 import { encodePNG } from '../emu/core/png.mjs';
 import { readWorkspace, readShims } from '../emu/core/workspace.mjs';
 const dev = await createDevice({loadMicroPython, keys: new Int32Array(16), files: readWorkspace(),
-  shims: readShims(), heapsize: 2*1024*1024, secrets: 'BOARD="build1"\nSCREEN="2.8"', onStdout: console.log});
+  shims: readShims(), heapsize: 2*1024*1024, secrets: 'BOARD="build1"\nSCREEN="2.8"\nBOOT_ART="orbit"', onStdout: console.log});
 try {
   dev.mp.runPython(`
 import bootart, lcd, framebuf, binascii

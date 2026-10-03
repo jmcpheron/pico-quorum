@@ -84,6 +84,15 @@ def flag(name):
     return bool(getattr(secrets, name, False))
 
 
+def setting(name, default=None):
+    """A secrets.py value that arms nothing (unlike flag()): the same on every image."""
+    try:
+        import secrets
+    except ImportError:
+        return default
+    return getattr(secrets, name, default)
+
+
 def gate(what):
     """Why a permanent action may not run now: "" when it may."""
     name = "ALLOW_GENKEY" if what == "genkey" else "ALLOW_LOCK"
@@ -474,8 +483,10 @@ class TrustMSigner:
         self._meta = None
         self._rec = None
         self._cert = None
-        self.ca_ok = None           # cert_ok(): None until checked (a P-256 verify, ~1.4 s on the Pico)
+        self.ca_ok = None           # cert_ok(): None until checked (a P-256 verify, ~2.3 s on the Pico)
         self.bound = None           # binding_ok(): None until checked (another verify)
+        self.remembered = False     # binding_ok() knew both from an earlier pass (tmcfg.proof)
+        self._rec_raw = b""
 
     def uid(self, fresh=False):
         if fresh or self._uid is None:
@@ -499,7 +510,8 @@ class TrustMSigner:
     def record(self):
         import tmcfg
         if self._rec is None:
-            self._rec = tmcfg.record_decode(self.chip.get(tmcfg.RECORD)) or False
+            self._rec_raw = bytes(self.chip.get(tmcfg.RECORD))
+            self._rec = tmcfg.record_decode(self._rec_raw) or False
         return self._rec or None
 
     def cert(self):
@@ -523,14 +535,24 @@ class TrustMSigner:
 
     def binding_ok(self):
         """F1D1 holds E0F0's signature over this key, and E0F0's certificate chains to Infineon's
-        CA: a genuine Trust M holds this key. Two verifies, once."""
+        CA: a genuine Trust M holds this key. Two verifies, once per set of bytes: a pass is
+        remembered by the hash of everything both depend on (tmcfg.proof), and a later boot that
+        reads the same bytes from the chip skips the math."""
         import tmcfg
         if self.bound is None:
+            self.remembered = False
             try:
                 rec = self.record()
                 der, c = self.cert()
-                b = tmcfg.binding_decode(self.chip.get(tmcfg.BINDING))
-                self.bound = bool(rec) and self.cert_ok() and tmcfg.binding_check(b, der, c, self.uid(), self.slot, rec["qx"], rec["qy"])
+                raw = bytes(self.chip.get(tmcfg.BINDING))
+                p = tmcfg.proof(self.uid(), self.slot, der, raw, self._rec_raw, c["issuer"]) if rec else None
+                if p and tmcfg.proof_known(self.serial(), p):
+                    self.ca_ok = self.bound = self.remembered = True
+                else:
+                    b = tmcfg.binding_decode(raw)
+                    self.bound = bool(rec) and self.cert_ok() and tmcfg.binding_check(b, der, c, self.uid(), self.slot, rec["qx"], rec["qy"])
+                    if self.bound and p:
+                        tmcfg.proof_keep(self.serial(), p)
             except Exception as e:
                 print("binding:", e)
                 self.bound = False
@@ -574,6 +596,27 @@ class TrustMSigner:
     def needs_ceremony(self):
         return self.profile() in ("factory", "quorum-tm1-open")
 
+    def spares(self):
+        """Each object T9 freezes (tmcfg.FROZEN_AT_T9: the spares and Infineon's factory objects), its
+        state (tmcfg.object_state); "absent" where the chip has no such object, "kept" for an open
+        one that secrets.TRUSTM_KEEP_OPEN names. 26 metadata reads (436 ms on TM2 for 23): the
+        ceremony, the dual image's choice and the Chip page call it, never the console's boot."""
+        import tmcfg
+        import trustm_q
+        keep = tmcfg.oid_list(setting("TRUSTM_KEEP_OPEN"))
+        out = {}
+        for oid in tmcfg.FROZEN_AT_T9:
+            try:
+                st = tmcfg.object_state(oid, self.chip.meta(oid))
+            except trustm_q.Refused:
+                st = "absent"
+            out[oid] = "kept" if st == "open" and oid in keep else st
+        return out
+
+    def spares_open(self):
+        """The spares T9 would freeze."""
+        return [o for o, s in self.spares().items() if s == "open"]
+
     def sec(self):
         return self.chip.sec()
 
@@ -597,7 +640,11 @@ class TrustMSigner:
             lcsa = self.chip.lcsa()
         except Exception:
             lcsa = None
-        return tmcfg.detail_pages(self.uid(), cert, self.ca_ok, row or self.key_row(), self.bound, self.record(), sec, lcsa)
+        try:
+            spares = self.spares()
+        except Exception:
+            spares = None
+        return tmcfg.detail_pages(self.uid(), cert, self.ca_ok, row or self.key_row(), self.bound, self.record(), sec, lcsa, spares)
 
     def slots(self):
         return [self.key_row()]

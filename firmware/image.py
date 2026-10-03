@@ -8,10 +8,13 @@
 # PRODUCTION: the console's rules (the ALLOW_* flags and the software key ignored, no network
 # console). On by default for "dual"; main_dual.py turns it off only for the ceremony, and only
 # when the chip on the bus is fresh.
+# VERSION: the release, year.month.n (firmware/manifest.json "version"; git tag fw-<version>);
+# BUILD: the commit it was built from.
 try:
     import build as _b
     IMAGE, BUILD, DATE = _b.IMAGE, _b.BUILD, int(getattr(_b, "DATE", 0))
+    VERSION = getattr(_b, "VERSION", "")
 except ImportError:
-    IMAGE, BUILD, DATE = "dev", "dev", 0
+    IMAGE, BUILD, DATE, VERSION = "dev", "dev", 0, ""
 
 PRODUCTION = IMAGE in ("console", "dual")

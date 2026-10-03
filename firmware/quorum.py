@@ -133,7 +133,8 @@ sec = None          # the Trust M's security event counter when last read (None 
 chip_pages = []     # the Chip pages (sig.details), read off the chip when they are opened
 chip_page = 0
 opage = 0           # the Owners page in view: OWNERS_PER_PAGE owners a page, so a 3-of-5 or longer scrolls
-dfoot = "chip"      # knob, on the Device screen: "chip" or "back"
+dfoot = "chip"      # knob, on the Device screen: "chip", "wifi" or "back"
+DFOOT = ("chip", "wifi", "back")
 work_info = []      # short facts from the chip, shown under the Signing and Sending screens (sig.info)
 truncated = False   # the queue did not fit in memory: only the first few are shown
 fails = 0           # ticks in a row that raised
@@ -150,6 +151,12 @@ dirty = True
 _busy = False
 _n = 0
 log = []
+RECENT_FILE, RECENT_MAX = "recent.json", 12
+recent = []         # this console's last confirmed signatures, newest first (recent.json): the Recent tile
+tile = 0            # home's grid: the tile in focus
+browse = None       # "list": the queue list opened from the grid's Queue tile
+chip_back = "device"    # where the Chip pages go back to: Device, or home when opened from a tile
+rpage = 0           # the Recent screen's page
 
 
 def say(s, secs=3):
@@ -166,13 +173,38 @@ def _log(s):
 
 
 # ----------------------------------------------------------------------------- the key
+OWNERS = "owners.txt"   # remembered owner addresses: the SHA-256 of webauthn.owner_inputs, the address
+
+
 def my_owner():
     """This key's owner address: the SafeWebAuthnSignerProxy the passkey factory deploys for it,
     computed here from the key and the pinned factory (webauthn.owner_address). The simulated and
-    the forked Safe use the same rule, and the factory's getSigner agrees (test-vectors)."""
+    the forked Safe use the same rule, and the factory's getSigner agrees (test-vectors). The two
+    keccaks take ~0.7 s of every boot, so the answer is remembered by the hash of exactly the bytes
+    it is computed from: the same key and factory give it back at once, anything else computes it."""
     if not qx:
         return ""
-    return webauthn.owner_address(qx, qy, CFG["signer"])
+    import hashlib
+    from binascii import hexlify
+    inputs = webauthn.owner_inputs(qx, qy, CFG["signer"])
+    h = hashlib.sha256(inputs[0])
+    h.update(inputs[1])
+    k = hexlify(h.digest()).decode()
+    try:
+        with open(OWNERS) as f:
+            for line in f:
+                p = line.split()
+                if len(p) == 2 and p[0] == k:
+                    return p[1]
+    except OSError:
+        pass
+    a = webauthn.owner_address(qx, qy, CFG["signer"], inputs)
+    try:
+        with open(OWNERS, "a") as f:
+            f.write("%s %s\n" % (k, a))
+    except OSError:
+        pass
+    return a
 
 
 def read_key():
@@ -201,6 +233,76 @@ def focus(w):
 def focus_sel():
     """On home, the Safe in view is the highlighted row's (the first Safe's when nothing is queued)."""
     focus(queue[sel]["w"] if queue and 0 <= sel < len(queue) else WATCH[0])
+
+
+# ----------------------------------------------------------------------------- home: the grid
+def grid_home():
+    """Home is a grid to browse unless something waits for this key (then the queue list, as
+    before), or the list was opened from the Queue tile. The 160x128 UI keeps the list."""
+    global browse
+    if not getattr(U, "GRID", False):
+        return False
+    if not queue:
+        browse = None
+    return not browse and not any(waiting(e) for e in queue)
+
+
+def tiles():
+    """The grid: each Safe (the one signed for most recently first), the queue when anything is in
+    it, recent signatures, the chip, the device. [(kind, Safe or None), ...]"""
+    order = []
+    for r in recent:
+        for w in WATCH:
+            if w["addr"].lower() == r.get("safe", "") and w["chain"] == r.get("chain") and not [o for o in order if o is w]:
+                order.append(w)
+    order += [w for w in WATCH if not [o for o in order if o is w]]
+    out = [("safe", w) for w in order]
+    if queue:
+        out.append(("queue", None))
+    return out + [("recent", None), ("chip", None), ("device", None)]
+
+
+def open_tile():
+    global state, opage, browse, sel, chip_back, rpage
+    t = tiles()
+    kind, w = t[min(tile, len(t) - 1)]
+    if kind == "safe":
+        focus(w)
+        state, opage = "owners", 0
+    elif kind == "queue":
+        browse, sel = "list", 0
+        focus_sel()
+    elif kind == "recent":
+        state, rpage = "recent", 0
+    elif kind == "chip":
+        chip_back = "home"
+        open_chip()
+    else:
+        state = "device"
+
+
+def load_recent():
+    global recent
+    try:
+        import json
+        with open(RECENT_FILE) as f:
+            recent = json.load(f)[:RECENT_MAX]
+    except (OSError, ValueError):
+        recent = []
+
+
+def note_recent(n, w, what):
+    """A signature the service took: kept for the Recent tile, newest first, a dozen at most.
+    Only what the screens show: nonce, Safe, chain, a one-line summary, when."""
+    global recent
+    recent = [{"n": n, "safe": w["addr"].lower(), "chain": w["chain"], "name": w["name"], "what": what[:48],
+               "t": time.time()}] + recent[:RECENT_MAX - 1]
+    try:
+        import json
+        with open(RECENT_FILE, "w") as f:
+            json.dump(recent, f)
+    except Exception as ex:
+        print("recent:", ex)        # a full flash costs the list, never the signature
 
 
 def probe_chip():
@@ -234,8 +336,8 @@ def probe_chip():
     if sig.name == "trustm" and pin_ok:
         t0 = time.ticks_ms()
         bound = sig.binding_ok()        # E0F0's signature over this key, and its certificate from Infineon's CA
-        qlog.write("trustm cert %s, binding %s (%d ms)" % ("ok" if sig.ca_ok else "NOT VERIFIED", "ok" if bound else "MISSING",
-                                                         time.ticks_diff(time.ticks_ms(), t0)))
+        qlog.write("trustm cert %s, binding %s (%d ms%s)" % ("ok" if sig.ca_ok else "NOT VERIFIED", "ok" if bound else "MISSING",
+                                                           time.ticks_diff(time.ticks_ms(), t0), ", remembered" if sig.remembered else ""))
     if not pin_ok and (PROD or EXPECTS):
         state = "pinfail"
 
@@ -714,9 +816,42 @@ def sign_it():
     start_timer()
 
 
+def recent_pages():
+    return max(1, (len(recent) + U.RECENT_PER_PAGE - 1) // U.RECENT_PER_PAGE)
+
+
 def owner_pages():
     """How many Owners pages the Safe in view needs."""
     return max(1, (len(owners()) + U.OWNERS_PER_PAGE - 1) // U.OWNERS_PER_PAGE)
+
+
+def wifi_setup():
+    """Device -> Wi-Fi: restart into Wi-Fi setup (boot.py takes the "wifisetup" file once). The way
+    in on build1, whose knob board has no Y to hold at power-up. Nothing is signed meanwhile; setup
+    can keep the saved network and restart back here."""
+    qlog.write("wifi setup asked for on the Device screen")
+    with open("wifisetup", "w") as f:
+        f.write("1")
+    # On build1 the knob's press is the maintenance key at power-up: restart only once it is up.
+    try:
+        import board
+        from machine import Pin
+        key = Pin(board.MAINT, Pin.IN, Pin.PULL_UP)
+        if key.value() == 0:
+            d.frames(U.draw_working, sys.modules[__name__], "Wi-Fi setup", "Let go of the knob to restart")
+            t0 = time.ticks_ms()
+            while key.value() == 0 and time.ticks_diff(time.ticks_ms(), t0) < 20000:
+                watch.extend(1000)
+                time.sleep_ms(20)
+            time.sleep_ms(150)          # the switch settles
+    except Exception as e:
+        print("wifi setup:", e)
+    try:
+        import os
+        os.sync()
+    except AttributeError:
+        pass
+    machine.reset()
 
 
 def open_chip():
@@ -870,6 +1005,7 @@ def post(e, signature):
         e["w"]["need_info"] = True
         _log("confirmed #%d" % e["n"])
         qlog.write("confirmed #%d" % e["n"])
+        note_recent(e["n"], e["w"], e["r"]["summary"])
     else:
         unsent = (e, signature)
         save_unsent(e, signature)
@@ -899,7 +1035,7 @@ def reject():
 
 # ----------------------------------------------------------------------------- ui tick
 def handle(k):
-    global state, sel, dirty, last_poll, chip_page, opage
+    global state, sel, dirty, last_poll, chip_page, opage, tile, browse, chip_back, rpage
     if state in ("nochip", "pinfail"):
         if k == "A":
             probe_chip()            # counts first (boot_count), then reads the key: on a sealed chip, a use of it
@@ -911,8 +1047,31 @@ def handle(k):
     elif state == "crashed":
         if k == BACK:
             machine.reset()
+    elif state in ("home", "boot") and grid_home():
+        n, cols = len(tiles()), U.GRID_COLS
+        if k == "right":
+            tile = min(n - 1, tile + 1)
+        elif k == "left":
+            tile = max(0, tile - 1)
+        elif k == "down":
+            tile = min(n - 1, tile + cols)
+        elif k == "up":
+            tile = tile - cols if tile >= cols else tile
+        elif k in (SIGN, "press"):
+            open_tile()
+        elif k == BACK:             # as on the list: the Owners screen, for the Safe tile in focus
+            t = tiles()[min(tile, n - 1)]
+            focus(t[1] if t[0] == "safe" else WATCH[0])
+            state, opage = "owners", 0
+        elif k == "X":
+            state = "device"
+        if outside:
+            outside_seen()
+        dirty = True
     elif state in ("home", "boot"):
-        if k == "down" and queue:
+        if k == BACK and browse:
+            browse = None           # back to the grid
+        elif k == "down" and queue:
             sel = min(len(queue) - 1, sel + 1)
             focus_sel()
         elif k == "up":
@@ -929,8 +1088,11 @@ def handle(k):
         dirty = True
     elif state == "device":
         if k == SIGN:
+            chip_back = "device"
             open_chip()
-        elif k in (BACK, REJECT, "left", "X"):
+        elif k == REJECT:
+            wifi_setup()
+        elif k in (BACK, "left", "X"):
             state = "home"
         dirty = True
     elif state == "chip":
@@ -939,7 +1101,15 @@ def handle(k):
         elif k == "up":
             chip_page = (chip_page - 1) % len(chip_pages)
         elif k in (BACK, REJECT, "left", "X"):
-            state = "device"
+            state = chip_back
+        dirty = True
+    elif state == "recent":
+        if k in ("down", "right"):
+            rpage = min(recent_pages() - 1, rpage + 1)
+        elif k == "up":
+            rpage = max(0, rpage - 1)
+        elif k in (BACK, REJECT, SIGN, "left", "X"):
+            state = "home"
         dirty = True
     elif state == "owners":
         if k in NEXT:
@@ -980,13 +1150,24 @@ def handle(k):
 def knob(k):
     """A knob turn ("down" clockwise, "up") or press, by state. Turning never does anything but
     move; every action is a press, and signing is a press held down."""
-    global state, sel, foot, act, ract, dirty, crash_t0, dfoot, chip_page, opage
+    global state, sel, foot, act, ract, dirty, crash_t0, dfoot, chip_page, opage, tile, browse, chip_back, rpage
     if state in ("nochip", "pinfail"):
         if k == "press":
             handle("A")                 # Check again
     elif state == "crashed":
         if k == "press":
             crash_t0 = time.ticks_ms()  # tick() restarts once it has been held CRASH_HOLD_MS
+    elif state in ("home", "boot") and grid_home():
+        n = len(tiles())
+        if k == "down":
+            tile = min(n - 1, tile + 1)
+        elif k == "up":
+            tile = max(0, tile - 1)
+        elif k == "press":
+            open_tile()
+        if outside:
+            outside_seen()
+        dirty = True
     elif state in ("home", "boot"):
         if k == "down":
             if foot is None and queue and sel < len(queue) - 1:
@@ -1005,7 +1186,9 @@ def knob(k):
                 sel -= 1
                 focus_sel()
         elif k == "press":
-            if foot:
+            if foot == "owners" and browse:
+                browse, foot = None, None   # the list opened from the grid: its first choice goes back
+            elif foot:
                 state, opage = foot, 0
             elif queue:
                 open_entry(queue[sel])
@@ -1014,10 +1197,13 @@ def knob(k):
         dirty = True
     elif state == "device":
         if k in ("down", "up"):
-            dfoot = "back" if dfoot == "chip" else "chip"
+            dfoot = DFOOT[(DFOOT.index(dfoot) + (1 if k == "down" else -1)) % len(DFOOT)]
         elif k == "press":
             if dfoot == "chip":
+                chip_back = "device"
                 open_chip()
+            elif dfoot == "wifi":
+                wifi_setup()
             else:
                 state, dfoot = "home", "chip"
         dirty = True
@@ -1027,7 +1213,15 @@ def knob(k):
         elif k == "up":
             chip_page = max(0, chip_page - 1)
         elif k == "press":
-            state = "device"
+            state = chip_back
+        dirty = True
+    elif state == "recent":
+        if k == "down":
+            rpage = min(recent_pages() - 1, rpage + 1)
+        elif k == "up":
+            rpage = max(0, rpage - 1)
+        elif k == "press":
+            state = "home"
         dirty = True
     elif state == "owners":
         if k == "down":
@@ -1203,8 +1397,18 @@ def start_watch():
 
 def start():
     global d, keys, svc, dirty, splash_until, last_activity, state
+    # Where the boot goes, one line in log.txt at the end: "boot ms: boot 900 radio 1200 art 2100 wifi
+    # 4800 start 6012 fonts 40 probe 310 ...": when boot.py started, the radio was asked to join,
+    # the boot art started, WiFi was up and this began, in ms since reset, then each step's own time.
+    marks, last = ["boot %d radio %d art %d wifi %d start %d" % (net.boot_at, net.begun_at, splash._t0, getattr(splash, "wifi_at", 0),
+                                                               time.ticks_ms())], [time.ticks_ms()]
+
+    def mark(what):
+        now = time.ticks_ms()
+        marks.append("%s %d" % (what, time.ticks_diff(now, last[0])))
+        last[0] = now
     splash.TITLE = "picoquorum"
-    qlog.write("boot %s %s reset cause %d" % (image.IMAGE, image.BUILD, machine.reset_cause()))
+    qlog.write("boot %s %s %s reset cause %d" % (image.IMAGE, image.VERSION or "-", image.BUILD, machine.reset_cause()))
     U.use(getattr(secrets, "QUORUM_THEME", "dark") if secrets else "dark")
     # Every font now, while the heap is whole. They are loaded on first use otherwise, and bold26
     # alone is one 10.9 KB block: after a tour of the chip map the heap was too fragmented for it,
@@ -1213,18 +1417,24 @@ def start():
     for name in fonts.FILES:
         fonts.get(name)
     gc.collect()
+    mark("fonts")
     d = splash.begin()
     keys = L.Keys()
     splash.step("chip", "probing i2c...", L.GREY)
     probe_chip()
     gc.collect()                # the Trust M's certificate checks leave the heap in pieces: tidy before the next frame
+    load_recent()
+    mark("probe")
     if state == "nochip":
         splash.step("chip", "none on i2c", L.RED)
     else:
         pinned = " \u00b7 pinned" if EXPECT and pin_ok else (" \u00b7 PIN FAIL" if not pin_ok else "")
         name = (chip["name"] + " \u00b7 ") if chip else ""
         splash.step("chip", "%s%s%s" % (name, fingerprint() or "no key", pinned), L.RED if not qx or not pin_ok else L.GREEN)
+        if me:      # its owner's blockie on the boot screen: the picture T5, Owners and approvals show
+            splash.chip(me, "%s%s\u2026%s" % (name, me[:6], me[-4:]), pin_ok)
         check_counter()
+    mark("counter")
     w = network.WLAN(network.STA_IF)
     if net.networks() and not w.isconnected() and not net.tried:
         try:
@@ -1233,6 +1443,8 @@ def start():
         except Exception as e:
             print("wifi:", e)
     splash.wifi_row(w, net.ssid())
+    mark("wifi")
+    marks.append("up %d" % (time.ticks_ms() if w.isconnected() else 0))   # WiFi joined, ms since reset
     served = [x for x in WATCH if x["base"]]
     first = ([x for x in served if x["base"].startswith("https")] or served or [None])[0]
     if len(WATCH) > 1:
@@ -1247,12 +1459,15 @@ def start():
     elif first:
         verify = PROD or bool(getattr(secrets, "QUORUM_TLS_VERIFY", True))
         svc = txservice.Service(first["base"], txservice.checksum(first["addr"]), API_KEY, verify=verify, floor=image.DATE)
+    mark("service")
     if state == "boot":
         splash.step("app", "Starting console", L.GREY)
     splash.finish(keys, wait=state == "boot")
+    mark("finish")
     splash_until = time.ticks_add(time.ticks_ms(), 1500)
     last_activity = time.ticks_ms()
     dirty = True
+    qlog.write("boot ms: " + " ".join(marks))   # before the timer: its first tick (an HTTPS call) runs at once
     start_timer()
     start_watch()
 

@@ -22,6 +22,7 @@ import lcd as L
 import fonts as F
 import blockies
 import decode
+import icons as I
 
 THEMES = {
     "dark": {
@@ -53,6 +54,10 @@ R = W - M                       # right edge of text
 TW = W - 2 * M                  # text width
 OX = (W - 240) // 2             # centres a box laid out for 240 wide
 TOP, BOTTOM = 30, 210           # review pages: content lives between the SIGN and REJECT bars
+GRID = True                     # home is a grid of tiles when nothing waits (quorum.grid_home)
+GRID_COLS = 2
+TILE_H, TILE_GAP, GRID_TOP, GRID_ROWS = 56, 6, 30, 3
+RECENT_PER_PAGE = 4
 PAGE_ROW = 191                  # page dots and the B hint
 T = {}
 _565 = {}
@@ -328,7 +333,150 @@ def refused_short(why):
     return "see why"
 
 
+def sync_status(d, q):
+    """Top right: Synced/Offline, or with several Safes how many answered, and its dot."""
+    ok = q.net_ok
+    if len(q.WATCH) > 1:
+        down = sum(1 for w in q.WATCH if w["tried"] and not w["ok"])
+        s = ("%d offline" % down) if down else "%d synced" % len(q.WATCH)
+    else:
+        s = "Synced" if ok else "Offline"
+    txt_r(d, s, R, 4, "sans12", "muted")
+    d.ellipse(R - F.width(s, "sans12") - 8, 12, 3, 3, c("ok" if ok else "bad"), True)
+    return s
+
+
+def chain_short(q, chain):
+    return {84532: "Base Sep"}.get(chain) or q.CFG["chains"].get(str(chain), "chain %d" % chain)
+
+
+def ago(t):
+    """When, briefly: "just now", "5m ago", "3h ago", "2d ago" ("" before the clock is set)."""
+    if not t or t < 1700000000:
+        return ""
+    s = time.time() - t
+    if s < 60:
+        return "just now"
+    if s < 3600:
+        return "%dm ago" % (s // 60)
+    if s < 86400:
+        return "%dh ago" % (s // 3600)
+    return "%dd ago" % (s // 86400)
+
+
+def grid_tile(d, q, t, x, y, w, on):
+    """One tile: a picture (a blockie, or an icon) top left, two short facts to its right, the
+    name along the bottom, the whole tile wide."""
+    kind, sw = t
+    fill = "raised" if on else "surface"
+    if on:
+        rrect(d, x - 2, y - 2, w + 4, TILE_H + 4, 7, "stake")
+    rrect(d, x, y, w, TILE_H, 5, fill)
+    px, py = x + 7, y + 6
+    a, b, bc = "", "", "muted"
+    if kind == "safe":
+        blockies.draw(d, sw["addr"], px, py, 3)
+        title = sw["name"]
+        n_own, need = len(q.owners(sw)), q.threshold(sw)
+        a = chain_short(q, sw["chain"])
+        if sw["tried"] and not sw["ok"]:
+            b, bc = "offline", "bad"
+        elif n_own and q.me not in q.owners(sw):
+            b, bc = "not owner", "warn"
+        elif n_own:
+            b = "%d of %d" % (need, n_own)
+        d.fill_rect(px, py + 26, 24, 2, c(CHAIN.get(sw["chain"], ((120, 120, 120), 0))[0]))
+    elif kind == "queue":
+        I.draw(d, "hash", px + 4, py + 4, c("muted"))
+        title, a, b = "Queue", "%d queued" % len(q.queue), "none yours"
+    elif kind == "recent":
+        I.draw(d, "book", px + 4, py + 4, c("muted"))
+        title = "Recent"
+        r = q.recent[0] if q.recent else None
+        a, b = ("#%d" % r["n"], ago(r["t"]) or r["name"]) if r else ("nothing", "signed yet")
+    elif kind == "chip":
+        if q.me:
+            blockies.draw(d, q.me, px, py, 3)
+        title = q.chip["name"] if q.chip else "Chip"
+        if q.sig and q.sig.name == "trustm":
+            a, b = "Trust M", "sealed" if q.row and q.row.get("locked") else "open"
+        else:
+            a, b = "ATECC", ("%d uses" % q.counter) if q.counter is not None else ""
+        if not q.pin_ok:
+            b, bc = "not pinned", "bad"
+    else:
+        import image
+        I.draw(d, "wifi", px + 4, py + 4, c("muted"))
+        title, a, b = "Device", image.VERSION or image.BUILD, q.net.ssid() or "no Wi-Fi"
+        if not q.net_ok:
+            bc = "warn"
+    rw = x + w - 7 - (px + 30)
+    txt_r(d, fit(a, rw, "sans12"), x + w - 7, py - 1, "sans12", "muted", fill)
+    txt_r(d, fit(b, rw, "sans12"), x + w - 7, py + 13, "sans12", bc, fill)
+    txt(d, fit(title, w - 14, "bold14"), px, y + 35, "bold14", "text", fill)
+
+
+def draw_grid(q):
+    """Home when nothing waits for this key: tiles to browse. This chip, small, on top."""
+    d = q.d
+    d.fill(c("bg"))
+    if q.me:
+        blockies.draw(d, q.me, M, 5, 2)
+    s = sync_status(d, q)
+    name = (q.chip["name"] if q.chip else "PicoQuorum")
+    txt(d, fit(name, R - F.width(s, "sans12") - 20 - (M + 22), "bold14"), M + 22, 4, "bold14")
+    t = q.tiles()
+    sel = min(q.tile, len(t) - 1)
+    cols = GRID_COLS
+    tw = (W - 2 * M - 8 * (cols - 1)) // cols
+    first = max(0, sel // cols - (GRID_ROWS - 1))
+    for i in range(first * cols, min(len(t), (first + GRID_ROWS) * cols)):
+        r, col = i // cols - first, i % cols
+        grid_tile(d, q, t[i], M + col * (tw + 8), GRID_TOP + r * (TILE_H + TILE_GAP), tw, i == sel)
+    rows = (len(t) + cols - 1) // cols
+    if rows > GRID_ROWS:            # more below or above: a thin bar on the right
+        h = 186 * GRID_ROWS // rows
+        d.fill_rect(W - 4, GRID_TOP + (186 - h) * first // (rows - GRID_ROWS), 2, h, c("faint"))
+    if q.outside:
+        txt_c(d, "key used %d\u00d7 outside this console" % q.outside, 212, "sans12", "warn")
+    elif q.KNOB:
+        knob_choices(d, q, (), None, "turn \u00b7 press to open")
+    else:
+        footer_hints(d, q, (("A", "Open"), ("B", "Owners"), ("X", "Device")))
+    d.show()
+
+
+def draw_recent(q):
+    """The signatures this console sent, newest first: which Safe, which #, what, when."""
+    d = q.d
+    d.fill(c("bg"))
+    txt(d, "Recent", M, 4, "bold18")
+    pages = q.recent_pages()
+    q.rpage = page = min(q.rpage, pages - 1)
+    if pages > 1:
+        txt_r(d, "%d of %d" % (page + 1, pages), R, 9, "sans12", "muted")
+    if not q.recent:
+        txt_c(d, "Nothing signed yet", 100, "bold18")
+        txt_c(d, "Approvals sent from this", 130, "sans14", "muted")
+        txt_c(d, "console show up here", 148, "sans14", "muted")
+    y = 34
+    for r in q.recent[page * RECENT_PER_PAGE:(page + 1) * RECENT_PER_PAGE]:
+        blockies.draw(d, r["safe"], M, y + 3, 2)
+        txt(d, fit("#%d %s" % (r["n"], r["what"]), R - (M + 24), "bold14"), M + 24, y, "bold14")
+        when = ago(r["t"])
+        txt(d, fit("%s \u00b7 %s%s" % (r["name"], chain_short(q, r["chain"]), (" \u00b7 " + when) if when else ""),
+                   R - (M + 24), "sans12"), M + 24, y + 19, "sans12", "muted")
+        y += 44
+    if q.KNOB:
+        knob_choices(d, q, (("home", "Home"),), "home", "turn \u00b7 press")
+    else:
+        footer_hints(d, q, (("B", "Home"),))
+    d.show()
+
+
 def draw_home(q):
+    if q.grid_home():
+        return draw_grid(q)
     d = q.d
     d.fill(c("bg"))
     ok = q.net_ok
@@ -412,9 +560,9 @@ def draw_home(q):
         txt(d, fit("key used %d\u00d7 outside this console" % q.outside, W - 40, "sans12"),
             30, 196, "sans12", "warn_text", "warn_bg")
     if q.KNOB:
-        knob_choices(d, q, (("owners", "Owners"), ("device", "Device")), q.foot, "turn \u00b7 press")
+        knob_choices(d, q, (("owners", "Back" if q.browse else "Owners"), ("device", "Device")), q.foot, "turn \u00b7 press")
     else:
-        footer_hints(d, q, (("A", "Open"), ("B", "Owners"), ("X", "Device")))
+        footer_hints(d, q, (("A", "Open"), ("B", "Back" if q.browse else "Owners"), ("X", "Device")))
     d.show()
 
 
@@ -848,7 +996,7 @@ def draw_device(q):
     d = q.d
     d.fill(c("bg"))
     txt(d, "Device", M, 4, "bold18")
-    txt_r(d, image.IMAGE + " " + image.BUILD, R, 9, "sans12", "muted")
+    txt_r(d, (image.VERSION + " \u00b7 " + image.BUILD) if image.VERSION else (image.IMAGE + " " + image.BUILD), R, 9, "sans12", "muted")
     import chips
     name = q.chip["name"] + " \u00b7 " if q.chip else ""
     rows = [("Chip", (name + (q.serial[-8:] if q.serial else (q.sig.name if q.sig else "none")))[:22]),
@@ -869,9 +1017,9 @@ def draw_device(q):
     if q.net_err and not q.net_ok:
         txt(d, fit("Last error: " + q.net_err, TW, "sans12"), M, y + 2, "sans12", "warn")
     if q.KNOB:
-        knob_choices(d, q, (("chip", "Chip"), ("back", "Back")), q.dfoot, "turn \u00b7 press")
+        knob_choices(d, q, (("chip", "Chip"), ("wifi", "Wi-Fi"), ("back", "Back")), q.dfoot, "turn \u00b7 press")
     else:
-        footer_hints(d, q, (("A", "Chip"), ("B", "Back")))
+        footer_hints(d, q, (("A", "Chip"), ("Y", "Wi-Fi"), ("B", "Back")))
     d.show()
 
 
@@ -938,6 +1086,8 @@ def draw(q):
         draw_result(q)
     elif s == "owners":
         draw_owners(q)
+    elif s == "recent":
+        draw_recent(q)
     elif s == "working":
         draw_working(q, "Working", "")
     else:

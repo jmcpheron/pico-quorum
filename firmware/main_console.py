@@ -15,6 +15,7 @@ def _plain(title, lines, color=None):
     """framebuf's own 8 px font: works when nothing else does."""
     import lcd
     import splash
+    splash.stop()               # the boot art's timer must not draw over this
     d = splash.begin()
 
     def draw():
@@ -48,12 +49,19 @@ try:
         # font (bold26 alone is 10.9 KB) and the 32 KB that HTTPS borrows for each call. Everything
         # imported after them fits in what is left; the other way round the heap ends up in pieces
         # too small for any of them (2026-09-26, on the board).
+        # The boot art keeps moving on its timer (boot.py, splash.run) while this runs, except here:
+        # its frames' small objects must not land between the big blocks.
+        import gc
         import lcd
+        import splash
+        splash.pause()
+        gc.collect()
         import fonts
         for _f in fonts.FILES:
             fonts.get(_f)
         import txservice
         txservice.reserve_early()
+        splash.pause(False)
         import quorum
         quorum.start()
 except Exception as e:

@@ -21,6 +21,169 @@ there is where this one starts.
    the home screen, the approvals row, and the moment of signing.
 5. **Every screen, redone,** with before/after pairs like the v1 walkthrough.
 
+## Home as a grid to browse (2026-10-01, firmware 2026.10.4)
+
+You asked for a home you can browse when nothing needs signing, with the queue list only when a
+request comes in.
+
+**Nothing waits for this key: a grid of tiles.**
+- **Each Safe this console works with,** as that Safe's blockie, with its chain and "3 of 5".
+  - The one you signed for most recently comes first.
+  - A Safe the key isn't an owner of says "not owner" in amber; one that didn't answer says "offline" in red.
+  - The coloured bar under the blockie is the chain's colour, as on the chain pill.
+- **Recent:** the last signatures this console sent, newest first: which #, what, which Safe,
+  when. A dozen are kept in `recent.json` on the board, and every push keeps it. It starts empty
+  and fills as you approve.
+- **The chip:** its owner blockie (the boot screen's picture), its name, "Trust M · sealed" or
+  "ATECC · 41 uses". It opens the Chip pages.
+- **Device:** the firmware version and the Wi-Fi network. It opens the Device screen.
+- **Queue:** only when transactions are queued but none wants this key; it opens the list.
+- **The header** has the same chip blockie, small, with the chip's name, and the sync status.
+
+**A request arrives: the queue list, exactly as before.** Its first row is the waiting
+transaction, and A opens it.
+
+**Keys:**
+- **Joystick:** moves around the grid. **A** opens the tile. **B** opens the Owners screen for the
+  Safe in focus, as on the old home. **X** opens Device.
+- **Build 1's dial:** turn to walk the tiles, press to open.
+
+**The 1.8" panel** keeps the list for now.
+
+| | Waveshare, 240×240 | Build 1, 320×240 |
+|---|---|---|
+| The grid | <img src="home/01-grid-240.png" width="240"> | <img src="home/01-grid-320.png" width="320"> |
+| The chip in focus | <img src="home/02-grid-chip-240.png" width="240"> | <img src="home/02-grid-chip-320.png" width="320"> |
+| The dial's footer | <img src="home/03-grid-knob-240.png" width="240"> | <img src="home/03-grid-knob-320.png" width="320"> |
+| Recent | <img src="home/04-recent-240.png" width="240"> | <img src="home/04-recent-320.png" width="320"> |
+| The Chip pages from the tile (B comes back here) | <img src="home/05-chip-from-grid-240.png" width="240"> | <img src="home/05-chip-from-grid-320.png" width="320"> |
+| A request waiting: the list | <img src="home/06-request-waiting-240.png" width="240"> | <img src="home/06-request-waiting-320.png" width="320"> |
+
+These are drawn by the real firmware in the emulator (`node tools/board/shots_home.mjs`). The
+Recent entries in the shots are made up; on the boards Recent starts empty. The Device tile's
+"test" and "emulator" are the emulator's build and network names.
+
+**Questions for you:**
+- Should a Safe's tile open its Owners, as now, or a Safe page with its owners, nonce and recent
+  activity?
+- Is two columns right on Build 1's wider screen, or should it be three smaller tiles across?
+
+## The chip's blockie at boot (2026-10-01, firmware 2026.10.3)
+
+You asked to see the loaded chip's blockie when the console first loads.
+- **When it appears:** as soon as the console has read the chip and checked its pin, a row comes
+  in under the tagline.
+- **What's in the row:** the owner address's blockie, the chip's name and the address cut short.
+- **The picture:** the same one the ceremony's T5, the Owners screen and every approval show. If
+  you swap a chip in, you can tell before the home screen whether it's the one you expect.
+- **A chip that isn't the pinned one:** its name and address turn red.
+- **How long it shows:** it stays up with the rest of the boot screen, about two seconds on
+  Build 1, without slowing the boot.
+- **The 1.8" panel:** it has no room, and only the status line shows the chip.
+
+| Waveshare, 240×240 | Build 1, 320×240 |
+|---|---|
+| <img src="boot/chip-row-240.png" width="240"> | <img src="boot/chip-row-320.png" width="320"> |
+
+These are drawn by the real firmware in the emulator, with TM1's owner address
+`0x47c0…8f35` and its board name, chip 3. `node test-vectors/run-bootmark.mjs` checks every frame
+of the animation, with the row arriving at 700 ms, against a fresh paint on all three panels.
+
+## The light mark turns into Ethereum (2026-09-30)
+
+You said the diamond fading in and flying to the corner didn't work. You asked to go back to the
+original idea, drawn the light way: the green triangle becomes the top of the Ethereum logo, which
+spins until the whole logo is there. Then PicoQuorum, with a small version of the mark to its left,
+fades in over the logo, which keeps turning. And no pauses: as quick as it can go.
+
+**Update, same day:** on the board it ran fast and smooth until the name came up, then stuttered
+and froze. That was the console starting up behind it (below), so the diamond now **slows to a
+stop on the logo's pose** as the name fades in, rather than freezing mid-turn.
+
+<img src="boot/mark-eth.gif" width="60%">
+
+| | |
+|---|---|
+| <img src="boot/mark-eth-050.png"> | <img src="boot/mark-eth-062.png"> |
+| **1.5 s: the quorum.** Three signed, the triangle filling. The signatures now come 0.3 s apart (they were 0.5 s), with no holds. | **1.9 s: no beat.** The filled triangle *is* the diamond's front face seen head-on. It brightens and starts to turn. |
+| <img src="boot/mark-eth-067.png"> | <img src="boot/mark-eth-072.png"> |
+| **2.0 s: it turns.** The signers ride its corners and shrink away, and the two who didn't sign fade out. | **2.2 s: the green face goes round the side** as the camera rises to the logo's 30°. |
+| <img src="boot/mark-eth-084.png"> | <img src="boot/mark-eth-092.png"> |
+| **2.5 s: all Ethereum blue,** and the lower pyramid rises in. | **2.8 s: the logo,** spinning. |
+| <img src="boot/mark-eth-110.png"> | <img src="boot/mark-eth-150.png"> |
+| **3.3 s:** it slows, grows and dims, and **the small mark and PicoQuorum fade in over it.** | **4.5 s:** the tagline, and the logo at rest on its own pose behind. |
+
+The small mark is the boot screen in miniature: five owners, three signed in green, two amber,
+their triangle.
+
+On every panel (this is `BOOT_ART = "still"`, the end of it drawn at once):
+
+<img src="boot/mark-eth-panels.png">
+
+- **Length:** the logo is spinning by 2.8 s and the name is up by 3.4 s. Splash holds 3.7 s after
+  the 0.3 s black (the corner version held 5.3 s and the plain mark 3.8 s). Any key still skips.
+- **Cost:** each frame repaints the box the diamond was in and the box it's in now. While it's
+  big and turning that's up to half the panel (58 KB), so this is heavier than the plain mark: 15%
+  of what whole frames would send, against 6%. That's still about 6× lighter than the orbit. Once
+  it lands, frames send nothing but the name's fade and the status line.
+- **Why it stuttered on the board, and a faster boot:** the animation finishes as WiFi joins, about
+  5.3 s after power-on. Then the console starts: `main.py`'s imports (1.1 s), and the chip checks.
+  With the Trust M those were 6.7 s, all without a frame. Two pure-Python P-256 verifies of its
+  factory certificate and key binding took 4.7 s, and the owner address (two keccaks) took 0.7 s.
+  Both are now worked out once and remembered by a hash of exactly the bytes they're computed from
+  (`tmproof.txt`, `owners.txt`). The same chip gives the same answer at once, and any change works
+  them out again. The console is up about 7.8 s after power-on, down from about 13 s.
+  `log.txt` has a `boot ms:` line each boot with where the time went.
+- **The corner version is gone:** its pictures are replaced by these.
+
+**Questions for you:**
+1. **The turn:** three-quarters of a turn while it becomes the logo, coming to rest as the name
+   fades in. Faster, slower? It could keep turning, but on the board that means a freeze while the
+   console starts, unless the startup itself is reworked to hand back frames.
+2. **Behind the name:** it dims to about a third. Brighter, so the logo reads more, or darker, so
+   the name reads more?
+
+## The light mark (2026-09-30): the loading screen the Pico can keep up with
+
+The orbit redraws and sends the whole panel every frame: 100–130 ms a frame on the Pico
+(8–10 fps), of which about 50 ms is just the 150 KB going over SPI to the 2.8". The new default
+is the orbit's end mark on its own, drawn as flat shapes: five owners pop in, three sign (green,
+a ring going out), their triangle closes and fills from the base, the two left out stay amber, and
+PicoQuorum fades in under it, then a tagline. The real boot status is the bottom line, as before.
+
+<img src="boot/mark.gif" width="60%">
+
+**Why it's smooth:** each frame sends only what changed since the last one: a dot's square, an
+edge as far as it has got, the rows the green rose through, the name while it fades, the status
+line when it changes. Across the animation that's about 6% of the bytes whole frames would take;
+the busiest frame is 26–30 KB and 17 of 131 frames send nothing. The drawing is a dozen framebuf
+calls per rectangle, in C. Only the first frame paints the whole panel (about the cost of one orbit
+frame). It lasts 3.8 s after a 0.3 s black lead-in (the orbit: 9.6 s after 4 s of black).
+
+| | |
+|---|---|
+| <img src="boot/mark-025.png"> | <img src="boot/mark-045.png"> |
+| <img src="boot/mark-060.png"> | <img src="boot/mark-085.png"> |
+| <img src="boot/mark-130.png"> | |
+
+It fits every panel we have, including the 1.8" (which had only the checklist; no room there for
+a tagline):
+
+<img src="boot/mark-panels.png">
+
+**Taglines** ([`firmware/taglines.py`](../../../firmware/taglines.py)): one per boot on the mark,
+cycling on the orbit. `secrets.BOOT_TAGLINES` picks `"serious"` (the default), `"fun"`, `"all"` or
+`"none"`. The serious ones are claims about the console, so each has to stay true of the firmware
+(the file says which code backs which claim). The fun ones are films and shows, cyberpunk and
+the demoscene. Each fits 220 px; the test checks.
+
+<img src="boot/mark-taglines.png">
+
+`secrets.BOOT_ART` picks the boot screen: `"mark"` (the default), `"still"` (the finished mark at
+once, then only the status line changes), `"orbit"` (the full animation above) or `"checklist"`.
+`node test-vectors/run-bootmark.mjs` checks that after every frame the panel equals the whole
+scene painted afresh, on all three panels, and prints the bytes sent.
+
 ## Iteration 6 (2026-09-27): smooth all the way, filled from the bottom, a name in front
 
 You asked:
@@ -312,5 +475,11 @@ Edit this list on GitHub: add a line, tick one off, or write under it. Each iter
       face of the diamond (iteration 5)
 - [x] Fill from the bottom up; smooth, no pauses; the diamond keeps spinning behind the name, with
       cycling taglines (iteration 6)
+- [x] A light boot screen: the mark, sending only what changed (the light mark)
+- [x] ~~After the mark, the spinning Ethereum diamond fades in and lands in the top-left corner~~
+      (didn't work, dropped)
+- [x] The light way, the original idea: the green triangle becomes the top of the Ethereum logo,
+      which spins; the small mark and PicoQuorum fade in over it; no pauses (the light mark turns
+      into Ethereum)
 - [ ] Pick a font set (FONTS.md, question 1)
 - [ ] (add yours)

@@ -15,6 +15,8 @@ tried = False       # connect() ran once (boot.py); wallet.start does not wait a
 last_try = 0        # ticks_ms of the last join attempt; wallet.net_work retries every 30 s without blocking
 up = False          # joined() ran: LED on, console started if wanted
 _cur = None         # the (ssid, password) joined or being joined
+_t0 = None          # ticks_ms when begin() asked the radio to join; connect() waits from then
+boot_at = begun_at = 0   # ticks_ms when boot.py started and when begin() returned (quorum's "boot ms")
 _turn = 0           # retry() walks the saved networks in turn
 
 
@@ -52,12 +54,31 @@ def _pick(wlan, nets):
     return nets[0]
 
 
+def begin():
+    """Switch the radio on, ask it to join the newest saved network and return at once. boot.py calls
+    this as the boot art starts on its timer, so the join runs while the screen comes up; connect()
+    then only waits for what is left of it. Never a scan here: a scan while the art's timer drew
+    froze Build 1 at "screen: ok" with two networks saved (2026-10-02). If the newest is not in
+    range, retry() walks the others."""
+    global _t0, begun_at, _cur
+    nets = networks()
+    if not nets:
+        return
+    network.hostname(_hostname())
+    wlan = network.WLAN(network.STA_IF)
+    wlan.active(True)
+    if not wlan.isconnected():
+        _cur = nets[0]
+        wlan.connect(*_cur)
+    _t0 = begun_at = time.ticks_ms()
+
+
 def connect(timeout_s=12, progress=None):
     """Join a known WiFi (networks()), waiting at most timeout_s. progress(elapsed_ms), if given, is called
     while waiting (the boot screen animates on it) and may return True to stop waiting (a key press);
     the LED blinks either way. A network that is not there costs 12 s once, never more: the wallet
     retries in the background (retry) and everything local works without it."""
-    global tried, last_try, _cur
+    global tried, last_try, _t0, _cur
     tried = True
     last_try = time.ticks_ms()
     wlan = network.WLAN(network.STA_IF)
@@ -65,14 +86,20 @@ def connect(timeout_s=12, progress=None):
     if not nets:
         print("no WiFi saved: not joining")
         return wlan
-    network.hostname(_hostname())
-    wlan.active(True)
+    begun, t0, _t0 = _t0 is not None, _t0, None
+    if not begun:
+        network.hostname(_hostname())
+        wlan.active(True)
     if not wlan.isconnected():
-        _cur = _pick(wlan, nets)
-        wlan.connect(*_cur)
-        t0 = time.ticks_ms()
+        if not begun:                   # begin() already asked; the wait counts from then
+            _cur = _pick(wlan, nets)
+            wlan.connect(*_cur)
+            t0 = time.ticks_ms()
+        n = 0
         while not wlan.isconnected() and time.ticks_diff(time.ticks_ms(), t0) < timeout_s * 1000:
-            led.toggle()
+            if n % 3 == 0:
+                led.toggle()
+            n += 1
             if progress:
                 try:
                     if progress(time.ticks_diff(time.ticks_ms(), t0)):
@@ -80,7 +107,7 @@ def connect(timeout_s=12, progress=None):
                         break
                 except Exception:
                     pass
-            time.sleep_ms(150)
+            time.sleep_ms(50)       # the boot mark animates on progress; the LED still blinks at 150 ms
     if wlan.isconnected():
         led.on()
         print("wifi up:", wlan.ifconfig()[0], "hostname:", _hostname())

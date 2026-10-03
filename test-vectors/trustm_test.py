@@ -17,9 +17,9 @@ def check(ok, what):
         failed[0] += 1
 
 
-def secrets(lock=True, genkey=True):
+def secrets(lock=True, genkey=True, extra=""):
     with open("secrets.py", "w") as f:
-        f.write('WIFI_SSID = "emulator"\nWIFI_PASS = ""\nHOSTNAME = "emu"\nALLOW_LOCK = %s\nALLOW_GENKEY = %s\n' % (lock, genkey))
+        f.write('WIFI_SSID = "emulator"\nWIFI_PASS = ""\nHOSTNAME = "emu"\nALLOW_LOCK = %s\nALLOW_GENKEY = %s\n%s' % (lock, genkey, extra))
     try:
         os.remove("build.py")
     except OSError:
@@ -134,7 +134,7 @@ def case_full():
     only_trustm()
     c, S, P = ceremony()
     sim = trustm_sim.chip()
-    for want in ("T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8"):
+    for want in ("T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10"):
         got, ok, bad, msg = run(c, want)
         check(got == want and ok, "%s %s%s" % (want, P.TITLES[want], "" if ok and got == want else " (step %s, %s, %s)" % (got, bad, msg)))
     check(all(sim.objs[o]["meta"]["lcso"] == 0x07 for o in (0xE0F1, 0xF1D0, 0xF1D1)), "E0F1, F1D0, F1D1 operational")
@@ -149,9 +149,25 @@ def case_full():
     e = chips.load().get(c.serial) or {}
     check(e.get("profile") == "quorum-tm1" and e.get("kind") == "trustm" and e.get("owner") == rec["owner"],
           "chips.json has it as a quorum-tm1 Trust M, with its owner")
-    check(c.step() == "T8", "a sealed chip stays at T8")
-    check(sim.objs[0xE0F0].get("key") and sim.objs[0xE0F0]["meta"]["lcso"] == 1 and tmcfg.cert_der(sim.objs[0xE0E0]["data"]) == der,
-          "the factory key and certificate are untouched")
+    check(c.step() == "T10", "a finished chip stays at T10")
+    c2 = ceremony()[0]
+    check(c2.step() == "T8" and run(c2, "T8")[1] and c2.step() == "T10", "a reboot: T8 checks the seal again, then straight to T10")
+    check(all(sim.objs[o]["meta"]["lcso"] == 0x07 for o in tmcfg.SPARES), "T9: every spare (%d) operational" % len(tmcfg.SPARES))
+    check(all(sim.objs[o]["meta"]["change"] == b"\xe1\xfc\x07" for o in tmcfg.SPARES), "T9 wrote only LcsO: every Change condition as it came")
+    check(all(sim.objs[o]["meta"]["lcso"] == 0x07 and bytes(sim.objs[o]["meta"]["change"]) == tmcfg.FACTORY_CHANGE[o] for o in tmcfg.FACTORY_OBJS)
+          and sim.objs[0xE140]["data"] == bytes(64), "T9 froze Infineon's E0F0, E0E0, E140 too, their rules and data as they came")
+    snap = json.load(open(P.snapshot_path(c.serial)))
+    check(all("%04X" % o in snap["metadata"] for o in tmcfg.SPARES) and snap["metadata"]["E0F1"].startswith("20"),
+          "T1's snapshot has every object's factory metadata, the 23 spares too")
+    log = json.load(open(P.steps_path(c.serial)))
+    t9 = [e for e in log if e["step"] == "T9"][-1]
+    check([e["step"] for e in log][:10] == ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10"] and all(e["ok"] for e in log[:10]),
+          "the steps log has every step's result, in order")
+    check(len(t9["metaBefore"]) == 26 and all(tmcfg.parse_meta(bytes.fromhex(t9["metaAfter"][k]))["lcso"] == 7 for k in t9["metaAfter"])
+          and all(tmcfg.parse_meta(bytes.fromhex(v))["lcso"] == 1 for v in t9["metaBefore"].values()) and t9["refused"] == []
+          and "secBefore" in t9 and t9["ms"] >= 0, "T9's entry keeps each spare's metadata before and after, the counter and the time")
+    check(sim.objs[0xE0F0].get("key") and tmcfg.cert_der(sim.objs[0xE0E0]["data"]) == der,
+          "the factory key and certificate are the same")
 
 
 def case_resume():
@@ -227,6 +243,30 @@ def case_gates():
     check(refused(lambda: chip.gen_keypair(tmcfg.KEY)), "sealed: GenKeyPair on E0F1 refused (as modeled)")
     check(refused(lambda: chip.set_lifecycle(tmcfg.KEY, 0x03)), "sealed: the lifecycle cannot go back down")
     check(bytes(chip.get(tmcfg.RECORD)) == rec, "and the record is as it was")
+    secrets(lock=False)
+    c4, S, P = ceremony()
+    run(c4, "T8")
+    got, ok, bad, msg = run(c4, "T9")
+    check(got == "T9" and not ok and "ALLOW_LOCK" in msg and c4.sig.spares_open(), "T9 without ALLOW_LOCK: nothing frozen")
+    secrets()
+    c4, S, P = ceremony()
+    run(c4, "T8")
+    got, ok, bad, msg = run(c4, "T9", arm=False)
+    check(not ok and "not armed" in msg and c4.sig.spares_open(), "T9 not armed: nothing frozen")
+    got, ok, bad, msg = run(c4, "T9")
+    check(ok and not c4.sig.spares_open(), "T9 armed: every spare frozen (%s)" % msg)
+    check(refused(lambda: chip.set_data(0xF1D2, b"config")), "frozen: a spare data object cannot be written")
+    check(refused(lambda: chip.gen_keypair(0xE0F2)), "frozen: no key can be made in E0F2")
+    check(refused(lambda: chip.set_lifecycle(0xF1D3, 0x03)), "frozen: a spare's lifecycle cannot go back down")
+    def code(fn):
+        try:
+            fn()
+        except Exception as e:
+            return str(e)[-3:-1]
+    check(code(lambda: chip.set_lifecycle(0xF1D3, 0x03)) == "05" and code(lambda: chip.gen_keypair(0xE0F2)) == "07"
+          and code(lambda: chip.set_data(0xF1D2, b"x")) == "07"
+          and code(lambda: chip.command(0x02, 0x01, (0xF1D4).to_bytes(2, "big") + b"\x00\x00" + bytes([0x20, 3, 0xD0, 1, 0x00]), retry=False)) == "07",
+          "the error codes TM2 gave: 05 lowering a lifecycle, 07 for every other refused write")
     only_trustm()
     c3, S, P = ceremony()
     trustm_sim.chip().sec = 40
@@ -234,6 +274,45 @@ def case_gates():
     c3.read()
     got, ok, bad, msg = run(c3, "T1")
     check(not ok and any("security events" in b for b in bad), "T1 on a chip with security events: stop")
+
+
+def case_keep_open():
+    """TRUSTM_KEEP_OPEN leaves a spare open (a data object kept for a later config record)."""
+    import tmcfg
+    secrets(extra='TRUSTM_KEEP_OPEN = ["F1D2"]\n')
+    only_trustm()
+    c, S, P = ceremony()
+    for st in ("T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8"):
+        run(c, st)
+    check("F1D2" in c.WHAT["T9"], "the T9 screen names what is kept open")
+    got, ok, bad, msg = run(c, "T9")
+    sim = trustm_sim.chip()
+    check(ok and sim.objs[0xF1D2]["meta"]["lcso"] == 1 and all(sim.objs[o]["meta"]["lcso"] == 7 for o in tmcfg.SPARES if o != 0xF1D2),
+          "T9 freezes every spare but F1D2 (%s)" % msg)
+    check(c.step() == "T10" and run(c, "T10")[1], "and the ceremony finishes with F1D2 kept open")
+    c.chip.set_data(0xF1D2, b"later")
+    check(bytes(c.chip.get(0xF1D2))[:5] == b"later", "F1D2 can still be written")
+    secrets()
+    c2 = ceremony()[0]
+    check(c2.step() == "T8" and run(c2, "T8")[1] and c2.step() == "T9", "without TRUSTM_KEEP_OPEN it is open again: T9 offers to freeze it")
+
+
+def case_tampered_factory():
+    """TM2 (2026-10-01): at LcsO creation E0F0's Change could be set to ALW and the factory key
+    replaced. A sealed chip like that stops at T8, so T9 never freezes the damage in."""
+    import tmcfg
+    secrets()
+    only_trustm()
+    trustm_sim.seal_as_quorum()
+    sim = trustm_sim.chip()
+    sim.objs[0xE0F0]["meta"]["change"] = b"\x00"
+    sim.objs[0xE0F0]["key"] = p256.rand_scalar()
+    sim.save()
+    c, S, P = ceremony()
+    got, ok, bad, msg = run(c, "T8")
+    check(got == "T8" and not ok and "E0F0 = cert's key, live" in bad and "Infineon rules unchanged" in bad,
+          "a swapped factory key: T8 stops (the live check and the rules), though the stored binding still verifies")
+    check(c.step() == "T8" and sim.objs[0xF1D2]["meta"]["lcso"] == 1, "and T9 is never offered")
 
 
 def case_other():
@@ -319,7 +398,58 @@ def case_console():
         sim.calc_sign = real_calc
     check(Q.result and Q.result[0] and any("besides this signature" in l for l in Q.result[2]),
           "the chip counted more than the signature itself: the result says so")
-    check(Q.sec == sim.sec_now(), "and the Device screen shows the new count")
+    # The console read the counter when it signed; the chip takes one count off every 5 s of wall
+    # time, so one tick may have passed by now (it did once the factory checks were remembered and
+    # the boot got faster). Anything else is wrong.
+    _now = sim.sec_now()
+    check(Q.sec in (_now, _now + 1), "and the Device screen shows the new count (%s, the chip now %s)" % (Q.sec, _now))
+
+
+def case_proof():
+    """The factory checks (two P-256 verifies) pass once and are remembered by the hash of the
+    bytes they read (tmcfg.proof): the same bytes skip the math; one changed byte runs both again,
+    and a failure is never remembered."""
+    import signer, tmcfg
+    only_trustm()
+    trustm_sim.seal_as_quorum()
+    try:
+        os.remove(tmcfg.PROOF_FILE)
+    except OSError:
+        pass
+    calls = [0]
+    real = p256.verify
+
+    def counted(*a):
+        calls[0] += 1
+        return real(*a)
+    p256.verify = counted
+    sim = trustm_sim.chip()
+    saved = sim.objs[0xF1D1]["data"]
+    try:
+        s = signer.TrustMSigner()
+        check(s.binding_ok() is True and s.ca_ok and not s.remembered and calls[0] == 2,
+              "first boot: both verifies run and pass, and the pass is remembered")
+        calls[0] = 0
+        s = signer.TrustMSigner()
+        check(s.binding_ok() is True and s.ca_ok and s.remembered and calls[0] == 0,
+              "next boot, the same bytes: the pass is remembered, no verify")
+        b = bytearray(saved)
+        b[10] ^= 1                          # one bit of E0F0's signature
+        sim.objs[0xF1D1]["data"] = bytes(b)
+        calls[0] = 0
+        s = signer.TrustMSigner()
+        check(s.binding_ok() is False and not s.remembered and calls[0] == 2,
+              "one bit of F1D1 changed: both checks run again, and the binding fails")
+        calls[0] = 0
+        s = signer.TrustMSigner()
+        check(s.binding_ok() is False and calls[0] == 2, "and the failure is not remembered: checked again on the next boot")
+        sim.objs[0xF1D1]["data"] = saved
+        calls[0] = 0
+        s = signer.TrustMSigner()
+        check(s.binding_ok() is True and s.remembered and calls[0] == 0, "the original bytes back: remembered again")
+    finally:
+        p256.verify = real
+        sim.objs[0xF1D1]["data"] = saved
 
 
 def case_chip_pages():
@@ -343,7 +473,8 @@ def case_chip_pages():
     pages = {}
     for t, r in Q.chip_pages:
         pages.setdefault(t, {}).update(dict(r))
-    check(sum(len(r) for _, r in Q.chip_pages) == 7 + 6 + 7, "every row is on a page (long ones continue on the next): nothing cut")
+    check(sum(len(r) for _, r in Q.chip_pages) == 8 + 6 + 7, "every row is on a page (long ones continue on the next): nothing cut")
+    check(pages["The chip"]["Spares"].startswith("0 of 26 frozen; open E0E0 E0E1 E0E8 E0EF E0F0 E0F2 +20"), "page 1: the spares, read off the chip (%s)" % pages["The chip"]["Spares"])
     check(pages["The chip"]["Part"] == "Infineon OPTIGA Trust M" and "CC EAL6+" in pages["The chip"]["Certified"],
           "page 1: Infineon OPTIGA Trust M, CC EAL6+")
     c = pages["Factory certificate"]
@@ -366,7 +497,10 @@ def case_chip_pages():
     check(Q.state == "device", "B: back to Device")
     Q.KNOB = True
     Q.knob("down")
-    check(Q.dfoot == "back", "knob on Device: a turn chooses Back")
+    check(Q.dfoot == "wifi", "knob on Device: a turn chooses Wi-Fi")
+    Q.knob("down")
+    check(Q.dfoot == "back", "and the next, Back")
+    Q.knob("up")
     Q.knob("up")
     Q.knob("press")
     check(Q.state == "chip", "knob: press on Chip opens the pages")
@@ -423,8 +557,8 @@ def case_console_pin():
 def case_dual():
     import tmcfg
 
-    def boot(expect=None):
-        secrets()
+    def boot(expect=None, lock=True):
+        secrets(lock=lock)
         with open("secrets.py", "a") as f:
             if expect:
                 f.write("QUORUM_EXPECT = %r\n" % expect)
@@ -444,10 +578,19 @@ def case_dual():
     check(D.which()[0] == "ceremony", "dual, a Trust M half way (key made, not sealed): the ceremony again")
     only_trustm()
     trustm_sim.seal_as_quorum()
+    D = boot(lock=False)
     check(D.which()[0] == "console", "dual, a sealed Trust M, not pinned yet: the console (it says Not pinned)")
+    D = boot()
+    check(D.which()[0] == "ceremony", "dual, a sealed Trust M with its spares open, ALLOW_LOCK on, not pinned: the ceremony (T9)")
     rec = tmcfg.record_decode(trustm_sim.chip().objs[0xF1D0]["data"])
     D = boot({"serial": tmcfg.serial(trustm_sim.chip().uid), "slot": 0xE0F1, "owner": rec["owner"], "locked": True})
-    check(D.which()[0] == "console", "dual, the pinned Trust M: the console")
+    check(D.which()[0] == "console", "dual, the pinned Trust M: the console, ALLOW_LOCK or not")
+    sim = trustm_sim.chip()
+    for o in tmcfg.FROZEN_AT_T9:
+        sim.objs[o]["meta"]["lcso"] = 7
+    sim.save()
+    D = boot()
+    check(D.which()[0] == "console", "dual, sealed and its spares frozen, not pinned: the console")
     os.remove("build.py")
 
 
@@ -464,7 +607,7 @@ def case_ui():
     d = splash.begin()
     ui = provision.UI(d, K(), c.sig, "light", c)
     ok = True
-    for st in ("T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8"):
+    for st in ("T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10"):
         try:
             ui.dirty = True
             ui.draw()
@@ -478,7 +621,7 @@ def case_ui():
         except Exception as e:
             ok = False
             sys.print_exception(e)
-    check(ok and ui.c.step() == "T8", "the ceremony screen draws every Trust M step and its result")
+    check(ok and ui.c.step() == "T10", "the ceremony screen draws every Trust M step and its result")
     only_trustm()
     c2, S2, P2 = ceremony()
     for st in ("T1", "T2", "T3", "T4"):
@@ -560,7 +703,7 @@ def case_knob():
 
 
 def main():
-    for case in (case_real_chip, case_detect, case_full, case_resume, case_gates, case_other, case_console, case_chip_pages, case_sec,
+    for case in (case_real_chip, case_detect, case_full, case_resume, case_gates, case_keep_open, case_tampered_factory, case_other, case_console, case_proof, case_chip_pages, case_sec,
                  case_console_pin, case_dual, case_ui, case_knob):
         print("--", case.__name__[5:])
         try:

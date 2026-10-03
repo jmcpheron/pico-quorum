@@ -1,6 +1,10 @@
-# Boot display: a four-second black lead-in, then the orbit/diamond branding with real status
-# (strip-buffered panels only). Small panels and the single-buffer 240x240 retain the checklist. The console calls finish before starting its
-# timer/watchdog, releasing the animation code before normal transaction-service polling.
+# Boot display: a short black lead-in, then the PicoQuorum mark with the real boot status on its
+# last line. secrets.BOOT_ART picks the art: "mark" (the default, bootmark.py: flat vectors, only
+# what changed is sent to the panel, runs on every panel), "still" (the finished mark at once) or
+# "orbit" (bootart.py: the full orbit, the whole panel every frame, ~8-10 fps on the Pico; strip-
+# buffered 240-row panels only, others get the mark) or "checklist" (the chip and a row per step,
+# no art). The console calls finish before starting its
+# timer/watchdog, releasing the art's code before normal transaction-service polling.
 import time
 import lcd as L
 import theme as T
@@ -11,34 +15,89 @@ TITLE = "picowallet"   # the app that boots sets its own name (quorum.py: "picoq
 rows = []           # [key, text, color], drawn in ORDER
 ORDER = ("screen", "wifi", "chip", "app")
 ICON = {"screen": "screen", "wifi": "wifi", "chip": "chip", "app": "app"}
-BLACK_LEAD_MS = 4000
+BLACK_LEAD_MS = 4000    # the orbit's; the mark sets its own (begin)
 ANIMATION_MS = 9600
 _t0 = 0
 _frame = 0
 _last = 0
 _art = None
+_still = False
+_gap = 120          # spin redraws at most this often (ms): the orbit is a whole frame, the mark is not
 _finished = False
 _status = "Starting up"
 _status_color = (152, 160, 172)
 _waiting = None     # the row that is spinning, if any
+_timer = None       # run(): the art draws itself on a soft timer while the console starts
+_busy = False       # a frame is being drawn: the timer skips its turn rather than nest
+_paused = False     # pause(): the timer draws nothing (around the console's big allocations)
+
+
+def run(period=30):
+    """Keep the art moving by itself: a soft timer draws a frame every period ms, between the
+    Python steps of whatever runs meanwhile, so boot.py need not wait for WiFi and the console's
+    start (imports, the chip) goes on under a moving screen. One core and no thread on purpose:
+    MicroPython's second core on the RP2 has no GIL and its garbage collector does not stop the
+    other core, so two cores allocating can free an object in use. A soft timer runs where the VM
+    is between bytecodes, every object rooted. Only C work (an .mpy loading) holds a frame up.
+    finish() or stop() ends it."""
+    global _timer
+    if _art is None or _timer is not None or _finished:
+        return
+    from machine import Timer
+    _timer = Timer(period=period, mode=Timer.PERIODIC, callback=_tick)
+
+
+def _tick(_t):
+    if _busy or _paused or _finished:
+        return
+    try:
+        draw()
+    except Exception as e:      # a broken frame stops the animation, never the boot
+        print("splash:", e)
+        stop()
+
+
+def stop():
+    """No more frames from the timer (finish(), and main.py's error screen)."""
+    global _timer
+    if _timer is not None:
+        _timer.deinit()
+        _timer = None
+
+
+def pause(on=True):
+    global _paused
+    _paused = on
+
+
+def _choice():
+    try:
+        import secrets
+        return getattr(secrets, "BOOT_ART", "mark")
+    except ImportError:
+        return "mark"
 
 
 def begin():
     """The LCD, created once. Safe to call again: returns the same one."""
-    global lcd, _t0, _art
+    global lcd, _t0, _art, _still, _gap, BLACK_LEAD_MS, ANIMATION_MS
     if lcd is None:
         lcd = L.LCD()
-        if L.H >= 200 and L.BANDS > 1:
-            # The strip-buffered panels (both 240x240 and 320x240 now). A single-frame panel has no heap
-            # left for the animation (MemoryError in bootart.render on the 115 KB frame, 2026-09-29), so
-            # it keeps the checklist below.
-            # Clear every strip once; leave it black while the rest of startup proceeds.
-            lcd.frames(_black)
-            _t0 = time.ticks_ms()
+        # Clear every strip once; leave it black while the rest of startup proceeds.
+        lcd.frames(_black)
+        art = _choice()
+        if art == "orbit" and L.H >= 200 and L.BANDS > 1:
+            # The orbit needs the strip buffer: on a single 115 KB frame it ran the heap out
+            # (MemoryError in bootart.render, 2026-09-29).
             import bootart
             _art = bootart
-        else:
-            _t0 = time.ticks_ms()
+        elif art != "checklist":
+            import bootmark
+            _art, _gap = bootmark, 30
+            _still = art == "still"
+            BLACK_LEAD_MS = bootmark.LEAD_MS
+            ANIMATION_MS = 0 if _still else bootmark.DURATION_MS
+        _t0 = time.ticks_ms()
         step("screen", "ok", L.GREEN)
     return lcd
 
@@ -57,14 +116,24 @@ def step(key, text, color=L.WHITE):
         rows.sort(key=lambda r: ORDER.index(r[0]) if r[0] in ORDER else 9)
     if _waiting == key and color != L.GREY:
         _waiting = None
-    draw()
+    if _timer is None:          # with the timer running, its next frame shows it
+        draw()
+
+
+def chip(seed, text, ok=True):
+    """The chip the console read: its owner's blockie and a short line under the name (the mark only;
+    the other boot screens list it as the chip row). seed: the owner address."""
+    if _art is not None and hasattr(_art, "set_chip"):
+        _art.set_chip(seed, text, ok)
+        if _timer is None:
+            draw()
 
 
 def spin(key, text):
     """A row that is waiting: call it as often as you like, it redraws at most ~8 times a second."""
     global _last, _waiting
     now = time.ticks_ms()
-    if time.ticks_diff(now, _last) < 120:
+    if time.ticks_diff(now, _last) < _gap:
         return
     _last = now
     _waiting = key
@@ -80,21 +149,33 @@ def wifi_row(wlan, ssid):
 
 def draw():
     """One frame. Each call advances the leg chase, so a periodic redraw animates it."""
-    global _frame
+    global _frame, _busy
     if lcd is None:
         return
     _frame += 1
-    if _finished:
+    if _finished or _busy:
         return
+    _busy = True
+    try:
+        _draw_frame()
+    finally:
+        _busy = False
+
+
+def _draw_frame():
     if _art is not None:
         elapsed = time.ticks_diff(time.ticks_ms(), _t0) - BLACK_LEAD_MS
         if elapsed < 0:
             return
         try:
-            _art.render(lcd, elapsed // 30, _status, _status_color)
+            if getattr(_art, "IN_MS", False):          # the mark: time in ms
+                _art.render(lcd, elapsed, _status, _status_color, _still)
+            else:                                       # the orbit: its frame, 30 ms each
+                _art.render(lcd, elapsed // 30, _status, _status_color)
         except MemoryError:
             # A frame of the animation is not worth the console: the Trust M's certificate checks leave
             # the heap in pieces (MemoryError in bootart.render on the 240x240 board, 2026-09-30). Skip it.
+            # The mark keeps what it last sent until a frame completes, so the next one repaints the rest.
             _skipped()
     else:
         try:
@@ -156,11 +237,12 @@ def _draw():
 
 
 def finish(keys=None, wait=True):
-    """Let the branding reach the name (4 s black + 9.6 s animation); any key skips.
+    """Let the branding reach the name (the mark: 0.3 s black + 3.7 s; the orbit: 4 s + 9.6 s); any key skips.
     Called before the console starts its timer/watchdog. Release animation code before TLS.
     Errors bypass this hold and go straight to the console's error screen.
     """
     global _art, _finished
+    stop()                      # from here this loop draws, as without the timer
     if _art is None:
         return
     import gc
@@ -175,4 +257,6 @@ def finish(keys=None, wait=True):
         _finished = True
         _art = None
         sys.modules.pop("bootart", None)
+        sys.modules.pop("bootmark", None)
+        sys.modules.pop("taglines", None)
         gc.collect()

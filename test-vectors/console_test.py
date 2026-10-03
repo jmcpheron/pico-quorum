@@ -256,6 +256,32 @@ def case_pin():
     check(Q.state == "home" and Q.pin_ok, "a development board without a pin works as before")
     Q = fresh(safe=False)
     check(Q.state == "unconfigured" and Q.svc is None, "production with no QUORUM_SAFE: unconfigured, no service")
+    # The owner address (two keccaks, ~0.7 s on the Pico) is remembered by the hash of its inputs.
+    try:
+        os.remove("owners.txt")
+    except OSError:
+        pass
+    import webauthn
+    o0, o2 = owner_of(0), owner_of(2)       # the test's own expectations, before counting
+    pin0 = {"serial": SERIAL, "slot": 0, "owner": o0, "locked": True}
+    real, n = webauthn.keccak256, [0]
+
+    def counted(b):
+        n[0] += 1
+        return real(b)
+    webauthn.keccak256 = counted
+    try:
+        Q = fresh(expect=pin0)
+        first = n[0]
+        n[0] = 0
+        Q = fresh(expect=pin0)
+        check(first == 2 and n[0] == 0 and Q.me == o0 and Q.pin_ok,
+              "the owner address: computed once (two keccaks), then remembered by its inputs' hash")
+        n[0] = 0
+        Q = fresh(expect={"serial": SERIAL, "slot": 2, "owner": o2, "locked": True})
+        check(n[0] == 2 and Q.me == o2, "another key's owner is computed, not taken from the remembered one")
+    finally:
+        webauthn.keccak256 = real
 
 
 def case_refusals():
@@ -686,8 +712,83 @@ def case_safes():
     check(Q.WATCH[0]["base"].endswith("/basesep") and Q.WATCH[1]["base"] == "http://10.0.0.2:8788", "a Safe's own \"url\" overrides its chain's service, for that Safe only")
 
 
+def case_grid():
+    """Home as a grid of tiles when nothing waits for this key; the queue list when something does."""
+    chip()
+    Q = fresh(url=None, safe=False, extra=TWO)
+    SVC.info = {"address": SAFE, "nonce": 0, "threshold": 2, "version": "1.4.1", "owners": [Q.me, ALICE, BOB]}
+    SVC.txs = []
+    SVC.safes[ETH_SAFE] = {"info": {"address": ETH_SAFE, "nonce": 7, "threshold": 1, "version": "1.4.1", "owners": [Q.me, BOB]}, "txs": []}
+    Q.net_work()
+    Q.net_work()
+    try:
+        os.remove(Q.RECENT_FILE)
+    except OSError:
+        pass
+    Q.recent = []
+    kinds = [k for k, _ in Q.tiles()]
+    check(Q.grid_home() and kinds == ["safe", "safe", "recent", "chip", "device"], "nothing queued: a grid of each Safe, Recent, the chip, the device")
+    Q.tile = 0
+    Q.handle("right")
+    Q.handle("down")
+    check(Q.tile == 3, "right then down: the chip tile (two columns)")
+    Q.handle("A")
+    check(Q.state == "chip", "A on the chip tile: the Chip pages")
+    Q.handle("B")
+    check(Q.state == "home" and Q.chip_back == "home", "B from them: back home, not to Device")
+    Q.tile = 1
+    Q.handle("A")
+    check(Q.state == "owners" and Q.SAFE_ADDR == ETH_SAFE, "A on the second Safe's tile: its Owners")
+    Q.handle("B")
+    Q.tile = 2
+    Q.handle("A")
+    check(Q.state == "recent", "A on Recent: the Recent screen")
+    Q.handle("B")
+    check(Q.state == "home", "B: home")
+    Q.handle("X")
+    check(Q.state == "device", "X on the grid: Device")
+    Q.handle("B")
+    Q.note_recent(7, Q.WATCH[1], "Send 0.05 ETH to Bob")
+    Q.recent = []
+    Q.load_recent()
+    check(len(Q.recent) == 1 and Q.recent[0]["n"] == 7 and Q.recent[0]["safe"] == ETH_SAFE.lower(), "a signature sent: kept in recent.json")
+    check([w["addr"] for k, w in Q.tiles() if k == "safe"][0] == ETH_SAFE, "the Safe signed for most recently comes first")
+    Q.KNOB = True
+    Q.tile = 0
+    Q.knob("down")
+    Q.knob("down")
+    Q.knob("press")
+    check(Q.state == "recent", "the dial: turns walk the tiles, a press opens one")
+    Q.knob("press")
+    Q.KNOB = False
+    SVC.txs = [tx(Q, 0)]
+    Q.WATCH[0]["need_info"] = True
+    Q.last_poll = 0
+    Q.net_work()
+    Q.net_work()
+    check(Q.queue and not Q.grid_home(), "a transaction waiting for this key: the queue list, as before")
+    e = [x for x in Q.queue if x["n"] == 0][0]
+    signed = sign(Q, e, 2100)
+    Q.handle("A")
+    SVC.txs[0]["confirmations"].append({"owner": Q.me})     # the service lists this key's confirmation
+    Q.last_poll = 0
+    Q.net_work()
+    Q.net_work()
+    check(signed and Q.grid_home() and "queue" in [k for k, _ in Q.tiles()], "signed, still queued for others: the grid, with a Queue tile")
+    Q.tile = [k for k, _ in Q.tiles()].index("queue")
+    Q.handle("A")
+    check(not Q.grid_home() and Q.browse == "list", "the Queue tile: the list")
+    Q.handle("B")
+    check(Q.grid_home() and Q.state == "home", "B: back to the grid")
+    check(Q.recent[0]["n"] == 0, "and that signature is the newest in Recent")
+    try:
+        os.remove(Q.RECENT_FILE)
+    except OSError:
+        pass
+
+
 def main():
-    for case in (case_pin, case_owners_pages, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_safes, case_watchdog):
+    for case in (case_pin, case_owners_pages, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_safes, case_watchdog, case_grid):
         print("--", case.__name__[5:])
         try:
             case()

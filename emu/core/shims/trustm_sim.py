@@ -7,8 +7,10 @@
 #
 # The factory state is what a real Adafruit 4351 answered on 2026-09-28 (chips/trustm-*-probe.txt):
 # LcsA operational; E0F0 a factory key (Change NEV, Execute ALW, P-256, usage Auth) certified in
-# E0E0; E0F1-E0F3 empty with Change "LcsO < op"; F1D0-F1DB 140 bytes, 100 used, zeros, Change
-# "LcsO < op", Read ALW; the security event counter E0C5 at 0. The certificate is signed by a test
+# E0E0; E0F1-E0F3, E0FC, E0FD empty with Change "LcsO < op"; F1D0-F1DB 140 bytes, 100 used, zeros,
+# Change "LcsO < op", Read ALW; F1E0/F1E1 1500 bytes; E0E1, E0E8, E0EF empty certificate and trust
+# anchor slots; the counters E120-E123; the binding secret E140 (Change "LcsO < op || Conf(E140)");
+# the security event counter E0C5 at 0. The certificate is signed by a test
 # CA (CA_PUB), which tmcfg.py accepts only off the Pico.
 #
 # The security event counter as the real chip showed it (2026-09-28): a CalcSign (E0F0 or E0F1)
@@ -16,9 +18,11 @@
 # raises the counter by one; refused commands do not count; it falls back by one about every 5 s.
 # So a lone approval after idle leaves it at 0 and a burst makes it climb. GenKeyPair: not measured.
 #
-# Modeled as the chip documents them, NOT yet confirmed on silicon (a sacrificial chip will): that
-# GenKeyPair checks the key object's Change condition; that metadata can be written only while
-# LcsO is below operational, and LcsO only goes up; the error codes in F1C2.
+# Confirmed on silicon (TM2, a sacrificial chip, 2026-10-01): raising LcsO to operational on the
+# key, the record, the binding and all 23 spares (only C0 changes); then GenKeyPair on a sealed or
+# frozen key object, SetDataObject on a sealed or frozen data object and a metadata write to one
+# are refused with 0x07, and lowering a lifecycle with 0x05 (the value is checked first). Not yet
+# seen: what GenKeyPair does to the security event counter.
 # Not modeled: shielded connection, Luc/Conf/Int/Auto conditions (refused), sleep timing.
 #
 # Asleep, a real Trust M NACKs its address, so i2c.scan() does not list it; here too. present
@@ -56,7 +60,7 @@ UID_TAIL = bytes.fromhex("801010710809")
 
 # Error codes (F1C2). Seen on the real chip: 0x01 an OID it does not have, 0x07 reading a key
 # object's data, 0x0B CalcSign with an empty key. The others are the manual's.
-ERR_OID, ERR_PARAM, ERR_LEN, ERR_AC, ERR_BOUNDS, ERR_CMD, ERR_KEY = 0x01, 0x03, 0x04, 0x07, 0x09, 0x0B, 0x0B
+ERR_OID, ERR_PARAM, ERR_LEN, ERR_DATA, ERR_AC, ERR_BOUNDS, ERR_CMD, ERR_KEY = 0x01, 0x03, 0x04, 0x05, 0x07, 0x09, 0x0B, 0x0B
 
 
 def _crc(data):
@@ -139,6 +143,18 @@ def factory():
     objs[0xE0E0] = {"data": cert, "meta": {"lcso": 0x01, "max": 1728, "change": b"\xff", "read": b"\x00", "exec": b"\x00", "type": 0x12}}
     for oid in list(range(0xF1D0, 0xF1DC)):
         objs[oid] = {"data": bytes(100), "meta": {"lcso": 0x01, "max": 140, "change": b"\xe1\xfc\x07", "read": b"\x00"}}
+    # the rest of what the probe listed, so T9 (freeze the spares) has the real chip's objects
+    for oid in (0xE0FC, 0xE0FD):
+        objs[oid] = {"meta": _key_meta(b"\xe1\xfc\x07")}       # RSA key objects, empty
+    objs[0xE0E1] = {"data": b"", "meta": {"lcso": 0x01, "max": 1728, "change": b"\xe1\xfc\x07", "read": b"\x00", "exec": b"\x00", "type": 0x12}}
+    for oid in (0xE0E8, 0xE0EF):
+        objs[oid] = {"data": b"", "meta": {"lcso": 0x01, "max": 1200, "change": b"\xe1\xfc\x07", "read": b"\x00", "exec": b"\x00", "type": 0x11}}
+    for oid in (0xE120, 0xE121, 0xE122, 0xE123):
+        objs[oid] = {"data": bytes(8), "meta": {"lcso": 0x01, "max": 8, "change": b"\xe1\xfc\x07", "read": b"\x00", "exec": b"\x00", "type": 0x01}}
+    objs[0xE140] = {"data": bytes(64), "meta": {"lcso": 0x01, "max": 64, "change": b"\xe1\xfc\x07\xfe\x20\xe1\x40", "read": b"\xe1\xfc\x07",
+                                                "exec": b"\x00", "type": 0x22}}
+    for oid in (0xF1E0, 0xF1E1):
+        objs[oid] = {"data": bytes(1500), "meta": {"lcso": 0x01, "max": 1500, "change": b"\xe1\xfc\x07", "read": b"\x00"}}
     return objs
 
 
@@ -395,8 +411,8 @@ class Chip:
     def set_meta(self, o, tlv):
         """Only while LcsO is below operational; LcsO only goes up; only LcsO and the access
         conditions can be written (as modeled: confirm on silicon)."""
-        if o["meta"].get("lcso", 0x01) >= LCS_OP or not tlv or tlv[0] != 0x20:
-            raise _Fail(ERR_AC)
+        if not tlv or tlv[0] != 0x20:
+            raise _Fail(ERR_PARAM)
         i, end = 2, 2 + tlv[1]
         upd = {}
         while i < end:
@@ -408,7 +424,9 @@ class Chip:
             upd[k] = v[0] if k == "lcso" else bytes(v)
             i += 2 + n
         if "lcso" in upd and upd["lcso"] < o["meta"].get("lcso", 0x01):
-            raise _Fail(ERR_PARAM)
+            raise _Fail(ERR_DATA)           # TM2: 0x05, before the access check
+        if o["meta"].get("lcso", 0x01) >= LCS_OP:
+            raise _Fail(ERR_AC)             # TM2: 0x07 for a metadata write to a frozen object
         o["meta"].update(upd)
         self.save()
         return b""
