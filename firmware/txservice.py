@@ -17,25 +17,36 @@ from policy import is_sim
 
 TIMEOUT = 5            # the laptop's service, plain HTTP on the LAN
 TIMEOUT_TLS = 15       # api.safe.global: a full TLS handshake on the Pico each call, 1-2 s, sometimes over 5
-# HTTPS needs one buffer of about 16 KB in a single piece. The console's heap fragments as it
-# decodes and draws: on the board, after a review, 154 KB were free but no block over 8 KB, and the
-# confirmation's POST failed with OSError 12 (2026-09-25). So an https Service holds one block this
-# size from the start and lets go of it only for the length of each call.
-RESERVE = 32 * 1024
+# HTTPS needs room in one piece. The console's heap fragments as it decodes and draws: on the
+# board, after a review, 154 KB were free but no block over 8 KB, and the confirmation's POST failed
+# with OSError 12 (2026-09-25). So an https Service holds one block from the start and lets go of it
+# only for the length of each call. Measured on the board (2026-10-02, a heap full but for one hole):
+# a call to Safe's service fails in 28 KB, takes 8 s in 32 KB (the GC working the whole time),
+# 0.9 s in 36 KB. So 40 KB. The body is not read into it: a 6.7 KB queue read as pieces then
+# joined needed a 48 KB hole, so it goes into BODY, a buffer of its own kept from boot, and is
+# copied out only once the connection is closed and the reserve taken back.
+RESERVE = 40 * 1024
+BODY = 16 * 1024        # a bigger queue: MemoryError, and quorum.fetch_queue asks for 3 transactions
 ON_BOARD = sys.platform == "rp2"     # the emulator's `requests` is the host's curl, which checks certificates itself
 _early = None
+_body = None
 
 
 def reserve_early():
-    """Take the reserve at boot, before the console's modules load (main_console.py): a block
-    taken then is whole; one taken after them may not exist any more. The first https Service
-    keeps it."""
-    global _early
+    """Take the reserve and the body buffer at boot, before the console's modules load
+    (main_console.py): blocks taken then are whole; ones taken after them may not exist any more.
+    The first https Service keeps the reserve."""
+    global _early, _body
     gc.collect()
     try:
         _early = bytearray(RESERVE)
     except MemoryError:
         _early = None
+    if ON_BOARD and _body is None:
+        try:
+            _body = bytearray(BODY)
+        except MemoryError:
+            _body = None
 
 
 def checksum(a):
@@ -141,7 +152,8 @@ class Service:
         if self._ctx is not None and self.base.startswith("https"):
             import vhttp
             vhttp.clock(self.floor)
-            return vhttp.request(method, self.base + path, self._ctx, body=body, headers=self.headers, timeout=self.timeout)
+            return vhttp.request(method, self.base + path, self._ctx, body=body, headers=self.headers, timeout=self.timeout,
+                                 into=_body)
         if method == "GET":
             return requests.get(self.base + path, headers=self.headers, timeout=self.timeout)
         return requests.post(self.base + path, json=body, headers=self.headers, timeout=self.timeout)
@@ -154,12 +166,13 @@ class Service:
         try:
             r = self._call(method, path, body)
             try:
-                return r.status_code, r.content
+                status, out = r.status_code, r.content
             finally:
                 r.close()
                 r = None
         finally:
             self.hold()
+        return status, bytes(out)       # out of BODY (a memoryview), now that the reserve is back
 
     def _get(self, path):
         import json

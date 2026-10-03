@@ -10,6 +10,17 @@ git tag, `fw-<version>`.
 2. `tools/fw push console --all`, which pushes every board on USB in turn.
 3. `git tag fw-<version>` on that commit, then push the tag.
 
+## 2026.10.8 (2026-10-02)
+
+**Fix: OSError 12 on HTTPS calls**, including a confirmation that was signed but never sent.
+Measured on the board, with the heap full except for one hole:
+- **The TLS session alone** fails in 28 KB, takes ~8 s in 32 KB (the old reserve, so calls ran on
+  the edge) and 0.9 s in 36 KB. The reserve is now **40 KB**.
+- **The response body** was read in 1 KB pieces and joined while the connection was still open.
+  A 6.7 KB queue then needed a **48 KB** hole. Now it is read into a 16 KB buffer kept from boot,
+  and copied out only after the connection closes. The same queue fits in a 32 KB hole, in 0.75 s.
+  A queue over 16 KB is asked for again as 3 transactions, as before.
+
 ## 2026.10.7 (2026-10-02)
 
 **Build 1's knob keeps up:** a detent reaches the screen in ~140 ms, down from ~2.1 s.
