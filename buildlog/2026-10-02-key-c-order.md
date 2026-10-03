@@ -11,13 +11,15 @@ commit `ac34fc55` on `key-pcb-learn`.
 |---|---|
 | Placed | 2026-10-02 16:10, JLCPCB order **W2026100307101209** |
 | PCB | **Y4-13710122A** (customer code 13710122A, order Y4), production order 86289523 |
-| PCBA | Economic, top side, SMT026100263772 (JLCPCB's number, cut short on screen) |
+| PCBA | Economic, top side, **SMT026100263772-13710122A** |
 | Quantity | 5 boards, 5 assembled |
-| Board | 2 layers, 16 × 36 mm, 1.6 mm FR-4, LeadFree HASL, blue mask, white silkscreen, 1 oz, tented vias, 0.3 mm via holes, "Remove Mark", deburred edges |
-| Approvals | Confirm Production file: yes. Confirm Parts Placement: yes |
+| Board | 2 layers, 16 × 36 mm, 1.6 mm FR-4 TG135, 1 oz, LeadFree HASL, blue mask, white ink-jet silkscreen, tented vias, 0.3 mm via holes (0.4/0.45 mm pads), "Remove Mark", ±0.2 mm outline, IPC Class 2, flying-probe electrical test |
+| Edges | **not deburred.** The final order says "Deburring/Edge rounding: No", although an earlier quote had it. Sand the edges lightly if they feel sharp |
+| Approvals | Production file: **confirmed**. Parts placement: yes, pending |
+| Shortage | "Require Full Quantity": all 5 or nothing |
 | Tooling holes | added by JLCPCB (Economic) |
 | Shipping | Global Standard Direct Line, 8–13 business days |
-| Cost | PCB $6.22, PCBA $22.95 (after a $10 new-customer coupon), shipping $7.51, sales tax $2.28. **Total $38.96**, about $7.80 per assembled key |
+| Cost | PCB $6.22 (0.12 kg), PCBA $22.95 (after a $10 new-customer coupon), shipping $7.51, sales tax $2.28. **Total $38.96**, about $7.80 per assembled key |
 | Timing | factory closed Oct 1–4 for the holiday; estimated ship date 2026-10-04 |
 
 ## Parts, as JLCPCB matched them
@@ -82,8 +84,9 @@ against the design:
 
 ## Still to record
 
-- [ ] The PCBA's final parts list, from **Product Details** on the order. It should confirm C2 on
-      the C1525 line and the quantities JLCPCB bought
+- [x] The PCB's final details, from the order's Product Details (2026-10-02): as above
+- [ ] The PCBA's final parts list, from **Product Details on the PCBA line**. It should confirm C2
+      on the C1525 line and the quantities JLCPCB bought
 - [ ] The parts-placement confirmation
 - [ ] Tracking, arrival, and the first bench test (the console end needs its protected VBUS switch
       and separate CC sensing first: see PROPOSALS.md)
