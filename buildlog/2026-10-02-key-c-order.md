@@ -5,6 +5,78 @@ SOIC-8) behind a USB-C receptacle used as plain wires, with JLCPCB assembling al
 in [hardware/key-pcb/PROPOSALS.md](../hardware/key-pcb/PROPOSALS.md), and the files as ordered are
 commit `ac34fc55` on `key-pcb-learn`.
 
+**Current status, newest first:** [hardware/key-pcb/key-c-usbc/README.md](../hardware/key-pcb/key-c-usbc/README.md).
+
+| parts side | back |
+|---|---|
+| ![key-c P2, parts side](../hardware/key-pcb/key-c-usbc/renders/key-c-P2-3q-top.jpg) | ![key-c P2, back](../hardware/key-pcb/key-c-usbc/renders/key-c-P2-3q-bottom.jpg) |
+
+KiCad renders in the ordered colours. The connector is a stand-in model of the same size: KiCad has
+none for the HCTL part.
+
+## How it got here, in one day
+
+1. **Starting point.** The morning's plan was a spring-contact keychain token around a blank
+   ATECC608C ("PQ Key C1").
+   - Pulling `main` brought in rev A from another session: the PCB is the plug, with gold fingers
+     into a card-edge socket and two KiCad projects (key-a SOIC, key-b UDFN).
+   - C1 was parked on `key-c1-concept`.
+   - Rev A became the design to learn on: [LEARN.md](../hardware/key-pcb/LEARN.md), and
+     `tools/keypcb calc` for finger timing, I2C rise time, GPIO power and SPICE.
+2. **What `calc` showed.**
+   - Build 1's 10 kΩ pull-ups come in at 105 % of the ATECC608C's 300 ns rise time.
+   - A GPIO at the 4 mA setting would brown the chip out while signing.
+   - Pull-ups on always-on 3V3 would power an "unpowered" key through its ESD diodes.
+3. **Why not gold fingers.**
+   - JLCPCB's hard-gold, bevelled fingers need a 50 × 50 mm board or panel.
+   - Electroplating them needs plating leads, which would defeat the staggered DETECT finger.
+   - The socket costs $3–6 and is rated for about 500 insertions.
+   - So the question became which off-the-shelf connector.
+4. **Two proposals**, written by `gen_cd.py` beside rev A, both with the same circuit:
+   - **key-c:** a USB-C *receptacle* on the key. That's 16 pins on one side, cheap and
+     JLCPCB-assembled. The plug-on-key option needed a 24-pin straddle part with pads on both
+     sides.
+   - **key-d:** five pogo pads and two magnet holes.
+   - USB-C won the first order because a $3–5 breakout and any cable test it on Build 1, and nothing
+     needs hand-soldering. Pogo needs a dock first.
+5. **The logo.** The brand mark went onto the back in one colour: the signed dots solid and the
+   waiting dots as rings.
+6. **First upload (P1).** It went as far as the parts page. Then an outside review of the design
+   found four things:
+   - the console can't power USB-C from a GPIO, and must stop back-feed
+   - the console must sense CC1 and CC2 separately
+   - J1's land pattern came 0.18 mm from its peg holes, under JLCPCB's 0.20 mm limit
+   - U2 could sit closer to the connector, with its own bypass cap
+7. **P2** fixed the key-side points and added test pads. The console-side points became
+   requirements in PROPOSALS.md. That's the design ordered.
+
+## Lessons from the first order
+
+- **Fixed costs dominate a small order.** Setup ($8.24), stencil ($1.55) and $3.09 per *extended*
+  part type come to about $19 of the $38.96. Basic parts (the 0402 R and C) add no feeder fee.
+- **Economic vs Standard assembly.**
+  - Economic wasn't offered with ENIG, but was with HASL.
+  - Standard forces the board to 70 × 70 mm with rails, which would have cost several times as
+    much.
+- **A yellow ⓘ isn't always a stock problem.** J1 showed qty 0, unticked, with a warning. That was
+  only a $0.03/pc special-handling fee, and ticking the box accepted it.
+- **KiCad and JLCPCB disagree about rotation.** SOIC-8 and SOT-23-6 both came up 90° off. Check
+  every pin-1 dot against its silkscreen triangle, every time.
+- **Edits made in the placement preview aren't in any file you can download.** Only the placement
+  confirmation shows them.
+- **Economic assembly adds tooling holes inside the board.** Paying $1.05 for Confirm Production
+  file shows where, before anything is drilled.
+- **The production file can be checked independently.**
+  - `yg/` holds the original upload; `ok/` holds JLCPCB's CAM output (`tl`/`bl` copper, `to`/`bo`
+    silkscreen, `ts`/`bs` mask, `drl`, `ko` outline, `sk` via covering). All are Gerbers without
+    extensions.
+  - A drill-by-drill comparison and a pixel diff per layer showed exactly what they changed.
+  - GerbView opens all of it.
+- **Read the cart line before paying.** The finish, the size and the price can quietly differ
+  from the quote. Deleting one line of a PCB+PCBA pair deletes both.
+- **Shipping.** Global Standard (about $6–7.50) covers orders under $59. Otherwise choose
+  express with **DDP**, so duties are prepaid.
+
 ## The order
 
 | | |

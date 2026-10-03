@@ -85,6 +85,7 @@ tries.
 | [`ORDERING.md`](ORDERING.md) | how to read the design in KiCad, check it, export it and order it |
 | [`LEARN.md`](LEARN.md) | a guided tour of rev A for PCB beginners, with the numbers behind each part |
 | `keycalc.py` | `tools/keypcb calc`: finger timing, I2C rise time, GPIO power and SPICE runs (plots in `out/`, ignored) |
+| [`key-c-usbc/README.md`](key-c-usbc/README.md) | **ordered 2026-10-02**: key-c P2's status page, newest first, with renders |
 | [`PROPOSALS.md`](PROPOSALS.md) | proposals C and D: the same circuit on a USB-C receptacle (`key-c-usbc/`) or pogo pads with magnets (`key-d-pogo/`), written by `gen_cd.py` |
 
 `tools/keypcb check` runs ERC, then DRC with schematic parity, on both boards. `fab` rewrites

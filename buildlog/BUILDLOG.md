@@ -744,5 +744,8 @@ The first key board ordered is the USB-C proposal (key-c P2): an ATECC608C behin
 receptacle used as plain wires, 5 assembled by JLCPCB for $38.96. JLCPCB's production file was
 checked against the design before confirming it. Their CAM output matched, apart from two tooling
 holes they added in plain ground pour.
-Notes: [2026-10-02-key-c-order.md](2026-10-02-key-c-order.md). Design:
+![key-c P2](../hardware/key-pcb/key-c-usbc/renders/key-c-P2-3q-top.jpg)
+
+Notes: [2026-10-02-key-c-order.md](2026-10-02-key-c-order.md). Status, newest first:
+[hardware/key-pcb/key-c-usbc](../hardware/key-pcb/key-c-usbc/README.md). Design:
 [hardware/key-pcb/PROPOSALS.md](../hardware/key-pcb/PROPOSALS.md).
