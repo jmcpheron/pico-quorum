@@ -10,6 +10,14 @@ git tag, `fw-<version>`.
 2. `tools/fw push console --all`, which pushes every board on USB in turn.
 3. `git tag fw-<version>` on that commit, then push the tag.
 
+## 2026.10.9 (2026-10-03)
+
+**Fix: Build 1 sometimes stopped on boot** with "MemoryError … allocating 1280 bytes" and 221 KB
+free. The boot art kept drawing on its timer while the console's modules loaded, and its small
+objects ended up between theirs: the largest free block left was 17-26 KB, and sometimes not even
+1.3 KB at the moment the code needed it. The art now pauses until the modules have loaded: they
+load in 0.9 s instead of 3.5 s, and a 95 KB block is left.
+
 ## 2026.10.8 (2026-10-02)
 
 **Fix: OSError 12 on HTTPS calls**, including a confirmation that was signed but never sent.
