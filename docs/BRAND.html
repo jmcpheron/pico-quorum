@@ -243,6 +243,7 @@ table.tl td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; co
 .taglines { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
 .taglines li { font-size: 20px; color: #98A0AC; }
 .taglines li:first-child { color: #F2F4F7; }
+.taglines.drafts li:first-child { color: #98A0AC; }
 .voice-rules { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
 .voice-rules li { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
 .voice-rules li:last-child { border-bottom: 0; padding-bottom: 0; }
@@ -474,8 +475,12 @@ footer { padding-top: 40px; color: var(--muted); font-size: 14px; display: grid;
           <div class="status done"><span class="chk" aria-hidden="true"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M1.5 5.2 4 7.5 8.6 2.4" fill="none" stroke="#061E0C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Family Safe · 3 of 5</div>
         </div>
         <div class="tile dark" style="display:grid;gap:14px;align-content:start">
-          <span class="cap-note" style="display:flex;gap:10px;align-items:center">Taglines <span class="pill draft">Draft</span></span>
+          <span class="cap-note" style="display:flex;gap:10px;align-items:center">Motto <span class="pill ok">Chosen</span></span>
           <ul class="taglines">
+            <li>Keys that can't leak</li>
+          </ul>
+          <span class="cap-note" style="display:flex;gap:10px;align-items:center">Taglines <span class="pill draft">Draft</span></span>
+          <ul class="taglines drafts">
             <li>Your keys, your quorum</li>
             <li>Nothing signs unseen</li>
             <li>Hardware approvals for Safe</li>
@@ -538,7 +543,7 @@ footer { padding-top: 40px; color: var(--muted); font-size: 14px; display: grid;
   const SIGNERS = new Map([[0, AT_TOP], [3, AT_LEFT], [2, AT_RIGHT]]);
   const EDGES = [[TOP, LEFT, AT_LEFT], [TOP, RIGHT, AT_RIGHT], [LEFT, RIGHT, AT_RIGHT + 6]];
   const BACK0 = 100, BACK1 = 128, TAG0 = 134, TAG_EACH = 38, V_BACK = 1.2;
-  const TAGS = ["Your keys, your quorum", "Nothing signs unseen", "Hardware approvals for Safe", "Every hash checked here"];
+  const TAGS = ["Keys that can't leak", "Your keys, your quorum", "Nothing signs unseen", "Hardware approvals for Safe", "Every hash checked here"];
   const READY = TURN + (BACK0 - 58);
   const STATUS = [[0, "Starting up", false], [22, "Joining WiFi", false],
     [AT_TOP, "WiFi connected", true], [AT_TOP + 12, "Checking the chip", false],

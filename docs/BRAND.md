@@ -183,10 +183,15 @@ about owners, keys and the Safe, the things people can point at.
   stays even-tempered.
 - **Buttons.** One verb each, saying exactly what happens. **Sign** is green and guarded; **Reject**
   is red and easy.
+- **The manifesto.** [PRINCIPLES.md](../PRINCIPLES.md) is the one place that argues for something.
+  It still uses plain words, no hype and no exclamation marks, and backs each claim with a link.
 
-### Taglines (draft)
+### Motto and taglines
 
-Placeholders until chosen:
+The motto, chosen 2026-10-02: **Keys that can't leak.** It leads the README and
+[PRINCIPLES.md](../PRINCIPLES.md).
+
+The other taglines are drafts:
 
 - Your keys, your quorum
 - Nothing signs unseen

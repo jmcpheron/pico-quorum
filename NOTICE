@@ -14,6 +14,16 @@ was renamed. Upstream merged again through 72539d5 (2026-09-24); see docs/UPSTRE
 New in PicoQuorum: firmware/safe_tx.py, test-vectors/, tools/vectors/, and the PicoQuorum docs in
 docs/, hardware/, cad/ and contracts/.
 
+Licences by directory:
+
+- hardware/ and cad/key/: CERN Open Hardware Licence Version 2, Strongly Reciprocal
+  (CERN-OHL-S-2.0), Copyright (c) 2026 Jason McPheron. The text is in hardware/LICENSE. Versions
+  of these files committed before this licence was added (2026-10-03) were released under MIT and
+  stay available under MIT.
+- cad/console/: the borrowed case parts below and every part cut from them keep their CC BY-NC
+  licences. Non-commercial.
+- Everything else: MIT, see LICENSE.
+
 It also includes or builds on:
 
 - ATECC608-demo (https://github.com/clawdbotatg/ATECC608-demo): the Raspberry Pi signer

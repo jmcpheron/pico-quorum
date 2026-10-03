@@ -5,11 +5,13 @@ troubleshooting.
 
 - [`guide/`](guide/README.md): the owner's guide ([setup](guide/SETUP.md), [using it](guide/USING.md),
   [networks](guide/NETWORKS.md), [troubleshooting](guide/TROUBLESHOOTING.md))
+- [`../PRINCIPLES.md`](../PRINCIPLES.md): what the project stands for; [`../CONTRIBUTING.md`](../CONTRIBUTING.md): how to join in
 - [`SECURITY.md`](SECURITY.md): the console's trust model, then picowallet's
 - [`PROVISIONING.md`](PROVISIONING.md): the quorum v1 chip config and the fresh-chip ceremony
 - [`LOCKING.md`](LOCKING.md): what each ATECC608 lock does to the multisig
 - [`LADDER.md`](LADDER.md): the test ladder from a simulated Safe to Ethereum mainnet, and the `tools/quorum live` runbook
 - [`firmware-production/`](firmware-production/README.md) and [`quorum-ui/`](quorum-ui/README.md): screenshot walkthroughs
+- [`../hardware/SOURCING.md`](../hardware/SOURCING.md): where parts come from, what each source can promise, and batch orders
 - [`KICKOFF.md`](KICKOFF.md): what PicoQuorum is, goals, hardware, firmware layers, open decisions
 - [`UPSTREAM-TRACKING.md`](UPSTREAM-TRACKING.md): fork point, unmerged upstream work, how to merge
 - [`HEGOTA-WATCH.md`](HEGOTA-WATCH.md): EIPs in the next Ethereum fork that touch the console

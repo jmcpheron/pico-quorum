@@ -36,6 +36,8 @@ The console fetches pending Safe transactions and decodes them into plain langua
 
 **The multisig is the star.** The console and keys exist to make distributed custody physical and understandable: several people, several keys, one Safe, and a clear, deliberate ceremony for every approval.
 
+What the project stands for, and the motto **Keys that can't leak**, are in [PRINCIPLES.md](../PRINCIPLES.md).
+
 ## Credit and upstream
 
 This project is forked from **Austin Griffith's [picowallet](https://github.com/austintgriffith/picowallet)** (MIT): a Pico 2 W, a Waveshare Pico-LCD-1.3 and a Microchip **ATECC608** secure element. That project proved a Pico can drive a secure element from MicroPython, rebuild an EIP-712 digest on-device, show a signing request, take a button press, and return a real P-256 signature that moved funds on Ethereum mainnet. Its code stays in this repo (`firmware/`, `app/`, `emu/`; its case in `cad/console/`, its notes in `docs/`) until the PicoQuorum parts replace it.
@@ -61,7 +63,8 @@ What's different here: a multisig-first design, on-device Safe transaction decod
 
 - Holding meaningful funds. This is experimental hardware, so it stays on testnet or pocket change until it has a long track record.
 - Tamper resistance, potting, or production enclosures
-- Wallets other than Safe
+- Wallets other than Safe, for now. Any smart account that checks P-256 is a later goal (see
+  [HEGOTA-WATCH.md](HEGOTA-WATCH.md)).
 - Bluetooth
 
 ## System overview

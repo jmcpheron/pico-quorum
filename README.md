@@ -1,5 +1,12 @@
 # PicoQuorum
 
+**Keys that can't leak.**
+
+A PicoQuorum key is a private key born inside a chip that it can never leave. If you're holding
+it, it's yours, and if it's gone, you know. Each key is one owner of a multisig, so losing one
+never loses the funds. Everything is open, down to the PCB and the case. Read the
+[principles](PRINCIPLES.md).
+
 A physical approval device for [Safe](https://safe.global) multisig wallets. Each signer holds a
 plug-in secure-element key; the console shows what a transaction does and signs only when you
 press Sign.
@@ -72,8 +79,10 @@ The [test ladder](docs/LADDER.md) tracks each chain:
 
 | path | what |
 |---|---|
+| [`PRINCIPLES.md`](PRINCIPLES.md) | what the project stands for |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | how to try it, build it, change it, and join a batch |
 | `docs/` | [kickoff](docs/KICKOFF.md), [test ladder](docs/LADDER.md), [locking the chip](docs/LOCKING.md), [upstream tracking](docs/UPSTREAM-TRACKING.md), [Hegotá watch](docs/HEGOTA-WATCH.md), and picowallet's notes: [build guide](docs/picowallet.md), [security model](docs/SECURITY.md), [chip map](docs/CHIPMAP.md), [test plan](docs/TESTPLAN.md), [USB wallet](docs/USB.md), [clear signing](docs/CLEARSIGNING.md) |
-| `hardware/` | [Build 1 handoff](hardware/HANDOFF.md), `wiring/` ([perfboard build](hardware/wiring/SOLDERING.md), [Build 1](hardware/wiring/BUILD1.md), [on a breadboard](hardware/wiring/BREADBOARD.md)), `bom/`, `key-pcb/` |
+| `hardware/` | [sourcing and batches](hardware/SOURCING.md), [Build 1 handoff](hardware/HANDOFF.md), `wiring/` ([perfboard build](hardware/wiring/SOLDERING.md), [Build 1](hardware/wiring/BUILD1.md), [on a breadboard](hardware/wiring/BREADBOARD.md)), `bom/`, `key-pcb/` |
 | `cad/` | `console/` (today the dev console's case, generators and measurements), `key/` |
 | `firmware/` | MicroPython for the Pico: `safe_tx.py` (new), and picowallet's `wallet.py`, `usbwallet.py`, `atecc.py`, `trustm.py`, `signer.py` and crypto |
 | `test-vectors/` | Safe transactions with known-correct hashes, and their runners |
@@ -95,5 +104,10 @@ and Zez0000 (CC BY-NC). Everything else is attributed in [NOTICE](NOTICE).
 
 ## License
 
-MIT (see [LICENSE](LICENSE)) except where [NOTICE](NOTICE) says otherwise: the case STLs are
-CC BY-NC.
+- **Software** (firmware, tools, emulator, app): MIT, see [LICENSE](LICENSE).
+- **Hardware** (`hardware/` and `cad/key/`): [CERN-OHL-S-2.0](hardware/LICENSE). Anyone can make and
+  sell it; anyone who ships a changed design publishes the change.
+- **The dev console's case** in `cad/console/`: the borrowed parts and everything cut from them are
+  CC BY-NC, non-commercial.
+
+[NOTICE](NOTICE) says which licence covers what.
