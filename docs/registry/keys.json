@@ -1,0 +1,15 @@
+{
+  "format": "picoquorum-registry-1",
+  "note": "PicoQuorum keys whose attestation bundles anyone can check. The Execute page (docs/app/) badges an owner listed here once its bundle passes the same checks as tools/quorum verify. A listing is a claim; the bundle is the evidence. Add yours with a pull request: docs/registry/README.md.",
+  "keys": [
+    {
+      "name": "TM1",
+      "holder": "jmcpheron",
+      "owner": "0x47c0998C6a7A1955794071b9f4058e7814178f35",
+      "serial": "0a091b5c000b0062006c",
+      "bundle": "../mainnet/attest/attest-0a091b5c000b0062006c.json",
+      "added": "2026-10-03",
+      "note": "The first Trust M key, sealed 2026-09-29 (docs/mainnet/README.md)."
+    }
+  ]
+}

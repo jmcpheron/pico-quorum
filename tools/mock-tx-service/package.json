@@ -4,5 +4,5 @@
   "type": "module",
   "description": "A simulated Safe and a mock of Safe's transaction service, for the console (tools/quorum)",
   "scripts": { "serve": "node server.mjs", "test": "node test.mjs" },
-  "dependencies": { "@noble/curves": "1.9.1", "viem": "2.56.8" }
+  "dependencies": { "@noble/curves": "1.9.1", "@noble/hashes": "1.8.0", "viem": "2.56.8" }
 }
