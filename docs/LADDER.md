@@ -125,7 +125,8 @@ Same steps as rung 2 with `--chain base` and `QUORUM_URL = ".../tx-service/base"
    to keep watching the Sepolia Safe too (`QUORUM_SAFES`; each chain's service comes from
    `quorum_cfg.py`, so `QUORUM_URL` goes). The same API key.
 6. [ ] **One approval:**
-   - Propose a small send in the web app and sign it with MetaMask.
+   - Propose a small send and sign it with MetaMask: in the web app, or in the PicoQuorum app
+     (`docs/app/`, **New transaction**).
    - The Pico approves over HTTPS.
    - Try Execute in the web app. Expect GS021, and capture it for
      [upstream](upstream/safe-wallet-gs021/): a screenshot, the simulation link, the app version.
@@ -214,8 +215,8 @@ The same ladder for the OPTIGA Trust M ([TRUSTM.md](TRUSTM.md)). The shareable d
   - That comes to about 12,000 a month with an hour of active use a day. Device (X) counts the
     requests since boot.
 - **Rejecting on the console doesn't reject on the Safe.** Y only hides the transaction on that
-  console, and the queue stays blocked at that nonce until someone replaces it. Rejecting it on the
-  Safe itself would need its own proposal.
+  console, and the queue stays blocked at that nonce until someone replaces it. The app's
+  **Propose a rejection** proposes that replacement (a zero-value self-call at the same nonce).
 - **Anvil's public test accounts are booby-trapped on real chains.** On Base mainnet each carries an
   EIP-7702 sweeper. The fork wipes it; never send anything to them for real.
 - **OP Sepolia has no hosted Safe service.** OP mainnet does (`oeth`), if we want it later.

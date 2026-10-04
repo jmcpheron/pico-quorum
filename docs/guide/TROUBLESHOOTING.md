@@ -70,7 +70,9 @@ signatures through it. Run `tools/quorum live enroll --chain C`.
 ## The Safe web app fails with GS021
 
 With a threshold of 2 or more, the Safe web app drops the console's signature data when it
-executes, and the Safe reverts with GS021. Propose and sign in the web app, then execute with:
+executes, and the Safe reverts with GS021. Execute it in [the PicoQuorum app](../app/) instead,
+which lays the signatures out right: open the Safe, then **Execute with wallet**. Proposing and
+confirming work there too. From the terminal it's:
 
 ```sh
 tools/quorum live exec --chain base <nonce>

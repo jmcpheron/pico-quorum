@@ -50,6 +50,10 @@ export const wallet = {
     this.chainId = parseInt(await this.provider.request({ method: "eth_chainId" }), 16);
     if (this.chainId !== c.id) throw new Error(`Your wallet is still on chain ${this.chainId}. Switch it to ${c.name}.`);
   },
+  // EIP-712, as MetaMask and others take it: the typed data as JSON, numbers already strings.
+  async signTypedData(typed) {
+    return this.provider.request({ method: "eth_signTypedData_v4", params: [this.account, JSON.stringify(typed)] });
+  },
   async send(tx) {
     const p = { from: this.account, to: tx.to, data: tx.data, value: "0x" + (tx.value || 0n).toString(16) };
     if (tx.gas) p.gas = "0x" + tx.gas.toString(16);

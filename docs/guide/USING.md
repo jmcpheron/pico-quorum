@@ -49,8 +49,10 @@ chain. Every screen that shows a name shows the full address too.
 ## Rejecting
 
 Y hides the transaction **on this console only**. It doesn't reject it on the Safe. The Safe's
-queue stays blocked at that nonce until someone replaces it, for example with a rejection
-transaction proposed in the web app at the same nonce.
+queue stays blocked at that nonce until someone replaces it with a rejection: in
+[the PicoQuorum app](../app/), open the Safe and press **Propose a rejection** on that transaction.
+The console shows it as REJECTION, and once it has the Safe's approvals and is executed, the
+nonce is used up and the rejected transaction can never run.
 
 ## Device (X)
 

@@ -21,6 +21,12 @@ What it does:
 - **Queue.** From Safe's transaction service. Each transaction's hash is recomputed here and by the
   Safe, the console's verify code is shown, every confirmation is checked (ECDSA recovered, contract
   signatures asked of the owner contract), and anything the console would refuse outright is flagged.
+- **Propose.** **New transaction** on a Safe builds a send (ETH or a token), an owner change
+  (add, remove, replace), a threshold change, a rejection or a contract call, all plain calls with
+  no gas refund. The review shows the verify code and hash blockie the console will show. The
+  wallet signs the SafeTx (EIP-712) as one owner, the signature is checked to come from it, and it
+  goes to Safe's service (`src/propose.mjs`). A queued transaction can be confirmed from the wallet
+  (**Confirm with wallet**) or cancelled with **Propose a rejection** at its nonce.
 - **Execute.** The first `threshold` valid confirmations are packed by `tools/mock-tx-service/sigs.mjs`
   (the same file the laptop tools and tests use), simulated against the chain, then sent by the
   browser wallet (EIP-1193 / EIP-6963). The page holds no key.
@@ -44,9 +50,14 @@ What it does:
 ```sh
 cd tools/mock-tx-service && npm ci && cd ../../web
 npm ci
-npm test          # the browser's logic against the CLI verifier, sim.mjs, firmware/safe_tx.py and firmware/blockies.py
+npm test          # the browser's logic against the CLI verifier, sim.mjs, firmware/safe_tx.py, decode.py and blockies.py
 npm run build     # writes docs/app/, docs/index.html and docs/home.css (commit them: Pages serves the branch)
+npm run e2e       # the built app in Chromium: propose, confirm, reject, refusals (fake wallet, chain and service)
 ```
+
+`e2e.mjs` needs a Chromium: `npx playwright-core install chromium` once, or `PQ_CHROMIUM=/path/to/chrome`.
+Nothing leaves the machine: the wallet holds anvil's public test keys, and the chain and Safe's
+service are fakes that make the real service's checks. `SHOTS=dir` keeps screenshots.
 
 `build.mjs` bundles `src/main.mjs` with esbuild (viem and noble pinned in `package.json`), copies the
 Atkinson Hyperlegible fonts (SIL OFL), writes `index.html` with subresource-integrity hashes, and
@@ -65,5 +76,5 @@ The pinned values (passkey factory, services, known contracts) come from `firmwa
 
 ## Next
 
-Propose and reject from the page, owner ceremonies from a bundle, the console's decode pages in the
+Owner ceremonies from a bundle, the console's decode pages in the
 browser through the emulator's WebAssembly MicroPython, and a fleet view.
