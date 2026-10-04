@@ -26,6 +26,81 @@
   Ethereum, Base and Base Sepolia (below). On a chain without the precompile, the pinned verifiers
   fall back to Daimo's Solidity verifier, which costs more gas but still works.
 
+## The framing: one console, bring your own key
+
+**It's the same console.** The emulator runs `firmware/*.py` byte for byte. It's not a port and not
+a lookalike. The screen is the frame the firmware sent over SPI. So the browser console is the
+firmware, in a different body:
+
+| | Pico console | Browser console |
+|---|---|---|
+| the code | `firmware/*.py`, release `2026.10.n` | the same files, the same release |
+| what it computes | the safeTxHash from the fields on screen, the verify code, the blockie | the same |
+| the screen | its own LCD | a canvas in a page on your computer |
+| the buttons | its own, wired to the Pico | your keyboard |
+| the key | a plug-in chip (ATECC608, Trust M) | **your own passkey** (Touch ID, Windows Hello, a phone, a YubiKey) |
+| key cannot be copied out | yes | yes, except synced passkeys, which go to your Apple or Google account |
+| the screen can't be faked by the computer | **yes** | **no** |
+
+So "bring your own passkey" is the right name for it. Someone in the multisig who has no chip still
+gets the same clear-signing screens and checks, with a key they already own. Later they can buy a
+key, and the Safe swaps that owner for the chip's.
+
+**The one thing it doesn't carry over is the last row.** The JavaScript sandbox protects your
+computer from the page. It does nothing to protect the page from your computer. Malware, or a
+browser extension allowed on the site, can redraw the canvas, or hand the passkey a different
+challenge than the hash on screen. The Touch ID prompt says "sign in to jmcpheron.github.io"; it
+never shows the transaction. So a passkey owner is safe from key theft but not from a compromised
+computer. Two things limit the damage:
+- **The quorum.** One passkey owner on a bad laptop is one wrong vote. The other owners' consoles
+  compute the hash themselves and show the real transaction. Keep passkey owners below the threshold.
+- **A cleaner body.** A dedicated browser profile with no extensions helps. A separate device helps
+  much more: an old phone or tablet used only for this is close to a hardware console.
+
+  A VM on the same laptop does less than it seems. It keeps out what runs inside it (extensions,
+  other apps), but the host can still see and draw the VM's screen.
+
+## Where the code comes from
+
+The page is static, so what you run is whatever the server sent on this visit. GitHub Pages serves
+it from the repo over HTTPS. Without more, trusting the page means trusting the GitHub account.
+These steps narrow that, roughly from cheapest to strongest:
+
+1. **Reproducible build and `BUILD.json`**, as the app does now. Anyone can rebuild the release's
+   commit and compare hashes.
+2. **The firmware's identity on screen.** The Device screen already shows `2026.10.n · <commit>`. The web build
+   puts the firmware files' SHA-256 (and its blockie) there too, and so does `tools/fw build` for
+   the Pico. The same release gives the same picture on both. Owners can compare across the room,
+   or with `RELEASES.md`.
+3. **Signed releases.** Sign the tag `fw-<version>`, and have a GitHub Actions build attest the
+   built files (build provenance). A checker page, or `tools/quorum`, verifies them.
+4. **Pin a release in the browser.** A service worker keeps the release it first loaded, and won't
+   take a new one unless it is a signed release. This is trust on first use, but one later bad
+   deploy can no longer replace it silently.
+5. **Later, the quorum picks the code.** Put the build on IPFS, and have an ENS name the Safe owns
+   point to it. Changing the web console then takes a Safe transaction that the owners approve on
+   their consoles. Note: a passkey is tied to its domain, so moving there means new passkeys.
+
+The same manifest hash ties the web build to the Pico. A Pico running `2026.10.n` and a browser
+running `2026.10.n` show the same firmware identity, because they are the same files.
+
+## How the emulator shows it
+
+- **The screen stays identical.** No web-only screens and no restyling. It's the point of the demo,
+  and it keeps `docs/quorum-ui` true for both.
+- **The key is a plug-in, here too.** The 3D view shows the key-c board in the console's key port
+  for a chip. For a passkey, a passkey key sits in that port (a fingerprint on its cap). On screen,
+  the key changes and the console doesn't.
+- **The firmware names the key and the body, through its existing hooks.** The signer's `name` and
+  `info()` make the Chip page and the boot line say "Passkey · Touch ID · this Mac" (or "synced").
+  The signing screen's line "The chip signs the hash computed here" takes its subject from the
+  signer: "Your passkey signs…". The Device screen says "browser" next to the version and the
+  firmware blockie. Those are the only places that differ, and all of them come from code that
+  runs on the Pico too.
+- **Beside the device, not on it:** the firmware hash and the release it matches. Also, before the
+  first signature: "Touch ID won't show the transaction. What you approve is this screen. On a
+  shared or untrusted computer, use a hardware key."
+
 ## What was checked
 
 `tools/vectors/passkey.mjs`: Chromium makes a passkey on a virtual platform authenticator with user
@@ -175,9 +250,11 @@ works as well (ES256).
 ## Steps
 
 1. `signer.assertion()` plus the `quorum.sign_it` change, with test vectors: no behaviour change for
-   the chips.
+   the chips. The signing line and Device screen take their wording from the signer.
+   The firmware files' hash goes on the Device screen, on the Pico too.
 2. `emu/build.mjs` writing `docs/emu/` with `boot.json` and the service worker; the emulator
    boots from Pages with the soft chip.
 3. `PasskeySigner` and the worker/page bridge; the ceremony and signing screens on a real Mac.
 4. App: show passkey owners as such; offer "deploy signer proxy" for them.
-5. Custom domain, before anything but test Safes.
+5. Signed tags plus build provenance for releases, then a pinned-release service worker.
+6. Custom domain, before anything but test Safes.
