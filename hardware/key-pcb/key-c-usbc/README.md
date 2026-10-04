@@ -1,8 +1,9 @@
 # key-c P2: the USB-C key
 
 > **Status: ordered, in production.** 5 boards, all assembled by JLCPCB. The production file is
-> checked and confirmed. JLCPCB's factory reopens after the Oct 1–4 holiday; estimated ship date
-> 2026-10-04, then 8–13 business days by Global Standard.
+> checked and confirmed. JLCPCB's parts-placement review arrived 2026-10-04 and checks out; it
+> needs confirming in Order History within 72 hours. JLCPCB's factory reopens after the Oct 1–4
+> holiday; estimated ship date 2026-10-04, then 8–13 business days by Global Standard.
 > Order **W2026100307101209** · PCB **Y4-13710122A** · PCBA **SMT026100263772-13710122A** · $38.96
 
 | parts side | back |
@@ -13,6 +14,13 @@ These are KiCad renders of the ordered board, in the colours ordered: blue mask,
 silkscreen and silver lead-free HASL pads. KiCad has no 3D model of the HCTL receptacle, so the
 connector shown is a GCT USB4105, a 16-pin receptacle of the same size and pad layout. The
 renders come from a scratch copy of the board; the files below are untouched.
+
+**3D models for CAD:** [`3d/key-c-P2.step`](3d/key-c-P2.step) is the assembled board, and
+[`3d/key-c-P2-board-only.step`](3d/key-c-P2-board-only.step) is the bare board. They import
+into Onshape as-is. Both come from the same scratch copy, with the same GCT stand-in connector at
+J1's origin. The origin is the board centre, Z = 0 is the back face, and the USB-C end is at −Y.
+The bare board is 1.51 mm thick (mask and copper not modelled). Units are mm.
+To remake them: `kicad-cli pcb export step --user-origin 108x118mm`.
 
 **What it is:** an ATECC608C secure element (I2C, SOIC-8) behind a USB-C receptacle. The
 receptacle is used as plain wires, not USB:
@@ -54,6 +62,12 @@ The design is in [../PROPOSALS.md](../PROPOSALS.md), and the full order record i
 
 ## Log (newest first)
 
+- **2026-10-04:** STEP files of the ordered board added in `3d/`, for Onshape.
+- **2026-10-04:** JLCPCB's parts-placement review arrived and was checked.
+  - U1 and U2 have pin 1 at their triangles.
+  - J1 faces the edge.
+  - The 0402 parts aren't polarized.
+  - It needs confirming in Order History within 72 hours.
 - **2026-10-02:** status page and renders made.
 - **2026-10-02:** checked the PCBA line's final parts list and the saved placement view.
   - All 5 parts are selected. C1 and C2 share the C1525 line, with 10 bought.
