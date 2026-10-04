@@ -6,8 +6,11 @@ import { encodeFunctionData, getAddress, isAddress } from "viem";
 import { verifyBundle } from "./attest.mjs";
 import { blockieSrc } from "./blockies.mjs";
 import {
+  ERC20_ABI, KINDS, buildCall, isRejection, knownTokens, nextNonce, proposalBody, safeTx, typedData, walletSignature,
+} from "./propose.mjs";
+import {
   CFG, CHAINS, GS, SAFE_ABI, SIGNER_ABI, Service, checkTx, client, consoleRefuses, dataBytes, eth, execCall, knownName, outcome,
-  ownerKind, readSafe, reason, verifyCode,
+  ownerKind, readSafe, reason, safeTxHash, verifyCode,
 } from "./safe.mjs";
 import { wallet } from "./wallet.mjs";
 
@@ -111,6 +114,9 @@ function steps() {
   };
 }
 
+// A wallet's "no" is an answer, not an error.
+const said = (e) => (e?.code === 4001 || /user (rejected|denied)/i.test(e?.message || "") ? "You declined in your wallet. Nothing was sent." : e.shortMessage || e.message || String(e));
+
 function fail(where, e) {
   fill(where, h("section", { class: "card bad-card" }, h("h2", { text: "That didn't work" }), h("p", { text: e.shortMessage || e.message || String(e) })));
 }
@@ -149,6 +155,7 @@ function keyBadge(k, kind) {
   if (k?.verified) return badge("ok", `Verified PicoQuorum key · ${k.name}`, "Its attestation bundle passes every check, in this browser");
   if (k) return badge("bad", `Listed key failed its checks · ${k.name}`, k.why);
   if (kind?.kind === "passkey") return badge("muted", `Passkey signer · key ${kind.fingerprint}`, "A Safe passkey signer, not in the PicoQuorum registry");
+  if (kind?.kind === "wallet" && kind.delegated) return badge("muted", "Wallet · EIP-7702", `A wallet whose account delegates to ${kind.delegated}. It still signs as a wallet.`);
   if (kind?.kind === "wallet") return badge("muted", "Wallet");
   if (kind?.kind === "contract") return badge("muted", "Contract");
   return null;
@@ -258,7 +265,7 @@ async function safeView(name, addr) {
         h("div", {}, h("h1", { text: title }),
           h("div", { class: "chips" }, badge(c.test ? "warn" : "eth", c.test ? `${c.name} · testnet` : `${c.name} · mainnet`),
             mine ? badge("muted", "Saved") : null))),
-      h("div", { class: "row" }, saveBtn, copyButton(location.href, "Copy link"), refresh,
+      h("div", { class: "row" }, h("a", { class: "btn go", href: `#/safe/${name}/${safe}/new`, text: "New transaction" }), saveBtn, copyButton(location.href, "Copy link"), refresh,
         h("a", { class: "btn", href: `https://app.safe.global/transactions/queue?safe=${name}:${safe}`, target: "_blank", rel: "noopener", text: "Safe{Wallet}" }))),
     h("div", { class: "addr-line big" }, h("code", { class: "mono", text: safe }), copyButton(safe), explorer(name, "address", safe)),
     body);
@@ -282,8 +289,9 @@ async function safeView(name, addr) {
     else if (!info) add(queue, h("p", { class: "muted", text: `Safe's transaction service doesn't list this Safe on ${c.name}, so there is no queue to show.` }));
     else {
       const q = await svc.queue(safe, onchain.nonce);
-      if (!q?.results?.length) add(queue, h("p", { class: "muted", text: "Nothing waiting. Propose in Safe{Wallet}; it shows up here once owners have signed." }));
-      for (const t of q?.results || []) add(queue, await txCard(name, safe, onchain, t, keys));
+      if (!q?.results?.length) add(queue, h("p", { class: "muted" }, "Nothing waiting. ", h("a", { href: `#/safe/${name}/${safe}/new`, text: "Propose a transaction" }), ", here or in Safe{Wallet}."));
+      const rejected = new Set((q?.results || []).filter((t) => isRejection(safe, t)).map((t) => Number(t.nonce)));
+      for (const t of q?.results || []) add(queue, await txCard(name, safe, onchain, t, keys, rejected));
     }
     fill(body, summary, owners, queue);
   } catch (e) {
@@ -296,6 +304,7 @@ function renameLink(o) {
 }
 
 function describe(chainId, t) {
+  if (t.safe && isRejection(t.safe, t)) return `Rejection of #${t.nonce}`;
   const v = BigInt(t.value);
   const method = t.dataDecoded?.method;
   const to = knownName(chainId, t.to) || nameOf(t.to) || short(getAddress(t.to));
@@ -303,7 +312,7 @@ function describe(chainId, t) {
   return `${method ? `${method}` : "Call"} on ${to}${v ? ` with ${eth(v)} ETH` : ""}`;
 }
 
-async function txCard(name, safe, onchain, t, keys) {
+async function txCard(name, safe, onchain, t, keys, rejected = new Set()) {
   const c = CHAINS[name];
   const pub = pubFor(name);
   const card = h("article", { class: "tx" });
@@ -347,16 +356,52 @@ async function txCard(name, safe, onchain, t, keys) {
   );
   const act = h("div", { class: "act" });
   add(card, act);
+  const mine = wallet.account && check.confirmations.some((x) => x.owner === getAddress(wallet.account));
+  const extra = [
+    !check.problems.length && !enough && !mine ? confirmButton(name, safe, t, check, onchain) : null,
+    !isRejection(safe, t) && !rejected.has(Number(t.nonce))
+      ? h("a", { class: "mini", href: `#/safe/${name}/${safe}/new/reject/${t.nonce}`, text: "Propose a rejection", title: `A transaction that does nothing at #${t.nonce}. Executed, it cancels this one.` }) : null,
+  ];
   if (check.problems.length) add(act, h("p", { class: "bad", text: "Don't execute this one: the hash doesn't check out." }));
   else if (!current) add(act, h("p", { class: "muted", text: `Waits for #${onchain.nonce} to run first.` }));
   else if (!enough) add(act, h("p", { class: "muted", text: `Needs ${onchain.threshold - check.valid.length} more valid confirmation${onchain.threshold - check.valid.length > 1 ? "s" : ""}.` }));
-  else {
+  if (extra.some(Boolean)) add(act, h("div", { class: "row" }, extra[0]?.button, extra[1]), extra[0]?.el);
+  if (!check.problems.length && current && enough) {
     const go = h("button", { class: "btn go", type: "button", text: "Execute with wallet" });
     const log = steps();
-    go.onclick = () => execute(name, safe, t, check, onchain, go, log).catch((e) => { log.add("bad", e.shortMessage || e.message); go.disabled = false; });
+    go.onclick = () => execute(name, safe, t, check, onchain, go, log).catch((e) => { log.add("bad", said(e)); go.disabled = false; });
     add(act, h("div", { class: "row" }, go, h("span", { class: "small muted", text: `Uses ${onchain.threshold} of the ${check.valid.length} valid confirmations. Your wallet shows it and asks before anything is sent.` })), log.el);
   }
   return card;
+}
+
+// Add the connected wallet's confirmation to a queued transaction: it signs the hash this page
+// recomputed (check.hash), the signature is checked, then posted to the service.
+function confirmButton(name, safe, t, check, onchain) {
+  const c = CHAINS[name];
+  const log = steps();
+  const button = h("button", { class: "btn", type: "button", text: "Confirm with wallet" });
+  button.onclick = async () => {
+    button.disabled = true;
+    fill(log.el);
+    try {
+      if (!wallet.account) await connect();
+      const me = getAddress(wallet.account);
+      if (!onchain.owners.includes(me)) { log.add("bad", `Your wallet ${short(me)} isn't an owner of this Safe. Switch to an owner's account.`); button.disabled = false; return; }
+      if (check.confirmations.some((x) => x.owner === me)) { log.add("ok", "Your wallet has already confirmed this one."); return; }
+      let s = log.run(`Switching your wallet to ${c.name}…`);
+      await wallet.ensureChain(c, rpcFor(name));
+      log.done(s, `Wallet on ${c.name}`);
+      s = log.run(`Waiting for your wallet to sign #${t.nonce}…`);
+      const sig = await walletSignature(check.hash, await wallet.signTypedData(typedData(c.id, safe, t)), me);
+      log.done(s, `Signed ${verifyCode(check.hash)}, and the signature checks out`);
+      s = log.run("Sending it to Safe's transaction service…");
+      await serviceFor(name).confirm(check.hash, sig);
+      log.done(s, "Confirmed. Reading the queue again…");
+      setTimeout(() => route(), 1200);
+    } catch (e) { log.add("bad", said(e)); button.disabled = false; }
+  };
+  return { button, el: log.el };
 }
 
 async function execute(name, safe, t, check, onchain, go, log) {
@@ -400,6 +445,222 @@ async function execute(name, safe, t, check, onchain, go, log) {
   else log.done(s, `Mined with status ${receipt.status}`, receipt.status === "success" ? "ok" : "bad");
   go.textContent = "Done";
   setTimeout(() => route(), 6000);           // the service takes a moment to see it
+}
+
+// ----------------------------------------------------------------------------- propose
+// A new transaction for a Safe: pick what it does, review it with its verify code and picture (the
+// console shows the same), sign it with the wallet as one owner's confirmation, and post it to Safe's
+// transaction service. The wallet must be an owner; the console's owner then approves on its screen.
+async function proposeView(name, addr, presetKind, presetNonce) {
+  if (!CHAINS[name] || !isAddress(addr, { strict: false })) return notFound();
+  const c = CHAINS[name];
+  const safe = getAddress(addr);
+  const pub = pubFor(name);
+  const svc = serviceFor(name);
+  const back = `#/safe/${name}/${safe}`;
+  const title = savedSafe({ chain: name, address: safe })?.name || (safe === DEMO.address && name === DEMO.chain ? DEMO.name : `Safe ${short(safe)}`);
+  const body = h("div", {}, h("p", { class: "muted", text: "Reading the Safe…" }));
+  fill($main(),
+    h("section", { class: "hero" },
+      h("p", { class: "small" }, h("a", { href: back, text: `← ${title}` })),
+      h("div", { class: "safe-title" }, ident(safe, 48),
+        h("div", {}, h("h1", { text: "New transaction" }),
+          h("div", { class: "chips" }, badge(c.test ? "warn" : "eth", c.test ? `${c.name} · testnet` : `${c.name} · mainnet`))))),
+    body);
+  try {
+    const [s, info, keys] = await Promise.all([readSafe(pub, safe), svc.info(safe).catch((e) => ({ error: e })), byOwner()]);
+    if (s.missing) throw new Error(`There's no contract at ${safe} on ${c.name}. Check the network.`);
+    if (info?.error) throw info.error;
+    if (!info) throw new Error(`Safe's transaction service doesn't list this Safe on ${c.name}, so it can't take a proposal.`);
+    if (!/^1\.(?:[3-9]|\d\d)\./.test(s.version)) throw new Error(`This Safe is v${s.version}. The console and this page work with Safe 1.3.0 and later.`);
+    const queued = (await svc.queue(safe, s.nonce))?.results || [];
+    proposeForm(body, { name, c, safe, pub, svc, s, queued, keys, back, presetKind, presetNonce });
+  } catch (e) { fail(body, e); }
+}
+
+function proposeForm(body, { name, c, safe, pub, svc, s, queued, keys, back, presetKind, presetNonce }) {
+  const tokens = knownTokens(c.id);
+  const vals = { threshold: String(s.threshold), token: tokens[0]?.address || "other" };
+  let kind = KINDS.some((k) => k.id === presetKind) ? presetKind : "eth";
+  const queuedAt = (n) => queued.filter((t) => Number(t.nonce) === n);
+  // A rejection goes where the transaction it cancels waits (the first queued, unless the link said
+  // which); anything else after the queue.
+  const defaultNonce = () => kind !== "reject" ? nextNonce(s.nonce, queued)
+    : /^\d+$/.test(presetNonce || "") ? Number(presetNonce) : queued.length ? Number(queued[0].nonce) : s.nonce;
+  const who = (a) => nameOf(a) || keys[a]?.name || "";
+  const ownerLabel = (o) => `${who(o) ? who(o) + " · " : ""}${short(o)}`;
+
+  const kinds = h("div", { class: "kinds", role: "radiogroup", "aria-label": "What it does" });
+  const fields = h("div", { class: "fields" });
+  const review = h("div", {});
+  const book = h("datalist", { id: "book" }, ...[...new Set([...s.owners, ...Object.keys(store.get("names", {})).map((a) => getAddress(a))])]
+    .map((a) => h("option", { value: a, label: who(a) || short(a) })));
+  const stale = () => fill(review);
+
+  const label = (id, text, hint) => [h("label", { for: id, text }), hint ? h("p", { class: "small muted hint", text: hint }) : null];
+  const bind = (el, key) => { el.value = vals[key] ?? ""; el.addEventListener("input", () => { vals[key] = el.value; stale(); }); return el; };
+  function addressField(key, text, hint) {
+    const id = `f-${key}`;
+    const pic = h("img", { class: "blockie", width: 28, height: 28, alt: "", "aria-hidden": "true" });
+    const note = h("p", { class: "small muted hint" });
+    const input = bind(h("input", { type: "text", id, list: "book", autocomplete: "off", spellcheck: "false", placeholder: "0x…", class: "mono-in" }), key);
+    const show = () => {
+      const v = input.value.trim();
+      const ok = isAddress(v, { strict: false });
+      pic.src = ok ? blockieSrc(v) : "";
+      pic.style.visibility = ok ? "visible" : "hidden";
+      const a = ok ? getAddress(v) : null;
+      note.textContent = !a ? "" : a === safe ? "This Safe" : [who(a), s.owners.includes(a) ? "an owner" : ""].filter(Boolean).join(" · ") || "Not in your address book";
+    };
+    input.addEventListener("input", show);
+    show();
+    return [...label(id, text, hint), h("div", { class: "addr-in" }, pic, input), note];
+  }
+  function textField(key, text, hint, attrs = {}) {
+    const id = `f-${key}`;
+    return [...label(id, text, hint), bind(h(attrs.multiline ? "textarea" : "input", { id, autocomplete: "off", spellcheck: "false", ...(attrs.multiline ? { rows: 4 } : { type: "text" }), ...attrs, multiline: null }), key)];
+  }
+  function pick(key, text, options, hint) {
+    const id = `f-${key}`;
+    const el = h("select", { id }, ...options.map(([v, t]) => h("option", { value: v, text: t })));
+    if (!options.some(([v]) => v === vals[key])) vals[key] = options[0]?.[0];
+    return [...label(id, text, hint), bind(el, key)];
+  }
+  const counts = (max, of) => Array.from({ length: max }, (_, i) => [String(i + 1), `${i + 1} of ${of}`]);
+  const n = s.owners.length;
+
+  function drawFields() {
+    for (const b of kinds.children) b.setAttribute("aria-checked", String(b.dataset.kind === kind));
+    vals.nonce = String(defaultNonce());
+    vals.threshold = String({ remove: Math.min(s.threshold, n - 1), threshold: s.threshold === n ? n - 1 : s.threshold + 1 }[kind] ?? s.threshold);
+    const owners = s.owners.map((o) => [o, ownerLabel(o)]);
+    const per = {
+      eth: () => [...addressField("to", "To"), ...textField("amount", "Amount in ETH", `The Safe holds ${eth(s.balance)} ETH.`, { inputmode: "decimal", placeholder: "0.01" })],
+      token: () => {
+        const tokenRow = pick("token", "Token", [...tokens.map((t) => [t.address, `${t.symbol} · ${short(t.address)}`]), ["other", "Another token…"]]);
+        const other = h("div", {}, vals.token === "other" ? addressField("tokenAddress", "Token address", "An ERC-20 on " + c.name + ". Its symbol and decimals are read from the chain.") : null);
+        tokenRow.at(-1).addEventListener("change", () => fill(other, vals.token === "other" ? addressField("tokenAddress", "Token address") : null));
+        return [...tokenRow, other, ...addressField("to", "To"), ...textField("amount", "Amount", null, { inputmode: "decimal", placeholder: "10" })];
+      },
+      add: () => [...addressField("owner", "New owner", "A wallet, or a PicoQuorum key's owner address (its key page has it)."),
+        ...pick("threshold", "Approvals needed after", counts(n + 1, n + 1))],
+      remove: () => [...pick("owner", "Owner to remove", owners), ...pick("threshold", "Approvals needed after", counts(n - 1, n - 1))],
+      swap: () => [...pick("old", "Owner to replace", owners), ...addressField("owner", "New owner", "Takes the old owner's place, with the same vote. For a new PicoQuorum key, use its owner address.")],
+      threshold: () => [...pick("threshold", "Approvals needed", counts(n, n).filter(([v]) => Number(v) !== s.threshold))],
+      reject: () => [h("p", {}, "A transaction that does nothing. Once executed it uses up its nonce, so every other transaction waiting at that nonce can never run. It needs the same approvals as any other.")],
+      custom: () => [...addressField("to", "Contract"), ...textField("amount", "ETH sent with it", "Optional.", { inputmode: "decimal", placeholder: "0" }),
+        ...textField("data", "Data", "The calldata, as hex. A plain call; delegatecalls aren't offered, and the console refuses unpinned ones.", { multiline: true, class: "mono-in", placeholder: "0x…" })],
+    };
+    const nonceId = "f-nonce";
+    const nonceNote = h("p", { class: "small muted hint" });
+    const nonceIn = bind(h("input", { type: "number", id: nonceId, min: String(s.nonce), step: "1", inputmode: "numeric" }), "nonce");
+    const showNonce = () => {
+      const v = Number(nonceIn.value);
+      const at = queuedAt(v);
+      nonceNote.className = "small hint " + (v < s.nonce ? "bad" : at.length ? "warn-text" : "muted");
+      nonceNote.textContent = v < s.nonce ? `#${v} has already run. The Safe is at #${s.nonce}.`
+        : at.length ? `#${v} already has ${at.length === 1 ? "a transaction" : `${at.length} transactions`} in the queue. Only one of them can ever run.`
+        : v > nextNonce(s.nonce, queued) ? `Waits until every number before it has run.`
+        : v === s.nonce ? "Next to run." : `Runs after #${v - 1}.`;
+    };
+    nonceIn.addEventListener("input", showNonce);
+    showNonce();
+    fill(fields, ...per[kind](), h("label", { for: nonceId, text: "Nonce" }), nonceIn, nonceNote);
+    stale();
+  }
+  for (const k of KINDS) add(kinds, h("button", { type: "button", role: "radio", class: `kind${k.red ? " red" : ""}`, "data-kind": k.id, text: k.label,
+    onclick: () => { kind = k.id; drawFields(); } }));
+
+  const err = h("p", { class: "bad small", role: "alert" });
+  const go = h("button", { class: "btn", type: "submit", text: "Review" });
+  const form = h("form", { class: "propose", onsubmit: async (e) => {
+    e.preventDefault();
+    err.textContent = "";
+    go.disabled = true;
+    try { await reviewCard(review, await built()); review.scrollIntoView({ behavior: "smooth", block: "start" }); }
+    catch (e2) { err.textContent = e2.shortMessage || e2.message; fill(review); }
+    finally { go.disabled = false; }
+  } }, fields, h("div", { class: "row" }, go), err);
+
+  async function built() {
+    const nonce = Number(vals.nonce);
+    if (!Number.isInteger(nonce) || nonce < s.nonce) throw new Error(`Nonce: a whole number from ${s.nonce} up.`);
+    let input = { ...vals };
+    if (kind === "token") {
+      const token = vals.token === "other" ? vals.tokenAddress : vals.token;
+      if (!isAddress(String(token || "").trim(), { strict: false })) throw new Error("Token: pick one, or paste its address.");
+      const a = getAddress(token.trim());
+      const read = (functionName, args = []) => pub.readContract({ address: a, abi: ERC20_ABI, functionName, args });
+      const [decimals, symbol, balance] = await Promise.all([read("decimals"), read("symbol"), read("balanceOf", [safe])])
+        .catch(() => { throw new Error(`Token: ${a} doesn't answer as an ERC-20 on ${c.name}.`); });
+      const known = tokens.find((t) => t.address === a);
+      if (known && known.decimals !== Number(decimals)) throw new Error(`Token: the chain says ${decimals} decimals, the console's list says ${known.decimals}. Stop and find out why.`);
+      input = { ...input, token: a, decimals: Number(decimals), symbol: known?.symbol || String(symbol).slice(0, 12), balance, known: !!known };
+    }
+    const b = buildCall(kind, input, s);
+    const t = safeTx(b.call, nonce);
+    return { ...b, t, hash: safeTxHash(c.id, safe, t), replaces: queuedAt(nonce).length };
+  }
+
+  async function reviewCard(where, b) {
+    const { t, hash } = b;
+    const to = getAddress(t.to);
+    const log = steps();
+    const done = h("div", {});
+    const sign = h("button", { class: "btn go", type: "button", text: "Sign and propose" });
+    sign.onclick = () => signAndPropose(b, sign, log, done).catch((e) => { log.add("bad", said(e)); sign.disabled = false; });
+    const warnings = [...b.warnings, b.replaces ? `#${t.nonce} already has a transaction in the queue. Only one of them can run.` : null].filter(Boolean);
+    fill(where, h("section", { class: `card review${b.red ? " red" : ""}` },
+      b.red ? h("p", { class: "red-banner", text: "Changes who controls the Safe. The console shows it on a red page." }) : null,
+      h("h2", { text: b.title }),
+      h("dl", { class: "fieldlist" },
+        h("dt", { text: "To" }), h("dd", { class: "to" }, ident(to, 20), h("code", { class: "mono", text: to }),
+          to === safe ? " (this Safe)" : knownName(c.id, to) || who(to) ? ` (${knownName(c.id, to) || who(to)})` : ""),
+        h("dt", { text: "Value" }), h("dd", { text: `${eth(t.value)} ETH` }),
+        h("dt", { text: "Data" }), h("dd", {}, dataBytes(t.data) ? h("code", { class: "mono small", text: t.data }) : "none"),
+        h("dt", { text: "Operation" }), h("dd", { text: "call" }),
+        h("dt", { text: "Nonce" }), h("dd", { text: `#${t.nonce}` })),
+      warnings.length ? h("ul", { class: "warns" }, ...warnings.map((w) => h("li", { text: w }))) : null,
+      h("div", { class: "verify" }, ident(hash, 56),
+        h("div", {}, h("div", { class: "muted small", text: "Verify code" }), h("code", { class: "vbig", text: verifyCode(hash) }),
+          h("div", { class: "mono small muted", text: hash }))),
+      h("p", { class: "small muted", text: "The console shows this code and picture before it signs. Tell the other owners to check it there." }),
+      h("div", { class: "row" }, sign, h("span", { class: "small muted", text: `Your wallet asks you to sign it as one confirmation. Nothing moves until ${s.threshold} owners have approved and someone executes it.` })),
+      log.el, done));
+  }
+
+  async function signAndPropose(b, sign, log, done) {
+    const { t, hash } = b;
+    sign.disabled = true;
+    fill(log.el);
+    fill(done);
+    if (!wallet.account) await connect();
+    const me = getAddress(wallet.account);
+    let st = log.run("Checking your wallet is an owner…");
+    const now = await readSafe(pub, safe);
+    if (!now.owners.includes(me)) { log.done(st, `Your wallet ${short(me)} isn't an owner of this Safe. Switch your wallet to an owner's account.`, "bad"); sign.disabled = false; return; }
+    if (t.nonce < now.nonce) { log.done(st, `#${t.nonce} has already run: the Safe is at #${now.nonce}. Change the nonce.`, "bad"); sign.disabled = false; return; }
+    log.done(st, `${who(me) || short(me)} is an owner`);
+    st = log.run(`Switching your wallet to ${c.name}…`);
+    await wallet.ensureChain(c, rpcFor(name));
+    log.done(st, `Wallet on ${c.name}`);
+    st = log.run("Waiting for your wallet to sign…");
+    const sig = await walletSignature(hash, await wallet.signTypedData(typedData(c.id, safe, t)), me);
+    log.done(st, "Signed, and the signature checks out");
+    st = log.run("Sending it to Safe's transaction service…");
+    await svc.propose(safe, proposalBody(safe, t, hash, me, sig));
+    log.done(st, `Proposed as #${t.nonce}`);
+    sign.textContent = "Proposed";
+    fill(done, h("div", { class: "done" },
+      h("p", {}, h("strong", { text: "In the queue. " }), `Ask the other owners to approve it, and to check the verify code ${verifyCode(hash)} on the console.`),
+      h("div", { class: "row" }, h("a", { class: "btn go", href: back, text: "See it in the queue" }), copyButton(`${b.title} · #${t.nonce} · verify code ${verifyCode(hash)}`, "Copy the code for the others"))));
+  }
+
+  fill(body,
+    h("section", { class: "card" }, h("h2", { text: "What it does" }), kinds, book, form,
+      h("p", { class: "small muted", text: `${s.threshold} of ${n} · the Safe is at #${s.nonce}${queued.length ? ` · ${queued.length} queued` : ""}. Your wallet signs as one owner.` })),
+    review);
+  drawFields();
 }
 
 // ----------------------------------------------------------------------------- keys
@@ -588,6 +849,7 @@ function route() {
   for (const a of document.querySelectorAll("nav a")) a.toggleAttribute("aria-current", a.getAttribute("href") === `#/${parts[0] || ""}` || (parts[0] === "safe" && a.getAttribute("href") === "#/"));
   window.scrollTo(0, 0);
   if (!parts.length) return home();
+  if (parts[0] === "safe" && parts[3] === "new") return proposeView(parts[1], parts[2], parts[4], parts[5]);
   if (parts[0] === "safe") return safeView(parts[1], parts[2]);
   if (parts[0] === "keys") return keysView();
   if (parts[0] === "key") return keyView(parts[1]);

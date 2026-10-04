@@ -8,6 +8,9 @@
 // 3. The verify code matches the console's, and the console's top-level refusals match decode.py.
 // 4. Blockies: the page draws the same picture as the console (firmware/blockies.py) for addresses
 //    and transaction hashes.
+// 5. Proposing: every kind the page builds is read by the console's own decoder (firmware/decode.py)
+//    as what the page says it is; the typed data the wallet signs hashes to the console's hash; the
+//    signature is checked and normalised; the body has what Safe's service requires.
 import { spawnSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -135,6 +138,87 @@ seeds.forEach((seed, i) => {
   check(same, `blockie of ${seed.slice(0, 10)}…: the same cells and colours as the console's`);
 });
 check(JSON.stringify(blockie(safe.toLowerCase()).data) !== JSON.stringify(blockie(alice.address.toLowerCase()).data), "blockies: two addresses, two pictures");
+
+// ----------------------------------------------------------------------------- 5. proposing
+const P = await import("./src/propose.mjs");
+const { hashTypedData, decodeFunctionData, toHex: hex } = await import("viem");
+const bob = privateKeyToAccount("0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a");     // anvil #2, a test key
+const carol = getAddress("0x90F79bf6EB2c4f870365E785982E1f101E93b906");                                      // anvil #3's address
+const S5 = { address: safe, owners: [alice.address, bob.address, chip], threshold: 2, balance: 10n ** 16n };
+const usdc = P.knownTokens(84532)[0];
+check(usdc?.symbol === "USDC" && usdc.decimals === 6, "known tokens: USDC on Base Sepolia, 6 decimals, from quorum_cfg.py");
+const cases = [
+  ["eth", { to: carol, amount: "0.001" }, "SEND ETH", "Send 0.001 ETH"],
+  ["token", { token: usdc.address, to: carol, amount: "2.5", decimals: 6, symbol: "USDC", known: true }, "SEND USDC", "Send 2.5 USDC"],
+  ["add", { owner: carol, threshold: "2" }, "ADD OWNER", "Add owner"],
+  ["remove", { owner: bob.address, threshold: "2" }, "REMOVE OWNER", "Remove owner"],
+  ["swap", { old: chip, owner: carol }, "SWAP OWNER", "Replace owner"],
+  ["threshold", { threshold: "3" }, "THRESHOLD", "Approvals needed: 3"],
+  ["reject", {}, "REJECTION", "On-chain rejection"],
+  ["custom", { to: usdc.address, data: "0x095ea7b3" + "0".repeat(24) + carol.slice(2).toLowerCase() + "f".repeat(64) }, "APPROVE USDC", "Approve UNLIMITED USDC"],
+];
+const built = cases.map(([kind, input]) => P.safeTx(P.buildCall(kind, input, S5).call, 9));
+const consoleSees = JSON.parse(spawnSync("python3", ["-c", `import sys, json; sys.path.insert(0, ${JSON.stringify(ROOT + "firmware")})
+import decode
+from quorum_cfg import CFG
+ctx = decode.context(CFG, ${JSON.stringify(safe)}, chain=84532)
+out = []
+for t in json.load(sys.stdin):
+    r = decode.review(t, ctx)
+    out.append({"title": r["items"][0]["title"], "what": r["items"][0]["what"], "level": r["level"], "refuse": r["refuse"],
+                "to": r["items"][0].get("to"), "text": r["items"][0].get("text", "")})
+print(json.dumps(out))`], { input: JSON.stringify(built.map((t) => ({ ...t, value: String(t.value) }))), encoding: "utf8" }).stdout);
+cases.forEach(([kind, , title, what], i) => {
+  const r = consoleSees[i], b = P.buildCall(kind, cases[i][1], S5);
+  check(r.title === title && r.what.startsWith(what) && !r.refuse && (b.red ? r.level === "red" : true),
+    `propose ${kind}: the console reads it as ${title}, "${r.what}"${b.red ? ", on a red page" : ""}`);
+});
+check(consoleSees[2].to === carol.toLowerCase() && /becomes 2/.test(consoleSees[2].text), "propose add: the console names the new owner and the new threshold");
+const rm = decodeFunctionData({ abi: P.OWNER_ABI, data: built[3].data });
+check(rm.args[0] === alice.address && rm.args[1] === bob.address && rm.args[2] === 2n, "propose remove: prevOwner is the owner before it in the Safe's list");
+const sw = decodeFunctionData({ abi: P.OWNER_ABI, data: built[4].data });
+check(sw.args[0] === bob.address && sw.args[1] === chip, "propose swap: prevOwner of the last owner is the one before it");
+check(P.prevOwner(S5.owners, alice.address) === P.SENTINEL, "prevOwner: the first owner's is the sentinel, 0x…01");
+check(P.isRejection(safe, built[6]) && !P.isRejection(safe, built[0]), "isRejection: the Safe calling itself with nothing, and nothing else");
+check(P.nextNonce(9, []) === 9 && P.nextNonce(9, [{ nonce: 9 }, { nonce: "11" }]) === 12, "nextNonce: after the Safe's own and after the queue");
+const throws = (f) => { try { f(); return false; } catch { return true; } };
+check(throws(() => P.buildCall("add", { owner: bob.address, threshold: "2" }, S5)), "propose add: an existing owner is refused");
+check(throws(() => P.buildCall("add", { owner: carol, threshold: "5" }, S5)), "propose add: a threshold above the owners is refused");
+check(throws(() => P.buildCall("remove", { owner: alice.address, threshold: "1" }, { ...S5, owners: [alice.address], threshold: 1 })), "propose remove: the last owner is refused");
+check(throws(() => P.buildCall("eth", { to: carol, amount: "0.0000000000000000001" }, S5)), "propose eth: more than 18 decimals is refused");
+check(throws(() => P.buildCall("eth", { to: safe, amount: "1" }, S5)), "propose eth: sending to the Safe itself is refused");
+check(throws(() => P.buildCall("threshold", { threshold: "2" }, S5)), "propose threshold: the threshold it already has is refused");
+check(P.buildCall("threshold", { threshold: "1" }, S5).warnings.length === 1, "propose threshold: 1 of 3 warns that one owner could act alone");
+check(throws(() => P.buildCall("custom", { to: carol, data: "0x12" }, S5)), "propose custom: data shorter than a selector is refused");
+
+// What the wallet signs is the console's hash, and the signature that comes back is checked.
+const t5 = built[0];
+const h5 = S.safeTxHash(chainId, safe, t5);
+const td = JSON.parse(JSON.stringify(P.typedData(chainId, safe, t5)));        // as it crosses to the wallet
+const uints = new Set(td.types.SafeTx.filter((f) => f.type.startsWith("uint")).map((f) => f.name));
+const msg = Object.fromEntries(Object.entries(td.message).map(([k, v]) => [k, uints.has(k) ? BigInt(v) : v]));
+const { EIP712Domain, ...types } = td.types;
+check(EIP712Domain.length === 2 && hashTypedData({ domain: td.domain, types, primaryType: td.primaryType, message: msg }) === h5,
+  "typedData: what the wallet signs hashes to the page's safeTxHash");
+const py5 = spawnSync("python3", ["-c", `import sys, json; sys.path.insert(0, ${JSON.stringify(ROOT + "firmware")})
+import safe_tx
+h = safe_tx.from_service(${chainId}, json.load(sys.stdin))
+print("0x" + "".join("%02x" % b for b in h))`], { input: JSON.stringify({ ...t5, safe, value: String(t5.value), data: null }), encoding: "utf8" });
+check(py5.stdout.trim() === h5, "typedData: and to the console's own hash (firmware/safe_tx.py)");
+const sig5 = await alice.signTypedData({ domain: td.domain, types, primaryType: td.primaryType, message: msg });
+check(await P.walletSignature(h5, sig5, alice.address) === sig5, "walletSignature: a wallet's EIP-712 signature passes as is");
+const v01 = sig5.slice(0, 130) + hex(Number(BigInt("0x" + sig5.slice(130))) - 27, { size: 1 }).slice(2);
+check(await P.walletSignature(h5, v01, alice.address) === sig5, "walletSignature: v as 0/1 becomes 27/28");
+let refused = "";
+try { await P.walletSignature(h5, sig5, bob.address); } catch (e) { refused = e.message; }
+check(/not your wallet/.test(refused), "walletSignature: a signature from another account is refused before anything is sent");
+const body = P.proposalBody(safe, t5, h5, alice.address, sig5);
+const required = ["baseGas", "contractTransactionHash", "gasPrice", "nonce", "operation", "safe", "safeTxGas", "sender", "to", "value"];
+check(required.every((k) => body[k] !== undefined && body[k] !== null) && body.value === "1000000000000000" && body.data === null && body.nonce === 9,
+  "proposalBody: every field Safe's service requires, value as a decimal string");
+const back5 = { ...body, safeTxHash: body.contractTransactionHash, confirmations: [{ owner: body.sender, signature: body.signature }] };
+const c5 = await S.checkTx(fake, chainId, safe, S5.owners, back5, { onchainHash: false });
+check(!c5.problems.length && c5.valid.length === 1, "proposalBody: read back from the queue, the page checks it and counts the confirmation");
 
 // ----------------------------------------------------------------------------- the built page
 try {

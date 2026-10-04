@@ -48,7 +48,7 @@ export const SIGNER_ABI = parseAbi([
 ]);
 
 // EIP-712 SafeTx, as sim.mjs and firmware/safe_tx.py hash it.
-const TYPES = {
+export const TYPES = {
   SafeTx: [
     { name: "to", type: "address" }, { name: "value", type: "uint256" }, { name: "data", type: "bytes" },
     { name: "operation", type: "uint8" }, { name: "safeTxGas", type: "uint256" }, { name: "baseGas", type: "uint256" },
@@ -87,7 +87,20 @@ export class Service {
     if (!r.ok) throw new Error(`Safe's transaction service: HTTP ${r.status}`);
     return r.json();
   }
+  // A POST; the service's 4xx answers carry a reason, which is shown as is (it's text, drawn with textContent).
+  async post(path, body) {
+    const headers = { "Content-Type": "application/json", ...(this.key ? { Authorization: "Bearer " + this.key } : {}) };
+    const r = await this.fetch(this.url + path, { method: "POST", headers, body: JSON.stringify(body) });
+    if (r.ok) return r.status === 204 ? null : r.json().catch(() => null);
+    if (r.status === 429) throw new Error("Safe's transaction service says too many requests. Add your own API key in Settings (developer.safe.global).");
+    const text = await r.text().catch(() => "");
+    let why = text;
+    try { why = Object.values(JSON.parse(text)).flat(Infinity).filter((x) => typeof x === "string" || typeof x === "number").join(" "); } catch {}
+    throw new Error(`Safe's transaction service refused it (HTTP ${r.status})${why ? `: ${why.slice(0, 400)}` : ""}`);
+  }
   info(safe) { return this.get(`/api/v1/safes/${safe}/`); }
+  propose(safe, body) { return this.post(`/api/v2/safes/${safe}/multisig-transactions/`, body); }
+  confirm(hash, signature) { return this.post(`/api/v1/multisig-transactions/${hash}/confirmations/`, { signature }); }
   queue(safe, nonce) {
     return this.get(`/api/v2/safes/${safe}/multisig-transactions/?executed=false&nonce__gte=${nonce}&ordering=nonce&limit=20`);
   }
@@ -105,12 +118,13 @@ export async function readSafe(pub, safe) {
   return { address, owners: owners.map((o) => getAddress(o)), threshold: Number(threshold), nonce: Number(nonce), version, balance };
 }
 
-// What each owner is: a wallet (no code), a passkey signer proxy whose key we can name (its
+// What each owner is: a wallet (no code, or an EIP-7702 delegation, which still signs as a wallet), a passkey signer proxy whose key we can name (its
 // configuration recomputes to its own address through the factory in quorum_cfg.py), or some other
 // contract. -> {kind: "wallet"|"passkey"|"contract", qx?, qy?, fingerprint?}
 export async function ownerKind(pub, owner) {
   const code = await pub.getCode({ address: owner }).catch(() => null);
   if (!code) return { kind: "wallet" };
+  if (code.toLowerCase().startsWith("0xef0100") && size(code) === 23) return { kind: "wallet", delegated: getAddress(slice(code, 3)) };
   try {
     const [x, y, verifiers] = await pub.readContract({ address: owner, abi: SIGNER_ABI, functionName: "getConfiguration" });
     const qx = toHex(x, { size: 32 }), qy = toHex(y, { size: 32 });
