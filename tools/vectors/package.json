@@ -5,10 +5,12 @@
   "description": "Generates test-vectors/safe_tx.json with viem, independent of firmware/safe_tx.py",
   "scripts": {
     "gen": "node gen.mjs",
-    "webauthn": "node webauthn.mjs"
+    "webauthn": "node webauthn.mjs",
+    "passkey": "node passkey.mjs"
   },
   "dependencies": {
     "@noble/curves": "1.9.1",
+    "playwright-core": "1.56.1",
     "viem": "2.56.8"
   }
 }
