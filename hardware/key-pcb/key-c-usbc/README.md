@@ -1,9 +1,8 @@
 # key-c P2: the USB-C key
 
 > **Status: ordered, in production.** 5 boards, all assembled by JLCPCB. The production file is
-> checked and confirmed. JLCPCB's parts-placement review arrived 2026-10-04 and checks out; it
-> needs confirming in Order History within 72 hours. JLCPCB's factory reopens after the Oct 1–4
-> holiday; estimated ship date 2026-10-04, then 8–13 business days by Global Standard.
+> checked and confirmed, and so is the parts placement (2026-10-04). JLCPCB estimates production
+> will finish 2026-10-07 05:00; then 8–13 business days by Global Standard.
 > Order **W2026100307101209** · PCB **Y4-13710122A** · PCBA **SMT026100263772-13710122A** · $38.96
 
 | parts side | back |
@@ -62,6 +61,10 @@ The design is in [../PROPOSALS.md](../PROPOSALS.md), and the full order record i
 
 ## Log (newest first)
 
+- **2026-10-04:** **placement confirmed**, and the order is in production.
+  - "Yes, please proceed to production."
+  - The PCBA is at 13% (Data Finished) and fabrication at 0%.
+  - Estimated finish: 2026-10-07 05:00.
 - **2026-10-04:** STEP files of the ordered board added in `3d/`, for Onshape.
 - **2026-10-04:** JLCPCB's parts-placement review arrived and was checked.
   - U1 and U2 have pin 1 at their triangles.

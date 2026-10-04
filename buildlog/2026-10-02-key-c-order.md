@@ -208,6 +208,24 @@ This matches the placement view saved on 2026-10-02, so nothing moved in their r
 
 All 7 are on the top side, with SMT assembly.
 
+### Confirmed, and into production
+
+- **Placement confirmed in Order History.**
+  - The confirmation result reads "Yes, please proceed to production." and the status is
+    Completed.
+  - All 7 designators are assembled, with none unassembled.
+  - U1 and U2 carry JLCPCB's "revised item" mark. Those are the two rotations their engineer
+    made, as noted above.
+- **Production progress**, as JLCPCB showed it:
+  - PCB Assembly is at 13%. Data Preparation was done 2026-10-04 03:24:31, and Data Finished is
+    the current step.
+  - PCB Fabrication is at 0%.
+  - Estimated finish: 2026-10-07 05:00.
+
+![JLCPCB's confirmed placement, 3D view](images/2026-10-04-key-c-jlc-placement-confirmed.png)
+
+![JLCPCB's production progress for the PCBA](images/2026-10-04-key-c-jlc-production-progress.png)
+
 ## 3D models for CAD (2026-10-04)
 
 These are STEP files of the board as ordered, for designing a handle or cap in Onshape:
@@ -232,6 +250,7 @@ How they were made and what's in them:
 - [x] The PCBA's final parts list (above): C2 is on the C1525 line, 10 bought
 - [x] The saved placement view (above)
 - [x] JLCPCB's parts-placement review (2026-10-04): checked, as above
-- [ ] Placement confirmed in Order History (due within 72 h of the 2026-10-04 email)
+- [x] Placement confirmed in Order History (2026-10-04): in production, estimated finish
+      2026-10-07 05:00
 - [ ] Tracking, arrival, and the first bench test (the console end needs its protected VBUS switch
       and separate CC sensing first: see PROPOSALS.md)
