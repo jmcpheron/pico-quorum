@@ -4,8 +4,8 @@
   "files": {
     "coi.js": "50f153f5ba36e3e8d801313072be518b236c49eb7ae04ab425bedcba91a25803",
     "console.css": "031be51393c518e1a2cfa5ce229754a2fbbb7e92842027427553c618aa13eea0",
-    "console.js": "892471a83d4cb33912ca4905fb97718d21d85fdf0689f30fc257c62868f97d65",
-    "index.html": "d262205e851df0fe62989bd39d95ba871fb07465a42a2882f15a128eca291c9c",
+    "console.js": "23e31a58b5305705d9d5874024d2c0ae38ed56ed2b63f548a24eab69fb669d08",
+    "index.html": "eeea2f7b4d57cd2a628beabcded0acb0f54055053c8776c930edea9c7e3dcc30",
     "sw.js": "16bfd98fedc6e7eace64dac3c1ca5042a11cb73e2cd8c6449a225886a6f370e2",
     "worker.js": "4c2b9e08ccaa91d2eae93e37a96df9fa7173bfa3bee5426990a67031286664f7"
   }
