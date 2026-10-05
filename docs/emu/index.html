@@ -19,6 +19,7 @@
   <label>module <select id="main" title="what ▶ run, ↻ reset and ⇪ send use"></select></label>
   <label id="keylabel" title="what signs: the emulator's virtual chip, or your own passkey (Touch ID, Windows Hello, a phone, a security key)">key <select id="keymode"><option value="chip">virtual chip</option><option value="passkey">your passkey</option></select></label>
   <button id="mkpasskey" hidden title="make a passkey for this site; the console's owner address follows from it">🔑 make a passkey</button>
+  <button id="usepasskey" hidden title="a passkey you already have for this site (made in another browser, or synced from another device): it signs twice, and its public key is worked out from the signatures">use one I have</button>
   <button id="run" title="save, reboot the virtual Pico, run the picked module (Cmd/Ctrl+Enter runs the file in the editor)">▶ run</button>
   <button id="reset" title="reboot, run the picked module again">↻ reset</button>
   <select id="device" title="boards on this Mac's USB, refreshed every 3 s"></select>

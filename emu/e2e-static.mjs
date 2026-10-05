@@ -117,7 +117,14 @@ await repl("exec(\"try:\\n    _s.assertion('0x' + 'cd' * 32)\\nexcept Exception 
 // 7. the console page (docs/console/): only the console, your passkey as its key. A fresh browser
 // profile: no passkey, no Safes. It asks for each in turn, then runs the firmware from ../emu/.
 const ctx2 = await browser.newContext({ viewport: { width: 1000, height: 900 } });
-await ctx2.route("**/*", (route) => { const u = route.request().url(); if (u.startsWith(BASE)) return route.continue(); outside.push(u); return route.abort(); });
+// the console may only reach Safe's service; the app (its passkey page) also reads each chain: refused, not counted
+const offsite = (route) => {
+  const u = route.request().url();
+  if (u.startsWith(BASE)) return route.continue();
+  if (!/\/app\//.test(route.request().frame()?.url() || "")) outside.push(u);
+  return route.abort();
+};
+await ctx2.route("**/*", offsite);
 const con = await ctx2.newPage();
 con.on("console", (m) => { if (/Content Security Policy|Refused to/.test(m.text())) csp.push("console page: " + m.text()); });
 con.on("pageerror", (e) => errors.push("console page: " + e.message));
@@ -129,17 +136,23 @@ await con.waitForSelector("#release img");
 check((await con.locator("#release").innerText()).includes(short), `the bar shows release ${short}, computed in the browser over the files it runs`);
 const cdp2 = await ctx2.newCDPSession(con);
 await cdp2.send("WebAuthn.enable");
-await cdp2.send("WebAuthn.addVirtualAuthenticator", { options: {
-  protocol: "ctap2", transport: "internal", hasResidentKey: true, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true } });
-await con.click("#overlay .go");
+const auth2 = (await cdp2.send("WebAuthn.addVirtualAuthenticator", { options: {
+  protocol: "ctap2", transport: "internal", hasResidentKey: true, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true } })).authenticatorId;
+check(/I already have one/.test(await con.locator("#overlay").innerText()), "it also offers to use a passkey you already have");
+await con.click("#overlay .go:not(.alt)");
 await con.waitForFunction(() => /No Safe/.test(document.querySelector("#overlay").innerText), null, { timeout: 15000 });
 check(!!JSON.parse(await con.evaluate(() => localStorage.getItem("emu.passkey")))?.x, "Make a passkey: made, kept in this browser; next the screen asks for a Safe, with a link to the app");
-check(/passkey, made for localhost/.test(await con.locator("#key").innerText()), "the panel names the key: your passkey, for this site");
+check(/your passkey, for localhost/.test(await con.locator("#key").innerText()) && await con.locator('#key a[href="../app/#/passkey"]').count() === 1,
+  "the panel names the key, your passkey for this site, and links to its page in the app");
+const made = JSON.parse(await con.evaluate(() => localStorage.getItem("emu.passkey")));
+const synced = (await cdp2.send("WebAuthn.getCredentials", { authenticatorId: auth2 })).credentials;
 await con.evaluate(() => localStorage.setItem("pq.safes", JSON.stringify([{ chain: "basesep", address: "0x1234567890abcdef1234567890abcdef12345678", name: "Test Safe" }])));
 await con.reload();
 const drew = await con.waitForFunction(() => document.querySelector("#overlay").hidden && +(document.querySelector("#screen").dataset.frames || 0) > 0, null, { timeout: 60000 }).then(() => true, () => false);
 check(drew, `with a passkey and a saved Safe, the console boots and draws its screen${drew ? "" : ` (output ends: ${(await con.evaluate(() => document.querySelector("#out").textContent)).slice(-400).replace(/\n/g, " | ")}; errors: ${errors.join("; ")})`}`);
-const lit = await con.evaluate(() => { const d = document.querySelector("#screen").getContext("2d").getImageData(0, 0, 240, 240).data; let n = 0; for (let i = 0; i < d.length; i += 4) n += d[i] + d[i + 1] + d[i + 2] > 60; return n; });
+const litNow = () => con.evaluate(() => { const d = document.querySelector("#screen").getContext("2d").getImageData(0, 0, 240, 240).data; let n = 0; for (let i = 0; i < d.length; i += 4) n += d[i] + d[i + 1] + d[i + 2] > 60; return n; });
+let lit = await litNow();
+for (let i = 0; i < 25 && lit <= 2000; i++) { await con.waitForTimeout(200); lit = await litNow(); }    // the splash draws in steps
 check(lit > 2000, `the screen has something on it (${lit} lit pixels)`);
 const shot = () => con.evaluate(() => document.querySelector("#screen").toDataURL());
 await con.waitForTimeout(3000);                // past the splash, to the home grid
@@ -154,7 +167,39 @@ await con.keyboard.down("ArrowLeft"); await con.waitForTimeout(250); await con.k
 moved = false;
 for (let i = 0; i < 20 && !moved; i++) { await con.waitForTimeout(150); moved = (await shot()) !== before2; }
 check(moved, "and so does the keyboard (an arrow key)");
+// the app's page for it: the owner address, the same on every chain, and the way into a Safe
+const app2 = await ctx2.newPage();
+await app2.goto(BASE + "app/#/passkey");
+await app2.waitForSelector("h1:has-text('Your passkey')");
+const owner2 = (await app2.locator(".card .inline-ident code").first().innerText()).trim();
+check(/^0x[0-9a-fA-F]{40}$/.test(owner2) && await app2.locator('a[href*="/new/add/' + owner2 + '"]').count() === 1,
+  `the app's Your passkey page: its owner address (${owner2.slice(0, 10)}…) and Add owner for the saved Safe, owner filled in`);
 await ctx2.close();
+
+// 8. the same passkey in another browser (iCloud Keychain syncing it to the iPhone, say): this one
+// doesn't have its public key, so "I already have one" signs twice and works it out
+const ctx3 = await browser.newContext({ viewport: { width: 1000, height: 900 } });
+await ctx3.route("**/*", offsite);
+const con3 = await ctx3.newPage();
+con3.on("console", (m) => { if (/Content Security Policy|Refused to/.test(m.text())) csp.push("console page (found): " + m.text()); });
+con3.on("pageerror", (e) => errors.push("console page (found): " + e.message));
+const cdp3 = await ctx3.newCDPSession(con3);
+await cdp3.send("WebAuthn.enable");
+const auth3 = (await cdp3.send("WebAuthn.addVirtualAuthenticator", { options: {
+  protocol: "ctap2", transport: "internal", hasResidentKey: true, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true } })).authenticatorId;
+for (const c of synced) await cdp3.send("WebAuthn.addCredential", { authenticatorId: auth3, credential: c });
+await con3.goto(BASE + "console/");
+await con3.waitForFunction(() => self.crossOriginIsolated && /I already have one/.test(document.querySelector("#overlay")?.innerText || ""), null, { timeout: 30000 });
+await con3.click("#overlay .go.alt");
+const found = await con3.waitForFunction(() => /No Safe/.test(document.querySelector("#overlay").innerText), null, { timeout: 20000 }).then(() => true, () => false);
+const cred3 = JSON.parse(await con3.evaluate(() => localStorage.getItem("emu.passkey")) || "null");
+check(found && cred3?.x === made.x && cred3?.y === made.y && cred3?.id === made.id,
+  `I already have one: from two signatures, the same public key as where it was made${found ? "" : ` (overlay: ${(await con3.locator("#overlay").innerText()).slice(0, 160)})`}`);
+const app3 = await ctx3.newPage();
+await app3.goto(BASE + "app/#/passkey");
+await app3.waitForSelector("h1:has-text('Your passkey')");
+check((await app3.locator(".card .inline-ident code").first().innerText()).trim() === owner2, "so the same owner address: one passkey, one Safe owner, whichever device signs");
+await ctx3.close();
 
 check(!csp.length, `no CSP violations${csp.length ? ": " + csp.slice(0, 3).join(" | ") : ""}`);
 check(!errors.length, `no page errors${errors.length ? ": " + errors.join("; ") : ""}`);

@@ -228,9 +228,10 @@ the same `localStorage` the app uses for its setting (same origin), so it is set
 
 1. Open `…/pico-quorum/console/`. The screen asks you to make a passkey; the OS asks for Touch ID.
    With a Safe saved in the app, the console boots and shows its owner address and blockie,
-   computed on the console by `webauthn.owner_address`.
-2. In the app, on Base Sepolia, add that owner to a test Safe (or deploy a 1-of-1 with it). Deploying
-   the signer proxy is the existing "deploy" step on a key's page.
+   computed on the console by `webauthn.owner_address`. On your other device (the passkey synced
+   there), choose **I already have one**: it signs twice and the page works out the same key.
+2. In the app, **Keys → Your passkey** (`#/passkey`): deploy its signer on Base Sepolia, then **Add to**
+   your test Safe, which opens Add owner with its address filled in.
 3. Propose a send from the app. The emulated console picks it up, decodes it, and shows the verify
    code and hash blockie, the same screens as the hardware.
 4. Hold A. Touch ID prompts. The confirmation goes to Safe's service, and the app shows it checked,

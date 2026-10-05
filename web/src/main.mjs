@@ -14,6 +14,7 @@ import {
 } from "./safe.mjs";
 import { wallet } from "./wallet.mjs";
 import { isApproved } from "../../tools/mock-tx-service/release.mjs";
+import { p256Owner } from "../../tools/mock-tx-service/sigs.mjs";
 
 const REPO = "https://github.com/jmcpheron/pico-quorum";
 const DEMO = { chain: "basesep", address: "0xEDEDC0063B23A309f4cAdA5e1225Ef21D8A30a43", name: "PicoQuorum test Safe" };
@@ -46,13 +47,31 @@ function h(tag, attrs = {}, ...kids) {
 }
 const $main = () => document.getElementById("main");
 const short = (a) => `${a.slice(0, 6)}…${a.slice(-4)}`;
-const nameOf = (a) => registryNames[a.toLowerCase()] || store.get("names", {})[a.toLowerCase()] || "";
+const nameOf = (a) => registryNames[a.toLowerCase()] || store.get("names", {})[a.toLowerCase()] ||
+  (myPasskey()?.owner.toLowerCase() === a.toLowerCase() ? "Your passkey" : "");
 const registryNames = {};
 
 // Saved Safes ({chain, address, name, threshold?, owners?}), the ones opened lately, and the names
 // given to owners: all in this browser only, and in the backup file Settings writes.
 const sameSafe = (a, b) => a.chain === b.chain && a.address === b.address;
 const savedSafes = () => store.get("safes", []);
+
+// Your passkey: made (or found) on the console page or in the emulator, which are this site too, so
+// the same localStorage. Only its public key is here; the private key is in Touch ID, Windows Hello,
+// a phone or a security key. Its owner address follows from the key, the same on every chain.
+let passkeySeen = null;
+function myPasskey() {
+  let raw = null;
+  try { raw = localStorage.getItem("emu.passkey"); } catch {}
+  if (passkeySeen?.raw === raw) return passkeySeen.k;
+  let k = null;
+  try {
+    const c = JSON.parse(raw || "null");
+    if (c && /^[0-9a-f]{64}$/.test(c.x) && /^[0-9a-f]{64}$/.test(c.y)) k = { ...c, owner: getAddress(p256Owner(CFG.signer, "0x" + c.x, "0x" + c.y)) };
+  } catch {}
+  passkeySeen = { raw, k };
+  return k;
+}
 const savedSafe = (s) => savedSafes().find((x) => sameSafe(x, s));
 function saveSafe(s) {
   const list = savedSafes();
@@ -482,7 +501,9 @@ async function proposeView(name, addr, presetKind, presetNonce) {
 
 function proposeForm(body, { name, c, safe, pub, svc, s, queued, keys, back, presetKind, presetNonce, releases = [] }) {
   const tokens = knownTokens(c.id);
-  const vals = { threshold: String(s.threshold), token: tokens[0]?.address || "other" };
+  const vals = { threshold: String(s.threshold), token: tokens[0]?.address || "other",
+    // #/safe/<chain>/<safe>/new/add/<owner>: the owner filled in (your passkey's page links here)
+    ...(isAddress(presetNonce || "", { strict: false }) ? { owner: getAddress(presetNonce) } : {}) };
   let kind = KINDS.some((k) => k.id === presetKind) ? presetKind : "eth";
   const queuedAt = (n) => queued.filter((t) => Number(t.nonce) === n);
   // A rejection goes where the transaction it cancels waits (the first queued, unless the link said
@@ -690,6 +711,11 @@ async function keysView() {
       h("p", { class: "muted" }, "A badge says a genuine Trust M holds the key and the owner address follows from it. It doesn't say who holds the chip; that's the Safe's threshold. ",
         h("a", { href: `${REPO}/blob/main/docs/registry/README.md`, text: "Add your key" }), ".")),
     h("section", { class: "card" }, h("h2", { text: "Registry" }), list),
+    h("section", { class: "card" }, h("h2", { text: "Your passkey" }), myPasskey()
+      ? h("p", { class: "inline-ident" }, ident(myPasskey().owner, 20), h("code", { class: "mono", text: myPasskey().owner }), " · ",
+          h("a", { href: "#/passkey", text: "deploy its signer, add it to a Safe" }))
+      : h("p", { class: "muted" }, "No key needs to be a chip: ", h("a", { href: "../console/", text: "the console in your browser" }),
+          " signs with a passkey (Touch ID, Windows Hello, a phone, a security key). Make one there, and its page here adds it to a Safe.")),
     h("section", { class: "card" }, h("h2", { text: "Check a bundle" }),
       h("p", { class: "muted", text: "Pick an attest-<serial>.json from tools/fw attest. It's checked here; nothing leaves your browser." }),
       h("label", { class: "btn", for: "bundle", text: "Choose a bundle…" }), file, checkOut));
@@ -768,6 +794,44 @@ async function deployRows(where, r, owner) {
     }
   }));
   fill(where, h("h3", { text: "Its signer, chain by chain" }), h("ul", { class: "chains" }, ...rows));
+}
+
+// ----------------------------------------------------------------------------- your passkey
+function passkeyView() {
+  const k = myPasskey();
+  if (!k) {
+    return fill($main(), h("section", { class: "hero" }, h("h1", { text: "Your passkey" }),
+      h("p", { class: "lede", text: "There's no passkey in this browser yet. Make one on the console page: Touch ID, Windows Hello, your phone or a security key. Made one already, in another browser or on your other device? Choose “I already have one” there." }),
+      h("p", {}, h("a", { class: "btn go", href: "../console/", text: "Open the console" }))));
+  }
+  const deploy = h("div", {});
+  const safes = savedSafes().filter((s) => CHAINS[s.chain]);
+  const where = k.synced ? "synced by your account: every device signed in to it holds this key (iCloud Keychain, Google Password Manager…)"
+    : k.attachment === "security-key" ? "on a security key: only that key holds it" : "kept on the device that made it";
+  fill($main(),
+    h("section", { class: "hero" },
+      h("div", { class: "safe-title" }, ident(k.owner, 56), h("div", {}, h("h1", { text: "Your passkey" }),
+        h("div", { class: "chips" }, badge(k.synced ? "warn" : "ok", k.synced ? "synced" : "one device"), badge("muted", `key ${k.x.slice(0, 8)}`)))),
+      h("p", { class: "muted" }, `For ${k.rpId}, ${where}. `, k.found ? "Found here from its signatures; the same key as wherever it was made. " : "",
+        "Only its public key is in this browser.")),
+    h("section", { class: "card" }, h("h2", { text: "Add it to a Safe" }),
+      h("p", { class: "inline-ident" }, "Its owner address is the same on every chain: ", ident(k.owner, 20), h("code", { class: "mono", text: k.owner }), " ", copyButton(k.owner)),
+      h("ol", { class: "how" },
+        h("li", {}, "Deploy its signer on the chain you use (once per chain). Anyone can, and it moves no funds. Your wallet pays the gas."),
+        h("li", {}, "Propose adding it as an owner. The Safe's owners approve that as any transaction; keep the threshold at 2 or more.",
+          safes.length
+            ? h("ul", { class: "add-to" }, ...safes.map((s) => h("li", {},
+                h("a", { href: `#/safe/${s.chain}/${getAddress(s.address)}/new/add/${k.owner}`, text: `Add to ${s.name || short(s.address)} (${CHAINS[s.chain].name})` }))))
+            : h("p", { class: "small muted" }, "No saved Safes. ", h("a", { href: "#/", text: "Open a Safe" }), " and save it first.")),
+        h("li", {}, "Then sign on ", h("a", { href: "../console/", text: "the console page" }), ": it shows each transaction, and Touch ID or Face ID approves what it shows.")),
+      deploy),
+    h("section", { class: "card" }, h("h2", { text: "Before it holds anything" }),
+      h("ul", {},
+        h("li", { text: "Count it as one owner, however many devices hold it. A synced passkey is as safe as the account that syncs it." }),
+        h("li", { text: "Keep passkey owners below the Safe's threshold, and the owners on different kinds of key: a console's chip, a hardware wallet, a security key." }),
+        h("li", { text: `It signs only on ${k.rpId}. If the console moves to another domain, this passkey can't sign there.` }),
+        h("li", { text: "Touch ID and Face ID don't show the transaction. What you approve is the console's screen, which your browser draws." }))));
+  deployRows(deploy, { qx: BigInt("0x" + k.x), qy: BigInt("0x" + k.y) }, k.owner);
 }
 
 // ----------------------------------------------------------------------------- settings
@@ -944,6 +1008,7 @@ function route() {
   if (parts[0] === "safe") return safeView(parts[1], parts[2]);
   if (parts[0] === "keys") return keysView();
   if (parts[0] === "key") return keyView(parts[1]);
+  if (parts[0] === "passkey") return passkeyView();
   if (parts[0] === "settings") return settingsView();
   if (parts[0] === "releases") return releasesView();
   return notFound();
