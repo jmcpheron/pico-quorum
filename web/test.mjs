@@ -273,5 +273,31 @@ try {
     "#/passkey: routed, links each saved Safe's Add owner with the owner filled in");
 }
 
+// ---- the console page's owner address (emu/web/browser.mjs, emu/core/keccak.mjs: no viem there):
+// keccak-256 as noble's, EIP-55 as viem's, and the passkey's owner as p256Owner's
+{
+  const { keccak256 } = await import("../emu/core/keccak.mjs");
+  const { keccak_256 } = await import("@noble/hashes/sha3");
+  const B = await import("../emu/web/browser.mjs");
+  const { p256Owner } = await import("../tools/mock-tx-service/sigs.mjs");
+  const sizes = [0, 1, 31, 135, 136, 137, 271, 272, 1000];
+  check(sizes.every((n) => { const d = crypto.getRandomValues(new Uint8Array(n)); return Buffer.from(keccak256(d)).equals(Buffer.from(keccak_256(d))); }),
+    `keccak.mjs: the same as noble's keccak_256 (${sizes.join(", ")} bytes: the rate edges)`);
+  const addrs = Array.from({ length: 6 }, () => "0x" + Buffer.from(crypto.getRandomValues(new Uint8Array(20))).toString("hex"));
+  check(addrs.every((a) => B.checksum(a) === getAddress(a) && B.isAddress(a) && B.isAddress(getAddress(a)) && B.isAddress(a.toUpperCase().replace("0X", "0x"))),
+    "browser.mjs checksum: viem's getAddress; lowercase, uppercase and checksummed are addresses");
+  const wrong = (a) => { const c = getAddress(a), i = [...c].findIndex((ch, j) => j > 1 && /[a-fA-F]/.test(ch)); return c.slice(0, i) + (c[i] === c[i].toLowerCase() ? c[i].toUpperCase() : c[i].toLowerCase()) + c.slice(i + 1); };
+  check(addrs.every((a) => !B.isAddress(wrong(a))) && !B.isAddress("0x1234") && !B.isAddress("base:" + addrs[0]), "and a wrong checksum capital, a short one or a prefixed one isn't");
+  const cfg = B.consoleCfg([{ name: "quorum_cfg.py", text: readFileSync(new URL("../firmware/quorum_cfg.py", import.meta.url), "utf8") }]);
+  check(JSON.stringify(cfg.signer) === JSON.stringify(S.CFG.signer), "consoleCfg reads the signer from quorum_cfg.py as web/config.mjs does");
+  let same = 0;
+  for (let i = 0; i < 4; i++) {
+    const pk = p256.getPublicKey(p256.utils.randomPrivateKey(), false);
+    const x = Buffer.from(pk.slice(1, 33)).toString("hex"), y = Buffer.from(pk.slice(33)).toString("hex");
+    same += B.passkeyOwner({ x, y }, cfg.signer) === getAddress(p256Owner(S.CFG.signer, "0x" + x, "0x" + y));
+  }
+  check(same === 4, "passkeyOwner: the passkey's owner address is p256Owner's (sigs.mjs), checksummed");
+}
+
 console.log(failed ? `${failed} FAILED` : "all pass");
 process.exit(failed ? 1 : 0);

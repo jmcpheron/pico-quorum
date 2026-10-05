@@ -80,7 +80,15 @@ joystick and A B X Y as on the board, for anyone without a Pico. No editor, no 3
 menu; it always runs the quorum console with your passkey as the key, and the files exactly as built.
 - **First visit:** it asks you to **make a passkey**, or to use one you **already have** (made in
   another browser, or synced from your other device by iCloud Keychain or Google Password Manager),
-  then to save a Safe in the app.
+  then to add a Safe you already have: its chain and address (Safe{Wallet}'s `base:0x…` works too),
+  saved to the same list the app keeps.
+- **Its owner address** is shown on the screen and in the panel, with Copy: the
+  `SafeWebAuthnSignerProxy` address the passkey's signatures count as, the same on every chain,
+  worked out in the page (`web/browser.mjs` `passkeyOwner`, `core/keccak.mjs`) from the factory in
+  the `quorum_cfg.py` it boots, and the same as the console's own (`webauthn.owner_address`).
+  A passkey isn't a wallet: a wallet that owns the Safe deploys its signer and proposes adding that
+  address; then the passkey only confirms, on this screen. Each Safe in the panel says, from Safe's
+  service, whether the passkey is an owner yet, and links the app's Add owner with it filled in.
 - **A passkey you already have:** WebAuthn only gives out a passkey's public key when it is made, so
   the page has it sign twice and works the key out from the two signatures
   (`core/webauthn-assert.mjs` `recoverKeys`), then checks it. Same passkey, same owner address.

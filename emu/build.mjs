@@ -34,6 +34,7 @@ const copy = (from, rel) => put(rel, readFileSync(from));
 for (const f of ["app.js", "app.css", "worker.js", "device3d.js", "browser.mjs"]) copy(join(EMU, "web", f), `web/${f}`);
 copy(join(EMU, "core", "runtime.mjs"), "core/runtime.mjs");
 copy(join(EMU, "core", "webauthn-assert.mjs"), "core/webauthn-assert.mjs");
+copy(join(EMU, "core", "keccak.mjs"), "core/keccak.mjs");
 copy(join(ROOT, "web", "src", "blockies.mjs"), "shared/blockies.mjs");
 // .txt, and never starting with "---": Pages runs .md files, and any file that opens with YAML front
 // matter, through Jekyll, which rewrote this one (the live-site check caught it, 2026-10-05)

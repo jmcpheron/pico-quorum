@@ -2,6 +2,7 @@
 // the plain console page (docs/console/, emu/console/): boot.json, the release fingerprint of what
 // boots, the Safes saved in the app, a per-browser software key, and the visitor's own passkey.
 // Relative URLs here resolve against this file (emu/web/), so both pages find the same boot.json.
+import { keccak256 } from "../core/keccak.mjs";
 import { assertionParts, b64url, derToRS, recoverKeys, spkiXY, unhex } from "../core/webauthn-assert.mjs";
 
 export const local = {
@@ -97,6 +98,72 @@ export function staticSecrets() {
   return "\n# from the app's saved Safes and settings, in this browser\n" +
     (safes.length ? `QUORUM_SAFES = ${JSON.stringify(safes)}\n` : "") +
     (key ? `QUORUM_API_KEY = ${JSON.stringify(key)}\n` : "");
+}
+
+/** Save a Safe to the app's list (same origin, so the app sees it too): {chain, address, name}.
+ *  Throws on a chain the console doesn't know or an address that isn't one. -> the list. */
+export function saveAppSafe({ chain, address, name }) {
+  address = String(address || "").trim();
+  if (!CHAIN_IDS[chain]) throw new Error("pick a chain");
+  if (!isAddress(address)) throw new Error("that isn't an address (0x and 40 hex digits, its capitals as checksummed)");
+  const s = { chain, address: checksum(address), name: String(name || "").trim().slice(0, 80) };
+  let list = [];
+  try { list = JSON.parse(local.get("pq.safes") || "[]") || []; } catch {}
+  const i = list.findIndex((x) => x.chain === s.chain && String(x.address).toLowerCase() === s.address.toLowerCase());
+  if (i >= 0) list[i] = { ...list[i], ...s, name: s.name || list[i].name || "" }; else list.push(s);
+  local.set("pq.safes", JSON.stringify(list));
+  return list;
+}
+export function forgetAppSafe({ chain, address }) {
+  let list = [];
+  try { list = JSON.parse(local.get("pq.safes") || "[]") || []; } catch {}
+  local.set("pq.safes", JSON.stringify(list.filter((x) => !(x.chain === chain && String(x.address).toLowerCase() === address.toLowerCase()))));
+}
+
+/** A Safe's owners and threshold from Safe's transaction service, as the console asks it (the app's
+ *  API key, if any). Read only. -> {owners (lowercase), threshold}, or throws with why. */
+export async function safeInfo(cfg, s) {
+  const base = cfg?.services?.[String(CHAIN_IDS[s.chain])];
+  if (!base) throw new Error("no service for that chain");
+  let key = "";
+  try { key = JSON.parse(local.get("pq.apiKey") || '""'); } catch {}
+  const r = await fetch(`${base}/api/v1/safes/${checksum(s.address)}/`, { headers: key ? { Authorization: "Bearer " + key } : {} });
+  if (r.status === 404) throw new Error("no Safe at that address on that chain");
+  if (r.status === 401 || r.status === 403 || r.status === 429) throw new Error(`Safe's service refused (HTTP ${r.status}): set an API key in the app's Settings`);
+  if (!r.ok) throw new Error(`Safe's service: HTTP ${r.status}`);
+  const j = await r.json();
+  return { owners: (j.owners || []).map((o) => String(o).toLowerCase()), threshold: Number(j.threshold) || 0 };
+}
+
+// ---- addresses, and your passkey's owner address --------------------------------------------------
+/** EIP-55: the address with its checksum capitals. */
+export function checksum(a) {
+  const lo = a.slice(2).toLowerCase(), h = hex(keccak256(enc.encode(lo)));
+  return "0x" + [...lo].map((c, i) => (parseInt(h[i], 16) >= 8 ? c.toUpperCase() : c)).join("");
+}
+/** 0x and 40 hex digits; mixed case must be the right checksum (all one case carries none). */
+export function isAddress(a) {
+  if (!/^0x[0-9a-fA-F]{40}$/.test(a)) return false;
+  const body = a.slice(2);
+  return body === body.toLowerCase() || body === body.toUpperCase() || checksum(a) === a;
+}
+
+/** quorum_cfg.py's CFG from the files the console boots (JSON on purpose; web/config.mjs reads it
+ *  the same way), so the page uses the factory and services the console itself runs with. */
+export function consoleCfg(files) {
+  const f = (files || []).find((x) => x.name === "quorum_cfg.py");
+  try { return f ? JSON.parse(f.text.slice(f.text.indexOf("{", f.text.indexOf("CFG =")))) : null; } catch { return null; }
+}
+
+/** Your passkey's owner address: the SafeWebAuthnSignerProxy Safe's passkey factory deploys for its
+ *  key, CREATE2 with salt 0 over the proxy's creation code and (singleton, x, y, verifiers). The
+ *  address its signatures count as, and the one to add to a Safe; the same on every chain. The
+ *  console computes it too (firmware/webauthn.owner_address), and the app (sigs.mjs p256Owner). */
+export function passkeyOwner(cred, signer) {
+  const word = (h) => String(h).replace(/^0x/, "").toLowerCase().padStart(64, "0");
+  const init = unhex(signer.proxyCode + word(signer.singleton) + word(cred.x) + word(cred.y) + word(signer.verifiers));
+  const pre = unhex("ff" + word(signer.factory).slice(24) + "00".repeat(32) + hex(keccak256(init)));
+  return checksum("0x" + hex(keccak256(pre)).slice(24));
 }
 
 // The software key (key.bin): random, made once in this browser and kept there. The fixed test key

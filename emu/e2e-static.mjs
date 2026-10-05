@@ -110,6 +110,13 @@ check(cred.rpId === "localhost" && /^[0-9a-f]{64}$/.test(cred.x) && /^[0-9a-f]{6
 await repl("import signer; _s = signer.load(); print('signer:' + _s.name)", /signer:passkey/, "the console's signer is now the passkey");
 const PY_CHECK = "import webauthn, hashlib, p256; _a, _f, _r, _t = _s.assertion('0x' + 'ab' * 32); _x, _y = _s.pubkey(); _c = '{\"type\":\"webauthn.get\",\"challenge\":\"%s\",%s}' % (webauthn.b64url(bytes([0xab] * 32)), _f); print('verified:%s uv:%d' % (p256.verify(_x, _y, hashlib.sha256(_a + hashlib.sha256(_c.encode()).digest()).digest(), _r, _t), _a[32] & 4))";
 await repl(PY_CHECK, /verified:True uv:4/, "the passkey's assertion over a hash, rebuilt as Safe's signer rebuilds it, verifies in the console's own P-256 code, with UV");
+await repl("import quorum_cfg; print('owner:' + webauthn.owner_address('0x%064x' % _x, '0x%064x' % _y, quorum_cfg.CFG['signer']))", /owner:0x[0-9a-fA-F]{40}/, "the console works out its owner address from the passkey's key");
+const pyOwner = ((await log()).match(/owner:(0x[0-9a-fA-F]{40})/g) || [""]).pop().slice(6);
+const jsOwner = await page.evaluate(async () => {
+  const b = await import(new URL("web/browser.mjs", location.href).href);
+  return b.passkeyOwner(b.passkeyCred(), b.consoleCfg((await b.staticBoot()).files).signer);
+});
+check(!!pyOwner && jsOwner.toLowerCase() === pyOwner.toLowerCase(), `the page's owner address for the passkey (browser.mjs) is the console's (webauthn.owner_address): ${jsOwner}`);
 await repl("print('fields:' + _f)", /fields:"origin":"http:\/\/localhost:\d+","crossOrigin":false/, "its clientData fields are the browser's own (origin, crossOrigin)");
 await cdp.send("WebAuthn.setUserVerified", { authenticatorId, isUserVerified: false });
 await repl("exec(\"try:\\n    _s.assertion('0x' + 'cd' * 32)\\nexcept Exception as _e:\\n    print('refused:' + str(_e))\")", /refused:.*(UV|verif|NotAllowedError)/i, "without user verification it is refused (by the browser, or the page checks the UV flag): the console gets an error, never a signature");
@@ -140,14 +147,29 @@ const auth2 = (await cdp2.send("WebAuthn.addVirtualAuthenticator", { options: {
   protocol: "ctap2", transport: "internal", hasResidentKey: true, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true } })).authenticatorId;
 check(/I already have one/.test(await con.locator("#overlay").innerText()), "it also offers to use a passkey you already have");
 await con.click("#overlay .go:not(.alt)");
-await con.waitForFunction(() => /No Safe/.test(document.querySelector("#overlay").innerText), null, { timeout: 15000 });
-check(!!JSON.parse(await con.evaluate(() => localStorage.getItem("emu.passkey")))?.x, "Make a passkey: made, kept in this browser; next the screen asks for a Safe, with a link to the app");
+await con.waitForFunction(() => /Add a Safe/.test(document.querySelector("#overlay").innerText), null, { timeout: 15000 });
+check(!!JSON.parse(await con.evaluate(() => localStorage.getItem("emu.passkey")))?.x, "Make a passkey: made, kept in this browser; next the screen asks for a Safe");
+const conOwner = (await con.locator("#overlay .owner .addr").innerText()).trim();
+check(/^0x[0-9a-fA-F]{40}$/.test(conOwner) && (await con.locator("#owner .addr").innerText()).trim() === conOwner,
+  `the screen and the panel show the passkey's owner address, to add to a Safe (${conOwner.slice(0, 10)}…)`);
 check(/your passkey, for localhost/.test(await con.locator("#key").innerText()) && await con.locator('#key a[href="../app/#/passkey"]').count() === 1,
   "the panel names the key, your passkey for this site, and links to its page in the app");
 const made = JSON.parse(await con.evaluate(() => localStorage.getItem("emu.passkey")));
 const synced = (await cdp2.send("WebAuthn.getCredentials", { authenticatorId: auth2 })).credentials;
-await con.evaluate(() => localStorage.setItem("pq.safes", JSON.stringify([{ chain: "basesep", address: "0x1234567890abcdef1234567890abcdef12345678", name: "Test Safe" }])));
-await con.reload();
+// adding a Safe you already have, right there: a bad address is refused, Safe{Wallet}'s "basesep:0x…" picks the chain
+await con.fill("#overlay .add-safe input >> nth=0", "0x1234");
+await con.click("#overlay .add-safe .go");
+check(/isn't an address/.test(await con.locator("#overlay .add-safe .bad").innerText()) && await con.evaluate(() => !localStorage.getItem("pq.safes")), "Add Safe: an address that isn't one is refused, nothing saved");
+await con.fill("#overlay .add-safe input >> nth=0", "0x1234567890AbCdEf1234567890abcdef12345678");
+await con.click("#overlay .add-safe .go");
+check(/checksum/.test(await con.locator("#overlay .add-safe .bad").innerText()), "and so is one with the wrong checksum capitals");
+await con.fill("#overlay .add-safe input >> nth=0", "basesep:0x1234567890abcdef1234567890abcdef12345678");
+await con.locator("#overlay .add-safe input >> nth=0").dispatchEvent("input");
+await con.fill("#overlay .add-safe input >> nth=1", "Test Safe");
+await con.click("#overlay .add-safe .go");
+const savedNow = JSON.parse(await con.evaluate(() => localStorage.getItem("pq.safes")) || "[]");
+check(savedNow.length === 1 && savedNow[0].chain === "basesep" && savedNow[0].address === "0x1234567890AbcdEF1234567890aBcdef12345678" && savedNow[0].name === "Test Safe",
+  `Add Safe: saved to the app's list, chain from the prefix, address checksummed (${JSON.stringify(savedNow)})`);
 const drew = await con.waitForFunction(() => document.querySelector("#overlay").hidden && +(document.querySelector("#screen").dataset.frames || 0) > 0, null, { timeout: 60000 }).then(() => true, () => false);
 check(drew, `with a passkey and a saved Safe, the console boots and draws its screen${drew ? "" : ` (output ends: ${(await con.evaluate(() => document.querySelector("#out").textContent)).slice(-400).replace(/\n/g, " | ")}; errors: ${errors.join("; ")})`}`);
 const litNow = () => con.evaluate(() => { const d = document.querySelector("#screen").getContext("2d").getImageData(0, 0, 240, 240).data; let n = 0; for (let i = 0; i < d.length; i += 4) n += d[i] + d[i + 1] + d[i + 2] > 60; return n; });
@@ -167,6 +189,11 @@ await con.keyboard.down("ArrowLeft"); await con.waitForTimeout(250); await con.k
 moved = false;
 for (let i = 0; i < 20 && !moved; i++) { await con.waitForTimeout(150); moved = (await shot()) !== before2; }
 check(moved, "and so does the keyboard (an arrow key)");
+check(/Test Safe · Base Sepolia/.test(await con.locator("#safes").innerText()) && await con.locator("#safes .link").count() === 1,
+  "the panel lists the Safe, with Remove");
+await con.waitForFunction(() => !/checking/.test(document.querySelector("#safes .status").textContent), null, { timeout: 15000 }).catch(() => {});
+check(/couldn't check/.test(await con.locator("#safes .status").innerText()), "its owner check asks Safe's service (refused here, and the page says so)");
+check(await con.locator("#add-safe .add-safe").count() === 1, "and offers to add another");
 // the app's page for it: the owner address, the same on every chain, and the way into a Safe
 const app2 = await ctx2.newPage();
 await app2.goto(BASE + "app/#/passkey");
@@ -174,6 +201,7 @@ await app2.waitForSelector("h1:has-text('Your passkey')");
 const owner2 = (await app2.locator(".card .inline-ident code").first().innerText()).trim();
 check(/^0x[0-9a-fA-F]{40}$/.test(owner2) && await app2.locator('a[href*="/new/add/' + owner2 + '"]').count() === 1,
   `the app's Your passkey page: its owner address (${owner2.slice(0, 10)}…) and Add owner for the saved Safe, owner filled in`);
+check(owner2 === conOwner, "the console page and the app show the same owner address");
 await ctx2.close();
 
 // 8. the same passkey in another browser (iCloud Keychain syncing it to the iPhone, say): this one
@@ -191,7 +219,7 @@ for (const c of synced) await cdp3.send("WebAuthn.addCredential", { authenticato
 await con3.goto(BASE + "console/");
 await con3.waitForFunction(() => self.crossOriginIsolated && /I already have one/.test(document.querySelector("#overlay")?.innerText || ""), null, { timeout: 30000 });
 await con3.click("#overlay .go.alt");
-const found = await con3.waitForFunction(() => /No Safe/.test(document.querySelector("#overlay").innerText), null, { timeout: 20000 }).then(() => true, () => false);
+const found = await con3.waitForFunction(() => /Add a Safe/.test(document.querySelector("#overlay").innerText), null, { timeout: 20000 }).then(() => true, () => false);
 const cred3 = JSON.parse(await con3.evaluate(() => localStorage.getItem("emu.passkey")) || "null");
 check(found && cred3?.x === made.x && cred3?.y === made.y && cred3?.id === made.id,
   `I already have one: from two signatures, the same public key as where it was made${found ? "" : ` (overlay: ${(await con3.locator("#overlay").innerText()).slice(0, 160)})`}`);

@@ -5,6 +5,7 @@
     "SKILL.txt": "2d527d7140c982fcb7f113d0bb1de7cfaca07632ebaf07abd0fc06bf73bc2c21",
     "boot.json": "5e8bdf48b9647b7485809c6fb18fb57400647bd00ce91817f696aee82367e3d4",
     "coi.js": "e8751e84a09e5c4783fbaaa530cf17fe8904195200bff247346d78620a20fc9c",
+    "core/keccak.mjs": "d98224f46c3f6b6a4a925c731cdbaf65c7bd1f439a6593c8175d8f8ef885364a",
     "core/runtime.mjs": "407c853cfd6fe7882dde593a89b6e88879f2667447ef046bbcfbc2386a939dfb",
     "core/webauthn-assert.mjs": "2315708cdfcfd2ac8f4e1bf14b18984aa8173d71f928837c87c7d8886e40019c",
     "index.html": "e8e5e0c40433d95d8bf268d808f3f8ad78e0b08bba62ff215059f3a7d8ad0f6e",
@@ -29,7 +30,7 @@
     "vendor/three/three.module.js": "ce1fa418de16a19495a9f72495580e3015d7745c296d3ce0485897f902ddedfb",
     "web/app.css": "147967d3e57a8af453cfe36d9628ed6e4d1b29e157d6b7e2d2abfc7d17148706",
     "web/app.js": "74631f1d5727cac60505d70b15eba9269ea0647566eaf82c8b7f6b79e9d060ea",
-    "web/browser.mjs": "eb20c9b730d804e11c362715dcb97e5358ebd6fa9eafe2ac5cbbe030776ab73b",
+    "web/browser.mjs": "a651dd689c89c97d57bdc4b39b8cbc538ac756c155e38c4fbd3e605f2fcab45d",
     "web/device3d.js": "e48d53aeae3a28e99e044fb8beae4da34389761e8ee72f42e4c3f4c99c4d06e8",
     "web/worker.js": "991404837ffe06e51c1fb32b7c055ccc6e12f0eabdb86c530fbba41ceeafbc35"
   }
