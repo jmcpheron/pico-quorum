@@ -200,10 +200,12 @@ export async function createDevice(opts) {
   for (const name of SHIMS) FS.writeFile(`/lib/${name}.py`, opts.shims[name]);
   FS.writeFile("/lib/_bootstrap.py", opts.shims._bootstrap);
   for (const [name, data] of Object.entries(opts.files || {})) writeFile(name, data);
-  writeFile("secrets.py", secretsPy(opts.appUrl || "http://localhost:3001") + (opts.secrets || ""));
+  writeFile("secrets.py", secretsPy(opts.appUrl === null ? null : opts.appUrl || "http://localhost:3001") + (opts.secrets || ""));
   // A fixed throwaway software key, so the virtual wallet's address survives reboots and a vault
-  // deployed against it on anvil keeps working across runs. Never a real key.
-  writeFile("key.bin", Uint8Array.from({ length: 32 }, (_, i) => i + 1));
+  // deployed against it on anvil keeps working across runs. Never a real key. The page on GitHub
+  // Pages passes its own (opts.keyBin): random, kept in that browser, since a fixed key in a public
+  // page would be anyone's.
+  writeFile("key.bin", opts.keyBin || Uint8Array.from({ length: 32 }, (_, i) => i + 1));
   mark("flash written");
   mp.runPython("import _bootstrap");
   mark("bootstrapped");
@@ -268,7 +270,7 @@ function secretsPy(appUrl) {
 WIFI_SSID = "emulator"
 WIFI_PASS = ""
 HOSTNAME = "picowallet-emu"
-APP_URL = ${JSON.stringify(appUrl)}
+APP_URL = ${appUrl == null ? "None" : JSON.stringify(appUrl)}
 DEVICE_NAME = "picowallet-emu"
 ENABLE_NETWORK_CONSOLE = False
 EXPECTED_CHAIN_ID = None

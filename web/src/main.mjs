@@ -851,7 +851,7 @@ async function releasesView() {
   fill($main(),
     h("section", { class: "hero" }, h("h1", { text: "Releases" }),
       h("p", { class: "lede", text: "Each firmware release has a fingerprint: a SHA-256 of the console's source files. Your console shows its blockie and first eight digits on the Device screen (on the home grid, press X)." }),
-      h("p", { class: "muted", text: "The fingerprint is taken over the source, so a Pico and the emulator running the same release show the same picture. One that matches no release here is a development build, or firmware that isn't ours." })),
+      h("p", { class: "muted" }, "The fingerprint is taken over the source, so a Pico and ", h("a", { href: "../emu/", text: "the console in your browser" }), " running the same release show the same picture. One that matches no release here is a development build, or firmware that isn't ours.")),
     h("section", { class: "card" }, h("h2", { text: "Which release is my console running?" }),
       h("label", { for: "fp", text: "The eight digits under Release on its Device screen" }), find,
       h("p", { id: "fp-help", class: "muted small", text: "Spaces and the middle dot don't matter." }), found),

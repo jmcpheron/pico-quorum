@@ -1,8 +1,8 @@
 // The emulated Pico lives in this Worker so a busy `while True` never freezes the page.
 // Keys arrive through a SharedArrayBuffer (read even while Python is busy); frames and
 // console lines go out with postMessage.
-import { loadMicroPython } from "/vendor/micropython/micropython.mjs";
-import { createDevice, KEY_ORDER } from "/core/runtime.mjs";
+import { loadMicroPython } from "../vendor/micropython/micropython.mjs";
+import { createDevice, KEY_ORDER } from "../core/runtime.mjs";
 
 let dev = null;
 let keys = null;
@@ -45,11 +45,16 @@ function xhr(method, url, body, headers, timeoutMs) {
   return { status: x.status, text: x.responseText, headers: hdrs };
 }
 
-// the virtual ATECC608's state lives on the server (emu/chip.json) so it survives reboots
-const chipStore = {
-  load() { const x = new XMLHttpRequest(); x.open("GET", "/ctl/chip", false); x.send(); return x.status === 200 ? x.responseText : null; },
-  save(s) { const x = new XMLHttpRequest(); x.open("POST", "/ctl/chip", false); x.setRequestHeader("content-type", "application/json"); x.send(s); },
+// The virtual chips' state (emu/chip.json) survives reboots. Under tools/emu it lives on the server;
+// on GitHub Pages (static) the page hands it over at boot and keeps each save in the browser.
+const CHIP_URL = new URL("../ctl/chip", import.meta.url).href;
+const serverChip = {
+  load() { const x = new XMLHttpRequest(); x.open("GET", CHIP_URL, false); x.send(); return x.status === 200 ? x.responseText : null; },
+  save(s) { const x = new XMLHttpRequest(); x.open("POST", CHIP_URL, false); x.setRequestHeader("content-type", "application/json"); x.send(s); },
 };
+function pageChip(state) {
+  return { load: () => state, save(s) { state = s; postMessage({ type: "chip", data: s }); } };
+}
 
 onmessage = async (e) => {
   const m = e.data;
@@ -61,8 +66,9 @@ onmessage = async (e) => {
       for (const f of m.files) files[f.name] = f.text !== undefined ? f.text : Uint8Array.from(atob(f.b64), (c) => c.charCodeAt(0));
       dev = await createDevice({
         loadMicroPython, keys, files, shims: m.shims, appUrl: m.appUrl, heapsize: m.heapsize, mark,
+        secrets: m.secrets, keyBin: m.keyBin,
         http: xhr,
-        chip: chipStore,
+        chip: m.chip !== undefined ? pageChip(m.chip) : serverChip,
         stdin: serialCtl ? stdinByte : undefined,
         onFrame,
         onStdout: (line) => postMessage({ type: "out", line }),

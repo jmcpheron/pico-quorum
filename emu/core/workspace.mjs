@@ -75,11 +75,11 @@ export function writeWorkspaceFile(name, content, src) {
 // commit (+dirty when firmware/ or the sketches differ from it), and RELEASE, the release
 // fingerprint of the console image's files *as the emulator serves them* (a sketch that replaces a
 // firmware file changes it). A Pico built from the same commit shows the same fingerprint.
-export function emuBuild(files, { image = "emu" } = {}) {
+export function emuBuild(files, { image = "emu", build } = {}) {
   const m = manifest();
   const release = fingerprint(m.images.console.files, (n) => files[n]);
-  const py = `# written by the emulator; never on a Pico\nIMAGE = ${JSON.stringify(image)}\nVERSION = ${JSON.stringify(m.version || "")}\nBUILD = ${JSON.stringify(gitBuild())}\nDATE = ${Math.floor(Date.now() / 1000)}\nRELEASE = ${JSON.stringify(release)}\n`;
-  return { release, py };
+  const py = `# written by the emulator; never on a Pico\nIMAGE = ${JSON.stringify(image)}\nVERSION = ${JSON.stringify(m.version || "")}\nBUILD = ${JSON.stringify(build || gitBuild())}\nDATE = ${Math.floor(Date.now() / 1000)}\nRELEASE = ${JSON.stringify(release)}\n`;
+  return { release, py, consoleFiles: [...m.images.console.files] };
 }
 
 function gitBuild() {

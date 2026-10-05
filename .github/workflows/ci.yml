@@ -8,6 +8,8 @@
 #             the release fingerprint of the source (the build dirs are kept as artifacts)
 #   web       the app's tests, then a rebuild that must equal docs/ as committed (the build is
 #             reproducible: what Pages serves is what this source makes), then the browser e2e
+#   emu-web   the emulator's Pages build (docs/emu/), the same rebuild check, then Chromium against
+#             it served like Pages (no COOP/COEP headers)
 name: CI
 
 on:
@@ -132,3 +134,32 @@ jobs:
         run: |
           npx playwright-core install --with-deps chromium
           npm run e2e
+
+  emu-web:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: emu/package-lock.json
+      - run: npm ci
+        working-directory: emu
+      - name: Rebuild docs/emu; it must equal what is committed
+        working-directory: emu
+        run: |
+          node build.mjs
+          if [ -n "$(git status --porcelain -- ../docs/emu)" ]; then
+            git status --short -- ../docs/emu
+            echo "::error::docs/emu differs from a rebuild of this commit. Run cd emu && node build.mjs, and commit docs/emu."
+            exit 1
+          fi
+      - name: The static emulator in Chromium
+        working-directory: emu
+        run: |
+          npx playwright-core install --with-deps chromium
+          node e2e-static.mjs

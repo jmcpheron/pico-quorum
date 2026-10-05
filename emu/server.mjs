@@ -45,7 +45,7 @@ const server = http.createServer(async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
   try {
     if (url.pathname === "/") return sendFile(res, join(EMU, "web/index.html"));
-    if (url.pathname === "/skill") { res.writeHead(200, { "content-type": "text/plain; charset=utf-8" }); return res.end(readFileSync(join(EMU, "SKILL.md"))); }
+    if (url.pathname === "/skill" || url.pathname === "/SKILL.txt") { res.writeHead(200, { "content-type": "text/plain; charset=utf-8" }); return res.end(readFileSync(join(EMU, "SKILL.md"))); }
     if (url.pathname.startsWith("/app/")) return proxy(req, res, url.pathname.slice(4) + url.search);
     if (url.pathname.startsWith("/ctl/")) {
       // The wallet app (another origin) may drive the virtual device's serial port for testing.
@@ -94,7 +94,7 @@ async function control(req, res, url) {
     });
     const b = emuBuild(readWorkspace());   // build.py: the version, commit and release fingerprint of what runs
     files.push({ name: "build.py", src: "emu", size: b.py.length, mtime: Date.now(), text: b.py, runnable: false, entry: "" });
-    return json(res, 200, { files, shims: readShims(), appUrl: "/app", release: b.release, clients: clients.size });
+    return json(res, 200, { files, shims: readShims(), appUrl: "/app", release: b.release, consoleFiles: b.consoleFiles, clients: clients.size });
   }
   if (p === "files" && req.method === "GET") return json(res, 200, { files: listWorkspace() });
   if (p === "file" && req.method === "GET") {

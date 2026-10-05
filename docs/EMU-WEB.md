@@ -1,8 +1,13 @@
 # The emulator on the web, signing with your laptop's passkey
 
-> **Design notes (2026-10-04), branch `emu-web-passkey`.** Nothing here is built yet except the
-> check in `tools/vectors/passkey.mjs`, which passes. The goal is a demo: open a link, the console
-> runs in the page, and Touch ID or Windows Hello is the chip.
+> **Design notes (2026-10-04), being built (2026-10-05).** Built so far:
+> - the check in `tools/vectors/passkey.mjs`;
+> - release fingerprints (`docs/releases/`);
+> - CI and signed releases (`docs/RELEASES.md`);
+> - the emulator on Pages (`docs/emu/`, `emu/README.md`).
+>
+> The passkey signer comes next. The goal is a demo: open a link, the console runs in the page, and
+> Touch ID or Windows Hello is the chip.
 
 ## Short answers
 
