@@ -7,100 +7,12 @@
 // state, a software key and any edited files in this browser, and runs the console on the Safes
 // saved in the app (same origin).
 import { createDevice3D } from "./device3d.js";
-import { assertionParts, b64url, spkiXY, unhex } from "../core/webauthn-assert.mjs";
+import {
+  KEY_ORDER, answer, appSafes, browserKey, keyOf, keyMode, local, makePasskey, paintFrame, passkeyCred, setKeyMode,
+  showRelease, stampRelease, staticBoot, staticSecrets, EDIT,
+} from "./browser.mjs";
 
 const STATIC = document.querySelector('meta[name="emu-host"]')?.content === "static";
-const local = {
-  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
-  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
-  del(k) { try { localStorage.removeItem(k); } catch {} },
-};
-
-// ---- the release fingerprint -------------------------------------------------------------
-// tools/releases/fingerprint.mjs, in the browser: sha256 over "name \0 sha256(file) \n" lines of the
-// console image's files, sorted. Taken over what this page boots, so it names exactly that.
-const enc = new TextEncoder();
-const hex = (buf) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
-async function fingerprint(names, payload) {
-  if (!names.length || !crypto.subtle) return "";
-  const byName = new Map(payload.map((f) => [f.name, f]));
-  let lines = "";
-  for (const n of [...new Set(names)].sort()) {
-    const f = byName.get(n);
-    if (!f) return "";
-    const bytes = f.text !== undefined ? enc.encode(f.text) : Uint8Array.from(atob(f.b64), (c) => c.charCodeAt(0));
-    lines += `${n}\0${hex(await crypto.subtle.digest("SHA-256", bytes))}\n`;
-  }
-  return hex(await crypto.subtle.digest("SHA-256", enc.encode(lines)));
-}
-
-// Its blockie and first 8 hex digits, as a Pico's Device screen shows them; marked when the files
-// differ from the release this page was built from.
-async function showRelease(fp, built) {
-  const el = document.getElementById("release");
-  if (!el || !fp) return;
-  const { blockieSrc } = await import("../shared/blockies.mjs");
-  const img = document.createElement("img");
-  img.src = blockieSrc("0x" + fp);
-  img.alt = "";
-  const changed = built && fp !== built;
-  el.replaceChildren(img, `release ${fp.slice(0, 4)}\u00b7${fp.slice(4, 8)}${changed ? " (edited)" : ""}`);
-  el.classList.toggle("edited", !!changed);
-  el.title = `release fingerprint ${fp}: the same blockie as on a Pico's Device screen running these files` +
-    (changed ? `. Edited here: the files as built give ${built.slice(0, 8)}.` : "");
-}
-
-// ---- GitHub Pages (static) ---------------------------------------------------------------------
-const EDIT = "emu.file:";       // + name: a file edited or made in this browser
-const ENTRY_OF = { demo: "demo.run()", wallet: "wallet.start()", usbwallet: "usbwallet.start()", quorum: "quorum.start()" };
-
-// boot.json (emu/build.mjs: the firmware, the shims, build.py), then this browser's edits on top.
-async function staticBoot() {
-  const b = await (await fetch(new URL("../boot.json", import.meta.url), { cache: "no-cache" })).json();
-  const byName = new Map(b.files.map((f) => [f.name, f]));
-  for (let i = 0; i < localStorage.length; i++) {
-    const k = localStorage.key(i);
-    if (!k || !k.startsWith(EDIT)) continue;
-    try {
-      const { text, src } = JSON.parse(local.get(k));
-      const name = k.slice(EDIT.length), mod = name.replace(/\.py$/, "");
-      const runnable = name.endsWith(".py") && (!!ENTRY_OF[mod] || mod === "main" || /^(start|run|main)\(\)\s*$/m.test(text));
-      byName.set(name, { ...(byName.get(name) || { name, src: src || "sketches", entry: ENTRY_OF[mod] || "" }), text, runnable });
-    } catch {}
-  }
-  return { ...b, files: [...byName.values()] };
-}
-
-// The Safes saved in the app ({chain, address, name}; same origin, so the same localStorage), as
-// secrets.py's QUORUM_SAFES, and the app's Safe API key. APP_URL is None (boot.json appUrl null), so
-// the console asks Safe's own service for each chain, as a production console does.
-const CHAIN_IDS = { eth: 1, base: 8453, basesep: 84532 };
-function appSafes() {
-  try { return (JSON.parse(local.get("pq.safes") || "[]") || []).filter((s) => CHAIN_IDS[s.chain] && /^0x[0-9a-fA-F]{40}$/.test(s.address)); }
-  catch { return []; }
-}
-function staticSecrets() {
-  const safes = appSafes().map((s) => ({ chainId: CHAIN_IDS[s.chain], address: s.address, name: String(s.name || "Safe").slice(0, 40) }));
-  let key = "";
-  try { key = JSON.parse(local.get("pq.apiKey") || '""'); } catch {}
-  return "\n# from the app's saved Safes and settings, in this browser\n" +
-    (safes.length ? `QUORUM_SAFES = ${JSON.stringify(safes)}\n` : "") +
-    (key ? `QUORUM_API_KEY = ${JSON.stringify(key)}\n` : "");
-}
-
-// The software key (key.bin): random, made once in this browser and kept there. The fixed test key
-// the local emulator uses would be anyone's on a public page.
-function browserKey() {
-  let h = local.get("emu.keybin");
-  if (!/^[0-9a-f]{64}$/.test(h || "")) { h = hex(crypto.getRandomValues(new Uint8Array(32))); local.set("emu.keybin", h); }
-  return Uint8Array.from(h.match(/../g), (x) => parseInt(x, 16));
-}
-
-const KEY_ORDER = ["A", "B", "X", "Y", "up", "down", "left", "right", "press"];
-// keyboard -> device. Joystick: W A S D + space. Buttons: numpad 9 6 3 . (top row 9 6 3 . works too).
-const KEYMAP = { w: "up", a: "left", s: "down", d: "right", " ": "press", 9: "A", 6: "B", 3: "X", ".": "Y" };
-const CODEMAP = { Numpad9: "A", Numpad6: "B", Numpad3: "X", NumpadDecimal: "Y", Space: "press" };
-const keyOf = (e) => CODEMAP[e.code] || KEYMAP[e.key] || KEYMAP[e.key.toLowerCase()];
 const $ = (s) => document.querySelector(s);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -294,7 +206,7 @@ async function reboot(runName) {
   for (const i of KEY_ORDER.keys()) keys[i] = 0;
   if (serialCtl) { Atomics.store(serialCtl, 0, 0); Atomics.store(serialCtl, 1, 0); }
   setConn("booting", "");
-  const b = STATIC ? await staticBoot() : await (await fetch("ctl/boot")).json();
+  const b = STATIC ? await staticBoot({ edits: true }) : await (await fetch("ctl/boot")).json();
   mark("boot payload");
   for (const f of b.files) {
     const old = files.get(f.name);
@@ -308,10 +220,8 @@ async function reboot(runName) {
   const payload = b.files.map((f) => { const cur = files.get(f.name); return cur && cur.text !== undefined ? { name: f.name, text: cur.text } : f; });
   // build.py's RELEASE is the fingerprint of what boots, edits included: an edited console file
   // gets a different blockie than the release's, never the release's own.
-  const fp = await fingerprint(b.consoleFiles || [], payload);
-  const bp = payload.find((f) => f.name === "build.py");
-  if (bp && fp) bp.text = bp.text.replace(/^RELEASE = .*$/m, `RELEASE = ${JSON.stringify(fp)}`);
-  showRelease(fp, b.release);
+  const fp = await stampRelease(b.consoleFiles, payload);
+  showRelease($("#release"), fp, b.release);
   const host = { rpc: rpcSab, passkey: keyMode() === "passkey" ? local.get("emu.passkey") : null,
     ...(STATIC ? { secrets: staticSecrets(), chip: local.get("emu.chip"), keyBin: browserKey() } : {}) };
   renderKey();
@@ -342,11 +252,7 @@ async function reboot(runName) {
 function onMsg(e) {
   const m = e.data;
   if (m.type === "frame") {
-    const b = new Uint8Array(m.buf), d = img.data;
-    for (let i = 0, o = 0; i < b.length; i += 2, o += 4) {
-      const c = (b[i] << 8) | b[i + 1];
-      d[o] = (c >> 8) & 0xf8; d[o + 1] = (c >> 3) & 0xfc; d[o + 2] = (c << 3) & 0xf8; d[o + 3] = 255;
-    }
+    paintFrame(m.buf, img);
     sctx.putImageData(img, 0, 0);
     fctx.putImageData(img, 0, 0);
     frames = m.frames; fpsCount++;
@@ -357,7 +263,7 @@ function onMsg(e) {
   else if (m.type === "pin") { if (m.pin === "LED" && device3d) device3d.setLed(!!m.v); }
   else if (m.type === "reset") { appendLog("machine.reset()", "sys"); reboot(main); }
   else if (m.type === "chip") local.set("emu.chip", m.data);
-  else if (m.type === "rpc") answer(m);
+  else if (m.type === "rpc") answer(rpcSab, m);
   else if (m.type === "started") { const r = started.get(m.id); if (r) r(); }
   else if (m.type === "done") { const w = waiting.get(m.id); if (w) { waiting.delete(m.id); m.error ? w.reject(new Error(m.error)) : w.resolve(); } }
 }
@@ -517,8 +423,6 @@ if (!STATIC) {
 // boot. The private key never leaves the authenticator: Touch ID, Windows Hello, a phone, a
 // security key. The console asks for an assertion over the hash it computed; the person approves
 // with the authenticator, which never shows the transaction: what they approve is this screen.
-const keyMode = () => (local.get("emu.key") === "passkey" ? "passkey" : "chip");
-const passkeyCred = () => { try { return JSON.parse(local.get("emu.passkey") || "null"); } catch { return null; } };
 function renderKey() {
   $("#keymode").value = keyMode();
   const missing = keyMode() === "passkey" && !passkeyCred();
@@ -528,67 +432,18 @@ function renderKey() {
     : $("#keylabel").title;
 }
 $("#keymode").onchange = (e) => {
-  local.set("emu.key", e.target.value);
+  setKeyMode(e.target.value);
   renderKey();
   if (e.target.value === "chip" || passkeyCred()) reboot(main);
   else appendLog("Your passkey: press 🔑 make a passkey. Touch ID, Windows Hello, a phone or a security key will ask.", "sys");
 };
 $("#mkpasskey").onclick = async () => {
   try {
-    if (!window.PublicKeyCredential) throw new Error("this browser has no WebAuthn");
-    const c = await navigator.credentials.create({ publicKey: {
-      rp: { name: "PicoQuorum console", id: location.hostname },
-      user: { id: crypto.getRandomValues(new Uint8Array(16)), name: "PicoQuorum console key", displayName: "PicoQuorum console key" },
-      challenge: crypto.getRandomValues(new Uint8Array(32)),
-      pubKeyCredParams: [{ type: "public-key", alg: -7 }],        // ES256: P-256, what Safe's passkey signer verifies
-      authenticatorSelection: { userVerification: "required", residentKey: "preferred" },
-      attestation: "none", timeout: 120000 } });
-    if (c.response.getPublicKeyAlgorithm && c.response.getPublicKeyAlgorithm() !== -7) throw new Error("the passkey isn't P-256 (ES256)");
-    const flags = new Uint8Array(c.response.getAuthenticatorData())[32];
-    const transports = (c.response.getTransports && c.response.getTransports()) || [];
-    const cred = { id: b64url(new Uint8Array(c.rawId)), ...spkiXY(c.response.getPublicKey()), rpId: location.hostname,
-      attachment: transports.includes("hybrid") ? "hybrid" : c.authenticatorAttachment === "platform" ? "platform" : "security-key",
-      synced: !!(flags & 0x10), made: new Date().toISOString().slice(0, 10) };
-    local.set("emu.passkey", JSON.stringify(cred));
+    const cred = await makePasskey();
     appendLog(`Made your passkey for ${cred.rpId} (${cred.synced ? "synced by your account" : "kept on that device"}). The console's owner address follows from it: see Chip.`, "sys");
     await reboot(main);
   } catch (e) { appendLog(`No passkey made: ${e.name || ""} ${e.message || e}`.trim(), "err"); }
 };
-
-async function passkeyGet(challenge) {
-  const cred = passkeyCred();
-  if (!cred) throw new Error("no passkey in this browser");
-  if (local.get("emu.passkey-noted") !== "1") {
-    const go = confirm("Before your passkey signs:\n\nTouch ID (or Windows Hello, or your phone) won't show the transaction. What you approve is the console's screen here, which this browser draws.\n\nOn a computer you don't trust, use a hardware key instead. Keep passkey owners below the Safe's threshold.\n\nSign with your passkey?");
-    if (!go) throw new Error("NotAllowedError: you chose not to sign");
-    local.set("emu.passkey-noted", "1");
-  }
-  const a = await navigator.credentials.get({ publicKey: {
-    challenge: unhex(challenge), rpId: cred.rpId, userVerification: "required", timeout: 120000,
-    allowCredentials: [{ type: "public-key", id: Uint8Array.from(atob(cred.id.replace(/-/g, "+").replace(/_/g, "/")), (ch) => ch.charCodeAt(0)) }] } });
-  const parts = assertionParts(challenge, a.response.authenticatorData, a.response.clientDataJSON, a.response.signature);
-  // checked here against the key the console was given, before it is posted anywhere
-  const key = await crypto.subtle.importKey("raw", unhex("04" + cred.x + cred.y), { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
-  const rs = unhex(parts.r.padStart(64, "0") + parts.s.padStart(64, "0"));
-  const signed = new Uint8Array([...unhex(parts.ad), ...new Uint8Array(await crypto.subtle.digest("SHA-256", a.response.clientDataJSON))]);
-  if (!(await crypto.subtle.verify({ name: "ECDSA", hash: "SHA-256" }, key, rs, signed))) throw new Error("that passkey isn't the one this console was given");
-  return parts;
-}
-
-// The worker's question (askPage): answer into the shared buffer, then wake it.
-async function answer(m) {
-  let out;
-  try {
-    if (m.what === "passkey") out = await passkeyGet(m.args.challenge);
-    else throw new Error("unknown question " + m.what);
-  } catch (e) { out = { error: `${e.name && e.name !== "Error" ? e.name + ": " : ""}${e.message || e}` }; }
-  const bytes = new TextEncoder().encode(JSON.stringify(out));
-  const ctl = new Int32Array(rpcSab, 0, 2);
-  new Uint8Array(rpcSab, 8).set(bytes.slice(0, 65536));
-  Atomics.store(ctl, 1, Math.min(bytes.length, 65536));
-  Atomics.store(ctl, 0, 1);
-  Atomics.notify(ctl, 0);
-}
 
 // ---- go ----------------------------------------------------------------------------------
 const T0 = performance.now();

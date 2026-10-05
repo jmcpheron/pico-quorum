@@ -3,10 +3,10 @@
 // once, when the worker has taken over. Cross-origin requests (Safe's service) are left alone.
 (function () {
   if (self.crossOriginIsolated || !("serviceWorker" in navigator)) return;
-  var KEY = "emu.coi-reloaded";
+  var KEY = "coi-reloaded:" + location.pathname;
   var once = function () { try { if (sessionStorage.getItem(KEY)) return; sessionStorage.setItem(KEY, "1"); } catch (e) { return; } location.reload(); };
   navigator.serviceWorker.register("sw.js").then(function () {
     if (navigator.serviceWorker.controller) once();
     else navigator.serviceWorker.addEventListener("controllerchange", once);
-  }, function (e) { console.warn("emulator: no service worker, so no SharedArrayBuffer:", e); });
+  }, function (e) { console.warn("no service worker, so no SharedArrayBuffer:", e); });
 })();

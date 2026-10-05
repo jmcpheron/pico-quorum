@@ -891,7 +891,7 @@ async function releasesView() {
   fill($main(),
     h("section", { class: "hero" }, h("h1", { text: "Releases" }),
       h("p", { class: "lede", text: "Each firmware release has a fingerprint: a SHA-256 of the console's source files. Your console shows its blockie and first eight digits on the Device screen (on the home grid, press X)." }),
-      h("p", { class: "muted" }, "The fingerprint is taken over the source, so a Pico and ", h("a", { href: "../emu/", text: "the console in your browser" }), " running the same release show the same picture. One that matches no release here is a development build, or firmware that isn't ours."),
+      h("p", { class: "muted" }, "The fingerprint is taken over the source, so a Pico and ", h("a", { href: "../console/", text: "the console in your browser" }), " running the same release show the same picture. One that matches no release here is a development build, or firmware that isn't ours."),
       h("p", { class: "muted" }, PROJECT ? `A release the project Safe approved says so: its owners approved it on their consoles, and the chain keeps it (${short(PROJECT.address)} on ${CHAINS[PROJECT.name]?.name || PROJECT.chainId}).`
         : "Releases will also be approved on chain by the project Safe, once it exists (docs/GOVERNANCE.md).")),
     h("section", { class: "card" }, h("h2", { text: "Which release is my console running?" }),

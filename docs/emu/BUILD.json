@@ -4,7 +4,7 @@
   "files": {
     "SKILL.txt": "2d527d7140c982fcb7f113d0bb1de7cfaca07632ebaf07abd0fc06bf73bc2c21",
     "boot.json": "5e8bdf48b9647b7485809c6fb18fb57400647bd00ce91817f696aee82367e3d4",
-    "coi.js": "167d602f7b2edd052f06c96de2993b940083aec3246da83e5a101069e58aa849",
+    "coi.js": "e8751e84a09e5c4783fbaaa530cf17fe8904195200bff247346d78620a20fc9c",
     "core/runtime.mjs": "407c853cfd6fe7882dde593a89b6e88879f2667447ef046bbcfbc2386a939dfb",
     "core/webauthn-assert.mjs": "2d4bb9ae01118a3b0cb45133d08f8ff7749340c334e268eb3e5faa372619febf",
     "index.html": "6c3a7b0a69959cce4d1fec103f800dfcf1f5d436f4c1af721b7f0086af8eba9c",
@@ -14,7 +14,7 @@
     "stl/button_cap_1.stl": "2d4c3b95dec88290555fd5054c95aa51a5b6aed09d7c318531a813e114696ea5",
     "stl/joystick_cap_v3_2.00.stl": "70ab0fdccd95f4c9619baa848b1721dcbab06a7cc8ad3f288e68b4ab3960ca8a",
     "stl/lid_v4.stl": "745d4bc6b918e7ab7e413f97a9e73fdb9358e147b9253bcba8dcee5e4b9878e0",
-    "sw.js": "79415b4af6fa5c4b5d28bfca9a67ad9aeced480cb5d8968137a624bf953d64ec",
+    "sw.js": "fc040233cb93c1c9e9cdf1a330fef4b392f5cabb2f7495ae5de602dca01b4740",
     "vendor/codemirror/LICENSE.txt": "168a4becc968f5001e2ee2e0291b6e4daabafc1894a11ade1e11d56e96096e07",
     "vendor/codemirror/lib/codemirror.css": "eb494ea972d2661ef86f7f6ac656dd6786d721e49c9c1b46e1eb967e4b6f9bf3",
     "vendor/codemirror/lib/codemirror.js": "edc03cf5294adb8f68eed55f8845888aa0c403a6445b15f80a8666a1f540d78b",
@@ -28,7 +28,8 @@
     "vendor/three/addons/loaders/STLLoader.js": "a0a83c88b269c94e25b690fae770d350c4728c81853195186976be7af0f8a3b3",
     "vendor/three/three.module.js": "ce1fa418de16a19495a9f72495580e3015d7745c296d3ce0485897f902ddedfb",
     "web/app.css": "147967d3e57a8af453cfe36d9628ed6e4d1b29e157d6b7e2d2abfc7d17148706",
-    "web/app.js": "bf92a9194faeb6ac0439cfff13509d4498d76be4c82c4d3063c037f75eff1f36",
+    "web/app.js": "d1ec954c0719189d2375ce499d591c3abb5dae77bc25ffad3b7008a4265dff03",
+    "web/browser.mjs": "7546ee74a856957e83a04cf4292bda105eb38ec84606a23e5409d697df25d103",
     "web/device3d.js": "e48d53aeae3a28e99e044fb8beae4da34389761e8ee72f42e4c3f4c99c4d06e8",
     "web/worker.js": "991404837ffe06e51c1fb32b7c055ccc6e12f0eabdb86c530fbba41ceeafbc35"
   }

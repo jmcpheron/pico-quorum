@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>PicoQuorum console</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="The PicoQuorum console in your browser: the same firmware as the Pico, with your own passkey as its key.">
+<link rel="stylesheet" href="console.css">
+</head>
+<body>
+<header class="bar">
+  <a class="brand" href="../" title="PicoQuorum">pico<span>quorum</span> console</a>
+  <span id="release" class="release" title="the release fingerprint of the firmware running here"></span>
+  <nav><a href="../app/">App</a> <a href="../app/#/releases">Releases</a> <a href="../emu/" title="the emulator, with an editor and the 3D case">Emulator</a></nav>
+</header>
+
+<main>
+  <section class="device" aria-label="The console">
+    <div class="pad" role="group" aria-label="Joystick">
+      <button class="dir up" data-key="up" aria-label="Up">▲</button>
+      <button class="dir left" data-key="left" aria-label="Left">◀</button>
+      <button class="dir press" data-key="press" aria-label="Press">●</button>
+      <button class="dir right" data-key="right" aria-label="Right">▶</button>
+      <button class="dir down" data-key="down" aria-label="Down">▼</button>
+    </div>
+    <div class="screen-wrap">
+      <canvas id="screen" width="240" height="240" aria-label="The console's screen"></canvas>
+      <div id="overlay" class="overlay" hidden></div>
+    </div>
+    <div class="abxy" role="group" aria-label="Buttons">
+      <button class="btn-a" data-key="A" aria-label="A">A</button>
+      <button class="btn-b" data-key="B" aria-label="B">B</button>
+      <button class="btn-x" data-key="X" aria-label="X">X</button>
+      <button class="btn-y" data-key="Y" aria-label="Y">Y</button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="row"><span class="label">Key</span><span id="key">—</span></div>
+    <div class="row"><span class="label">Safes</span><span id="safes">—</span></div>
+    <p class="note">The same firmware as the Pico, running in this page. The screen is drawn by your browser, and Touch ID
+      won't show the transaction: what you approve is this screen. On a computer you don't trust, use a hardware key,
+      and keep passkey owners below the Safe's threshold.</p>
+    <p class="keys">Keyboard: arrows or W A S D move, Enter or space presses; 9 6 3 . are A B X Y.</p>
+    <details><summary>Console output</summary><pre id="out"></pre></details>
+  </section>
+</main>
+<script type="module" src="console.js"></script>
+</body>
+</html>

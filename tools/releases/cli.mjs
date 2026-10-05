@@ -64,7 +64,7 @@ function computed() {
     images[name] = { main: img.main, files: Object.fromEntries([...new Set(img.files)].sort().map((f) => [f, sha256(readFileSync(join(FIRMWARE, f)))])) };
   }
   const web = {};
-  for (const [k, p] of [["app", "docs/app/BUILD.json"], ["emu", "docs/emu/BUILD.json"]])
+  for (const [k, p] of [["app", "docs/app/BUILD.json"], ["emu", "docs/emu/BUILD.json"], ["console", "docs/console/BUILD.json"]])
     web[k] = existsSync(join(ROOT, p)) ? sha256(readFileSync(join(ROOT, p))) : null;
   return { version: m.version, fingerprints, web, images };
 }

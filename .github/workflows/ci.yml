@@ -148,13 +148,13 @@ jobs:
           cache-dependency-path: emu/package-lock.json
       - run: npm ci
         working-directory: emu
-      - name: Rebuild docs/emu; it must equal what is committed
+      - name: Rebuild docs/emu and docs/console; they must equal what is committed
         working-directory: emu
         run: |
           node build.mjs
-          if [ -n "$(git status --porcelain -- ../docs/emu)" ]; then
-            git status --short -- ../docs/emu
-            echo "::error::docs/emu differs from a rebuild of this commit. Run cd emu && node build.mjs, and commit docs/emu."
+          if [ -n "$(git status --porcelain -- ../docs/emu ../docs/console)" ]; then
+            git status --short -- ../docs/emu ../docs/console
+            echo "::error::docs/emu or docs/console differs from a rebuild of this commit. Run cd emu && node build.mjs, and commit both."
             exit 1
           fi
       - name: The static emulator in Chromium

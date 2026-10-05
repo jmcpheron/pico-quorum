@@ -5,8 +5,11 @@
 > - release fingerprints (`docs/releases/`);
 > - CI and signed releases (`docs/RELEASES.md`);
 > - the emulator on Pages (`docs/emu/`, `emu/README.md`);
-> - your passkey as the key: the toolbar's key menu, with `shims/passkey.py` and the page's WebAuthn. The goal is a demo: open a link, the console runs in the page, and
-> Touch ID or Windows Hello is the chip.
+> - your passkey as the key: the toolbar's key menu, with `shims/passkey.py` and the page's WebAuthn;
+> - the console page (`docs/console/`): the console alone, screen and buttons, your passkey as its
+>   key. The demo below starts there; `/emu/` is the developer's page.
+>
+> The goal is a demo: open a link, the console runs in the page, and Touch ID or Windows Hello is the chip.
 
 ## Short answers
 
@@ -223,9 +226,9 @@ the same `localStorage` the app uses for its setting (same origin), so it is set
 
 ## The demo
 
-1. Open `…/pico-quorum/emu/`. The console boots and says there's no key. Press A to make one. The
-   OS asks for Touch ID, and the console shows its owner address and blockie, computed on the
-   console by `webauthn.owner_address`.
+1. Open `…/pico-quorum/console/`. The screen asks you to make a passkey; the OS asks for Touch ID.
+   With a Safe saved in the app, the console boots and shows its owner address and blockie,
+   computed on the console by `webauthn.owner_address`.
 2. In the app, on Base Sepolia, add that owner to a test Safe (or deploy a 1-of-1 with it). Deploying
    the signer proxy is the existing "deploy" step on a key's page.
 3. Propose a send from the app. The emulated console picks it up, decodes it, and shows the verify
