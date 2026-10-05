@@ -839,6 +839,46 @@ function settingsView() {
       } })), saved);
 }
 
+// ----------------------------------------------------------------------------- releases
+// docs/releases/index.json (tools/release manifest): each release's fingerprint, the SHA-256 of an
+// image's source files (tools/release/fingerprint.mjs). A console shows the same blockie and first 8
+// hex digits on its Device screen, so a person can check which release their console runs.
+const shortFp = (fp) => `${fp.slice(0, 4)}·${fp.slice(4, 8)}`;
+async function releasesView() {
+  const list = h("div", {}, h("p", { class: "muted", text: "Loading the release list…" }));
+  const find = h("input", { type: "text", id: "fp", class: "mono", placeholder: "4c86·c754", autocomplete: "off", spellcheck: "false", "aria-describedby": "fp-help" });
+  const found = h("p", { role: "status" });
+  fill($main(),
+    h("section", { class: "hero" }, h("h1", { text: "Releases" }),
+      h("p", { class: "lede", text: "Each firmware release has a fingerprint: a SHA-256 of the console's source files. Your console shows its blockie and first eight digits on the Device screen (on the home grid, press X)." }),
+      h("p", { class: "muted", text: "The fingerprint is taken over the source, so a Pico and the emulator running the same release show the same picture. One that matches no release here is a development build, or firmware that isn't ours." })),
+    h("section", { class: "card" }, h("h2", { text: "Which release is my console running?" }),
+      h("label", { for: "fp", text: "The eight digits under Release on its Device screen" }), find,
+      h("p", { id: "fp-help", class: "muted small", text: "Spaces and the middle dot don't matter." }), found),
+    h("section", { class: "card" }, h("h2", { text: "All releases" }), list));
+  try {
+    const r = await fetch(new URL("../releases/index.json", location.href), { cache: "no-cache" });
+    if (!r.ok) throw new Error(`the release list: HTTP ${r.status}`);
+    const rel = (await r.json()).releases || [];
+    find.oninput = () => {
+      const q = find.value.toLowerCase().replace(/[^0-9a-f]/g, "");
+      if (q.length < 8) return void fill(found);
+      const hits = rel.flatMap((x) => Object.entries(x.fingerprints || {}).filter(([, fp]) => fp.startsWith(q)).map(([img]) => `${x.version} (${img} image)`));
+      fill(found, hits.length ? badge("ok", `Release ${hits.join(", ")}`) : badge("bad", "No release has that fingerprint"));
+    };
+    if (!rel.length) return fill(list, h("p", { class: "muted", text: "No releases recorded yet. The first tagged release (tools/release) adds one." }));
+    fill(list, h("ul", { class: "owners" }, ...rel.map((x) => {
+      const fp = (x.fingerprints || {}).console || "";
+      return h("li", { class: "with-ident" }, fp ? ident("0x" + fp, 36) : null,
+        h("div", { class: "addr-body" },
+          h("div", { class: "addr-top" }, h("strong", { text: x.version }), fp ? h("code", { class: "mono", text: shortFp(fp) }) : null,
+            h("span", { class: "muted small", text: [x.date, x.commit && `commit ${x.commit.slice(0, 7)}`].filter(Boolean).join(" · ") })),
+          ...Object.entries(x.fingerprints || {}).map(([img, f]) => h("div", { class: "small" }, h("span", { class: "muted", text: `${img} ` }), h("code", { class: "mono", text: f }))),
+          x.manifest ? h("div", { class: "small" }, h("a", { href: new URL(`../releases/${x.manifest}`, location.href).href, text: "Manifest" })) : null));
+    })));
+  } catch (e) { fail(list, e); }
+}
+
 function notFound() {
   fill($main(), h("section", { class: "hero" }, h("h1", { text: "Nothing here" }), h("p", {}, h("a", { href: "#/", text: "Back to the start" }))));
 }
@@ -854,6 +894,7 @@ function route() {
   if (parts[0] === "keys") return keysView();
   if (parts[0] === "key") return keyView(parts[1]);
   if (parts[0] === "settings") return settingsView();
+  if (parts[0] === "releases") return releasesView();
   return notFound();
 }
 window.addEventListener("hashchange", route);

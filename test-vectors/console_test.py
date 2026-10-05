@@ -787,8 +787,53 @@ def case_grid():
         pass
 
 
+def case_release():
+    """The release fingerprint (image.RELEASE, from build.py): its blockie on the home grid's Device
+    tile and on the Device screen, with its short name; without one, the wifi icon as before."""
+    chip()
+    Q = fresh(url=None, safe=False, extra=TWO)
+    SVC.info = {"address": SAFE, "nonce": 0, "threshold": 2, "version": "1.4.1", "owners": [Q.me, ALICE, BOB]}
+    SVC.txs = []
+    SVC.safes[ETH_SAFE] = {"info": {"address": ETH_SAFE, "nonce": 7, "threshold": 1, "version": "1.4.1", "owners": [Q.me, BOB]}, "txs": []}
+    Q.net_work()
+    Q.net_work()
+    Q.recent = []
+    import image
+    import blockies
+    import fonts
+    import quorum_ui as U
+    drawn, texts = [], []
+    real_draw, real_text = blockies.draw, fonts.text
+    blockies.draw = lambda d, seed, x, y, scale, *a, **k: (drawn.append((seed, scale)), real_draw(d, seed, x, y, scale, *a, **k))
+    fonts.text = lambda d, t, *a, **k: (texts.append(t), real_text(d, t, *a, **k))[1]
+    try:
+        check(Q.grid_home(), "the grid is home")
+        U.draw(Q)
+        check(image.SEED not in [x for x, _ in drawn] and not image.RELEASE, "no build.py: no release blockie")
+        image.RELEASE = "4c86c7541a45eb43f24c48c178409de889c5f86d467c886d444e9e30b9a00e0b"
+        image.SEED, image.SHORT = "0x" + image.RELEASE, "4c86\u00b7c754"
+        image.VERSION, image.BUILD = "2026.10.6", "abc1234"
+        drawn[:] = []
+        U.draw(Q)
+        check((image.SEED, 3) in drawn, "the Device tile draws the release's blockie")
+        Q.handle("X")
+        Q.net_err = None
+        drawn[:], texts[:] = [], []
+        U.draw(Q)
+        check(Q.state == "device" and [sc for x, sc in drawn if x == image.SEED] == [2, 2], "Device: the blockie in the header and on the Release row")
+        check("4c86\u00b7c754" in texts and "Release" in texts, "Device: the Release row names it 4c86\u00b7c754")
+        Q.net_err, Q.net_ok = "OSError -1", False
+        drawn[:], texts[:] = [], []
+        U.draw(Q)
+        check([sc for x, sc in drawn if x == image.SEED] == [2] and "Release" not in texts, "with a last error to show: the header blockie only")
+    finally:
+        blockies.draw, fonts.text = real_draw, real_text
+        image.RELEASE = image.SEED = image.SHORT = image.VERSION = ""
+        Q.handle("B")
+
+
 def main():
-    for case in (case_pin, case_owners_pages, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_safes, case_watchdog, case_grid):
+    for case in (case_pin, case_owners_pages, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_safes, case_watchdog, case_grid, case_release):
         print("--", case.__name__[5:])
         try:
             case()

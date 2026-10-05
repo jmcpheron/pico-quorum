@@ -344,6 +344,23 @@ await step("refusals", async () => {
   await shot("6-not-owner");
 });
 
+await step("releases", async () => {
+  // docs/releases/index.json as served, plus one made-up release routed in to check the lookup
+  const fp = "4c86c7541a45eb43f24c48c178409de889c5f86d467c886d444e9e30b9a00e0b";
+  await page.route("**/releases/index.json", (r) => r.fulfill({ status: 200, contentType: "application/json",
+    body: JSON.stringify({ releases: [{ version: "2026.10.6", date: "2026-10-05", commit: "abc1234def", fingerprints: { console: fp } }] }) }));
+  await page.goto(`${BASE}app/#/releases`);
+  await page.getByText("4c86·c754").first().waitFor();
+  check(await page.locator("img.blockie").count() >= 1, "releases: each release with its fingerprint's blockie and 4c86·c754");
+  await page.fill("#fp", "4C86 c754");
+  await page.getByText("Release 2026.10.6 (console image)").waitFor();
+  await page.fill("#fp", "deadbeef");
+  await page.getByText("No release has that fingerprint").waitFor();
+  check(true, "releases: the eight digits from a Device screen name the release, or say none does");
+  await page.unroute("**/releases/index.json");
+  await shot("7-releases");
+});
+
 check(!errors.length, `no page errors${errors.length ? ": " + errors.join("; ") : ""}`);
 check(!outside.length, `no request left the fakes${outside.length ? ": " + outside.join(", ") : ""}`);
 await browser.close();

@@ -5,6 +5,12 @@ A release is **year.month.n**: the n-th of that month. The number is in `firmwar
 screen shows `2026.10.1 · <commit>`, and the boot line in `log.txt` carries both. Each release has a
 git tag, `fw-<version>`.
 
+**The release fingerprint** names what a board runs: the SHA-256 of the image's source files
+(`tools/release/fingerprint.mjs`; [`releases/`](releases/README.md) has the definition). `tools/fw build`
+writes it into `build.py` as `RELEASE`, and the Device screen shows its blockie and first 8 hex
+digits (`4c86·c754`). The emulator computes it over the files it runs, so the same release shows
+the same picture in the browser. The app's Releases page lists each release's fingerprint.
+
 **To make one:**
 1. Set `"version"` and commit.
 2. `tools/fw push console --all`, which pushes every board on USB in turn.
