@@ -1,0 +1,105 @@
+# A release: push an SSH-signed tag fw-<version> (tools/release tag --push). This workflow
+#   1. refuses the tag unless it is annotated and its signature checks against .github/allowed_signers,
+#      the version matches firmware/manifest.json, docs/RELEASES.md has the entry, and the committed
+#      docs/releases/<version>.json matches the tagged source (tools/release verify);
+#   2. runs all of CI on the tagged commit;
+#   3. builds the three firmware images, writes release.json (each image's fingerprint and the hash of
+#      every built file) and SHA256SUMS, and publishes a GitHub Release with them.
+# Only the publishing job can write, and only to releases. The repository is private for now, so no
+# build-provenance attestation (that needs a public repo); docs/GOVERNANCE.md has the plan for one.
+name: Release
+
+on:
+  push:
+    tags: ["fw-*"]
+
+permissions:
+  contents: read
+
+jobs:
+  tag:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: The tag is annotated and signed by a key in .github/allowed_signers
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          git fetch --force origin "refs/tags/$TAG:refs/tags/$TAG"
+          if [ "$(git cat-file -t "$TAG")" != tag ]; then
+            echo "::error::$TAG is a lightweight tag. Releases are annotated, signed tags: tools/release tag."
+            exit 1
+          fi
+          if [ "$(git rev-parse "$TAG^{commit}")" != "$(git rev-parse HEAD)" ]; then
+            echo "::error::checked out $(git rev-parse HEAD), not the commit $TAG names"
+            exit 1
+          fi
+          git -c gpg.ssh.allowedSignersFile=.github/allowed_signers tag -v "$TAG"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+      - name: The version, its RELEASES.md entry and its manifest
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          V="$(node -p 'require("./firmware/manifest.json").version')"
+          if [ "fw-$V" != "$TAG" ]; then
+            echo "::error::$TAG, but firmware/manifest.json says $V"
+            exit 1
+          fi
+          node tools/releases/cli.mjs notes "$V" > /dev/null
+          node tools/releases/cli.mjs verify "$V"
+
+  ci:
+    needs: tag
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    needs: [tag, ci]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            emu/package-lock.json
+            tools/mock-tx-service/package-lock.json
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - run: npm ci
+        working-directory: emu
+      - run: npm ci
+        working-directory: tools/mock-tx-service
+      - name: Build the images, release.json and SHA256SUMS
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          V="${TAG#fw-}"
+          for image in console ceremony dual; do tools/fw build "$image"; done
+          mkdir dist
+          node tools/releases/cli.mjs release-json --out dist/release.json build/console-* build/ceremony-* build/dual-*
+          for image in console ceremony dual; do
+            (cd build/"$image"-* && zip -q -X -r "$GITHUB_WORKSPACE/dist/picoquorum-$image-$V.zip" .)
+          done
+          cp "docs/releases/$V.json" "dist/manifest-$V.json"
+          (cd dist && sha256sum -- * > SHA256SUMS)
+          node tools/releases/cli.mjs notes "$V" > notes.md
+          printf '\n\nRelease fingerprints (the Device screen shows the first 8 digits):\n\n```\n' >> notes.md
+          node tools/releases/fingerprint.mjs >> notes.md
+          printf '```\n' >> notes.md
+          cat dist/SHA256SUMS
+      - name: Publish the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: gh release create "$TAG" dist/* --verify-tag --title "PicoQuorum ${TAG#fw-}" --notes-file notes.md

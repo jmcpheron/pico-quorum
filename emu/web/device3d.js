@@ -71,7 +71,7 @@ export async function createDevice3D(container, screenCanvas, { onKey, onGrab })
   const loader = new STLLoader();
   const M_BASE = new THREE.Matrix4().set(-1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1);
   const M_LID = new THREE.Matrix4().set(-1, 0, 0, 0, 0, 0, -1, LID_TOP, 0, -1, 0, 0, 0, 0, 0, 1);
-  const [gBase, gLid, gCap, gJoy] = await Promise.all(["base_v5", "lid_v4", "button_cap_1", "joystick_cap_v3_2.00"].map((n) => loader.loadAsync(`/stl/${n}.stl`)));
+  const [gBase, gLid, gCap, gJoy] = await Promise.all(["base_v5", "lid_v4", "button_cap_1", "joystick_cap_v3_2.00"].map((n) => loader.loadAsync(new URL(`../stl/${n}.stl`, import.meta.url).href)));
 
   const mat = (color, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.62, metalness: 0.0, ...extra });
   const mkMesh = (geo, material) => { const m = new THREE.Mesh(geo, material); m.castShadow = true; m.receiveShadow = true; device.add(m); return m; };

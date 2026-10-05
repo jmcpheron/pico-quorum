@@ -37,6 +37,29 @@ The flash is `firmware/*.py` and `*.bin` (never `secrets.py`; a stub is generate
 `APP_URL = "/app"`, which the server proxies to the wallet app, `--app http://host:port`,
 default `http://localhost:3001`) plus `emu/sketches/*` on top. Saving in the editor writes to disk.
 
+## On GitHub Pages
+
+`node emu/build.mjs` (after `npm ci` here) writes `docs/emu/`, the same page as a static site:
+[jmcpheron.github.io/pico-quorum/emu/](https://jmcpheron.github.io/pico-quorum/emu/). Commit it, as with
+`docs/app/`. CI rebuilds it and fails if the committed copy differs.
+
+- **Boot data:** `boot.json`, written at build time. It is what `/ctl/boot` answers here, for
+  `firmware/` alone, plus a `build.py` with `IMAGE "web"` and the console's release fingerprint.
+- **COOP/COEP:** `coi.js` and `sw.js`. Pages can't send headers, so a service worker adds them to the
+  folder's own files. The first visit reloads once.
+- **Kept in the visitor's browser** (localStorage):
+  - the chip state;
+  - a **random software key** (`key.bin`), never the fixed test key the local emulator uses;
+  - edited files.
+- **The release fingerprint is computed again in the page** over the files it boots. An edited
+  console file shows another blockie, marked *edited*. The firmware's own `image.RELEASE` agrees.
+- **The console runs on the Safes saved in the app** (same origin), with the app's Safe API key
+  and no `APP_URL`, so it asks Safe's own service for each chain. With none saved, the module is
+  `mock`.
+- **No USB, no control channel.** `tools/emu` stays the local path.
+
+`node emu/e2e-static.mjs` serves `docs/` like Pages and checks all of that in Chromium.
+
 ## Give it to your AI
 
 `emu/SKILL.md` is the skill file. It tells an AI what the screen and buttons are, how to write a

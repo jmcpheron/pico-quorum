@@ -4,7 +4,7 @@ import { readdirSync, readFileSync, statSync, existsSync, writeFileSync } from "
 import { join, resolve, dirname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
-import { fingerprint, manifest } from "../../tools/release/fingerprint.mjs";
+import { fingerprint, manifest } from "../../tools/releases/fingerprint.mjs";
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 export const FIRMWARE = join(ROOT, "firmware");
@@ -75,11 +75,11 @@ export function writeWorkspaceFile(name, content, src) {
 // commit (+dirty when firmware/ or the sketches differ from it), and RELEASE, the release
 // fingerprint of the console image's files *as the emulator serves them* (a sketch that replaces a
 // firmware file changes it). A Pico built from the same commit shows the same fingerprint.
-export function emuBuild(files, { image = "emu" } = {}) {
+export function emuBuild(files, { image = "emu", build } = {}) {
   const m = manifest();
   const release = fingerprint(m.images.console.files, (n) => files[n]);
-  const py = `# written by the emulator; never on a Pico\nIMAGE = ${JSON.stringify(image)}\nVERSION = ${JSON.stringify(m.version || "")}\nBUILD = ${JSON.stringify(gitBuild())}\nDATE = ${Math.floor(Date.now() / 1000)}\nRELEASE = ${JSON.stringify(release)}\n`;
-  return { release, py };
+  const py = `# written by the emulator; never on a Pico\nIMAGE = ${JSON.stringify(image)}\nVERSION = ${JSON.stringify(m.version || "")}\nBUILD = ${JSON.stringify(build || gitBuild())}\nDATE = ${Math.floor(Date.now() / 1000)}\nRELEASE = ${JSON.stringify(release)}\n`;
+  return { release, py, consoleFiles: [...m.images.console.files] };
 }
 
 function gitBuild() {

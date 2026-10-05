@@ -10,7 +10,7 @@
 # when the chip on the bus is fresh.
 # VERSION: the release, year.month.n (firmware/manifest.json "version"; git tag fw-<version>);
 # BUILD: the commit it was built from.
-# RELEASE: the release fingerprint, a SHA-256 of the image's source files (tools/release/fingerprint.mjs).
+# RELEASE: the release fingerprint, a SHA-256 of the image's source files (tools/releases/fingerprint.mjs).
 # The emulator computes the same value over the files it runs, so a Pico and a browser running one
 # release show the same blockie (seed "0x" + RELEASE) on the Device screen. "" without build.py.
 try:

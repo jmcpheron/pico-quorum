@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <title>picowallet emulator</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="/vendor/codemirror/lib/codemirror.css">
-<link rel="stylesheet" href="/web/app.css">
+<link rel="stylesheet" href="vendor/codemirror/lib/codemirror.css">
+<link rel="stylesheet" href="web/app.css">
 <script type="importmap">
-{ "imports": { "three": "/vendor/three/three.module.js", "three/addons/": "/vendor/three/addons/" } }
+{ "imports": { "three": "./vendor/three/three.module.js", "three/addons/": "./vendor/three/addons/" } }
 </script>
 </head>
 <body>
@@ -23,7 +23,7 @@
   <div class="seg"><button id="view3d" class="on">3D</button><button id="viewflat">flat</button></div>
   <div class="spacer"></div>
   <span id="release" title="the release fingerprint of the firmware running here: the same blockie as on a Pico's Device screen running these files"></span>
-  <a id="skill" href="/skill" target="_blank" title="give this file to your AI so it can write code for the wallet">📄 skill file for your AI</a>
+  <a id="skill" href="SKILL.txt" target="_blank" title="give this file to your AI so it can write code for the wallet">📄 skill file for your AI</a>
   <div id="stat"><span id="fps">0 fps</span> · <span id="frames">0 frames</span> · <span id="conn">booting</span></div>
 </header>
 
@@ -66,8 +66,8 @@
   </section>
 </main>
 <canvas id="screen" width="240" height="240" hidden></canvas>
-<script src="/vendor/codemirror/lib/codemirror.js"></script>
-<script src="/vendor/codemirror/mode/python/python.js"></script>
-<script type="module" src="/web/app.js"></script>
+<script src="vendor/codemirror/lib/codemirror.js"></script>
+<script src="vendor/codemirror/mode/python/python.js"></script>
+<script type="module" src="web/app.js"></script>
 </body>
 </html>

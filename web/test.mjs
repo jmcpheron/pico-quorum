@@ -124,7 +124,7 @@ check(S.consoleRefuses(8453, { operation: 1, to: "0x9641d764fc13c8b624c04430c735
 
 // ----------------------------------------------------------------------------- 4. blockies
 const { blockie, rgb } = await import("./src/blockies.mjs");
-// The last seed is a release fingerprint (tools/release/fingerprint.mjs): the Device screen's blockie.
+// The last seed is a release fingerprint (tools/releases/fingerprint.mjs): the Device screen's blockie.
 const seeds = [safe, alice.address, chip, S.ZERO, "0xffffffffffffffffffffffffffffffffffffffff", hash,
   "0x4c86c7541a45eb43f24c48c178409de889c5f86d467c886d444e9e30b9a00e0b"].map((x) => x.toLowerCase());
 const fwBlockies = JSON.parse(spawnSync("python3", ["-c", `import sys, json; sys.path.insert(0, ${JSON.stringify(ROOT + "firmware")})
