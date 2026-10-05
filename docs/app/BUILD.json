@@ -1,9 +1,9 @@
 {
   "note": "SHA-256 of every file web/build.mjs wrote (../ is docs/, the front page). Rebuild from the same commit (cd web && npm ci && npm run build) and compare.",
-  "build": "97bb30f5",
+  "build": "5ec3db42",
   "files": {
-    "index.html": "e5f92f81d0cc5ad71e30d6128570744407432dd1b6998c422290d6f025cb8ad7",
-    "app.js": "97bb30f51b6a2b3a72c91d26d950ea10647d06ffe55ee69e85fa36bc8cfde37c",
+    "index.html": "cfbcf9ddc52999a27d1fa592ddfdcbb86fb893defbc905179ab21857de011e68",
+    "app.js": "5ec3db422554b92a3e1ba984d30251155c245a2659a8e491f6e3860348e98a97",
     "app.css": "479c9ab804773012815cc299dfffbf319021b24b2a07b2439bcb5b9fc0e1edcc",
     "fonts/next-400.woff2": "5cb240a4d99ab7e6fc3a4d4e6d11d89789fdffe9c86a8384000d662c53283f6f",
     "fonts/next-700.woff2": "0dbe07ed7679407db9d90f747d5ca3bd1b2bb7ccbcbe41c8246cfc6d2c7bc3bc",

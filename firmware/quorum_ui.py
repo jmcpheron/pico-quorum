@@ -406,7 +406,10 @@ def grid_tile(d, q, t, x, y, w, on):
             b, bc = "not pinned", "bad"
     else:
         import image
-        I.draw(d, "wifi", px + 4, py + 4, c("muted"))
+        if image.SEED:          # the release's blockie: the same picture on every board and browser running it
+            blockies.draw(d, image.SEED, px, py, 3)
+        else:
+            I.draw(d, "wifi", px + 4, py + 4, c("muted"))
         title, a, b = "Device", image.VERSION or image.BUILD, q.net.ssid() or "no Wi-Fi"
         if not q.net_ok:
             bc = "warn"
@@ -996,7 +999,11 @@ def draw_device(q):
     d = q.d
     d.fill(c("bg"))
     txt(d, "Device", M, 4, "bold18")
-    txt_r(d, (image.VERSION + " \u00b7 " + image.BUILD) if image.VERSION else (image.IMAGE + " " + image.BUILD), R, 9, "sans12", "muted")
+    ver = (image.VERSION + " \u00b7 " + image.BUILD) if image.VERSION else (image.IMAGE + " " + image.BUILD)
+    txt_r(d, ver, R, 9, "sans12", "muted")
+    bx = R - F.width(ver, "sans12") - 20
+    if image.SEED and bx >= M + F.width("Device", "bold18") + 4:     # the release's blockie, when it fits
+        blockies.draw(d, image.SEED, bx, 7, 2)
     import chips
     name = q.chip["name"] + " \u00b7 " if q.chip else ""
     rows = [("Chip", (name + (q.serial[-8:] if q.serial else (q.sig.name if q.sig else "none")))[:22]),
@@ -1016,6 +1023,10 @@ def draw_device(q):
         y += 20
     if q.net_err and not q.net_ok:
         txt(d, fit("Last error: " + q.net_err, TW, "sans12"), M, y + 2, "sans12", "warn")
+    elif image.SEED:            # the release fingerprint and its blockie, to compare with the release page
+        txt(d, "Release", M, y, "sans14", "muted")
+        txt_r(d, image.SHORT, R, y, "mono13")
+        blockies.draw(d, image.SEED, R - F.width(image.SHORT, "mono13") - 22, y - 1, 2)
     if q.KNOB:
         knob_choices(d, q, (("chip", "Chip"), ("wifi", "Wi-Fi"), ("back", "Back")), q.dfoot, "turn \u00b7 press")
     else:

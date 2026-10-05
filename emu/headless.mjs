@@ -20,7 +20,7 @@ import { dirname } from "node:path";
 import { execFileSync } from "node:child_process";
 import { loadMicroPython } from "@micropython/micropython-webassembly-pyscript";
 import { createDevice, KEY_ORDER, frameToRGBA, W, H } from "./core/runtime.mjs";
-import { readWorkspace, readShims, entryFor } from "./core/workspace.mjs";
+import { readWorkspace, readShims, entryFor, emuBuild } from "./core/workspace.mjs";
 import { encodePNG, scaleRGBA } from "./core/png.mjs";
 
 const argv = process.argv.slice(2);
@@ -42,9 +42,11 @@ if (!mod) { console.error("usage: headless.mjs MODULE [--wait MS] [--key K[:MS]]
 
 const keys = new Int32Array(16);
 let failed = false;
+// The emulator's own build.py (version, commit, release fingerprint) unless --file build.py= gave one.
+function withBuild(files) { return files["build.py"] ? files : { ...files, "build.py": emuBuild(files).py }; }
 const dev = await createDevice({
   loadMicroPython, keys, heapsize: heap,
-  files: { ...readWorkspace(), ...extra }, shims: readShims(), appUrl: app, secrets,
+  files: withBuild({ ...readWorkspace(), ...extra }), shims: readShims(), appUrl: app, secrets,
   http: curl,
   chip: chipFile ? { load: () => (existsSync(chipFile) ? readFileSync(chipFile, "utf8") : null), save: (s) => writeFileSync(chipFile, s) } : undefined,
   onStdout: (l) => { if (!quiet) console.log(l); if (/^Traceback/.test(l)) failed = true; },

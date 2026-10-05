@@ -28,6 +28,11 @@ console with a REPL; right = the device (orbit with the mouse, click the caps) o
 Keyboard: W A S D and space for the joystick, numpad 9 6 3 . for A B X Y (top-row 9 6 3 . work
 too), after clicking the device. The 3D view labels each button with its key.
 
+The flash also gets a `build.py` like the one `tools/fw build` writes for a Pico (`IMAGE = "emu"`, the
+manifest's version, the commit, and `RELEASE`, the release fingerprint of the console files as
+served here). The toolbar shows the fingerprint's blockie, the same picture as on a Pico's Device screen running
+the same files. `--file build.py=PATH` in headless replaces it.
+
 The flash is `firmware/*.py` and `*.bin` (never `secrets.py`; a stub is generated with
 `APP_URL = "/app"`, which the server proxies to the wallet app, `--app http://host:port`,
 default `http://localhost:3001`) plus `emu/sketches/*` on top. Saving in the editor writes to disk.

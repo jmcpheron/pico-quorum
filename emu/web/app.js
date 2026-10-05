@@ -199,6 +199,7 @@ async function reboot(runName) {
   setConn("booting", "");
   const b = await (await fetch("/ctl/boot")).json();
   mark("boot payload");
+  showRelease(b.release);
   for (const f of b.files) {
     const old = files.get(f.name);
     if (old && old.dirty) continue;
@@ -415,3 +416,16 @@ try {
   setView("flat");
 }
 await booting;
+
+// The release fingerprint of the files this page runs (build.py RELEASE, tools/release/fingerprint.mjs):
+// its blockie and first 8 hex digits, as a Pico's Device screen shows them.
+async function showRelease(fp) {
+  const el = document.getElementById("release");
+  if (!el || !fp) return;
+  const { blockieSrc } = await import("/shared/blockies.mjs");
+  const img = document.createElement("img");
+  img.src = blockieSrc("0x" + fp);
+  img.alt = "";
+  el.replaceChildren(img, `release ${fp.slice(0, 4)}\u00b7${fp.slice(4, 8)}`);
+  el.title = `release fingerprint ${fp}: the same blockie as on a Pico's Device screen running these files`;
+}

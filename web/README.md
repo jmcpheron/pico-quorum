@@ -35,6 +35,9 @@ What it does:
   passes gets a **Verified PicoQuorum key** badge. A key's page shows the checks, and deploys its
   signer proxy on a chain from the wallet (`tools/quorum live enroll`). Any bundle can be checked
   locally under **Check a bundle**.
+- **Releases.** `docs/releases/index.json` (from `tools/release`), each release with its
+  fingerprint's blockie. Type the eight digits from a console's Device screen to see which release
+  it runs.
 - **Blockies.** Every Safe, owner, key, recipient and confirmation has its blockie, and each queued
   transaction shows its hash's blockie beside the verify code. `src/blockies.mjs` draws the same
   picture as the console (`firmware/blockies.py`), Safe{Wallet}, MetaMask and Etherscan: the seed is
