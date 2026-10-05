@@ -27,7 +27,7 @@
 <text x="532" y="182" font-size="12.5" text-anchor="start" fill="#F2F4F7" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">·  slot 0's public key, from step 2</text>
 <text x="532" y="202" font-size="12.5" text-anchor="start" fill="#F2F4F7" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">·  the chip's serial number</text>
 <text x="532" y="222" font-size="12.5" text-anchor="start" fill="#F2F4F7" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">·  slot 0's rules in quorum-v2, fixed for every key</text>
-<text x="532" y="242" font-size="12.5" text-anchor="start" fill="#F2F4F7" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">·  the brand public key, from the issued batch</text>
+<text x="532" y="242" font-size="12.5" text-anchor="start" fill="#F2F4F7" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">·  the brand public key, from the approved ring</text>
 <rect x="516" y="284" width="420" height="148" rx="8" fill="#34C759" stroke="#34C759" stroke-width="2" fill-opacity="0.10"/>
 <text x="532" y="310" font-size="14" text-anchor="start" fill="#F2F4F7" font-weight="700" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">What it checks</text>
 <text x="532" y="334" font-size="12.5" text-anchor="start" fill="#F2F4F7" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">1  rebuild TempKey from the challenge and public key</text>

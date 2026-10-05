@@ -9,8 +9,8 @@ A branded PicoQuorum key carries two keys on one ATECC608:
   chip composes about itself.
 
 When the owner makes the Safe key, the brand key signs the chip's statement: this public key is slot
-0's, on this chip, under these rules, and sealed. Anyone can check that statement against the batch
-the PicoQuorum Safe issued, and the key gets a badge.
+0's, on this chip, under these rules, and sealed. Anyone can check that statement against the ring
+the project Safe approved, and the key gets a badge.
 
 ![A branded key: two ceremonies and one vote](brandkey/lifecycle.svg)
 
@@ -21,8 +21,8 @@ the PicoQuorum Safe issued, and the key gets a badge.
 - **A stricter link than the Trust M binding.** The Trust M's factory key E0F0 signs whatever it is
   handed, so its binding rests on the ceremony ([mainnet/THREAT-MODEL.md](mainnet/THREAT-MODEL.md)).
   The brand key can't sign a statement the chip didn't compose.
-- **Keys from a known group.** Batches are issued by a multisig vote of the PicoQuorum Safe's
-  keyholders, not by a company. Editions (Genesis, Founder, Homestead) ride on top.
+- **Keys from a known group.** Keys are issued a ring at a time by the owners of the project Safe
+  ([GOVERNANCE.md](GOVERNANCE.md)), not by a company. The rings and the launch: [launch/](launch/README.md).
 - **Cheap.** The same chip and the same board: one more slot.
 
 ## The chip: quorum-v2
@@ -35,7 +35,7 @@ the PicoQuorum Safe issued, and the key gets a badge.
 | Slot 1 | dead | the brand key: P-256, GenKey, **internal sign only**, no PrivWrite | GenKey at the bench (B4) | slot lock at the bench (B6) |
 | Slot 9 | dead | the owner record: clear writes, lockable | at home (H6) | slot lock at home (H6) |
 | Other slots | dead | dead | zero-filled at the bench | the data lock (B8) |
-| OTP zone | the owner record (C8) | the edition stamp | at the bench (B7) | the data lock (B8) |
+| OTP zone | the owner record (C8) | the key's number, ring and date | at the bench (B7) | the data lock (B8) |
 | Counter 0 | Safe-key uses | the same | | |
 | Config zone | locked at C3 | locked at B3 | | |
 
@@ -93,10 +93,10 @@ sections, and on the virtual chip, before any real one.
 | B4 | GenKey slot 1, the brand key | KeyValid; the public key reads back | replaceable until B6 |
 | B5 | Brand-key checks | An external Sign with slot 1 is refused; a statement about slot 1 itself verifies | no |
 | B6 | Slot-lock slot 1 | The same public key | **yes** |
-| B7 | Edition stamp into OTP; zero-fill the dead slots | The data CRC it will need | rewritable until B8 |
+| B7 | The key's number into OTP; zero-fill the dead slots | The data CRC it will need | rewritable until B8 |
 | B8 | Data lock with CRC | OTP frozen; slot 0 still empty | **yes** |
-| B9 | List it | Serial and brand public key into the batch file; the screen shows the brand key's fingerprint | no |
-| B10 | Label and pack | The card: edition, serial, a QR code to the key's registry page | no |
+| B9 | List it | Number, serial and brand public key into the ring file; the screen shows the brand key's fingerprint | no |
+| B10 | Label and pack | The card: number in decimal and binary, serial, a QR code to the key's registry page | no |
 
 Until B8, a plaintext PrivWrite could put a known key in slot 0 ([LOCKING.md](LOCKING.md)). It
 doesn't matter here: the owner's GenKey at H2 replaces whatever slot 0 holds, and after B8 nothing
@@ -104,13 +104,13 @@ can write it.
 
 A tampered laptop could list a brand key it controls, and then forge statements for that serial. So
 the console shows each brand key's fingerprint at B9, and a second machine re-reads a sample of
-chips before the Safe signs the batch.
+chips before the project Safe approves the ring.
 
 ## The owner's ceremony, at home
 
 | Step | What | Checks | Permanent? |
 |---|---|---|---|
-| H1 | Pre-flight | quorum-v2, config and data locked, slot 1 sealed, slot 0 unsealed; the serial and brand key are in an issued batch (the registry, or the batch file offline) | no |
+| H1 | Pre-flight | quorum-v2, config and data locked, slot 1 sealed, slot 0 unsealed; the serial and brand key are in an approved ring (the app, or the ring file offline) | no |
 | H2 | GenKey slot 0, the Safe key | KeyValid; the public key | replaceable until H4 |
 | H3 | Two test signatures: a digest and a WebAuthn assertion | Both verify on the Pico; counter +2 | no |
 | H4 | Slot-lock slot 0 | The same public key, signs and verifies | **yes** |
@@ -121,72 +121,92 @@ chips before the Safe signs the batch.
 A key intercepted in the mail and run through H2–H4 on the way arrives with slot 0 sealed. H1
 refuses it, and the owner asks the Safe to revoke it.
 
-## Issuing batches: the registry
+## Issuing rings
 
 ![Two ways a key proves where it lives](brandkey/trust-chain.svg)
 
-A small contract on Base, owned by the PicoQuorum Safe. It holds no money.
+Keys are issued a ring at a time ([launch/](launch/README.md)): ring n holds the n-bit numbers, so
+ring 6 is #32–63. Each ring has a ring file, `docs/registry/rings/ring-N.json`, with one entry per
+key: its number, serial and brand public key. A ring file never changes once it is approved.
+
+**First, with no new contract: the project Safe approves the ring the way it approves a release.**
+1. The ring's digest D is the EIP-712 `PicoQuorumRing(ring, root, count, file)`: the Merkle root of
+   its entries, how many there are, and the SHA-256 of the ring file.
+2. The project Safe ([GOVERNANCE.md](GOVERNANCE.md)) approves D as it approves a release
+   ([RELEASES.md](RELEASES.md)): a delegatecall to Safe's SignMessageLib, `signMessage(D)`, with a
+   short note naming the ring.
+3. Each owner's console shows **Approve ring 6 · #32–63 · 32 keys** and the root. As for releases,
+   it refuses unless the note gives exactly the calldata's digest: `decode.py` learns one more
+   message type, and no looser.
+4. Once executed, `isValidSignature(D, "0x")` holds on the Safe for good, even after its owners
+   change.
+
+A revocation is one more approval: `PicoQuorumRevoke(number, reason)`.
+
+**Binding.** The owner publishes the statement as a bundle in [registry/](registry/README.md) by
+pull request, as Trust M bundles are listed today. The app checks it in the browser:
+1. the project Safe approved the ring (`isValidSignature`), and hasn't revoked the key;
+2. the key's entry is in the ring's Merkle root;
+3. the statement: it rebuilds the GenKey digest and the 55 bytes with quorum-v2's slot 0 config and
+   byte 52 = `00`, then checks the signature with the brand public key;
+4. the owner address follows from the Safe key through Safe's passkey factory (`getSigner`).
+
+**Later, if other contracts need to read badges: a registry contract** on Base, owned by the
+project Safe. It holds no money and runs the same checks on chain, with OpenZeppelin's `P256` as
+`TrustMAttest.sol` does (Base and Ethereum both have the P-256 precompile).
 
 ```solidity
 interface IPicoQuorumRegistry {
-    // the PicoQuorum Safe only
-    function issueBatch(bytes32 root, uint8 edition, uint16 count) external returns (uint256 batchId);
-    function revoke(bytes9 serial) external;
+    // the project Safe only
+    function approveRing(uint8 ring, bytes32 root, uint16 count) external;
+    function revoke(uint16 number) external;
     // anyone
-    function bind(uint256 batchId, Leaf calldata leaf, bytes32[] calldata proof,
+    function bind(Entry calldata entry, bytes32[] calldata proof,
                   bytes32 qx, bytes32 qy, bytes32 challenge, bytes32 r, bytes32 s) external;
     function keyOf(address owner) external view returns (Key memory);
 }
-// leaf = keccak256(abi.encode(serial, brandX, brandY, edition, number))
+// entry leaf = keccak256(abi.encode(number, serial, brandX, brandY))
 ```
-
-`bind` checks, in order:
-1. the leaf is in the batch's Merkle root;
-2. the serial is neither revoked nor bound;
-3. the statement: it rebuilds the GenKey digest and the 55 bytes with quorum-v2's slot 0 config and
-   byte 52 = `00`, then checks the signature with OpenZeppelin's `P256`, as
-   `TrustMAttest.sol` does (Base and Ethereum both have the P-256 precompile);
-4. then it records `owner = getSigner(qx, qy, verifiers)` from Safe's passkey factory.
-
-It emits `BatchIssued`, `KeyBound` and `KeyRevoked`. The app's Keys page reads `keyOf` for the
-badge and can run the same checks in the browser.
 
 - **Binding is optional and public.** It shows which Safe owners are PicoQuorum keys. A holder who
   skips it still has a working key.
-- **Each batch file is published before the vote,** as `docs/registry/batches/batch-NN.json`. The
-  keyholders compare its root on their consoles before they hold green.
+- **Each ring file is published before the vote.** The owners compare its root on their consoles
+  before they approve.
 - **Revoking a badge doesn't remove a key from any Safe.** The Safe it owns still has to swap it out.
 
-## The PicoQuorum Safe
+## The project Safe
 
-![The PicoQuorum Safe hands out control in stages](brandkey/safe-stages.svg)
+![The project Safe hands out control in stages](brandkey/safe-stages.svg)
 
-- **Founders, now: 2 of 3.** A browser wallet (it proposes and pays gas), a Trust M key and a
-  conventional hardware wallet, all the founder's. Rehearsed on Base Sepolia first.
-- **Genesis: 3 of 5.** The Safe's first act issues Genesis keys G0–G4. The founder keeps the browser
-  wallet and G0. G1, G2 and G3 go to trusted people. G4 stays unbound, a spare for a later seat.
-- **Season 1: 4 of 7.** Two community seats, nominated from Founder holders, voted in by signing
-  `addOwnerWithThreshold`.
-- **Season 2 and on:** up to 5 of 9.
+The issuer is the project Safe in [GOVERNANCE.md](GOVERNANCE.md): the same address on Ethereum and
+Base, 2 of 3 to start, handed over in stages. Ring approvals and revocations join release approvals
+on Ethereum.
 
-The rules from Genesis on are in the figure. The Safe holds authority, not money: project funds, if
-any, go to a separate Safe.
+- **Now: 2 of 3.** Three technologies, all the founder's.
+- **First co-maintainer: 2 of 4.**
+- **A real quorum: 3 of 5.** The founder's extra keys are retired.
+- **Genesis seated: 4 of 7.** The holders of keys #1–7. GOVERNANCE.md's rule still holds: no
+  technology holds a threshold. So at most three seats sit on PicoQuorum keys; the others use a
+  Trust M key, a hardware wallet or a passkey.
+- **Wider: up to 5 of 9,** with seats for ring holders, voted in by signing.
+
+The Safe holds authority, not money: project funds, if any, go to a separate Safe.
 
 ## What it proves, and what it doesn't
 
-- **It proves** the Safe key was made on a chip the PicoQuorum Safe issued, can't be exported (slot
+- **It proves** the Safe key was made on a chip in a ring the project Safe approved, can't be exported (slot
   0's rules say so), and is sealed.
 - **It doesn't prove** who holds the key or who pressed Sign. That is the Safe's threshold.
 - **Counterfeit chips.** A blank part has no factory root, so a fake that imitates an ATECC608 would
   pass the bench. Buy through JLCPCB or LCSC, and re-read a sample.
-- **The PicoQuorum Safe itself.** A Safe that signs a bad batch can mint badges for software keys.
-  The badge is only as good as its keyholders and the published batch files. That's why control is
+- **The project Safe itself.** A Safe that approves a bad ring can mint badges for software keys.
+  The badge is only as good as its owners and the published ring files. That's why control is
   handed out in stages.
 - **Physical attacks** on one chip reach that chip's keys only. Every brand key is its own.
 
 | | Trust M binding (today) | ATECC608 brand key (proposed) |
 |---|---|---|
-| Root | Infineon's CA | the PicoQuorum Safe |
+| Root | Infineon's CA | the project Safe |
 | Key to chip | E0F0 signs a binding; it signs anything, so it rests on the ceremony | slot 1 signs the chip's own statement; it can't sign anything else |
 | Live check | E0F0 still signs as its certificate's key | a fresh statement, any time, with the verifier's challenge |
 | Certification | Common Criteria EAL6+ | none |
@@ -200,17 +220,18 @@ any, go to a separate Safe.
 - [ ] A statement verifier in Python and JavaScript, with vectors from the virtual chip (`test-vectors/brandkey.json`)
 - [ ] The bench ceremony (B1–B10) and the owner's ceremony (H1–H7) on the emulator, rebooting after every step, with the refusals
 - [ ] Every step and refusal on a sacrificial key-c board
-- [ ] The registry contract and its Foundry tests on the Anvil fork (`tools/quorum up`)
-- [ ] The app's Keys page: batches, bind, badges
-- [ ] The PicoQuorum Safe on Base Sepolia, then Base, each after an explicit yes for gas
-- [ ] Genesis: a second key-c order, since the first five include the sacrificial ones
+- [ ] `PicoQuorumRing` and `PicoQuorumRevoke` digests beside the release digest (firmware, tools, app), and the console's **Approve ring** page, as strict as **Approve release**
+- [ ] Ring approvals rehearsed on a fork (`tools/quorum`), then Base Sepolia
+- [ ] The app's Keys page: rings, statements, badges
+- [ ] The first build: a key-c order of about 72 boards for #1–63 and the sacrificial chips ([launch/](launch/README.md))
+- [ ] Later, if needed: the registry contract and its Foundry tests on the Anvil fork (`tools/quorum up`)
 
 ## Open decisions
 
 - Which slots: 1 for the brand key and 9 for the record are proposals.
 - Whether the record lives on the chip at all, or only in the registry.
-- The edition stamp's layout in the 64-byte OTP zone.
+- The number stamp's layout in the 64-byte OTP zone.
 - Whether Trust M keys can be issued into the registry too, with a badge that says what it rests on.
-- Names and sizes of the editions.
+- The rings, packs and launch phases: [launch/](launch/README.md).
 
 Figures: `tools/brandkey-figures` draws everything in [brandkey/](brandkey/).

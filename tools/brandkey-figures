@@ -2,7 +2,9 @@
 # Draws the brand-key figures in docs/brandkey/ (for docs/BRANDKEY.md) and the Trust M object map in
 # buildlog/images/ (for buildlog/2026-10-05-chalkboard-trustm.md). Dark ground, the brand's colours
 # (docs/BRAND.md), Atkinson Hyperlegible where the viewer has it. Gold marks the brand key in these
-# figures only: it is a seal, not a console colour. Run from the repo root: tools/brandkey-figures
+# figures only: it is a seal, not a console colour. Also the launch figures in docs/launch/ (the ring
+# map and the phases, for docs/launch/README.md). Run from the repo root: tools/brandkey-figures
+import math
 import os
 
 SANS = "Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif"
@@ -106,7 +108,7 @@ def slot_map():
                 slot_tile(f, x, y, 96, 60, n, "dead", "dead", "")
         f.rect(x0 + 16, y0 + 372, 300, 44, fill="none", stroke=GOLD if v2 else MUTED, rx=6)
         f.text(x0 + 28, y0 + 391, "OTP zone · 64 B, write-once", 12, bold=True)
-        f.text(x0 + 28, y0 + 407, "the edition stamp, at the bench" if v2 else "the owner record, at C8", 11, MUTED)
+        f.text(x0 + 28, y0 + 407, "the key's number, at the bench" if v2 else "the owner record, at C8", 11, MUTED)
         f.rect(x0 + 324, y0 + 372, 100, 44, fill="none", stroke=MUTED, rx=6)
         f.text(x0 + 374, y0 + 391, "Counter 0", 12, anchor="middle", bold=True)
         f.text(x0 + 374, y0 + 407, "Safe-key uses", 11, MUTED, "middle")
@@ -158,16 +160,16 @@ def lifecycle():
     stages = (
         ("1 · At the bench · the project",
          "A blank ATECC608 gets the quorum-v2 rulebook; the chip makes its brand key.",
-         "Edition stamped in OTP. Serial and brand public key go into the batch file."),
-        ("2 · The PicoQuorum Safe · its keyholders",
-         "The batch folds into one Merkle root, published in the repo.",
-         "Keyholders compare the root on their consoles, hold green: one transaction."),
+         "Number stamped in OTP. Serial and brand public key go into the ring file."),
+        ("2 · The project Safe · its owners",
+         "The ring file folds into one Merkle root, published in the repo.",
+         "Owners check the root on their consoles and approve it, like a release."),
         ("3 · At home · the key's owner",
          "The chip makes your Safe key in slot 0, signs two tests, then seals slot 0.",
          "The brand key signs the chip's statement: this key, this chip, sealed."),
         ("4 · The registry · anyone",
-         "Anyone submits the statement. The contract checks the batch proof,",
-         "the brand key's signature, and that the key is neither revoked nor bound."),
+         "The owner publishes the statement. Anyone checks the ring's approval,",
+         "the Merkle proof and the brand key's signature, in the browser."),
     )
     for y, (name, a, b) in zip(ys, stages):
         f.rect(24, y, 912, 112, fill=PANEL, stroke=LINE)
@@ -175,14 +177,14 @@ def lifecycle():
         f.text(44, y + 52, a, 13)
         f.text(44, y + 70, b, 13)
     doors(f, 44, ys[0] + 80, ["config lock", "slot 1 lock", "data lock"])
-    f.text(44, ys[1] + 95, "No chip doors. A batch can be revoked later.", 11.5, MUTED)
+    f.text(44, ys[1] + 95, "No chip doors. A key can be revoked later.", 11.5, MUTED)
     doors(f, 44, ys[2] + 80, ["slot 0 lock", "record lock"])
     f.text(44, ys[3] + 95, "Binding happens once per key.", 11.5, MUTED)
     chip_pair(f, 664, ys[0] + 16, ("empty", "Slot 0", "empty"), ("brand", "Slot 1", "brand key, sealed"))
-    tag(f, 664, ys[1] + 16, ETH, "Batch 1 issued onchain", "Founder 001–100 · one root")
+    tag(f, 664, ys[1] + 16, ETH, "Ring 6 approved onchain", "#32–63 · one root")
     chip_pair(f, 664, ys[2] + 16, ("safe", "Slot 0", "Safe key, sealed"), ("brand", "Slot 1", "brand key, sealed"))
-    tag(f, 664, ys[3] + 16, OK, "Verified PicoQuorum key", "Founder 042 of 100")
-    for y, label in zip(ys[:3], ("batch file and its Merkle root", "the key ships unbound", "the chip's statement")):
+    tag(f, 664, ys[3] + 16, OK, "Verified PicoQuorum key", "Key 42 · 101010")
+    for y, label in zip(ys[:3], ("the ring file and its Merkle root", "the key ships unbound", "the chip's statement")):
         f.path([(200, y + 112), (200, y + 154)])
         f.text(214, y + 138, label, 12, MUTED)
     f.save("docs/brandkey/lifecycle.svg")
@@ -215,7 +217,7 @@ def attestation():
     f.text(532, 138, "What the verifier knows", 14, bold=True)
     for i, line in enumerate(("its own challenge", "slot 0's public key, from step 2", "the chip's serial number",
                               "slot 0's rules in quorum-v2, fixed for every key",
-                              "the brand public key, from the issued batch")):
+                              "the brand public key, from the approved ring")):
         f.text(532, 162 + i * 20, "·  " + line, 12.5)
     f.rect(516, 284, 420, 148, fill=OK, stroke=OK, sw=2, fill_opacity="0.10")
     f.text(532, 310, "What it checks", 14, bold=True)
@@ -275,8 +277,8 @@ def trust_chain():
     f.heading("Two ways a key proves where it lives",
               "Top: the ATECC608 brand key (proposed). Bottom: the Trust M binding (today). Each arrow is a check anyone can run.")
     chain_lane(f, 108, "ATECC608 + brand key · proposed", (
-        ("PicoQuorum Safe", ["keyholders sign", "issueBatch(root)", "on their consoles"], ETH),
-        ("Batch root", ["serial and brand key", "in a Merkle tree,", "a proof per key"], None),
+        ("Project Safe", ["owners approve the", "ring's root, like", "a release"], ETH),
+        ("Ring root", ["number, serial and", "brand key in a", "Merkle tree"], None),
         ("Brand key · slot 1", ["internal sign only:", "describes the chip,", "nothing else"], GOLD),
         ("Safe key · slot 0", ["named in the statement", "with its rules", "and its seal"], OK),
         ("Owner address", ["Safe's passkey factory", "derives it from", "the Safe key"], None),
@@ -293,21 +295,22 @@ def trust_chain():
             "Box 3 is the difference. Infineon's factory key signs whatever it is handed, so a Trust M binding",
             "rests on the ceremony and the operator's word (docs/mainnet/THREAT-MODEL.md).",
             "The brand key can only sign the chip's own description of slot 0, so that link rests on the chip.",
-            "Its root is the PicoQuorum Safe instead of a chip maker: issuance is the trust you extend.")):
+            "Its root is the project Safe instead of a chip maker: issuance is the trust you extend.")):
         f.text(40, 466 + i * 22, line, 13, TEXT if i in (0, 2) else MUTED)
     f.save("docs/brandkey/trust-chain.svg")
 
 
 def safe_stages():
-    f = Fig(960, 604, "The PicoQuorum Safe hands out control in stages")
-    f.heading("The PicoQuorum Safe hands out control in stages",
-              "Each dot is one owner. From Genesis on, the founder can't reach the threshold alone.")
+    f = Fig(960, 680, "The project Safe hands out control in stages")
+    f.heading("The project Safe hands out control in stages",
+              "Each dot is one owner (docs/GOVERNANCE.md). From a real quorum on, the founder can't reach the threshold alone.")
     for x, label in ((24, "Stage"), (230, "Owners"), (580, "Threshold"), (690, "Founder alone"), (820, "Can go missing")):
         f.text(x, 108, label.upper(), 11.5, MUTED, bold=True)
-    rows = (("Founders", "now: setup and rehearsal", (3, 0, 0), "2 of 3", False, "1"),
-            ("Genesis", "the Safe issues its own keys", (2, 3, 0), "3 of 5", True, "2"),
-            ("Season 1", "first Founder seats", (2, 3, 2), "4 of 7", True, "3"),
-            ("Season 2 and on", "up to 9 seats", (2, 3, 4), "5 of 9", True, "4"))
+    rows = (("Now", "you alone, three technologies", (3, 0, 0), "2 of 3", False, "1"),
+            ("First co-maintainer", "plus their console key", (3, 1, 0), "2 of 4", False, "2"),
+            ("A real quorum", "your extra keys retired", (2, 3, 0), "3 of 5", True, "2"),
+            ("Genesis seated", "the holders of keys #1–7", (1, 6, 0), "4 of 7", True, "3"),
+            ("Wider", "seats for ring holders", (1, 6, 2), "5 of 9", True, "4"))
     for i, (name, sub, (fo, tr, co), thr, safe, spare) in enumerate(rows):
         y = 124 + i * 76
         f.rect(24, y, 912, 60, fill=PANEL, stroke=LINE)
@@ -322,22 +325,22 @@ def safe_stages():
         f.text(580, y + 36, thr, 16, bold=True)
         f.text(690, y + 36, "can't" if safe else "can act", 14, OK if safe else WARN, bold=True)
         f.text(820, y + 36, spare, 16, bold=True)
-    for i, (kind, words) in enumerate((("f", "the founder: a browser wallet and own keys"),
-                                       ("t", "Genesis keyholders and trusted people"),
-                                       ("c", "community seats, voted in by signing"))):
-        x = (24, 372, 652)[i]
+    for i, (kind, words) in enumerate((("f", "the founder's keys"),
+                                       ("t", "co-maintainers and Genesis holders"),
+                                       ("c", "ring holders, voted in by signing"))):
+        x = (24, 300, 620)[i]
         if kind == "f":
-            f.circle(x + 9, 440, 8, "none", TEXT, 2)
+            f.circle(x + 9, 516, 8, "none", TEXT, 2)
         else:
-            f.circle(x + 9, 440, 9, OK if kind == "t" else ETH)
-        f.text(x + 26, 445, words, 12.5)
-    f.rect(24, 472, 912, 104, fill="none", stroke=LINE)
-    f.text(40, 498, "Rules from Genesis on", 14, bold=True)
+            f.circle(x + 9, 516, 9, OK if kind == "t" else ETH)
+        f.text(x + 26, 521, words, 12.5)
+    f.rect(24, 548, 912, 108, fill="none", stroke=LINE)
+    f.text(40, 574, "Rules from a real quorum on", 14, bold=True)
     for i, line in enumerate((
             "The threshold stays above half the owners. At least two keys can go missing.",
-            "No one person and no one kind of key reaches the threshold; always-online wallets together stay below it.",
-            "Every change is one Safe transaction, approved on the consoles with a 3 s hold on a red page.")):
-        f.text(40, 522 + i * 20, line, 12.5, MUTED)
+            "No one person and no one kind of key reaches the threshold: Genesis seats mix PicoQuorum keys with others.",
+            "Every change is one Safe transaction on Ethereum and Base, approved on the consoles on a red page.")):
+        f.text(40, 598 + i * 20, line, 12.5, MUTED)
     f.save("docs/brandkey/safe-stages.svg")
 
 
@@ -386,7 +389,130 @@ def trustm_objects():
     f.save("buildlog/images/trustm-object-map.svg")
 
 
+def key_xy(k, cx, cy):
+    """Key k on the ring map: ring n holds the n-bit numbers, clockwise from the top. A key's
+    children 2k and 2k + 1 sit just outside it on the next ring."""
+    n = k.bit_length() - 1
+    if n == 0:
+        return cx, cy
+    a = -math.pi / 2 + (k - (1 << n) + 0.5) / (1 << n) * 2 * math.pi
+    return round(cx + 34 * n * math.cos(a), 1), round(cy + 34 * n * math.sin(a), 1)
+
+
+def rings():
+    f = Fig(960, 716, "511 numbered keys on nine rings that double")
+    f.heading("511 numbered keys on nine rings that double",
+              "Key k sits on the ring of its bit length; its parent is k ÷ 2, its children 2k and 2k + 1. An illustration, mid-launch.")
+    cx, cy = 320, 404
+    for n in range(1, 9):
+        f.circle(cx, cy, 34 * n, "none", "#161A21", 1)
+
+    def bound(k):  # an illustration of the map partway through the first build
+        n = k.bit_length()
+        return n <= 3 or (n == 4 and k not in (11, 14)) or (n == 5 and k % 3 != 0) or \
+            (n == 6 and (k % 4 == 0 or 40 <= k <= 43 or k == 37))
+    tri = [key_xy(k, cx, cy) for k in (9, 19, 37)]
+    f.path(tri + [tri[0]], color=ETH, sw=1.75, arrow=False)
+    f.path([key_xy(k, cx, cy) for k in (42, 21, 10, 5, 2, 1)], color=TEXT, sw=1.25, arrow=False, dash="3 3")
+    a0, a1 = -math.pi / 2 + 8 / 32 * 2 * math.pi, -math.pi / 2 + 12 / 32 * 2 * math.pi
+    f.add('<path d="M%.1f %.1f A182 182 0 0 1 %.1f %.1f" fill="none" stroke="%s" stroke-width="2.5"/>'
+          % (cx + 182 * math.cos(a0), cy + 182 * math.sin(a0), cx + 182 * math.cos(a1), cy + 182 * math.sin(a1), CYAN))
+    sizes = [9, 7.5, 6.5, 5.5, 4.5, 3.8, 3.2, 2.7, 2.2]
+    for k in range(1, 512):
+        x, y = key_xy(k, cx, cy)
+        n = k.bit_length() - 1
+        if n >= 6:
+            f.circle(x, y, sizes[n], "#262C35")
+        elif bound(k):
+            f.circle(x, y, sizes[n], OK)
+        else:
+            f.circle(x, y, sizes[n] - 0.6, "none", MUTED, 1.2)
+        if n <= 2:
+            f.circle(x, y, sizes[n] + 3.5, "none", GOLD, 1.5)
+    x42, y42 = key_xy(42, cx, cy)
+    f.circle(x42, y42, 7.5, "none", TEXT, 1.5)
+    # the table of rings
+    for x, label, anchor in ((648, "RING", "start"), (716, "NUMBERS", "start"), (842, "KEYS", "end"), (858, "BUILD", "start")):
+        f.text(x, 110, label, 11, MUTED, anchor, bold=True)
+    table = (("1-bit", "#1", "1", "Genesis"), ("2-bit", "#2–3", "2", "Genesis"), ("3-bit", "#4–7", "4", "Genesis"),
+             ("4-bit", "#8–15", "8", "first"), ("5-bit", "#16–31", "16", "first"), ("6-bit", "#32–63", "32", "first"),
+             ("7-bit", "#64–127", "64", "later"), ("8-bit", "#128–255", "128", "later"),
+             ("9-bit", "#256–511", "256", "later"), ("open", "from #512", "any", "to order"))
+    for i, (ring, nums, count, build) in enumerate(table):
+        y = 134 + i * 22
+        f.text(648, y, ring, 12.5, TEXT, bold=True)
+        f.text(716, y, nums, 12.5, TEXT, mono=True)
+        f.text(842, y, count, 12.5, TEXT, "end", mono=True)
+        f.text(858, y, build, 12.5, {"Genesis": GOLD, "first": OK}.get(build, MUTED))
+    # callouts
+    gx, gy = sum(p[0] for p in tri) / 3, sum(p[1] for p in tri) / 3
+    f.path([(gx, gy), (640, 410)], color=ETH, sw=1, arrow=False)
+    f.rect(640, 372, 296, 76, fill=PANEL, stroke=ETH)
+    f.text(656, 396, "A little quorum", 13.5, bold=True)
+    f.text(656, 416, "Keys 9, 19 and 37 own one Safe, 2 of 3.", 12)
+    f.text(656, 434, "Lines join keys that share a Safe.", 12, MUTED)
+    f.path([(x42 + 8, y42 + 4), (640, 512)], color=TEXT, sw=1, arrow=False)
+    f.rect(640, 466, 296, 100, fill=PANEL, stroke=CYAN)
+    f.text(656, 490, "Key 42 · 101010 · ring 6", 13.5, bold=True)
+    f.text(656, 510, "Parent 21 (10101); children 84 and 85.", 12)
+    f.text(656, 528, "Its Quad: #40–43, the keys starting 1010.", 12)
+    f.text(656, 546, "The dashed line runs back to key 1.", 12, MUTED)
+    legend = ((OK, None, "bound: sealed, statement published"), ("none", MUTED, "issued, waiting for its owner"),
+              ("#262C35", None, "not issued yet"), ("none", GOLD, "a seat on the project Safe"))
+    for i, (fill, stroke, words) in enumerate(legend):
+        y = 596 + i * 22
+        f.circle(650, y - 4, 5, fill, stroke or "none", 1.5)
+        f.text(664, y, words, 12)
+    f.path([(642, 684), (658, 684)], color=ETH, sw=2, arrow=False)
+    f.text(664, 688, "keys that share a Safe, if their owners opt in", 12)
+    f.save("docs/launch/rings.svg")
+
+
+def phases():
+    f = Fig(960, 728, "The launch: rings open one at a time")
+    f.heading("The launch: rings open one at a time",
+              "Phases, not dates. Each gate is checked before the project Safe approves the next ring.")
+    rows = (("0 · Prove it", "no keys yet",
+             ("quorum-v2 on the emulator, then on a sacrificial key-c board.",
+              "Ring approvals rehearsed on a fork and Base Sepolia; the app checks a statement.")),
+            ("1 · Genesis", "#1–7 · rings 1 to 3",
+             ("Seven keys made on stream; the project Safe approves rings 1 to 3.",
+              "Their holders take seats as the Safe is handed over.")),
+            ("2 · Builders", "#8–15 · ring 4",
+             ("Given to people who build with it. The announcement, the video,",
+              "the ring map, and the console in your browser.")),
+            ("3 · First public rings", "#16–63 · rings 5 and 6",
+             ("48 keys in Pairs and Quads, from a waitlist",
+              "that asks who your quorum is.")),
+            ("4 · Wide rings", "#64–511 · rings 7 to 9",
+             ("448 keys, one ring at a time,",
+              "each approved by the project Safe.")),
+            ("5 · Open keys, and yours", "unnumbered",
+             ("Keys made to order, and the tools to run",
+              "your own quorum with its own rings.")))
+    gates = ("every step and every refusal passes on a real chip",
+             "seven keys sealed and bound; the project Safe is a real quorum",
+             "half of ring 4 bound",
+             "each ring opens when the one before it is half bound",
+             "a vote of the project Safe")
+    for i, (name, keys, (a, b)) in enumerate(rows):
+        y = 92 + i * 108
+        accent = GOLD if i == 1 else (OK if i == 3 else None)
+        f.rect(24, y, 912, 72, fill=PANEL, stroke=accent or LINE, sw=2 if accent else 1.25)
+        f.text(44, y + 31, name, 15, bold=True)
+        f.text(44, y + 53, keys, 12, MUTED)
+        f.text(320, y + 31, a, 13)
+        f.text(320, y + 51, b, 13)
+        if i < len(gates):
+            f.path([(180, y + 72), (180, y + 108)], arrow=False)
+            f.add('<path d="M180 %d l7 7 l-7 7 l-7 -7 z" fill="%s"/>' % (y + 83, WARN))
+            f.text(196, y + 95, "Gate: " + gates[i], 12, WARN)
+    f.save("docs/launch/phases.svg")
+
+
 if __name__ == "__main__":
+    rings()
+    phases()
     slot_map()
     lifecycle()
     attestation()

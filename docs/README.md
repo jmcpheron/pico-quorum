@@ -11,6 +11,8 @@ troubleshooting.
 - [`mainnet/`](mainnet/README.md): a Trust M signer in a mainnet Safe. Written for co-signers too: checking a chip, the threat model, the recommended configuration, the operator's runbook
 - [`SECURITY.md`](SECURITY.md): the console's trust model, then picowallet's
 - [`PROVISIONING.md`](PROVISIONING.md): the quorum v1 chip config and the fresh-chip ceremony
+- [`launch/`](launch/README.md): the launch plan, a design: numbered keys on rings that double (1, 2, 4 … 256), how
+  the project Safe approves each ring, the ring map, who decides the brand, and [the explainer video](launch/EXPLAINER.md)
 - [`BRANDKEY.md`](BRANDKEY.md): branded keys, a design: a brand key beside the Safe key (quorum-v2), the bench
   and home ceremonies, the registry and the PicoQuorum Safe; figures in [`brandkey/`](brandkey/)
 - [`LOCKING.md`](LOCKING.md): what each ATECC608 lock does to the multisig

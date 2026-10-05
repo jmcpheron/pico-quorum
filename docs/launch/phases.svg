@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="728" viewBox="0 0 960 728">
+<title>The launch: rings open one at a time</title>
+<rect width="960" height="728" fill="#0B0D11"/>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#5A6370"/></marker></defs>
+<text x="24" y="40" font-size="20" text-anchor="start" fill="#F2F4F7" font-weight="700" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">The launch: rings open one at a time</text>
+<text x="24" y="64" font-size="13" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">Phases, not dates. Each gate is checked before the project Safe approves the next ring.</text>
+<rect x="24" y="92" width="912" height="72" rx="8" fill="#12161C" stroke="#2A313B" stroke-width="1.25"/>
+<text x="44" y="123" font-size="15" text-anchor="start" fill="#F2F4F7" font-weight="700" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">0 · Prove it</text>
+<text x="44" y="145" font-size="12" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">no keys yet</text>
+<text x="320" y="123" font-size="13" text-anchor="start" fill="#F2F4F7" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">quorum-v2 on the emulator, then on a sacrificial key-c board.</text>
+<text x="320" y="143" font-size="13" text-anchor="start" fill="#F2F4F7" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">Ring approvals rehearsed on a fork and Base Sepolia; the app checks a statement.</text>
+<path d="M180 164 L180 200" fill="none" stroke="#5A6370" stroke-width="1.5"/>
+<path d="M180 175 l7 7 l-7 7 l-7 -7 z" fill="#FFB830"/>
+<text x="196" y="187" font-size="12" text-anchor="start" fill="#FFB830" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">Gate: every step and every refusal passes on a real chip</text>
+<rect x="24" y="200" width="912" height="72" rx="8" fill="#12161C" stroke="#D9B44A" stroke-width="2"/>
+<text x="44" y="231" font-size="15" text-anchor="start" fill="#F2F4F7" font-weight="700" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">1 · Genesis</text>
+<text x="44" y="253" font-size="12" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">#1–7 · rings 1 to 3</text>
+<text x="320" y="231" font-size="13" text-anchor="start" fill="#F2F4F7" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">Seven keys made on stream; the project Safe approves rings 1 to 3.</text>
+<text x="320" y="251" font-size="13" text-anchor="start" fill="#F2F4F7" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">Their holders take seats as the Safe is handed over.</text>
+<path d="M180 272 L180 308" fill="none" stroke="#5A6370" stroke-width="1.5"/>
+<path d="M180 283 l7 7 l-7 7 l-7 -7 z" fill="#FFB830"/>
+<text x="196" y="295" font-size="12" text-anchor="start" fill="#FFB830" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">Gate: seven keys sealed and bound; the project Safe is a real quorum</text>
+<rect x="24" y="308" width="912" height="72" rx="8" fill="#12161C" stroke="#2A313B" stroke-width="1.25"/>
+<text x="44" y="339" font-size="15" text-anchor="start" fill="#F2F4F7" font-weight="700" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">2 · Builders</text>
+<text x="44" y="361" font-size="12" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">#8–15 · ring 4</text>
+<text x="320" y="339" font-size="13" text-anchor="start" fill="#F2F4F7" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">Given to people who build with it. The announcement, the video,</text>
+<text x="320" y="359" font-size="13" text-anchor="start" fill="#F2F4F7" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">the ring map, and the console in your browser.</text>
+<path d="M180 380 L180 416" fill="none" stroke="#5A6370" stroke-width="1.5"/>
+<path d="M180 391 l7 7 l-7 7 l-7 -7 z" fill="#FFB830"/>
+<text x="196" y="403" font-size="12" text-anchor="start" fill="#FFB830" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">Gate: half of ring 4 bound</text>
+<rect x="24" y="416" width="912" height="72" rx="8" fill="#12161C" stroke="#34C759" stroke-width="2"/>
+<text x="44" y="447" font-size="15" text-anchor="start" fill="#F2F4F7" font-weight="700" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">3 · First public rings</text>
+<text x="44" y="469" font-size="12" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">#16–63 · rings 5 and 6</text>
+<text x="320" y="447" font-size="13" text-anchor="start" fill="#F2F4F7" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">48 keys in Pairs and Quads, from a waitlist</text>
+<text x="320" y="467" font-size="13" text-anchor="start" fill="#F2F4F7" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">that asks who your quorum is.</text>
+<path d="M180 488 L180 524" fill="none" stroke="#5A6370" stroke-width="1.5"/>
+<path d="M180 499 l7 7 l-7 7 l-7 -7 z" fill="#FFB830"/>
+<text x="196" y="511" font-size="12" text-anchor="start" fill="#FFB830" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">Gate: each ring opens when the one before it is half bound</text>
+<rect x="24" y="524" width="912" height="72" rx="8" fill="#12161C" stroke="#2A313B" stroke-width="1.25"/>
+<text x="44" y="555" font-size="15" text-anchor="start" fill="#F2F4F7" font-weight="700" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">4 · Wide rings</text>
+<text x="44" y="577" font-size="12" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">#64–511 · rings 7 to 9</text>
+<text x="320" y="555" font-size="13" text-anchor="start" fill="#F2F4F7" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">448 keys, one ring at a time,</text>
+<text x="320" y="575" font-size="13" text-anchor="start" fill="#F2F4F7" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">each approved by the project Safe.</text>
+<path d="M180 596 L180 632" fill="none" stroke="#5A6370" stroke-width="1.5"/>
+<path d="M180 607 l7 7 l-7 7 l-7 -7 z" fill="#FFB830"/>
+<text x="196" y="619" font-size="12" text-anchor="start" fill="#FFB830" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">Gate: a vote of the project Safe</text>
+<rect x="24" y="632" width="912" height="72" rx="8" fill="#12161C" stroke="#2A313B" stroke-width="1.25"/>
+<text x="44" y="663" font-size="15" text-anchor="start" fill="#F2F4F7" font-weight="700" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">5 · Open keys, and yours</text>
+<text x="44" y="685" font-size="12" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">unnumbered</text>
+<text x="320" y="663" font-size="13" text-anchor="start" fill="#F2F4F7" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">Keys made to order, and the tools to run</text>
+<text x="320" y="683" font-size="13" text-anchor="start" fill="#F2F4F7" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">your own quorum with its own rings.</text>
+</svg>

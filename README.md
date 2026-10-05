@@ -72,7 +72,7 @@ The [test ladder](docs/LADDER.md) tracks each chain:
 
 | path | what |
 |---|---|
-| `docs/` | [kickoff](docs/KICKOFF.md), [test ladder](docs/LADDER.md), [locking the chip](docs/LOCKING.md), [branded keys](docs/BRANDKEY.md) (a design), [upstream tracking](docs/UPSTREAM-TRACKING.md), [Hegotá watch](docs/HEGOTA-WATCH.md), and picowallet's notes: [build guide](docs/picowallet.md), [security model](docs/SECURITY.md), [chip map](docs/CHIPMAP.md), [test plan](docs/TESTPLAN.md), [USB wallet](docs/USB.md), [clear signing](docs/CLEARSIGNING.md) |
+| `docs/` | [kickoff](docs/KICKOFF.md), [test ladder](docs/LADDER.md), [locking the chip](docs/LOCKING.md), [branded keys](docs/BRANDKEY.md) and [the launch](docs/launch/README.md) (designs), [upstream tracking](docs/UPSTREAM-TRACKING.md), [Hegotá watch](docs/HEGOTA-WATCH.md), and picowallet's notes: [build guide](docs/picowallet.md), [security model](docs/SECURITY.md), [chip map](docs/CHIPMAP.md), [test plan](docs/TESTPLAN.md), [USB wallet](docs/USB.md), [clear signing](docs/CLEARSIGNING.md) |
 | `hardware/` | [Build 1 handoff](hardware/HANDOFF.md), `wiring/` ([perfboard build](hardware/wiring/SOLDERING.md), [Build 1](hardware/wiring/BUILD1.md), [on a breadboard](hardware/wiring/BREADBOARD.md)), `bom/`, `key-pcb/` |
 | `cad/` | `console/` (today the dev console's case, generators and measurements), `key/` |
 | `firmware/` | MicroPython for the Pico: `safe_tx.py` (new), and picowallet's `wallet.py`, `usbwallet.py`, `atecc.py`, `trustm.py`, `signer.py` and crypto |
