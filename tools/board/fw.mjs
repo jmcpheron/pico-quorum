@@ -44,7 +44,7 @@ import { dirname, join } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { MPREMOTE, serialPorts } from "../../emu/core/devices.mjs";
 import { FIRMWARE, ROOT } from "../../emu/core/workspace.mjs";
-import { imageFingerprint, short } from "../release/fingerprint.mjs";
+import { imageFingerprint, short } from "../releases/fingerprint.mjs";
 
 const M = JSON.parse(readFileSync(join(FIRMWARE, "manifest.json"), "utf8"));
 const argv = process.argv.slice(2);
@@ -282,7 +282,7 @@ function build(image, { quiet = false } = {}) {
     } else copyFileSync(join(FIRMWARE, f), join(dir, to));
     files[to] = sha256(readFileSync(join(dir, to))).slice(0, 12);
   }
-  // RELEASE: the release fingerprint of the source files just compiled (tools/release/fingerprint.mjs),
+  // RELEASE: the release fingerprint of the source files just compiled (tools/releases/fingerprint.mjs),
   // the same value the emulator shows for these files; the Device screen draws its blockie.
   const release = imageFingerprint(image, (n) => readFileSync(join(FIRMWARE, n)), M);
   const py = `# written by tools/fw build; never committed\nIMAGE = ${JSON.stringify(image)}\nVERSION = ${JSON.stringify(M.version || "")}\nBUILD = ${JSON.stringify(id)}\nDATE = ${Math.floor(Date.now() / 1000)}\nRELEASE = ${JSON.stringify(release)}\nFILES = ${JSON.stringify(files)}\n`;

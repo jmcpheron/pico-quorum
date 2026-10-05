@@ -841,7 +841,7 @@ function settingsView() {
 
 // ----------------------------------------------------------------------------- releases
 // docs/releases/index.json (tools/release manifest): each release's fingerprint, the SHA-256 of an
-// image's source files (tools/release/fingerprint.mjs). A console shows the same blockie and first 8
+// image's source files (tools/releases/fingerprint.mjs). A console shows the same blockie and first 8
 // hex digits on its Device screen, so a person can check which release their console runs.
 const shortFp = (fp) => `${fp.slice(0, 4)}·${fp.slice(4, 8)}`;
 async function releasesView() {

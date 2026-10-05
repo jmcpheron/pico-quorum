@@ -5,7 +5,7 @@ manifest. `tools/release manifest` writes both (`docs/RELEASES.md` has the steps
 [app's Releases page](../app/#/releases) shows them.
 
 **A release fingerprint** names the firmware a board runs: the SHA-256 over the image's source
-files, as `name \0 sha256(file)` lines sorted by name (`tools/release/fingerprint.mjs`;
+files, as `name \0 sha256(file)` lines sorted by name (`tools/releases/fingerprint.mjs`;
 `test-vectors/fingerprint_test.py` is a second implementation). It is taken over the source, not
 the compiled `.mpy` files, so a Pico built from a commit and the emulator running that commit show
 the same value:

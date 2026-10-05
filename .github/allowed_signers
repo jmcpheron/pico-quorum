@@ -1,0 +1,7 @@
+# The SSH keys allowed to sign release tags (fw-<version>). .github/workflows/release.yml refuses a
+# tag whose signature doesn't check against one of these, and tools/release tag checks it first.
+# One line per key, in ssh-keygen's allowed signers format:
+#   <your git email> namespaces="git" <key type> <public key>
+# For example, a key in the Mac's Secure Enclave (the Secretive app) is ecdsa-sha2-nistp256, and a
+# YubiKey's resident key is sk-ssh-ed25519@openssh.com. docs/RELEASES.md, "Signing", has the setup.
+# Adding or removing a line here is itself a change to review with care: it decides who can release.

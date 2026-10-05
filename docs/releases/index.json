@@ -1,4 +1,4 @@
 {
-  "note": "Every PicoQuorum firmware release, newest first, written by tools/release manifest. Each fingerprint is the SHA-256 of an image's source files (tools/release/fingerprint.mjs); a console shows its blockie and first 8 hex digits on the Device screen. The app's Releases page (#/releases) lists these.",
+  "note": "Every PicoQuorum firmware release, newest first, written by tools/release manifest. Each fingerprint is the SHA-256 of an image's source files (tools/releases/fingerprint.mjs); a console shows its blockie and first 8 hex digits on the Device screen. The app's Releases page (#/releases) lists these.",
   "releases": []
 }
