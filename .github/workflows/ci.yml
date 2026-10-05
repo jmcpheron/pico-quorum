@@ -5,7 +5,8 @@
 #   firmware  the safe_tx/webauthn vectors on CPython and MicroPython, the console, Trust M and
 #             ceremony suites, the display and boot art, the image manifests
 #   fwbuild   tools/fw build for each image, with mpy-cross pinned: each build.py's RELEASE must be
-#             the release fingerprint of the source (the build dirs are kept as artifacts)
+#             the release fingerprint of the source (the build dirs are kept as artifacts), and the
+#             README's build badges (docs/releases/badges/) must name it too
 #   web       the app's tests, then a rebuild that must equal docs/ as committed (the build is
 #             reproducible: what Pages serves is what this source makes), then the browser e2e
 #   emu-web   the emulator's Pages build (docs/emu/), the same rebuild check, then Chromium against
@@ -87,6 +88,8 @@ jobs:
           node tools/releases/fingerprint.mjs
       - name: Each build.py names its source's fingerprint
         run: node tools/releases/cli.mjs release-json --out build/release.json build/console-* build/ceremony-* build/dual-*
+      - name: The README's build badges name this source (node tools/releases/badge.mjs)
+        run: node tools/releases/badge.mjs --check
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: firmware-builds

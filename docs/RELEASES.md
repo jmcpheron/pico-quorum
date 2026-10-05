@@ -10,6 +10,9 @@ git tag, `fw-<version>`.
 writes it into `build.py` as `RELEASE`, and the Device screen shows its blockie and first 8 hex
 digits (`4c86·c754`). The emulator computes it over the files it runs, so the same release shows
 the same picture in the browser. The app's Releases page lists each release's fingerprint.
+The README's badges and build table show each image's blockie with its first and last 8 digits;
+`node tools/releases/badge.mjs` writes them (`docs/releases/badges/`), and CI fails when they don't
+name the source. Run it, as you rebuild `docs/emu`, whenever the firmware or its version changes.
 
 **To make one** (from a clean `main`):
 1. Set `"version"` in `firmware/manifest.json`, and write its `## <version> (<date>)` entry below.

@@ -13,6 +13,8 @@ the same value:
 - the console's **Device screen** (home grid, X) shows its blockie and first 8 hex digits, `4c86·c754`;
 - the **Device tile** on the home grid carries the same blockie;
 - `tools/fw build` and `tools/fw verify` print it.
+- the repository's **README** shows each image's blockie with its first and last 8 digits
+  ([`badges/`](badges/), written by `tools/releases/badge.mjs`).
 
 Compare the picture on your console with the one on the Releases page. A fingerprint that matches
 no release is a development build, or firmware that isn't one of ours.

@@ -31,6 +31,12 @@ PicoQuorum additions:
 - [`fonts/`](fonts/): renders the console's anti-aliased fonts (Atkinson Hyperlegible, OFL) into
   `firmware/qf_*.bin`; `firmware/fonts.py` draws them
 
+- [`brand/lockup.py`](brand/lockup.py): the logo (the mark and the name, outlined) as
+  `docs/brand/lockup-dark.svg` and `lockup-light.svg`, for the README
+
+- [`releases/badge.mjs`](releases/badge.mjs): the README's build badges and table, each image's
+  release fingerprint as a blockie with its first and last 8 digits; `--check` is CI's
+
 - `fw` ([`board/fw.mjs`](board/fw.mjs)): the Pico as a production device, over USB.
   - `build console|ceremony` makes an image from `firmware/manifest.json`.
   - `backup` copies every file on the board, each checked by SHA-256, into `backups/` (gitignored).
