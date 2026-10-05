@@ -116,6 +116,8 @@ jobs:
         working-directory: web
       - run: npm test
         working-directory: web
+      - name: The live-site checker catches what it should (tools/releases/site-test.mjs, offline)
+        run: node tools/releases/site-test.mjs
       - name: Rebuild; it must equal docs/ as committed
         working-directory: web
         run: |

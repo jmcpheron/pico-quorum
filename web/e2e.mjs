@@ -9,6 +9,7 @@
 // - Safe's transaction service, with the real one's checks: the hash is the fields' hash, the sender
 //   is an owner, and every signature recovers to its owner.
 // Exit 1 on any failure.
+import { createHash } from "node:crypto";
 import { createServer } from "node:http";
 import { mkdirSync, readFileSync, statSync } from "node:fs";
 import { extname, join, normalize } from "node:path";
@@ -347,8 +348,9 @@ await step("refusals", async () => {
 await step("releases", async () => {
   // docs/releases/index.json as served, plus one made-up release routed in to check the lookup
   const fp = "4c86c7541a45eb43f24c48c178409de889c5f86d467c886d444e9e30b9a00e0b";
+  const appHash = createHash("sha256").update(readFileSync(join(DOCS, "app", "BUILD.json"))).digest("hex");
   await page.route("**/releases/index.json", (r) => r.fulfill({ status: 200, contentType: "application/json",
-    body: JSON.stringify({ releases: [{ version: "2026.10.6", date: "2026-10-05", commit: "abc1234def", fingerprints: { console: fp } }] }) }));
+    body: JSON.stringify({ releases: [{ version: "2026.10.6", date: "2026-10-05", commit: "abc1234def", fingerprints: { console: fp }, web: { app: appHash } }] }) }));
   await page.goto(`${BASE}app/#/releases`);
   await page.getByText("4c86·c754").first().waitFor();
   check(await page.locator("img.blockie").count() >= 1, "releases: each release with its fingerprint's blockie and 4c86·c754");
@@ -356,6 +358,8 @@ await step("releases", async () => {
   await page.getByText("Release 2026.10.6 (console image)").waitFor();
   await page.fill("#fp", "deadbeef");
   await page.getByText("No release has that fingerprint").waitFor();
+  await page.getByText("This page is release 2026.10.6.").waitFor();
+  check(true, "releases: this page knows which release it is (its BUILD.json is that release's)");
   check(true, "releases: the eight digits from a Device screen name the release, or say none does");
   await page.unroute("**/releases/index.json");
   await shot("7-releases");

@@ -35,6 +35,11 @@ CI (`.github/workflows/ci.yml`) runs every suite on each pull request and push t
 images, and fails if `docs/` differs from a rebuild of the web pages. Pages serves only what the
 source makes.
 
+`.github/workflows/site-check.yml` checks that from outside. After every Pages deploy and every six
+hours, it fetches what the site serves and compares each byte with `docs/` at the deployed commit,
+and opens an issue on any difference. By hand: `tools/release check-site`. The app's Releases page
+says which release the page you're on is.
+
 ### Signing
 
 Tags are signed with an SSH key; git and GitHub both understand it. Keep the key in hardware if you

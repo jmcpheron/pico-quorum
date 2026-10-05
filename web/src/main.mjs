@@ -873,10 +873,21 @@ async function approvalBadge(rel) {
       : h("span", {}, badge("warn", "Not approved yet"), " ", h("a", { class: "small", href: `#/safe/${PROJECT.name}/${PROJECT.address}/new/release`, text: "Propose approval" }));
   } catch { return badge("warn", "Approval not checked"); }
 }
+// Which release this page is: its BUILD.json's SHA-256 is a release's manifest web hash (index.json
+// "web.app"). Information, not proof: a compromised site could fake this too. The proof is checked
+// from outside the site (tools/release check-site, .github/workflows/site-check.yml).
+async function thisPage(rel) {
+  try {
+    const b = await (await fetch(new URL("BUILD.json", location.href), { cache: "no-cache" })).arrayBuffer();
+    const h = [...new Uint8Array(await crypto.subtle.digest("SHA-256", b))].map((x) => x.toString(16).padStart(2, "0")).join("");
+    return { hash: h, release: rel.find((r) => (r.web || {}).app === h) || null };
+  } catch { return null; }
+}
 async function releasesView() {
   const list = h("div", {}, h("p", { class: "muted", text: "Loading the release list…" }));
   const find = h("input", { type: "text", id: "fp", class: "mono", placeholder: "4c86·c754", autocomplete: "off", spellcheck: "false", "aria-describedby": "fp-help" });
   const found = h("p", { role: "status" });
+  const here = h("div", {}, h("p", { class: "muted", text: "Checking which build this page is…" }));
   fill($main(),
     h("section", { class: "hero" }, h("h1", { text: "Releases" }),
       h("p", { class: "lede", text: "Each firmware release has a fingerprint: a SHA-256 of the console's source files. Your console shows its blockie and first eight digits on the Device screen (on the home grid, press X)." }),
@@ -886,9 +897,18 @@ async function releasesView() {
     h("section", { class: "card" }, h("h2", { text: "Which release is my console running?" }),
       h("label", { for: "fp", text: "The eight digits under Release on its Device screen" }), find,
       h("p", { id: "fp-help", class: "muted small", text: "Spaces and the middle dot don't matter." }), found),
+    h("section", { class: "card" }, h("h2", { text: "This page" }), here),
     h("section", { class: "card" }, h("h2", { text: "All releases" }), list));
   try {
     const rel = await releaseList();
+    thisPage(rel).then(async (p) => {
+      if (!p) return fill(here, h("p", { class: "muted", text: "Couldn't read this page's BUILD.json." }));
+      const status = p.release ? await approvalBadge(p.release) : null;
+      fill(here,
+        h("p", {}, p.release ? h("strong", { text: `This page is release ${p.release.version}. ` }) : h("strong", { text: "This page is a development build, not a release. " }), status),
+        h("p", { class: "small muted" }, `Its BUILD.json hashes to ${p.hash.slice(0, 12)}…. A page can't vouch for itself, so the live site is also checked from outside, after every deploy (`,
+          h("a", { href: `${REPO}/blob/main/docs/GOVERNANCE.md`, text: "how" }), ")."));
+    });
     find.oninput = () => {
       const q = find.value.toLowerCase().replace(/[^0-9a-f]/g, "");
       if (q.length < 8) return void fill(found);

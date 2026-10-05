@@ -112,9 +112,14 @@ up red and unread. A firmware item to come: decode `setText`, `setAddr`, `setCon
    - moving later means new passkeys, which are owner changes.
 
    Either a custom domain or `<name>.eth.limo`.
-4. **Checking the live site.** What the browser runs is whatever the site sends. The plan is to
-   compare the live files with the approved release's `BUILD.json` from outside the site, on a
-   schedule, and say loudly when they differ (`EMU-WEB.md`, *Where the code comes from*).
+4. **Checking the live site.** What the browser runs is whatever the site sends, and a page can't
+   vouch for itself. `.github/workflows/site-check.yml` checks it from outside:
+   - every byte Pages serves, against `docs/` at the commit it deployed;
+   - after every deploy and every six hours;
+   - an issue opens on any difference.
+
+   The app's Releases page says which release the page is, and whether this Safe approved it. With a
+   public repository, anyone can run `tools/release check-site` themselves.
 
 ## First steps
 

@@ -14,6 +14,8 @@
 //                                    .github/allowed_signers; push it with --push
 //   tools/release approval [VERSION] the Safe transaction that has the project Safe approve it
 //                                    (docs/GOVERNANCE.md): its digest, calldata and origin note
+//   tools/release check-site [URL] [--commit SHA | --pages owner/repo]
+//                                    the live site against what the repository built (site.mjs)
 //   tools/release release-json --out FILE BUILD_DIR...   CI: release.json for the GitHub Release
 //   tools/release notes VERSION      CI: that version's section of docs/RELEASES.md
 import { createHash } from "node:crypto";
@@ -22,7 +24,8 @@ import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSy
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { FIRMWARE, ROOT, imageFingerprint, manifest, short } from "./fingerprint.mjs";
-import { approvalTx, releaseDigest, safeMessageHash } from "../mock-tx-service/release.mjs";
+import { approvalTx, isApproved, releaseDigest, safeMessageHash } from "../mock-tx-service/release.mjs";
+import { SITE, checkSite, liveReader, localReader, pagesCommit } from "./site.mjs";
 
 const RELEASES = join(ROOT, "docs", "releases");
 const SIGNERS = join(ROOT, ".github", "allowed_signers");
@@ -102,7 +105,7 @@ function writeManifest() {
 function indexEntry(version) {
   const m = readJson(manifestPath(version));
   const manifestSha256 = sha256(readFileSync(manifestPath(version)));
-  return { version, date: m.date, fingerprints: m.fingerprints, manifest: `${version}.json`, manifestSha256,
+  return { version, date: m.date, fingerprints: m.fingerprints, web: m.web, manifest: `${version}.json`, manifestSha256,
     digest: releaseDigest({ version, firmware: "0x" + m.fingerprints.console, manifest: "0x" + manifestSha256 }) };
 }
 
@@ -136,7 +139,8 @@ function verify(version) {
   const e = (idx.releases || []).find((r) => r.version === version);
   const need = indexEntry(version);
   check(e && JSON.stringify(e.fingerprints) === JSON.stringify(c.fingerprints), `docs/releases/index.json lists ${version} with these fingerprints`);
-  check(e && e.manifestSha256 === need.manifestSha256 && e.digest === need.digest, `index.json has its manifest's SHA-256 and the digest the project Safe approves`);
+  check(e && e.manifestSha256 === need.manifestSha256 && e.digest === need.digest && JSON.stringify(e.web) === JSON.stringify(need.web),
+    `index.json has its manifest's SHA-256, its web builds' hashes and the digest the project Safe approves`);
 }
 
 // ----------------------------------------------------------------------------- check and tag
@@ -219,6 +223,25 @@ function releaseJson() {
   console.log(`wrote ${out}`);
 }
 
+async function checkSiteCmd() {
+  const base = argv.slice(1).find((a) => /^https?:/.test(a)) || SITE;
+  const commit = opt("--commit") || (opt("--pages") ? pagesCommit(opt("--pages")) : null);
+  if (opt("--pages") && !commit) die("couldn't read the commit Pages deployed (gh api .../pages/builds/latest)");
+  const cfg = (() => { const src = readFileSync(join(FIRMWARE, "quorum_cfg.py"), "utf8"); return JSON.parse(src.slice(src.indexOf("{", src.indexOf("CFG =")))); })();
+  let approved;
+  if (cfg.project?.address) {
+    const { createPublicClient, http } = await import("viem");
+    const rpc = { 1: process.env.ETH_RPC || "https://ethereum-rpc.publicnode.com", 8453: "https://mainnet.base.org", 84532: "https://sepolia.base.org" }[cfg.project.chainId];
+    const client = createPublicClient({ transport: http(rpc) });
+    approved = (d) => isApproved(client, cfg.project.address, d);
+  }
+  console.log(`the live site ${base} against docs/ ${commit ? `at ${commit.slice(0, 12)} (what Pages deployed)` : "in this checkout"}`);
+  const r = await checkSite(liveReader(base), localReader(commit), { approved });
+  for (const [ok, what] of r.rows) check(ok, what);
+  for (const s of r.status) console.log(`      ${s}`);
+  console.log(failed ? `${failed} FAILED: the site is not serving what the repository built` : "the site serves exactly what the repository built");
+}
+
 const commands = {
   check: () => { preflight(); console.log(failed ? `${failed} FAILED` : "ready to tag"); },
   manifest: writeManifest,
@@ -226,8 +249,9 @@ const commands = {
   tag,
   "release-json": releaseJson,
   approval,
+  "check-site": checkSiteCmd,
   notes: () => { const e = releasesEntry(argv[1] || manifest().version); if (!e) die(`no "## ${argv[1]}" in docs/RELEASES.md`); console.log(e); },
 };
 if (!commands[cmd]) die(`usage: tools/release ${Object.keys(commands).join(" | ")}`);
-commands[cmd]();
+await commands[cmd]();
 process.exit(failed ? 1 : 0);
