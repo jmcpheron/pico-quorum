@@ -417,7 +417,7 @@ try {
 }
 await booting;
 
-// The release fingerprint of the files this page runs (build.py RELEASE, tools/release/fingerprint.mjs):
+// The release fingerprint of the files this page runs (build.py RELEASE, tools/releases/fingerprint.mjs):
 // its blockie and first 8 hex digits, as a Pico's Device screen shows them.
 async function showRelease(fp) {
   const el = document.getElementById("release");

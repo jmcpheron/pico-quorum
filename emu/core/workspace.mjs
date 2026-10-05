@@ -4,7 +4,7 @@ import { readdirSync, readFileSync, statSync, existsSync, writeFileSync } from "
 import { join, resolve, dirname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
-import { fingerprint, manifest } from "../../tools/release/fingerprint.mjs";
+import { fingerprint, manifest } from "../../tools/releases/fingerprint.mjs";
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 export const FIRMWARE = join(ROOT, "firmware");
