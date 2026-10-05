@@ -3,6 +3,12 @@
 // The first group are ordinary; the rest are the red screens and the lies the console must catch.
 import { concat, encodeFunctionData, encodePacked, maxUint256, parseAbi, parseEther, parseUnits, size } from "viem";
 import { BOOK, CFG, forChain, propose, signAs } from "./sim.mjs";
+import { approvalTx } from "./release.mjs";
+import { imageFingerprint, manifest } from "../releases/fingerprint.mjs";
+
+// A release of this checkout for the approval scenarios (docs/GOVERNANCE.md): its version and console
+// fingerprint, and a stand-in manifest hash.
+const RELEASE = { version: manifest().version, firmware: "0x" + imageFingerprint("console"), manifest: "0x" + "5f".repeat(32) };
 
 const USDC = Object.keys(forChain("tokens", 31337))[0];
 const MULTISEND = Object.keys(forChain("batchers", 31337))[0];                   // MultiSendCallOnly 1.4.1
@@ -77,6 +83,20 @@ export const SCENARIOS = {
   "wrong-safe": {
     about: "The service slips in a transaction for a different Safe", by: "alice", sign: false,
     build: () => [{ to: BOOK.Carol, value: parseEther("1") }, { reportSafe: OTHER_SAFE }],
+  },
+  release: {
+    about: "Alice proposes that the Safe approve this checkout's PicoQuorum release (SignMessageLib, its release in the origin note), and signs it",
+    by: "alice", sign: true,
+    build: () => { const t = approvalTx(RELEASE); return [{ to: t.to, operation: 1, data: t.data }, { origin: t.origin }]; },
+  },
+  "release-forged": {
+    about: "The same approval, but its origin note names another release than the digest in the calldata",
+    by: "alice", sign: true,
+    build: () => {
+      const t = approvalTx(RELEASE);
+      const o = JSON.parse(t.origin);
+      return [{ to: t.to, operation: 1, data: t.data }, { origin: JSON.stringify({ pq: { ...o.pq, v: "2099.1.1" } }) }];
+    },
   },
   conflict: {
     about: "Two proposals for the same number: Alice sends 1 ETH to Carol, Bob proposes to reject it", by: "alice", sign: true,

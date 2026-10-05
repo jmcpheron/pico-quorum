@@ -138,6 +138,8 @@ if (cmd === "serve") {
   await up();
 } else if (cmd === "e2e") {
   await import("./e2e.mjs");
+} else if (cmd === "release-e2e") {
+  await import("./release-e2e.mjs");
 } else if (cmd === "doctor") {
   await doctor();
 } else if (cmd === "live") {

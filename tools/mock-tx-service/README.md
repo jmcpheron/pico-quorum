@@ -47,6 +47,7 @@ tools/quorum doctor           # node, python3, anvil, the emulator, the fork RPC
 tools/quorum serve            # simulated: port 8787 (QUORUM_PORT), state in state.json; dashboard at /
 tools/quorum up [--refork]    # forked: anvil on 127.0.0.1:8545 + the service on 8787; Ctrl-C stops both
 tools/quorum e2e              # the console on the emulator approves on a fork (ports 8546, 8798)
+tools/quorum release-e2e      # the console approves a PicoQuorum release on a fork; the approval holds on chain (8547, 8799)
 tools/quorum scenarios        # the stories: sends, a batch, red ones, a lying service, a conflict
 tools/quorum demo             # fresh Safe with the standard queue (on the fork: rolled back to setup)
 tools/quorum propose refund --by bob

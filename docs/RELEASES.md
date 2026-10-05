@@ -60,8 +60,29 @@ git config --global tag.gpgSign true
 - **Tags `fw-*`:** restrict creation, update and deletion to the maintainers. Otherwise anyone with
   push access could take a release name, even though CI would refuse to publish it.
 
-Releases are also approved on-chain by the project Safe (`docs/GOVERNANCE.md`). The tag says who
-cut a release; the Safe says the project stands behind it.
+### Approval by the project Safe
+
+The tag says who cut a release. The project Safe says the project stands behind it (`docs/GOVERNANCE.md`).
+
+1. **Propose:** `tools/release approval` prints the Safe transaction:
+   - a delegatecall to Safe's SignMessageLib 1.4.1, `signMessage(D)`;
+   - D is the EIP-712 `PicoQuorumRelease(version, firmware, manifest)`;
+   - a short origin note names the release.
+
+   Propose it from the app's **Releases** page (**Propose approval**), or with any Safe tool.
+2. **Approve:** each owner's console shows **Approve release …** with the firmware fingerprint's
+   blockie, and whether it is the release running on that console. It refuses any message that
+   isn't a release whose note gives exactly the calldata's digest.
+3. **Check:** once executed, `isValidSignature(D, "0x")` on the Safe returns `0x1626ba7e` for good,
+   even after owners change. The Releases page shows **Approved by the project Safe**.
+
+`docs/releases/<version>.json` never changes after its tag: its SHA-256 is part of D. Later facts
+(the commit, the approval) go in `index.json`.
+
+`tools/vectors/release.mjs` checks the hashing against a real Safe on Ethereum.
+`tools/quorum release-e2e` runs the whole approval on a fork:
+- the console signs it, and it executes;
+- `isValidSignature` holds, and still holds after the console's owner is removed.
 
 ## 2026.10.5 (2026-10-02)
 

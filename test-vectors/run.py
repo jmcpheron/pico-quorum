@@ -14,6 +14,7 @@ import decode  # noqa: E402
 import quorum_cfg  # noqa: E402
 from keccak import keccak256  # noqa: E402
 import webauthn_check  # noqa: E402
+import release_check  # noqa: E402
 
 
 def hx(b):
@@ -42,6 +43,7 @@ def main():
     failed += check_decode(vectors)
     failed += webauthn_check.check(os.path.join(HERE, "webauthn.json"))
     failed += webauthn_check.check_passkey(os.path.join(HERE, "passkey.json"))
+    failed += release_check.check(os.path.join(HERE, "release.json"))
     return 1 if failed else 0
 
 

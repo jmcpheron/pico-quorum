@@ -880,8 +880,61 @@ def case_passkey():
         _emu.passkey_use(False)
 
 
+def case_release_approval():
+    """The project Safe approving a PicoQuorum release (release.py): a delegatecall to the pinned
+    SignMessageLib, its release named in the origin note. The console reads it, shows the release
+    and its fingerprint's blockie (and whether this console runs it), and signs it like any other
+    transaction; a note that doesn't give the calldata's digest is refused."""
+    import release
+    import blockies
+    import quorum_ui as U
+    chip()
+    Q = fresh()
+    import image                # after fresh(), which imports it anew
+    LIB = "0xd53cd0ab83d845ac265be939c57f53ad838012c9"
+    fp, man = "4c86c7541a45eb43f24c48c178409de889c5f86d467c886d444e9e30b9a00e0b", "5f" * 32
+    d = release.digest("2026.10.6", fp, man)
+    data = "0x85a5affe" + "%064x" % 32 + "%064x" % 32 + "".join("%02x" % b for b in d)
+    good = tx(Q, 0, to=LIB, data=data, op=1)
+    good["origin"] = '{"pq":{"v":"2026.10.6","f":"%s","m":"%s"}}' % (fp, man)
+    serve(Q, [good])
+    e = Q.queue[0]
+    check(not e["why"] and e["r"]["summary"] == "Approve release 2026.10.6", "an approval for release 2026.10.6: read, not refused")
+    image.RELEASE = fp
+    drawn, texts = [], []
+    real_draw, real_text = blockies.draw, U.F.text
+    blockies.draw = lambda dd, seed, x, y, scale, *a, **k: (drawn.append(seed), real_draw(dd, seed, x, y, scale, *a, **k))
+    U.F.text = lambda dd, t, *a, **k: (texts.append(t), real_text(dd, t, *a, **k))[1]
+    try:
+        Q.open_entry(e)
+        while Q.cur and Q.page < len(e["r"]["items"]) and e["r"]["items"][Q.page].get("title") != "RELEASE":
+            Q.turn(1)
+        U.draw_item(Q, 0)
+        check(("0x" + fp) in drawn and "firmware 4c86\u00b7c754" in texts, "its page shows the release's firmware fingerprint and blockie")
+        check("the release running here" in texts, "and that it is the release this console runs")
+        image.RELEASE = "ab" * 32
+        texts[:] = []
+        U.draw_item(Q, 0)
+        check("not the release running here" in texts, "on a console running another release, it says so")
+    finally:
+        blockies.draw, U.F.text = real_draw, real_text
+        image.RELEASE = ""
+    Q.handle("B")
+    check(sign(Q, e, 3100), "held: the console signs the approval like any transaction")
+    Q.handle("A")
+    bad = tx(Q, 1, to=LIB, data=data, op=1)
+    bad["origin"] = '{"pq":{"v":"2026.10.7","f":"%s","m":"%s"}}' % (fp, man)
+    other = tx(Q, 2, to=LIB, data=data, op=1)       # its own hash: decodes are cached by safeTxHash
+    serve(Q, [good, bad])
+    eb = [x for x in Q.queue if x["n"] == 1][0]
+    check(bool(eb["why"]) and "doesn't match" in eb["why"], "a note naming another release than the calldata's digest: refused")
+    serve(Q, [good, other])
+    eo = [x for x in Q.queue if x["n"] == 2][0]
+    check(bool(eo["why"]) and "no PicoQuorum release" in eo["why"], "a message with no release named: refused (it signs only releases)")
+
+
 def main():
-    for case in (case_pin, case_owners_pages, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_safes, case_watchdog, case_grid, case_release, case_passkey):
+    for case in (case_pin, case_owners_pages, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_safes, case_watchdog, case_grid, case_release, case_passkey, case_release_approval):
         print("--", case.__name__[5:])
         try:
             case()

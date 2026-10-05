@@ -759,8 +759,23 @@ def draw_item(q, i):
     for label, a in ((it.get("frm_label", "from"), it.get("frm")), (it.get("label", "to"), it.get("to"))):
         if a:
             y = who_line(d, q, label, a, y, pc, bg)
+    if it.get("release"):
+        y = release_line(d, it["release"], y, pc, bg)
     if it.get("text"):
         para(d, it["text"], M, y, TW, "sans14", pc["text"], bg, 17, PAGE_ROW - 2)
+
+
+def release_line(d, rel, y, pc, bg):
+    """A release to approve: its firmware fingerprint's blockie and name, and whether it is the
+    release this console runs (the Device screen shows the same picture)."""
+    import image
+    fp = rel["firmware"][2:]
+    blockies.draw(d, "0x" + fp, M, y + 2, 3)
+    txt(d, "firmware " + fp[:4] + "\u00b7" + fp[4:8], M + 32, y, "mono13", pc["text"], bg)
+    here = image.RELEASE == fp
+    txt(d, "the release running here" if here else "not the release running here", M + 32, y + 15, "sans12",
+        "ok" if here else pc["muted"], bg)
+    return y + 34
 
 
 def draw_calldata(q, i):

@@ -9,10 +9,11 @@ import {
   ERC20_ABI, KINDS, buildCall, isRejection, knownTokens, nextNonce, proposalBody, safeTx, typedData, walletSignature,
 } from "./propose.mjs";
 import {
-  CFG, CHAINS, GS, SAFE_ABI, SIGNER_ABI, Service, checkTx, client, consoleRefuses, dataBytes, eth, execCall, knownName, outcome,
+  CFG, CHAINS, GS, SAFE_ABI, SIGNER_ABI, Service, chainById, checkTx, client, consoleRefuses, dataBytes, eth, execCall, knownName, outcome,
   ownerKind, readSafe, reason, safeTxHash, verifyCode,
 } from "./safe.mjs";
 import { wallet } from "./wallet.mjs";
+import { isApproved } from "../../tools/mock-tx-service/release.mjs";
 
 const REPO = "https://github.com/jmcpheron/pico-quorum";
 const DEMO = { chain: "basesep", address: "0xEDEDC0063B23A309f4cAdA5e1225Ef21D8A30a43", name: "PicoQuorum test Safe" };
@@ -474,11 +475,12 @@ async function proposeView(name, addr, presetKind, presetNonce) {
     if (!info) throw new Error(`Safe's transaction service doesn't list this Safe on ${c.name}, so it can't take a proposal.`);
     if (!/^1\.(?:[3-9]|\d\d)\./.test(s.version)) throw new Error(`This Safe is v${s.version}. The console and this page work with Safe 1.3.0 and later.`);
     const queued = (await svc.queue(safe, s.nonce))?.results || [];
-    proposeForm(body, { name, c, safe, pub, svc, s, queued, keys, back, presetKind, presetNonce });
+    const releases = presetKind === "release" ? await releaseList().catch(() => []) : [];
+    proposeForm(body, { name, c, safe, pub, svc, s, queued, keys, back, presetKind, presetNonce, releases });
   } catch (e) { fail(body, e); }
 }
 
-function proposeForm(body, { name, c, safe, pub, svc, s, queued, keys, back, presetKind, presetNonce }) {
+function proposeForm(body, { name, c, safe, pub, svc, s, queued, keys, back, presetKind, presetNonce, releases = [] }) {
   const tokens = knownTokens(c.id);
   const vals = { threshold: String(s.threshold), token: tokens[0]?.address || "other" };
   let kind = KINDS.some((k) => k.id === presetKind) ? presetKind : "eth";
@@ -548,6 +550,11 @@ function proposeForm(body, { name, c, safe, pub, svc, s, queued, keys, back, pre
       swap: () => [...pick("old", "Owner to replace", owners), ...addressField("owner", "New owner", "Takes the old owner's place, with the same vote. For a new PicoQuorum key, use its owner address.")],
       threshold: () => [...pick("threshold", "Approvals needed", counts(n, n).filter(([v]) => Number(v) !== s.threshold))],
       reject: () => [h("p", {}, "A transaction that does nothing. Once executed it uses up its nonce, so every other transaction waiting at that nonce can never run. It needs the same approvals as any other.")],
+      release: () => {
+        const row = pick("release", "Release", releases.map((r) => [r.version, `${r.version} · firmware ${shortFp(r.fingerprints.console)}`]),
+          "The Safe approves this release for everyone who runs PicoQuorum. Each owner's console shows its firmware fingerprint before signing.");
+        return releases.length ? row : [h("p", { class: "bad", text: "No releases listed (docs/releases/index.json)." })];
+      },
       custom: () => [...addressField("to", "Contract"), ...textField("amount", "ETH sent with it", "Optional.", { inputmode: "decimal", placeholder: "0" }),
         ...textField("data", "Data", "The calldata, as hex. A plain call; delegatecalls aren't offered, and the console refuses unpinned ones.", { multiline: true, class: "mono-in", placeholder: "0x…" })],
     };
@@ -568,7 +575,7 @@ function proposeForm(body, { name, c, safe, pub, svc, s, queued, keys, back, pre
     fill(fields, ...per[kind](), h("label", { for: nonceId, text: "Nonce" }), nonceIn, nonceNote);
     stale();
   }
-  for (const k of KINDS) add(kinds, h("button", { type: "button", role: "radio", class: `kind${k.red ? " red" : ""}`, "data-kind": k.id, text: k.label,
+  for (const k of KINDS.filter((k) => !k.gov || kind === k.id)) add(kinds, h("button", { type: "button", role: "radio", class: `kind${k.red ? " red" : ""}`, "data-kind": k.id, text: k.label,
     onclick: () => { kind = k.id; drawFields(); } }));
 
   const err = h("p", { class: "bad small", role: "alert" });
@@ -585,7 +592,7 @@ function proposeForm(body, { name, c, safe, pub, svc, s, queued, keys, back, pre
   async function built() {
     const nonce = Number(vals.nonce);
     if (!Number.isInteger(nonce) || nonce < s.nonce) throw new Error(`Nonce: a whole number from ${s.nonce} up.`);
-    let input = { ...vals };
+    let input = { ...vals, releaseEntry: releases.find((r) => r.version === vals.release) };
     if (kind === "token") {
       const token = vals.token === "other" ? vals.tokenAddress : vals.token;
       if (!isAddress(String(token || "").trim(), { strict: false })) throw new Error("Token: pick one, or paste its address.");
@@ -618,7 +625,10 @@ function proposeForm(body, { name, c, safe, pub, svc, s, queued, keys, back, pre
           to === safe ? " (this Safe)" : knownName(c.id, to) || who(to) ? ` (${knownName(c.id, to) || who(to)})` : ""),
         h("dt", { text: "Value" }), h("dd", { text: `${eth(t.value)} ETH` }),
         h("dt", { text: "Data" }), h("dd", {}, dataBytes(t.data) ? h("code", { class: "mono small", text: t.data }) : "none"),
-        h("dt", { text: "Operation" }), h("dd", { text: "call" }),
+        h("dt", { text: "Operation" }), h("dd", { text: Number(t.operation) === 1 ? "delegatecall (Safe's SignMessageLib, pinned by the console)" : "call" }),
+        ...(b.release ? [h("dt", { text: "Release" }), h("dd", { class: "to" }, ident("0x" + b.release.fingerprints.console, 20),
+          h("code", { class: "mono", text: `${b.release.version} · firmware ${shortFp(b.release.fingerprints.console)}` })),
+          h("dt", { text: "Digest" }), h("dd", {}, h("code", { class: "mono small", text: b.release.digest }))] : []),
         h("dt", { text: "Nonce" }), h("dd", { text: `#${t.nonce}` })),
       warnings.length ? h("ul", { class: "warns" }, ...warnings.map((w) => h("li", { text: w }))) : null,
       h("div", { class: "verify" }, ident(hash, 56),
@@ -844,6 +854,25 @@ function settingsView() {
 // image's source files (tools/releases/fingerprint.mjs). A console shows the same blockie and first 8
 // hex digits on its Device screen, so a person can check which release their console runs.
 const shortFp = (fp) => `${fp.slice(0, 4)}·${fp.slice(4, 8)}`;
+let releasesP = null;
+function releaseList() {
+  return (releasesP ||= (async () => {
+    const r = await fetch(new URL("../releases/index.json", location.href), { cache: "no-cache" });
+    if (!r.ok) throw new Error(`the release list: HTTP ${r.status}`);
+    return (await r.json()).releases || [];
+  })());
+}
+// The project Safe (firmware/quorum_cfg.py "project"; docs/GOVERNANCE.md): a release it approved has
+// isValidSignature(digest, "0x") == 0x1626ba7e there, for good (Safe's SignMessageLib).
+const PROJECT = CFG.project && CFG.project.address ? { ...CFG.project, name: chainById(CFG.project.chainId) } : null;
+async function approvalBadge(rel) {
+  if (!PROJECT || !rel.digest) return null;
+  try {
+    const ok = await isApproved(pubFor(PROJECT.name), PROJECT.address, rel.digest);
+    return ok ? badge("ok", "Approved by the project Safe", `isValidSignature(${rel.digest}, 0x) on ${PROJECT.address}`)
+      : h("span", {}, badge("warn", "Not approved yet"), " ", h("a", { class: "small", href: `#/safe/${PROJECT.name}/${PROJECT.address}/new/release`, text: "Propose approval" }));
+  } catch { return badge("warn", "Approval not checked"); }
+}
 async function releasesView() {
   const list = h("div", {}, h("p", { class: "muted", text: "Loading the release list…" }));
   const find = h("input", { type: "text", id: "fp", class: "mono", placeholder: "4c86·c754", autocomplete: "off", spellcheck: "false", "aria-describedby": "fp-help" });
@@ -851,15 +880,15 @@ async function releasesView() {
   fill($main(),
     h("section", { class: "hero" }, h("h1", { text: "Releases" }),
       h("p", { class: "lede", text: "Each firmware release has a fingerprint: a SHA-256 of the console's source files. Your console shows its blockie and first eight digits on the Device screen (on the home grid, press X)." }),
-      h("p", { class: "muted" }, "The fingerprint is taken over the source, so a Pico and ", h("a", { href: "../emu/", text: "the console in your browser" }), " running the same release show the same picture. One that matches no release here is a development build, or firmware that isn't ours.")),
+      h("p", { class: "muted" }, "The fingerprint is taken over the source, so a Pico and ", h("a", { href: "../emu/", text: "the console in your browser" }), " running the same release show the same picture. One that matches no release here is a development build, or firmware that isn't ours."),
+      h("p", { class: "muted" }, PROJECT ? `A release the project Safe approved says so: its owners approved it on their consoles, and the chain keeps it (${short(PROJECT.address)} on ${CHAINS[PROJECT.name]?.name || PROJECT.chainId}).`
+        : "Releases will also be approved on chain by the project Safe, once it exists (docs/GOVERNANCE.md).")),
     h("section", { class: "card" }, h("h2", { text: "Which release is my console running?" }),
       h("label", { for: "fp", text: "The eight digits under Release on its Device screen" }), find,
       h("p", { id: "fp-help", class: "muted small", text: "Spaces and the middle dot don't matter." }), found),
     h("section", { class: "card" }, h("h2", { text: "All releases" }), list));
   try {
-    const r = await fetch(new URL("../releases/index.json", location.href), { cache: "no-cache" });
-    if (!r.ok) throw new Error(`the release list: HTTP ${r.status}`);
-    const rel = (await r.json()).releases || [];
+    const rel = await releaseList();
     find.oninput = () => {
       const q = find.value.toLowerCase().replace(/[^0-9a-f]/g, "");
       if (q.length < 8) return void fill(found);
@@ -869,9 +898,11 @@ async function releasesView() {
     if (!rel.length) return fill(list, h("p", { class: "muted", text: "No releases recorded yet. The first tagged release (tools/release) adds one." }));
     fill(list, h("ul", { class: "owners" }, ...rel.map((x) => {
       const fp = (x.fingerprints || {}).console || "";
+      const status = h("span", {});
+      approvalBadge(x).then((b) => b && fill(status, b));
       return h("li", { class: "with-ident" }, fp ? ident("0x" + fp, 36) : null,
         h("div", { class: "addr-body" },
-          h("div", { class: "addr-top" }, h("strong", { text: x.version }), fp ? h("code", { class: "mono", text: shortFp(fp) }) : null,
+          h("div", { class: "addr-top" }, h("strong", { text: x.version }), fp ? h("code", { class: "mono", text: shortFp(fp) }) : null, status,
             h("span", { class: "muted small", text: [x.date, x.commit && `commit ${x.commit.slice(0, 7)}`].filter(Boolean).join(" · ") })),
           ...Object.entries(x.fingerprints || {}).map(([img, f]) => h("div", { class: "small" }, h("span", { class: "muted", text: `${img} ` }), h("code", { class: "mono", text: f }))),
           x.manifest ? h("div", { class: "small" }, h("a", { href: new URL(`../releases/${x.manifest}`, location.href).href, text: "Manifest" })) : null));
