@@ -1,7 +1,8 @@
-// Screenshots of the console's home as a grid of tiles (nothing waiting), the Recent screen, and
-// the queue list when something waits, drawn by the real firmware on the emulator for both panels:
-// the Waveshare's 240x240 and Build 1's 320x240. Each strip the console draws is copied into a
-// whole frame (show() wrapped), so any panel size works. For docs/quorum-ui/v2/home/.
+// Screenshots of the console's home: the status screen (nothing waiting for this key), not an
+// owner yet, others' transactions queued, the queue list when something waits, and the
+// screensaver's cards, drawn by the real firmware on the emulator for both panels: the
+// Waveshare's 240x240 and Build 1's 320x240. Each strip the console draws is copied into a whole
+// frame (show() wrapped), so any panel size works. For docs/quorum-ui/v2/status/.
 //   node tools/board/shots_home.mjs [outdir]
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -10,7 +11,7 @@ import { createDevice, frameToRGBA } from "../../emu/core/runtime.mjs";
 import { readWorkspace, readShims, ROOT } from "../../emu/core/workspace.mjs";
 import { encodePNG, scaleRGBA } from "../../emu/core/png.mjs";
 
-const out = process.argv[2] || join(ROOT, "docs/quorum-ui/v2/home");
+const out = process.argv[2] || join(ROOT, "docs/quorum-ui/v2/status");
 mkdirSync(out, { recursive: true });
 const t = (f) => readFileSync(join(ROOT, "test-vectors", f), "utf8");
 const PANELS = [{ name: "240", secrets: "", w: 240, h: 240 }, { name: "320", secrets: 'BOARD = "build1"\nSCREEN = "2.8"', w: 320, h: 240 }];
@@ -50,24 +51,47 @@ now = U.time.time()
 Q.recent = [{"n": 8, "safe": T.ETH_SAFE.lower(), "chain": 1, "name": "Vault", "what": "Send 0.05 ETH", "t": now - 320},
             {"n": 2, "safe": T.SAFE.lower(), "chain": T.CHAIN, "name": "Test Safe", "what": "Batch: approve, swap", "t": now - 3 * 3600},
             {"n": 1, "safe": T.SAFE.lower(), "chain": T.CHAIN, "name": "Test Safe", "what": "Send 10 USDC", "t": now - 2 * 86400}]
-Q.tile = 0
+import image
 draw()`);
-  shot("01-grid");
-  py(`Q.tile = 3\ndraw()`);
-  shot("02-grid-chip");
-  py(`Q.KNOB = True\nQ.tile = 1\ndraw()\nQ.KNOB = False`);
-  shot("03-grid-knob");
-  py(`Q.tile = 2\nQ.handle("A")\ndraw()`);
-  shot("04-recent");
-  py(`Q.handle("B")\nQ.tile = 3\nQ.handle("A")\ndraw()`);
-  shot("05-chip-from-grid");
-  py(`Q.handle("B")
-assert Q.state == "home", Q.state
+  shot("01-ready");
+  py(`Q.hsel = 1\ndraw()`);
+  shot("02-safe-in-focus");
+  py(`Q.KNOB = True\nQ.hsel, Q.hfoot = 1, "recent"\ndraw()\nQ.KNOB, Q.hfoot, Q.hsel = False, None, 0`);
+  shot("03-dial");
+  py(`Q.sig.name = "passkey"      # as the browser console runs it: your passkey, not yet added
+_own = (T.SVC.info["owners"], T.SVC.safes[T.ETH_SAFE]["info"]["owners"])
+T.SVC.info["owners"] = [T.ALICE, T.BOB]
+T.SVC.safes[T.ETH_SAFE]["info"]["owners"] = [T.ALICE, T.BOB, "0x3333333333333333333333333333333333333333"]
+for w in Q.WATCH: w["need_info"] = True
+Q.net_work(); Q.net_work()
+draw()`);
+  shot("04-passkey-not-owner-yet");
+  py(`T.SVC.info["owners"], T.SVC.safes[T.ETH_SAFE]["info"]["owners"] = _own
+for w in Q.WATCH: w["need_info"] = True
+T.SVC.txs = [T.tx(Q, 3, value=10**15, conf=(Q.me,))]
+Q.last_poll = 0
+Q.net_work(); Q.net_work()
+draw()`);
+  shot("05-queued-for-others");
+  py(`Q.sig.name = "atecc608"
 T.SVC.txs = [T.tx(Q, 3, value=10**15)]
 Q.WATCH[0]["need_info"] = True
 Q.last_poll = 0
 Q.net_work(); Q.net_work()
 draw()`);
   shot("06-request-waiting");
+  py(`T.SVC.txs = []
+Q.WATCH[0]["need_info"] = True
+Q.last_poll = 0
+Q.net_work(); Q.net_work()
+image.RELEASE = "4c86c7541a45eb43f24c48c178409de889c5f86d467c886d444e9e30b9a00e0b"
+image.SEED, image.SHORT, image.VERSION, image.BUILD = "0x" + image.RELEASE, "4c86\u00b7c754", "2026.10.6", "abc1234"
+Q.state = "saver"
+_cards = [k for k, _ in Q.saver_cards()]
+assert _cards == ["clock", "safe", "safe", "key", "recent", "release"], _cards`);
+  for (const [i, n] of [[0, "clock"], [1, "safe"], [3, "key"], [4, "recent"], [5, "release"]]) {
+    py(`Q.saver_card = ${i}\ndraw()`);
+    shot(`${String(7 + [0, 1, 3, 4, 5].indexOf(i)).padStart(2, "0")}-saver-${n}`);
+  }
   dev.dispose();
 }

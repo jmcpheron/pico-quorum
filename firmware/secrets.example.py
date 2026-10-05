@@ -21,6 +21,12 @@ QUORUM_URL = "http://<mac-lan-ip>:8787"
 # QUORUM_API_KEY = "..."
 # QUORUM_POLL_S = 20
 # QUORUM_IDLE_POLL_S = 120
+# The screensaver: after this many quiet seconds on home with nothing to sign, the backlight dims
+# and the screen turns over the time, each Safe, this key, the last approval and the release. Any
+# key wakes it; a transaction for this key wakes it to the queue. 0 turns it off.
+# QUORUM_SAVER_S = 60
+# The clock card's time zone, in hours from UTC (it says UTC when this is 0).
+# QUORUM_UTC_OFFSET = -7
 QUORUM_THEME = "dark"   # or "light"
 # The boot screen: "mark" (the default: the PicoQuorum mark turning into Ethereum in ~3.7 s, light on the Pico),
 # "still" (the finished mark at once), "orbit" (the full orbit animation, ~8-10 fps) or "checklist".

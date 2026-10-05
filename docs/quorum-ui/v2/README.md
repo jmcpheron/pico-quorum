@@ -21,7 +21,83 @@ there is where this one starts.
    the home screen, the approvals row, and the moment of signing.
 5. **Every screen, redone,** with before/after pairs like the v1 walkthrough.
 
-## Home as a grid to browse (2026-10-01, firmware 2026.10.4)
+## Home as a status screen, and a screensaver (2026-10-05)
+
+You asked for a home that fits how PicoQuorum works now: requests pop up, and when there's
+nothing to sign, something calmer, turning into a screensaver with useful information. The grid
+of tiles is gone.
+
+**Nothing waits for this key: the status screen.**
+- **The header:** this key's blockie and name (the chip's name, or "Your passkey" in the
+  browser), and the sync status.
+- **One card that answers "can I approve?":**
+  - **Ready to approve** (green check): "Nothing waits for you", or "1 waiting for others · Y
+    shows" when the queue holds transactions this key has already signed or doesn't need to.
+  - **Not an owner yet** (amber): the Safes answered and this key owns none of them. It shows the
+    address to add, and the next step: for a passkey "in the app: Your passkey" (its signer
+    deployed, then Add owner); for a chip "deploy its signer, add owner". This is the deploy
+    step, seen from the console.
+  - **Offline**, **Connecting…** or **No key** when that's the state.
+- **SAFES:** one row per Safe, with its blockie, name, chain (and the chain's colour bar), and
+  what it means for this key: "2 of 3" with a green dot when you're an owner, "not owner" in
+  amber, "1 queued", or "offline" in red.
+- **Last:** this console's last approval, under the Safes.
+
+**A request arrives: the queue list, as before.** It replaces the status screen until nothing
+waits for this key.
+
+**A quiet minute: the screensaver.** The backlight dims to 15%, and every 8 seconds the screen
+shows the next card, each a few pixels off from the last:
+- **the time and date** (when the clock is set), with "Nothing to sign";
+- **each Safe:** its blockie, "2 of 3", the next nonce, whether anything is queued, and whether
+  you're an owner;
+- **this key:** its blockie, kind ("ATECC608 · 41 uses", "Trust M · sealed", "Passkey"), its
+  address, how many Safes it owns;
+- **the last approval;**
+- **the release:** its blockie and fingerprint, the same on every console and page running it.
+
+Every card comes from what the console already knows, so the screensaver makes no extra
+requests. Any key wakes it and does nothing else (the first press only turns the screen on). A
+transaction for this key wakes it straight to the queue. `QUORUM_SAVER_S` sets the quiet time (0
+turns it off), and `QUORUM_UTC_OFFSET` sets the clock's time zone. The browser console dims its
+screen the same way.
+
+**Keys on the status screen:**
+- **Up/down** pick a Safe, and **A** (or right, or a press) opens its Owners.
+- **B** opens Recent, **X** opens Device, and **Y** opens the queue when others' transactions wait.
+- **Build 1's dial:** turn through the Safes, then Queue, Recent and Device; press to open.
+
+| | Waveshare, 240×240 | Build 1, 320×240 |
+|---|---|---|
+| Ready | <img src="status/01-ready-240.png" width="240"> | <img src="status/01-ready-320.png" width="320"> |
+| The second Safe in focus | <img src="status/02-safe-in-focus-240.png" width="240"> | <img src="status/02-safe-in-focus-320.png" width="320"> |
+| The dial past the Safes | <img src="status/03-dial-240.png" width="240"> | <img src="status/03-dial-320.png" width="320"> |
+| Your passkey, not an owner yet | <img src="status/04-passkey-not-owner-yet-240.png" width="240"> | <img src="status/04-passkey-not-owner-yet-320.png" width="320"> |
+| Queued for others (you've signed) | <img src="status/05-queued-for-others-240.png" width="240"> | <img src="status/05-queued-for-others-320.png" width="320"> |
+| A request waiting: the list | <img src="status/06-request-waiting-240.png" width="240"> | <img src="status/06-request-waiting-320.png" width="320"> |
+| Screensaver: the time | <img src="status/07-saver-clock-240.png" width="240"> | <img src="status/07-saver-clock-320.png" width="320"> |
+| Screensaver: a Safe | <img src="status/08-saver-safe-240.png" width="240"> | <img src="status/08-saver-safe-320.png" width="320"> |
+| Screensaver: this key | <img src="status/09-saver-key-240.png" width="240"> | <img src="status/09-saver-key-320.png" width="320"> |
+| Screensaver: the last approval | <img src="status/10-saver-recent-240.png" width="240"> | <img src="status/10-saver-recent-320.png" width="320"> |
+| Screensaver: the release | <img src="status/11-saver-release-240.png" width="240"> | <img src="status/11-saver-release-320.png" width="320"> |
+
+These are drawn by the real firmware in the emulator (`node tools/board/shots_home.mjs`). The
+approvals and the release in them are made up.
+
+**Not done, and why:**
+- **Whether the signer is deployed.** The console only talks to Safe's transaction service,
+  which doesn't say. The app's Your passkey page checks it on each chain. Until it's deployed,
+  the Safe can't check that owner's signature, so deploy it before the first approval.
+- **An ETH price, or the Safe's balance.** Either needs a new data source on the signing device:
+  a price API, or Safe's client gateway for balances in dollars. A balance card would be the more
+  useful of the two. Both are easy to add as cards; the question is which source you'd trust.
+
+**Questions for you:**
+- Should A on a Safe open a Safe page (owners, nonce, recent activity) rather than just its
+  Owners?
+- Which cards should the screensaver show, and how often should it turn?
+
+## Home as a grid to browse (2026-10-01, firmware 2026.10.4, replaced by the status screen above)
 
 You asked for a home you can browse when nothing needs signing, with the queue list only when a
 request comes in.

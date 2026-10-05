@@ -417,8 +417,8 @@ def case_owners_pages():
     serve(Q, [], owners=five, threshold=3)
     check(Q.owner_pages() == 3 and quorum_ui.OWNERS_PER_PAGE == 3, "seven owners: three pages of three")
     seen = []
-    Q.handle("B")
-    check(Q.state == "owners" and Q.opage == 0, "B on home: the Owners screen, page 1")
+    Q.handle("A")
+    check(Q.state == "owners" and Q.opage == 0, "A on home (its one Safe in focus): the Owners screen, page 1")
     for _ in range(3):
         quorum_ui.draw(Q)
         page = Q.owners()[Q.opage * 3:(Q.opage + 1) * 3]
@@ -432,11 +432,11 @@ def case_owners_pages():
     check(Q.opage == 0 and Q.state == "owners", "up and left go back a page")
     Q.handle("left")
     check(Q.state == "home", "left on page 1 leaves, as before")
-    Q.handle("B")
+    Q.handle("A")
     Q.handle("down")
     Q.handle("A")
     check(Q.state == "home", "A leaves from any page")
-    Q.handle("B")
+    Q.handle("A")
     check(Q.opage == 0, "opening Owners again starts on page 1")
     Q.KNOB = True
     Q.knob("down")
@@ -712,13 +712,28 @@ def case_safes():
     check(Q.WATCH[0]["base"].endswith("/basesep") and Q.WATCH[1]["base"] == "http://10.0.0.2:8788", "a Safe's own \"url\" overrides its chain's service, for that Safe only")
 
 
-def case_grid():
-    """Home as a grid of tiles when nothing waits for this key; the queue list when something does."""
+def drawn_texts(Q):
+    """Every string one draw puts on the screen."""
+    import fonts
+    import quorum_ui as U
+    out, real = [], fonts.text
+    fonts.text = lambda d, t, *a, **k: (out.append(t), real(d, t, *a, **k))[1]
+    try:
+        U.draw(Q)
+    finally:
+        fonts.text = real
+    return out
+
+
+def case_home():
+    """Home when nothing waits for this key: the status screen (this key, whether it is ready, the
+    Safes it watches); the queue list when something does, as before."""
     chip()
     Q = fresh(url=None, safe=False, extra=TWO)
     SVC.info = {"address": SAFE, "nonce": 0, "threshold": 2, "version": "1.4.1", "owners": [Q.me, ALICE, BOB]}
     SVC.txs = []
     SVC.safes[ETH_SAFE] = {"info": {"address": ETH_SAFE, "nonce": 7, "threshold": 1, "version": "1.4.1", "owners": [Q.me, BOB]}, "txs": []}
+    check(Q.readiness() == "starting", "before any Safe answers: starting")
     Q.net_work()
     Q.net_work()
     try:
@@ -726,47 +741,57 @@ def case_grid():
     except OSError:
         pass
     Q.recent = []
-    kinds = [k for k, _ in Q.tiles()]
-    check(Q.grid_home() and kinds == ["safe", "safe", "recent", "chip", "device"], "nothing queued: a grid of each Safe, Recent, the chip, the device")
-    Q.tile = 0
-    Q.handle("right")
+    t = drawn_texts(Q)
+    check(Q.status_home() and Q.readiness() == "ready" and "Ready to approve" in t and "SAFES" in t,
+          "nothing queued, an owner of both: the status screen says Ready to approve, and lists the Safes")
+    check("Test Safe" in t and "2 of 3" in t and "1 of 2" in t, "each Safe's row: its name and how many must approve")
+    Q.hsel = 0
     Q.handle("down")
-    check(Q.tile == 3, "right then down: the chip tile (two columns)")
+    check(Q.hsel == 1, "down: the second Safe")
     Q.handle("A")
-    check(Q.state == "chip", "A on the chip tile: the Chip pages")
+    check(Q.state == "owners" and Q.SAFE_ADDR == ETH_SAFE, "A: that Safe's Owners")
     Q.handle("B")
-    check(Q.state == "home" and Q.chip_back == "home", "B from them: back home, not to Device")
-    Q.tile = 1
-    Q.handle("A")
-    check(Q.state == "owners" and Q.SAFE_ADDR == ETH_SAFE, "A on the second Safe's tile: its Owners")
     Q.handle("B")
-    Q.tile = 2
-    Q.handle("A")
-    check(Q.state == "recent", "A on Recent: the Recent screen")
+    check(Q.state == "recent", "B on home: Recent")
+    Q.handle("B")
+    Q.handle("X")
+    check(Q.state == "device", "X: Device")
     Q.handle("B")
     check(Q.state == "home", "B: home")
-    Q.handle("X")
-    check(Q.state == "device", "X on the grid: Device")
-    Q.handle("B")
-    Q.note_recent(7, Q.WATCH[1], "Send 0.05 ETH to Bob")
-    Q.recent = []
-    Q.load_recent()
-    check(len(Q.recent) == 1 and Q.recent[0]["n"] == 7 and Q.recent[0]["safe"] == ETH_SAFE.lower(), "a signature sent: kept in recent.json")
-    check([w["addr"] for k, w in Q.tiles() if k == "safe"][0] == ETH_SAFE, "the Safe signed for most recently comes first")
     Q.KNOB = True
-    Q.tile = 0
+    Q.hsel = 1
     Q.knob("down")
+    check(Q.hfoot == "recent", "the dial: past the last Safe, Recent")
     Q.knob("down")
     Q.knob("press")
-    check(Q.state == "recent", "the dial: turns walk the tiles, a press opens one")
+    check(Q.state == "device" and Q.hfoot is None, "then Device; a press opens it")
+    Q.handle("B")
+    Q.knob("up")
+    Q.knob("press")
+    check(Q.state == "owners" and Q.SAFE_ADDR == SAFE, "turned back to the first Safe; a press opens its Owners")
     Q.knob("press")
     Q.KNOB = False
+
+    # not an owner of anything yet: the one thing to do next, with this key's address
+    SVC.info["owners"] = [ALICE, BOB]
+    SVC.safes[ETH_SAFE]["info"]["owners"] = [BOB]
+    for w in Q.WATCH:
+        w["need_info"] = True
+    Q.net_work()
+    Q.net_work()
+    t = drawn_texts(Q)
+    check(Q.readiness() == "not_owner" and "Not an owner yet" in t and ("Add " + Q.U.short(Q.me)) in t and t.count("not owner") == 2,
+          "owner of neither: Not an owner yet, Add <this key's address>, and each row says not owner")
+    SVC.info["owners"] = [Q.me, ALICE, BOB]
+    SVC.safes[ETH_SAFE]["info"]["owners"] = [Q.me, BOB]
+    for w in Q.WATCH:
+        w["need_info"] = True
+
     SVC.txs = [tx(Q, 0)]
-    Q.WATCH[0]["need_info"] = True
     Q.last_poll = 0
     Q.net_work()
     Q.net_work()
-    check(Q.queue and not Q.grid_home(), "a transaction waiting for this key: the queue list, as before")
+    check(Q.queue and not Q.status_home(), "a transaction waiting for this key: the queue list, as before")
     e = [x for x in Q.queue if x["n"] == 0][0]
     signed = sign(Q, e, 2100)
     Q.handle("A")
@@ -774,12 +799,13 @@ def case_grid():
     Q.last_poll = 0
     Q.net_work()
     Q.net_work()
-    check(signed and Q.grid_home() and "queue" in [k for k, _ in Q.tiles()], "signed, still queued for others: the grid, with a Queue tile")
-    Q.tile = [k for k, _ in Q.tiles()].index("queue")
-    Q.handle("A")
-    check(not Q.grid_home() and Q.browse == "list", "the Queue tile: the list")
+    t = drawn_texts(Q)
+    check(signed and Q.status_home() and "1 waiting for others \u00b7 Y shows" in t and "1 queued" in t,
+          "signed, still queued for others: the status screen says so, and the Safe's row counts it")
+    Q.handle("Y")
+    check(not Q.status_home() and Q.browse == "list", "Y: the list")
     Q.handle("B")
-    check(Q.grid_home() and Q.state == "home", "B: back to the grid")
+    check(Q.status_home() and Q.state == "home", "B: back to the status screen")
     check(Q.recent[0]["n"] == 0, "and that signature is the newest in Recent")
     try:
         os.remove(Q.RECENT_FILE)
@@ -787,9 +813,60 @@ def case_grid():
         pass
 
 
+def case_saver():
+    """A quiet minute on the status screen: the screensaver, dimmed, turning over cards; any key
+    wakes it (and does nothing else); a request for this key wakes it to the queue list."""
+    import time
+    chip()
+    Q = fresh(url=None, safe=False, extra=TWO)
+    SVC.info = {"address": SAFE, "nonce": 4, "threshold": 2, "version": "1.4.1", "owners": [Q.me, ALICE, BOB]}
+    SVC.txs = []
+    SVC.safes[ETH_SAFE] = {"info": {"address": ETH_SAFE, "nonce": 7, "threshold": 1, "version": "1.4.1", "owners": [Q.me, BOB]}, "txs": []}
+    Q.net_work()
+    Q.net_work()
+    Q.state, Q.recent = "home", [{"n": 3, "safe": SAFE.lower(), "chain": CHAIN, "name": "Test Safe", "what": "Send 1 ETH", "t": time.time() - 300}]
+    bl = []
+    Q.d.backlight = lambda p: bl.append(p)
+    now = Q.time.ticks_ms()             # the console's own clock (Clock: moves when told)
+    Q.last_activity = Q.time.ticks_add(now, -(Q.SAVER_MS - 1000))
+    check(Q.saver_tick(now, []) == [] and Q.state == "home", "59 quiet seconds: still home")
+    Q.last_activity = Q.time.ticks_add(now, -Q.SAVER_MS)
+    Q.saver_tick(now, [])
+    check(Q.state == "saver" and bl[-1] == Q.SAVER_DIM, "a quiet minute: the screensaver, backlight dimmed")
+    kinds = [k for k, _ in Q.saver_cards()]
+    check(kinds == ["clock", "safe", "safe", "key", "recent"], "its cards: the time, each Safe, this key, the last approval (%s)" % kinds)
+    texts = []
+    for i in range(len(kinds)):
+        Q.saver_card = i
+        texts += drawn_texts(Q)
+    check("Test Safe" in texts and "LAST APPROVAL" in texts and "you're an owner" in texts and "owner of 2 Safes" in texts and "next #4 \u00b7 nothing queued" in texts,
+          "each card draws: a Safe (next #, owner), this key (owner of 2 Safes), the last approval")
+    Q.saver_card = 0
+    Q.saver_tick(Q.time.ticks_add(now, Q.SAVER_CARD_MS), [])
+    check(Q.saver_card == 1, "every few seconds, the next card")
+    left = Q.saver_tick(Q.time.ticks_add(now, Q.SAVER_CARD_MS + 10), ["A"])
+    check(left == [] and Q.state == "home" and bl[-1] == 100, "a key wakes it, full brightness, and does nothing else")
+    Q.last_activity = Q.time.ticks_add(now, -Q.SAVER_MS)
+    Q.saver_tick(now, [])
+    SVC.txs = [tx(Q, 4)]
+    Q.WATCH[0]["need_info"] = True
+    Q.last_poll = 0
+    Q.net_work()
+    Q.saver_tick(now, [])
+    check(Q.state == "home" and not Q.status_home() and bl[-1] == 100, "asleep, and a request for this key arrives: awake, on the queue list")
+    Q.last_activity = Q.time.ticks_add(now, -10 * Q.SAVER_MS)
+    Q.saver_tick(now, [])
+    check(Q.state == "home", "with a request waiting, never the screensaver")
+    Q = fresh(url=None, safe=False, extra=TWO + "\nQUORUM_SAVER_S = 0")
+    Q.state = "home"
+    Q.last_activity = Q.time.ticks_add(Q.time.ticks_ms(), -3600000)
+    Q.saver_tick(Q.time.ticks_ms(), [])
+    check(Q.SAVER_MS == 0 and Q.state == "home", "QUORUM_SAVER_S = 0: no screensaver")
+
+
 def case_release():
-    """The release fingerprint (image.RELEASE, from build.py): its blockie on the home grid's Device
-    tile and on the Device screen, with its short name; without one, the wifi icon as before."""
+    """The release fingerprint (image.RELEASE, from build.py): its blockie on the screensaver's
+    release card and on the Device screen, with its short name; without one, neither."""
     chip()
     Q = fresh(url=None, safe=False, extra=TWO)
     SVC.info = {"address": SAFE, "nonce": 0, "threshold": 2, "version": "1.4.1", "owners": [Q.me, ALICE, BOB]}
@@ -807,15 +884,19 @@ def case_release():
     blockies.draw = lambda d, seed, x, y, scale, *a, **k: (drawn.append((seed, scale)), real_draw(d, seed, x, y, scale, *a, **k))
     fonts.text = lambda d, t, *a, **k: (texts.append(t), real_text(d, t, *a, **k))[1]
     try:
-        check(Q.grid_home(), "the grid is home")
+        check(Q.status_home(), "the status screen is home")
         U.draw(Q)
-        check(image.SEED not in [x for x, _ in drawn] and not image.RELEASE, "no build.py: no release blockie")
+        check(image.SEED not in [x for x, _ in drawn] and not image.RELEASE and "release" not in [k for k, _ in Q.saver_cards()],
+              "no build.py: no release blockie, no release card")
         image.RELEASE = "4c86c7541a45eb43f24c48c178409de889c5f86d467c886d444e9e30b9a00e0b"
         image.SEED, image.SHORT = "0x" + image.RELEASE, "4c86\u00b7c754"
         image.VERSION, image.BUILD = "2026.10.6", "abc1234"
-        drawn[:] = []
+        Q.state = "saver"
+        Q.saver_card = [k for k, _ in Q.saver_cards()].index("release")
+        drawn[:], texts[:] = [], []
         U.draw(Q)
-        check((image.SEED, 3) in drawn, "the Device tile draws the release's blockie")
+        check((image.SEED, 6) in drawn and "Release 4c86\u00b7c754" in texts, "the screensaver's release card: its blockie, Release 4c86\u00b7c754")
+        Q.state = "home"
         Q.handle("X")
         Q.net_err = None
         drawn[:], texts[:] = [], []
@@ -934,7 +1015,7 @@ def case_release_approval():
 
 
 def main():
-    for case in (case_pin, case_owners_pages, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_safes, case_watchdog, case_grid, case_release, case_passkey, case_release_approval):
+    for case in (case_pin, case_owners_pages, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_safes, case_watchdog, case_home, case_saver, case_release, case_passkey, case_release_approval):
         print("--", case.__name__[5:])
         try:
             case()

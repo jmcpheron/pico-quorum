@@ -54,9 +54,8 @@ R = W - M                       # right edge of text
 TW = W - 2 * M                  # text width
 OX = (W - 240) // 2             # centres a box laid out for 240 wide
 TOP, BOTTOM = 30, 210           # review pages: content lives between the SIGN and REJECT bars
-GRID = True                     # home is a grid of tiles when nothing waits (quorum.grid_home)
-GRID_COLS = 2
-TILE_H, TILE_GAP, GRID_TOP, GRID_ROWS = 56, 6, 30, 3
+STATUS = True                   # home is the status screen when nothing waits (quorum.status_home)
+HOME_ROWS = 3                   # Safe rows on it before it scrolls
 RECENT_PER_PAGE = 4
 PAGE_ROW = 191                  # page dots and the B hint
 T = {}
@@ -350,6 +349,11 @@ def chain_short(q, chain):
     return {84532: "Base Sep"}.get(chain) or q.CFG["chains"].get(str(chain), "chain %d" % chain)
 
 
+def clock_set():
+    """Is the wall clock set (NTP, or the host in the emulator)? The clock card needs it."""
+    return time.time() > 1700000000
+
+
 def ago(t):
     """When, briefly: "just now", "5m ago", "3h ago", "2d ago" ("" before the clock is set)."""
     if not t or t < 1700000000:
@@ -364,90 +368,196 @@ def ago(t):
     return "%dd ago" % (s // 86400)
 
 
-def grid_tile(d, q, t, x, y, w, on):
-    """One tile: a picture (a blockie, or an icon) top left, two short facts to its right, the
-    name along the bottom, the whole tile wide."""
-    kind, sw = t
-    fill = "raised" if on else "surface"
-    if on:
-        rrect(d, x - 2, y - 2, w + 4, TILE_H + 4, 7, "stake")
-    rrect(d, x, y, w, TILE_H, 5, fill)
-    px, py = x + 7, y + 6
-    a, b, bc = "", "", "muted"
-    if kind == "safe":
-        blockies.draw(d, sw["addr"], px, py, 3)
-        title = sw["name"]
-        n_own, need = len(q.owners(sw)), q.threshold(sw)
-        a = chain_short(q, sw["chain"])
-        if sw["tried"] and not sw["ok"]:
-            b, bc = "offline", "bad"
-        elif n_own and q.me not in q.owners(sw):
-            b, bc = "not owner", "warn"
-        elif n_own:
-            b = "%d of %d" % (need, n_own)
-        d.fill_rect(px, py + 26, 24, 2, c(CHAIN.get(sw["chain"], ((120, 120, 120), 0))[0]))
-    elif kind == "queue":
-        I.draw(d, "hash", px + 4, py + 4, c("muted"))
-        title, a, b = "Queue", "%d queued" % len(q.queue), "none yours"
-    elif kind == "recent":
-        I.draw(d, "book", px + 4, py + 4, c("muted"))
-        title = "Recent"
-        r = q.recent[0] if q.recent else None
-        a, b = ("#%d" % r["n"], ago(r["t"]) or r["name"]) if r else ("nothing", "signed yet")
-    elif kind == "chip":
-        if q.me:
-            blockies.draw(d, q.me, px, py, 3)
-        title = q.chip["name"] if q.chip else "Chip"
-        if q.sig and q.sig.name == "trustm":
-            a, b = "Trust M", "sealed" if q.row and q.row.get("locked") else "open"
-        elif q.sig and q.sig.name == "passkey":
-            title, a, b = "Key", "Passkey", "browser"
-        else:
-            a, b = "ATECC", ("%d uses" % q.counter) if q.counter is not None else ""
-        if not q.pin_ok:
-            b, bc = "not pinned", "bad"
+def key_name(q):
+    if q.sig and q.sig.name == "passkey":
+        return "Your passkey"
+    return q.chip["name"] if q.chip else "This key"
+
+
+def key_kind(q):
+    n = q.sig.name if q.sig else ""
+    if n == "trustm":
+        return "Trust M \u00b7 " + ("sealed" if q.row and q.row.get("locked") else "open")
+    if n == "passkey":
+        return "Passkey \u00b7 browser"
+    if n == "atecc608":
+        return "ATECC608" + (" \u00b7 %d uses" % q.counter if q.counter is not None else "")
+    if n == "pico-soft":
+        return "Software key (testing)"
+    return "No key"
+
+
+def status_card(d, q, y, h):
+    """The status home's top card: is this key ready, and if not, the one thing to do next."""
+    st = q.readiness()
+    fill = {"not_owner": "warn_bg", "nokey": "bad_bg"}.get(st, "surface")
+    rrect(d, 6, y, W - 12, h, 6, fill)
+    tx, cy = 52, y + h // 2
+    total = len(q.queue)
+    if st == "ready":
+        mark(d, True, 28, cy, 14)
+        txt(d, "Ready to approve", tx, y + 7, "bold18", "text", fill)
+        sub = ("%d waiting for others \u00b7 Y shows" % total) if total else "Nothing waits for you"
+        txt(d, fit(sub, W - 12 - tx, "sans12"), tx, y + 32, "sans12", "muted", fill)
+    elif st == "not_owner":
+        warn_sign(d, 28, cy, 13)
+        txt(d, "Not an owner yet", tx, y + 4, "bold18", "warn_text", fill)
+        txt(d, "Add " + short(q.me), tx, y + 26, "mono13", "warn_text", fill)
+        how = "in the app: Your passkey" if q.sig and q.sig.name == "passkey" else "deploy its signer, add owner"
+        txt(d, fit(how, W - 12 - tx, "sans12"), tx, y + 42, "sans12", "warn_muted", fill)
+    elif st == "offline":
+        mark(d, False, 28, cy, 14)
+        txt(d, "Offline", tx, y + 7, "bold18", "text", fill)
+        txt(d, fit(q.net_err or "no answer", W - 12 - tx, "sans12"), tx, y + 32, "sans12", "muted", fill)
+    elif st == "starting":
+        d.ellipse(28, cy, 13, 13, c("raised"), True)
+        txt(d, "Connecting\u2026", tx, y + 7, "bold18", "text", fill)
+        txt(d, "asking Safe's service", tx, y + 32, "sans12", "muted", fill)
     else:
-        import image
-        if image.SEED:          # the release's blockie: the same picture on every board and browser running it
-            blockies.draw(d, image.SEED, px, py, 3)
-        else:
-            I.draw(d, "wifi", px + 4, py + 4, c("muted"))
-        title, a, b = "Device", image.VERSION or image.BUILD, q.net.ssid() or "no Wi-Fi"
-        if not q.net_ok:
-            bc = "warn"
-    rw = x + w - 7 - (px + 30)
-    txt_r(d, fit(a, rw, "sans12"), x + w - 7, py - 1, "sans12", "muted", fill)
-    txt_r(d, fit(b, rw, "sans12"), x + w - 7, py + 13, "sans12", bc, fill)
-    txt(d, fit(title, w - 14, "bold14"), px, y + 35, "bold14", "text", fill)
+        mark(d, False, 28, cy, 14)
+        txt(d, "No key", tx, y + 7, "bold18", "bad_text", fill)
+        txt(d, "the console can't sign", tx, y + 32, "sans12", "bad_muted", fill)
 
 
-def draw_grid(q):
-    """Home when nothing waits for this key: tiles to browse. This chip, small, on top."""
+def safe_row(d, q, w, y, on):
+    """One watched Safe: its blockie, name, and what it means for this key."""
+    fill = "raised" if on else "surface"
+    rrect(d, 6, y, W - 12, 25, 5, fill)
+    blockies.draw(d, w["addr"], 12, y + 4, 2)
+    n_own, need = len(q.owners(w)), q.threshold(w)
+    total, mine = q.queued_for(w)
+    if w["tried"] and not w["ok"]:
+        st, sc = "offline", "bad"
+    elif not n_own:
+        st, sc = "\u2026", "faint"
+    elif q.me not in q.owners(w):
+        st, sc = "not owner", "warn"
+    elif total:
+        st, sc = "%d queued" % total, "muted"
+    else:
+        st, sc = "%d of %d" % (need, n_own), "muted"
+    sw = F.width(st, "sans12")
+    txt_r(d, st, R - 6, y + 4, "sans12", sc, fill)
+    if n_own and q.me in q.owners(w) and not (w["tried"] and not w["ok"]):
+        d.ellipse(R - 6 - sw - 7, y + 12, 3, 3, c("ok"), True)       # this key is an owner
+    f = "bold14" if on else "sans14"
+    room = R - 6 - sw - 14 - 34
+    nm = fit(w["name"], room, f)
+    x = txt(d, nm, 34, y + 3, f, "text", fill)
+    ch = chain_short(q, w["chain"])
+    if x + 6 + F.width(ch, "sans12") <= R - 6 - sw - 14:
+        txt(d, ch, x + 6, y + 5, "sans12", "faint", fill)
+    d.fill_rect(R, y + 5, 3, 15, c(CHAIN.get(w["chain"], ((120, 120, 120), 0))[0]))
+
+
+def draw_status(q):
+    """Home when nothing waits for this key: this key, whether it is ready, the Safes it watches.
+    A transaction that wants it replaces this with the queue list; a quiet minute, the screensaver."""
     d = q.d
     d.fill(c("bg"))
     if q.me:
         blockies.draw(d, q.me, M, 5, 2)
     s = sync_status(d, q)
-    name = (q.chip["name"] if q.chip else "PicoQuorum")
-    txt(d, fit(name, R - F.width(s, "sans12") - 20 - (M + 22), "bold14"), M + 22, 4, "bold14")
-    t = q.tiles()
-    sel = min(q.tile, len(t) - 1)
-    cols = GRID_COLS
-    tw = (W - 2 * M - 8 * (cols - 1)) // cols
-    first = max(0, sel // cols - (GRID_ROWS - 1))
-    for i in range(first * cols, min(len(t), (first + GRID_ROWS) * cols)):
-        r, col = i // cols - first, i % cols
-        grid_tile(d, q, t[i], M + col * (tw + 8), GRID_TOP + r * (TILE_H + TILE_GAP), tw, i == sel)
-    rows = (len(t) + cols - 1) // cols
-    if rows > GRID_ROWS:            # more below or above: a thin bar on the right
-        h = 186 * GRID_ROWS // rows
-        d.fill_rect(W - 4, GRID_TOP + (186 - h) * first // (rows - GRID_ROWS), 2, h, c("faint"))
+    txt(d, fit(key_name(q), R - F.width(s, "sans12") - 20 - (M + 22), "bold14"), M + 22, 4, "bold14")
+    status_card(d, q, 28, 58)
+    y = 92
+    txt(d, "SAFES", M, y, "sans12", "muted")
+    ws = q.WATCH
+    q.hsel = sel = max(0, min(q.hsel, len(ws) - 1))
+    top = max(0, min(sel - (HOME_ROWS - 1), len(ws) - HOME_ROWS))
+    if len(ws) > HOME_ROWS:
+        txt_r(d, "%d of %d" % (sel + 1, len(ws)), R, y, "sans12", "faint")
+    y = 110
+    for i in range(top, min(len(ws), top + HOME_ROWS)):
+        safe_row(d, q, ws[i], y, i == sel and q.hfoot is None)
+        y += 28
     if q.outside:
-        txt_c(d, "key used %d\u00d7 outside this console" % q.outside, 212, "sans12", "warn")
-    elif q.KNOB:
-        knob_choices(d, q, (), None, "turn \u00b7 press to open")
+        rrect(d, 6, 196, W - 12, 22, 5, "warn_bg")
+        warn_sign(d, 18, 207, 8)
+        txt(d, fit("key used %d\u00d7 outside this console" % q.outside, W - 40, "sans12"), 30, 201, "sans12", "warn_text", "warn_bg")
+    elif q.recent:                  # the last approval from this console, under the Safes
+        r = q.recent[0]
+        when = ago(r["t"])
+        x = txt(d, "Last", M, 195, "sans12", "muted")
+        txt(d, fit("#%d %s \u00b7 %s%s" % (r["n"], r["what"], r["name"], (" \u00b7 " + when) if when else ""), R - x - 6, "sans12"),
+            x + 6, 195, "sans12", "faint")
+    if q.KNOB:
+        feet = q.home_feet()
+        knob_choices(d, q, [(k, {"queue": "Queue", "recent": "Recent", "device": "Device"}[k]) for k in feet], q.hfoot, "turn \u00b7 press")
+    else:           # Y opens the queue when others' transactions wait: the card above says so
+        footer_hints(d, q, (("A", "Open"), ("B", "Recent"), ("X", "Device")))
+    d.show()
+
+
+# ----------------------------------------------------------------------------- the screensaver
+DAYS = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
+
+def draw_saver(q):
+    """A card at a time, dimmed: drawn from what the console already knows. Each card sits a few
+    pixels off the last one's place, so nothing stays lit in one spot."""
+    d = q.d
+    d.fill(c("bg"))
+    cards = q.saver_cards()
+    i = q.saver_card % len(cards)
+    kind, w = cards[i]
+    k = q.saver_card + i
+    dx, dy = (k * 37) % 21 - 10, (k * 53) % 17 - 8
+    x0, x1, y0 = dx, W + dx, 44 + dy
+    cx = W // 2 + dx
+    st = q.readiness()
+    if kind == "clock":
+        t = time.localtime(int(time.time() + q.UTC_OFFSET * 3600))
+        txt_c(d, "%02d:%02d" % (t[3], t[4]), y0 + 18, "monob28", "text", "bg", x0, x1)
+        txt_c(d, "%s %d %s%s" % (DAYS[t[6]], t[2], MONTHS[t[1] - 1], "" if q.UTC_OFFSET else " \u00b7 UTC"), y0 + 58, "sans14", "muted", "bg", x0, x1)
+        line, col = {"ready": ("Nothing to sign", "ok"), "not_owner": ("Not an owner yet", "warn")}.get(st, ("Offline", "bad") if st == "offline" else ("", "faint"))
+        if line:
+            lw = F.width(line, "sans12")
+            d.ellipse(cx - lw // 2 - 8, y0 + 106, 3, 3, c(col), True)
+            txt(d, line, cx - lw // 2, y0 + 98, "sans12", "faint")
+    elif kind == "safe":
+        blockies.draw(d, w["addr"], cx - 24, y0, 6)
+        txt_c(d, fit(w["name"], W - 20, "bold18"), y0 + 56, "bold18", "text", "bg", x0, x1)
+        n_own, need = len(q.owners(w)), q.threshold(w)
+        txt_c(d, "%s \u00b7 %d of %d" % (chain_short(q, w["chain"]), need, n_own), y0 + 80, "sans14", "muted", "bg", x0, x1)
+        total, _ = q.queued_for(w)
+        nxt = w["info"].get("nonce")
+        line = ("next #%s \u00b7 " % nxt if nxt is not None else "") + ("%d queued" % total if total else "nothing queued")
+        txt_c(d, line, y0 + 102, "sans12", "faint", "bg", x0, x1)
+        mine = q.me in q.owners(w)
+        txt_c(d, "you're an owner" if mine else "not an owner", y0 + 120, "sans12", "ok" if mine else "warn", "bg", x0, x1)
+    elif kind == "key":
+        if q.me:
+            blockies.draw(d, q.me, cx - 24, y0, 6)
+        txt_c(d, fit(key_name(q), W - 20, "bold18"), y0 + 56, "bold18", "text", "bg", x0, x1)
+        txt_c(d, key_kind(q), y0 + 80, "sans14", "muted", "bg", x0, x1)
+        if q.me:
+            txt_c(d, short(q.me), y0 + 102, "mono13", "faint", "bg", x0, x1)
+        n = sum(1 for x in q.WATCH if q.me in q.owners(x))
+        txt_c(d, "owner of %d Safe%s" % (n, "" if n == 1 else "s") if n else "not an owner yet", y0 + 120, "sans12",
+              "ok" if n else "warn", "bg", x0, x1)
+    elif kind == "recent":
+        r = q.recent[0]
+        txt_c(d, "LAST APPROVAL", y0, "sans12", "muted", "bg", x0, x1)
+        blockies.draw(d, r["safe"], cx - 16, y0 + 20, 4)
+        y = y0 + 60
+        for line in F.wrap("#%d %s" % (r["n"], r["what"]), W - 30, "bold18")[:2]:
+            txt_c(d, line, y, "bold18", "text", "bg", x0, x1)
+            y += 22
+        when = ago(r["t"])
+        txt_c(d, fit("%s \u00b7 %s%s" % (r["name"], chain_short(q, r["chain"]), (" \u00b7 " + when) if when else ""), W - 20, "sans12"),
+              y + 4, "sans12", "faint", "bg", x0, x1)
     else:
-        footer_hints(d, q, (("A", "Open"), ("B", "Owners"), ("X", "Device")))
+        import image
+        blockies.draw(d, image.SEED, cx - 24, y0, 6)
+        txt_c(d, "Release " + image.SHORT, y0 + 56, "bold18", "text", "bg", x0, x1)
+        txt_c(d, "%s \u00b7 %s" % (image.VERSION or image.IMAGE, image.BUILD), y0 + 80, "sans14", "muted", "bg", x0, x1)
+        txt_c(d, "the same picture on every console", y0 + 102, "sans12", "faint", "bg", x0, x1)
+        txt_c(d, "and page running this firmware", y0 + 118, "sans12", "faint", "bg", x0, x1)
+    n = len(cards)                  # which card, as dots
+    for j in range(n):
+        d.ellipse(W // 2 - (n - 1) * 6 + j * 12, 226, 2, 2, c("muted" if j == i else "line"), True)
     d.show()
 
 
@@ -480,8 +590,8 @@ def draw_recent(q):
 
 
 def draw_home(q):
-    if q.grid_home():
-        return draw_grid(q)
+    if q.status_home():
+        return draw_status(q)
     d = q.d
     d.fill(c("bg"))
     ok = q.net_ok
@@ -1116,6 +1226,8 @@ def draw(q):
         draw_owners(q)
     elif s == "recent":
         draw_recent(q)
+    elif s == "saver":
+        draw_saver(q)
     elif s == "working":
         draw_working(q, "Working", "")
     else:
