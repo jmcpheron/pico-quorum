@@ -59,6 +59,7 @@ async function boot() {
     const m = e.data;
     if (m.type === "frame") { paintFrame(m.buf, img); ctx.putImageData(img, 0, 0); screen.dataset.frames = String(m.frames); }
     else if (m.type === "out") out(m.line);
+    else if (m.type === "pwm" && m.pin === 13) screen.style.filter = m.frac >= 0.99 ? "" : `brightness(${(0.2 + 0.8 * m.frac).toFixed(2)})`;  // the backlight (the screensaver dims it)
     else if (m.type === "rpc") answer(rpcSab, m);
     else if (m.type === "chip") local.set("emu.chip", m.data);
     else if (m.type === "reset") boot();
