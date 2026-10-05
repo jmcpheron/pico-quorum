@@ -246,5 +246,32 @@ try {
   check(false, `docs/app: ${e.message} (run npm run build)`);
 }
 
+// ---- your passkey, found again: its public key from two of its signatures (emu/core/webauthn-assert.mjs,
+// used by the console page's "I already have one"), against noble's P-256
+{
+  const { p256 } = await import("@noble/curves/p256");
+  const { recoverKeys } = await import("../emu/core/webauthn-assert.mjs");
+  const hx = (b) => Buffer.from(b).toString("hex");
+  let ok = 0, one = 0;
+  for (let i = 0; i < 8; i++) {
+    const sk = p256.utils.randomPrivateKey(), pk = p256.getPublicKey(sk, false), want = { x: hx(pk.slice(1, 33)), y: hx(pk.slice(33)) };
+    const keys = [0, 1].map(() => { const d = crypto.getRandomValues(new Uint8Array(32)); const sg = p256.sign(d, sk, { lowS: i % 2 === 0 }); return recoverKeys(d, sg.r, sg.s); });
+    if (keys.every((ks) => ks.some((k) => k.x === want.x && k.y === want.y))) ok++;
+    const both = keys[0].filter((k) => keys[1].some((m) => m.x === k.x && m.y === k.y));
+    if (both.length === 1 && both[0].x === want.x && both[0].y === want.y) one++;
+  }
+  check(ok === 8, "recoverKeys: every signature names its key among its candidates (low and high s)");
+  check(one === 8, "recoverKeys: two signatures from one key name exactly that key");
+  const p2 = p256.getPublicKey(p256.utils.randomPrivateKey(), false), d = new Uint8Array(32).fill(7), sg = p256.sign(d, p256.utils.randomPrivateKey());
+  check(!recoverKeys(d, sg.r, sg.s).some((k) => k.x === hx(p2.slice(1, 33))), "recoverKeys: a signature by another key doesn't name this one");
+}
+
+// ---- the app's own passkey page links an owner into the Add owner form
+{
+  const src = readFileSync(new URL("./src/main.mjs", import.meta.url), "utf8");
+  check(/parts\[0\] === "passkey"\) return passkeyView\(\)/.test(src) && /new\/add\/\$\{k\.owner\}/.test(src) && /owner: getAddress\(presetNonce\)/.test(src),
+    "#/passkey: routed, links each saved Safe's Add owner with the owner filled in");
+}
+
 console.log(failed ? `${failed} FAILED` : "all pass");
 process.exit(failed ? 1 : 0);

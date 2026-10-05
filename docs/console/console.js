@@ -4,7 +4,7 @@
 // The emulator (../emu/) is the developer's page: an editor, the 3D case, every module.
 import {
   KEY_ORDER, answer, appSafes, browserKey, keyOf, local, makePasskey, paintFrame, passkeyCred, showRelease,
-  stampRelease, staticBoot, staticSecrets,
+  stampRelease, staticBoot, staticSecrets, usePasskey,
 } from "../emu/web/browser.mjs";
 
 const $ = (s) => document.querySelector(s);
@@ -24,9 +24,9 @@ const el = (tag, attrs = {}, ...kids) => { const e = Object.assign(document.crea
 
 function panel() {
   const cred = passkeyCred();
-  $("#key").textContent = cred
-    ? `your passkey, made for ${cred.rpId} (${cred.synced ? "synced by your account" : "kept on that device"})`
-    : "none yet";
+  $("#key").replaceChildren(...(cred
+    ? [`your passkey, for ${cred.rpId} (${cred.synced ? "synced by your account" : "kept on that device"}) · `, el("a", { href: "../app/#/passkey", textContent: "use it in a Safe" })]
+    : ["none yet"]));
   const safes = appSafes();
   $("#safes").replaceChildren(...(safes.length
     ? [`${safes.map((s) => s.name || s.address.slice(0, 8)).join(", ")} · `, el("a", { href: "../app/", textContent: "change in the app" })]
@@ -77,21 +77,26 @@ async function start() {
   }
   if (!passkeyCred()) {
     const go = el("button", { className: "go", textContent: "Make a passkey" });
+    const have = el("button", { className: "go alt", textContent: "I already have one" });
     const why = el("p", { className: "small" });
-    go.onclick = async () => {
-      go.disabled = true;
-      try { await makePasskey(); start(); }
-      catch (e) { why.textContent = `No passkey made: ${e.name && e.name !== "Error" ? e.name + ": " : ""}${e.message || e}`; go.disabled = false; }
+    const act = (b, f, what) => async () => {
+      go.disabled = have.disabled = true;
+      try { await f(); start(); }
+      catch (e) { why.textContent = `${what}: ${e.name && e.name !== "Error" ? e.name + ": " : ""}${e.message || e}`; go.disabled = have.disabled = false; }
     };
+    go.onclick = act(go, makePasskey, "No passkey made");
+    have.onclick = act(have, usePasskey, "No passkey");
     return overlay(el("h2", { textContent: "Your key is a passkey" }),
-      el("p", { textContent: "This console signs with a passkey you make now: Touch ID, Windows Hello, your phone or a security key. Its private key never leaves that device. The console shows its owner address, to add to a Safe." }),
-      go, why);
+      el("p", { textContent: "This console signs with a passkey: Touch ID, Windows Hello, your phone or a security key. Its private key never leaves that device. The console shows its owner address, to add to a Safe." }),
+      el("div", { className: "acts" }, go, have),
+      el("p", { className: "small", textContent: "Made one already, in another browser or on your other device (iCloud Keychain syncs it)? Choose I already have one: it signs twice, and the page works out its public key. Same passkey, same owner." }),
+      why);
   }
   if (!appSafes().length) {
     return overlay(el("h2", { textContent: "No Safe to watch yet" }),
       el("p", { textContent: "The console watches the Safes you save in the app. Open a Safe there, save it, and come back." }),
       el("a", { className: "go", href: "../app/", textContent: "Open the app" }),
-      el("p", { className: "small", textContent: "To add this console's key to a Safe, start it once with any saved Safe: Chip shows the owner address." }));
+      el("p", { className: "small" }, "To add this console's key to a Safe: ", el("a", { href: "../app/#/passkey", textContent: "your passkey in the app" }), " has its owner address, deploys its signer, and proposes adding it."));
   }
   overlay();
   await boot();
