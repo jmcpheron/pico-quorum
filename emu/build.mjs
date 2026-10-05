@@ -30,7 +30,9 @@ for (const f of ["app.js", "app.css", "worker.js", "device3d.js"]) copy(join(EMU
 copy(join(EMU, "core", "runtime.mjs"), "core/runtime.mjs");
 copy(join(EMU, "core", "webauthn-assert.mjs"), "core/webauthn-assert.mjs");
 copy(join(ROOT, "web", "src", "blockies.mjs"), "shared/blockies.mjs");
-copy(join(EMU, "SKILL.md"), "SKILL.txt");          // .txt: Pages runs .md files through Jekyll
+// .txt, and never starting with "---": Pages runs .md files, and any file that opens with YAML front
+// matter, through Jekyll, which rewrote this one (the live-site check caught it, 2026-10-05)
+put("SKILL.txt", "# PicoQuorum emulator: the skill file for your AI (emu/SKILL.md in the repository)\n\n" + readFileSync(join(EMU, "SKILL.md"), "utf8"));
 
 // ----------------------------------------------------------------------------- vendored libraries
 const MP = join(NM, "@micropython", "micropython-webassembly-pyscript");
@@ -128,6 +130,9 @@ put("index.html", html);
 // ----------------------------------------------------------------------------- BUILD.json
 const all = [];
 (function walk(d) { for (const f of readdirSync(d).sort()) { const p = join(d, f); statSync(p).isDirectory() ? walk(p) : all.push(p); } })(OUT);
+// Pages would run any file opening with YAML front matter through Jekyll and serve something else
+const jekyll = all.filter((p) => readFileSync(p).subarray(0, 4).toString() === "---\n");
+if (jekyll.length) throw new Error(`these would be rewritten by Jekyll on Pages (they open with ---): ${jekyll.map((p) => relative(OUT, p)).join(", ")}`);
 const hashes = Object.fromEntries(all.map((p) => [relative(OUT, p).split("\\").join("/"), sha256(readFileSync(p))]));
 put("BUILD.json", JSON.stringify({
   note: "SHA-256 of every file emu/build.mjs wrote. Rebuild from the same commit (cd emu && npm ci && node build.mjs) and compare.",
