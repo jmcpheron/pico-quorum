@@ -159,8 +159,13 @@ class Service:
         return requests.post(self.base + path, json=body, headers=self.headers, timeout=self.timeout)
 
     def _fetch(self, method, path, body=None):
-        """(status, body bytes). The reserve is lent for the call and taken back before anything
-        is parsed: what the console keeps from a response must not land where the reserve goes."""
+        """(status, body). The reserve is lent for the call and taken back before anything is
+        parsed: what the console keeps from a response must not land where the reserve goes.
+        On the board the body is a memoryview of BODY, good until the next call: parse it at once.
+        It is never copied out. A copy needs one free block the body's size, and a running
+        console's heap is in pieces: a queue of two (6-9 KB) failed to copy, "MemoryError" on
+        every poll while it waited (2026-10-03). json.loads reads the view in place and needs
+        only small blocks."""
         self.release()
         self.requests += 1
         try:
@@ -172,7 +177,7 @@ class Service:
                 r = None
         finally:
             self.hold()
-        return status, bytes(out)       # out of BODY (a memoryview), now that the reserve is back
+        return status, out
 
     def _get(self, path):
         import json

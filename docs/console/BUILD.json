@@ -1,6 +1,6 @@
 {
   "note": "SHA-256 of every file emu/build.mjs wrote for the console page. It runs ../emu/'s boot.json, worker and MicroPython, which ../emu/BUILD.json lists. Rebuild from the same commit (cd emu && npm ci && node build.mjs) and compare.",
-  "release": "2eba10ef202322d6e105d4149764ed27b9c28d6ddf018ceffdf269b558b45297",
+  "release": "aae185f8bea484f96b9cef2f3707f7c943a5fd55413bff88097c490c92eff845",
   "files": {
     "coi.js": "50f153f5ba36e3e8d801313072be518b236c49eb7ae04ab425bedcba91a25803",
     "console.css": "031be51393c518e1a2cfa5ce229754a2fbbb7e92842027427553c618aa13eea0",
