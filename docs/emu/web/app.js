@@ -8,7 +8,7 @@
 // saved in the app (same origin).
 import { createDevice3D } from "./device3d.js";
 import {
-  KEY_ORDER, answer, appSafes, browserKey, keyOf, keyMode, local, makePasskey, paintFrame, passkeyCred, setKeyMode,
+  KEY_ORDER, answer, appSafes, browserKey, keyOf, keyMode, local, makePasskey, paintFrame, passkeyCred, setKeyMode, usePasskey,
   showRelease, stampRelease, staticBoot, staticSecrets, EDIT,
 } from "./browser.mjs";
 
@@ -427,6 +427,7 @@ function renderKey() {
   $("#keymode").value = keyMode();
   const missing = keyMode() === "passkey" && !passkeyCred();
   $("#mkpasskey").hidden = !missing;
+  $("#usepasskey").hidden = !missing;
   $("#keylabel").title = keyMode() === "passkey" && passkeyCred()
     ? `your passkey (${passkeyCred().synced ? "synced by your account" : "on that device"}), made for ${passkeyCred().rpId}`
     : $("#keylabel").title;
@@ -443,6 +444,14 @@ $("#mkpasskey").onclick = async () => {
     appendLog(`Made your passkey for ${cred.rpId} (${cred.synced ? "synced by your account" : "kept on that device"}). The console's owner address follows from it: see Chip.`, "sys");
     await reboot(main);
   } catch (e) { appendLog(`No passkey made: ${e.name || ""} ${e.message || e}`.trim(), "err"); }
+};
+$("#usepasskey").onclick = async () => {
+  try {
+    appendLog("Pick your passkey. It signs twice (two prompts): its public key is worked out from the two signatures.", "sys");
+    const cred = await usePasskey();
+    appendLog(`Using your passkey for ${cred.rpId} (${cred.synced ? "synced by your account" : "kept on that device"}). Same key, same owner address as wherever you made it: see Chip.`, "sys");
+    await reboot(main);
+  } catch (e) { appendLog(`No passkey: ${e.name || ""} ${e.message || e}`.trim(), "err"); }
 };
 
 // ---- go ----------------------------------------------------------------------------------

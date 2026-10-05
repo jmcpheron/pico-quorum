@@ -78,7 +78,14 @@ Sepolia, Base and Ethereum. `test-vectors/passkey.json` pins the firmware's pack
 `emu/console/`, written to `docs/console/` by the same build): the console alone, its screen with the
 joystick and A B X Y as on the board, for anyone without a Pico. No editor, no 3D case, no module
 menu; it always runs the quorum console with your passkey as the key, and the files exactly as built.
-- **First visit:** it asks you to **make a passkey**, then to save a Safe in the app.
+- **First visit:** it asks you to **make a passkey**, or to use one you **already have** (made in
+  another browser, or synced from your other device by iCloud Keychain or Google Password Manager),
+  then to save a Safe in the app.
+- **A passkey you already have:** WebAuthn only gives out a passkey's public key when it is made, so
+  the page has it sign twice and works the key out from the two signatures
+  (`core/webauthn-assert.mjs` `recoverKeys`), then checks it. Same passkey, same owner address.
+- **In the app,** `#/passkey` (Keys → Your passkey) shows its owner address, deploys its signer on
+  each chain from your wallet, and links each saved Safe's Add owner with it filled in.
 - **It runs `docs/emu/`'s** `boot.json`, worker and MicroPython (`web/browser.mjs` is shared by both
   pages), and shows the same release blockie.
 - **Its own** `coi.js`, `sw.js`, CSP (no inline script or style) and `BUILD.json`. It also has a

@@ -2,7 +2,7 @@
 // the plain console page (docs/console/, emu/console/): boot.json, the release fingerprint of what
 // boots, the Safes saved in the app, a per-browser software key, and the visitor's own passkey.
 // Relative URLs here resolve against this file (emu/web/), so both pages find the same boot.json.
-import { assertionParts, b64url, spkiXY, unhex } from "../core/webauthn-assert.mjs";
+import { assertionParts, b64url, derToRS, recoverKeys, spkiXY, unhex } from "../core/webauthn-assert.mjs";
 
 export const local = {
   get(k) { try { return localStorage.getItem(k); } catch { return null; } },
@@ -133,6 +133,34 @@ export async function makePasskey() {
   const cred = { id: b64url(new Uint8Array(c.rawId)), ...spkiXY(c.response.getPublicKey()), rpId: location.hostname,
     attachment: transports.includes("hybrid") ? "hybrid" : c.authenticatorAttachment === "platform" ? "platform" : "security-key",
     synced: !!(flags & 0x10), made: new Date().toISOString().slice(0, 10) };
+  local.set("emu.passkey", JSON.stringify(cred));
+  setKeyMode("passkey");
+  return cred;
+}
+
+/** A passkey you already have for this site (made in another browser, or synced from another
+ *  device): you pick it, it signs twice (two prompts), and its public key is worked out from the two
+ *  signatures, checked, and kept here. -> the credential, or throws. */
+export async function usePasskey() {
+  if (!window.PublicKeyCredential) throw new Error("this browser has no WebAuthn");
+  const once = async (id) => {
+    const a = await navigator.credentials.get({ publicKey: {
+      challenge: crypto.getRandomValues(new Uint8Array(32)), rpId: location.hostname, userVerification: "required", timeout: 120000,
+      ...(id ? { allowCredentials: [{ type: "public-key", id }] } : {}) } });      // first: any passkey for this site
+    const ad = new Uint8Array(a.response.authenticatorData), cdj = new Uint8Array(a.response.clientDataJSON);
+    const signed = new Uint8Array([...ad, ...new Uint8Array(await crypto.subtle.digest("SHA-256", cdj))]);
+    const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", signed));
+    const { r, s } = derToRS(a.response.signature);
+    return { a, ad, keys: recoverKeys(digest, r, s) };
+  };
+  const one = await once(null);
+  const two = await once(new Uint8Array(one.a.rawId));
+  const both = one.keys.filter((k) => two.keys.some((m) => m.x === k.x && m.y === k.y));
+  if (both.length !== 1) throw new Error("couldn't work out that passkey's public key from its signatures");
+  const { x, y } = both[0];
+  const cred = { id: b64url(new Uint8Array(one.a.rawId)), x, y, rpId: location.hostname,
+    attachment: one.a.authenticatorAttachment === "cross-platform" ? "security-key" : "platform",
+    synced: !!(two.ad[32] & 0x10), made: new Date().toISOString().slice(0, 10), found: true };
   local.set("emu.passkey", JSON.stringify(cred));
   setKeyMode("passkey");
   return cred;
