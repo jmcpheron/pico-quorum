@@ -38,7 +38,9 @@ SIGS = {
     "e009cfde": "disableModule(address,address)",
     "e19a9dd9": "setGuard(address)",
     "f08a0323": "setFallbackHandler(address)",
+    "85a5affe": "signMessage(bytes)",
 }
+SIGN_MESSAGE = b"\x85\xa5\xaf\xfe"
 
 DONT = "Don't sign unless you were told exactly what to expect."
 AS_SAFE = "Runs this contract's code as the Safe itself: it could move everything and change the owners."
@@ -105,7 +107,7 @@ def context(cfg, safe, names=None, chain=None):
         book[a.lower()] = n
     return {"safe": safe.lower(), "book": book, "tokens": for_chain(cfg, "tokens", chain),
             "batchers": for_chain(cfg, "batchers", chain), "contracts": for_chain(cfg, "contracts", chain),
-            "delegates": for_chain(cfg, "delegates", chain)}
+            "delegates": for_chain(cfg, "delegates", chain), "messages": for_chain(cfg, "messages", chain)}
 
 
 def name(ctx, a):
@@ -275,6 +277,39 @@ def _call(to, value, data, ctx):
     return [it]
 
 
+# ----------------------------------------------------------------------------- a release
+def _release(tx, data):
+    """A delegatecall to the pinned SignMessageLib that has the Safe sign a message. The console
+    signs only one kind: a PicoQuorum release (release.py), and only when the release its origin
+    note names gives exactly the D in the calldata. Any other message is refused: a Safe's
+    signature on someone's message can authorize spending (a Permit2 permit, an order).
+    -> (item, why refused or "")"""
+    import release
+    msg = None
+    if len(data) == 100 and data[4:36] == (32).to_bytes(32, "big") and data[36:68] == (32).to_bytes(32, "big"):
+        msg = data[68:100]
+    head = {"title": "SAFE MESSAGE", "level": "red", "what": "Sign a message as the Safe"}
+    if msg is None:
+        return dict(head, text="A message that isn't a single 32-byte digest."), "A message for the Safe to sign that this console can't read. It signs only PicoQuorum releases."
+    named = release.from_origin(tx.get("origin"))
+    if not named:
+        return dict(head, text="Digest %s, with nothing that says what it is." % hx(msg)), "A message for the Safe to sign, with no PicoQuorum release named for it. The console signs only releases it can check."
+    v, f, m = named
+    try:
+        if not release.valid_version(v):
+            raise ValueError("version %r" % v)
+        d = release.digest(v, f, m)
+    except ValueError as e:
+        return dict(head, text="The release note can't be read (%s)." % e), "The release named for this message can't be read."
+    if d != msg:
+        return dict(head, text="The note says release %s, but the digest is another." % v), "The release named doesn't match what the Safe would sign. Signing it could approve something else."
+    f = hx(_bytes(f))
+    return {"title": "RELEASE", "level": "warn", "what": "Approve release %s" % v, "amount": "Release %s" % v,
+            "release": {"version": v, "firmware": f, "manifest": hx(_bytes(m)), "digest": hx(d)},
+            "text": "The Safe approves this PicoQuorum release for everyone who runs it: firmware %s\u00b7%s, manifest %s\u2026%s. Nothing is sent." % (
+                f[2:6], f[6:10], hx(_bytes(m))[2:8], hx(_bytes(m))[-6:])}, ""
+
+
 # ----------------------------------------------------------------------------- the transaction
 def _gas(tx, ctx):
     gp = int(tx.get("gasPrice") or 0)
@@ -317,7 +352,7 @@ def review(tx, ctx):
     refuse = ""
     if op not in (CALL, DELEGATECALL):
         refuse = "Operation %d is neither a call nor a delegatecall." % op
-    elif op == DELEGATECALL and not (to in ctx["delegates"] or (to in ctx["batchers"] and data[:4] == b"\x8d\x80\xff\x0a")):
+    elif op == DELEGATECALL and not (to in ctx["delegates"] or to in ctx["messages"] or (to in ctx["batchers"] and data[:4] == b"\x8d\x80\xff\x0a")):
         refuse = "A delegatecall to a contract this console has not pinned. It would run that code as the Safe itself."
     if op == DELEGATECALL and to in ctx["batchers"] and data[:4] == b"\x8d\x80\xff\x0a":
         try:
@@ -336,6 +371,16 @@ def review(tx, ctx):
             summary = "Batch: %d action%s" % (len(calls), "" if len(calls) == 1 else "s")
         else:
             summary = "Unreadable batch"
+    elif op == DELEGATECALL and to in ctx["messages"]:
+        if data[:4] == SIGN_MESSAGE and not value:
+            it, why = _release(tx, data)
+        else:
+            it, why = (_unknown(to, data, "Only signMessage, with no ETH, is expected here."),
+                       "A call to the message library that isn't signMessage.")
+        it["contract"] = to
+        items.append(it)
+        refuse = refuse or why
+        summary = it["what"]
     elif op == DELEGATECALL:
         items.append({"title": "DELEGATECALL", "level": "red", "what": "Delegatecall", "to": to, "label": "contract",
                       "text": AS_SAFE, "selector": hx(data[:4]), "size": len(data), "contract": to,

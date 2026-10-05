@@ -175,7 +175,7 @@ export async function propose(st, fields, opts = {}) {
   const tx = {
     safe, ...f, safeTxHash: reported, trueHash, proposer: by.address, submissionDate: stamp(st),
     confirmations: [], isExecuted: false, executionDate: null, transactionHash: null,
-    scenario: opts.scenario || "", declined: [],
+    scenario: opts.scenario || "", declined: [], origin: opts.origin ?? null,
   };
   if (chain) await chain.checkHash(st, f, trueHash);
   st.txs.push(tx);
@@ -325,7 +325,7 @@ export function apiTx(st, t) {
     ...out, executionDate: t.executionDate, submissionDate: t.submissionDate, modified: t.submissionDate,
     transactionHash: t.transactionHash, safeTxHash: t.safeTxHash, proposer: t.proposer,
     isExecuted: t.isExecuted, isSuccessful: t.isExecuted ? t.isSuccessful ?? true : null, confirmationsRequired: st.threshold,
-    confirmations: t.confirmations, trusted: true, dataDecoded: null,
+    confirmations: t.confirmations, trusted: true, dataDecoded: null, origin: t.origin ?? null,
   };
 }
 

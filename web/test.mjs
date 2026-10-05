@@ -124,7 +124,9 @@ check(S.consoleRefuses(8453, { operation: 1, to: "0x9641d764fc13c8b624c04430c735
 
 // ----------------------------------------------------------------------------- 4. blockies
 const { blockie, rgb } = await import("./src/blockies.mjs");
-const seeds = [safe, alice.address, chip, S.ZERO, "0xffffffffffffffffffffffffffffffffffffffff", hash].map((x) => x.toLowerCase());
+// The last seed is a release fingerprint (tools/releases/fingerprint.mjs): the Device screen's blockie.
+const seeds = [safe, alice.address, chip, S.ZERO, "0xffffffffffffffffffffffffffffffffffffffff", hash,
+  "0x4c86c7541a45eb43f24c48c178409de889c5f86d467c886d444e9e30b9a00e0b"].map((x) => x.toLowerCase());
 const fwBlockies = JSON.parse(spawnSync("python3", ["-c", `import sys, json; sys.path.insert(0, ${JSON.stringify(ROOT + "firmware")})
 import blockies
 out = []
@@ -156,6 +158,8 @@ const cases = [
   ["threshold", { threshold: "3" }, "THRESHOLD", "Approvals needed: 3"],
   ["reject", {}, "REJECTION", "On-chain rejection"],
   ["custom", { to: usdc.address, data: "0x095ea7b3" + "0".repeat(24) + carol.slice(2).toLowerCase() + "f".repeat(64) }, "APPROVE USDC", "Approve UNLIMITED USDC"],
+  ["release", { releaseEntry: { version: "2026.10.6", fingerprints: { console: "4c86c7541a45eb43f24c48c178409de889c5f86d467c886d444e9e30b9a00e0b" }, manifestSha256: "5f".repeat(32) } },
+    "RELEASE", "Approve release 2026.10.6"],
 ];
 const built = cases.map(([kind, input]) => P.safeTx(P.buildCall(kind, input, S5).call, 9));
 const consoleSees = JSON.parse(spawnSync("python3", ["-c", `import sys, json; sys.path.insert(0, ${JSON.stringify(ROOT + "firmware")})
@@ -173,6 +177,14 @@ cases.forEach(([kind, , title, what], i) => {
   check(r.title === title && r.what.startsWith(what) && !r.refuse && (b.red ? r.level === "red" : true),
     `propose ${kind}: the console reads it as ${title}, "${r.what}"${b.red ? ", on a red page" : ""}`);
 });
+{
+  const rel = built[cases.findIndex(([k]) => k === "release")];
+  check(rel.operation === 1 && S.consoleRefuses(84532, rel) === "" && P.proposalBody(safe, rel, "0x" + "00".repeat(32), alice.address, "0x").origin === rel.origin,
+    "propose release: a delegatecall to the pinned SignMessageLib the console accepts, its release named in the origin note sent to the service");
+  const o = JSON.parse(rel.origin);
+  check(S.consoleRefuses(84532, { ...rel, origin: JSON.stringify({ pq: { ...o.pq, v: "2026.10.7" } }) }) !== "" && S.consoleRefuses(84532, { ...rel, origin: null }) !== "",
+    "the page flags what the console refuses: a note naming another release, or none");
+}
 check(consoleSees[2].to === carol.toLowerCase() && /becomes 2/.test(consoleSees[2].text), "propose add: the console names the new owner and the new threshold");
 const rm = decodeFunctionData({ abi: P.OWNER_ABI, data: built[3].data });
 check(rm.args[0] === alice.address && rm.args[1] === bob.address && rm.args[2] === 2n, "propose remove: prevOwner is the owner before it in the Safe's list");

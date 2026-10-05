@@ -28,9 +28,53 @@ console with a REPL; right = the device (orbit with the mouse, click the caps) o
 Keyboard: W A S D and space for the joystick, numpad 9 6 3 . for A B X Y (top-row 9 6 3 . work
 too), after clicking the device. The 3D view labels each button with its key.
 
+The flash also gets a `build.py` like the one `tools/fw build` writes for a Pico (`IMAGE = "emu"`, the
+manifest's version, the commit, and `RELEASE`, the release fingerprint of the console files as
+served here). The toolbar shows the fingerprint's blockie, the same picture as on a Pico's Device screen running
+the same files. `--file build.py=PATH` in headless replaces it.
+
 The flash is `firmware/*.py` and `*.bin` (never `secrets.py`; a stub is generated with
 `APP_URL = "/app"`, which the server proxies to the wallet app, `--app http://host:port`,
 default `http://localhost:3001`) plus `emu/sketches/*` on top. Saving in the editor writes to disk.
+
+## On GitHub Pages
+
+`node emu/build.mjs` (after `npm ci` here) writes `docs/emu/`, the same page as a static site:
+[jmcpheron.github.io/pico-quorum/emu/](https://jmcpheron.github.io/pico-quorum/emu/). Commit it, as with
+`docs/app/`. CI rebuilds it and fails if the committed copy differs.
+
+- **Boot data:** `boot.json`, written at build time. It is what `/ctl/boot` answers here, for
+  `firmware/` alone, plus a `build.py` with `IMAGE "web"` and the console's release fingerprint.
+- **COOP/COEP:** `coi.js` and `sw.js`. Pages can't send headers, so a service worker adds them to the
+  folder's own files. The first visit reloads once.
+- **Kept in the visitor's browser** (localStorage):
+  - the chip state;
+  - a **random software key** (`key.bin`), never the fixed test key the local emulator uses;
+  - edited files.
+- **The release fingerprint is computed again in the page** over the files it boots. An edited
+  console file shows another blockie, marked *edited*. The firmware's own `image.RELEASE` agrees.
+- **The console runs on the Safes saved in the app** (same origin), with the app's Safe API key
+  and no `APP_URL`, so it asks Safe's own service for each chain. With none saved, the module is
+  `mock`.
+- **No USB, no control channel.** `tools/emu` stays the local path.
+
+**Your passkey as the key** (both hosts). The toolbar's **key** menu picks the virtual chip or **your
+passkey**, and **make a passkey** creates one with WebAuthn for this site: Touch ID, Windows Hello, a
+phone or a security key, P-256 (ES256).
+- **What the console gets:** the public key, kept in the browser. The console computes its owner
+  address from it, as for a chip.
+- **When it signs:** `shims/passkey.py` asks the page, through a shared buffer while Python waits,
+  for a WebAuthn assertion over the safeTxHash computed on screen. `quorum.sign_it` packs it exactly
+  as a chip's.
+- **Before handing it over,** the page checks the assertion's shape, the UV flag, and the signature
+  against the key.
+- **The first time,** a note says the authenticator won't show the transaction.
+
+`tools/vectors/passkey.mjs` showed a real browser's assertion passes Safe's passkey signer on Base
+Sepolia, Base and Ethereum. `test-vectors/passkey.json` pins the firmware's packing of it. Headless:
+`--passkey` signs with a software passkey (`core/softpasskey.mjs`).
+
+`node emu/e2e-static.mjs` serves `docs/` like Pages and checks all of that in Chromium.
 
 ## Give it to your AI
 

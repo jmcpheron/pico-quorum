@@ -5,10 +5,89 @@ A release is **year.month.n**: the n-th of that month. The number is in `firmwar
 screen shows `2026.10.1 · <commit>`, and the boot line in `log.txt` carries both. Each release has a
 git tag, `fw-<version>`.
 
-**To make one:**
-1. Set `"version"` and commit.
-2. `tools/fw push console --all`, which pushes every board on USB in turn.
-3. `git tag fw-<version>` on that commit, then push the tag.
+**The release fingerprint** names what a board runs: the SHA-256 of the image's source files
+(`tools/releases/fingerprint.mjs`; [`releases/`](releases/README.md) has the definition). `tools/fw build`
+writes it into `build.py` as `RELEASE`, and the Device screen shows its blockie and first 8 hex
+digits (`4c86·c754`). The emulator computes it over the files it runs, so the same release shows
+the same picture in the browser. The app's Releases page lists each release's fingerprint.
+
+**To make one** (from a clean `main`):
+1. Set `"version"` in `firmware/manifest.json`, and write its `## <version> (<date>)` entry below.
+2. `tools/release manifest` writes `docs/releases/<version>.json` (each image's fingerprint, the
+   hash of every source file, the hash of each web build's `BUILD.json`) and its line in
+   `docs/releases/index.json`. Rebuild the web pages first if anything in them changed. Commit all of it.
+3. `tools/release check`: the tree is clean, the tag doesn't exist yet, the entry is here, the
+   manifest matches the source, and the fast tests pass.
+4. `tools/release tag --push` signs `fw-<version>` with your SSH key, checks the signature against
+   `.github/allowed_signers` (deleting the tag if it doesn't check), and pushes it.
+5. `.github/workflows/release.yml` takes it from there:
+   - It refuses a lightweight, unsigned or unknown-key tag.
+   - It checks the version, this entry and the manifest again, and runs all of CI on the tagged commit.
+   - It builds the three images and publishes a GitHub Release with:
+     - a zip of each image;
+     - `release.json` (each built file's hash, the commit, the fingerprints);
+     - the manifest;
+     - `SHA256SUMS`.
+6. `tools/fw push console --all` puts it on every board on USB. `tools/fw verify` shows each board's
+   release fingerprint, which must match the manifest's.
+
+CI (`.github/workflows/ci.yml`) runs every suite on each pull request and push to `main`, builds the
+images, and fails if `docs/` differs from a rebuild of the web pages. Pages serves only what the
+source makes.
+
+`.github/workflows/site-check.yml` checks that from outside. After every Pages deploy and every six
+hours, it fetches what the site serves and compares each byte with `docs/` at the deployed commit,
+and opens an issue on any difference. By hand: `tools/release check-site`. The app's Releases page
+says which release the page you're on is.
+
+### Signing
+
+Tags are signed with an SSH key; git and GitHub both understand it. Keep the key in hardware if you
+can:
+- **Mac Secure Enclave:** the [Secretive](https://github.com/maxgoedjen/secretive) app makes a
+  P-256 key (`ecdsa-sha2-nistp256`) that never leaves the chip. It is the same curve as the
+  console's own keys.
+- **YubiKey:** `ssh-keygen -t ed25519-sk -O resident` makes a key that needs a touch for each signature.
+
+Once:
+```sh
+git config --global gpg.format ssh
+git config --global user.signingkey "<the public key, or the path to its .pub file>"
+git config --global tag.gpgSign true
+```
+- Add the public key to GitHub as a **signing key** (Settings → SSH and GPG keys → New SSH key → Key type:
+  Signing Key). GitHub then shows the tag as Verified.
+- Add the key to `.github/allowed_signers` as `<your git email> namespaces="git" <public key>`, in a
+  reviewed commit. That file decides who can release.
+
+**On GitHub** (Settings → Rules → Rulesets), two rulesets close the gaps CI can't:
+- **`main`:** require pull requests and the CI checks `firmware`, `fwbuild` and `web`; block force pushes.
+- **Tags `fw-*`:** restrict creation, update and deletion to the maintainers. Otherwise anyone with
+  push access could take a release name, even though CI would refuse to publish it.
+
+### Approval by the project Safe
+
+The tag says who cut a release. The project Safe says the project stands behind it (`docs/GOVERNANCE.md`).
+
+1. **Propose:** `tools/release approval` prints the Safe transaction:
+   - a delegatecall to Safe's SignMessageLib 1.4.1, `signMessage(D)`;
+   - D is the EIP-712 `PicoQuorumRelease(version, firmware, manifest)`;
+   - a short origin note names the release.
+
+   Propose it from the app's **Releases** page (**Propose approval**), or with any Safe tool.
+2. **Approve:** each owner's console shows **Approve release …** with the firmware fingerprint's
+   blockie, and whether it is the release running on that console. It refuses any message that
+   isn't a release whose note gives exactly the calldata's digest.
+3. **Check:** once executed, `isValidSignature(D, "0x")` on the Safe returns `0x1626ba7e` for good,
+   even after owners change. The Releases page shows **Approved by the project Safe**.
+
+`docs/releases/<version>.json` never changes after its tag: its SHA-256 is part of D. Later facts
+(the commit, the approval) go in `index.json`.
+
+`tools/vectors/release.mjs` checks the hashing against a real Safe on Ethereum.
+`tools/quorum release-e2e` runs the whole approval on a fork:
+- the console signs it, and it executes;
+- `isValidSignature` holds, and still holds after the console's owner is removed.
 
 ## 2026.10.5 (2026-10-02)
 

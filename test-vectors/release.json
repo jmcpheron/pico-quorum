@@ -1,0 +1,53 @@
+{
+  "note": "PicoQuorum release approvals (firmware/release.py, decode.py): the digest, the approval transaction and its origin note, made by viem (tools/mock-tx-service/release.mjs) and checked against Safe{DAO}'s Safe on Ethereum by tools/vectors/release.mjs.",
+  "vectors": [
+    {
+      "name": "this-checkout",
+      "version": "2026.10.6",
+      "firmware": "0xf856ea00d625c0387d93262ae728ac25a809c990a2b8c6be85eab531bb49bf97",
+      "manifest": "0x5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f",
+      "digest": "0x4329aea81ef63cdc79aea25fa8cbc334558fb0b17e87dbbb78c15e9fe476a6e1",
+      "to": "0xd53cd0ab83d845ac265be939c57f53ad838012c9",
+      "operation": 1,
+      "data": "0x85a5affe000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000204329aea81ef63cdc79aea25fa8cbc334558fb0b17e87dbbb78c15e9fe476a6e1",
+      "origin": "{\"pq\":{\"v\":\"2026.10.6\",\"f\":\"f856ea00d625c0387d93262ae728ac25a809c990a2b8c6be85eab531bb49bf97\",\"m\":\"5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f\"}}",
+      "safeMessageHash": {
+        "chainId": 1,
+        "safe": "0x8cf60b289f8d31f737049b590b5e4285ff0bd1d1",
+        "hash": "0xb54207209fdeb4b93d56cf059cd797e4ea2ee77621d78b203c954a83846a70bf"
+      }
+    },
+    {
+      "name": "first",
+      "version": "2026.10.1",
+      "firmware": "0x4c86c7541a45eb43f24c48c178409de889c5f86d467c886d444e9e30b9a00e0b",
+      "manifest": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "digest": "0x93756c163b66989f8a79fe928dc6fa2c070581632757b5e34c48162e7347ca21",
+      "to": "0xd53cd0ab83d845ac265be939c57f53ad838012c9",
+      "operation": 1,
+      "data": "0x85a5affe0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000002093756c163b66989f8a79fe928dc6fa2c070581632757b5e34c48162e7347ca21",
+      "origin": "{\"pq\":{\"v\":\"2026.10.1\",\"f\":\"4c86c7541a45eb43f24c48c178409de889c5f86d467c886d444e9e30b9a00e0b\",\"m\":\"0000000000000000000000000000000000000000000000000000000000000000\"}}",
+      "safeMessageHash": {
+        "chainId": 1,
+        "safe": "0x8cf60b289f8d31f737049b590b5e4285ff0bd1d1",
+        "hash": "0x680211f078992e18fdef70e2a978a2256b5a058a53cfae5ee6c5f1d7d90ad432"
+      }
+    },
+    {
+      "name": "edges",
+      "version": "2099.12.999",
+      "firmware": "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "manifest": "0x0101010101010101010101010101010101010101010101010101010101010101",
+      "digest": "0x23c6e3b18854f94826355d99dc7c5a6ca7f522129db9a98df56825e57911632a",
+      "to": "0xd53cd0ab83d845ac265be939c57f53ad838012c9",
+      "operation": 1,
+      "data": "0x85a5affe0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000002023c6e3b18854f94826355d99dc7c5a6ca7f522129db9a98df56825e57911632a",
+      "origin": "{\"pq\":{\"v\":\"2099.12.999\",\"f\":\"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\",\"m\":\"0101010101010101010101010101010101010101010101010101010101010101\"}}",
+      "safeMessageHash": {
+        "chainId": 1,
+        "safe": "0x8cf60b289f8d31f737049b590b5e4285ff0bd1d1",
+        "hash": "0x03993ec10bdd8d8cd713006c98324dcdf66222ee17ba61f0c4db841955e5ab10"
+      }
+    }
+  ]
+}

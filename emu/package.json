@@ -5,7 +5,9 @@
   "scripts": {
     "start": "node server.mjs --open",
     "serve": "node server.mjs",
-    "headless": "node headless.mjs"
+    "headless": "node headless.mjs",
+    "build": "node build.mjs",
+    "e2e": "node e2e-static.mjs"
   },
   "license": "ISC",
   "type": "module",
@@ -14,5 +16,8 @@
     "codemirror": "^5.65.18",
     "three": "^0.170.0"
   },
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "playwright-core": "1.56.1"
+  }
 }

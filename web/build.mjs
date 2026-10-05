@@ -8,7 +8,7 @@
 // rebuild from the same commit and compare.
 import { createHash } from "node:crypto";
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join, relative } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
 import { writeConfig } from "./config.mjs";
@@ -19,22 +19,14 @@ mkdirSync(join(OUT, "fonts"), { recursive: true });
 writeConfig();
 
 // tools/mock-tx-service/sigs.mjs is bundled as is; its viem and noble resolve to this package's
-// pinned copies, so the bundle holds one of each. Only imports from outside web/ go through here:
-// sending every viem-internal import through the async resolve made the module order, and so the
-// minified names, change from build to build.
-const fromHere = {
-  name: "deps-from-web",
-  setup(b) {
-    b.onResolve({ filter: /^(viem|@noble\/)/ }, async (args) => {
-      if (args.pluginData === "here" || !relative(HERE, args.importer).startsWith("..")) return;
-      const r = await b.resolve(args.path, { resolveDir: HERE, kind: args.kind, pluginData: "here" });
-      return r.errors.length ? { errors: r.errors } : { path: r.path };
-    });
-  },
-};
+// pinned copies, so the bundle holds one of each. An alias does it: esbuild resolves an aliased
+// import from the working directory (web/), not from the importing file. A resolve plugin did this
+// before, and any plugin that redirected a path let the module order, and so the minified names,
+// change about one build in eight (2026-10-05), which CI's rebuild check would trip on.
+const pinned = { viem: "viem", "@noble/curves": "@noble/curves", "@noble/hashes": "@noble/hashes" };
 const meta = await build({
   entryPoints: [join(HERE, "src/main.mjs")], bundle: true, minify: true, format: "esm", target: "es2022",
-  outfile: join(OUT, "app.js"), legalComments: "eof", plugins: [fromHere], logLevel: "warning", absWorkingDir: HERE,
+  outfile: join(OUT, "app.js"), legalComments: "eof", alias: pinned, logLevel: "warning", absWorkingDir: HERE,
   banner: { js: "// PicoQuorum Execute page. Source: web/ in github.com/jmcpheron/pico-quorum" }, metafile: true,
 });
 const outside = Object.keys(meta.metafile.inputs).filter((f) => /node_modules/.test(f) && !f.startsWith("node_modules/"));

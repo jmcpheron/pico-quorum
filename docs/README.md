@@ -19,6 +19,8 @@ troubleshooting.
 - [`KICKOFF.md`](KICKOFF.md): what PicoQuorum is, goals, hardware, firmware layers, open decisions
 - [`UPSTREAM-TRACKING.md`](UPSTREAM-TRACKING.md): fork point, unmerged upstream work, how to merge
 - [`HEGOTA-WATCH.md`](HEGOTA-WATCH.md): EIPs in the next Ethereum fork that touch the console
+- [`EMU-WEB.md`](EMU-WEB.md): the emulator on GitHub Pages, with your own passkey as the key
+- [`GOVERNANCE.md`](GOVERNANCE.md): the project Safe (Ethereum and Base), release approvals, the ENS name, and handing it over
 
 The dev console's notes, from picowallet: [`picowallet.md`](picowallet.md) (build guide),
 [`CHIPMAP.md`](CHIPMAP.md), [`TESTPLAN.md`](TESTPLAN.md), [`USB.md`](USB.md),

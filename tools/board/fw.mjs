@@ -44,6 +44,7 @@ import { dirname, join } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { MPREMOTE, serialPorts } from "../../emu/core/devices.mjs";
 import { FIRMWARE, ROOT } from "../../emu/core/workspace.mjs";
+import { imageFingerprint, short } from "../releases/fingerprint.mjs";
 
 const M = JSON.parse(readFileSync(join(FIRMWARE, "manifest.json"), "utf8"));
 const argv = process.argv.slice(2);
@@ -281,9 +282,12 @@ function build(image, { quiet = false } = {}) {
     } else copyFileSync(join(FIRMWARE, f), join(dir, to));
     files[to] = sha256(readFileSync(join(dir, to))).slice(0, 12);
   }
-  const py = `# written by tools/fw build; never committed\nIMAGE = ${JSON.stringify(image)}\nVERSION = ${JSON.stringify(M.version || "")}\nBUILD = ${JSON.stringify(id)}\nDATE = ${Math.floor(Date.now() / 1000)}\nFILES = ${JSON.stringify(files)}\n`;
+  // RELEASE: the release fingerprint of the source files just compiled (tools/releases/fingerprint.mjs),
+  // the same value the emulator shows for these files; the Device screen draws its blockie.
+  const release = imageFingerprint(image, (n) => readFileSync(join(FIRMWARE, n)), M);
+  const py = `# written by tools/fw build; never committed\nIMAGE = ${JSON.stringify(image)}\nVERSION = ${JSON.stringify(M.version || "")}\nBUILD = ${JSON.stringify(id)}\nDATE = ${Math.floor(Date.now() / 1000)}\nRELEASE = ${JSON.stringify(release)}\nFILES = ${JSON.stringify(files)}\n`;
   writeFileSync(join(dir, "build.py"), py);
-  return { image, id, dir, names: [...Object.keys(files), "build.py"] };
+  return { image, id, dir, release, names: [...Object.keys(files), "build.py"] };
 }
 
 // ----------------------------------------------------------------------------- backup
@@ -336,14 +340,14 @@ async function verify({ baseline = false } = {}) {
   let ok = true;
   const mainSrc = files.some((f) => f.name === "main.py") ? run("print(open('main.py').read()[:120])") : "";
   const image = (/# picoquorum-image: (\w+)/.exec(mainSrc) || [])[1] || null;
-  const onBoard = files.some((f) => f.name === "build.py") ? run("import build\nprint('BUILD:' + getattr(build, 'VERSION', '') + ' ' + build.BUILD)").match(/BUILD:(\S*) (\S+)/) : null;
-  console.log(`image: ${image || "none (a development board: main.py is " + (/wallet/.test(mainSrc) ? "the legacy wallet" : "something else") + ")"}${onBoard ? `, version ${onBoard[1] || "none"}, build ${onBoard[2]}` : ""}`);
+  const onBoard = files.some((f) => f.name === "build.py") ? run("import build\nprint('BUILD:' + getattr(build, 'VERSION', '') + ' ' + build.BUILD + ' ' + (getattr(build, 'RELEASE', '') or '-'))").match(/BUILD:(\S*) (\S+) (\S+)/) : null;
+  console.log(`image: ${image || "none (a development board: main.py is " + (/wallet/.test(mainSrc) ? "the legacy wallet" : "something else") + ")"}${onBoard ? `, version ${onBoard[1] || "none"}, build ${onBoard[2]}, release ${onBoard[3] === "-" ? "none" : short(onBoard[3])}` : ""}`);
   if (image) {
     const b = build(image);          // this checkout, built the same way a push would
     const want = new Map(b.names.filter((n) => n !== "build.py").map((n) => [n, sha256(readFileSync(join(b.dir, n)))]));
     const differ = [...want].filter(([n, h]) => files.find((f) => f.name === n)?.sha !== h).map(([n]) => n);
     if (differ.length) { ok = false; console.log(`  differs from this checkout: ${differ.join(", ")}`); }
-    else console.log(`  every file of the ${image} image matches this checkout (${want.size})`);
+    else console.log(`  every file of the ${image} image matches this checkout (${want.size}), release ${short(b.release)}`);
     const extra = files.map((f) => f.name).filter((n) => !want.has(n) && n !== "build.py" && !matches(M.preserve, n));
     const keys = extra.filter((n) => matches(M.flag, n)), stale = extra.filter((n) => !matches(M.flag, n));
     if (stale.length) { ok = false; console.log(`  not part of the image: ${stale.join(", ")}`); }
@@ -828,7 +832,7 @@ if (has("--all")) {
 }
 
 const cmds = {
-  build: () => { const b = build(argv[1] || die("build console|ceremony")); console.log(`built ${b.image} ${M.version || ""} ${b.id}: ${b.names.length} files in ${b.dir}`); },
+  build: () => { const b = build(argv[1] || die("build console|ceremony")); console.log(`built ${b.image} ${M.version || ""} ${b.id}: ${b.names.length} files in ${b.dir}\nrelease ${short(b.release)}  ${b.release}`); },
   backup: () => backup(),
   verify: async () => process.exit((await verify({ baseline: has("--baseline") })) ? 0 : 1),
   logs: () => logs(),

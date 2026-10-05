@@ -787,8 +787,154 @@ def case_grid():
         pass
 
 
+def case_release():
+    """The release fingerprint (image.RELEASE, from build.py): its blockie on the home grid's Device
+    tile and on the Device screen, with its short name; without one, the wifi icon as before."""
+    chip()
+    Q = fresh(url=None, safe=False, extra=TWO)
+    SVC.info = {"address": SAFE, "nonce": 0, "threshold": 2, "version": "1.4.1", "owners": [Q.me, ALICE, BOB]}
+    SVC.txs = []
+    SVC.safes[ETH_SAFE] = {"info": {"address": ETH_SAFE, "nonce": 7, "threshold": 1, "version": "1.4.1", "owners": [Q.me, BOB]}, "txs": []}
+    Q.net_work()
+    Q.net_work()
+    Q.recent = []
+    import image
+    import blockies
+    import fonts
+    import quorum_ui as U
+    drawn, texts = [], []
+    real_draw, real_text = blockies.draw, fonts.text
+    blockies.draw = lambda d, seed, x, y, scale, *a, **k: (drawn.append((seed, scale)), real_draw(d, seed, x, y, scale, *a, **k))
+    fonts.text = lambda d, t, *a, **k: (texts.append(t), real_text(d, t, *a, **k))[1]
+    try:
+        check(Q.grid_home(), "the grid is home")
+        U.draw(Q)
+        check(image.SEED not in [x for x, _ in drawn] and not image.RELEASE, "no build.py: no release blockie")
+        image.RELEASE = "4c86c7541a45eb43f24c48c178409de889c5f86d467c886d444e9e30b9a00e0b"
+        image.SEED, image.SHORT = "0x" + image.RELEASE, "4c86\u00b7c754"
+        image.VERSION, image.BUILD = "2026.10.6", "abc1234"
+        drawn[:] = []
+        U.draw(Q)
+        check((image.SEED, 3) in drawn, "the Device tile draws the release's blockie")
+        Q.handle("X")
+        Q.net_err = None
+        drawn[:], texts[:] = [], []
+        U.draw(Q)
+        check(Q.state == "device" and [sc for x, sc in drawn if x == image.SEED] == [2, 2], "Device: the blockie in the header and on the Release row")
+        check("4c86\u00b7c754" in texts and "Release" in texts, "Device: the Release row names it 4c86\u00b7c754")
+        Q.net_err, Q.net_ok = "OSError -1", False
+        drawn[:], texts[:] = [], []
+        U.draw(Q)
+        check([sc for x, sc in drawn if x == image.SEED] == [2] and "Release" not in texts, "with a last error to show: the header blockie only")
+    finally:
+        blockies.draw, fonts.text = real_draw, real_text
+        image.RELEASE = image.SEED = image.SHORT = image.VERSION = ""
+        Q.handle("B")
+
+
+def case_passkey():
+    """The browser emulator's passkey as the key (emu/core/shims/passkey.py; a software passkey
+    here, core/softpasskey.mjs): the same console and checks, the owner follows from its key, and
+    the posted signature is the passkey's own WebAuthn assertion over the hash computed on screen,
+    packed as a chip's and valid the way the Safe checks it."""
+    import _emu
+    import hashlib
+    import quorum_cfg
+    chip()
+    _emu.passkey_use(True)
+    try:
+        Q = fresh(prod=False, expect=None)
+        check(Q.sig.name == "passkey" and Q.state == "home", "the page picked a passkey: the console uses it, not the chip on the bus")
+        x, y = Q.sig.pubkey()
+        check(Q.me == webauthn.owner_address("0x%064x" % x, "0x%064x" % y, quorum_cfg.CFG["signer"]), "its owner address follows from the passkey's key, as for a chip")
+        check(any("passkey" in l.lower() for l in Q.chip_info()) and "browser" in " ".join(Q.chip_info()), "the signing screen names the passkey, and that the browser draws it")
+        try:
+            Q.sig.sign(b"\x00" * 32)
+            check(False, "a passkey refuses a bare digest")
+        except Exception:
+            check(True, "a passkey refuses a bare digest")
+        serve(Q, [tx(Q, 0)])
+        e = Q.queue[0]
+        check(sign(Q, e, 2100), "held 2.1 s: the passkey signed, and it was posted")
+        url, body = SVC.posted[-1]
+        b = bytes.fromhex(body["signature"][2:])
+        data = b[65 + 32:]
+        word = lambda i: int.from_bytes(data[i:i + 32], "big")
+        ad = data[word(0) + 32:word(0) + 32 + word(word(0))]
+        fields = data[word(32) + 32:word(32) + 32 + word(word(32))].decode()
+        r, s_ = word(64), word(96)
+        cdj = '{"type":"webauthn.get","challenge":"%s",%s}' % (webauthn.b64url(bytes.fromhex(e["mine"][2:])), fields)
+        digest = hashlib.sha256(ad + hashlib.sha256(cdj.encode()).digest()).digest()
+        check(b[12:32] == bytes.fromhex(Q.me[2:]) and e["h"] in url, "a contract signature from this key's owner, for that hash")
+        check(p256.verify(x, y, digest, r, s_) and ad[32] & 0x04, "the passkey's assertion over the hash computed here verifies as the Safe checks it, with UV")
+        check('"origin":"http://localhost:4242"' in fields, "the browser's own clientData fields ride along in the signature")
+        n = len(SVC.posted)
+        real = Q.sig.assertion
+        Q.sig.assertion = lambda c: (_ for _ in ()).throw(Exception("NotAllowedError: the person cancelled"))
+        Q.handle("A")           # off the result screen
+        serve(Q, [tx(Q, 0, to=OTHER, data="0xdeadbeef")])
+        check(not sign(Q, Q.queue[0], 3100) and len(SVC.posted) == n and not Q.result[0] and "cancelled" in " ".join(Q.result[2]),
+              "a cancelled passkey prompt: Not signed, nothing posted, and the reason shown")
+        Q.sig.assertion = real
+    finally:
+        _emu.passkey_use(False)
+
+
+def case_release_approval():
+    """The project Safe approving a PicoQuorum release (release.py): a delegatecall to the pinned
+    SignMessageLib, its release named in the origin note. The console reads it, shows the release
+    and its fingerprint's blockie (and whether this console runs it), and signs it like any other
+    transaction; a note that doesn't give the calldata's digest is refused."""
+    import release
+    import blockies
+    import quorum_ui as U
+    chip()
+    Q = fresh()
+    import image                # after fresh(), which imports it anew
+    LIB = "0xd53cd0ab83d845ac265be939c57f53ad838012c9"
+    fp, man = "4c86c7541a45eb43f24c48c178409de889c5f86d467c886d444e9e30b9a00e0b", "5f" * 32
+    d = release.digest("2026.10.6", fp, man)
+    data = "0x85a5affe" + "%064x" % 32 + "%064x" % 32 + "".join("%02x" % b for b in d)
+    good = tx(Q, 0, to=LIB, data=data, op=1)
+    good["origin"] = '{"pq":{"v":"2026.10.6","f":"%s","m":"%s"}}' % (fp, man)
+    serve(Q, [good])
+    e = Q.queue[0]
+    check(not e["why"] and e["r"]["summary"] == "Approve release 2026.10.6", "an approval for release 2026.10.6: read, not refused")
+    image.RELEASE = fp
+    drawn, texts = [], []
+    real_draw, real_text = blockies.draw, U.F.text
+    blockies.draw = lambda dd, seed, x, y, scale, *a, **k: (drawn.append(seed), real_draw(dd, seed, x, y, scale, *a, **k))
+    U.F.text = lambda dd, t, *a, **k: (texts.append(t), real_text(dd, t, *a, **k))[1]
+    try:
+        Q.open_entry(e)
+        while Q.cur and Q.page < len(e["r"]["items"]) and e["r"]["items"][Q.page].get("title") != "RELEASE":
+            Q.turn(1)
+        U.draw_item(Q, 0)
+        check(("0x" + fp) in drawn and "firmware 4c86\u00b7c754" in texts, "its page shows the release's firmware fingerprint and blockie")
+        check("the release running here" in texts, "and that it is the release this console runs")
+        image.RELEASE = "ab" * 32
+        texts[:] = []
+        U.draw_item(Q, 0)
+        check("not the release running here" in texts, "on a console running another release, it says so")
+    finally:
+        blockies.draw, U.F.text = real_draw, real_text
+        image.RELEASE = ""
+    Q.handle("B")
+    check(sign(Q, e, 3100), "held: the console signs the approval like any transaction")
+    Q.handle("A")
+    bad = tx(Q, 1, to=LIB, data=data, op=1)
+    bad["origin"] = '{"pq":{"v":"2026.10.7","f":"%s","m":"%s"}}' % (fp, man)
+    other = tx(Q, 2, to=LIB, data=data, op=1)       # its own hash: decodes are cached by safeTxHash
+    serve(Q, [good, bad])
+    eb = [x for x in Q.queue if x["n"] == 1][0]
+    check(bool(eb["why"]) and "doesn't match" in eb["why"], "a note naming another release than the calldata's digest: refused")
+    serve(Q, [good, other])
+    eo = [x for x in Q.queue if x["n"] == 2][0]
+    check(bool(eo["why"]) and "no PicoQuorum release" in eo["why"], "a message with no release named: refused (it signs only releases)")
+
+
 def main():
-    for case in (case_pin, case_owners_pages, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_safes, case_watchdog, case_grid):
+    for case in (case_pin, case_owners_pages, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_safes, case_watchdog, case_grid, case_release, case_passkey, case_release_approval):
         print("--", case.__name__[5:])
         try:
             case()

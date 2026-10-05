@@ -47,6 +47,11 @@ const signs = con.filter((f) => f.endsWith(".py") && !DRIVERS.includes(f))
 const q = src("quorum.py").split("\n");
 const inSignIt = (i) => { for (let j = i; j >= 0; j--) if (/^def /.test(q[j])) return q[j].startsWith("def sign_it("); return false; };
 check(signs.length === 1 && signs[0][0] === "quorum.py" && inSignIt(signs[0][1]), "console: the chip signs from one place only, quorum.sign_it");
+// The browser emulator's passkey makes whole assertions (sig.assertion): from sign_it too, and only there.
+const asserts = con.filter((f) => f.endsWith(".py") && !DRIVERS.includes(f))
+  .flatMap((f) => src(f).split("\n").map((l, i) => [f, i, l])).filter(([, , l]) => /\bsig\.assertion\(/.test(l));
+check(asserts.length === 1 && asserts[0][0] === "quorum.py" && inSignIt(asserts[0][1]), "console: a passkey's assertion is asked for from quorum.sign_it only");
+check(!con.includes("passkey.py"), "console: no image carries the emulator's passkey module");
 check(!/\bsig\.use\(/.test(con.map((f) => (f.endsWith(".py") ? src(f) : "")).join("\n")), "console: nothing switches the active slot");
 
 // tools/fw build compiles every module but boot.py and main.py with plain mpy-cross (no -march):

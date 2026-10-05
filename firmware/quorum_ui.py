@@ -400,13 +400,18 @@ def grid_tile(d, q, t, x, y, w, on):
         title = q.chip["name"] if q.chip else "Chip"
         if q.sig and q.sig.name == "trustm":
             a, b = "Trust M", "sealed" if q.row and q.row.get("locked") else "open"
+        elif q.sig and q.sig.name == "passkey":
+            title, a, b = "Key", "Passkey", "browser"
         else:
             a, b = "ATECC", ("%d uses" % q.counter) if q.counter is not None else ""
         if not q.pin_ok:
             b, bc = "not pinned", "bad"
     else:
         import image
-        I.draw(d, "wifi", px + 4, py + 4, c("muted"))
+        if image.SEED:          # the release's blockie: the same picture on every board and browser running it
+            blockies.draw(d, image.SEED, px, py, 3)
+        else:
+            I.draw(d, "wifi", px + 4, py + 4, c("muted"))
         title, a, b = "Device", image.VERSION or image.BUILD, q.net.ssid() or "no Wi-Fi"
         if not q.net_ok:
             bc = "warn"
@@ -754,8 +759,23 @@ def draw_item(q, i):
     for label, a in ((it.get("frm_label", "from"), it.get("frm")), (it.get("label", "to"), it.get("to"))):
         if a:
             y = who_line(d, q, label, a, y, pc, bg)
+    if it.get("release"):
+        y = release_line(d, it["release"], y, pc, bg)
     if it.get("text"):
         para(d, it["text"], M, y, TW, "sans14", pc["text"], bg, 17, PAGE_ROW - 2)
+
+
+def release_line(d, rel, y, pc, bg):
+    """A release to approve: its firmware fingerprint's blockie and name, and whether it is the
+    release this console runs (the Device screen shows the same picture)."""
+    import image
+    fp = rel["firmware"][2:]
+    blockies.draw(d, "0x" + fp, M, y + 2, 3)
+    txt(d, "firmware " + fp[:4] + "\u00b7" + fp[4:8], M + 32, y, "mono13", pc["text"], bg)
+    here = image.RELEASE == fp
+    txt(d, "the release running here" if here else "not the release running here", M + 32, y + 15, "sans12",
+        "ok" if here else pc["muted"], bg)
+    return y + 34
 
 
 def draw_calldata(q, i):
@@ -996,7 +1016,11 @@ def draw_device(q):
     d = q.d
     d.fill(c("bg"))
     txt(d, "Device", M, 4, "bold18")
-    txt_r(d, (image.VERSION + " \u00b7 " + image.BUILD) if image.VERSION else (image.IMAGE + " " + image.BUILD), R, 9, "sans12", "muted")
+    ver = (image.VERSION + " \u00b7 " + image.BUILD) if image.VERSION else (image.IMAGE + " " + image.BUILD)
+    txt_r(d, ver, R, 9, "sans12", "muted")
+    bx = R - F.width(ver, "sans12") - 20
+    if image.SEED and bx >= M + F.width("Device", "bold18") + 4:     # the release's blockie, when it fits
+        blockies.draw(d, image.SEED, bx, 7, 2)
     import chips
     name = q.chip["name"] + " \u00b7 " if q.chip else ""
     rows = [("Chip", (name + (q.serial[-8:] if q.serial else (q.sig.name if q.sig else "none")))[:22]),
@@ -1016,6 +1040,10 @@ def draw_device(q):
         y += 20
     if q.net_err and not q.net_ok:
         txt(d, fit("Last error: " + q.net_err, TW, "sans12"), M, y + 2, "sans12", "warn")
+    elif image.SEED:            # the release fingerprint and its blockie, to compare with the release page
+        txt(d, "Release", M, y, "sans14", "muted")
+        txt_r(d, image.SHORT, R, y, "mono13")
+        blockies.draw(d, image.SEED, R - F.width(image.SHORT, "mono13") - 22, y - 1, 2)
     if q.KNOB:
         knob_choices(d, q, (("chip", "Chip"), ("wifi", "Wi-Fi"), ("back", "Back")), q.dfoot, "turn \u00b7 press")
     else:

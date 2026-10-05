@@ -4,16 +4,18 @@
 <meta charset="utf-8">
 <title>picowallet emulator</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="/vendor/codemirror/lib/codemirror.css">
-<link rel="stylesheet" href="/web/app.css">
+<link rel="stylesheet" href="vendor/codemirror/lib/codemirror.css">
+<link rel="stylesheet" href="web/app.css">
 <script type="importmap">
-{ "imports": { "three": "/vendor/three/three.module.js", "three/addons/": "/vendor/three/addons/" } }
+{ "imports": { "three": "./vendor/three/three.module.js", "three/addons/": "./vendor/three/addons/" } }
 </script>
 </head>
 <body>
 <header id="bar">
   <div class="brand">pico<span>wallet</span> emulator</div>
   <label>module <select id="main" title="what ▶ run, ↻ reset and ⇪ send use"></select></label>
+  <label id="keylabel" title="what signs: the emulator's virtual chip, or your own passkey (Touch ID, Windows Hello, a phone, a security key)">key <select id="keymode"><option value="chip">virtual chip</option><option value="passkey">your passkey</option></select></label>
+  <button id="mkpasskey" hidden title="make a passkey for this site; the console's owner address follows from it">🔑 make a passkey</button>
   <button id="run" title="save, reboot the virtual Pico, run the picked module (Cmd/Ctrl+Enter runs the file in the editor)">▶ run</button>
   <button id="reset" title="reboot, run the picked module again">↻ reset</button>
   <select id="device" title="boards on this Mac's USB, refreshed every 3 s"></select>
@@ -22,7 +24,8 @@
   <button id="shot" title="save the screen as PNG">📷 shot</button>
   <div class="seg"><button id="view3d" class="on">3D</button><button id="viewflat">flat</button></div>
   <div class="spacer"></div>
-  <a id="skill" href="/skill" target="_blank" title="give this file to your AI so it can write code for the wallet">📄 skill file for your AI</a>
+  <span id="release" title="the release fingerprint of the firmware running here: the same blockie as on a Pico's Device screen running these files"></span>
+  <a id="skill" href="SKILL.txt" target="_blank" title="give this file to your AI so it can write code for the wallet">📄 skill file for your AI</a>
   <div id="stat"><span id="fps">0 fps</span> · <span id="frames">0 frames</span> · <span id="conn">booting</span></div>
 </header>
 
@@ -65,8 +68,8 @@
   </section>
 </main>
 <canvas id="screen" width="240" height="240" hidden></canvas>
-<script src="/vendor/codemirror/lib/codemirror.js"></script>
-<script src="/vendor/codemirror/mode/python/python.js"></script>
-<script type="module" src="/web/app.js"></script>
+<script src="vendor/codemirror/lib/codemirror.js"></script>
+<script src="vendor/codemirror/mode/python/python.js"></script>
+<script type="module" src="web/app.js"></script>
 </body>
 </html>

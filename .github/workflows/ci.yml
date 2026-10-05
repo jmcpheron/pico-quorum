@@ -1,0 +1,164 @@
+# Every test a contributor runs locally, on every pull request and every push to main; the release
+# workflow calls it too, on the tagged commit. Actions are pinned by commit (the version is in the
+# comment); the token can only read.
+#
+#   firmware  the safe_tx/webauthn vectors on CPython and MicroPython, the console, Trust M and
+#             ceremony suites, the display and boot art, the image manifests
+#   fwbuild   tools/fw build for each image, with mpy-cross pinned: each build.py's RELEASE must be
+#             the release fingerprint of the source (the build dirs are kept as artifacts)
+#   web       the app's tests, then a rebuild that must equal docs/ as committed (the build is
+#             reproducible: what Pages serves is what this source makes), then the browser e2e
+#   emu-web   the emulator's Pages build (docs/emu/), the same rebuild check, then Chromium against
+#             it served like Pages (no COOP/COEP headers)
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  firmware:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: emu/package-lock.json
+      - run: npm ci
+        working-directory: emu
+      - name: CPython
+        run: |
+          python3 test-vectors/run.py
+          python3 test-vectors/fingerprint_test.py
+          python3 test-vectors/boot_maintenance_test.py
+          python3 test-vectors/wifisetup_test.py
+      # from the repository root, as test-vectors/README.md runs them (the boot art writes emu/shots/)
+      - name: MicroPython (WebAssembly 1.26, as on the Pico)
+        run: |
+          node test-vectors/run-micropython.mjs
+          node test-vectors/manifest.mjs
+      - name: Console
+        run: node test-vectors/run-console.mjs
+      - name: Trust M and ceremony
+        run: |
+          node test-vectors/run-trustm.mjs
+          node test-vectors/run-ceremony.mjs
+      - name: Display and boot art
+        run: |
+          node test-vectors/run-display.mjs
+          node test-vectors/run-bootmark.mjs
+          node test-vectors/run-bootart.mjs
+
+  fwbuild:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            emu/package-lock.json
+            tools/mock-tx-service/package-lock.json
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - run: npm ci
+        working-directory: emu
+      - run: npm ci
+        working-directory: tools/mock-tx-service
+      - name: Build every image
+        run: |
+          for image in console ceremony dual; do tools/fw build "$image"; done
+          node tools/releases/fingerprint.mjs
+      - name: Each build.py names its source's fingerprint
+        run: node tools/releases/cli.mjs release-json --out build/release.json build/console-* build/ceremony-* build/dual-*
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: firmware-builds
+          path: build/
+          retention-days: 14
+
+  web:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            web/package-lock.json
+            tools/mock-tx-service/package-lock.json
+      - run: npm ci
+        working-directory: tools/mock-tx-service
+      - run: npm ci
+        working-directory: web
+      - run: npm test
+        working-directory: web
+      - name: The live-site checker catches what it should (tools/releases/site-test.mjs, offline)
+        run: node tools/releases/site-test.mjs
+      - name: Rebuild; it must equal docs/ as committed
+        working-directory: web
+        run: |
+          npm run build
+          if [ -n "$(git status --porcelain -- ../docs)" ]; then
+            git status --short -- ../docs
+            git diff --stat -- ../docs
+            echo "::error::docs/ differs from a rebuild of this commit. Run cd web && npm run build, and commit docs/."
+            exit 1
+          fi
+      - name: Browser e2e
+        working-directory: web
+        run: |
+          npx playwright-core install --with-deps chromium
+          npm run e2e
+
+  emu-web:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: emu/package-lock.json
+      - run: npm ci
+        working-directory: emu
+      - name: Rebuild docs/emu; it must equal what is committed
+        working-directory: emu
+        run: |
+          node build.mjs
+          if [ -n "$(git status --porcelain -- ../docs/emu)" ]; then
+            git status --short -- ../docs/emu
+            echo "::error::docs/emu differs from a rebuild of this commit. Run cd emu && node build.mjs, and commit docs/emu."
+            exit 1
+          fi
+      - name: The static emulator in Chromium
+        working-directory: emu
+        run: |
+          npx playwright-core install --with-deps chromium
+          node e2e-static.mjs

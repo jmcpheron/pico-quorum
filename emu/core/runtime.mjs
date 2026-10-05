@@ -17,6 +17,9 @@
 //   opts.chip             { load() -> string|null, save(string) }: where the virtual ATECC608 keeps
 //                         its state between reboots (default: this device only)
 //   opts.heapsize         MicroPython heap in bytes (default ~ a Pico 2 W)
+//   opts.passkey          { info() -> JSON|null, get(challengeHex) -> JSON }: the visitor's passkey
+//                         (shims/passkey.py); the page's WebAuthn, or core/softpasskey.mjs in tests
+//   opts.keyBin           the software key's 32 bytes (default: a fixed test key)
 
 export const KEY_ORDER = ["A", "B", "X", "Y", "up", "down", "left", "right", "press"];
 // GPIO -> key, from firmware/lcd.py
@@ -24,7 +27,7 @@ export const KEY_PINS = { 15: "A", 17: "B", 19: "X", 21: "Y", 2: "up", 18: "down
 export const W = 240, H = 240, FRAME_BYTES = W * H * 2;
 export const DEFAULT_HEAP = 448 * 1024;
 
-const SHIMS = ["machine", "network", "requests", "socket", "rp2", "atecc_sim", "trustm_sim"];
+const SHIMS = ["machine", "network", "requests", "socket", "rp2", "atecc_sim", "trustm_sim", "passkey"];
 
 export async function createDevice(opts) {
   const keys = opts.keys;
@@ -167,6 +170,12 @@ export async function createDevice(opts) {
     reset() { if (opts.onReset) setTimeout(() => opts.onReset(), 0); },
     chip_load() { try { return chipStore.load() || null; } catch (e) { return null; } },
     chip_save(s) { try { chipStore.save(s); } catch (e) { stdout("chip state not saved: " + (e.message || e)); } },
+    // The visitor's passkey (shims/passkey.py): opts.passkey is the page's WebAuthn (worker.js) or a
+    // test authenticator (core/softpasskey.mjs). info: its public key as JSON when the page picked
+    // it, else null; get(challenge hex): an assertion as JSON, {error} when it fails or is cancelled.
+    passkey_info() { try { return (opts.passkey && opts.passkey.info()) || null; } catch (e) { return null; } },
+    passkey_get(h) { return opts.passkey ? opts.passkey.get(String(h)) : JSON.stringify({ error: "no passkey on this device" }); },
+    passkey_use(on) { if (opts.passkey && opts.passkey.setUse) opts.passkey.setUse(!!on); },      // tests only
     frames() { return frames; },
   };
 
@@ -200,10 +209,12 @@ export async function createDevice(opts) {
   for (const name of SHIMS) FS.writeFile(`/lib/${name}.py`, opts.shims[name]);
   FS.writeFile("/lib/_bootstrap.py", opts.shims._bootstrap);
   for (const [name, data] of Object.entries(opts.files || {})) writeFile(name, data);
-  writeFile("secrets.py", secretsPy(opts.appUrl || "http://localhost:3001") + (opts.secrets || ""));
+  writeFile("secrets.py", secretsPy(opts.appUrl === null ? null : opts.appUrl || "http://localhost:3001") + (opts.secrets || ""));
   // A fixed throwaway software key, so the virtual wallet's address survives reboots and a vault
-  // deployed against it on anvil keeps working across runs. Never a real key.
-  writeFile("key.bin", Uint8Array.from({ length: 32 }, (_, i) => i + 1));
+  // deployed against it on anvil keeps working across runs. Never a real key. The page on GitHub
+  // Pages passes its own (opts.keyBin): random, kept in that browser, since a fixed key in a public
+  // page would be anyone's.
+  writeFile("key.bin", opts.keyBin || Uint8Array.from({ length: 32 }, (_, i) => i + 1));
   mark("flash written");
   mp.runPython("import _bootstrap");
   mark("bootstrapped");
@@ -268,7 +279,7 @@ function secretsPy(appUrl) {
 WIFI_SSID = "emulator"
 WIFI_PASS = ""
 HOSTNAME = "picowallet-emu"
-APP_URL = ${JSON.stringify(appUrl)}
+APP_URL = ${appUrl == null ? "None" : JSON.stringify(appUrl)}
 DEVICE_NAME = "picowallet-emu"
 ENABLE_NETWORK_CONSOLE = False
 EXPECTED_CHAIN_ID = None

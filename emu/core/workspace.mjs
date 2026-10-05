@@ -3,6 +3,8 @@
 import { readdirSync, readFileSync, statSync, existsSync, writeFileSync } from "node:fs";
 import { join, resolve, dirname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
+import { spawnSync } from "node:child_process";
+import { fingerprint, manifest } from "../../tools/releases/fingerprint.mjs";
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 export const FIRMWARE = join(ROOT, "firmware");
@@ -66,4 +68,24 @@ export function writeWorkspaceFile(name, content, src) {
   const dir = (src || (existing && existing.src) || "sketches") === "firmware" ? FIRMWARE : SKETCHES;
   writeFileSync(join(dir, name), content);
   return { name, src: dir === FIRMWARE ? "firmware" : "sketches" };
+}
+
+// build.py for the emulated flash, as tools/fw build writes one for a Pico: IMAGE "emu" (not a
+// production image, so nothing changes in what the firmware allows), the manifest's VERSION, the
+// commit (+dirty when firmware/ or the sketches differ from it), and RELEASE, the release
+// fingerprint of the console image's files *as the emulator serves them* (a sketch that replaces a
+// firmware file changes it). A Pico built from the same commit shows the same fingerprint.
+export function emuBuild(files, { image = "emu", build } = {}) {
+  const m = manifest();
+  const release = fingerprint(m.images.console.files, (n) => files[n]);
+  const py = `# written by the emulator; never on a Pico\nIMAGE = ${JSON.stringify(image)}\nVERSION = ${JSON.stringify(m.version || "")}\nBUILD = ${JSON.stringify(build || gitBuild())}\nDATE = ${Math.floor(Date.now() / 1000)}\nRELEASE = ${JSON.stringify(release)}\n`;
+  return { release, py, consoleFiles: [...m.images.console.files] };
+}
+
+function gitBuild() {
+  const git = (...a) => spawnSync("git", a, { cwd: ROOT, encoding: "utf8" });
+  const sha = git("rev-parse", "--short", "HEAD");
+  if (sha.status !== 0) return "dev";
+  const dirty = git("status", "--porcelain", "firmware", "emu/sketches").stdout.trim();
+  return sha.stdout.trim() + (dirty ? "+dirty" : "");
 }
