@@ -7,7 +7,8 @@
 > - the emulator on Pages (`docs/emu/`, `emu/README.md`);
 > - your passkey as the key: the toolbar's key menu, with `shims/passkey.py` and the page's WebAuthn;
 > - the console page (`docs/console/`): the console alone, screen and buttons, your passkey as its
->   key. The demo below starts there; `/emu/` is the developer's page.
+>   key. The demo below starts there; `/emu/` is the developer's page. It shows the passkey's owner
+>   address (to add to a Safe) and takes a Safe you already have by chain and address.
 >
 > The goal is a demo: open a link, the console runs in the page, and Touch ID or Windows Hello is the chip.
 

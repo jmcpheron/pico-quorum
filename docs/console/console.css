@@ -63,6 +63,34 @@ main { max-width: 980px; margin: 0 auto; padding: 24px 16px 40px; display: flex;
 .panel { width: 100%; max-width: 640px; display: flex; flex-direction: column; gap: 10px; }
 .row { display: flex; gap: 12px; }
 .label { flex: 0 0 52px; color: var(--dim); }
+.grow { flex: 1; min-width: 0; }
+.small { margin: 2px 0 0; font-size: 12px; color: var(--dim); }
+.dim { color: var(--dim); }
+.ok { color: var(--accent); }
+.warn { color: var(--yellow); }
+.bad { color: #ff6b7a; }
+.bad:empty { display: none; }
+.blockie { width: 20px; height: 20px; flex: none; image-rendering: pixelated; border-radius: 3px; }
+.owner { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.owner .addr { font: 13px/1.3 var(--mono); word-break: break-all; color: var(--text); }
+.owner .blockie { width: 24px; height: 24px; }
+.copy, .link { padding: 2px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--text); font: inherit; font-size: 12px; cursor: pointer; }
+.link { border-color: transparent; background: none; color: var(--dim); }
+.link:hover { color: var(--text); }
+.safes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.safes li { display: flex; align-items: flex-start; gap: 8px; }
+.safes .blockie { margin-top: 2px; }
+.safes code { font-family: var(--mono); font-size: 12px; white-space: nowrap; }
+.status { display: block; font-size: 12px; color: var(--dim); }
+.status.ok { color: var(--accent); }
+.status.warn { color: var(--yellow); }
+.add-safe { margin-top: 10px; display: flex; flex-direction: column; gap: 4px; }
+.add-safe .fields { display: flex; flex-wrap: wrap; gap: 6px; }
+.add-safe select, .add-safe input { padding: 7px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--text); font: inherit; font-size: 13px; }
+.add-safe input:first-of-type { flex: 1 1 220px; font-family: var(--mono); font-size: 12px; }
+.add-safe input + input { flex: 0 1 140px; }
+.add-safe .go { padding: 7px 14px; }
+.overlay .owner .addr { font-size: 12px; }
 .note { margin: 6px 0 0; padding: 10px 12px; border-left: 3px solid var(--yellow); background: var(--panel); color: var(--dim); font-size: 13px; }
 .keys { margin: 0; color: var(--dim); font-size: 12px; }
 details { color: var(--dim); font-size: 12px; }
