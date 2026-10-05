@@ -7,6 +7,7 @@
 // state, a software key and any edited files in this browser, and runs the console on the Safes
 // saved in the app (same origin).
 import { createDevice3D } from "./device3d.js";
+import { assertionParts, b64url, spkiXY, unhex } from "../core/webauthn-assert.mjs";
 
 const STATIC = document.querySelector('meta[name="emu-host"]')?.content === "static";
 const local = {
@@ -107,6 +108,8 @@ const sab = typeof SharedArrayBuffer !== "undefined" && self.crossOriginIsolated
 const keys = new Int32Array(sab || new ArrayBuffer(16 * 4));
 // Serial input to the device (its USB stdin): Int32 [head, tail] + a 64 KB byte ring.
 const serialSab = sab ? new SharedArrayBuffer(8 + 65536) : null;
+// Answers to the worker's questions (askPage in worker.js): Int32 [ready, length] + 64 KB.
+const rpcSab = sab ? new SharedArrayBuffer(8 + 65536) : null;
 const serialCtl = serialSab ? new Int32Array(serialSab, 0, 2) : null;
 const serialBuf = serialSab ? new Uint8Array(serialSab, 8) : null;
 function sendLine(text) {
@@ -309,7 +312,9 @@ async function reboot(runName) {
   const bp = payload.find((f) => f.name === "build.py");
   if (bp && fp) bp.text = bp.text.replace(/^RELEASE = .*$/m, `RELEASE = ${JSON.stringify(fp)}`);
   showRelease(fp, b.release);
-  const host = STATIC ? { secrets: staticSecrets(), chip: local.get("emu.chip"), keyBin: browserKey() } : {};
+  const host = { rpc: rpcSab, passkey: keyMode() === "passkey" ? local.get("emu.passkey") : null,
+    ...(STATIC ? { secrets: staticSecrets(), chip: local.get("emu.chip"), keyBin: browserKey() } : {}) };
+  renderKey();
   worker = new Worker(new URL("./worker.js", import.meta.url), { type: "module" });
   worker.onmessage = onMsg;
   worker.onerror = (e) => appendLog("worker: " + e.message, "err");
@@ -352,6 +357,7 @@ function onMsg(e) {
   else if (m.type === "pin") { if (m.pin === "LED" && device3d) device3d.setLed(!!m.v); }
   else if (m.type === "reset") { appendLog("machine.reset()", "sys"); reboot(main); }
   else if (m.type === "chip") local.set("emu.chip", m.data);
+  else if (m.type === "rpc") answer(m);
   else if (m.type === "started") { const r = started.get(m.id); if (r) r(); }
   else if (m.type === "done") { const w = waiting.get(m.id); if (w) { waiting.delete(m.id); m.error ? w.reject(new Error(m.error)) : w.resolve(); } }
 }
@@ -503,6 +509,85 @@ if (!STATIC) {
     catch (err) { result = { ok: false, error: String(err && err.message || err) }; }
     fetch("ctl/reply", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: c.id, result }) });
   };
+}
+
+// ---- your passkey ------------------------------------------------------------------------
+// The visitor's own passkey as the console's key (shims/passkey.py). Made here with WebAuthn, for
+// this site (rpId: this host); its public key is kept in this browser and handed to the console at
+// boot. The private key never leaves the authenticator: Touch ID, Windows Hello, a phone, a
+// security key. The console asks for an assertion over the hash it computed; the person approves
+// with the authenticator, which never shows the transaction: what they approve is this screen.
+const keyMode = () => (local.get("emu.key") === "passkey" ? "passkey" : "chip");
+const passkeyCred = () => { try { return JSON.parse(local.get("emu.passkey") || "null"); } catch { return null; } };
+function renderKey() {
+  $("#keymode").value = keyMode();
+  const missing = keyMode() === "passkey" && !passkeyCred();
+  $("#mkpasskey").hidden = !missing;
+  $("#keylabel").title = keyMode() === "passkey" && passkeyCred()
+    ? `your passkey (${passkeyCred().synced ? "synced by your account" : "on that device"}), made for ${passkeyCred().rpId}`
+    : $("#keylabel").title;
+}
+$("#keymode").onchange = (e) => {
+  local.set("emu.key", e.target.value);
+  renderKey();
+  if (e.target.value === "chip" || passkeyCred()) reboot(main);
+  else appendLog("Your passkey: press 🔑 make a passkey. Touch ID, Windows Hello, a phone or a security key will ask.", "sys");
+};
+$("#mkpasskey").onclick = async () => {
+  try {
+    if (!window.PublicKeyCredential) throw new Error("this browser has no WebAuthn");
+    const c = await navigator.credentials.create({ publicKey: {
+      rp: { name: "PicoQuorum console", id: location.hostname },
+      user: { id: crypto.getRandomValues(new Uint8Array(16)), name: "PicoQuorum console key", displayName: "PicoQuorum console key" },
+      challenge: crypto.getRandomValues(new Uint8Array(32)),
+      pubKeyCredParams: [{ type: "public-key", alg: -7 }],        // ES256: P-256, what Safe's passkey signer verifies
+      authenticatorSelection: { userVerification: "required", residentKey: "preferred" },
+      attestation: "none", timeout: 120000 } });
+    if (c.response.getPublicKeyAlgorithm && c.response.getPublicKeyAlgorithm() !== -7) throw new Error("the passkey isn't P-256 (ES256)");
+    const flags = new Uint8Array(c.response.getAuthenticatorData())[32];
+    const transports = (c.response.getTransports && c.response.getTransports()) || [];
+    const cred = { id: b64url(new Uint8Array(c.rawId)), ...spkiXY(c.response.getPublicKey()), rpId: location.hostname,
+      attachment: transports.includes("hybrid") ? "hybrid" : c.authenticatorAttachment === "platform" ? "platform" : "security-key",
+      synced: !!(flags & 0x10), made: new Date().toISOString().slice(0, 10) };
+    local.set("emu.passkey", JSON.stringify(cred));
+    appendLog(`Made your passkey for ${cred.rpId} (${cred.synced ? "synced by your account" : "kept on that device"}). The console's owner address follows from it: see Chip.`, "sys");
+    await reboot(main);
+  } catch (e) { appendLog(`No passkey made: ${e.name || ""} ${e.message || e}`.trim(), "err"); }
+};
+
+async function passkeyGet(challenge) {
+  const cred = passkeyCred();
+  if (!cred) throw new Error("no passkey in this browser");
+  if (local.get("emu.passkey-noted") !== "1") {
+    const go = confirm("Before your passkey signs:\n\nTouch ID (or Windows Hello, or your phone) won't show the transaction. What you approve is the console's screen here, which this browser draws.\n\nOn a computer you don't trust, use a hardware key instead. Keep passkey owners below the Safe's threshold.\n\nSign with your passkey?");
+    if (!go) throw new Error("NotAllowedError: you chose not to sign");
+    local.set("emu.passkey-noted", "1");
+  }
+  const a = await navigator.credentials.get({ publicKey: {
+    challenge: unhex(challenge), rpId: cred.rpId, userVerification: "required", timeout: 120000,
+    allowCredentials: [{ type: "public-key", id: Uint8Array.from(atob(cred.id.replace(/-/g, "+").replace(/_/g, "/")), (ch) => ch.charCodeAt(0)) }] } });
+  const parts = assertionParts(challenge, a.response.authenticatorData, a.response.clientDataJSON, a.response.signature);
+  // checked here against the key the console was given, before it is posted anywhere
+  const key = await crypto.subtle.importKey("raw", unhex("04" + cred.x + cred.y), { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
+  const rs = unhex(parts.r.padStart(64, "0") + parts.s.padStart(64, "0"));
+  const signed = new Uint8Array([...unhex(parts.ad), ...new Uint8Array(await crypto.subtle.digest("SHA-256", a.response.clientDataJSON))]);
+  if (!(await crypto.subtle.verify({ name: "ECDSA", hash: "SHA-256" }, key, rs, signed))) throw new Error("that passkey isn't the one this console was given");
+  return parts;
+}
+
+// The worker's question (askPage): answer into the shared buffer, then wake it.
+async function answer(m) {
+  let out;
+  try {
+    if (m.what === "passkey") out = await passkeyGet(m.args.challenge);
+    else throw new Error("unknown question " + m.what);
+  } catch (e) { out = { error: `${e.name && e.name !== "Error" ? e.name + ": " : ""}${e.message || e}` }; }
+  const bytes = new TextEncoder().encode(JSON.stringify(out));
+  const ctl = new Int32Array(rpcSab, 0, 2);
+  new Uint8Array(rpcSab, 8).set(bytes.slice(0, 65536));
+  Atomics.store(ctl, 1, Math.min(bytes.length, 65536));
+  Atomics.store(ctl, 0, 1);
+  Atomics.notify(ctl, 0);
 }
 
 // ---- go ----------------------------------------------------------------------------------

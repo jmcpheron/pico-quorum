@@ -22,6 +22,8 @@
 #   needs_ceremony() -> bool         a fresh chip, or one half way through its ceremony
 #   info() -> [str]                  short facts from the chip for the screens
 # SoftSigner: P-256 keys in files on the Pico's flash, one per slot. Only until the ATECC608 is wired.
+# In the browser emulator, the visitor's own passkey (emu/core/shims/passkey.py) when its page picked
+# one: it writes whole WebAuthn assertions (asserts = True, assertion(challenge)), never sign(digest).
 # ChipSigner: the ATECC608 over I2C. TrustMSigner: the OPTIGA Trust M. The keys never leave the chip.
 # detect() says which of them answer on I2C0; load() picks one.
 import os
@@ -726,12 +728,32 @@ class NoSigner:
         raise Exception("no chip")
 
 
+def _passkey():
+    """The visitor's own passkey (emu/core/shims/passkey.py): the browser emulator only, when its
+    page picked one. The Pico has no such module, and a production image never looks for it."""
+    try:
+        import image
+        if image.PRODUCTION:
+            return None
+        import passkey
+    except ImportError:
+        return None
+    try:
+        return passkey.signer()
+    except Exception as e:
+        print("passkey:", e)
+        return None
+
+
 def load(soft=True, pins=None):
     """The chip on the bus as a signer: an ATECC608 (ChipSigner) or an OPTIGA Trust M
     (TrustMSigner). With both on the bus, the one whose serial is pinned (pins: policy.pins of
     secrets.QUORUM_EXPECT); unpinned, the ATECC first, as before the Trust M. No chip: the software
     key (soft=True), else NoSigner. The production console passes soft=False: SoftSigner's first
     pubkey() writes a key to flash."""
+    pk = _passkey()
+    if pk:
+        return pk
     err = "nothing answers on I2C0"
     found = []
     for kind, addr in detect():

@@ -774,7 +774,7 @@ def sign_it():
     state = "working"
     unsent = None           # a failure below must never offer to resend an older signature
     work_info[:] = chip_info()
-    d.frames(U.draw_working, sys.modules[__name__], "Signing", "The chip signs the hash computed here")
+    d.frames(U.draw_working, sys.modules[__name__], "Signing", getattr(sig, "does", "The chip signs") + " the hash computed here")
     timer.deinit()
     watch.extend(30000)
     sec0 = sec1 = None
@@ -789,8 +789,13 @@ def sign_it():
             raise Exception("the chip or its key changed since start")
         sec0 = read_sec()
         t0 = time.ticks_ms()
-        ad, fields, digest = webauthn.assertion(e["mine"])    # e["mine"]: checked equal to the service's hash in entry()
-        r, s = sig.sign(digest)
+        if getattr(sig, "asserts", False):
+            # a passkey (the browser emulator) writes its own assertion over the same hash; it is
+            # packed and checked by the Safe exactly as a chip's
+            ad, fields, r, s = sig.assertion(e["mine"])
+        else:
+            ad, fields, digest = webauthn.assertion(e["mine"])    # e["mine"]: checked equal to the service's hash in entry()
+            r, s = sig.sign(digest)
         ms = time.ticks_diff(time.ticks_ms(), t0)
         counter = read_counter()
         if counter is not None:
@@ -862,7 +867,7 @@ def open_chip():
         if sig.name == "trustm":
             sec = read_sec()
             chip_pages = sig.details(row=row, sec=sec)
-        elif sig.name == "atecc608":
+        elif sig.name in ("atecc608", "passkey"):
             chip_pages = sig.details(row=row, counter=counter)
     except Exception as e:
         qlog.write("chip pages: %r" % e)
@@ -879,7 +884,7 @@ def chip_info():
     try:
         if sig.name == "trustm":
             return sig.info(row=row, sec=read_sec())
-        if sig.name == "atecc608":
+        if sig.name in ("atecc608", "passkey"):
             return sig.info(row=row, counter=counter)
     except Exception as e:
         qlog.write("chip info: %r" % e)

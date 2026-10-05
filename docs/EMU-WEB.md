@@ -4,9 +4,8 @@
 > - the check in `tools/vectors/passkey.mjs`;
 > - release fingerprints (`docs/releases/`);
 > - CI and signed releases (`docs/RELEASES.md`);
-> - the emulator on Pages (`docs/emu/`, `emu/README.md`).
->
-> The passkey signer comes next. The goal is a demo: open a link, the console runs in the page, and
+> - the emulator on Pages (`docs/emu/`, `emu/README.md`);
+> - your passkey as the key: the toolbar's key menu, with `shims/passkey.py` and the page's WebAuthn. The goal is a demo: open a link, the console runs in the page, and
 > Touch ID or Windows Hello is the chip.
 
 ## Short answers

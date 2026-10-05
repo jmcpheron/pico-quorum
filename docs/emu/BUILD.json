@@ -1,12 +1,13 @@
 {
   "note": "SHA-256 of every file emu/build.mjs wrote. Rebuild from the same commit (cd emu && npm ci && node build.mjs) and compare.",
-  "release": "5fdf3d74ada6bae4d7f3c717201e10d9f46e03ad9f4ceb5c34b4cbb74f114468",
+  "release": "3d5b622ac78efe7330df09c8144d43c73d199a9aa43a0736fd65ff41fe65395b",
   "files": {
     "SKILL.txt": "5078c8d40a2ea01bf1b58139564b336e199c07cc39a3dc52c59ad71558780407",
-    "boot.json": "0fbf7d6df24d7c4fbf2c9f6889a81b364beff93a9d1f77608e025f3787d38aa2",
+    "boot.json": "a714577fa0522721abbd3224aa220ed37650ff5565897c3bd59984af0fffa6b1",
     "coi.js": "167d602f7b2edd052f06c96de2993b940083aec3246da83e5a101069e58aa849",
-    "core/runtime.mjs": "3d058316b046f0a7976e87f9791c02caec2c09b41be97326a6a27b6382cf58fb",
-    "index.html": "c9578c7d6948c89362cdb8607fce9ac833e263f867646d738ebdcefcae048f0b",
+    "core/runtime.mjs": "407c853cfd6fe7882dde593a89b6e88879f2667447ef046bbcfbc2386a939dfb",
+    "core/webauthn-assert.mjs": "2d4bb9ae01118a3b0cb45133d08f8ff7749340c334e268eb3e5faa372619febf",
+    "index.html": "6c3a7b0a69959cce4d1fec103f800dfcf1f5d436f4c1af721b7f0086af8eba9c",
     "shared/blockies.mjs": "45e8ad4cda19b5e53c0aaffc1fbcb2a081b1e7c121ad6f1545c86b3516f64750",
     "stl/NOTICE.txt": "3f9ed32224608b3eab87c1f2f422daa99e0f8825c89bac78206c197eb115924a",
     "stl/base_v5.stl": "8d6b628564c5fa399667964c6c8be82f284b1b111cc5a8a00b65561a2f8f5088",
@@ -27,8 +28,8 @@
     "vendor/three/addons/loaders/STLLoader.js": "a0a83c88b269c94e25b690fae770d350c4728c81853195186976be7af0f8a3b3",
     "vendor/three/three.module.js": "ce1fa418de16a19495a9f72495580e3015d7745c296d3ce0485897f902ddedfb",
     "web/app.css": "147967d3e57a8af453cfe36d9628ed6e4d1b29e157d6b7e2d2abfc7d17148706",
-    "web/app.js": "8e19e5d1a72095088e7ec85f12e648271f7a3df091e4d98550831532895eedd8",
+    "web/app.js": "bf92a9194faeb6ac0439cfff13509d4498d76be4c82c4d3063c037f75eff1f36",
     "web/device3d.js": "e48d53aeae3a28e99e044fb8beae4da34389761e8ee72f42e4c3f4c99c4d06e8",
-    "web/worker.js": "644b54a3c14a4a20b72aaf9fe72ebba5aca8fa016ad3de382f6c65dd799ff69a"
+    "web/worker.js": "991404837ffe06e51c1fb32b7c055ccc6e12f0eabdb86c530fbba41ceeafbc35"
   }
 }

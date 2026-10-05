@@ -27,7 +27,7 @@ const server = createServer((req, res) => {
   catch { res.writeHead(404); res.end(); }
 });
 await new Promise((r) => server.listen(0, "127.0.0.1", r));
-const BASE = `http://127.0.0.1:${server.address().port}/pico-quorum/`;
+const BASE = `http://localhost:${server.address().port}/pico-quorum/`;     // localhost, not 127.0.0.1: WebAuthn refuses an IP as the site
 
 const browser = await chromium.launch({ executablePath: process.env.PQ_CHROMIUM || undefined, args: ["--no-proxy-server"] });
 const ctx = await browser.newContext({ viewport: { width: 1300, height: 820 } });
@@ -91,6 +91,27 @@ await page.reload();
 await booted();
 check(await page.locator("#main").inputValue() === "quorum", "with a Safe saved in the app, the console (quorum) is the module");
 await repl("import secrets; print('safes:%d %s %s' % (secrets.QUORUM_SAFES[0]['chainId'], secrets.APP_URL, secrets.QUORUM_API_KEY))", /safes:84532 None k-e2e/, "its secrets.py: the saved Safe on Base Sepolia, the app's API key, no APP_URL");
+
+// 6. your passkey: made with WebAuthn (a virtual platform authenticator with user verification,
+// the path Touch ID takes), and the console's key: an assertion over a hash, checked in Python
+const cdp = await ctx.newCDPSession(page);
+await cdp.send("WebAuthn.enable");
+const { authenticatorId } = await cdp.send("WebAuthn.addVirtualAuthenticator", { options: {
+  protocol: "ctap2", transport: "internal", hasResidentKey: true, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true } });
+page.on("dialog", (d) => d.accept());           // the one-time note before the first signature
+await page.selectOption("#keymode", "passkey");
+check(await page.locator("#mkpasskey").isVisible(), "key: your passkey, none yet: the page offers to make one");
+await page.click("#mkpasskey");
+await page.waitForFunction(() => !!localStorage.getItem("emu.passkey"), null, { timeout: 15000 });
+await booted();
+const cred = JSON.parse(await page.evaluate(() => localStorage.getItem("emu.passkey")));
+check(cred.rpId === "localhost" && /^[0-9a-f]{64}$/.test(cred.x) && /^[0-9a-f]{64}$/.test(cred.y), "made a P-256 passkey for this site; its public key is kept in this browser, its private key never leaves the authenticator");
+await repl("import signer; _s = signer.load(); print('signer:' + _s.name)", /signer:passkey/, "the console's signer is now the passkey");
+const PY_CHECK = "import webauthn, hashlib, p256; _a, _f, _r, _t = _s.assertion('0x' + 'ab' * 32); _x, _y = _s.pubkey(); _c = '{\"type\":\"webauthn.get\",\"challenge\":\"%s\",%s}' % (webauthn.b64url(bytes([0xab] * 32)), _f); print('verified:%s uv:%d' % (p256.verify(_x, _y, hashlib.sha256(_a + hashlib.sha256(_c.encode()).digest()).digest(), _r, _t), _a[32] & 4))";
+await repl(PY_CHECK, /verified:True uv:4/, "the passkey's assertion over a hash, rebuilt as Safe's signer rebuilds it, verifies in the console's own P-256 code, with UV");
+await repl("print('fields:' + _f)", /fields:"origin":"http:\/\/localhost:\d+","crossOrigin":false/, "its clientData fields are the browser's own (origin, crossOrigin)");
+await cdp.send("WebAuthn.setUserVerified", { authenticatorId, isUserVerified: false });
+await repl("exec(\"try:\\n    _s.assertion('0x' + 'cd' * 32)\\nexcept Exception as _e:\\n    print('refused:' + str(_e))\")", /refused:.*(UV|verif|NotAllowedError)/i, "without user verification it is refused (by the browser, or the page checks the UV flag): the console gets an error, never a signature");
 
 check(!csp.length, `no CSP violations${csp.length ? ": " + csp.slice(0, 3).join(" | ") : ""}`);
 check(!errors.length, `no page errors${errors.length ? ": " + errors.join("; ") : ""}`);
