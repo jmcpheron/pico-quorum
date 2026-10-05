@@ -1,6 +1,7 @@
 #!/bin/sh
 # Releases: the manifest, the checks, the signed tag (docs/RELEASES.md). Details: tools/releases/cli.mjs.
-#   tools/release check | manifest | verify [VERSION] | tag [--push]
+#   tools/release check | manifest | verify [VERSION] | tag [--push] | approval [VERSION]
 cd "$(dirname "$0")/.." || exit 1
 [ -d emu/node_modules ] || (cd emu && npm install --silent) || exit 1
+[ -d tools/mock-tx-service/node_modules ] || (cd tools/mock-tx-service && npm install --silent) || exit 1
 exec node tools/releases/cli.mjs "$@"

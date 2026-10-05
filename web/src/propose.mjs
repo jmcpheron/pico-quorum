@@ -4,6 +4,7 @@
 //
 // Every kind is a plain call (operation 0) with no gas refund: the console refuses delegatecalls it
 // hasn't pinned, and treats any gas field as worth a warning (firmware/decode.py).
+import { approvalTx } from "../../tools/mock-tx-service/release.mjs";
 import { encodeFunctionData, getAddress, isAddress, isHex, parseAbi, parseUnits, recoverAddress, size, slice, toHex } from "viem";
 import { TYPES, ZERO, fields, forChain } from "./safe.mjs";
 
@@ -32,6 +33,8 @@ export const KINDS = [
   { id: "threshold", label: "Change threshold", red: true },
   { id: "reject", label: "Rejection" },
   { id: "custom", label: "Contract call" },
+  // The project Safe approving a PicoQuorum release (docs/GOVERNANCE.md): offered from the Releases page.
+  { id: "release", label: "Approve a release", gov: true },
 ];
 
 // The tokens the console names on this chain (firmware/quorum_cfg.py "tokens"): [{address, symbol, decimals}].
@@ -87,6 +90,14 @@ export function buildCall(kind, input, s) {
     if (t === 1 && count > 1) warnings.push("With 1 approval needed, any one owner can move everything alone.");
   };
   switch (kind) {
+    case "release": {
+      const r = input.releaseEntry;
+      if (!r) throw new Error("Release: pick one.");
+      const tx = approvalTx({ version: r.version, firmware: "0x" + r.fingerprints.console, manifest: "0x" + r.manifestSha256 });
+      return { call: { to: getAddress(tx.to), value: 0n, data: tx.data, operation: 1, origin: tx.origin }, title: `Approve release ${r.version}`,
+        release: { ...r, digest: tx.digest },
+        warnings: ["The Safe signs this release's digest for good, with Safe's SignMessageLib (a delegatecall the console pins). Anyone can then check the approval on chain."] };
+    }
     case "eth": {
       const to = addr(input.to, "To");
       const value = amount(input.amount, 18, "Amount");
@@ -191,6 +202,6 @@ export function proposalBody(safe, t, hash, sender, signature) {
   return {
     safe: getAddress(safe), to: f.to, value: f.value.toString(), data: f.data === "0x" ? null : f.data, operation: f.operation,
     safeTxGas: "0", baseGas: "0", gasPrice: "0", gasToken: ZERO, refundReceiver: ZERO, nonce: Number(f.nonce),
-    contractTransactionHash: hash, sender: getAddress(sender), signature, origin: "PicoQuorum app",
+    contractTransactionHash: hash, sender: getAddress(sender), signature, origin: t.origin || "PicoQuorum app",
   };
 }

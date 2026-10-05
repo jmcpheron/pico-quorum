@@ -78,9 +78,15 @@ These steps narrow that, roughly from cheapest to strongest:
    or with `RELEASES.md`.
 3. **Signed releases.** Sign the tag `fw-<version>`, and have a GitHub Actions build attest the
    built files (build provenance). A checker page, or `tools/quorum`, verifies them.
-4. **Pin a release in the browser.** A service worker keeps the release it first loaded, and won't
-   take a new one unless it is a signed release. This is trust on first use, but one later bad
-   deploy can no longer replace it silently.
+4. **Check the live site from outside.** A page can't vouch for itself. A service worker can't pin
+   one either: the browser fetches the worker script from the site again, at least once a day, so
+   whoever controls the site can replace it, and with it everything it pins.
+
+   Instead, `tools/release check-site` fetches what Pages serves and compares every byte with
+   `docs/` at the commit Pages deployed. `.github/workflows/site-check.yml` runs it after every
+   deploy and every six hours, and opens an issue on any difference. The app's Releases page says
+   which release the page is, and whether the project Safe approved it. That line is information for
+   the visitor; the outside check is what proves it.
 5. **Later, the quorum picks the code.** Put the build on IPFS, and have an ENS name the Safe owns
    point to it. Changing the web console then takes a Safe transaction that the owners approve on
    their consoles. Note: a passkey is tied to its domain, so moving there means new passkeys.
@@ -260,5 +266,5 @@ works as well (ES256).
    boots from Pages with the soft chip.
 3. `PasskeySigner` and the worker/page bridge; the ceremony and signing screens on a real Mac.
 4. App: show passkey owners as such; offer "deploy signer proxy" for them.
-5. Signed tags plus build provenance for releases, then a pinned-release service worker.
+5. Signed tags plus build provenance for releases, and a check of the live site from outside it.
 6. Custom domain, before anything but test Safes.

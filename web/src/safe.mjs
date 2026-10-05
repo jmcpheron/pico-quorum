@@ -7,6 +7,7 @@
 // Trust: owners, threshold and nonce come from the Safe itself over RPC, not from the service. The
 // service is only the queue: every transaction's hash is recomputed here and by the Safe, and every
 // confirmation is checked (ECDSA recovered, contract signatures asked of the owner contract).
+import { checkApproval } from "../../tools/mock-tx-service/release.mjs";
 import {
   createPublicClient, decodeEventLog, encodeFunctionData, formatEther, getAddress, hashMessage, hashTypedData, http,
   parseAbi, recoverAddress, size, slice, toHex,
@@ -247,6 +248,8 @@ export function consoleRefuses(chainId, t) {
   if (op !== 1) return "";
   const a = String(t.to).toLowerCase();
   if (forChain("delegates", chainId)[a]) return "";
+  // SignMessageLib: only a PicoQuorum release whose origin note gives exactly the calldata's digest
+  if (forChain("messages", chainId)[a]) { const why = checkApproval(t); return why ? `The console signs only PicoQuorum releases here: ${why}.` : ""; }
   if (forChain("batchers", chainId)[a] && String(t.data || "").toLowerCase().startsWith("0x8d80ff0a")) return "";
   return "A delegatecall to a contract the console hasn't pinned. The console will refuse to sign it.";
 }

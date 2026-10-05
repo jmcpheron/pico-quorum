@@ -30,6 +30,12 @@
 # only its chainId: the console asks that chain's service, never one the board's secrets.py could
 # point at the wrong chain. secrets.QUORUM_URL overrides it for the laptop's simulation and fork.
 #
+# "project" is the project Safe (docs/GOVERNANCE.md): the one whose approval of a release the app
+# and the pinned service worker check. "" until it exists.
+#
+# "messages" is Safe's SignMessageLib, the one delegatecall besides a batch: the project Safe signs a
+# PicoQuorum release with it (release.py), and decode.py refuses any other message.
+#
 # "signer" is how this key owns a Safe (webauthn.py): Safe's passkey signer, safe-modules passkey
 # v0.2.1, the same addresses on Base, Base Sepolia, OP and the Base fork. "proxyCode" is the
 # SafeWebAuthnSignerProxy creation code the factory deploys (its bytes 1653-2090), so the console
@@ -61,6 +67,10 @@ CFG = {
         "1": {"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48": ["USDC", 6]}
     },
     "delegates": {},
+    "project": {"chainId": 1, "address": ""},
+    "messages": {
+        "*": {"0xd53cd0ab83d845ac265be939c57f53ad838012c9": "SignMessageLib 1.4.1"}
+    },
     "batchers": {
         "*": {
             "0x9641d764fc13c8b624c04430c7356c1c7c8102e2": "MultiSendCallOnly 1.4.1",

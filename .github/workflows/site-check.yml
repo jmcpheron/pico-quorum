@@ -1,0 +1,62 @@
+# The live site, checked from outside it (tools/releases/site.mjs): what GitHub Pages serves, byte for
+# byte, against docs/ at the commit Pages says it deployed, which CI's rebuild check ties to the
+# source. A page can't vouch for itself; this can. Runs after every Pages deploy, every six hours,
+# and by hand. On a difference it fails and opens an issue, once, so nobody misses it.
+name: Site check
+
+on:
+  page_build:
+  workflow_run:
+    workflows: ["pages build and deployment"]
+    types: [completed]
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pages: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: tools/mock-tx-service/package-lock.json
+      - run: npm ci         # viem, to ask the project Safe whether a release is approved
+        working-directory: tools/mock-tx-service
+      - name: The live site against what Pages deployed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          # a deploy can take a few minutes to reach every edge: three tries, two minutes apart
+          for i in 1 2 3; do
+            node tools/releases/cli.mjs check-site --pages "$REPO" && exit 0
+            [ "$i" = 3 ] || sleep 120
+          done
+          exit 1
+      - name: Open an issue when the site isn't what was built
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title="The live site differs from what the repository built"
+          if [ -z "$(gh issue list --repo "$REPO" --state open --search "$title in:title" --json number --jq '.[].number')" ]; then
+            gh issue create --repo "$REPO" --title "$title" --body "Site check found files on GitHub Pages that are not the ones docs/ holds at the deployed commit: $RUN
+
+          Until this is explained, don't trust the live app or emulator. Check the run's log for which files differ, and docs/GOVERNANCE.md."
+          fi
