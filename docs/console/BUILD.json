@@ -1,10 +1,10 @@
 {
   "note": "SHA-256 of every file emu/build.mjs wrote for the console page. It runs ../emu/'s boot.json, worker and MicroPython, which ../emu/BUILD.json lists. Rebuild from the same commit (cd emu && npm ci && node build.mjs) and compare.",
-  "release": "58694b0d7056815a8cda4da0e55f39b6ae6f0ecca91c14dc9c6b29a3a11f30d7",
+  "release": "9932ba6b267482287cc98a7ff0ff260fbbcf1505036371ae2eb88ca14ea0f2fa",
   "files": {
     "coi.js": "50f153f5ba36e3e8d801313072be518b236c49eb7ae04ab425bedcba91a25803",
     "console.css": "52d7ef4f81e65d640d2a6d8e6240ff29fa8d2255bdf376200a8319949b9509e8",
-    "console.js": "292316624c8cd9e67380ac7070242396d8fe8951e15a52b47f7539a9d3ce6af0",
+    "console.js": "52814829d06560f9d878267309241e573550a28eaabd434f2f06b1284114270e",
     "index.html": "2169bccaf97d6088e8d33064d00a92eb83b9cde254a769f51f37e1cdaccddcbc",
     "sw.js": "16bfd98fedc6e7eace64dac3c1ca5042a11cb73e2cd8c6449a225886a6f370e2",
     "worker.js": "4c2b9e08ccaa91d2eae93e37a96df9fa7173bfa3bee5426990a67031286664f7"

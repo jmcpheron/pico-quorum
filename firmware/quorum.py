@@ -81,6 +81,13 @@ _poll, _idle = policy.poll_defaults(URL or BASE, API_KEY)
 POLL_MS = int(getattr(secrets, "QUORUM_POLL_S", _poll) if secrets else _poll) * 1000
 IDLE_POLL_MS = int(getattr(secrets, "QUORUM_IDLE_POLL_S", _idle) if secrets else _idle) * 1000
 IDLE_AFTER_MS = 10 * 60 * 1000
+# The screensaver: after this long on home with nothing to sign, the backlight dims and the screen
+# turns over a few cards (the time, each Safe, this key, the last approval, the release). Any key
+# wakes it; a transaction that wants this key wakes it to the queue. QUORUM_SAVER_S = 0 turns it off.
+SAVER_MS = int(getattr(secrets, "QUORUM_SAVER_S", 60) if secrets else 60) * 1000
+SAVER_CARD_MS = 8000
+SAVER_DIM = 15          # backlight, percent
+UTC_OFFSET = float(getattr(secrets, "QUORUM_UTC_OFFSET", 0) if secrets else 0)    # hours, for the clock card
 INFO_EVERY = 5          # the real service: the Safe's owners and nonce every 5th poll, or when the queue moves
 CRASH_AFTER = 20        # this many failed ticks in a row: stop on the crashed screen, sign nothing
 HOLD_MS, HOLD_RED_MS = 2000, 3000       # A held this long to sign; longer when any page is red
@@ -100,7 +107,7 @@ keys = None
 sig = None          # the signer backend (the chip)
 svc = None          # txservice.Service
 timer = None
-state = "boot"      # boot | home | review | hold | working | result | owners | device | nochip | pinfail | unconfigured | crashed
+state = "boot"      # boot | home | saver | review | hold | working | result | owners | device | recent | chip | nochip | pinfail | unconfigured | crashed
 qx = qy = ""
 me = ""             # this key's owner address, lowercase (see my_owner)
 ctx = None          # decode.context of the Safe in view: the pinned names plus "This key"
@@ -152,10 +159,13 @@ _busy = False
 _n = 0
 log = []
 RECENT_FILE, RECENT_MAX = "recent.json", 12
-recent = []         # this console's last confirmed signatures, newest first (recent.json): the Recent tile
-tile = 0            # home's grid: the tile in focus
-browse = None       # "list": the queue list opened from the grid's Queue tile
-chip_back = "device"    # where the Chip pages go back to: Device, or home when opened from a tile
+recent = []         # this console's last confirmed signatures, newest first (recent.json): the Recent screen
+hsel = 0            # the status home: the Safe row in focus (an index into WATCH)
+hfoot = None        # knob, on the status home: "recent" or "device" when the knob has turned past the Safes
+browse = None       # "list": the queue list opened from the status home (Y) while nothing waits for this key
+chip_back = "device"    # where the Chip pages go back to
+saver_card = 0      # the screensaver's card in view (an index into saver_cards())
+saver_t0 = 0        # when it came up
 rpage = 0           # the Recent screen's page
 
 
@@ -235,50 +245,107 @@ def focus_sel():
     focus(queue[sel]["w"] if queue and 0 <= sel < len(queue) else WATCH[0])
 
 
-# ----------------------------------------------------------------------------- home: the grid
-def grid_home():
-    """Home is a grid to browse unless something waits for this key (then the queue list, as
-    before), or the list was opened from the Queue tile. The 160x128 UI keeps the list."""
+# ----------------------------------------------------------------------------- home: the status screen
+def status_home():
+    """Home is the status screen (this key, whether it is ready, the Safes it watches) unless
+    something waits for this key: then the queue list comes up, as it always has. Y opens the list
+    from status when transactions wait for others. The 160x128 UI keeps the list."""
     global browse
-    if not getattr(U, "GRID", False):
+    if not getattr(U, "STATUS", False):
         return False
     if not queue:
         browse = None
     return not browse and not any(waiting(e) for e in queue)
 
 
-def tiles():
-    """The grid: each Safe (the one signed for most recently first), the queue when anything is in
-    it, recent signatures, the chip, the device. [(kind, Safe or None), ...]"""
-    order = []
-    for r in recent:
-        for w in WATCH:
-            if w["addr"].lower() == r.get("safe", "") and w["chain"] == r.get("chain") and not [o for o in order if o is w]:
-                order.append(w)
-    order += [w for w in WATCH if not [o for o in order if o is w]]
-    out = [("safe", w) for w in order]
-    if queue:
-        out.append(("queue", None))
-    return out + [("recent", None), ("chip", None), ("device", None)]
+def readiness():
+    """What this key can do now, for the status screen and the screensaver:
+    "nokey", "starting" (no Safe has answered yet), "offline" (none answered), "not_owner" (the
+    Safes answered and this key owns none of them: add its owner address first), or "ready"."""
+    if not qx:
+        return "nokey"
+    answered = [w for w in WATCH if w["ok"] and w["info"]]
+    if not answered:
+        return "offline" if any(w["tried"] for w in WATCH) else "starting"
+    if not any(me in owners(w) for w in answered):
+        return "not_owner"
+    return "ready"
 
 
-def open_tile():
-    global state, opage, browse, sel, chip_back, rpage
-    t = tiles()
-    kind, w = t[min(tile, len(t) - 1)]
-    if kind == "safe":
-        focus(w)
-        state, opage = "owners", 0
-    elif kind == "queue":
-        browse, sel = "list", 0
-        focus_sel()
-    elif kind == "recent":
-        state, rpage = "recent", 0
-    elif kind == "chip":
-        chip_back = "home"
-        open_chip()
-    else:
-        state = "device"
+def queued_for(w):
+    """Transactions queued for Safe w: (all of them, the ones waiting for this key)."""
+    mine = [e for e in queue if e["w"] is w]
+    return len(mine), sum(1 for e in mine if waiting(e))
+
+
+def home_feet():
+    """The knob's choices past the Safe rows on the status home."""
+    return (["queue"] if queue else []) + ["recent", "device"]
+
+
+def open_safe(i):
+    """A Safe row on the status home: its Owners screen."""
+    global state, opage
+    focus(WATCH[max(0, min(i, len(WATCH) - 1))])
+    state, opage = "owners", 0
+
+
+# ----------------------------------------------------------------------------- the screensaver
+def saver_cards():
+    """The cards it turns over, from what the console already knows (no extra requests): the time
+    when the clock is set, each Safe, this key, the last approval, the release it runs."""
+    out = []
+    if U.clock_set():
+        out.append(("clock", None))
+    out += [("safe", w) for w in WATCH if w["ok"] and w["info"]]
+    if qx:
+        out.append(("key", None))
+    if recent:
+        out.append(("recent", None))
+    if image.SEED:
+        out.append(("release", None))
+    return out or [("key", None)]
+
+
+def backlight(pct):
+    try:
+        d.backlight(pct)
+    except Exception:
+        pass
+
+
+def saver_due(now):
+    return (SAVER_MS > 0 and state == "home" and status_home() and not msg and not outside
+            and hasattr(U, "draw_saver") and time.ticks_diff(now, last_activity) >= SAVER_MS)
+
+
+def enter_saver(now):
+    global state, saver_card, saver_t0, dirty
+    state, saver_card, saver_t0, dirty = "saver", 0, now, True
+    backlight(SAVER_DIM)
+
+
+def wake(now):
+    """Back to home from the screensaver: full brightness, and the quiet time starts again."""
+    global state, last_activity, dirty
+    state, last_activity, dirty = "home", now, True
+    backlight(100)
+    focus_sel()
+
+
+def saver_tick(now, pressed):
+    """The screensaver's part of a tick. -> the keys still to handle (a key that wakes it does
+    nothing else: the first press only turns the screen back on)."""
+    global saver_card, saver_t0, dirty
+    if state == "saver":
+        if pressed or outside or any(waiting(e) for e in queue):
+            wake(now)               # a request for this key comes up as the queue list
+            return []
+        if time.ticks_diff(now, saver_t0) >= SAVER_CARD_MS:
+            saver_card, saver_t0, dirty = (saver_card + 1) % len(saver_cards()), now, True
+    elif not pressed and saver_due(now):
+        enter_saver(now)
+    return pressed
 
 
 def load_recent():
@@ -292,7 +359,7 @@ def load_recent():
 
 
 def note_recent(n, w, what):
-    """A signature the service took: kept for the Recent tile, newest first, a dozen at most.
+    """A signature the service took: kept for the Recent screen, newest first, a dozen at most.
     Only what the screens show: nonce, Safe, chain, a one-line summary, when."""
     global recent
     recent = [{"n": n, "safe": w["addr"].lower(), "chain": w["chain"], "name": w["name"], "what": what[:48],
@@ -677,7 +744,7 @@ def net_work():
     live = set(e["h"] for e in queue)
     declined = set(h for h in declined if h in live)
     sel = max(0, min(sel, len(queue) - 1))
-    if state in ("home", "boot"):
+    if state in ("home", "boot", "saver"):
         focus_sel()
     snap = (net_ok, net_err, tuple((str(x["info"].get("nonce")), threshold(x), len(owners(x)), x["ok"]) for x in WATCH),
             tuple((e["h"], len(e["conf"])) for e in queue))
@@ -1040,7 +1107,7 @@ def reject():
 
 # ----------------------------------------------------------------------------- ui tick
 def handle(k):
-    global state, sel, dirty, last_poll, chip_page, opage, tile, browse, chip_back, rpage
+    global state, sel, dirty, last_poll, chip_page, opage, hsel, browse, chip_back, rpage
     if state in ("nochip", "pinfail"):
         if k == "A":
             probe_chip()            # counts first (boot_count), then reads the key: on a sealed chip, a use of it
@@ -1052,30 +1119,26 @@ def handle(k):
     elif state == "crashed":
         if k == BACK:
             machine.reset()
-    elif state in ("home", "boot") and grid_home():
-        n, cols = len(tiles()), U.GRID_COLS
-        if k == "right":
-            tile = min(n - 1, tile + 1)
-        elif k == "left":
-            tile = max(0, tile - 1)
-        elif k == "down":
-            tile = min(n - 1, tile + cols)
+    elif state in ("home", "boot") and status_home():
+        if k == "down":
+            hsel = min(len(WATCH) - 1, hsel + 1)
         elif k == "up":
-            tile = tile - cols if tile >= cols else tile
-        elif k in (SIGN, "press"):
-            open_tile()
-        elif k == BACK:             # as on the list: the Owners screen, for the Safe tile in focus
-            t = tiles()[min(tile, n - 1)]
-            focus(t[1] if t[0] == "safe" else WATCH[0])
-            state, opage = "owners", 0
+            hsel = max(0, hsel - 1)
+        elif k in (SIGN, "right", "press"):
+            open_safe(hsel)
+        elif k == BACK:
+            state, rpage = "recent", 0
         elif k == "X":
             state = "device"
+        elif k == REJECT and queue:     # transactions waiting for others: the list, to look at them
+            browse, sel = "list", 0
+            focus_sel()
         if outside:
             outside_seen()
         dirty = True
     elif state in ("home", "boot"):
         if k == BACK and browse:
-            browse = None           # back to the grid
+            browse = None           # back to the status home
         elif k == "down" and queue:
             sel = min(len(queue) - 1, sel + 1)
             focus_sel()
@@ -1155,21 +1218,40 @@ def handle(k):
 def knob(k):
     """A knob turn ("down" clockwise, "up") or press, by state. Turning never does anything but
     move; every action is a press, and signing is a press held down."""
-    global state, sel, foot, act, ract, dirty, crash_t0, dfoot, chip_page, opage, tile, browse, chip_back, rpage
+    global state, sel, foot, act, ract, dirty, crash_t0, dfoot, chip_page, opage, hsel, hfoot, browse, chip_back, rpage
     if state in ("nochip", "pinfail"):
         if k == "press":
             handle("A")                 # Check again
     elif state == "crashed":
         if k == "press":
             crash_t0 = time.ticks_ms()  # tick() restarts once it has been held CRASH_HOLD_MS
-    elif state in ("home", "boot") and grid_home():
-        n = len(tiles())
+    elif state in ("home", "boot") and status_home():
+        feet = home_feet()
         if k == "down":
-            tile = min(n - 1, tile + 1)
+            if hfoot is None and hsel < len(WATCH) - 1:
+                hsel += 1
+            elif hfoot is None:
+                hfoot = feet[0]
+            else:
+                hfoot = feet[min(len(feet) - 1, feet.index(hfoot) + 1)] if hfoot in feet else feet[0]
         elif k == "up":
-            tile = max(0, tile - 1)
+            if hfoot in feet and feet.index(hfoot) > 0:
+                hfoot = feet[feet.index(hfoot) - 1]
+            elif hfoot is not None:
+                hfoot = None
+            elif hsel > 0:
+                hsel -= 1
         elif k == "press":
-            open_tile()
+            if hfoot == "queue":
+                browse, sel = "list", 0
+                focus_sel()
+            elif hfoot == "recent":
+                state, rpage = "recent", 0
+            elif hfoot == "device":
+                state = "device"
+            else:
+                open_safe(hsel)
+            hfoot = None
         if outside:
             outside_seen()
         dirty = True
@@ -1192,7 +1274,7 @@ def knob(k):
                 focus_sel()
         elif k == "press":
             if foot == "owners" and browse:
-                browse, foot = None, None   # the list opened from the grid: its first choice goes back
+                browse, foot = None, None   # the list opened from the status home: its first choice goes back
             elif foot:
                 state, opage = foot, 0
             elif queue:
@@ -1291,7 +1373,7 @@ def tick(t):
         _n += 1
         watch.extend(5000)
         net.poll_accept()
-        if state in ("home", "boot") and (last_poll == 0 or time.ticks_diff(time.ticks_ms(), last_poll) >= poll_every()):
+        if state in ("home", "boot", "saver") and (last_poll == 0 or time.ticks_diff(time.ticks_ms(), last_poll) >= poll_every()):
             timer.deinit()      # no timer events pile up while HTTP and hashing block
             try:
                 net_work()
@@ -1300,6 +1382,7 @@ def tick(t):
         pressed = keys.pressed()
         if pressed:
             last_activity = time.ticks_ms()
+        pressed = saver_tick(time.ticks_ms(), pressed)
         for k in pressed:
             if KNOB and k in ("down", "up", "press"):
                 knob(k)
@@ -1323,7 +1406,7 @@ def tick(t):
         if msg and time.ticks_diff(msg_until, time.ticks_ms()) <= 0:
             msg, dirty = "", True
         led_tick()
-        if svc and svc.lost and state == "home":
+        if svc and svc.lost and state in ("home", "saver"):
             restart_for_memory()
         if dirty:
             dirty = False
