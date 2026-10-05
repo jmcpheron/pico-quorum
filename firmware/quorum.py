@@ -101,6 +101,14 @@ NEXT, PREV = ("down", "right"), ("up", "left")
 KNOB = L.KNOB
 ACTS = ("sign", "reject", "back")
 CRASH_HOLD_MS = 3000    # the knob held this long on the crashed screen restarts the board
+# A poll blocks the screen for ~1 s (an HTTPS call a request). None starts until the keys have been
+# still this long, one stops between its calls when the knob turns, and the turns that piled up
+# meanwhile move the focus at most BACKLOG places: the person kept turning because nothing moved.
+QUIET_MS = 3000
+BACKLOG = 3
+# With the knob, the Sign button (A) signs and does nothing else: a press of it always means
+# approve, so it is never pressed in passing to open or go back. Anywhere but a review it says so.
+SIGN_ONLY = "Sign button: only for signing"
 
 d = None
 keys = None
@@ -150,11 +158,14 @@ net_ok = False
 net_err = "starting"
 last_poll = 0
 last_activity = 0   # the last key press or change in the queue (see poll_every)
+last_key = 0        # the last key press or knob turn (QUIET_MS)
+checking = False    # a poll is under way: home says so in place of Synced
 _snap = None
 splash_until = 0
 msg = ""
 msg_until = 0
 dirty = True
+dirty_rows = None   # [(y0, y1), ...]: only these rows changed (turned); dirty draws everything
 _busy = False
 _n = 0
 log = []
@@ -677,6 +688,20 @@ def fetch_queue(w):
     return out
 
 
+def turning():
+    """The knob has moved (or is pressed) since the poll began."""
+    k = getattr(keys, "knob", None)
+    return bool(k and k.pending())
+
+
+def later(w):
+    """A poll stopped between calls for the knob: Safe w goes next, once the keys are quiet again.
+    What was fetched so far is kept; the queue shown stays the last whole one."""
+    global rr, last_poll
+    rr, last_poll = WATCH.index(w), 0
+    w["need_info"] = True
+
+
 def poll(w):
     """One Safe: its info (every INFO_EVERY polls on the real service), then its queue."""
     w["tried"] = True
@@ -688,6 +713,8 @@ def poll(w):
         w["polls"] += 1
         if w["need_info"] or not w["info"] or svc.sim or w["polls"] >= INFO_EVERY:
             fetch_info(w)
+            if turning():
+                return later(w)
         if svc.sim and qx and me not in owners(w) and (w["announced"] == 0 or time.ticks_diff(time.ticks_ms(), w["announced"]) > 10000):
             w["announced"] = time.ticks_ms()        # the simulation adds this key as an owner
             if svc.announce(NAME, qx, qy):
@@ -695,6 +722,8 @@ def poll(w):
         q = fetch_queue(w)
         seen_now = tuple(e["h"] for e in q)
         if w["seen"] is not None and seen_now != w["seen"] and w["polls"]:
+            if turning():
+                return later(w)
             fetch_info(w)                           # something executed or arrived: owners and nonce may have moved
             q = fetch_queue(w)
             seen_now = tuple(e["h"] for e in q)
@@ -1356,6 +1385,47 @@ def knob(k):
         dirty = True
 
 
+def turned(k):
+    """A knob turn. When it only moved the focus (U.focus_rows: the same layout before and after),
+    only the bands of what moved are drawn: the whole of Build 1's screen is 8 bands, ~350 ms."""
+    global dirty, dirty_rows
+    fr = getattr(U, "focus_rows", None)
+    me_ = sys.modules[__name__]
+    was, st = dirty, state
+    before = fr(me_) if fr and not was else None
+    knob(k)
+    after = fr(me_) if before and state == st else None
+    if after and after[0] == before[0]:
+        dirty = False
+        dirty_rows = (dirty_rows or []) + before[1] + after[1]
+    else:
+        dirty = True
+
+
+def backlog(pressed):
+    """The keys read right after a poll: at most BACKLOG turns of the knob, the rest dropped."""
+    out, n = [], 0
+    for k in pressed:
+        if k in ("down", "up"):
+            n += 1
+            if n > BACKLOG:
+                continue
+        out.append(k)
+    return out
+
+
+def check_mark(on):
+    """Home's status says "checking…" while a poll blocks: one band redrawn, not the screen."""
+    global checking, dirty_rows
+    if not on:
+        if checking:
+            checking, dirty_rows = False, (dirty_rows or []) + [(0, 20)]
+        return
+    if state == "home" and not splash_until and not dirty:
+        checking = True
+        d.frames(U.draw, sys.modules[__name__], rows=[(0, 20)])
+
+
 def led_tick():
     if any(waiting(e) for e in queue):
         if _n % 10 == 0:
@@ -1365,7 +1435,7 @@ def led_tick():
 
 
 def tick(t):
-    global _busy, _n, dirty, state, splash_until, msg, last_activity, fails, crash_t0
+    global _busy, _n, dirty, dirty_rows, state, splash_until, msg, last_activity, last_key, fails, crash_t0
     if _busy:
         return
     _busy = True
@@ -1373,19 +1443,30 @@ def tick(t):
         _n += 1
         watch.extend(5000)
         net.poll_accept()
-        if state in ("home", "boot", "saver") and (last_poll == 0 or time.ticks_diff(time.ticks_ms(), last_poll) >= poll_every()):
+        polled = False
+        if (state in ("home", "boot", "saver") and (last_poll == 0 or time.ticks_diff(time.ticks_ms(), last_poll) >= poll_every())
+                and time.ticks_diff(time.ticks_ms(), last_key) >= QUIET_MS):
             timer.deinit()      # no timer events pile up while HTTP and hashing block
             try:
+                check_mark(True)
                 net_work()
             finally:
+                check_mark(False)
                 start_timer()
+            polled = True
         pressed = keys.pressed()
         if pressed:
-            last_activity = time.ticks_ms()
+            last_activity = last_key = time.ticks_ms()
+            if polled:
+                pressed = backlog(pressed)
         pressed = saver_tick(time.ticks_ms(), pressed)
         for k in pressed:
-            if KNOB and k in ("down", "up", "press"):
+            if KNOB and k in ("down", "up"):
+                turned(k)
+            elif KNOB and k == "press":
                 knob(k)
+            elif KNOB and k == SIGN and state not in ("review", "hold"):
+                say(SIGN_ONLY)
             else:
                 handle(k)
         if state == "hold":
@@ -1408,12 +1489,13 @@ def tick(t):
         led_tick()
         if svc and svc.lost and state in ("home", "saver"):
             restart_for_memory()
-        if dirty:
-            dirty = False
+        if dirty or dirty_rows:
+            rows = None if dirty else dirty_rows
+            dirty, dirty_rows = False, None
             if state == "boot" and splash_until:
                 splash.draw()
             else:
-                d.frames(U.draw, sys.modules[__name__])      # lcd.py: once per band
+                d.frames(U.draw, sys.modules[__name__], rows=rows)     # lcd.py: once per band (rows: only theirs)
         fails = 0
     except Exception as e:
         _log("ui: %r" % e)

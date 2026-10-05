@@ -78,17 +78,43 @@ def hsl_to_rgb(hsl):
     return int(round((r + m) * 255)), int(round((g + m) * 255)), int(round((b + m) * 255))
 
 
+# build() is ~50 rounds of 32-bit math in Python, which makes big ints here: ~250 ms per picture on
+# Build 1, and a banded screen draws each one once per band. So each seed's cells and colours are
+# made once and kept (a few hundred bytes each, the last _KEEP seeds).
+_KEEP = 12
+_made = {}
+
+
+def _cells(seed, size, color):
+    k = (seed, size, color)
+    got = _made.get(k)
+    if got is None:
+        data, fg, bg, spot = build(seed, size)
+        got = (bytes(data), (color(*hsl_to_rgb(bg)), color(*hsl_to_rgb(fg)), color(*hsl_to_rgb(spot))))
+        if len(_made) >= _KEEP:
+            _made.clear()
+        _made[k] = got
+    return got
+
+
 def draw(fb, seed, x, y, scale, size=8, color=None):
     """Draw the blockie for `seed` on a framebuf at (x, y), each cell `scale` px. `color` is the
-    lcd.color(r, g, b) function; the picture is size*scale px square, background filled."""
+    lcd.color(r, g, b) function; the picture is size*scale px square, background filled. On a
+    banded screen (lcd.py) only the rows in the band being drawn."""
     from lcd import color as _c
-    color = color or _c
-    data, fg, bg, spot = build(seed, size)
-    pal = (color(*hsl_to_rgb(bg)), color(*hsl_to_rgb(fg)), color(*hsl_to_rgb(spot)))
-    fb.fill_rect(x, y, size * scale, size * scale, pal[0])
-    i = 0
-    for row in range(size):
+    data, pal = _cells(seed, size, color or _c)
+    top, bot = 0, size
+    band = getattr(fb, "band_h", 0)
+    if band:
+        y0 = fb.y0
+        top = max(0, (y0 - y) // scale)
+        bot = min(size, (y0 + band - y + scale - 1) // scale)
+        if top >= bot:
+            return
+    fb.fill_rect(x, y + top * scale, size * scale, (bot - top) * scale, pal[0])
+    for row in range(top, bot):
+        i = row * size
         for col in range(size):
-            v = data[i]; i += 1
+            v = data[i + col]
             if v:
                 fb.fill_rect(x + col * scale, y + row * scale, scale, scale, pal[1 if v == 1 else 2])

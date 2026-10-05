@@ -1,9 +1,9 @@
 {
   "note": "SHA-256 of every file emu/build.mjs wrote. Rebuild from the same commit (cd emu && npm ci && node build.mjs) and compare.",
-  "release": "9932ba6b267482287cc98a7ff0ff260fbbcf1505036371ae2eb88ca14ea0f2fa",
+  "release": "2eba10ef202322d6e105d4149764ed27b9c28d6ddf018ceffdf269b558b45297",
   "files": {
     "SKILL.txt": "2d527d7140c982fcb7f113d0bb1de7cfaca07632ebaf07abd0fc06bf73bc2c21",
-    "boot.json": "26aa99600bcaeb8960de246396c326b68e041e784bebb8401fafe10d781282b0",
+    "boot.json": "e230d72a4cd82ea54784d0428ae936619e229a8a9c56de29864295f64eb76d8e",
     "coi.js": "e8751e84a09e5c4783fbaaa530cf17fe8904195200bff247346d78620a20fc9c",
     "core/keccak.mjs": "d98224f46c3f6b6a4a925c731cdbaf65c7bd1f439a6593c8175d8f8ef885364a",
     "core/runtime.mjs": "407c853cfd6fe7882dde593a89b6e88879f2667447ef046bbcfbc2386a939dfb",

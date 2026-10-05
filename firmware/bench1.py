@@ -119,8 +119,8 @@ def _enc_irq(_):
     _enc_state = s
 
 
-_enc_a.irq(_enc_irq, Pin.IRQ_RISING | Pin.IRQ_FALLING)
-_enc_b.irq(_enc_irq, Pin.IRQ_RISING | Pin.IRQ_FALLING)
+_enc_a.irq(_enc_irq, Pin.IRQ_RISING | Pin.IRQ_FALLING, hard=True)    # knob.py says why hard
+_enc_b.irq(_enc_irq, Pin.IRQ_RISING | Pin.IRQ_FALLING, hard=True)
 
 
 def clicks():

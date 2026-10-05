@@ -60,10 +60,12 @@ class Response:
         pass
 
 
-def request(method, url, ctx, body=None, headers=None, timeout=15, max_body=MAX_BODY, budget_ms=40000):
+def request(method, url, ctx, body=None, headers=None, timeout=15, max_body=MAX_BODY, budget_ms=40000, into=None):
     """timeout applies to each socket operation; budget_ms to the whole response after the
     handshake (the caller's watchdog allowance is budget + the handshake's own timeouts). A body over
-    max_body raises MemoryError, as running out of room would: the console then asks for less."""
+    max_body raises MemoryError, as running out of room would: the console then asks for less.
+    into: a bytearray the body is read into, in place: the body is then a memoryview of it and needs
+    no room of its own while the connection is open (txservice.py says why that matters)."""
     t0 = time.ticks_ms()
     proto, _, host, path = url.split("/", 3)
     if proto != "https:":
@@ -97,7 +99,10 @@ def request(method, url, ctx, body=None, headers=None, timeout=15, max_body=MAX_
                 length = int(v)
             elif k == "transfer-encoding" and "chunked" in v.lower():
                 chunked = True
-        out = _chunked(s, max_body, t0, budget_ms) if chunked else _plain(s, length, max_body, t0, budget_ms)
+        if into is not None:
+            out = _chunked_into(s, into, t0, budget_ms) if chunked else _plain_into(s, length, into, t0, budget_ms)
+        else:
+            out = _chunked(s, max_body, t0, budget_ms) if chunked else _plain(s, length, max_body, t0, budget_ms)
         return Response(status, out)
     finally:
         s.close()
@@ -122,6 +127,44 @@ def _plain(s, length, cap, t0, budget_ms):
             raise MemoryError("response too big")
         parts.append(b)
     return b"".join(parts)
+
+
+def _plain_into(s, length, buf, t0, budget_ms):
+    cap = len(buf)
+    if length is not None and length > cap:
+        raise MemoryError("response too big (%d bytes)" % length)
+    mv, n = memoryview(buf), 0
+    while length is None or n < length:
+        _late(t0, budget_ms)
+        if n == cap:
+            if s.read(1):
+                raise MemoryError("response too big")
+            break
+        k = s.readinto(mv[n:min(cap, length) if length is not None else min(cap, n + 1024)])
+        if not k:
+            break
+        n += k
+    return mv[:n]
+
+
+def _chunked_into(s, buf, t0, budget_ms):
+    mv, n = memoryview(buf), 0
+    while True:
+        _late(t0, budget_ms)
+        size = int(s.readline().split(b";")[0].strip(), 16)
+        if size == 0:
+            break
+        if n + size > len(buf):
+            raise MemoryError("response too big")
+        end = n + size
+        while n < end:
+            _late(t0, budget_ms)
+            k = s.readinto(mv[n:end])
+            if not k:
+                raise OSError("connection closed mid-chunk")
+            n += k
+        s.readline()
+    return mv[:n]
 
 
 def _chunked(s, cap, t0, budget_ms):

@@ -1,6 +1,9 @@
 # The EC11 knob (board.py "build1"): the same pressed()/held() shape as lcd.Keys, so the apps read
 # it like keys. One detent clockwise is "down" (next), anticlockwise "up"; the push is "press".
 # Quadrature on edge interrupts on both pins, as in bench1.py, so no step is lost between polls.
+# The interrupts are hard: a soft one waits behind the UI tick (a redraw is 8 bands of Python plus
+# SPI) and reads the pins only when it finally runs, so the edges in between were lost and the knob
+# felt slow. A hard handler reads the pins at the edge. It must not allocate: small ints only.
 import time
 import machine
 from machine import Pin
@@ -20,8 +23,8 @@ class Knob:
         self.steps = 0          # quadrature steps not yet handed out as clicks
         self.down = False       # the push, debounced
         self.since = time.ticks_ms()
-        self.a.irq(self._edge, Pin.IRQ_RISING | Pin.IRQ_FALLING)
-        self.b.irq(self._edge, Pin.IRQ_RISING | Pin.IRQ_FALLING)
+        self.a.irq(self._edge, Pin.IRQ_RISING | Pin.IRQ_FALLING, hard=True)
+        self.b.irq(self._edge, Pin.IRQ_RISING | Pin.IRQ_FALLING, hard=True)
 
     def _edge(self, _):
         s = (self.a.value() << 1) | self.b.value()
@@ -43,6 +46,10 @@ class Knob:
             if v:
                 out.append("press")
         return out
+
+    def pending(self):
+        """A detent turned or the push down, not yet read: quorum.poll stops between calls for it."""
+        return self.steps >= STEPS_PER_CLICK or self.steps <= -STEPS_PER_CLICK or self.sw.value() == 0
 
     def held(self):
         return self.sw.value() == 0

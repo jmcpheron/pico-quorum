@@ -60,6 +60,7 @@ def use(fontset=None):
     global _set
     _set = fontset
     _fonts.clear()
+    _w.clear()
 
 
 def palette(fg, bg):
@@ -92,9 +93,21 @@ def text(d, s, x, y, font, fg, bg):
     return x
 
 
+_w = {}
+
+
 def width(s, font):
-    f = get(font)
-    return sum(f.glyph(c)[3] for c in s)
+    """Remembered: a banded screen (lcd.py) measures every string once per band, and fit() and the
+    right-aligned text measure the same ones over and over (~0.5 s a frame on Build 1, uncached)."""
+    k = (s, font)
+    n = _w.get(k)
+    if n is None:
+        f = get(font)
+        n = sum(f.glyph(c)[3] for c in s)
+        if len(_w) >= 160:
+            _w.clear()
+        _w[k] = n
+    return n
 
 
 def height(font):

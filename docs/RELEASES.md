@@ -92,6 +92,46 @@ The tag says who cut a release. The project Safe says the project stands behind 
 - the console signs it, and it executes;
 - `isValidSignature` holds, and still holds after the console's owner is removed.
 
+## 2026.10.9 (2026-10-03)
+
+**Fix: Build 1 sometimes stopped on boot** with "MemoryError … allocating 1280 bytes" and 221 KB
+free. The boot art kept drawing on its timer while the console's modules loaded, and its small
+objects ended up between theirs: the largest free block left was 17-26 KB, and sometimes not even
+1.3 KB at the moment the code needed it. The art now pauses until the modules have loaded: they
+load in 0.9 s instead of 3.5 s, and a 95 KB block is left.
+
+## 2026.10.8 (2026-10-02)
+
+**Fix: OSError 12 on HTTPS calls**, including a confirmation that was signed but never sent.
+Measured on the board, with the heap full except for one hole:
+- **The TLS session alone** fails in 28 KB, takes ~8 s in 32 KB (the old reserve, so calls ran on
+  the edge) and 0.9 s in 36 KB. The reserve is now **40 KB**.
+- **The response body** was read in 1 KB pieces and joined while the connection was still open.
+  A 6.7 KB queue then needed a **48 KB** hole. Now it is read into a 16 KB buffer kept from boot,
+  and copied out only after the connection closes. The same queue fits in a 32 KB hole, in 0.75 s.
+  A queue over 16 KB is asked for again as 3 transactions, as before.
+
+## 2026.10.7 (2026-10-02)
+
+**Build 1's knob keeps up:** a detent reaches the screen in ~140 ms, down from ~2.1 s.
+- **Redraws:** the screen is drawn in 8 strips, and each strip re-ran the whole screen's code.
+  The blockies rebuilt their pattern every strip (~1.3 s a frame), and text widths were measured
+  again every strip (~0.6 s). Both are kept now, so a whole frame is ~350 ms.
+- **Only what moved:** a turn that only moves the focus (the grid, the queue list, Device, the
+  review's SIGN/REJECT/BACK bar, Send again) redraws just the strips it touches, usually 1-3 of 8.
+- **The encoder's interrupts are hard ones,** so no steps are lost while the board is busy.
+- **Polls stay out of the way:** none starts until the knob has been still for 3 s. One stops
+  between its calls if the knob turns, and is asked again once it is quiet. Turns that piled up
+  meanwhile move the focus at most 3 places. Home shows "checking…" while a poll runs.
+
+**The Sign button only signs** (boards with the knob). On a review it signs as before; anywhere
+else it opens nothing and says "Sign button: only for signing". The knob does the browsing.
+
+## 2026.10.6 (2026-10-02)
+
+**Build 1's screen turned 180°** for its new case: MADCTL 0x60 (MX|MV) in place of 0xA0 on the
+2.8". The 1.8" profile and the Waveshare are unchanged.
+
 ## 2026.10.5 (2026-10-02)
 
 **Fix: Build 1 froze at "screen: ok" on boot.**
