@@ -21,6 +21,21 @@ J1's origin. The origin is the board centre, Z = 0 is the back face, and the USB
 The bare board is 1.51 mm thick (mask and copper not modelled). Units are mm.
 To remake them: `kicad-cli pcb export step --user-origin 108x118mm`.
 
+**Print mock-up:** [`3d/key-c-P2-print.step`](3d/key-c-P2-print.step) is a simplified version for
+a 3D printer: one solid, same frame. The board, the chip bodies and the small parts are plain
+blocks fused together. The USB-C receptacle is just its outer shell, with no tongue or contacts.
+- The socket is 8.70 × 2.90 mm and 7.0 mm deep, so a real plug (8.25 × 2.40 mm) slides in with
+  print clearance. A real-size plug was checked against it and doesn't touch.
+- The shell walls are 0.8 mm (two perimeters), so the shell is 10.3 × 4.5 mm. The real one is
+  8.94 × 3.26 mm, so the mock-up's shell is a little bigger.
+- The board is 1.6 mm, as ordered. H1 is a 3 mm through hole.
+- It prints flat, back face down, with no supports. The socket's round top bridges.
+- The 0402 parts are 0.35–0.5 mm nubs and may not show on a coarse print.
+- To remake it, or change the clearance or walls: `pip install cadquery`, then
+  `python3 3d/print_mockup.py`.
+
+![print mock-up](renders/key-c-P2-print.jpg)
+
 **What it is:** an ATECC608C secure element (I2C, SOIC-8) behind a USB-C receptacle. The
 receptacle is used as plain wires, not USB:
 - D+ carries SDA, D− carries SCL and VBUS is key power.
