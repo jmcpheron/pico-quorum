@@ -19,11 +19,13 @@ import {
   decodeFunctionData, encodeFunctionResult, getAddress, parseAbi, parseEther, recoverAddress,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
+import { p256 } from "@noble/curves/p256";
 import { writeConfig } from "./config.mjs";
 
 writeConfig();
 const S = await import("./src/safe.mjs");
 const P = await import("./src/propose.mjs");
+const { p256Owner } = await import("../tools/mock-tx-service/sigs.mjs");
 
 const DOCS = fileURLToPath(new URL("../docs/", import.meta.url));
 const SHOTS = process.env.SHOTS;
@@ -45,8 +47,10 @@ const DAVE = getAddress("0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc");   // anvi
 const SAFE = getAddress("0xEDEDC0063B23A309f4cAdA5e1225Ef21D8A30a43");
 const CHAIN_ID = 84532;
 const USDC = P.knownTokens(CHAIN_ID)[0].address;
-const chain = { owners: [who.alice.address, who.bob.address, who.carol.address], threshold: 2, nonce: 9, balance: parseEther("0.1") };
-const ABI = [...S.SAFE_ABI, ...P.ERC20_ABI, ...parseAbi(["function getConfiguration() view returns (uint256 x, uint256 y, uint176 verifiers)"])];
+const chain = { owners: [who.alice.address, who.bob.address, who.carol.address], threshold: 2, nonce: 9, balance: parseEther("0.1"),
+  deployed: new Set(), sent: new Map() };     // passkey signers deployed here; transactions sent, by hash
+const FACTORY = getAddress(S.CFG.signer.factory);
+const ABI = [...S.SAFE_ABI, ...P.ERC20_ABI, ...S.SIGNER_ABI];
 function ethCall({ to, data }) {
   const { functionName, args } = decodeFunctionData({ abi: ABI, data });
   const out = (v) => encodeFunctionResult({ abi: ABI, functionName, result: v });
@@ -60,6 +64,7 @@ function ethCall({ to, data }) {
       return out(S.safeTxHash(CHAIN_ID, SAFE, { to: to2, value, data: data2, operation, safeTxGas, baseGas, gasPrice, gasToken, refundReceiver, nonce }));
     }
   }
+  if (getAddress(to) === FACTORY && functionName === "getSigner") return out(p256Owner(S.CFG.signer, args[0], args[1]));
   if (getAddress(to) === USDC) {
     if (functionName === "decimals") return out(6);
     if (functionName === "symbol") return out("USDC");
@@ -73,7 +78,12 @@ function rpc(req) {
   try {
     if (method === "eth_chainId") return ok("0x" + CHAIN_ID.toString(16));
     if (method === "eth_blockNumber") return ok("0x100");
-    if (method === "eth_getCode") return ok([SAFE, USDC].includes(getAddress(params[0])) ? "0x6080604052" : "0x");
+    if (method === "eth_getCode") return ok([SAFE, USDC, FACTORY, ...chain.deployed].includes(getAddress(params[0])) ? "0x6080604052" : "0x");
+    if (method === "eth_getTransactionReceipt") {
+      const tx = chain.sent.get(params[0]);
+      return ok(tx && { transactionHash: params[0], transactionIndex: "0x0", blockHash: "0x" + "ab".repeat(32), blockNumber: "0x100", from: tx.from, to: tx.to,
+        cumulativeGasUsed: "0x5208", gasUsed: "0x5208", effectiveGasPrice: "0x1", contractAddress: null, logs: [], logsBloom: "0x" + "00".repeat(256), status: "0x1", type: "0x2" });
+    }
     if (method === "eth_getBalance") return ok("0x" + (getAddress(params[0]) === SAFE ? chain.balance : 0n).toString(16));
     if (method === "eth_call") return ok(ethCall(params[0]));
     return { jsonrpc: "2.0", id, error: { code: -32601, message: `the fake chain has no ${method}` } };
@@ -136,6 +146,15 @@ async function walletRequest({ method, params }) {
   if (method === "eth_requestAccounts" || method === "eth_accounts") return [me.address.toLowerCase()];
   if (method === "eth_chainId") return "0x" + CHAIN_ID.toString(16);
   if (method === "wallet_switchEthereumChain") return null;
+  if (method === "eth_sendTransaction") {         // only the passkey factory's createSigner, as the chain here knows it
+    const tx = params[0];
+    const { functionName, args } = decodeFunctionData({ abi: S.SIGNER_ABI, data: tx.data });
+    if (getAddress(tx.to) !== FACTORY || functionName !== "createSigner") throw { code: -32000, message: "the test chain only takes createSigner" };
+    const hash = "0x" + createHash("sha256").update(tx.data + chain.sent.size).digest("hex");
+    chain.deployed.add(getAddress(p256Owner(S.CFG.signer, args[0], args[1])));
+    chain.sent.set(hash, { ...tx, args });
+    return hash;
+  }
   if (method === "eth_signTypedData_v4") {
     if (wallet.decline) { wallet.decline = false; throw { code: 4001, message: "User rejected the request." }; }
     if (getAddress(params[0]) !== me.address) throw { code: 4100, message: "That account isn't connected." };
@@ -203,6 +222,8 @@ await ctx.route("**/*", async (route) => {
     const [status, json] = await service(r.method(), url, r.postData() ? JSON.parse(r.postData()) : null);
     return route.fulfill({ status, headers: CORS, contentType: "application/json", body: json == null ? "" : JSON.stringify(json) });
   }
+  if (url.startsWith(S.CHAINS.eth.rpc) || url.startsWith(S.CHAINS.base.rpc))       // the other chains: down, as far as the page knows
+    return route.fulfill({ status: 503, headers: CORS, body: "" });
   outside.push(url);
   return route.abort();
 });
@@ -363,6 +384,46 @@ await step("releases", async () => {
   check(true, "releases: the eight digits from a Device screen name the release, or say none does");
   await page.unroute("**/releases/index.json");
   await shot("7-releases");
+});
+
+await step("a passkey's signer, from a deploy link, with a wallet that owns no Safe", async () => {
+  const pk = p256.getPublicKey(p256.utils.randomPrivateKey(), false);
+  const x = Buffer.from(pk.slice(1, 33)).toString("hex"), y = Buffer.from(pk.slice(33)).toString("hex");
+  const owner = getAddress(p256Owner(S.CFG.signer, "0x" + x, "0x" + y));
+  await page.goto(`${BASE}app/#/signer`);
+  await page.fill("#signer-key", owner);
+  await page.getByRole("button", { name: "Show its signer" }).click();
+  check(/can't be deployed from the address alone/.test(await text("[role=alert]")), "#/signer: an owner address alone is explained, not deployed (it's a hash of the key)");
+  await page.fill("#signer-key", `${x} ${y.slice(0, 63)}0`);
+  await page.getByRole("button", { name: "Show its signer" }).click();
+  check(/isn't a P-256 public key|Paste a deploy link/.test(await text("[role=alert]")), "#/signer: a key that isn't on the curve is refused");
+  await page.fill("#signer-key", `https://jmcpheron.github.io/pico-quorum/app/#/signer/${x}/${y}`);
+  await page.getByRole("button", { name: "Show its signer" }).click();
+  await page.getByRole("button", { name: "Deploy on Base Sepolia" }).waitFor();
+  check((await page.locator(".card .inline-ident code").first().innerText()).trim() === owner, `the deploy link's page: the owner address it deploys (${owner.slice(0, 10)}…), worked out from the key`);
+  check(await page.getByText(/Ethereum: couldn't read the chain/).count() === 1, "a chain it can't read says so, and offers no button");
+  wallet.as = "mallory";            // owns nothing here
+  const before = chain.sent.size;
+  await page.getByRole("button", { name: "Deploy on Base Sepolia" }).click();
+  await page.getByText("Deployed").waitFor();
+  const tx = [...chain.sent.values()].at(-1);
+  check(chain.sent.size === before + 1 && getAddress(tx.from) === who.mallory.address && tx.args[0] === BigInt("0x" + x) && tx.args[1] === BigInt("0x" + y) && tx.args[2] === BigInt(S.CFG.signer.verifiers),
+    "Deploy: any wallet (here one that owns no Safe) sends createSigner(x, y, verifiers) to the factory, and it lands");
+  await shot("8-signer");
+  await page.reload();
+  await page.locator(".badge.ok", { hasText: "deployed" }).waitFor();
+  check(await page.getByRole("button", { name: "Deploy on Base Sepolia" }).count() === 0, "opened again: deployed on Base Sepolia, no button");
+  // your own passkey as an owner of the Safe, with no signer on this chain yet: the Safe page says so
+  const pk2 = p256.getPublicKey(p256.utils.randomPrivateKey(), false);
+  const x2 = Buffer.from(pk2.slice(1, 33)).toString("hex"), y2 = Buffer.from(pk2.slice(33)).toString("hex");
+  const mine = getAddress(p256Owner(S.CFG.signer, "0x" + x2, "0x" + y2));
+  await page.evaluate(([a, b]) => localStorage.setItem("emu.passkey", JSON.stringify({ id: "e2e", x: a, y: b, rpId: "127.0.0.1" })), [x2, y2]);
+  chain.owners.push(mine);
+  await page.goto(safeUrl);
+  await page.getByText(/Your passkey · signer not deployed on Base Sepolia/).waitFor();
+  check(await page.locator(`a[href="#/signer/${x2}/${y2}"]`).count() === 1, "the Safe page: your passkey as an owner, signer not deployed here, with its deploy link");
+  chain.owners.pop();
+  wallet.as = "alice";
 });
 
 check(!errors.length, `no page errors${errors.length ? ": " + errors.join("; ") : ""}`);

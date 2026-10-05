@@ -152,6 +152,7 @@ check(!!JSON.parse(await con.evaluate(() => localStorage.getItem("emu.passkey"))
 const conOwner = (await con.locator("#overlay .owner .addr").innerText()).trim();
 check(/^0x[0-9a-fA-F]{40}$/.test(conOwner) && (await con.locator("#owner .addr").innerText()).trim() === conOwner,
   `the screen and the panel show the passkey's owner address, to add to a Safe (${conOwner.slice(0, 10)}…)`);
+check(await con.locator("#owner .copy", { hasText: "Share deploy link" }).count() === 1, "and a deploy link to share, for a wallet elsewhere to deploy its signer");
 check(/your passkey, for localhost/.test(await con.locator("#key").innerText()) && await con.locator('#key a[href="../app/#/passkey"]').count() === 1,
   "the panel names the key, your passkey for this site, and links to its page in the app");
 const made = JSON.parse(await con.evaluate(() => localStorage.getItem("emu.passkey")));

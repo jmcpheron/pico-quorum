@@ -34,15 +34,27 @@ async function myOwner() {
   return cred && cfg ? passkeyOwner(cred, cfg.signer) : "";
 }
 
-/** The address with its blockie and a Copy button. */
+/** The address with its blockie, a Copy button, and its deploy link: the app's page where any wallet
+ *  (MetaMask, Rabby; it needn't own the Safe) deploys the passkey's signer. The link carries the
+ *  public key, since the address is only a hash of it. A phone shares it (AirDrop, Messages). */
 function ownerLine(owner) {
   const copy = el("button", { className: "copy", type: "button", textContent: "Copy" });
   copy.onclick = async () => {
     try { await navigator.clipboard.writeText(owner); copy.textContent = "Copied"; } catch { copy.textContent = "Select it"; }
     setTimeout(() => { copy.textContent = "Copy"; }, 1500);
   };
+  const cred = passkeyCred();
+  const link = cred && new URL(`../app/#/signer/${cred.x}/${cred.y}`, location.href).href;
+  const share = el("button", { className: "copy", type: "button", textContent: "Share deploy link", title: "Open it where MetaMask or Rabby is, to deploy this passkey's signer" });
+  share.onclick = async () => {
+    if (navigator.share) {
+      try { await navigator.share({ title: "Deploy my passkey's signer", url: link }); return; } catch (e) { if (e && e.name === "AbortError") return; }
+    }
+    try { await navigator.clipboard.writeText(link); share.textContent = "Link copied"; } catch { share.textContent = "Couldn't copy"; }
+    setTimeout(() => { share.textContent = "Share deploy link"; }, 1500);
+  };
   return el("div", { className: "owner" }, el("img", { className: "blockie", src: blockieSrc(owner), alt: "" }),
-    el("code", { className: "addr", textContent: owner }), copy);
+    el("code", { className: "addr", textContent: owner }), copy, ...(link ? [share] : []));
 }
 
 /** Adding a Safe you already have, by chain and address, to the list the app keeps too. A wallet that
