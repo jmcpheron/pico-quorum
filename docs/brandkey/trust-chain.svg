@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="576" viewBox="0 0 960 576">
+<title>Two ways a key proves where it lives</title>
+<rect width="960" height="576" fill="#0B0D11"/>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#5A6370"/></marker></defs>
+<text x="24" y="40" font-size="20" text-anchor="start" fill="#F2F4F7" font-weight="700" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">Two ways a key proves where it lives</text>
+<text x="24" y="64" font-size="13" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">Top: the ATECC608 brand key (proposed). Bottom: the Trust M binding (today). Each arrow is a check anyone can run.</text>
+<text x="24" y="108" font-size="14" text-anchor="start" fill="#F2F4F7" font-weight="700" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">ATECC608 + brand key · proposed</text>
+<rect x="24" y="124" width="164" height="96" rx="8" fill="#12161C" stroke="#7A92FF" stroke-width="2"/>
+<text x="36" y="148" font-size="13" text-anchor="start" fill="#F2F4F7" font-weight="700" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">PicoQuorum Safe</text>
+<text x="36" y="168" font-size="11.5" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">keyholders sign</text>
+<text x="36" y="184" font-size="11.5" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">issueBatch(root)</text>
+<text x="36" y="200" font-size="11.5" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">on their consoles</text>
+<path d="M188 172 L211 172" fill="none" stroke="#5A6370" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="199" y="238" font-size="11.5" text-anchor="middle" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">issues</text>
+<rect x="211" y="124" width="164" height="96" rx="8" fill="#12161C" stroke="#2A313B" stroke-width="1.25"/>
+<text x="223" y="148" font-size="13" text-anchor="start" fill="#F2F4F7" font-weight="700" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">Batch root</text>
+<text x="223" y="168" font-size="11.5" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">serial and brand key</text>
+<text x="223" y="184" font-size="11.5" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">in a Merkle tree,</text>
+<text x="223" y="200" font-size="11.5" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">a proof per key</text>
+<path d="M375 172 L398 172" fill="none" stroke="#5A6370" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="386" y="238" font-size="11.5" text-anchor="middle" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">lists</text>
+<rect x="398" y="124" width="164" height="96" rx="8" fill="#12161C" stroke="#D9B44A" stroke-width="2"/>
+<text x="410" y="148" font-size="13" text-anchor="start" fill="#F2F4F7" font-weight="700" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">Brand key · slot 1</text>
+<text x="410" y="168" font-size="11.5" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">internal sign only:</text>
+<text x="410" y="184" font-size="11.5" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">describes the chip,</text>
+<text x="410" y="200" font-size="11.5" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">nothing else</text>
+<path d="M562 172 L585 172" fill="none" stroke="#5A6370" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="573" y="238" font-size="11.5" text-anchor="middle" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">vouches</text>
+<rect x="585" y="124" width="164" height="96" rx="8" fill="#12161C" stroke="#34C759" stroke-width="2"/>
+<text x="597" y="148" font-size="13" text-anchor="start" fill="#F2F4F7" font-weight="700" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">Safe key · slot 0</text>
+<text x="597" y="168" font-size="11.5" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">named in the statement</text>
+<text x="597" y="184" font-size="11.5" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">with its rules</text>
+<text x="597" y="200" font-size="11.5" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">and its seal</text>
+<path d="M749 172 L772 172" fill="none" stroke="#5A6370" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="760" y="238" font-size="11.5" text-anchor="middle" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">derives</text>
+<rect x="772" y="124" width="164" height="96" rx="8" fill="#12161C" stroke="#2A313B" stroke-width="1.25"/>
+<text x="784" y="148" font-size="13" text-anchor="start" fill="#F2F4F7" font-weight="700" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">Owner address</text>
+<text x="784" y="168" font-size="11.5" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">Safe's passkey factory</text>
+<text x="784" y="184" font-size="11.5" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">derives it from</text>
+<text x="784" y="200" font-size="11.5" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">the Safe key</text>
+<text x="24" y="272" font-size="14" text-anchor="start" fill="#F2F4F7" font-weight="700" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">Infineon OPTIGA Trust M · today</text>
+<rect x="24" y="288" width="164" height="96" rx="8" fill="#12161C" stroke="#2A313B" stroke-width="1.25"/>
+<text x="36" y="312" font-size="13" text-anchor="start" fill="#F2F4F7" font-weight="700" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">Infineon CA</text>
+<text x="36" y="332" font-size="11.5" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">its public key is</text>
+<text x="36" y="348" font-size="11.5" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">pinned in the</text>
+<text x="36" y="364" font-size="11.5" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">verifier</text>
+<path d="M188 336 L211 336" fill="none" stroke="#5A6370" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="199" y="402" font-size="11.5" text-anchor="middle" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">certifies</text>
+<rect x="211" y="288" width="164" height="96" rx="8" fill="#12161C" stroke="#2A313B" stroke-width="1.25"/>
+<text x="223" y="312" font-size="13" text-anchor="start" fill="#F2F4F7" font-weight="700" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">Certificate E0E0</text>
+<text x="223" y="332" font-size="11.5" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">signed by the CA,</text>
+<text x="223" y="348" font-size="11.5" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">names the chip's</text>
+<text x="223" y="364" font-size="11.5" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">factory key</text>
+<path d="M375 336 L398 336" fill="none" stroke="#5A6370" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="386" y="402" font-size="11.5" text-anchor="middle" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">certifies</text>
+<rect x="398" y="288" width="164" height="96" rx="8" fill="#12161C" stroke="#FFB830" stroke-width="2"/>
+<text x="410" y="312" font-size="13" text-anchor="start" fill="#F2F4F7" font-weight="700" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">Factory key E0F0</text>
+<text x="410" y="332" font-size="11.5" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">signs any digest</text>
+<text x="410" y="348" font-size="11.5" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">it is handed: the</text>
+<text x="410" y="364" font-size="11.5" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">binding is a claim</text>
+<path d="M562 336 L585 336" fill="none" stroke="#5A6370" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="573" y="402" font-size="11.5" text-anchor="middle" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">binds</text>
+<rect x="585" y="288" width="164" height="96" rx="8" fill="#12161C" stroke="#34C759" stroke-width="2"/>
+<text x="597" y="312" font-size="13" text-anchor="start" fill="#F2F4F7" font-weight="700" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">Safe key E0F1</text>
+<text x="597" y="332" font-size="11.5" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">named in the binding,</text>
+<text x="597" y="348" font-size="11.5" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">sealed by lifecycle</text>
+<text x="597" y="364" font-size="11.5" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">(LcsO operational)</text>
+<path d="M749 336 L772 336" fill="none" stroke="#5A6370" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="760" y="402" font-size="11.5" text-anchor="middle" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">derives</text>
+<rect x="772" y="288" width="164" height="96" rx="8" fill="#12161C" stroke="#2A313B" stroke-width="1.25"/>
+<text x="784" y="312" font-size="13" text-anchor="start" fill="#F2F4F7" font-weight="700" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">Owner address</text>
+<text x="784" y="332" font-size="11.5" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">Safe's passkey factory</text>
+<text x="784" y="348" font-size="11.5" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">derives it from</text>
+<text x="784" y="364" font-size="11.5" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">the Safe key</text>
+<rect x="24" y="440" width="912" height="112" rx="8" fill="none" stroke="#FFB830" stroke-width="1.25"/>
+<text x="40" y="466" font-size="13" text-anchor="start" fill="#F2F4F7" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">Box 3 is the difference. Infineon's factory key signs whatever it is handed, so a Trust M binding</text>
+<text x="40" y="488" font-size="13" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">rests on the ceremony and the operator's word (docs/mainnet/THREAT-MODEL.md).</text>
+<text x="40" y="510" font-size="13" text-anchor="start" fill="#F2F4F7" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">The brand key can only sign the chip's own description of slot 0, so that link rests on the chip.</text>
+<text x="40" y="532" font-size="13" text-anchor="start" fill="#98A0AC" font-family="Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif">Its root is the PicoQuorum Safe instead of a chip maker: issuance is the trust you extend.</text>
+</svg>

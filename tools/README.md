@@ -28,6 +28,9 @@ PicoQuorum additions:
   - `calc` works out the numbers behind the design: finger timing, I2C rise time, key power from
     a GPIO, and two ngspice runs. See [`../hardware/key-pcb/LEARN.md`](../hardware/key-pcb/LEARN.md).
 
+- `brandkey-figures`: draws the figures in [`../docs/brandkey/`](../docs/brandkey/) for
+  [`../docs/BRANDKEY.md`](../docs/BRANDKEY.md), and the Trust M object map in `../buildlog/images/`
+
 - [`fonts/`](fonts/): renders the console's anti-aliased fonts (Atkinson Hyperlegible, OFL) into
   `firmware/qf_*.bin`; `firmware/fonts.py` draws them
 

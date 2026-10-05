@@ -1,0 +1,395 @@
+#!/usr/bin/env python3
+# Draws the brand-key figures in docs/brandkey/ (for docs/BRANDKEY.md) and the Trust M object map in
+# buildlog/images/ (for buildlog/2026-10-05-chalkboard-trustm.md). Dark ground, the brand's colours
+# (docs/BRAND.md), Atkinson Hyperlegible where the viewer has it. Gold marks the brand key in these
+# figures only: it is a seal, not a console colour. Run from the repo root: tools/brandkey-figures
+import os
+
+SANS = "Atkinson Hyperlegible Next, Atkinson Hyperlegible, Inter, Segoe UI, system-ui, sans-serif"
+MONO = "Atkinson Hyperlegible Mono, ui-monospace, Menlo, Consolas, monospace"
+BG, PANEL, LINE, DIM, EDGE = "#0B0D11", "#12161C", "#2A313B", "#161A21", "#5A6370"
+TEXT, MUTED, FAINT = "#F2F4F7", "#98A0AC", "#5A6370"
+OK, WARN, ETH, RED, CYAN = "#34C759", "#FFB830", "#7A92FF", "#FF5C54", "#70D6FF"
+GOLD = "#D9B44A"
+
+
+def esc(s):
+    return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+class Fig:
+    def __init__(self, w, h, title):
+        self.w, self.h, self.out = w, h, []
+        self.add('<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d">' % (w, h, w, h))
+        self.add("<title>%s</title>" % esc(title))
+        self.add('<rect width="%d" height="%d" fill="%s"/>' % (w, h, BG))
+        self.add('<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" '
+                 'orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="%s"/></marker></defs>' % EDGE)
+
+    def add(self, s):
+        self.out.append(s)
+
+    def text(self, x, y, s, size=13, color=TEXT, anchor="start", bold=False, mono=False):
+        weight = ' font-weight="700"' if bold else ""
+        self.add('<text x="%s" y="%s" font-size="%s" text-anchor="%s" fill="%s"%s font-family="%s">%s</text>'
+                 % (x, y, size, anchor, color, weight, MONO if mono else SANS, esc(s)))
+
+    def rect(self, x, y, w, h, fill="none", stroke=LINE, sw=1.25, rx=8, dash=None, fill_opacity=None):
+        extra = (' stroke-dasharray="%s"' % dash if dash else "") + (' fill-opacity="%s"' % fill_opacity if fill_opacity else "")
+        self.add('<rect x="%s" y="%s" width="%s" height="%s" rx="%s" fill="%s" stroke="%s" stroke-width="%s"%s/>'
+                 % (x, y, w, h, rx, fill, stroke, sw, extra))
+
+    def path(self, pts, color=EDGE, sw=1.5, arrow=True, dash=None):
+        d = " ".join(("M" if i == 0 else "L") + "%s %s" % p for i, p in enumerate(pts))
+        extra = (' marker-end="url(#arrow)"' if arrow else "") + (' stroke-dasharray="%s"' % dash if dash else "")
+        self.add('<path d="%s" fill="none" stroke="%s" stroke-width="%s"%s/>' % (d, color, sw, extra))
+
+    def circle(self, cx, cy, r, fill="none", stroke="none", sw=2):
+        self.add('<circle cx="%s" cy="%s" r="%s" fill="%s" stroke="%s" stroke-width="%s"/>' % (cx, cy, r, fill, stroke, sw))
+
+    def padlock(self, x, y, color=MUTED):
+        self.add('<path d="M%s %s v-4 a4 4 0 0 1 8 0 v4" fill="none" stroke="%s" stroke-width="1.6"/>' % (x + 3, y, color))
+        self.rect(x, y, 14, 10, fill=color, stroke=color, sw=1, rx=2)
+
+    def heading(self, title, sub):
+        self.text(24, 40, title, 20, bold=True)
+        self.text(24, 64, sub, 13, MUTED)
+
+    def save(self, path):
+        self.add("</svg>")
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w") as f:
+            f.write("\n".join(self.out) + "\n")
+        print("wrote", path)
+
+
+KIND = {  # slot kinds: fill, stroke, name colour, dashed
+    "safe": (OK, OK, TEXT, None),
+    "brand": (GOLD, GOLD, TEXT, None),
+    "record": ("none", MUTED, TEXT, None),
+    "empty": ("none", EDGE, MUTED, "4 3"),
+    "dead": (DIM, "#20252D", FAINT, None),
+}
+
+
+def slot_tile(f, x, y, w, h, n, kind, name, sub):
+    fill, stroke, ink, dash = KIND[kind]
+    f.rect(x, y, w, h, fill=fill, stroke=stroke, sw=1.5 if kind in ("safe", "brand") else 1, rx=6, dash=dash,
+           fill_opacity="0.16" if kind in ("safe", "brand") else None)
+    f.text(x + 8, y + 16, str(n), 11, MUTED, mono=True)
+    f.text(x + w - 8, y + 16, "416 B" if n == 8 else ("36 B" if n < 8 else "72 B"), 10, FAINT, "end", mono=True)
+    f.text(x + w / 2, y + 38, name, 13, ink, "middle", bold=kind != "dead")
+    if sub:
+        f.text(x + w / 2, y + 53, sub, 10.5, MUTED, "middle")
+
+
+def slot_map():
+    f = Fig(960, 604, "quorum-v2 adds a brand key beside the Safe key")
+    f.heading("quorum-v2 adds a brand key beside the Safe key",
+              "The ATECC608's 16 data slots. Left: quorum-v1, today. Right: quorum-v2, proposed for branded keys.")
+    for x0, label, v2 in ((24, "quorum-v1 · today", False), (496, "quorum-v2 · branded, proposed", True)):
+        y0 = 88
+        f.rect(x0, y0, 440, 432, fill=PANEL, stroke=LINE)
+        f.text(x0 + 16, y0 + 28, label, 15, bold=True)
+        f.rect(x0 + 16, y0 + 44, 408, 36, fill=DIM, stroke=LINE, rx=6)
+        f.text(x0 + 28, y0 + 67, "Rulebook (config zone) · locked before any key exists", 12, MUTED)
+        f.padlock(x0 + 398, y0 + 62)
+        for n in range(16):
+            x, y = x0 + 16 + (n % 4) * 104, y0 + 96 + (n // 4) * 68
+            if n == 0:
+                slot_tile(f, x, y, 96, 60, n, "safe", "Safe key", "at home" if v2 else "at C4")
+            elif n == 1 and v2:
+                slot_tile(f, x, y, 96, 60, n, "brand", "Brand key", "at the bench")
+            elif n == 9 and v2:
+                slot_tile(f, x, y, 96, 60, n, "record", "Record", "at home")
+            else:
+                slot_tile(f, x, y, 96, 60, n, "dead", "dead", "")
+        f.rect(x0 + 16, y0 + 372, 300, 44, fill="none", stroke=GOLD if v2 else MUTED, rx=6)
+        f.text(x0 + 28, y0 + 391, "OTP zone · 64 B, write-once", 12, bold=True)
+        f.text(x0 + 28, y0 + 407, "the edition stamp, at the bench" if v2 else "the owner record, at C8", 11, MUTED)
+        f.rect(x0 + 324, y0 + 372, 100, 44, fill="none", stroke=MUTED, rx=6)
+        f.text(x0 + 374, y0 + 391, "Counter 0", 12, anchor="middle", bold=True)
+        f.text(x0 + 374, y0 + 407, "Safe-key uses", 11, MUTED, "middle")
+    legend = (("safe", "Safe key · made once at home · signs your transactions"),
+              ("brand", "Brand key · made once at the bench · internal sign only"),
+              ("record", "Record · written once at home, then sealed"),
+              ("dead", "Dead · never readable, never writable"))
+    for i, (kind, words) in enumerate(legend):
+        x, y = 24 + (i % 2) * 472, 548 + (i // 2) * 28
+        fill, stroke, _, dash = KIND[kind]
+        f.rect(x, y - 13, 18, 16, fill=fill, stroke=stroke, rx=3, dash=dash,
+               fill_opacity="0.16" if kind in ("safe", "brand") else None)
+        f.text(x + 28, y, words, 12.5, TEXT)
+    f.save("docs/brandkey/slot-map.svg")
+
+
+def chip_pair(f, x, y, left, right):
+    f.rect(x, y, 256, 80, fill=PANEL, stroke=LINE)
+    for i, (kind, name, state) in enumerate((left, right)):
+        tx = x + 12 + i * 122
+        fill, stroke, _, dash = KIND[kind]
+        f.rect(tx, y + 14, 110, 52, fill=fill, stroke=stroke, rx=6, dash=dash, sw=1.5,
+               fill_opacity="0.16" if kind in ("safe", "brand") else None)
+        f.text(tx + 55, y + 36, name, 12, TEXT, "middle", bold=True)
+        f.text(tx + 55, y + 54, state, 11, MUTED if kind == "empty" else TEXT, "middle")
+
+
+def tag(f, x, y, color, a, b):
+    f.rect(x, y, 256, 80, fill=color, stroke=color, sw=2, fill_opacity="0.14")
+    f.text(x + 128, y + 36, a, 14, TEXT, "middle", bold=True)
+    f.text(x + 128, y + 56, b, 12, TEXT, "middle")
+
+
+def doors(f, x, y, names):
+    f.text(x, y + 15, "One-way doors:", 11.5, MUTED)
+    cx = x + 96
+    for name in names:
+        w = 16 + len(name) * 6.6
+        f.rect(cx, y, w, 22, fill="none", stroke=RED, rx=11, sw=1.25)
+        f.text(cx + w / 2, y + 15, name, 11.5, RED, "middle")
+        cx += w + 8
+
+
+def lifecycle():
+    f = Fig(960, 704, "A branded key: two ceremonies and one vote")
+    f.heading("A branded key: two ceremonies and one vote",
+              "Who acts, what the chip holds after each stage, and the one-way doors on the way.")
+    ys = [92, 248, 404, 560]
+    stages = (
+        ("1 · At the bench · the project",
+         "A blank ATECC608 gets the quorum-v2 rulebook; the chip makes its brand key.",
+         "Edition stamped in OTP. Serial and brand public key go into the batch file."),
+        ("2 · The PicoQuorum Safe · its keyholders",
+         "The batch folds into one Merkle root, published in the repo.",
+         "Keyholders compare the root on their consoles, hold green: one transaction."),
+        ("3 · At home · the key's owner",
+         "The chip makes your Safe key in slot 0, signs two tests, then seals slot 0.",
+         "The brand key signs the chip's statement: this key, this chip, sealed."),
+        ("4 · The registry · anyone",
+         "Anyone submits the statement. The contract checks the batch proof,",
+         "the brand key's signature, and that the key is neither revoked nor bound."),
+    )
+    for y, (name, a, b) in zip(ys, stages):
+        f.rect(24, y, 912, 112, fill=PANEL, stroke=LINE)
+        f.text(44, y + 30, name, 15, bold=True)
+        f.text(44, y + 52, a, 13)
+        f.text(44, y + 70, b, 13)
+    doors(f, 44, ys[0] + 80, ["config lock", "slot 1 lock", "data lock"])
+    f.text(44, ys[1] + 95, "No chip doors. A batch can be revoked later.", 11.5, MUTED)
+    doors(f, 44, ys[2] + 80, ["slot 0 lock", "record lock"])
+    f.text(44, ys[3] + 95, "Binding happens once per key.", 11.5, MUTED)
+    chip_pair(f, 664, ys[0] + 16, ("empty", "Slot 0", "empty"), ("brand", "Slot 1", "brand key, sealed"))
+    tag(f, 664, ys[1] + 16, ETH, "Batch 1 issued onchain", "Founder 001–100 · one root")
+    chip_pair(f, 664, ys[2] + 16, ("safe", "Slot 0", "Safe key, sealed"), ("brand", "Slot 1", "brand key, sealed"))
+    tag(f, 664, ys[3] + 16, OK, "Verified PicoQuorum key", "Founder 042 of 100")
+    for y, label in zip(ys[:3], ("batch file and its Merkle root", "the key ships unbound", "the chip's statement")):
+        f.path([(200, y + 112), (200, y + 154)])
+        f.text(214, y + 138, label, 12, MUTED)
+    f.save("docs/brandkey/lifecycle.svg")
+
+
+def attestation():
+    f = Fig(960, 648, "The brand key signs only what the chip says about itself")
+    f.heading("The brand key signs only what the chip says about itself",
+              "Three commands on the chip. The verifier rebuilds the same bytes from public values and checks one signature.")
+    f.text(24, 100, "ON THE CHIP", 12, MUTED, bold=True)
+    f.text(516, 100, "THE VERIFIER", 12, MUTED, bold=True)
+    boxes = (
+        (112, 72, "1 · Nonce, pass-through mode", ["TempKey ← the verifier's 32-byte challenge"], None),
+        (212, 96, "2 · GenKey, digest mode, on slot 0",
+         ["TempKey ← SHA-256 of 128 bytes:", "@TempKey | 40 | mode | slot | serial | 0s | pubkey",
+          "Returns slot 0's public key (64 bytes)."], None),
+        (336, 96, "3 · Sign, internal mode, with slot 1",
+         ["Signs SHA-256 of 55 bytes the chip builds from", "TempKey, slot 0's rules, the serial and its seal.",
+          "Returns the statement: a P-256 signature."], GOLD),
+    )
+    for y, h, name, lines, accent in boxes:
+        f.rect(24, y, 420, h, fill=PANEL, stroke=accent or LINE, sw=2 if accent else 1.25)
+        f.text(40, y + 26, name, 14, bold=True)
+        for i, line in enumerate(lines):
+            mono = line.startswith("@")
+            f.text(40, y + 48 + i * 18, line.lstrip("@"), 11.5 if mono else 12.5, CYAN if mono else TEXT, mono=mono)
+    f.path([(120, 184), (120, 210)])
+    f.path([(120, 308), (120, 334)])
+    f.rect(516, 112, 420, 148, fill=PANEL, stroke=LINE)
+    f.text(532, 138, "What the verifier knows", 14, bold=True)
+    for i, line in enumerate(("its own challenge", "slot 0's public key, from step 2", "the chip's serial number",
+                              "slot 0's rules in quorum-v2, fixed for every key",
+                              "the brand public key, from the issued batch")):
+        f.text(532, 162 + i * 20, "·  " + line, 12.5)
+    f.rect(516, 284, 420, 148, fill=OK, stroke=OK, sw=2, fill_opacity="0.10")
+    f.text(532, 310, "What it checks", 14, bold=True)
+    for i, line in enumerate(("1  rebuild TempKey from the challenge and public key",
+                              "2  rebuild the 55 bytes and hash them",
+                              "3  verify the statement with the brand public key")):
+        f.text(532, 334 + i * 20, line, 12.5)
+    f.text(532, 400, "Pass: this public key is slot 0's, on this chip,", 12.5, OK, bold=True)
+    f.text(532, 418, "made under quorum-v2's rules, and sealed.", 12.5, OK, bold=True)
+    f.path([(514, 148), (446, 148)])
+    f.text(480, 140, "challenge", 11, MUTED, "middle")
+    f.path([(446, 384), (514, 384)])
+    f.text(480, 376, "statement", 11, MUTED, "middle")
+    # the 55-byte message, as cryptoauthlib's atcah_sign_internal_msg builds it
+    f.text(24, 470, "The 55 bytes slot 1 signs (Microchip cryptoauthlib, atcah_sign_internal_msg)", 13, bold=True)
+    x0, bw, y = 24, 912 / 55, 492
+    segs = ((0, 32, OK, "TempKey: digest of the challenge, serial and slot 0's public key", None),
+            (32, 36, MUTED, None, "a"), (36, 40, GOLD, None, "b"), (40, 41, MUTED, None, "c"),
+            (41, 43, FAINT, None, "d"), (43, 52, CYAN, "serial number", None), (52, 53, RED, None, "e"),
+            (53, 55, FAINT, None, "f"))
+    for a, b, color, label, letter in segs:
+        f.rect(x0 + a * bw, y, (b - a) * bw, 40, fill=color, stroke=BG, sw=1.5, rx=0, fill_opacity="0.22")
+        if label:
+            f.text(x0 + (a + b) / 2 * bw, y + 25, label, 12, TEXT, "middle")
+        if letter:
+            f.text(x0 + (a + b) / 2 * bw, y + 25, letter, 12, TEXT, "middle", bold=True)
+    for off in (0, 32, 36, 40, 43, 52, 55):
+        f.text(x0 + off * bw, y - 6, str(off), 10, MUTED, "middle", mono=True)
+    keys = (("a", "32–35  the Sign opcode (41), its mode, key id 1"),
+            ("b", "36–39  slot 0's SlotConfig and KeyConfig: its rules"),
+            ("c", "40  TempKey flags: TempKey came from GenKey"),
+            ("d", "41–42  zeros on the ATECC608"),
+            ("e", "52  00 if slot 0 is sealed, 01 if not"),
+            ("f", "53–54  zeros"))
+    for i, (letter, words) in enumerate(keys):
+        x, ky = 24 + (i // 3) * 472, 560 + (i % 3) * 22
+        f.text(x, ky, letter, 12.5, TEXT, bold=True)
+        f.text(x + 18, ky, words, 12.5, MUTED)
+    f.save("docs/brandkey/attestation.svg")
+
+
+def chain_lane(f, y, label, boxes, verbs):
+    f.text(24, y, label, 14, bold=True)
+    for i, (name, lines, color) in enumerate(boxes):
+        x = 24 + i * 187
+        f.rect(x, y + 16, 164, 96, fill=PANEL, stroke=color or LINE, sw=2 if color else 1.25)
+        f.text(x + 12, y + 40, name, 13, bold=True)
+        for j, line in enumerate(lines):
+            f.text(x + 12, y + 60 + j * 16, line, 11.5, MUTED)
+        if i < 4:
+            f.path([(x + 164, y + 64), (x + 187, y + 64)])
+            f.text(x + 175, y + 130, verbs[i], 11.5, MUTED, "middle")
+
+
+def trust_chain():
+    f = Fig(960, 576, "Two ways a key proves where it lives")
+    f.heading("Two ways a key proves where it lives",
+              "Top: the ATECC608 brand key (proposed). Bottom: the Trust M binding (today). Each arrow is a check anyone can run.")
+    chain_lane(f, 108, "ATECC608 + brand key · proposed", (
+        ("PicoQuorum Safe", ["keyholders sign", "issueBatch(root)", "on their consoles"], ETH),
+        ("Batch root", ["serial and brand key", "in a Merkle tree,", "a proof per key"], None),
+        ("Brand key · slot 1", ["internal sign only:", "describes the chip,", "nothing else"], GOLD),
+        ("Safe key · slot 0", ["named in the statement", "with its rules", "and its seal"], OK),
+        ("Owner address", ["Safe's passkey factory", "derives it from", "the Safe key"], None),
+    ), ("issues", "lists", "vouches", "derives"))
+    chain_lane(f, 272, "Infineon OPTIGA Trust M · today", (
+        ("Infineon CA", ["its public key is", "pinned in the", "verifier"], None),
+        ("Certificate E0E0", ["signed by the CA,", "names the chip's", "factory key"], None),
+        ("Factory key E0F0", ["signs any digest", "it is handed: the", "binding is a claim"], WARN),
+        ("Safe key E0F1", ["named in the binding,", "sealed by lifecycle", "(LcsO operational)"], OK),
+        ("Owner address", ["Safe's passkey factory", "derives it from", "the Safe key"], None),
+    ), ("certifies", "certifies", "binds", "derives"))
+    f.rect(24, 440, 912, 112, fill="none", stroke=WARN, sw=1.25)
+    for i, line in enumerate((
+            "Box 3 is the difference. Infineon's factory key signs whatever it is handed, so a Trust M binding",
+            "rests on the ceremony and the operator's word (docs/mainnet/THREAT-MODEL.md).",
+            "The brand key can only sign the chip's own description of slot 0, so that link rests on the chip.",
+            "Its root is the PicoQuorum Safe instead of a chip maker: issuance is the trust you extend.")):
+        f.text(40, 466 + i * 22, line, 13, TEXT if i in (0, 2) else MUTED)
+    f.save("docs/brandkey/trust-chain.svg")
+
+
+def safe_stages():
+    f = Fig(960, 604, "The PicoQuorum Safe hands out control in stages")
+    f.heading("The PicoQuorum Safe hands out control in stages",
+              "Each dot is one owner. From Genesis on, the founder can't reach the threshold alone.")
+    for x, label in ((24, "Stage"), (230, "Owners"), (580, "Threshold"), (690, "Founder alone"), (820, "Can go missing")):
+        f.text(x, 108, label.upper(), 11.5, MUTED, bold=True)
+    rows = (("Founders", "now: setup and rehearsal", (3, 0, 0), "2 of 3", False, "1"),
+            ("Genesis", "the Safe issues its own keys", (2, 3, 0), "3 of 5", True, "2"),
+            ("Season 1", "first Founder seats", (2, 3, 2), "4 of 7", True, "3"),
+            ("Season 2 and on", "up to 9 seats", (2, 3, 4), "5 of 9", True, "4"))
+    for i, (name, sub, (fo, tr, co), thr, safe, spare) in enumerate(rows):
+        y = 124 + i * 76
+        f.rect(24, y, 912, 60, fill=PANEL, stroke=LINE)
+        f.text(40, y + 27, name, 14, bold=True)
+        f.text(40, y + 45, sub, 11.5, MUTED)
+        for j in range(fo + tr + co):
+            cx = 240 + j * 30
+            if j < fo:
+                f.circle(cx, y + 30, 9, "none", TEXT, 2)
+            else:
+                f.circle(cx, y + 30, 10, OK if j < fo + tr else ETH)
+        f.text(580, y + 36, thr, 16, bold=True)
+        f.text(690, y + 36, "can't" if safe else "can act", 14, OK if safe else WARN, bold=True)
+        f.text(820, y + 36, spare, 16, bold=True)
+    for i, (kind, words) in enumerate((("f", "the founder: a browser wallet and own keys"),
+                                       ("t", "Genesis keyholders and trusted people"),
+                                       ("c", "community seats, voted in by signing"))):
+        x = (24, 372, 652)[i]
+        if kind == "f":
+            f.circle(x + 9, 440, 8, "none", TEXT, 2)
+        else:
+            f.circle(x + 9, 440, 9, OK if kind == "t" else ETH)
+        f.text(x + 26, 445, words, 12.5)
+    f.rect(24, 472, 912, 104, fill="none", stroke=LINE)
+    f.text(40, 498, "Rules from Genesis on", 14, bold=True)
+    for i, line in enumerate((
+            "The threshold stays above half the owners. At least two keys can go missing.",
+            "No one person and no one kind of key reaches the threshold; always-online wallets together stay below it.",
+            "Every change is one Safe transaction, approved on the consoles with a 3 s hold on a red page.")):
+        f.text(40, 522 + i * 20, line, 12.5, MUTED)
+    f.save("docs/brandkey/safe-stages.svg")
+
+
+def pill(f, x, y, label, color, dash=None):
+    w = 72
+    f.rect(x, y, w, 24, fill=DIM if color == FAINT else "none", stroke=color, rx=12, dash=dash, sw=1.25)
+    f.text(x + w / 2, y + 16, label, 11.5, MUTED if color in (FAINT, MUTED, EDGE) else TEXT, "middle", mono=True)
+    return x + w + 8
+
+
+def trustm_objects():
+    f = Fig(960, 616, "The Trust M's objects, from the chalkboard")
+    f.heading("The Trust M's objects, from the chalkboard",
+              "The board's seven rows, the object IDs behind them, and what quorum-tm1 does with each.")
+    rows = (("4", "ECC keys", [("E0F0", WARN), ("E0F1", OK), ("E0F2", FAINT), ("E0F3", FAINT)],
+             ("E0F0 Infineon's factory key: signs the binding.", "E0F1 the Safe key. E0F2, E0F3 spares.")),
+            ("4", "certificates", [("E0E0", MUTED), ("E0E1", FAINT), ("E0E2?", EDGE, "4 3"), ("E0E3?", EDGE, "4 3")],
+             ("E0E0 Infineon's certificate for E0F0.", "E0E1 spare. E0E2, E0E3 not found on our chips.")),
+            ("3", "trust anchors", [("E0E8", FAINT), ("E0EF", FAINT), ("E0E9?", EDGE, "4 3")],
+             ("CA public keys, to check other certificates.", "Spares. E0E9 not found on our chips.")),
+            ("4", "counters", [("E120", FAINT), ("E121", FAINT), ("E122", FAINT), ("E123", FAINT)],
+             ("Monotonic counters: they only go up.", "Spares, frozen at T9.")),
+            ("12", "data, 140 B", [("F1D0", TEXT), ("F1D1", TEXT), ("F1D2–DB", FAINT)],
+             ("F1D0 the record, F1D1 the binding.", "F1D2–F1DB spares, frozen at T9.")),
+            ("2", "DATA, large", [("F1E0", FAINT), ("F1E1", FAINT)],
+             ("The two large data objects.", "Spares, frozen at T9.")),
+            ("1", "binding secret", [("E140", MUTED)],
+             ("The shielded-connection secret.", "Not used by quorum-tm1; frozen as it came.")))
+    for i, (count, name, pills, (a, b)) in enumerate(rows):
+        y = 92 + i * 58
+        f.rect(24, y, 912, 50, fill=PANEL, stroke=LINE)
+        f.text(64, y + 33, count, 22, TEXT, "end", bold=True)
+        f.text(80, y + 31, name, 14, bold=True)
+        x = 232
+        for p in pills:
+            x = pill(f, x, y + 13, p[0], p[1], p[2] if len(p) > 2 else None)
+        f.text(568, y + 22, a, 12, TEXT)
+        f.text(568, y + 39, b, 12, MUTED)
+    for i, line in enumerate((
+            "Serial (top of the board): the chip's UID. The red arrows: E0F0 signs the UID together with E0F1's key, the binding.",
+            "NO GATE: quorum-tm1 puts no PIN and no use limit in front of E0F1 (decided 2026-09-28).",
+            "Not on the board: RSA key objects E0FC, E0FD and the security event counter E0C5.")):
+        f.text(24, 520 + i * 22, line, 12.5, TEXT if i < 2 else MUTED)
+    f.text(24, 596, "Pills: amber signs anything \u00b7 green the Safe key \u00b7 white what quorum-tm1 writes \u00b7 grey Infineon's, untouched \u00b7 dim spares \u00b7 dashed not found",
+           11.5, FAINT)
+    f.save("buildlog/images/trustm-object-map.svg")
+
+
+if __name__ == "__main__":
+    slot_map()
+    lifecycle()
+    attestation()
+    trust_chain()
+    safe_stages()
+    trustm_objects()

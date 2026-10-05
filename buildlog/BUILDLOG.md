@@ -749,3 +749,15 @@ holes they added in plain ground pour.
 Notes: [2026-10-02-key-c-order.md](2026-10-02-key-c-order.md). Status, newest first:
 [hardware/key-pcb/key-c-usbc](../hardware/key-pcb/key-c-usbc/README.md). Design:
 [hardware/key-pcb/PROPOSALS.md](../hardware/key-pcb/PROPOSALS.md).
+
+## 2026-10-05 — chalkboard: the Trust M's objects, and the brand key plan
+
+A chalkboard session on how the Trust M is laid out: 4 ECC keys, 4 certificate objects, 3 trust
+anchors, 4 counters, 12 small and 2 large data objects and the shielded-connection secret, with the
+binding drawn in red. Redrawn with the object IDs and what quorum-tm1 does with each. It turned up a
+question for TM3: the board's E0E2, E0E3 and E0E9 aren't in T9's spare list.
+
+![the chalkboard: the Trust M's objects](images/2026-10-05-chalkboard-trustm-objects.jpg)
+
+Notes: [2026-10-05-chalkboard-trustm.md](2026-10-05-chalkboard-trustm.md). The plan for branded
+ATECC608 keys, a brand key beside the Safe key: [docs/BRANDKEY.md](../docs/BRANDKEY.md).
