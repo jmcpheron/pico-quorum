@@ -177,11 +177,80 @@ against the design:
   the order is byte-identical to the one uploaded (same SHA-256 as above). The rotations and the
   nudge will only show up in the parts-placement confirmation.
 
+## JLCPCB's parts-placement review (2026-10-04)
+
+Email: "The parts placement of your order SMT026100263772 is completed. The order is ready for
+manufacturing now." It has to be confirmed in Order History within 72 hours, or the order goes
+into production anyway.
+
+![JLCPCB's parts-placement review for key-c P2](images/2026-10-04-key-c-jlc-placement-review.png)
+
+The pink dots in JLCPCB's preview mark the pin each part's model calls pin 1. They only matter on
+parts that have a right way round:
+- **U1 (ATECC608C):** the dot is on the top-right pad at the silkscreen triangle, and the body's
+  dimple is at the same end. ✅
+- **U2 (USBLC6-2SC6):** the dot is on the bottom-left pad at its triangle, with the
+  "SOT-23-6" marking reading upright. This one matters, because pin 2 is GND and pin 5 is VBUS. ✅
+- **J1 (HCTL USB-C):** the dots are the model's reference points on the pegs and the shell. The
+  opening faces the board edge and the pin row lands on the pad row. ✅
+- **C1, C2, R1, R2:** 0402 capacitors and resistors aren't polarized, so which end has the dot
+  doesn't matter. Nothing to do.
+
+This matches the placement view saved on 2026-10-02, so nothing moved in their review.
+
+| line | part | package | LCSC |
+|---|---|---|---|
+| C1, C2 | Samsung CL05B104KO5NNNC, 100 nF | 0402 | C1525 |
+| R1, R2 | UNI-ROYAL 0402WGF5101TCE, 5.1 kΩ | 0402 | C25905 |
+| J1 | HCTL HC-TYPE-C-16P-01A | SMD | C2894897 |
+| U1 | Microchip ATECC608C-SSHDA-T | SOIC-8 | C28975195 |
+| U2 | ST USBLC6-2SC6 | SOT-23-6L | C7519 |
+
+All 7 are on the top side, with SMT assembly.
+
+### Confirmed, and into production
+
+- **Placement confirmed in Order History.**
+  - The confirmation result reads "Yes, please proceed to production." and the status is
+    Completed.
+  - All 7 designators are assembled, with none unassembled.
+  - U1 and U2 carry JLCPCB's "revised item" mark. Those are the two rotations their engineer
+    made, as noted above.
+- **Production progress**, as JLCPCB showed it:
+  - PCB Assembly is at 13%. Data Preparation was done 2026-10-04 03:24:31, and Data Finished is
+    the current step.
+  - PCB Fabrication is at 0%.
+  - Estimated finish: 2026-10-07 05:00.
+
+![JLCPCB's confirmed placement, 3D view](images/2026-10-04-key-c-jlc-placement-confirmed.png)
+
+![JLCPCB's production progress for the PCBA](images/2026-10-04-key-c-jlc-production-progress.png)
+
+## 3D models for CAD (2026-10-04)
+
+These are STEP files of the board as ordered, for designing a handle or cap in Onshape:
+- [`key-c-P2.step`](../hardware/key-pcb/key-c-usbc/3d/key-c-P2.step) is the assembled board.
+- [`key-c-P2-board-only.step`](../hardware/key-pcb/key-c-usbc/3d/key-c-P2-board-only.step) is the
+  bare board.
+
+How they were made and what's in them:
+- **Source:** a scratch copy of the ordered board, with
+  `kicad-cli pcb export step --user-origin 108x118mm`. The board files are untouched.
+- **Origin:** the board centre. Z = 0 is the back face, the USB-C end is at −Y, and units are mm.
+- **Connector:** KiCad has no HCTL model, so J1 is the GCT USB4105 model, as in the renders. Its
+  pads and pegs are identical to the HCTL's, at the same footprint origin. Its body may differ from
+  the real HCTL shell by a few tenths of a mm. Check the HCTL drawing, or measure a real board,
+  before designing a tight fit around it.
+- **Thickness:** the bare board is modelled at 1.51 mm (no copper or mask). The real board is
+  1.6 mm nominal.
+
 ## Still to record
 
 - [x] The PCB's final details, from the order's Product Details (2026-10-02): as above
 - [x] The PCBA's final parts list (above): C2 is on the C1525 line, 10 bought
 - [x] The saved placement view (above)
-- [ ] JLCPCB's parts-placement review, if they send one
+- [x] JLCPCB's parts-placement review (2026-10-04): checked, as above
+- [x] Placement confirmed in Order History (2026-10-04): in production, estimated finish
+      2026-10-07 05:00
 - [ ] Tracking, arrival, and the first bench test (the console end needs its protected VBUS switch
       and separate CC sensing first: see PROPOSALS.md)
