@@ -28,6 +28,7 @@ const copy = (from, rel) => put(rel, readFileSync(from));
 // ----------------------------------------------------------------------------- the page's code
 for (const f of ["app.js", "app.css", "worker.js", "device3d.js"]) copy(join(EMU, "web", f), `web/${f}`);
 copy(join(EMU, "core", "runtime.mjs"), "core/runtime.mjs");
+copy(join(EMU, "core", "webauthn-assert.mjs"), "core/webauthn-assert.mjs");
 copy(join(ROOT, "web", "src", "blockies.mjs"), "shared/blockies.mjs");
 copy(join(EMU, "SKILL.md"), "SKILL.txt");          // .txt: Pages runs .md files through Jekyll
 

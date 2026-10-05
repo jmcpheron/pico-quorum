@@ -7,7 +7,7 @@ import { loadMicroPython } from "../emu/node_modules/@micropython/micropython-we
 const root = new URL("..", import.meta.url);
 const mp = await loadMicroPython({ stdout: (l) => console.log(l) });
 for (const f of ["keccak.py", "safe_tx.py", "decode.py", "quorum_cfg.py", "webauthn.py"]) mp.FS.writeFile("/" + f, readFileSync(new URL("firmware/" + f, root)));
-for (const f of ["safe_tx.json", "webauthn.json", "webauthn_check.py"]) mp.FS.writeFile("/" + f, readFileSync(new URL("test-vectors/" + f, root)));
+for (const f of ["safe_tx.json", "webauthn.json", "passkey.json", "webauthn_check.py"]) mp.FS.writeFile("/" + f, readFileSync(new URL("test-vectors/" + f, root)));
 mp.runPython(`
 import sys, json, safe_tx
 vs = json.load(open("/safe_tx.json"))["vectors"]
@@ -40,6 +40,7 @@ print("decode: %d expectations, %d selectors" % (n, len(decode.SIGS)))
 
 import webauthn_check
 bad += webauthn_check.check("/webauthn.json")
+bad += webauthn_check.check_passkey("/passkey.json")
 _failed = bad
 `);
 process.exit(mp.globals.get("_failed") ? 1 : 0);

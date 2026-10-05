@@ -56,17 +56,32 @@ function pageChip(state) {
   return { load: () => state, save(s) { state = s; postMessage({ type: "chip", data: s }); } };
 }
 
+// A question only the page can answer (WebAuthn exists there, not in a worker), asked while Python
+// waits: post it, block on the shared buffer until the page writes the answer. Int32 [ready, length]
+// then the answer's bytes (JSON).
+let rpcCtl = null, rpcBuf = null;
+function askPage(what, args, timeoutMs = 180000) {
+  if (!rpcCtl) return JSON.stringify({ error: "this page can't answer while Python runs (no SharedArrayBuffer)" });
+  Atomics.store(rpcCtl, 0, 0);
+  postMessage({ type: "rpc", what, args });
+  if (Atomics.wait(rpcCtl, 0, 0, timeoutMs) === "timed-out") return JSON.stringify({ error: "no answer from the page" });
+  return new TextDecoder().decode(rpcBuf.slice(0, Atomics.load(rpcCtl, 1)));
+}
+// The visitor's passkey, when the page picked one (m.passkey: its public key as JSON).
+const pagePasskey = (info) => ({ info: () => info || null, get: (challenge) => askPage("passkey", { challenge }) });
+
 onmessage = async (e) => {
   const m = e.data;
   try {
     if (m.type === "boot") {
       keys = new Int32Array(m.keys);
       if (m.serial) { serialCtl = new Int32Array(m.serial, 0, 2); serialBuf = new Uint8Array(m.serial, 8); }
+      if (m.rpc) { rpcCtl = new Int32Array(m.rpc, 0, 2); rpcBuf = new Uint8Array(m.rpc, 8); }
       const files = {};
       for (const f of m.files) files[f.name] = f.text !== undefined ? f.text : Uint8Array.from(atob(f.b64), (c) => c.charCodeAt(0));
       dev = await createDevice({
         loadMicroPython, keys, files, shims: m.shims, appUrl: m.appUrl, heapsize: m.heapsize, mark,
-        secrets: m.secrets, keyBin: m.keyBin,
+        secrets: m.secrets, keyBin: m.keyBin, passkey: pagePasskey(m.passkey),
         http: xhr,
         chip: m.chip !== undefined ? pageChip(m.chip) : serverChip,
         stdin: serialCtl ? stdinByte : undefined,

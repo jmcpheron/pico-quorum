@@ -41,6 +41,7 @@ def main():
     print("%d/%d vectors pass" % (len(vectors) - failed, len(vectors)))
     failed += check_decode(vectors)
     failed += webauthn_check.check(os.path.join(HERE, "webauthn.json"))
+    failed += webauthn_check.check_passkey(os.path.join(HERE, "passkey.json"))
     return 1 if failed else 0
 
 

@@ -832,8 +832,56 @@ def case_release():
         Q.handle("B")
 
 
+def case_passkey():
+    """The browser emulator's passkey as the key (emu/core/shims/passkey.py; a software passkey
+    here, core/softpasskey.mjs): the same console and checks, the owner follows from its key, and
+    the posted signature is the passkey's own WebAuthn assertion over the hash computed on screen,
+    packed as a chip's and valid the way the Safe checks it."""
+    import _emu
+    import hashlib
+    import quorum_cfg
+    chip()
+    _emu.passkey_use(True)
+    try:
+        Q = fresh(prod=False, expect=None)
+        check(Q.sig.name == "passkey" and Q.state == "home", "the page picked a passkey: the console uses it, not the chip on the bus")
+        x, y = Q.sig.pubkey()
+        check(Q.me == webauthn.owner_address("0x%064x" % x, "0x%064x" % y, quorum_cfg.CFG["signer"]), "its owner address follows from the passkey's key, as for a chip")
+        check(any("passkey" in l.lower() for l in Q.chip_info()) and "browser" in " ".join(Q.chip_info()), "the signing screen names the passkey, and that the browser draws it")
+        try:
+            Q.sig.sign(b"\x00" * 32)
+            check(False, "a passkey refuses a bare digest")
+        except Exception:
+            check(True, "a passkey refuses a bare digest")
+        serve(Q, [tx(Q, 0)])
+        e = Q.queue[0]
+        check(sign(Q, e, 2100), "held 2.1 s: the passkey signed, and it was posted")
+        url, body = SVC.posted[-1]
+        b = bytes.fromhex(body["signature"][2:])
+        data = b[65 + 32:]
+        word = lambda i: int.from_bytes(data[i:i + 32], "big")
+        ad = data[word(0) + 32:word(0) + 32 + word(word(0))]
+        fields = data[word(32) + 32:word(32) + 32 + word(word(32))].decode()
+        r, s_ = word(64), word(96)
+        cdj = '{"type":"webauthn.get","challenge":"%s",%s}' % (webauthn.b64url(bytes.fromhex(e["mine"][2:])), fields)
+        digest = hashlib.sha256(ad + hashlib.sha256(cdj.encode()).digest()).digest()
+        check(b[12:32] == bytes.fromhex(Q.me[2:]) and e["h"] in url, "a contract signature from this key's owner, for that hash")
+        check(p256.verify(x, y, digest, r, s_) and ad[32] & 0x04, "the passkey's assertion over the hash computed here verifies as the Safe checks it, with UV")
+        check('"origin":"http://localhost:4242"' in fields, "the browser's own clientData fields ride along in the signature")
+        n = len(SVC.posted)
+        real = Q.sig.assertion
+        Q.sig.assertion = lambda c: (_ for _ in ()).throw(Exception("NotAllowedError: the person cancelled"))
+        Q.handle("A")           # off the result screen
+        serve(Q, [tx(Q, 0, to=OTHER, data="0xdeadbeef")])
+        check(not sign(Q, Q.queue[0], 3100) and len(SVC.posted) == n and not Q.result[0] and "cancelled" in " ".join(Q.result[2]),
+              "a cancelled passkey prompt: Not signed, nothing posted, and the reason shown")
+        Q.sig.assertion = real
+    finally:
+        _emu.passkey_use(False)
+
+
 def main():
-    for case in (case_pin, case_owners_pages, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_safes, case_watchdog, case_grid, case_release):
+    for case in (case_pin, case_owners_pages, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_safes, case_watchdog, case_grid, case_release, case_passkey):
         print("--", case.__name__[5:])
         try:
             case()

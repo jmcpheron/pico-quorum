@@ -400,6 +400,8 @@ def grid_tile(d, q, t, x, y, w, on):
         title = q.chip["name"] if q.chip else "Chip"
         if q.sig and q.sig.name == "trustm":
             a, b = "Trust M", "sealed" if q.row and q.row.get("locked") else "open"
+        elif q.sig and q.sig.name == "passkey":
+            title, a, b = "Key", "Passkey", "browser"
         else:
             a, b = "ATECC", ("%d uses" % q.counter) if q.counter is not None else ""
         if not q.pin_ok:

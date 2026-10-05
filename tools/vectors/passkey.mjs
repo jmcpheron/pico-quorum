@@ -10,13 +10,15 @@
 // Then, read only on each chain's public RPC: the factory's getSigner(x, y, verifiers) and
 // isValidSignatureForSigner(safeTxHash, ...), with s as the browser gave it and flipped.
 //
-//   cd tools/vectors && npm install && node passkey.mjs [--chain basesep|base|eth ...]
+//   cd tools/vectors && npm install && node passkey.mjs [--chain basesep|base|eth ...] [--write]
+// --write keeps this assertion as test-vectors/passkey.json once every chain asked accepts it, so
+// test-vectors/run.py checks firmware/webauthn.py packs a real browser's assertion the same way.
 //   PQ_CHROMIUM=/path/to/chrome if playwright-core has no Chromium of its own
 import { createServer } from "node:http";
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { chromium } from "playwright-core";
 import { p256 } from "@noble/curves/p256";
-import { createPublicClient, encodeAbiParameters, http, parseAbi } from "viem";
+import { concat, createPublicClient, encodeAbiParameters, http, pad, parseAbi, size, toHex } from "viem";
 import { base, baseSepolia, mainnet } from "viem/chains";
 
 const ROOT = new URL("../../", import.meta.url);
@@ -92,5 +94,21 @@ for (const n of nets.length ? nets : Object.keys(CHAINS)) {
   const [lo, hi] = [await ask(low), await ask(high)];
   bad += lo !== "0x1626ba7e";
   console.log(`${lo === "0x1626ba7e" ? "pass" : "FAIL"}  ${chain.name.padEnd(13)} owner ${owner}  low s ${lo}  high s ${hi}`);
+}
+if (argv.includes("--write") && !bad) {
+  const owner = (await createPublicClient({ chain: baseSepolia, transport: http(CHAINS.basesep[1]) }).readContract({ address: SIGNER.factory, abi,
+    functionName: "getSigner", args: [qx, qy, BigInt(SIGNER.verifiers)] })).toLowerCase();
+  const signature = pack(low);
+  // the Safe's layout for a contract owner's confirmation, as webauthn.contract_signature makes it
+  const contractSignature = concat([pad(owner), pad(toHex(65)), "0x00", pad(toHex(size(signature))), signature]);
+  writeFileSync(new URL("test-vectors/passkey.json", ROOT), JSON.stringify({
+    note: "A real browser passkey's assertion (Chromium, virtual platform authenticator with user verification) over safe_tx.json's eth-send-base safeTxHash, accepted by Safe's passkey signer on every chain asked (tools/vectors/passkey.mjs --write). webauthn_check.check_passkey: firmware/webauthn.py packs it to the same bytes.",
+    signer: { factory: SIGNER.factory, singleton: SIGNER.singleton, verifiers: SIGNER.verifiers },
+    chains: nets.length ? nets : Object.keys(CHAINS),
+    vectors: [{ name: "chromium-platform", safeTxHash: HASH, qx: "0x" + got.spki.slice(-128, -64), qy: "0x" + got.spki.slice(-64),
+      authenticatorData: "0x" + got.ad, clientDataJSON: got.cdj, clientDataFields: fields, r: toHex(low.r), s: toHex(low.s),
+      owner, signature, contractSignature }],
+  }, null, 2) + "\n");
+  console.log("wrote test-vectors/passkey.json");
 }
 process.exit(bad ? 1 : 0);

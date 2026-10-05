@@ -58,6 +58,22 @@ default `http://localhost:3001`) plus `emu/sketches/*` on top. Saving in the edi
   `mock`.
 - **No USB, no control channel.** `tools/emu` stays the local path.
 
+**Your passkey as the key** (both hosts). The toolbar's **key** menu picks the virtual chip or **your
+passkey**, and **make a passkey** creates one with WebAuthn for this site: Touch ID, Windows Hello, a
+phone or a security key, P-256 (ES256).
+- **What the console gets:** the public key, kept in the browser. The console computes its owner
+  address from it, as for a chip.
+- **When it signs:** `shims/passkey.py` asks the page, through a shared buffer while Python waits,
+  for a WebAuthn assertion over the safeTxHash computed on screen. `quorum.sign_it` packs it exactly
+  as a chip's.
+- **Before handing it over,** the page checks the assertion's shape, the UV flag, and the signature
+  against the key.
+- **The first time,** a note says the authenticator won't show the transaction.
+
+`tools/vectors/passkey.mjs` showed a real browser's assertion passes Safe's passkey signer on Base
+Sepolia, Base and Ethereum. `test-vectors/passkey.json` pins the firmware's packing of it. Headless:
+`--passkey` signs with a software passkey (`core/softpasskey.mjs`).
+
 `node emu/e2e-static.mjs` serves `docs/` like Pages and checks all of that in Chromium.
 
 ## Give it to your AI

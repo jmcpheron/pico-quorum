@@ -45,25 +45,22 @@ jobs:
           python3 test-vectors/fingerprint_test.py
           python3 test-vectors/boot_maintenance_test.py
           python3 test-vectors/wifisetup_test.py
+      # from the repository root, as test-vectors/README.md runs them (the boot art writes emu/shots/)
       - name: MicroPython (WebAssembly 1.26, as on the Pico)
-        working-directory: emu
         run: |
-          node ../test-vectors/run-micropython.mjs
-          node ../test-vectors/manifest.mjs
+          node test-vectors/run-micropython.mjs
+          node test-vectors/manifest.mjs
       - name: Console
-        working-directory: emu
-        run: node ../test-vectors/run-console.mjs
+        run: node test-vectors/run-console.mjs
       - name: Trust M and ceremony
-        working-directory: emu
         run: |
-          node ../test-vectors/run-trustm.mjs
-          node ../test-vectors/run-ceremony.mjs
+          node test-vectors/run-trustm.mjs
+          node test-vectors/run-ceremony.mjs
       - name: Display and boot art
-        working-directory: emu
         run: |
-          node ../test-vectors/run-display.mjs
-          node ../test-vectors/run-bootmark.mjs
-          node ../test-vectors/run-bootart.mjs
+          node test-vectors/run-display.mjs
+          node test-vectors/run-bootmark.mjs
+          node test-vectors/run-bootart.mjs
 
   fwbuild:
     runs-on: ubuntu-24.04
