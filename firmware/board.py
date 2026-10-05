@@ -34,7 +34,8 @@ if KNOB and SCREEN == "1.8":
     SPI_BAUD = 24_000_000
 elif KNOB:
     PANEL_W, PANEL_H = W, H = 320, 240
-    MADCTL = 0xA0           # MY|MV: landscape with the header on the right (the 2.8", proven)
+    MADCTL = 0x60           # MX|MV: landscape with the header on the left, as Build 1's case holds it
+                            # (2026-10-02); 0xA0 was the bench's way up, the header on the right
     SPI_BAUD = 24_000_000   # jumper wires: clean at 24 MHz on the 1.8"
 if KNOB:
     # A on GP2 and B on GP3 as wired (BREADBOARD.md); read the other way round, because this knob

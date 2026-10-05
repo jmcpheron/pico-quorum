@@ -49,8 +49,11 @@ try:
         # font (bold26 alone is 10.9 KB) and the 32 KB that HTTPS borrows for each call. Everything
         # imported after them fits in what is left; the other way round the heap ends up in pieces
         # too small for any of them (2026-09-26, on the board).
-        # The boot art keeps moving on its timer (boot.py, splash.run) while this runs, except here:
-        # its frames' small objects must not land between the big blocks.
+        # The boot art keeps moving on its timer (boot.py, splash.run), but not while the big blocks
+        # are taken or the console's modules load: its frames' small objects must not land between
+        # them. With the art running through the imports, the console loaded in 3.5 s and left no
+        # free block over 17-26 KB; Build 1 then stopped on boot, unable to find 1,280 bytes in one
+        # piece with 221 KB free. Paused, the imports take 0.9 s and leave a 95 KB block (2026-10-03).
         import gc
         import lcd
         import splash
@@ -61,8 +64,8 @@ try:
             fonts.get(_f)
         import txservice
         txservice.reserve_early()
-        splash.pause(False)
         import quorum
+        splash.pause(False)
         quorum.start()
 except Exception as e:
     try:
