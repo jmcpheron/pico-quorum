@@ -9,6 +9,9 @@
 //   index.html      <meta name="emu-host" content="static">, and a strict CSP
 //   BUILD.json      the SHA-256 of every file written; rebuild from the same commit and compare
 // The chip state, a software key and edits stay in the visitor's browser (web/app.js).
+// And docs/console/: the console alone (emu/console/), the screen and buttons with your passkey as the
+// key. It runs docs/emu's boot.json, worker and MicroPython, and has its own coi.js, sw.js, CSP and
+// BUILD.json (the live-site check reads both).
 //   node emu/build.mjs        (cd emu && npm ci first)
 import { createHash } from "node:crypto";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
@@ -18,15 +21,17 @@ import { FIRMWARE, ROOT, isRunnable, entryFor, readShims, emuBuild } from "./cor
 
 const EMU = dirname(fileURLToPath(import.meta.url));
 const OUT = join(ROOT, "docs", "emu");
+const CONSOLE = join(ROOT, "docs", "console");
 const NM = join(EMU, "node_modules");
 const sha256 = (b) => createHash("sha256").update(b).digest("hex");
 
-rmSync(OUT, { recursive: true, force: true });
-const put = (rel, data) => { const p = join(OUT, rel); mkdirSync(dirname(p), { recursive: true }); writeFileSync(p, data); };
+for (const d of [OUT, CONSOLE]) rmSync(d, { recursive: true, force: true });
+const write = (dir, rel, data) => { const p = join(dir, rel); mkdirSync(dirname(p), { recursive: true }); writeFileSync(p, data); };
+const put = (rel, data) => write(OUT, rel, data);
 const copy = (from, rel) => put(rel, readFileSync(from));
 
 // ----------------------------------------------------------------------------- the page's code
-for (const f of ["app.js", "app.css", "worker.js", "device3d.js"]) copy(join(EMU, "web", f), `web/${f}`);
+for (const f of ["app.js", "app.css", "worker.js", "device3d.js", "browser.mjs"]) copy(join(EMU, "web", f), `web/${f}`);
 copy(join(EMU, "core", "runtime.mjs"), "core/runtime.mjs");
 copy(join(EMU, "core", "webauthn-assert.mjs"), "core/webauthn-assert.mjs");
 copy(join(ROOT, "web", "src", "blockies.mjs"), "shared/blockies.mjs");
@@ -76,21 +81,25 @@ const boot = {
 put("boot.json", JSON.stringify(boot));
 
 // ----------------------------------------------------------------------------- COOP/COEP
-put("coi.js", `// GitHub Pages can't send COOP/COEP headers, and the emulator needs SharedArrayBuffer (keys reach
+// The reload flag is per folder: a tab that already reloaded for one page must reload for the other.
+const coi = (what) => `// GitHub Pages can't send COOP/COEP headers, and ${what} needs SharedArrayBuffer (keys reach
 // Python while it runs). sw.js adds them to this folder's own responses; the first visit reloads
 // once, when the worker has taken over. Cross-origin requests (Safe's service) are left alone.
 (function () {
   if (self.crossOriginIsolated || !("serviceWorker" in navigator)) return;
-  var KEY = "emu.coi-reloaded";
+  var KEY = "coi-reloaded:" + location.pathname;
   var once = function () { try { if (sessionStorage.getItem(KEY)) return; sessionStorage.setItem(KEY, "1"); } catch (e) { return; } location.reload(); };
   navigator.serviceWorker.register("sw.js").then(function () {
     if (navigator.serviceWorker.controller) once();
     else navigator.serviceWorker.addEventListener("controllerchange", once);
-  }, function (e) { console.warn("emulator: no service worker, so no SharedArrayBuffer:", e); });
+  }, function (e) { console.warn("no service worker, so no SharedArrayBuffer:", e); });
 })();
-`);
-put("sw.js", `// COOP/COEP for the emulator's own files (coi.js registers this). Same-origin responses get the
-// headers; everything else goes to the network untouched.
+`;
+// A page's subresources, and its worker's imports, go through the service worker that controls the
+// page whatever their URL; the worker's own script goes through the one whose scope holds its URL.
+// So the console has a worker.js of its own, which imports ../emu/web/worker.js.
+const sw = (what) => `// COOP/COEP for ${what} (coi.js registers this). Same-origin responses get the headers;
+// everything else goes to the network untouched.
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
 self.addEventListener("fetch", (e) => {
@@ -106,7 +115,9 @@ self.addEventListener("fetch", (e) => {
     return new Response(res.body, { status: res.status, statusText: res.statusText, headers: h });
   }));
 });
-`);
+`;
+put("coi.js", coi("the emulator"));
+put("sw.js", sw("the emulator's own files"));
 
 // ----------------------------------------------------------------------------- index.html
 let html = readFileSync(join(EMU, "web", "index.html"), "utf8");
@@ -127,16 +138,39 @@ html = html.replace("<title>picowallet emulator</title>", "<title>PicoQuorum con
 html = html.replace(/<div class="brand">[^\n]*<\/div>/, '<a class="brand" href="../" title="PicoQuorum">pico<span>quorum</span> console</a> <a class="applink" href="../app/">app</a>');
 put("index.html", html);
 
+// ----------------------------------------------------------------------------- docs/console
+const CSRC = join(EMU, "console");
+const cput = (rel, data) => write(CONSOLE, rel, data);
+for (const f of ["console.js", "console.css"]) cput(f, readFileSync(join(CSRC, f)));
+cput("coi.js", coi("the console"));
+cput("sw.js", sw("the console's files, and the emulator's files it runs"));
+cput("worker.js", '// The emulator\'s worker, started from this folder so that sw.js here gives it COOP/COEP.\nimport "../emu/web/worker.js";\n');
+const ccsp = [
+  "default-src 'self'",
+  "script-src 'self' 'wasm-unsafe-eval'",       // MicroPython's WebAssembly; no inline script at all
+  "style-src 'self'",
+  "img-src 'self' data:",                       // the release blockie
+  "connect-src 'self' https:",                  // Safe's transaction service, per chain
+  "worker-src 'self'",
+  "object-src 'none'",
+  "base-uri 'none'",
+  "form-action 'none'",
+].join("; ");
+let chtml = readFileSync(join(CSRC, "index.html"), "utf8");
+if (/<script(?![^>]*\bsrc=)/.test(chtml) || /\sstyle=/.test(chtml)) throw new Error("emu/console/index.html: no inline scripts or styles (the CSP refuses them)");
+chtml = chtml.replace('<meta charset="utf-8">\n', `<meta charset="utf-8">\n<meta http-equiv="Content-Security-Policy" content="${ccsp}">\n<script src="coi.js"></script>\n`);
+cput("index.html", chtml);
+
 // ----------------------------------------------------------------------------- BUILD.json
-const all = [];
-(function walk(d) { for (const f of readdirSync(d).sort()) { const p = join(d, f); statSync(p).isDirectory() ? walk(p) : all.push(p); } })(OUT);
-// Pages would run any file opening with YAML front matter through Jekyll and serve something else
-const jekyll = all.filter((p) => readFileSync(p).subarray(0, 4).toString() === "---\n");
-if (jekyll.length) throw new Error(`these would be rewritten by Jekyll on Pages (they open with ---): ${jekyll.map((p) => relative(OUT, p)).join(", ")}`);
-const hashes = Object.fromEntries(all.map((p) => [relative(OUT, p).split("\\").join("/"), sha256(readFileSync(p))]));
-put("BUILD.json", JSON.stringify({
-  note: "SHA-256 of every file emu/build.mjs wrote. Rebuild from the same commit (cd emu && npm ci && node build.mjs) and compare.",
-  release: b.release,
-  files: hashes,
-}, null, 2) + "\n");
-console.log(`docs/emu: release ${b.release.slice(0, 4)}·${b.release.slice(4, 8)}, ${all.length + 1} files, ${Math.round(all.reduce((n, p) => n + statSync(p).size, 0) / 1024)} KB`);
+function seal(dir, note) {
+  const all = [];
+  (function walk(d) { for (const f of readdirSync(d).sort()) { const p = join(d, f); statSync(p).isDirectory() ? walk(p) : all.push(p); } })(dir);
+  // Pages would run any file opening with YAML front matter through Jekyll and serve something else
+  const jekyll = all.filter((p) => readFileSync(p).subarray(0, 4).toString() === "---\n");
+  if (jekyll.length) throw new Error(`these would be rewritten by Jekyll on Pages (they open with ---): ${jekyll.map((p) => relative(dir, p)).join(", ")}`);
+  const hashes = Object.fromEntries(all.map((p) => [relative(dir, p).split("\\").join("/"), sha256(readFileSync(p))]));
+  write(dir, "BUILD.json", JSON.stringify({ note, release: b.release, files: hashes }, null, 2) + "\n");
+  console.log(`${relative(ROOT, dir)}: release ${b.release.slice(0, 4)}·${b.release.slice(4, 8)}, ${all.length + 1} files, ${Math.round(all.reduce((n, p) => n + statSync(p).size, 0) / 1024)} KB`);
+}
+seal(OUT, "SHA-256 of every file emu/build.mjs wrote. Rebuild from the same commit (cd emu && npm ci && node build.mjs) and compare.");
+seal(CONSOLE, "SHA-256 of every file emu/build.mjs wrote for the console page. It runs ../emu/'s boot.json, worker and MicroPython, which ../emu/BUILD.json lists. Rebuild from the same commit (cd emu && npm ci && node build.mjs) and compare.");

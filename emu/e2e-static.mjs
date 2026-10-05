@@ -2,7 +2,8 @@
 // /pico-quorum/, no COOP/COEP headers. Chromium checks that the page isolates itself (the service
 // worker), boots MicroPython from boot.json, shows the release fingerprint it was built with, gets
 // keys through SharedArrayBuffer, keeps the chip state and a random software key in the browser,
-// marks edited files, runs the console on the Safes saved in the app, and breaks no CSP rule.
+// marks edited files, runs the console on the Safes saved in the app, and breaks no CSP rule. Then
+// docs/console/: it asks for a passkey, then a Safe, then runs the console; its buttons reach it.
 // Nothing leaves the machine: any other request is refused and counted.
 //   cd emu && npm ci && node build.mjs && node e2e-static.mjs     (PQ_CHROMIUM=/path/to/chrome)
 import { createServer } from "node:http";
@@ -112,6 +113,48 @@ await repl(PY_CHECK, /verified:True uv:4/, "the passkey's assertion over a hash,
 await repl("print('fields:' + _f)", /fields:"origin":"http:\/\/localhost:\d+","crossOrigin":false/, "its clientData fields are the browser's own (origin, crossOrigin)");
 await cdp.send("WebAuthn.setUserVerified", { authenticatorId, isUserVerified: false });
 await repl("exec(\"try:\\n    _s.assertion('0x' + 'cd' * 32)\\nexcept Exception as _e:\\n    print('refused:' + str(_e))\")", /refused:.*(UV|verif|NotAllowedError)/i, "without user verification it is refused (by the browser, or the page checks the UV flag): the console gets an error, never a signature");
+
+// 7. the console page (docs/console/): only the console, your passkey as its key. A fresh browser
+// profile: no passkey, no Safes. It asks for each in turn, then runs the firmware from ../emu/.
+const ctx2 = await browser.newContext({ viewport: { width: 1000, height: 900 } });
+await ctx2.route("**/*", (route) => { const u = route.request().url(); if (u.startsWith(BASE)) return route.continue(); outside.push(u); return route.abort(); });
+const con = await ctx2.newPage();
+con.on("console", (m) => { if (/Content Security Policy|Refused to/.test(m.text())) csp.push("console page: " + m.text()); });
+con.on("pageerror", (e) => errors.push("console page: " + e.message));
+await con.goto(BASE + "console/");
+await con.waitForFunction(() => self.crossOriginIsolated && !document.querySelector("#overlay").hidden, null, { timeout: 30000 });
+check(await con.evaluate(() => self.crossOriginIsolated), "console page: it isolates itself too (its own sw.js, which also covers the files it runs from ../emu/)");
+check(/Make a passkey/.test(await con.locator("#overlay").innerText()), "no passkey yet: the screen asks you to make one");
+await con.waitForSelector("#release img");
+check((await con.locator("#release").innerText()).includes(short), `the bar shows release ${short}, computed in the browser over the files it runs`);
+const cdp2 = await ctx2.newCDPSession(con);
+await cdp2.send("WebAuthn.enable");
+await cdp2.send("WebAuthn.addVirtualAuthenticator", { options: {
+  protocol: "ctap2", transport: "internal", hasResidentKey: true, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true } });
+await con.click("#overlay .go");
+await con.waitForFunction(() => /No Safe/.test(document.querySelector("#overlay").innerText), null, { timeout: 15000 });
+check(!!JSON.parse(await con.evaluate(() => localStorage.getItem("emu.passkey")))?.x, "Make a passkey: made, kept in this browser; next the screen asks for a Safe, with a link to the app");
+check(/passkey, made for localhost/.test(await con.locator("#key").innerText()), "the panel names the key: your passkey, for this site");
+await con.evaluate(() => localStorage.setItem("pq.safes", JSON.stringify([{ chain: "basesep", address: "0x1234567890abcdef1234567890abcdef12345678", name: "Test Safe" }])));
+await con.reload();
+const drew = await con.waitForFunction(() => document.querySelector("#overlay").hidden && +(document.querySelector("#screen").dataset.frames || 0) > 0, null, { timeout: 60000 }).then(() => true, () => false);
+check(drew, `with a passkey and a saved Safe, the console boots and draws its screen${drew ? "" : ` (output ends: ${(await con.evaluate(() => document.querySelector("#out").textContent)).slice(-400).replace(/\n/g, " | ")}; errors: ${errors.join("; ")})`}`);
+const lit = await con.evaluate(() => { const d = document.querySelector("#screen").getContext("2d").getImageData(0, 0, 240, 240).data; let n = 0; for (let i = 0; i < d.length; i += 4) n += d[i] + d[i + 1] + d[i + 2] > 60; return n; });
+check(lit > 2000, `the screen has something on it (${lit} lit pixels)`);
+const shot = () => con.evaluate(() => document.querySelector("#screen").toDataURL());
+await con.waitForTimeout(3000);                // past the splash, to the home grid
+const before = await shot();
+const pressed = async (sel) => { await con.locator(sel).dispatchEvent("pointerdown"); await con.waitForTimeout(250); await con.locator(sel).dispatchEvent("pointerup"); };
+await pressed('[data-key="right"]');
+let moved = false;
+for (let i = 0; i < 20 && !moved; i++) { await con.waitForTimeout(150); moved = (await shot()) !== before; }
+check(moved, "the on-screen joystick reaches the firmware: the screen changes");
+const before2 = await shot();
+await con.keyboard.down("ArrowLeft"); await con.waitForTimeout(250); await con.keyboard.up("ArrowLeft");
+moved = false;
+for (let i = 0; i < 20 && !moved; i++) { await con.waitForTimeout(150); moved = (await shot()) !== before2; }
+check(moved, "and so does the keyboard (an arrow key)");
+await ctx2.close();
 
 check(!csp.length, `no CSP violations${csp.length ? ": " + csp.slice(0, 3).join(" | ") : ""}`);
 check(!errors.length, `no page errors${errors.length ? ": " + errors.join("; ") : ""}`);

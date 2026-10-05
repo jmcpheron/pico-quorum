@@ -74,7 +74,20 @@ phone or a security key, P-256 (ES256).
 Sepolia, Base and Ethereum. `test-vectors/passkey.json` pins the firmware's packing of it. Headless:
 `--passkey` signs with a software passkey (`core/softpasskey.mjs`).
 
-`node emu/e2e-static.mjs` serves `docs/` like Pages and checks all of that in Chromium.
+**The console page** ([…/pico-quorum/console/](https://jmcpheron.github.io/pico-quorum/console/),
+`emu/console/`, written to `docs/console/` by the same build): the console alone, its screen with the
+joystick and A B X Y as on the board, for anyone without a Pico. No editor, no 3D case, no module
+menu; it always runs the quorum console with your passkey as the key, and the files exactly as built.
+- **First visit:** it asks you to **make a passkey**, then to save a Safe in the app.
+- **It runs `docs/emu/`'s** `boot.json`, worker and MicroPython (`web/browser.mjs` is shared by both
+  pages), and shows the same release blockie.
+- **Its own** `coi.js`, `sw.js`, CSP (no inline script or style) and `BUILD.json`. It also has a
+  one-line `worker.js` importing the emulator's: a worker's own script goes through the service
+  worker whose scope holds its URL, so it must sit under `/console/` to be isolated.
+
+The front page and the app link to the console page; it links to the emulator for developers.
+
+`node emu/e2e-static.mjs` serves `docs/` like Pages and checks all of that in Chromium, both pages.
 
 ## Give it to your AI
 
