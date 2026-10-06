@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "description": "The PicoQuorum Execute page: a static page on GitHub Pages (docs/app/), built from here",
+  "license": "MIT",
   "scripts": {
     "build": "node build.mjs",
     "test": "node test.mjs",

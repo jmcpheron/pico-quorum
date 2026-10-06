@@ -18,3 +18,25 @@ The inherited picowallet wiring (Pico + Waveshare LCD + ATECC608 + 18650) is in
 **The enclosure** isn't designed yet. Its open questions (button layout, a flip cover or a guard
 over Sign, printed or aluminum, the faceplate name) are in the kickoff's
 [open decisions](../docs/KICKOFF.md#open-decisions).
+
+## License
+
+Copyright Jason McPheron 2026.
+
+This source describes Open Hardware and is licensed under the CERN-OHL-W v2
+([LICENSE-HARDWARE](../LICENSE-HARDWARE), https://ohwr.org/cern_ohl_w_v2.txt). You may redistribute
+and modify this source and make products using it under the terms of the CERN-OHL-W v2. This source
+is distributed WITHOUT ANY EXPRESS OR IMPLIED WARRANTY, INCLUDING OF MERCHANTABILITY, SATISFACTORY
+QUALITY AND FITNESS FOR A PARTICULAR PURPOSE. Please see the CERN-OHL-W v2 for applicable
+conditions.
+
+**Source Location:** https://github.com/jmcpheron/pico-quorum
+
+As per CERN-OHL-W v2 section 4.1, should you make hardware based on these sources, you must keep
+the Source Location visible on the product itself (its silkscreen, case or label) or, where it
+doesn't fit, on its packaging or documentation.
+
+The name and the mark on the boards are not part of this license ([TRADEMARK.md](../TRADEMARK.md)):
+a board you change carries your name, with the Source Location.
+
+- [ ] Put the Source Location on the silkscreen at the next key revision (key-c P3).

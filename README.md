@@ -24,7 +24,7 @@
   <br>
   <a href="docs/LADDER.md"><img alt="Safe 1.3.0 and later" src="https://img.shields.io/badge/Safe-%E2%89%A5%201.3.0-34C759?labelColor=0B0D11"></a>
   <a href="docs/guide/NETWORKS.md"><img alt="Chains: Base and Ethereum" src="https://img.shields.io/badge/chains-Base%20%C2%B7%20Ethereum-627EEA?labelColor=0B0D11"></a>
-  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-98A0AC?labelColor=0B0D11"></a>
+  <a href="#license"><img alt="Licenses: MIT code, CERN-OHL-W hardware, CC BY-SA docs" src="https://img.shields.io/badge/license-MIT%20%C2%B7%20CERN--OHL--W%20%C2%B7%20CC%20BY--SA-98A0AC?labelColor=0B0D11"></a>
 </p>
 
 <p align="center">
@@ -228,15 +228,28 @@ logo at the top of this page.
 
 ## Credit
 
-PicoQuorum is a fork of [picowallet](https://github.com/austintgriffith/picowallet) by
-**Austin Griffith** (MIT). picowallet proved that a Pico can drive a secure element from
-MicroPython, rebuild an EIP-712 digest on the device, and sign with a key that never leaves the
-chip, all on mainnet with an audited vault. The chip drivers are still upstream's, and fixes go
-back upstream ([docs/UPSTREAM-TRACKING.md](docs/UPSTREAM-TRACKING.md)). Everything else is
-attributed in [NOTICE](NOTICE).
+PicoQuorum exists because of [picowallet](https://github.com/austintgriffith/picowallet) by
+**Austin Griffith**. picowallet proved that a Raspberry Pi Pico can drive a secure element from
+MicroPython, rebuild an EIP-712 digest on the device, show it on its own screen, and sign with a
+key that never leaves the chip, all on mainnet. PicoQuorum began as a fork of it and is still
+built on it:
+- the ATECC608 and Trust M drivers, the display driver, keccak and P-256, blockies and the WiFi join;
+- the emulator that runs the console in your browser.
+
+Each of those files says so on its first line, under Austin's MIT license. Fixes to the drivers go
+back upstream ([docs/UPSTREAM-TRACKING.md](docs/UPSTREAM-TRACKING.md)). Everything else this project
+uses is credited in [NOTICE](NOTICE).
 
 PicoQuorum runs on Raspberry Pi Pico 2 W. It is not affiliated with Raspberry Pi or Safe.
 
 ## License
 
-MIT (see [LICENSE](LICENSE)). Third-party parts and their licenses are listed in [NOTICE](NOTICE).
+| | license |
+|---|---|
+| Code and firmware: `firmware/`, `emu/`, `web/`, `tools/`, `test-vectors/`, the built site | [MIT](LICENSE) |
+| Hardware: `hardware/` (the key boards, wiring, parts lists) | [CERN-OHL-W-2.0](LICENSE-HARDWARE) |
+| Docs, the build log, photos and screenshots | [CC BY-SA 4.0](LICENSE-DOCS) |
+| The name PicoQuorum and its mark | not licensed: [TRADEMARK.md](TRADEMARK.md) |
+
+Hardware made from these sources must show where the source is ([hardware/README.md](hardware/README.md#license)).
+Third-party parts and their licenses are in [NOTICE](NOTICE).
