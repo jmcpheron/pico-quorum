@@ -172,6 +172,6 @@ fingers and small boards weren't checked here.
    - SDA GP4, SCL GP5, VCC GP6, DETECT GP7, RST GP26, ID GP27, GND.
    - Use 4.7k or 10k pull-ups to switched VCC, as in BUILD1.
 3. **`import bench1`** should print `key bus scan: ['0x60']` and a serial number once the key is in
-   ([HANDOFF.md](../HANDOFF.md#4-build-order)).
+   ([BUILD1.md](../wiring/BUILD1.md#order-of-work)).
 4. **Practise provisioning on a spare first.** Config and data locks are permanent
    ([LOCKING.md](../../docs/LOCKING.md), [PROVISIONING.md](../../docs/PROVISIONING.md)).

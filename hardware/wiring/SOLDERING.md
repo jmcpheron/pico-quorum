@@ -1,8 +1,8 @@
 # Soldering: the perfboard build
 
-The no-solder build in the [build guide](../../docs/picowallet.md) wedges the ATECC's wires into the LCD board's header. This is
+The no-solder [dev console](../DEV-CONSOLE.md) wedges the ATECC's wires into the LCD board's header. This is
 the permanent version: Pico and LCD on a perfboard, the ATECC608 soldered to the Pico's pin tails,
-and an 18650 cell behind a switch and a diode so the wallet runs unplugged but still programs
+and an 18650 cell behind a switch and a diode so the console runs unplugged but still programs
 and powers over USB.
 
 ![wiring](../../buildlog/images/wiring-battery-atecc.svg)
@@ -115,9 +115,9 @@ should come up.
 
 ## 3. Firmware side
 
-- `firmware/power.py` reads GP28 and shows the cell voltage and a bar in the home screen's top
-  row; "usb" when only USB is present; a red "battery low" warning below 3.45 V.
-- The wallet finds the chip on the bus by itself. The Adafruit breakout answers at 0x60; a
+- GP28 reads the cell through the divider. picowallet's `power.py` showed the voltage and a bar on
+  its home screen; the console doesn't read it yet.
+- The console finds the chip on the bus by itself. The Adafruit breakout answers at 0x60; a
   Microchip Trust&Go / TrustFLEX part answers at 0x35 or 0x6A and is found too.
 
 ## 4. Exploring the fresh chip without changing it

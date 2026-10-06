@@ -1,3 +1,4 @@
+# From picowallet by Austin Griffith (MIT): https://github.com/austintgriffith/picowallet
 # Serial-port helpers for the emulator's device list (pyserial from the mpremote install).
 #   usbinfo.py list            JSON: [{port, product, manufacturer, vid, pid, serial}]
 #   usbinfo.py touch PORT      1200-baud touch: Arduino-style firmware reboots into the UF2 bootloader

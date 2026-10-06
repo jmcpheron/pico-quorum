@@ -230,8 +230,8 @@ SRI, and a `BUILD.json` of hashes. It is served under the same origin as the app
 | `POST /ctl/file` (editor saves to disk) | saved in the browser, with a "download" button |
 | `/ctl/events`, `/ctl/reply` (the CLI drives the page) | not offered; `tools/emu` stays the local path |
 | `/ctl/devices`, `ship`, `flash` (USB) | not offered at first. Later, Web Serial could put a sketch on a real Pico from Chrome. |
-| `/app` proxy (picowallet's wallet app) | not needed by the quorum console |
-| case STLs (9.5 MB) | only the parts the 3D view draws, or a flat view by default |
+| `/app` proxy (a laptop service, such as tools/quorum's mock) | not needed by the quorum console |
+| case STLs (9.5 MB) | gone: the case left the repository on 2026-10-06, and every view is flat |
 
 From the browser the console talks straight to Safe's transaction service. The `requests` shim
 already does that with sync XHR, and CORS fetches are fine under COEP. Safe's API key comes from

@@ -1,22 +1,25 @@
-# emu: the virtual Pico wallet
+# emu: the console in a browser
+
+The emulator comes from Austin Griffith's [picowallet](https://github.com/austintgriffith/picowallet)
+(MIT): its runtime, shims, page and command line are his, changed since for PicoQuorum.
 
 Real MicroPython (the WebAssembly build of 1.26, the board runs 1.26.1) running the firmware in
 `firmware/` unchanged, with the `machine`/`network`/`requests` modules replaced by shims that talk
 to the page. The screen is captured from the ST7789 SPI stream, so what you see is the exact
-framebuffer. The device is drawn in 3D from the case STLs in `cad/console/zez0000/`.
+framebuffer.
 
 ```
 tools/emu                 # start the server, open http://localhost:4242
-tools/emu run hello       # reboot + import emu/sketches/hello.py
+tools/emu run quorum      # reboot + start the console (firmware/quorum.py)
 tools/emu key A           # press a button (A B X Y up down left right press), key right:300 holds
 tools/emu shot            # emu/shots/latest.png
-tools/emu exec 'mock.goto("send")'
+tools/emu exec 'import gc; print(gc.mem_free())'
 tools/emu log             # console lines
 tools/emu chip ready      # the virtual ATECC608: config locked + key in slot 0 (fresh = blank part, show = state)
 tools/emu devices         # boards on USB (serial ports, bootloader drives)
-tools/emu ship hello      # copy hello.py (+ imports) to the Pico on USB and run it (--port /dev/cu.usbmodemN, --boot: run at power-up too)
+tools/emu ship snake      # copy emu/sketches/snake.py (+ imports) to the Pico on USB and run it (--port /dev/cu.usbmodemN, --boot: run at power-up too)
 tools/emu flash --port /dev/cu.usbmodemN [--wifi]   # MicroPython onto any board (also works on a BOOTSEL drive without --port)
-tools/emu headless mock --wait 300 --key right --shot emu/shots/x.png    # no browser
+tools/emu headless quorum --wait 300 --key right --shot emu/shots/x.png    # no browser
 tools/emu serve --host 0.0.0.0   # server in the foreground, reachable from the LAN (EMU_HOST=0.0.0.0 too)
 ```
 
@@ -28,9 +31,9 @@ send button becomes ⚡ install MicroPython. The module menu top left picks what
 ⇪ send to Pico act on (only modules
 that show something are listed: they start themselves at import, or the server knows their entry
 point, `ENTRY` in `core/workspace.mjs`). Left = files, editor (Cmd/Ctrl+Enter runs the open file),
-console with a REPL; right = the device (orbit with the mouse, click the caps) or the flat view.
+console with a REPL; right = the device, its screen with the joystick and A B X Y.
 Keyboard: W A S D and space for the joystick, numpad 9 6 3 . for A B X Y (top-row 9 6 3 . work
-too), after clicking the device. The 3D view labels each button with its key.
+too), after clicking the device, or click the buttons.
 
 The flash also gets a `build.py` like the one `tools/fw build` writes for a Pico (`IMAGE = "emu"`, the
 manifest's version, the commit, and `RELEASE`, the release fingerprint of the console files as
@@ -38,19 +41,19 @@ served here). The toolbar shows the fingerprint's blockie, the same picture as o
 the same files. `--file build.py=PATH` in headless replaces it.
 
 The flash is `firmware/*.py` and `*.bin` (never `secrets.py`; a stub is generated with
-`APP_URL = "/app"`, which the server proxies to the wallet app, `--app http://host:port`,
-default `http://localhost:3001`) plus `emu/sketches/*` on top. Saving in the editor writes to disk.
+`APP_URL = "/app"`, which the server proxies to a laptop service such as tools/quorum's mock,
+`--app http://host:port`, default `http://localhost:3001`) plus `emu/sketches/*` on top. Saving in the editor writes to disk.
 
 ## On GitHub Pages
 
 `node emu/build.mjs` (after `npm ci` here) writes the console page, `docs/console/`. Commit it, as
 with `docs/app/`. CI rebuilds it and fails if the committed copy differs. This emulator, with its
-editor, module menu and 3D case, is not on the site any more: `docs/emu/` is only a redirect to the
+editor and module menu, is not on the site any more: `docs/emu/` is only a redirect to the
 console page, so old links still land somewhere. It runs here, under `tools/emu`.
 
 **The console page** ([…/pico-quorum/console/](https://jmcpheron.github.io/pico-quorum/console/),
 `emu/console/`, written to `docs/console/` by the same build): the console alone, its screen with the
-joystick and A B X Y as on the board, for anyone without a Pico. No editor, no 3D case, no module
+joystick and A B X Y as on the board, for anyone without a Pico. No editor, no module
 menu; it always runs the quorum console with your passkey as the key, and the files exactly as built.
 - **First visit:** it asks you to **make a passkey**, or to use one you **already have** (made in
   another browser, or synced from your other device by iCloud Keychain or Google Password Manager),
@@ -123,13 +126,13 @@ that the CSP refuses any other host in the page and in its worker.
 `emu/SKILL.md` is the skill file. It tells an AI what the screen and buttons are, how to write a
 sketch, how to run it here (`tools/emu run`, `key`, `shot`), and how to put it on the real Pico.
 Hand it over with a checkout of this repo (the skill runs `tools/emu`, which needs node). In
-Claude Code it loads on its own from `.claude/skills/pico-emu`; say "build Tetris for the Pico
-wallet" or `/pico-emu`. The page links to it too (top right, "skill file for your AI", also at
+Claude Code it loads on its own from `.claude/skills/pico-emu`; say "build Tetris for the Pico"
+or `/pico-emu`. The page links to it too (top right, "skill file for your AI", also at
 http://localhost:4242/skill).
 
 What is modeled: pins (keys pull low when pressed), SPI display window commands, the SPI transfer
 time (24 MHz cap until `machine.freq(cpu, peri)` raises the peripheral clock, like rp2), PWM
-backlight, `Pin("LED")` (the base glows), `Timer` periodic/one-shot, `Pin.irq`, `machine.reset()`,
+backlight, `Pin("LED")`, `Timer` periodic/one-shot, `Pin.irq`, `machine.reset()`,
 a 448 KB heap, and a virtual ATECC608 on I2C at 0x60 (`core/shims/atecc_sim.py`: the packet
 protocol, config zone and its locks, the slot table, GenKey, Nonce + Sign, Random, Info; state in
 `emu/chip.json`, blank part until provisioned). Not modeled: the chip's OTP/data reads, MAC and

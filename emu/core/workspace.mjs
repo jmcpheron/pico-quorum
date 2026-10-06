@@ -1,3 +1,4 @@
+// Started in picowallet by Austin Griffith (MIT): https://github.com/austintgriffith/picowallet
 // What the emulated flash holds: firmware/*.py and *.bin (never secrets.py), then emu/sketches/*
 // on top. Used by the server (for the browser) and by headless.mjs.
 import { readdirSync, readFileSync, statSync, existsSync, writeFileSync } from "node:fs";
@@ -54,7 +55,7 @@ export function readWorkspace() {
 // (a `start()` call at the bottom); a few firmware modules only define functions, so the emulator
 // calls their entry point. Library modules (lcd, keccak, ...) have nothing to show and are not
 // offered in the run menu.
-export const ENTRY = { demo: "demo.run()", wallet: "wallet.start()", usbwallet: "usbwallet.start()", quorum: "quorum.start()" };
+export const ENTRY = { quorum: "quorum.start()" };
 export function entryFor(name) { return ENTRY[name] || ""; }
 export function isRunnable(name, text) {
   if (name === "main" || ENTRY[name]) return true;

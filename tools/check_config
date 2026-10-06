@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
+# Started in picowallet by Austin Griffith (MIT): https://github.com/austintgriffith/picowallet
 """Prove the ATECC608 config tables in firmware/ are the reviewed ones before anyone locks a chip.
 
-  legacy-test (firmware/atecc.py CONFIG): byte for byte the table reference/pi/provision.py wrote
-      into chip #1 (serial 0123f3acfd2a826bee), and its fingerprint.
+  legacy-test (firmware/atecc.py CONFIG): its fingerprint. The table is the one the Raspberry Pi
+      signer in ATECC608-demo (https://github.com/clawdbotatg/ATECC608-demo, provision.py) wrote
+      into chip #1 (serial 0123f3acfd2a826bee); this check compared them byte for byte until that
+      copy left the repository (2026-10-06), and the fingerprint pins the same bytes.
   quorum-v1 (firmware/chipcfg.py QUORUM_V1): its fingerprint, and every slot decoded again HERE,
       from the datasheet's bit tables, independently of atecc.decode_slot: slot 0 the sealed signing
       key, slots 1-15 dead, the header off. Plus atecc.write_policy for all 16 WriteConfig codes and
@@ -13,7 +16,7 @@ Exit 0 = safe. Anything else: do not provision a chip until it is 0.
     python3 tools/check_config --summary SNAPSHOT.bin   the config CRC a fresh chip must match at C3
                                                         (SNAPSHOT: its 128 factory bytes, from C1)
 """
-import hashlib, importlib.util, os, re, sys, types
+import hashlib, importlib.util, os, sys, types
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.modules["machine"] = types.SimpleNamespace(I2C=object, SoftI2C=object, Pin=object)
 sys.path.insert(0, os.path.join(ROOT, "firmware"))
@@ -34,11 +37,6 @@ except AssertionError as e:
     sys.exit(2)
 
 # --- legacy-test: chip #1's table ------------------------------------------------------------
-t = open(os.path.join(ROOT, "reference/pi/provision.py")).read()
-m = re.search(r"ATECC608_CONFIG\s*=\s*bytes\(\[(.*?)\]\)", t, re.S)
-pi = bytes(int(x, 16) for x in re.findall(r"0x([0-9A-Fa-f]{2})", re.sub(r"#.*", "", m.group(1))))
-bad = [i for i in range(128) if not (i < 16 or 84 <= i < 88) and pi[i] != atecc.CONFIG[i]]
-check(not bad, "legacy-test == reference/pi/provision.py on every writable byte" + (" (differs at %s)" % bad if bad else ""))
 check(hashlib.sha256(atecc.CONFIG).hexdigest() == atecc.CONFIG_SHA256 == "c759db6c849668ed53957ded37264023479dfca9b719af4e22d087a1d8a7eacf",
       "legacy-test fingerprint c759db6c...")
 

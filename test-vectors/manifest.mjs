@@ -14,8 +14,7 @@ const src = (f) => readFileSync(join(FIRMWARE, f), "utf8");
 const closure = (...mods) => [...new Set(mods.flatMap((m) => dependencies(m)))].sort();
 
 // Apps and screens that can use the chip other than the console's one signature path.
-const NOT_IN_CONSOLE = ["wallet.py", "usbwallet.py", "main_usb.py", "main.py", "demo.py", "mock.py", "keytest.py", "vid.py",
-  "eip712.py", "power.py", "chipcheck.py", "slots.py", "chipmap.py", "learn.py", "snakelab.py", "ceremony.py",
+const NOT_IN_CONSOLE = ["chipcheck.py", "slots.py", "chipmap.py", "learn.py", "snakelab.py", "ceremony.py",
   "chipapp.py", "provision.py", "provision_tm.py", "main_ceremony.py"];
 // qrcode.py is not on the list: it only turns text into a picture (the Wi-Fi setup screen, wifisetup.py).
 // Signer and driver calls that change the chip. Only signer.py and the drivers may even name them

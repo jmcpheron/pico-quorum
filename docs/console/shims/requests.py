@@ -1,3 +1,4 @@
+# From picowallet by Austin Griffith (MIT): https://github.com/austintgriffith/picowallet
 # Emulator `requests`: same surface the firmware uses (get/post, json=, timeout=, .json(), .close()).
 # The transfer itself is synchronous in the host: XHR in the browser worker, curl in node.
 import _emu

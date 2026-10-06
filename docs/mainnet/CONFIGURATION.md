@@ -1,8 +1,6 @@
 # Recommended configuration: a Trust M signer in a 3-of-5 Safe on Ethereum
 
-This is a recommendation for you to decide on. Nothing in it has been frozen on a chip. The
-shareable co-signer guide draws the chip's objects and the one-key-many-Safes picture:
-[PicoQuorum Trust M signer: guide for co-signers](https://claude.ai/code/artifact/f5ef9f4d-aab4-4925-bf3b-c384c3001822).
+This is a recommendation for you to decide on. Nothing in it has been frozen on a chip.
 
 **The short version:**
 - The Safe's threshold is the security. The Pico is one owner of five.

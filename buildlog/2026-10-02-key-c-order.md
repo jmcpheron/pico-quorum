@@ -81,9 +81,9 @@ none for the HCTL part.
 
 | | |
 |---|---|
-| Placed | 2026-10-02 16:10, JLCPCB order **W2026100307101209** |
-| PCB | **Y4-13710122A** (customer code 13710122A, order Y4), production order 86289523 |
-| PCBA | Economic, top side, **SMT026100263772-13710122A** |
+| Placed | 2026-10-02 16:10, JLCPCB order **W…1209** |
+| PCB | order **Y4**, production order …9523 (the account's customer code is left out here) |
+| PCBA | Economic, top side, **SMT…3772** |
 | Quantity | 5 boards, 5 assembled |
 | Board | 2 layers, 16 × 36 mm, 1.6 mm FR-4 TG135, 1 oz, LeadFree HASL, blue mask, white ink-jet silkscreen, tented vias, 0.3 mm via holes (0.4/0.45 mm pads), "Remove Mark", ±0.2 mm outline, IPC Class 2, flying-probe electrical test |
 | Edges | **not deburred.** The final order says "Deburring/Edge rounding: No", although an earlier quote had it. Sand the edges lightly if they feel sharp |
@@ -179,7 +179,7 @@ against the design:
 
 ## JLCPCB's parts-placement review (2026-10-04)
 
-Email: "The parts placement of your order SMT026100263772 is completed. The order is ready for
+Email: "The parts placement of your order SMT…3772 is completed. The order is ready for
 manufacturing now." It has to be confirmed in Order History within 72 hours, or the order goes
 into production anyway.
 

@@ -2,8 +2,8 @@
 
 ## The dev console (today)
 
-The picowallet hardware this repo forked. It runs everything in test ladder rung 1. Build guide:
-[docs/picowallet.md](../../docs/picowallet.md).
+The build picowallet started from. It runs everything in test ladder rung 1. Build guide:
+[DEV-CONSOLE.md](../DEV-CONSOLE.md).
 
 | part | ~price | source |
 |---|---|---|
@@ -13,11 +13,30 @@ The picowallet hardware this repo forked. It runs everything in test ladder rung
 | STEMMA QT / JST-SH 4-pin cable, any ends | $1 to $8 | Amazon `B08HQ1VSVL`, or Adafruit 4209 (snip the pins off and strip) |
 | micro-USB cable, data not charge-only | | |
 
-About $35, no soldering. The case is in [cad/console](../../cad/console/README.md).
+About $35, no soldering. A printed case that fits: [DEV-CONSOLE.md](../DEV-CONSOLE.md#wiring).
 
 For the soldered perfboard version with an 18650 cell (a protected cell or a DW01 board, a holder,
 an SPST switch, a 1N5817 Schottky, and an optional 2 × 100 kΩ + 100 nF battery gauge), see
 [hardware/wiring/SOLDERING.md](../wiring/SOLDERING.md#parts).
+
+## Build 1
+
+The first console with the real parts ([BUILD1.md](../wiring/BUILD1.md)): a Pico 2 W, a 2.0″ ST7789
+240×320 SPI screen (8-pin), an EC11 rotary encoder with push, a 3.5 mm and a 2.5 mm TRRS jack and
+plug, and an ATECC608 STEMMA QT breakout as the stand-in key.
+
+Still to buy for the full version (from the Build 1 bench, 2026-09-27):
+
+| part | unblocks |
+|---|---|
+| TP4056 module **with** DW01 protection, 1N5817, SPST slide switch | the battery build ([SOLDERING.md](../wiring/SOLDERING.md#2-battery-switch-diode)) |
+| resistors: 100k ×2 | the battery gauge on GP28 |
+| resistors: 10k | console-side I2C pull-ups once a key is a bare chip without a breakout |
+| resistors: 1k, and a 2N3906 or S8550 PNP | a key power switch, if GP6 alone can't carry signing (open decision) |
+| resistors: 33k, 10k | ID resistor codes on GP27, if the ID line gets used |
+| resistors: 100 Ω | series on SDA and SCL at J1, to limit current while a plug wipes across the contacts |
+| caps: 100 nF | key decoupling, the battery gauge |
+| tact switches | Sign (A, GP15) and Reject (Y, GP21), then B and X |
 
 ## Key PCB, rev A
 

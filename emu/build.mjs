@@ -49,6 +49,9 @@ put("vendor/micropython/LICENSE.txt", `MicroPython ${mpVersion}, WebAssembly bui
 // the site's typeface, as web/build.mjs wrote it for the app (committed, so always here), and its mark
 for (const f of ["next-400.woff2", "next-700.woff2", "mono-500.woff2", "LICENSE-OFL.txt"]) copy(join(ROOT, "docs", "app", "fonts", f), `fonts/${f}`);
 for (const f of ["mark-dark.svg", "mark-light.svg"]) copy(join(ROOT, "docs", "brand", f), `brand/${f}`);
+// the code's license (MIT: Jason McPheron, and Austin Griffith for what came from picowallet), so a
+// saved copy of the folder carries it
+copy(join(ROOT, "LICENSE"), "LICENSE");
 
 // ----------------------------------------------------------------------------- the firmware
 // The console image as plain files, to read, diff and hash: test-vectors/manifest.mjs checks that it

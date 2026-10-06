@@ -127,6 +127,6 @@ word on I2C.
       JLCPCB's bevelled gold fingers, which need a board or panel of at least 50 × 50 mm
 - [ ] Pull-ups: BUILD1's 10k is marginal for the ATECC608C's 300 ns rise time above 100 kHz.
       4.7k is safer
-- [ ] KEY ID resistor codes per key type (HANDOFF §7)
+- [ ] KEY ID resistor codes per key type ([open decisions](../../docs/STATUS.md#open-decisions))
 - [ ] A socket breakout PCB for the console (rev B)
-- [ ] The key's shell, if any: [cad/key](../../cad/key/README.md)
+- [ ] The key's shell, if any

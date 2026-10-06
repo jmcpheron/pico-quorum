@@ -1,3 +1,4 @@
+# Started in picowallet by Austin Griffith (MIT): https://github.com/austintgriffith/picowallet
 # WiFi plus an optional network console for isolated development.
 # The console is passwordless arbitrary code execution and must remain disabled when holding value.
 import network, socket, os, time

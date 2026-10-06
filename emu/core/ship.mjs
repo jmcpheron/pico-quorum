@@ -1,10 +1,10 @@
+// From picowallet by Austin Griffith (MIT): https://github.com/austintgriffith/picowallet
 // Put a module on the real Pico and run it. Used by `tools/emu ship NAME` and the page's
 // "send to Pico" button (server route /ctl/ship).
 //   ship(name, { target: "usb" | "wifi", port, boot }) -> { ok, port, lines, blocking, error? }
-// boot: also write main.py so the module runs at power-up (USB only; refused on a board whose
-// main.py mentions the wallet, which is the wallet Pico).
-// usb: `port` from the device picker, else the first /dev/cu.usbmodem* (mac) or /dev/ttyACM* (linux). wifi: the wallet Pico's
-// socket console (PICO_HOST, default picowallet.local:2323), same as tools/pico.
+// boot: also write main.py so the module runs at power-up (USB only).
+// usb: `port` from the device picker, else the first /dev/cu.usbmodem* (mac) or /dev/ttyACM* (linux). wifi: the Pico's
+// socket console (PICO_HOST, default picoquorum.local:2323).
 // The module is copied (lcd.py too if the board lacks it), the board is soft-reset (USB), then the
 // module is imported with the same snippet the emulator uses. Output is followed for a few seconds; a module that never returns
 // (a `while True`) is reported as blocking and left running.
@@ -42,7 +42,7 @@ export async function ship(name, opts = {}) {
   if (!file) return { ok: false, error: `no module ${name}.py in firmware/ or emu/sketches/` };
   const src = join(file.src === "firmware" ? FIRMWARE : SKETCHES, file.name);
   const target = opts.target || "usb";
-  const port = target === "wifi" ? `socket://${process.env.PICO_HOST || "picowallet.local"}:2323` : (opts.port || findUsbPort());
+  const port = target === "wifi" ? `socket://${process.env.PICO_HOST || "picoquorum.local"}:2323` : (opts.port || findUsbPort());
   if (!port) return { ok: false, error: "no Pico on USB (nothing at /dev/cu.usbmodem*); plug one in, or ship --wifi" };
   if (opts.port && target !== "wifi" && !serialPorts().includes(opts.port)) return { ok: false, error: "no board at " + opts.port + " any more" };
 
@@ -54,7 +54,7 @@ export async function ship(name, opts = {}) {
 async function doShip(name, file, src, port, target, boot, force) {
   // USB: soft reset first (kills the old module's timers; raw-REPL reset skips main.py), then copy,
   // then run, all without another reset: a reset right after a copy can lose the write on LittleFS.
-  // WiFi wallet: a soft reset would rerun boot.py and drop the console, so no reset there; runCode
+  // WiFi: a soft reset would rerun boot.py and drop the network console, so no reset there; runCode
   // stops the old copy of the module instead.
   const probe = "import os; print(os.listdir()); print('MAIN:', open('main.py').read()[:200].replace('\\n', ' ') if 'main.py' in os.listdir() else '')";
   const ls = await mp(port, ["exec", probe], 15000, target === "wifi");
@@ -68,7 +68,7 @@ async function doShip(name, file, src, port, target, boot, force) {
     return { ok: false, port, error: "this board runs a production image (tools/fw push): use tools/fw, or ship --force on purpose", lines: [] };
   let bootNote = "";
   if (boot) {
-    if (target === "wifi" || /wallet/.test(mainNow)) bootNote = "main.py left alone: this looks like the wallet Pico";
+    if (target === "wifi") bootNote = "main.py left alone: over WiFi, ship never writes main.py";
     else {
       const lcdFirst = dependencies(name).includes("lcd.py") && name !== "lcd" ? "    import lcd     # first: framebuffer on a fresh heap (RP2040)\n" : "";
       writeFileSync(join(SKETCHES, ".main.py"), `# written by the emulator's send: run ${name} at power-up\nimport sys\ntry:\n${lcdFirst}    import ${name}\n${entryFor(name) ? "    " + entryFor(name) + "\n" : ""}except Exception as e:\n    sys.print_exception(e)\n`);

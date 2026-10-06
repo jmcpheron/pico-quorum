@@ -190,7 +190,7 @@ wording on the DATA lock screens says "clear writes only where the rules say Alw
 ![the fixed random pattern](../buildlog/images/chipmap-08-lab-random.png)
 ![why it is weird](../buildlog/images/chipmap-09-lab-why.png)
 
-What the real fresh ATECC608A answered on 2026-09-16 is in `UPSTREAM.md` section 3b. In short:
+What the real fresh ATECC608A answered on 2026-09-16, in short:
 it identifies itself, passes its self tests, hashes (matching the Pico's SHA-256) and reads its
 counters while unlocked; it refuses OTP and data reads with `0x0F`; Info GPIO refuses with `0x03`.
 
@@ -261,7 +261,7 @@ the real screen and marks the chapter done for this boot.
 
 ## How the code is put together
 
-- **`firmware/slots.py`** is the state machine, `SlotsUI`. `wallet.py` creates it with the LCD, the
+- **`firmware/slots.py`** is the state machine, `SlotsUI`. `chipapp.py` creates it with the LCD, the
   signer and a callback, calls `open("zones")` or `open("learn")`, and on every 50 ms tick passes
   the keys that went down; `tick()` returns `"home"` when the trail is exhausted. It draws the DATA
   screens (grid, slot, public key), the red confirm, WORKING and the result screen, and runs the
@@ -328,8 +328,8 @@ tools/emu headless main --wait 2800 --key X --key A --key down --key A --hold A 
   --hold B --hold Y --wait 3400 --release B --release Y --key up --key up --key up --key A --hold A --wait 3400 --release A --wait 2600 --shot sealed.png
 ```
 
-On the real board, `TESTPLAN.md` phase 4b walks the read-only tour and the write-and-restore round
-trip, and phase 6 the sealing, each step checked with `tools/usb run firmware/chipcheck.py`.
+On the real board, check each step of the read-only tour, the write-and-restore round trip and the
+sealing with `tools/usb run firmware/chipcheck.py`.
 
 ## What is not here yet
 

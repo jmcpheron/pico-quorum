@@ -7,26 +7,17 @@
 
 A physical approval device for [Safe](https://safe.global) multisig wallets. Each signer holds a plug-in secure-element key; the console shows what a transaction does and signs only when you press Sign.
 
-## Status (2026-09-25)
+## Status
 
-The hardware in this kickoff (plug-in keys, the console with its guarded button and dial) doesn't exist yet. Until
-it does, the **dev console** is the picowallet this repo forked: a Pico 2 W, a Waveshare Pico-LCD-1.3 (240×240,
-joystick, A/B/X/Y) and an Adafruit ATECC608 breakout. Its build guide is [picowallet.md](picowallet.md).
+Where things stand today, with every Safe, key and address: [STATUS.md](STATUS.md). The per-chain
+test steps: [LADDER.md](LADDER.md).
 
-| Layer | Where it lives | State |
-|---|---|---|
-| 1. Secure-element driver | `firmware/atecc.py` and `firmware/trustm.py` (upstream), `firmware/signer.py` | ATECC608 works; Trust M not yet run on a chip here |
-| 2. Safe hash | `firmware/safe_tx.py`, checked against `test-vectors/` | done |
-| 3. Signature packaging | `firmware/webauthn.py` | done: a WebAuthn assertion for Safe's passkey signer (safe-modules v0.2.1), checked against the deployed contracts (`test-vectors/webauthn.json`) |
-| 4. Transaction service client | `firmware/txservice.py`, against `tools/quorum`: simulated, or a real Safe on an Anvil fork of Base | working on the fork; next, `api.safe.global` |
-| 5. Decoder and display | `firmware/decode.py` (checked by `test-vectors/`), `firmware/quorum.py`, `quorum_ui.py` | started: [walkthrough](quorum-ui/README.md) |
-| Contracts | none of our own | Safe 1.4.1 and Safe's passkey signer, both deployed and audited |
-
-[Test ladder](#test-ladder) rung 1 runs on the laptop (`tools/quorum up`, and `tools/quorum e2e`
-with the emulator). Next: the real Pico on the fork, then rung 2. Progress: [LADDER.md](LADDER.md).
-
-Build 1, the first console with the real parts (2.0″ screen, knob, a 3.5 mm + 2.5 mm TRRS key jack pair, an
-ATECC608 stand-in key), is on the bench: [hardware/HANDOFF.md](../hardware/HANDOFF.md).
+This kickoff is the design: what PicoQuorum is for, the hardware and firmware layers, and the
+decisions still open. The hardware below (plug-in keys, the console with its guarded button and
+dial) is still being built. Until it is, the **dev console** is the build picowallet started from: a
+Pico 2 W, a Waveshare Pico-LCD-1.3 and an ATECC608 breakout
+([DEV-CONSOLE.md](../hardware/DEV-CONSOLE.md)). Build 1, the first console with the real parts, is on
+the bench ([BUILD1.md](../hardware/wiring/BUILD1.md)).
 
 ## What this is
 
@@ -38,9 +29,9 @@ The console fetches pending Safe transactions and decodes them into plain langua
 
 ## Credit and upstream
 
-This project is forked from **Austin Griffith's [picowallet](https://github.com/austintgriffith/picowallet)** (MIT): a Pico 2 W, a Waveshare Pico-LCD-1.3 and a Microchip **ATECC608** secure element. That project proved a Pico can drive a secure element from MicroPython, rebuild an EIP-712 digest on-device, show a signing request, take a button press, and return a real P-256 signature that moved funds on Ethereum mainnet. Its code stays in this repo (`firmware/`, `app/`, `emu/`; its case in `cad/console/`, its notes in `docs/`) until the PicoQuorum parts replace it.
+This project is forked from **Austin Griffith's [picowallet](https://github.com/austintgriffith/picowallet)** (MIT): a Pico 2 W, a Waveshare Pico-LCD-1.3 and a Microchip **ATECC608** secure element. That project proved a Pico can drive a secure element from MicroPython, rebuild an EIP-712 digest on-device, show a signing request, take a button press, and return a real P-256 signature that moved funds on Ethereum mainnet. Its secure-element drivers, display and crypto helpers, and its emulator are still at the heart of this repo, credited in each file. Its single-owner vault app, its case and its notes were removed on 2026-10-06, before the repository went public; they live on in picowallet's own repository.
 
-Upstream has since added an **OPTIGA Trust M** driver (`firmware/trustm.py`: physical and link layers, APDU session, factory-certificate read, CalcSign) and a `TrustMAttest` contract (`app/packages/foundry/contracts/`) that proves on chain that a P-256 key lives in a real Trust M. Both were merged here on 2026-09-24; see [`UPSTREAM-TRACKING.md`](UPSTREAM-TRACKING.md).
+Upstream has since added an **OPTIGA Trust M** driver (`firmware/trustm.py`: physical and link layers, APDU session, factory-certificate read, CalcSign) and a `TrustMAttest` contract (in picowallet's repository) that proves on chain that a P-256 key lives in a real Trust M. Both were merged here on 2026-09-24, and the contract was removed with the vault app on 2026-10-06; see [`UPSTREAM-TRACKING.md`](UPSTREAM-TRACKING.md).
 
 - [x] Add upstream link, license check, and attribution to `README.md` and `NOTICE`
 - [ ] Keep the upstream secure-element drivers (`firmware/atecc.py`, `firmware/trustm.py`) and change them as little as possible
@@ -87,7 +78,7 @@ What's different here: a multisig-first design, on-device Safe transaction decod
 - [ ] **Critical:** find out whether signing can be gated behind a PIN with attempt limiting. A portable key without one is a live key if stolen.
   - ATECC608: a slot can require prior authorization by a secret-derived key (CheckMac / auth key), and a monotonic counter can cap uses (LimitedUse). No built-in attempt lockout, so the limit would have to come from the counter.
   - Trust M: authorization-reference access conditions and a security event counter that throttles repeated failures.
-- [ ] Document the key-slot metadata and lock / lifecycle-state procedure for the chosen chip (for the ATECC608, the config, data and slot locks are already walked through in [CHIPMAP.md](CHIPMAP.md) and [TESTPLAN.md](TESTPLAN.md))
+- [ ] Document the key-slot metadata and lock / lifecycle-state procedure for the chosen chip (for the ATECC608, the config, data and slot locks are already walked through in [CHIPMAP.md](CHIPMAP.md), [LOCKING.md](LOCKING.md) and [PROVISIONING.md](PROVISIONING.md))
 
 ### Key connector: draft pinout
 
@@ -179,25 +170,22 @@ A 3-of-5 where no single technology holds more than two keys: a warm wallet (pro
 ## Repo layout
 
 ```
-docs/            kickoff, security model, provisioning ceremony, signer instructions, the picowallet notes
+docs/            kickoff, security model, provisioning ceremony, signer instructions, the owner's guide
 hardware/
+  DEV-CONSOLE.md the no-solder dev console
   wiring/        console and key schematics, pinouts (SOLDERING.md: the dev console's perfboard)
   bom/           parts lists and sourcing notes
   key-pcb/       key board design
-cad/
-  console/       enclosure, button guard or cover, jack bracket (today: the dev console's case)
-  key/           plug handle, end cap, label band
 firmware/        MicroPython (upstream drivers plus Safe layers; safe_tx.py so far)
-contracts/       signer contract, tests, deploy scripts (Foundry is in app/packages/foundry for now)
+contracts/       PicoQuorum's own contracts, when there are any
 tools/           mock transaction service, provisioning scripts, vector generator, emulator and board tools
 test-vectors/    Safe transactions with known-correct hashes
 ```
 
 These live outside the kickoff layout:
-- `app/`: picowallet's Scaffold-ETH app for the single-owner vault, and `TrustMAttest`. Its Foundry package can't leave the workspace without breaking `yarn deploy`.
-- `emu/`: the virtual dev console.
+- `emu/`: the console in a browser.
+- `web/`: the app's source.
 - `buildlog/`: dated notes and photos.
-- `reference/`: the Pi signer picowallet grew out of.
 
 ## First parts order
 
@@ -214,4 +202,4 @@ See [`hardware/bom/README.md`](../hardware/bom/README.md).
 - [ ] Flip cover vs. guard fence
 - [ ] Printed vs. aluminum enclosure
 - [ ] Faceplate name: "PicoQuorum" or just "Quorum"
-- [ ] When to prune the inherited single-token code (`app/` ChipAccount/USDS, the Waveshare case in `cad/console/`)
+- [x] When to prune the inherited single-token code: done 2026-10-06 (`app/` ChipAccount/USDS, the Waveshare case, the Pi signer)

@@ -1,20 +1,20 @@
 ---
 name: pico-emu
-description: Write and test MicroPython for the Pico wallet (Pico 2 W + Waveshare Pico-LCD-1.3, 240x240 screen, joystick + A/B/X/Y) on the virtual wallet in emu/, then put it on the real board. Use for "build X for the Pico", "make a game/screen/animation for the wallet", "try this on the emulator", or "put it on the Pico".
+description: Write and test MicroPython for the PicoQuorum console (Pico 2 W + Waveshare Pico-LCD-1.3, 240x240 screen, joystick + A/B/X/Y) on the emulator in emu/, then put it on a real board. Use for "build X for the Pico", "make a screen/animation/game for the console", "try this on the emulator", or "put it on the Pico".
 ---
 
-# Pico wallet emulator
+# The PicoQuorum emulator
 
-`emu/` is a virtual Pico wallet: real MicroPython 1.26 (WebAssembly) running the same `.py` files
-the board runs, a 3D render of the case with clickable buttons, keyboard mapped to the buttons, and
-a CLI so a bot can run code, press keys and look at the screen. Code that works here runs on the
-Pico unchanged.
+`emu/` runs the console in a browser: real MicroPython 1.26 (WebAssembly) running the same `.py`
+files a board runs, the screen and buttons drawn flat with the keyboard mapped to them, and a CLI
+so a bot can run code, press keys and look at the screen. Code that works here runs on the Pico
+unchanged. The emulator started in Austin Griffith's
+[picowallet](https://github.com/austintgriffith/picowallet) (MIT).
 
 ## The loop
 
-1. Write a sketch: `emu/sketches/NAME.py` (module name = file name, no spaces, do not reuse a
-   firmware name like `lcd`, `mock`, `wallet`, `demo`, `keytest`, `net`). Start from
-   `emu/sketches/hello.py`.
+1. Write a sketch: `emu/sketches/NAME.py` (module name = file name, no spaces, and not a firmware
+   name like `lcd`, `quorum`, `net`, `signer`). `emu/sketches/snake.py` is a full example.
 2. Run it: `tools/emu run NAME` (starts the server and opens the page if needed, reboots the
    device, imports the module, prints its output; exit 1 on a traceback). Running a module is
    `import NAME` on a fresh device, so a sketch must start itself at import: end the file with
@@ -23,45 +23,38 @@ Pico unchanged.
 3. Press keys: `tools/emu key A`, `tools/emu key right:300` (hold 300 ms),
    `tools/emu keys right,right,A`. Names: `A B X Y up down left right press`.
 4. Look: `tools/emu shot [out.png]` saves the screen (480x480 PNG, default `emu/shots/latest.png`).
-   Read the PNG. Text is the 8x8 font, so check it is readable and inside 240x240.
+   Read the PNG. The built-in text is the 8x8 font, so check it is readable and inside 240x240.
 5. Poke: `tools/emu exec 'NAME.some_state'` runs one REPL line and prints the result.
    `tools/emu log 60` shows recent console lines (print() output, tracebacks).
-6. Iterate. `tools/emu reset` reboots into the main module; `tools/emu main NAME` sets it.
+6. Iterate. `tools/emu reset` reboots into the main module; `tools/emu main NAME` sets it
+   (default: `quorum`, the console).
 
 No browser: `tools/emu headless NAME --wait 300 --key A --wait 100 --shot emu/shots/x.png --exec 'print(1)'`
 runs a scripted session and exits (steps run in order). Good for quick checks and CI.
 
-Austin sees the browser page (http://localhost:4242): a module menu top left (▶ run, ↻ reset and
-⇪ send to Pico all act on the picked module; Cmd/Ctrl+Enter runs the file in the editor), editor,
-console, the 3D device. Keys on the page: W A S D = joystick, space = joystick press, numpad 9 6 3 . = A B X Y (click the device
-first so the editor does not eat them; the 3D view shows the key next to each button).
+The person you're working with sees the page (http://localhost:4242): a module menu top left
+(▶ run, ↻ reset and ⇪ send to Pico act on the picked module; Cmd/Ctrl+Enter runs the file in the
+editor), the editor, the console, and the device. Keys on the page: W A S D = joystick, space =
+joystick press, numpad 9 6 3 . = A B X Y (click the device first so the editor does not eat them).
 
-## Ship it to the real Pico
+## Ship it to a real Pico
 
-`tools/emu devices` lists every board on this Mac's USB: MicroPython boards (with the board name),
-boards running something else (Arduino etc., "not MicroPython", with what they print), and
-bootloader drives (plugged in with BOOTSEL held). `tools/emu flash --port P [--wifi]` puts
-MicroPython on any of them: a running board is told to enter its bootloader over USB first
-(`machine.bootloader()`, or the 1200-baud touch for Arduino firmware), then the .uf2 is copied
-(default 1.26.1 to match the wallet and the emulator, `--version latest`), and the board comes
-back as a serial port. `--wifi` picks the Pico W / Pico 2 W build; the bootloader cannot tell.
+`tools/emu devices` lists every board on this computer's USB: MicroPython boards, boards running
+something else, and bootloader drives (plugged in with BOOTSEL held). `tools/emu flash --port P
+[--wifi]` puts MicroPython on any of them (default 1.26.1, matching the console and the emulator;
+`--wifi` picks the Pico W / Pico 2 W build, which the bootloader can't tell apart).
 
 `tools/emu ship NAME [--port /dev/cu.usbmodemN] [--boot]` copies `NAME.py` and every file it
-imports to the board (first serial port if no `--port`), soft-resets so the old module's timers
-stop, imports the module fresh and prints its output for a few seconds (a `while True` module is
-left running and reported as "blocking loop"). That is a one-time run: at power-up MicroPython
-only runs `main.py`, so a board without one boots to a dark screen. `--boot` (the "run at boot"
-box on the page) also writes a `main.py` that imports the module; refused on the wallet Pico. Exit 1 on a traceback or no board. `--wifi` targets the
-wallet Pico's WiFi console instead (no reset there; the old copy's `stop()` is called). The page
-has the same: a device picker in the top bar and the ⇪ send to Pico button (⚡ flash MicroPython
-when a bootloader board is picked). Never change `main.py` on the wallet Pico unless asked.
+imports to the board, soft-resets so the old module's timers stop, imports the module fresh and
+prints its output for a few seconds. That is a one-time run: at power-up MicroPython only runs
+`main.py`. `--boot` (the page's "run at boot" box) also writes a `main.py` that imports the module.
 
-The wallet Pico is headed for the production image: `firmware/manifest.json` lists exactly what
-goes on it, and `tools/fw` (backup, push console, verify, pin, logs, restore) is the only way
-firmware reaches it for good, every file hash-checked. `ship` refuses a board whose `main.py`
-carries `# picoquorum-image:` unless `--force`; a ship there would copy past the manifest, and its
-soft reset leaves the console's watchdog unfed. `tools/usb push` refuses it too, and never copies
-`secrets.py` anywhere.
+**A board with a production image is off limits.** `firmware/manifest.json` lists exactly what
+goes on a console, and `tools/fw` (backup, push, verify, pin, logs, restore) is the only way
+firmware reaches it, every file hash-checked. `ship` refuses a board whose `main.py` carries
+`# picoquorum-image:` unless `--force`: a ship there would copy past the manifest, and its soft
+reset leaves the console's watchdog unfed. `tools/usb push` refuses it too, and never copies
+`secrets.py` anywhere. Never change `main.py` on someone's console unless asked.
 
 ## The hardware, as seen from Python
 
@@ -71,60 +64,55 @@ soft reset leaves the console's watchdog unfed. `tools/usb push` refuses it too,
   `poly(x,y,coords,c[,fill])`, `text(s,x,y,c)` (8x8 font, one size), `blit(fb,x,y[,key])`,
   `scroll(dx,dy)`. Extras in lcd.py: `big_text(s,x,y,c,scale)`, `center_text(s,y,c,scale=1)`,
   `backlight(pct)`. Nothing appears until `lcd.show()`, which costs about 38 ms (SPI at 24 MHz),
-  so full-frame animation tops out near 25 fps. `machine.freq(150_000_000, 150_000_000)` before
-  `LCD()` lifts that to about 65 fps (see `firmware/vid.py`). Drawing is done in C and is fast;
-  per-pixel Python loops are not.
+  so full-frame animation tops out near 25 fps; `machine.freq(150_000_000, 150_000_000)` before
+  `LCD()` lifts that to about 65 fps. Drawing is done in C and is fast; per-pixel Python loops are
+  not. The console's anti-aliased fonts are in `fonts.py` (`qf_*.bin`).
 - Colors: always `color(r, g, b)` from lcd.py (the panel wants byte-swapped RGB565; raw numbers
-  come out wrong). Ready-made: `BLACK WHITE RED GREEN BLUE YELLOW GREY DARK`.
+  come out wrong). Ready-made: `BLACK WHITE RED GREEN BLUE YELLOW GREY DARK`. The console's
+  palettes are in `theme.py`.
 - Keys: `keys = Keys()`; `keys.pressed()` returns names that went down since the last call;
   `keys.held("A")` for state. Layout: joystick on the left of the screen, buttons in a column on
-  the right: A top (green cap), B, X, Y bottom (red cap). Wallet convention: A = yes/confirm,
+  the right: A top, B, X, Y bottom. Console convention: A = yes/confirm (Sign is a held A),
   Y = no/back, X = quit a sketch.
 - Loop styles. Timer: `Timer(period=40, mode=Timer.PERIODIC, callback=tick)`, return from the
-  module, keep `tick` under ~30 ms, offer `stop()`; this is how the firmware runs and it keeps the
-  REPL/WiFi console alive on the board. `while True` with `time.sleep_ms()`: fine for a game
-  (`demo.py`, `vid.py` do it) but on the board it blocks the console until it returns, so always
-  poll a quit key (X) inside the loop. Timer callbacks do not fire while a `while True` runs.
+  module, keep `tick` under ~30 ms, offer `stop()`; this is how the firmware runs, and it keeps the
+  USB REPL free on the board. `while True` with `time.sleep_ms()` is fine for a game, but on the
+  board it blocks the REPL until it returns, so always poll a quit key (X) inside the loop. Timer
+  callbacks do not fire while a `while True` runs.
 - Time: `time.ticks_ms()`, `time.ticks_diff(a, b)`, `time.sleep_ms()`. No `datetime`, no real clock.
 - Memory: a few hundred KB of heap, no swap. Use `bytearray` for big tables, precompute palettes,
   avoid building large lists every frame, call `gc.collect()` between scenes. The emulator caps
   its heap at 448 KB so out-of-memory shows up here too.
 - MicroPython, not CPython: no typing module, small stdlib (`math`, `random`, `struct`, `json`,
-  `time`, `array`, `collections`), integer-first, f-strings ok. `random.randint`, `random.choice`,
-  `random.getrandbits(n)`. `@micropython.viper` speeds up per-pixel loops on the board (runs as
-  plain bytecode in the emulator, slower). Files: `open("x.bin","rb")`, `os.listdir()`.
-- Other firmware you can import: `mock` (fake wallet screens, `mock.goto("send")`),
-  `wallet` (the real wallet: talks to the app through `/app`; `main` boots it), `slots` (the KEYS
-  screen), `splash` (the boot checklist screen; `wallet.start()` shows it, then the status home
-  until the app answers), `power` (battery/USB; the ADC reads 0 here so it shows usb), `eip712`, `keccak`, `p256`, `signer`, `atecc`.
+  `time`, `array`, `collections`), integer-first, f-strings ok. `@micropython.viper` speeds up
+  per-pixel loops on the board (runs as plain bytecode in the emulator, slower).
+- Firmware you can import: `quorum` (the console; `quorum.start()`), `chipapp` (the ceremony
+  image's app: A provisions a fresh chip, X opens the chip map), `slots`, `chipmap`, `learn` and
+  `snakelab` (the chip map's screens), `splash` (the boot screen), `icons` (16 px bitmaps,
+  `icons.draw(d, "key", x, y, color, scale)`), `qrcode` (`qrcode.encode(text) -> (n, rows)`),
+  `blockies`, `keccak`, `p256`, `signer`, `atecc`, `trustm`.
 - The chip: a virtual ATECC608 answers at 0x60 on `machine.I2C`, speaking the real packet
-  protocol, so `atecc.py` and `signer.ChipSigner` run unchanged. It starts as a BLANK part (config
-  zone open, nothing can sign) and keeps its state across reboots (server: `emu/chip.json`;
-  headless: `--chip state.json`). `tools/emu chip ready` = config locked + key in slot 0,
-  `tools/emu chip fresh` = blank again, `tools/emu chip show` = lock state and which slots hold
-  keys. From Python: `import atecc_sim; atecc_sim.provision(); atecc_sim.wipe(); atecc_sim.state()`.
-  In the wallet, X on the home screen opens the CHIP MAP (config, data slots, OTP, counters, the
-  LAB of read-only questions, PLAY SNAKE among them) and B opens LEARN (the tutorial); `chipmap.py`, `learn.py`,
-  `snakelab.py` and `slots.py` draw them, with `theme.py` (zone colours), `icons.py` (16 px bitmaps, `icons.draw(d,
-  "key", x, y, color, scale)`), `ceremony.py` (the permanent transitions' animations) and
-  `qrcode.py` (a QR encoder, versions 1-6; `qrcode.encode(text) -> (n, rows)`). A fresh virtual chip answers like a real fresh Adafruit part (factory
-  table, Random = ffff0000 until the lock); OTP and data reads refuse until the config lock. Red
-  actions need `ALLOW_*` True (the emulator's secrets) AND the wallet armed: hold B and Y for 3 s,
-  or `--exec 'import signer; signer.arm()'` headless.
+  protocol, so `atecc.py` and `signer.ChipSigner` run unchanged. It starts as a BLANK part and
+  keeps its state across reboots (server: `emu/chip.json`; headless: `--chip state.json`).
+  `tools/emu chip ready` = config locked + key in slot 0, `fresh` = blank again, `show` = state,
+  and `trustm-fresh|trustm-sealed|both|atecc` for the virtual Trust M. Permanent actions need
+  `ALLOW_*` True (the emulator's secrets) AND the arm: hold B and Y for 3 s, or
+  `--exec 'import signer; signer.arm()'` headless.
 
 ## Emulator vs board
 
 Same: MicroPython version, framebuf, key names and pins, timers, SPI frame time, screen output
-(pixel exact). Different: CPU is much faster here (a loop that is smooth here may crawl on the
-Pico: keep per-frame Python work small), viper is not native, the ATECC608 is a model (GenKey,
-Sign, the config zone and locks; no OTP, MAC or encrypted transfers), the generated `secrets.py`
-sets `ALLOW_LOCK`/`ALLOW_GENKEY` True, `network` is always connected, `requests` goes through the page to the app,
-`machine.reset()` reboots the device, the flash is rebuilt from `firmware/` + `emu/sketches/` on
-every run (files a sketch writes vanish at the next run).
+(pixel exact). Different: the CPU is much faster here (a loop that is smooth here may crawl on the
+Pico: keep per-frame Python work small), viper is not native, the chips are models (no OTP, MAC or
+encrypted transfers), the generated `secrets.py` sets `ALLOW_LOCK`/`ALLOW_GENKEY` True, `network`
+is always connected, `requests` goes through the page, `machine.reset()` reboots the device, and
+the flash is rebuilt from `firmware/` + `emu/sketches/` on every run (files a sketch writes vanish
+at the next run).
 
 ## Files
 
-`emu/server.mjs` (page + control API + app proxy, port 4242), `emu/web/` (page, worker, 3D),
+`emu/server.mjs` (page + control API + service proxy, port 4242), `emu/web/` (page and worker),
 `emu/core/runtime.mjs` (the device: pins, SPI display capture, timers), `emu/core/shims/*.py`
-(`machine`, `network`, `requests`, `socket`, `rp2`, `atecc_sim` the virtual chip), `emu/headless.mjs`, `emu/cli.mjs`
-(`tools/emu`), `emu/sketches/` (yours), `emu/shots/` (screenshots, ignored by git).
+(`machine`, `network`, `requests`, `socket`, `rp2`, and the virtual chips `atecc_sim`, `trustm_sim`),
+`emu/headless.mjs`, `emu/cli.mjs` (`tools/emu`), `emu/sketches/` (yours), `emu/shots/`
+(screenshots, ignored by git).

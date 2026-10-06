@@ -1,3 +1,4 @@
+# From picowallet by Austin Griffith (MIT): https://github.com/austintgriffith/picowallet
 # keccak256 in pure Python, MicroPython-compatible. Used to rebuild the EIP-712 digest on the
 # device so the screen shows exactly what gets signed. Slow (tens of ms per block on RP2350) but
 # a transfer digest is only a few blocks.

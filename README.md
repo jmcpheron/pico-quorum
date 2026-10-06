@@ -24,7 +24,7 @@
   <br>
   <a href="docs/LADDER.md"><img alt="Safe 1.3.0 and later" src="https://img.shields.io/badge/Safe-%E2%89%A5%201.3.0-34C759?labelColor=0B0D11"></a>
   <a href="docs/guide/NETWORKS.md"><img alt="Chains: Base and Ethereum" src="https://img.shields.io/badge/chains-Base%20%C2%B7%20Ethereum-627EEA?labelColor=0B0D11"></a>
-  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-98A0AC?labelColor=0B0D11"></a>
+  <a href="#license"><img alt="Licenses: MIT code, CERN-OHL-W hardware, CC BY-SA docs" src="https://img.shields.io/badge/license-MIT%20%C2%B7%20CERN--OHL--W%20%C2%B7%20CC%20BY--SA-98A0AC?labelColor=0B0D11"></a>
 </p>
 
 <p align="center">
@@ -162,7 +162,7 @@ stronger owner: keep passkey owners below the threshold.
 - **[The owner's guide](docs/guide/README.md)**: from a board to a console that signs for your
   Safes.
 - **Build a dev console**: a Pico 2 W, a Waveshare Pico-LCD-1.3 and an ATECC608 breakout, about
-  $35 with no soldering ([build guide](docs/picowallet.md), [parts](hardware/bom/README.md)).
+  $35 with no soldering ([build guide](hardware/DEV-CONSOLE.md), [parts](hardware/bom/README.md)).
 - **On a laptop**, no hardware: `tools/quorum e2e` runs a whole approval with the emulator against a
   Safe 1.4.1 on an Anvil fork of Base ([details](tools/mock-tx-service/README.md)).
 - **The hash, checked**: `python3 test-vectors/run.py` runs every vector in
@@ -182,9 +182,9 @@ console up to the README:
 
 | | image | release fingerprint |
 |---|---|---|
-| <img src="docs/releases/badges/console-blockie.svg" width="32" height="32" alt=""> | **console** | `aae185f8bea484f96b9cef2f3707f7c943a5fd55413bff88097c490c92eff845` |
-| <img src="docs/releases/badges/ceremony-blockie.svg" width="32" height="32" alt=""> | **ceremony** | `788dfda9562a9b6d2fa023fc7e5fe4f6a819cda05e908e9f532e227c9a5ae99e` |
-| <img src="docs/releases/badges/dual-blockie.svg" width="32" height="32" alt=""> | **dual** | `9b0e2f0a3c9b947056561b77d7c08ee70a95a5ad667c36a9f4b26d9cf04d87f7` |
+| <img src="docs/releases/badges/console-blockie.svg" width="32" height="32" alt=""> | **console** | `817a5ae67aeca901cea00b4348f3c376a654783bc4a13b1a28ebdb5cb9f1ddb1` |
+| <img src="docs/releases/badges/ceremony-blockie.svg" width="32" height="32" alt=""> | **ceremony** | `0ab8c3573017c7d2fe31ca6f82073ab9a76024d613541a7a98a0facef79f239b` |
+| <img src="docs/releases/badges/dual-blockie.svg" width="32" height="32" alt=""> | **dual** | `68a7846ecec9a364397b84caab3cafb8472d9d4bf99647f93741cb57f8a07d30` |
 
 <!-- build:end -->
 
@@ -200,14 +200,20 @@ How a release is trusted ([docs/RELEASES.md](docs/RELEASES.md)):
 
 ## Where it stands
 
+PicoQuorum is built in public. **[docs/STATUS.md](docs/STATUS.md)** is the one page for what exists
+today: the name (picoquorum.eth) and the domains, every Safe and key with its address, the contracts
+the console relies on, and what's next.
+
 The [test ladder](docs/LADDER.md) tracks each chain:
 - ✅ a simulated Safe and a local fork, on the real Pico
 - ✅ Base Sepolia, end to end over HTTPS on the real Pico
-- Base with a few dollars: the Safe is ready, and the first approval is next
+- Base with a few dollars: the Safe is checked and a chip's confirmation has executed there; the
+  console's own approval is next
 - then Ethereum mainnet, whose contracts have been checked onchain
 
-The plan, the hardware and the open questions are in the [kickoff](docs/KICKOFF.md), a living draft.
-Dated notes and photos, mistakes included, are in [`buildlog/`](buildlog/).
+The design and the open questions are in the [kickoff](docs/KICKOFF.md), and the project Safe's plan
+in [GOVERNANCE.md](docs/GOVERNANCE.md). Dated notes and photos, mistakes included, are in
+[`buildlog/`](buildlog/).
 
 ## Layout
 
@@ -219,28 +225,37 @@ Dated notes and photos, mistakes included, are in [`buildlog/`](buildlog/).
 | `web/` | the app's source; `npm run build` writes `docs/app/` |
 | `emu/` | the console in a browser: MicroPython in WebAssembly and a virtual secure element. `build.mjs` writes the console page (`docs/console/`); `tools/emu` adds an editor and the case in 3D, for development |
 | `test-vectors/` | Safe transactions with known-correct hashes, and the suites CI runs |
-| `tools/` | `quorum` (Safes on a fork and on chain), `fw` (build and push images), `release`, `releases/`, `brand/`, `keypcb`, and picowallet's tools |
-| `cad/` | the console's case and the key's |
+| `tools/` | `quorum` (Safes on a fork and on chain), `fw` (build and push images), `emu`, `usb`, `release`, `releases/`, `brand/`, `keypcb`, `wiring` |
 | `contracts/` | PicoQuorum's own contracts, when there are any; today each key owns a Safe through Safe's passkey signer |
-| `app/` | picowallet's single-owner vault app (Scaffold-ETH 2), with `TrustMAttest` |
 | `buildlog/` | dated notes and photos |
-| `reference/` | the Pi signer picowallet grew out of; SeedSigner cap parts |
 
 The name, the mark and the colours: [docs/BRAND.md](docs/BRAND.md). `tools/brand/lockup.py` draws the
 logo at the top of this page.
 
 ## Credit
 
-PicoQuorum is a fork of [picowallet](https://github.com/austintgriffith/picowallet) by
-**Austin Griffith** (MIT). picowallet proved that a Pico can drive a secure element from
-MicroPython, rebuild an EIP-712 digest on the device, and sign with a key that never leaves the
-chip, all on mainnet with an audited vault. The chip drivers are still upstream's, and fixes go
-back upstream ([docs/UPSTREAM-TRACKING.md](docs/UPSTREAM-TRACKING.md)). Case parts by Tomáš Plass
-and Zez0000 (CC BY-NC). Everything else is attributed in [NOTICE](NOTICE).
+PicoQuorum exists because of [picowallet](https://github.com/austintgriffith/picowallet) by
+**Austin Griffith**. picowallet proved that a Raspberry Pi Pico can drive a secure element from
+MicroPython, rebuild an EIP-712 digest on the device, show it on its own screen, and sign with a
+key that never leaves the chip, all on mainnet. PicoQuorum began as a fork of it and is still
+built on it:
+- the ATECC608 and Trust M drivers, the display driver, keccak and P-256, blockies and the WiFi join;
+- the emulator that runs the console in your browser.
+
+Each of those files says so on its first line, under Austin's MIT license. Fixes to the drivers go
+back upstream ([docs/UPSTREAM-TRACKING.md](docs/UPSTREAM-TRACKING.md)). Everything else this project
+uses is credited in [NOTICE](NOTICE).
 
 PicoQuorum runs on Raspberry Pi Pico 2 W. It is not affiliated with Raspberry Pi or Safe.
 
 ## License
 
-MIT (see [LICENSE](LICENSE)) except where [NOTICE](NOTICE) says otherwise: the case STLs are
-CC BY-NC.
+| | license |
+|---|---|
+| Code and firmware: `firmware/`, `emu/`, `web/`, `tools/`, `test-vectors/`, the built site | [MIT](LICENSE) |
+| Hardware: `hardware/` (the key boards, wiring, parts lists) | [CERN-OHL-W-2.0](LICENSE-HARDWARE) |
+| Docs, the build log, photos and screenshots | [CC BY-SA 4.0](LICENSE-DOCS) |
+| The name PicoQuorum and its mark | not licensed: [TRADEMARK.md](TRADEMARK.md) |
+
+Hardware made from these sources must show where the source is ([hardware/README.md](hardware/README.md#license)).
+Third-party parts and their licenses are in [NOTICE](NOTICE).

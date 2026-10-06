@@ -39,34 +39,50 @@ provisions a blank virtual chip; `forge test` 40/40, including TrustMAttest 6/6.
 anything on real hardware, and `trustm.py` has not run against a Trust M in this repo. (It has
 since: 2026-09-28, unchanged, under `trustm_q.py`. See docs/TRUSTM.md.)
 
-## How to merge
+## What is still from picowallet
+
+These files started in picowallet, by Austin Griffith (MIT), and each says so at its top:
+
+| | files |
+|---|---|
+| Chip drivers | `firmware/atecc.py` (its transport core), `firmware/trustm.py` |
+| Crypto and display helpers | `firmware/keccak.py`, `firmware/p256.py`, `firmware/lcd.py` (the ST7789 core), `firmware/blockies.py`, `firmware/net.py` (WLAN join) |
+| The emulator | `emu/core/runtime.mjs`, `png.mjs`, `workspace.mjs`, `ship.mjs`, `devices.mjs`, `usbinfo.py`; the shims `machine.py`, `_bootstrap.py`, `network.py`, `requests.py`, `socket.py`, `rp2.py`; `emu/headless.mjs`, `emu/cli.mjs`, `emu/server.mjs`, the dev page in `emu/web/` (not `browser.mjs`) |
+| Tools | `tools/emu`, the start of `tools/check_config` |
+
+Removed on 2026-10-06, before the repository went public, because PicoQuorum doesn't use them:
+the single-owner vault app (`app/`: Scaffold-ETH 2, `ChipAccount`, `TrustMAttest`), the case
+(`cad/console/`, with the Plass and Zez0000 parts), the Pi signer and SeedSigner parts
+(`reference/`), the wallet firmware (`wallet.py`, `usbwallet.py`, `mock.py`, `demo.py`,
+`keytest.py`, `vid.py`, `eip712.py`, `main.py`, `main_usb.py`, `power.py`), the case and WiFi-console
+tools (`pico`, `push`, `qr`, `shot`, `gif2pv`, `lid`, `zez*`), the 3D view, and the picowallet notes
+(`picowallet.md`, `PLAN-picowallet.md`, `HANDOFF.md`, `USB.md`, `CLEARSIGNING.md`, `TESTPLAN.md`,
+`UPSTREAM.md`, `UPSTREAM-ISSUE.md`, the 2026-09-05 build-log entries and photos). They are all in
+this repository's history, and in [picowallet](https://github.com/austintgriffith/picowallet).
+
+## How to bring a fix across
+
+A whole merge would mostly be conflicts now: upstream edits files this repo no longer has. Bring
+fixes across file by file instead:
 
 ```sh
 git remote add upstream https://github.com/austintgriffith/picowallet   # once
 git fetch upstream
-git log --oneline 72539d5..upstream/main          # what is new
-git diff 72539d5 upstream/main -- firmware/atecc.py firmware/trustm.py firmware/keccak.py
-git merge upstream/main                           # a merge commit, never a rebase
-python3 test-vectors/run.py && python3 tools/check_config   # must still pass
+git log --oneline 72539d5..upstream/main -- firmware/atecc.py firmware/trustm.py firmware/keccak.py firmware/p256.py firmware/lcd.py
+git diff 72539d5 upstream/main -- firmware/trustm.py | git apply -3    # one file at a time
+python3 test-vectors/run.py && python3 tools/check_config               # must still pass
 ```
 
-Then update the table above and add a line to the log below.
+A change to a console-image file changes the release fingerprint: rebuild the pages and badges
+([RELEASES.md](RELEASES.md)). Then update the table above and add a line to the log below.
 
-- Most paths merge on their own. The files that moved in the PicoQuorum restructure moved in a
-  renames-only commit (`f18021b`), so git's rename detection follows upstream edits into `docs/`,
-  `hardware/wiring/SOLDERING.md` and `cad/console/` (upstream's `case/`).
-- Upstream edits to `README.md` conflict with the PicoQuorum README. Upstream's README is
-  `docs/picowallet.md` here: carry the change over there and keep ours.
-- A new Markdown file upstream adds at the root belongs in `docs/` here; move it and fix the links.
-- `firmware/atecc.py`, `firmware/trustm.py` and `firmware/wallet.py` are upstream's. Change them as
-  little as possible so their fixes apply cleanly; put PicoQuorum's needs in new modules (like
-  `safe_tx.py`).
+- `firmware/atecc.py`, `firmware/trustm.py`: change them as little as possible, so upstream's
+  fixes apply cleanly; put PicoQuorum's needs in new modules (`trustm_q.py`, `chipcfg.py`).
 
 ## Files to watch
 
-`firmware/atecc.py`, `firmware/trustm.py`, `firmware/keccak.py`, `firmware/eip712.py`,
-`app/packages/foundry/contracts/TrustMAttest.sol`, `SECURITY.md`, `CLEARSIGNING.md` (both in
-`docs/` here).
+`firmware/atecc.py`, `firmware/trustm.py`, `firmware/keccak.py`, `firmware/p256.py`, and upstream's
+`SECURITY.md`.
 
 ## Log
 
@@ -75,3 +91,5 @@ Then update the table above and add a line to the log below.
 - 2026-09-24: merged the PicoQuorum restructure (`picoquorum-rung1`: `docs/`, `hardware/wiring/`,
   `cad/console/`). `USB.md` and `CLEARSIGNING.md` moved into `docs/`; upstream's README changes
   carried into `docs/picowallet.md`.
+- 2026-10-06: before going public, removed the picowallet-only files listed above, and credited
+  picowallet at the top of every file still from it. Nothing merged; upstream not checked.

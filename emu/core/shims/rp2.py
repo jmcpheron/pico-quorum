@@ -1,3 +1,4 @@
+# From picowallet by Austin Griffith (MIT): https://github.com/austintgriffith/picowallet
 # Emulator `rp2`: no PIO. bootsel_button() is the only thing sketches tend to touch.
 def bootsel_button():
     return 0

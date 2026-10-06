@@ -1,5 +1,5 @@
-# snake: the flip-phone classic for the Pico wallet. Joystick steers, A starts, B or the joystick
-# press pauses, X quits (into the mock wallet, see EXIT_TO). Walls kill. Every 5th food a bonus bug
+# snake: the flip-phone classic for the Pico. Joystick steers, A starts, B or the joystick
+# press pauses, X quits (to a blank screen, or the module in EXIT_TO). Walls kill. Every 5th food a bonus bug
 # appears for a while with a countdown top right, worth countdown x 10. High score lives in snake.hi.
 # Emulator: tools/emu run snake     Pico: tools/emu ship snake   (or mpremote cp + exec 'import snake')
 # Runs from a 30 ms Timer so the REPL stays free. Testing over the REPL: snake.inject("left"),
@@ -20,7 +20,7 @@ OX, OY = 10, 30               # field origin on the screen
 HI_FILE = "snake.hi"
 START_MS, MIN_MS, STEP_MS = 200, 80, 8
 BONUS_EVERY, BONUS_MOVES = 5, 30
-EXIT_TO = "mock"              # module to start when X quits; None for a blank screen
+EXIT_TO = None                # module to start when X quits; None for a blank screen
 
 DIRS = {"up": (0, -1), "down": (0, 1), "left": (-1, 0), "right": (1, 0)}
 

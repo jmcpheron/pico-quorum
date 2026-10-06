@@ -1,3 +1,4 @@
+# From picowallet by Austin Griffith (MIT): https://github.com/austintgriffith/picowallet
 # Runs once after the interpreter boots, before any sketch. Fills the gaps between the
 # WebAssembly build and the rp2 build so firmware written for the Pico imports unchanged.
 import builtins, micropython, os, sys, _emu
@@ -53,7 +54,7 @@ def _urandom(n):
 
 os.urandom = _urandom
 os.dupterm = lambda *a, **k: None
-os.uname = lambda: ("rp2", "picowallet-emu", sys.version.split(";")[0], sys.version, "Raspberry Pi Pico 2 W (emulated)")
+os.uname = lambda: ("rp2", "picoquorum-emu", sys.version.split(";")[0], sys.version, "Raspberry Pi Pico 2 W (emulated)")
 
 # Pico's `time` has these; the wasm build has the ticks ones already.
 import time

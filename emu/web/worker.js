@@ -1,3 +1,4 @@
+// Started in picowallet by Austin Griffith (MIT): https://github.com/austintgriffith/picowallet
 // The emulated Pico lives in this Worker so a busy `while True` never freezes the page.
 // Keys arrive through a SharedArrayBuffer (read even while Python is busy); frames and
 // console lines go out with postMessage.

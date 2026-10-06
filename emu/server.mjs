@@ -1,7 +1,8 @@
 #!/usr/bin/env node
+// From picowallet by Austin Griffith (MIT): https://github.com/austintgriffith/picowallet
 // Dev server for the emulator: static UI, the emulated flash (firmware/ + emu/sketches/), a control
-// channel so tools/emu can drive the page, and a proxy to the wallet app so requests from the
-// emulated firmware are same-origin.
+// channel so tools/emu can drive the page (same origin only), and a proxy to a laptop service
+// (tools/quorum's mock, say) so requests from the emulated firmware are same-origin.
 //   node emu/server.mjs [--port 4242] [--host 127.0.0.1] [--app http://localhost:3001] [--open]
 // It listens on loopback only. /ctl runs code on the emulated device and ships files to a Pico on
 // USB, so --host 0.0.0.0 (or EMU_HOST) lets anyone on the network do that: trusted networks only.
@@ -23,15 +24,12 @@ const HOST = opt("host", process.env.EMU_HOST || "127.0.0.1");
 const APP = opt("app", process.env.EMU_APP || "http://localhost:3001");
 const OPEN = args.includes("--open");
 
-const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".wasm": "application/wasm", ".json": "application/json", ".png": "image/png", ".stl": "model/stl", ".py": "text/plain; charset=utf-8", ".svg": "image/svg+xml", ".ico": "image/x-icon" };
+const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".wasm": "application/wasm", ".json": "application/json", ".png": "image/png", ".py": "text/plain; charset=utf-8", ".svg": "image/svg+xml", ".ico": "image/x-icon" };
 const STATIC = [
   ["/web/", join(EMU, "web")],
   ["/core/", join(EMU, "core")],
   ["/vendor/micropython/", join(EMU, "node_modules/@micropython/micropython-webassembly-pyscript")],
-  ["/vendor/three/addons/", join(EMU, "node_modules/three/examples/jsm")],
-  ["/vendor/three/", join(EMU, "node_modules/three/build")],
   ["/vendor/codemirror/", join(EMU, "node_modules/codemirror")],
-  ["/stl/", join(ROOT, "cad/console/zez0000")],
   ["/shared/", join(ROOT, "web/src")],      // blockies.mjs: the same pictures as the console and the app
 ];
 
@@ -51,11 +49,6 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === "/skill" || url.pathname === "/SKILL.txt") { res.writeHead(200, { "content-type": "text/plain; charset=utf-8" }); return res.end(readFileSync(join(EMU, "SKILL.md"))); }
     if (url.pathname.startsWith("/app/")) return proxy(req, res, url.pathname.slice(4) + url.search);
     if (url.pathname.startsWith("/ctl/")) {
-      // The wallet app (another origin) may drive the virtual device's serial port for testing.
-      res.setHeader("Access-Control-Allow-Origin", "*");
-      res.setHeader("Access-Control-Allow-Headers", "content-type");
-      res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-      if (req.method === "OPTIONS") { res.writeHead(204); return res.end(); }
       return control(req, res, url);
     }
     for (const [prefix, dir] of STATIC) {
@@ -87,6 +80,10 @@ function body(req) {
 }
 
 async function control(req, res, url) {
+  // Only this page and tools/emu (no Origin header) drive the device: a page from any other site
+  // must not be able to run code here, or ship it to a board on USB.
+  const origin = req.headers.origin;
+  if (origin && origin !== `http://${req.headers.host}`) return json(res, 403, { ok: false, error: "cross-origin" });
   const p = url.pathname.slice(5);
   if (p === "boot" && req.method === "GET") {
     const files = listWorkspace().map((f) => {
@@ -189,7 +186,7 @@ function openBrowser() {
 }
 
 server.listen(PORT, HOST, () => {
-  console.log(`picowallet emulator  http://localhost:${PORT}/   app proxy -> ${APP}`);
+  console.log(`PicoQuorum emulator  http://localhost:${PORT}/   app proxy -> ${APP}`);
   if (HOST !== "127.0.0.1") console.log(`listening on ${HOST}: anyone who can reach it can run code on the emulator and ship to USB boards`);
   if (OPEN) openBrowser();
 });

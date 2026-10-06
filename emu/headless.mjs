@@ -1,20 +1,22 @@
 #!/usr/bin/env node
+// Started in picowallet by Austin Griffith (MIT): https://github.com/austintgriffith/picowallet
 // Run a module on the emulated Pico without a browser, poke keys, save screenshots.
-//   node emu/headless.mjs mock --wait 300 --key right --wait 200 --shot shots/1.png
+//   node emu/headless.mjs quorum --wait 300 --key right --wait 200 --shot shots/1.png
 // Steps run in order:
 //   --wait MS            let timers run for MS ms
 //   --key NAME[:MS]      press a key (A B X Y up down left right press) for MS ms (default 80)
 //   --hold NAME / --release NAME
 //   --exec CODE          one REPL line
 //   --shot PATH.png      save the screen (2x) as PNG
-//   --app URL            wallet app for requests (default http://localhost:3001)
+//   --app URL            secrets.APP_URL: the laptop service a development console falls back to
+//                        (tools/quorum's mock passes its own; default http://localhost:3001)
 //   --secrets PATH.py    lines added to the generated secrets.py (QUORUM_URL, QUORUM_SAFE, ...)
 //   --file NAME=PATH     one more file on the flash (build.py for the production image, say)
 //   --passkey            sign with a software passkey (core/softpasskey.mjs) instead of the virtual chip
 //   --chip PATH.json     keep the virtual ATECC608's state in this file (default: blank chip, forgotten at exit)
 //   --heap BYTES         MicroPython heap (default 448 KB)
 //   --quiet              no Python stdout
-// Exit code 1 if the module raised during import. Modules with a blocking loop (demo) never
+// Exit code 1 if the module raised during import. Modules with a blocking loop never
 // return from import here, so the steps after it never run; use the page for those.
 import { writeFileSync, mkdirSync, existsSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";

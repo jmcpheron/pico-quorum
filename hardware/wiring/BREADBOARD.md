@@ -180,7 +180,7 @@ Pressing the knob reads the chip again. Holding it for 2 seconds prints a full c
 prompt. `bench1.stop()` ends the test.
 
 bench1 only reads the chip. It can't write to it or lock it; locking is permanent, and that's a later
-decision ([HANDOFF.md](../HANDOFF.md#7-open-decisions)).
+decision ([open decisions](../../docs/STATUS.md#open-decisions)).
 
 | what you see | what to check |
 |---|---|

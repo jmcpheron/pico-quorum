@@ -10,7 +10,7 @@
 # a slot at counter 0's cap. Not modeled: MAC/encrypted anything, the watchdog.
 #
 # A fresh emulator answers like a real fresh part: the factory config of an Adafruit 4314 breakout
-# (docs/UPSTREAM.md section 3: slots 0-2 already typed P-256, GenKey allowed), config zone unlocked, and
+# (as read from one on 2026-09-16: slots 0-2 already typed P-256, GenKey allowed), config zone unlocked, and
 # Random returning the datasheet's fixed pattern until the lock. The state persists across reboots
 # through the host (server: emu/chip.json). wipe() / provision() reset it.
 import json

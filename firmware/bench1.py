@@ -60,8 +60,8 @@ RED, GREEN, BLUE, YELLOW, ORANGE = rgb(255, 0, 0), rgb(0, 255, 0), rgb(0, 0, 255
 
 
 class Screen(framebuf.FrameBuffer):
-    """A 240x320 ST7789 run landscape as 320x240. lcd.py stays the Waveshare 240x240 driver until it grows
-    a size option (hardware/HANDOFF.md, firmware to-do 1)."""
+    """A 240x320 ST7789 run landscape as 320x240. The console's own driver is lcd.py with board.py
+    "build1" (hardware/wiring/BUILD1.md, firmware to do 1); this one stays the bench's reference."""
 
     def __init__(self):
         self.cs = Pin(SCR_CS, Pin.OUT, value=1)
@@ -171,7 +171,7 @@ def probe():
         return r
     r["kind"] = KEY_ADDRS[addr]
     if addr == 0x30:
-        return r        # trustm.py is not wired into the bench yet (hardware/HANDOFF.md, firmware to-do 5)
+        return r        # trustm.py is not wired into the bench yet (hardware/wiring/BUILD1.md, firmware to do 5)
     try:
         chip = atecc.ATECC608(KEY_SDA, KEY_SCL, addr=addr)
         r["serial"] = hexs(chip.serial())

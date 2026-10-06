@@ -1,10 +1,12 @@
 # Governance: the project Safe
 
-> **Plan (2026-10-05).** Nothing here exists on chain yet. The code is ready for it:
+> **Plan (updated 2026-10-06).** The project Safe doesn't exist on chain yet. The code is ready for it:
 > - release approvals, in the console, the app and `tools/release`;
 > - the `"project"` slot in `firmware/quorum_cfg.py`.
 >
-> The ENS name is still to be chosen. The repository stays private until launch.
+> Done: the name, **picoquorum.eth**, is registered from the hardware wallet; the domains
+> picoquorum.app, .com, .org and .dev are bought; the repository is public. What exists today:
+> [STATUS.md](STATUS.md).
 
 PicoQuorum's own decisions should go through the same kind of Safe it secures, approved on the same
 consoles. Those decisions are which releases the project stands behind, who controls its name, and
@@ -68,23 +70,24 @@ release. The Safe says the project stands behind it, and the Safe is what people
 
 ## ENS
 
-The name is to be decided. Once chosen:
-1. **Register it from the hardware wallet on Ethereum, for a long term** (say ten years). Anyone can
-   renew a name, but an expired one can be taken.
+The name is **picoquorum.eth**, registered from the hardware wallet
+`0x682De3ad16F47Acd01e97A73f1619be93672a9f3` until 2031-10-06 ([STATUS.md](STATUS.md#names-and-domains)).
+1. **Keep it registered for a long term.** Anyone can renew a name, but an expired one can be taken:
+   consider extending it to ten years.
 2. **Make the Safe its owner and its manager** in the ENS app. If the name is wrapped, the Safe
    holds the wrapped name. From then on every change is a Safe transaction.
 3. **Records** (ENS Public Resolver), set in one Safe transaction (`multicall`):
    - **`addr`:** Ethereum = the Safe; Base (coin type `0x80002105`) = the Safe.
-   - **`url`:** the site, `https://jmcpheron.github.io/pico-quorum/` until there is a domain.
+   - **`url`:** the site, `https://picoquorum.app`.
    - **`text org.picoquorum.release`:** the latest approved release and its digest. A convenience
      only: the approval itself is on the Safe.
    - **Later, `contenthash`:** the IPFS CID of a release's `docs/` build. The site at
-     `<name>.eth.limo` is then whatever the owners approved, not whatever the server sends.
+     `picoquorum.eth.limo` is then whatever the owners approved, not whatever the server sends.
 
 **For the console:** today a resolver call is a contract call the console can't decode, so it shows
 up red and unread. A firmware item to come: decode `setText`, `setAddr`, `setContenthash` and
 `multicall` on the pinned Public Resolver, so ENS changes are clear-signed like everything else:
-*Set name.eth url to …*.
+*Set picoquorum.eth url to …*.
 
 ## Handing it over
 
@@ -100,10 +103,11 @@ up red and unread. A firmware item to come: decode `setText`, `setAddr`, `setCon
 - **Co-maintainers' SSH keys go into `.github/allowed_signers`** in a reviewed commit, so they can
   cut releases too. Approving releases stays with the Safe.
 
-## The public repository, at launch (plan only)
+## The public repository
 
-1. **A fresh public repository.** Keep the history, or squash it: a choice to make then.
-   Fingerprints and manifests are hashes of content, so they carry over unchanged.
+1. **Public, with its history** (2026-10). Before it went public, the picowallet-only files were
+   removed and the licenses set (code MIT, hardware CERN-OHL-W-2.0, docs CC BY-SA 4.0; the name
+   and mark reserved: [TRADEMARK.md](../TRADEMARK.md)).
 2. **Build provenance.** `release.yml` adds `actions/attest-build-provenance` for the firmware
    zips and the web builds, checked with `gh attestation verify`. Anyone can also rebuild a tag
    and compare `BUILD.json`.
@@ -111,7 +115,9 @@ up red and unread. A firmware item to come: decode `setText`, `setAddr`, `setCon
    - every Pages site under `jmcpheron.github.io` shares one;
    - moving later means new passkeys, which are owner changes.
 
-   Either a custom domain or `<name>.eth.limo`.
+   The domain is **picoquorum.app**: the site moves there once its DNS is set, and the project
+   Safe's passkey is made there. picoquorum.com, .org and .dev only redirect to it, and
+   `picoquorum.eth.limo` comes later, with a contenthash.
 4. **Checking the live site.** What the browser runs is whatever the site sends, and a page can't
    vouch for itself. `.github/workflows/site-check.yml` checks it from outside:
    - every byte Pages serves, against `docs/` at the commit it deployed;
@@ -130,5 +136,5 @@ up red and unread. A firmware item to come: decode `setText`, `setAddr`, `setCon
 2. Create the Safe on Ethereum (2 of 3), add Base, and check the addresses match.
 3. Deploy each P-256 owner's signer proxy on both chains.
 4. Commit the address as `quorum_cfg.py` `"project"`.
-5. Choose and register the name; hand it to the Safe; set the records.
+5. Hand picoquorum.eth to the Safe; set the records. (Registered 2026-10.)
 6. Make the first release (`RELEASES.md`), then approve it from the consoles.

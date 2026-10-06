@@ -3,7 +3,7 @@
 > **Status: ordered, in production.** 5 boards, all assembled by JLCPCB. The production file is
 > checked and confirmed, and so is the parts placement (2026-10-04). JLCPCB estimates production
 > will finish 2026-10-07 05:00; then 8–13 business days by Global Standard.
-> Order **W2026100307101209** · PCB **Y4-13710122A** · PCBA **SMT026100263772-13710122A** · $38.96
+> JLCPCB order **W…1209** · PCBA **SMT…3772** · $38.96
 
 | parts side | back |
 |---|---|
@@ -100,7 +100,7 @@ The design is in [../PROPOSALS.md](../PROPOSALS.md), and the full order record i
   - Two 1.152 mm tooling holes were added, in plain ground pour.
   - Copper, silkscreen and mask show only normal fab changes.
   - Also checked by hand in GerbView.
-- **2026-10-02 16:10:** **ordered**, W2026100307101209, $38.96.
+- **2026-10-02 16:10:** **ordered**, W…1209, $38.96.
   - Economic PCBA, LeadFree HASL, Confirm Production file and Confirm Parts Placement.
   - Deburring didn't make it into the final order.
 - **2026-10-02:** in JLCPCB's placement preview, U1 and U2 were rotated 90° (each pin-1 dot to its
