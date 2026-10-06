@@ -53,7 +53,7 @@ def _urandom(n):
 
 os.urandom = _urandom
 os.dupterm = lambda *a, **k: None
-os.uname = lambda: ("rp2", "picowallet-emu", sys.version.split(";")[0], sys.version, "Raspberry Pi Pico 2 W (emulated)")
+os.uname = lambda: ("rp2", "picoquorum-emu", sys.version.split(";")[0], sys.version, "Raspberry Pi Pico 2 W (emulated)")
 
 # Pico's `time` has these; the wasm build has the ticks ones already.
 import time

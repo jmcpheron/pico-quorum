@@ -162,7 +162,7 @@ stronger owner: keep passkey owners below the threshold.
 - **[The owner's guide](docs/guide/README.md)**: from a board to a console that signs for your
   Safes.
 - **Build a dev console**: a Pico 2 W, a Waveshare Pico-LCD-1.3 and an ATECC608 breakout, about
-  $35 with no soldering ([build guide](docs/picowallet.md), [parts](hardware/bom/README.md)).
+  $35 with no soldering ([build guide](hardware/DEV-CONSOLE.md), [parts](hardware/bom/README.md)).
 - **On a laptop**, no hardware: `tools/quorum e2e` runs a whole approval with the emulator against a
   Safe 1.4.1 on an Anvil fork of Base ([details](tools/mock-tx-service/README.md)).
 - **The hash, checked**: `python3 test-vectors/run.py` runs every vector in
@@ -219,12 +219,9 @@ Dated notes and photos, mistakes included, are in [`buildlog/`](buildlog/).
 | `web/` | the app's source; `npm run build` writes `docs/app/` |
 | `emu/` | the console in a browser: MicroPython in WebAssembly and a virtual secure element. `build.mjs` writes the console page (`docs/console/`); `tools/emu` adds an editor and the case in 3D, for development |
 | `test-vectors/` | Safe transactions with known-correct hashes, and the suites CI runs |
-| `tools/` | `quorum` (Safes on a fork and on chain), `fw` (build and push images), `release`, `releases/`, `brand/`, `keypcb`, and picowallet's tools |
-| `cad/` | the console's case and the key's |
+| `tools/` | `quorum` (Safes on a fork and on chain), `fw` (build and push images), `emu`, `usb`, `release`, `releases/`, `brand/`, `keypcb`, `wiring` |
 | `contracts/` | PicoQuorum's own contracts, when there are any; today each key owns a Safe through Safe's passkey signer |
-| `app/` | picowallet's single-owner vault app (Scaffold-ETH 2), with `TrustMAttest` |
 | `buildlog/` | dated notes and photos |
-| `reference/` | the Pi signer picowallet grew out of; SeedSigner cap parts |
 
 The name, the mark and the colours: [docs/BRAND.md](docs/BRAND.md). `tools/brand/lockup.py` draws the
 logo at the top of this page.
@@ -235,12 +232,11 @@ PicoQuorum is a fork of [picowallet](https://github.com/austintgriffith/picowall
 **Austin Griffith** (MIT). picowallet proved that a Pico can drive a secure element from
 MicroPython, rebuild an EIP-712 digest on the device, and sign with a key that never leaves the
 chip, all on mainnet with an audited vault. The chip drivers are still upstream's, and fixes go
-back upstream ([docs/UPSTREAM-TRACKING.md](docs/UPSTREAM-TRACKING.md)). Case parts by Tomáš Plass
-and Zez0000 (CC BY-NC). Everything else is attributed in [NOTICE](NOTICE).
+back upstream ([docs/UPSTREAM-TRACKING.md](docs/UPSTREAM-TRACKING.md)). Everything else is
+attributed in [NOTICE](NOTICE).
 
 PicoQuorum runs on Raspberry Pi Pico 2 W. It is not affiliated with Raspberry Pi or Safe.
 
 ## License
 
-MIT (see [LICENSE](LICENSE)) except where [NOTICE](NOTICE) says otherwise: the case STLs are
-CC BY-NC.
+MIT (see [LICENSE](LICENSE)). Third-party parts and their licenses are listed in [NOTICE](NOTICE).

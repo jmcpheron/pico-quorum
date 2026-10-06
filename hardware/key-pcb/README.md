@@ -129,4 +129,4 @@ word on I2C.
       4.7k is safer
 - [ ] KEY ID resistor codes per key type (HANDOFF §7)
 - [ ] A socket breakout PCB for the console (rev B)
-- [ ] The key's shell, if any: [cad/key](../../cad/key/README.md)
+- [ ] The key's shell, if any

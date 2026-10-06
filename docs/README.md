@@ -10,7 +10,7 @@ troubleshooting.
   browser](guide/BROWSER.md))
 - [`RELEASES.md`](RELEASES.md): firmware versions (year.month.n), what each holds, and how to make one
 - [`mainnet/`](mainnet/README.md): a Trust M signer in a mainnet Safe. Written for co-signers too: checking a chip, the threat model, the recommended configuration, the operator's runbook
-- [`SECURITY.md`](SECURITY.md): the console's trust model, then picowallet's
+- [`SECURITY.md`](SECURITY.md): how to report a vulnerability, and the console's trust model
 - [`PROVISIONING.md`](PROVISIONING.md): the quorum v1 chip config and the fresh-chip ceremony
 - [`LOCKING.md`](LOCKING.md): what each ATECC608 lock does to the multisig
 - [`LADDER.md`](LADDER.md): the test ladder from a simulated Safe to Ethereum mainnet, and the `tools/quorum live` runbook
@@ -21,9 +21,8 @@ troubleshooting.
 - [`EMU-WEB.md`](EMU-WEB.md): the console on GitHub Pages, with your own passkey as the key: the design, and its limits
 - [`GOVERNANCE.md`](GOVERNANCE.md): the project Safe (Ethereum and Base), release approvals, the ENS name, and handing it over
 
-The dev console's notes, from picowallet: [`picowallet.md`](picowallet.md) (build guide),
-[`CHIPMAP.md`](CHIPMAP.md), [`TESTPLAN.md`](TESTPLAN.md), [`USB.md`](USB.md),
-[`CLEARSIGNING.md`](CLEARSIGNING.md), [`HANDOFF.md`](HANDOFF.md),
-[`PLAN-picowallet.md`](PLAN-picowallet.md), and the upstream notes [`UPSTREAM.md`](UPSTREAM.md) and
-[`UPSTREAM-ISSUE.md`](UPSTREAM-ISSUE.md).
+The dev console: its [build guide](../hardware/DEV-CONSOLE.md), and [`CHIPMAP.md`](CHIPMAP.md), the
+chip map on the ceremony image. PicoQuorum grew from Austin Griffith's
+[picowallet](https://github.com/austintgriffith/picowallet); what came from it, and how its fixes
+come across, is in [`UPSTREAM-TRACKING.md`](UPSTREAM-TRACKING.md).
 

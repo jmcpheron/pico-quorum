@@ -1,5 +1,5 @@
 #!/bin/sh
-# Talk to the Pico over USB serial. The same mpremote commands as tools/pico, no WiFi console needed.
+# Talk to the Pico over USB serial (mpremote), no WiFi console needed.
 #   tools/usb                      find the port and open the REPL (Ctrl-] to leave)
 #   tools/usb push                 copy every firmware/*.py and *.bin, and reset. Never the secrets
 #                                  (secrets.py, secrets_*.py, secrets.bak): the board keeps its own

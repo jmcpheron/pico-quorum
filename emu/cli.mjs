@@ -3,7 +3,7 @@
 //   tools/emu                    start the server (if needed) and open the page
 //   tools/emu run MODULE         fresh boot, then `import MODULE` (files re-read from disk)
 //   tools/emu exec 'CODE'        one REPL line on the running device; prints its output
-//   tools/emu send 'LINE'        one line into the device's USB stdin (the wallet's serial protocol); prints its reply
+//   tools/emu send 'LINE'        one line into the device's USB stdin (the board's serial protocol); prints its reply
 //   tools/emu key K[:MS]         press a key: A B X Y up down left right press (MS held, default 80)
 //   tools/emu keys 'K,K,K'       several presses in a row
 //   tools/emu shot [out.png]     screenshot (480x480) -> emu/shots/latest.png by default
@@ -15,7 +15,7 @@
 //   tools/emu chip trustm-fresh|trustm-sealed|both|atecc   the virtual Trust M alone (fresh or sealed), both, or the ATECC alone
 //   tools/emu devices            every board on USB (serial ports and bootloader drives)
 //   tools/emu ship MODULE        copy MODULE (and what it imports) to the Pico on USB and import it
-//                                (--port /dev/cu.usbmodemN, --boot: also make it run at power-up, --wifi: the wallet Pico)
+//                                (--port /dev/cu.usbmodemN, --boot: also make it run at power-up, --wifi: over the network console)
 //   tools/emu flash [--port P] [--wifi] [--version V]   put MicroPython on a board: one in bootloader mode (BOOTSEL held
 //                                while plugging in), or --port a running board of any firmware. --wifi picks the Pico W build.
 //   tools/emu headless ...       no browser: see emu/headless.mjs
@@ -173,7 +173,7 @@ try {
       else console.log(`${r.ok ? "running" : "failed"} ${modName(rest[0])} on ${r.port}${r.blocking ? " (blocking loop, left running)" : ""}${r.copiedLcd ? ", lcd.py copied too" : ""}`);
       process.exit(r.ok ? 0 : 1);
     }
-    case "main": { await send({ cmd: "main", name: modName(rest[0] || "mock") }); console.log("main = " + modName(rest[0] || "mock")); break; }
+    case "main": { await send({ cmd: "main", name: modName(rest[0] || "quorum") }); console.log("main = " + modName(rest[0] || "quorum")); break; }
     default:
       console.error("unknown command: " + cmd);
       process.exit(2);

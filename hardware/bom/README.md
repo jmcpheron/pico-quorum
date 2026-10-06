@@ -2,8 +2,8 @@
 
 ## The dev console (today)
 
-The picowallet hardware this repo forked. It runs everything in test ladder rung 1. Build guide:
-[docs/picowallet.md](../../docs/picowallet.md).
+The build picowallet started from. It runs everything in test ladder rung 1. Build guide:
+[DEV-CONSOLE.md](../DEV-CONSOLE.md).
 
 | part | ~price | source |
 |---|---|---|
@@ -13,7 +13,7 @@ The picowallet hardware this repo forked. It runs everything in test ladder rung
 | STEMMA QT / JST-SH 4-pin cable, any ends | $1 to $8 | Amazon `B08HQ1VSVL`, or Adafruit 4209 (snip the pins off and strip) |
 | micro-USB cable, data not charge-only | | |
 
-About $35, no soldering. The case is in [cad/console](../../cad/console/README.md).
+About $35, no soldering. A printed case that fits: [DEV-CONSOLE.md](../DEV-CONSOLE.md#wiring).
 
 For the soldered perfboard version with an 18650 cell (a protected cell or a DW01 board, a holder,
 an SPST switch, a 1N5817 Schottky, and an optional 2 × 100 kΩ + 100 nF battery gauge), see

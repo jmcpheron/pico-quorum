@@ -11,7 +11,7 @@ A physical approval device for [Safe](https://safe.global) multisig wallets. Eac
 
 The hardware in this kickoff (plug-in keys, the console with its guarded button and dial) doesn't exist yet. Until
 it does, the **dev console** is the picowallet this repo forked: a Pico 2 W, a Waveshare Pico-LCD-1.3 (240×240,
-joystick, A/B/X/Y) and an Adafruit ATECC608 breakout. Its build guide is [picowallet.md](picowallet.md).
+joystick, A/B/X/Y) and an Adafruit ATECC608 breakout. Its build guide is [DEV-CONSOLE.md](../hardware/DEV-CONSOLE.md).
 
 | Layer | Where it lives | State |
 |---|---|---|
@@ -38,9 +38,9 @@ The console fetches pending Safe transactions and decodes them into plain langua
 
 ## Credit and upstream
 
-This project is forked from **Austin Griffith's [picowallet](https://github.com/austintgriffith/picowallet)** (MIT): a Pico 2 W, a Waveshare Pico-LCD-1.3 and a Microchip **ATECC608** secure element. That project proved a Pico can drive a secure element from MicroPython, rebuild an EIP-712 digest on-device, show a signing request, take a button press, and return a real P-256 signature that moved funds on Ethereum mainnet. Its code stays in this repo (`firmware/`, `app/`, `emu/`; its case in `cad/console/`, its notes in `docs/`) until the PicoQuorum parts replace it.
+This project is forked from **Austin Griffith's [picowallet](https://github.com/austintgriffith/picowallet)** (MIT): a Pico 2 W, a Waveshare Pico-LCD-1.3 and a Microchip **ATECC608** secure element. That project proved a Pico can drive a secure element from MicroPython, rebuild an EIP-712 digest on-device, show a signing request, take a button press, and return a real P-256 signature that moved funds on Ethereum mainnet. Its secure-element drivers, display and crypto helpers, and its emulator are still at the heart of this repo, credited in each file. Its single-owner vault app, its case and its notes were removed on 2026-10-06, before the repository went public; they live on in picowallet's own repository.
 
-Upstream has since added an **OPTIGA Trust M** driver (`firmware/trustm.py`: physical and link layers, APDU session, factory-certificate read, CalcSign) and a `TrustMAttest` contract (`app/packages/foundry/contracts/`) that proves on chain that a P-256 key lives in a real Trust M. Both were merged here on 2026-09-24; see [`UPSTREAM-TRACKING.md`](UPSTREAM-TRACKING.md).
+Upstream has since added an **OPTIGA Trust M** driver (`firmware/trustm.py`: physical and link layers, APDU session, factory-certificate read, CalcSign) and a `TrustMAttest` contract (in picowallet's repository) that proves on chain that a P-256 key lives in a real Trust M. Both were merged here on 2026-09-24, and the contract was removed with the vault app on 2026-10-06; see [`UPSTREAM-TRACKING.md`](UPSTREAM-TRACKING.md).
 
 - [x] Add upstream link, license check, and attribution to `README.md` and `NOTICE`
 - [ ] Keep the upstream secure-element drivers (`firmware/atecc.py`, `firmware/trustm.py`) and change them as little as possible
@@ -87,7 +87,7 @@ What's different here: a multisig-first design, on-device Safe transaction decod
 - [ ] **Critical:** find out whether signing can be gated behind a PIN with attempt limiting. A portable key without one is a live key if stolen.
   - ATECC608: a slot can require prior authorization by a secret-derived key (CheckMac / auth key), and a monotonic counter can cap uses (LimitedUse). No built-in attempt lockout, so the limit would have to come from the counter.
   - Trust M: authorization-reference access conditions and a security event counter that throttles repeated failures.
-- [ ] Document the key-slot metadata and lock / lifecycle-state procedure for the chosen chip (for the ATECC608, the config, data and slot locks are already walked through in [CHIPMAP.md](CHIPMAP.md) and [TESTPLAN.md](TESTPLAN.md))
+- [ ] Document the key-slot metadata and lock / lifecycle-state procedure for the chosen chip (for the ATECC608, the config, data and slot locks are already walked through in [CHIPMAP.md](CHIPMAP.md), [LOCKING.md](LOCKING.md) and [PROVISIONING.md](PROVISIONING.md))
 
 ### Key connector: draft pinout
 
@@ -179,25 +179,22 @@ A 3-of-5 where no single technology holds more than two keys: a warm wallet (pro
 ## Repo layout
 
 ```
-docs/            kickoff, security model, provisioning ceremony, signer instructions, the picowallet notes
+docs/            kickoff, security model, provisioning ceremony, signer instructions, the owner's guide
 hardware/
+  DEV-CONSOLE.md the no-solder dev console
   wiring/        console and key schematics, pinouts (SOLDERING.md: the dev console's perfboard)
   bom/           parts lists and sourcing notes
   key-pcb/       key board design
-cad/
-  console/       enclosure, button guard or cover, jack bracket (today: the dev console's case)
-  key/           plug handle, end cap, label band
 firmware/        MicroPython (upstream drivers plus Safe layers; safe_tx.py so far)
-contracts/       signer contract, tests, deploy scripts (Foundry is in app/packages/foundry for now)
+contracts/       PicoQuorum's own contracts, when there are any
 tools/           mock transaction service, provisioning scripts, vector generator, emulator and board tools
 test-vectors/    Safe transactions with known-correct hashes
 ```
 
 These live outside the kickoff layout:
-- `app/`: picowallet's Scaffold-ETH app for the single-owner vault, and `TrustMAttest`. Its Foundry package can't leave the workspace without breaking `yarn deploy`.
-- `emu/`: the virtual dev console.
+- `emu/`: the console in a browser.
+- `web/`: the app's source.
 - `buildlog/`: dated notes and photos.
-- `reference/`: the Pi signer picowallet grew out of.
 
 ## First parts order
 
@@ -214,4 +211,4 @@ See [`hardware/bom/README.md`](../hardware/bom/README.md).
 - [ ] Flip cover vs. guard fence
 - [ ] Printed vs. aluminum enclosure
 - [ ] Faceplate name: "PicoQuorum" or just "Quorum"
-- [ ] When to prune the inherited single-token code (`app/` ChipAccount/USDS, the Waveshare case in `cad/console/`)
+- [x] When to prune the inherited single-token code: done 2026-10-06 (`app/` ChipAccount/USDS, the Waveshare case, the Pi signer)

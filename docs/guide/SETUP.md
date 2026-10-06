@@ -6,7 +6,7 @@ before it writes.
 
 **You need:**
 - The console: a Pico 2 W, a Waveshare Pico-LCD-1.3 and an ATECC608
-  ([build guide](../picowallet.md), [parts](../../hardware/bom/README.md)).
+  ([build guide](../../hardware/DEV-CONSOLE.md), [parts](../../hardware/bom/README.md)).
 - A browser wallet (MetaMask, Rabby…) with a little ETH on each chain you'll use. It is the
   Safe's other owner, and it pays for the one-time signer deploy on each chain.
 - A Safe API key from [developer.safe.global](https://developer.safe.global). It's free, and it

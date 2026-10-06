@@ -102,7 +102,7 @@ On a KY-040 board instead of a bare encoder: CLK goes to A, DT to B and SW to SW
 | pins | GPIO | kept for |
 |---|---|---|
 | 20, 22, 25, 27 | GP15, GP17, GP19, GP21 | A (Sign), B, X, Y (Reject): tact switches later, on the Waveshare's pins so `lcd.Keys` still works |
-| 34 | GP28 | battery sense, the divider in [SOLDERING.md](SOLDERING.md#2-battery-switch-diode) (`power.py`) |
+| 34 | GP28 | battery sense, the divider in [SOLDERING.md](SOLDERING.md#2-battery-switch-diode) |
 | 1, 19, 21, 24, 26, 29 | GP0, GP14, GP16, GP18, GP20, GP22 | free: status LED, the Sign guard's arm switch, a second knob |
 | none | GP23, GP24, GP25, GP29 | never. On a Pico 2 W they belong to the radio and are not on the header. The LED is `Pin("LED")`, not `Pin(25)` |
 
@@ -119,7 +119,7 @@ powered yet. That's harmless.
 
 A CTIA headset also has ground on ring 2 and would read as a key. The next rule handles that.
 
-**Power.** The firmware (`bench1.py` today, and `wallet.py` later) works like this:
+**Power.** The firmware (`bench1.py` today, and the console later) works like this:
 
 1. DETECT reads low for 200 ms.
 2. GP6 goes high, then waits 5 ms.

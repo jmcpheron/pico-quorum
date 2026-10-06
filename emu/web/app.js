@@ -3,7 +3,6 @@
 // tools/emu (emu/server.mjs): the flash, the chip state and saved files live on this Mac, and the
 // page can reach boards on USB. The site's console page (emu/console/, docs/console/) shares
 // browser.mjs with it: the keys, the release fingerprint and your passkey.
-import { createDevice3D } from "./device3d.js";
 import { KEY_ORDER, answer, keyOf, local, makePasskey, paintFrame, passkeyCred, usePasskey, showRelease, stampRelease } from "./browser.mjs";
 
 const $ = (s) => document.querySelector(s);
@@ -33,14 +32,13 @@ const screen = $("#screen"), sctx = screen.getContext("2d");
 const flatscreen = $("#flatscreen"), fctx = flatscreen.getContext("2d");
 const img = sctx.createImageData(240, 240);
 
-let worker = null, seq = 0, running = null, main = local.get("emu.main") || "mock";
+let worker = null, seq = 0, running = null, main = local.get("emu.main") || "quorum";
 const files = new Map();          // name -> { src, text?, b64?, dirty }
 let current = null, editor = null, editorFallback = null, loading = false;
 const log = [];
 let execCapture = null;
 const waiting = new Map();
 let frames = 0, fpsCount = 0, fps = 0;
-let device3d = null;
 
 // ---- editor ------------------------------------------------------------------------------
 if (window.CodeMirror) {
@@ -111,7 +109,7 @@ $("#newfile").onclick = async () => {
   await saveFile(name);
 };
 
-const TEMPLATE = `# NAME: a sketch for the Pico wallet. Run: tools/emu run NAME
+const TEMPLATE = `# NAME: a sketch for the Pico. Run: tools/emu run NAME
 import time
 from machine import Timer
 from lcd import LCD, Keys, color, BLACK, WHITE, GREEN, RED, YELLOW, GREY
@@ -250,11 +248,8 @@ function onMsg(e) {
     sctx.putImageData(img, 0, 0);
     fctx.putImageData(img, 0, 0);
     frames = m.frames; fpsCount++;
-    if (device3d) device3d.updateScreen();
   } else if (m.type === "out") appendLog(m.line);
   else if (m.type === "mark") console.log(m.text);
-  else if (m.type === "pwm") { if (m.pin === 13 && device3d) device3d.setBacklight(m.frac); }
-  else if (m.type === "pin") { if (m.pin === "LED" && device3d) device3d.setLed(!!m.v); }
   else if (m.type === "reset") { appendLog("machine.reset()", "sys"); reboot(main); }
   else if (m.type === "rpc") answer(rpcSab, m);
   else if (m.type === "started") { const r = started.get(m.id); if (r) r(); }
@@ -342,7 +337,6 @@ function setKey(name, down) {
   if (i < 0) return;
   if (sab) Atomics.store(keys, i, down ? 1 : 0);
   else { keys[i] = down ? 1 : 0; if (worker) worker.postMessage({ type: "keys", state: Array.from(keys) }); }
-  if (device3d) device3d.setKey(name, down);
   for (const b of document.querySelectorAll(`#flat [data-key="${name}"]`)) b.classList.toggle("down", down);
 }
 const isTyping = (t) => t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable || t.closest?.(".CodeMirror"));
@@ -361,17 +355,6 @@ for (const b of document.querySelectorAll("#flat [data-key]")) {
   b.addEventListener("pointerup", () => setKey(k, false));
   b.addEventListener("pointerleave", () => setKey(k, false));
 }
-$("#stage").addEventListener("pointerdown", () => $("#right").focus({ preventScroll: true }));
-
-// ---- views -------------------------------------------------------------------------------
-function setView(v) {
-  local.set("emu.view", v);
-  $("#stage").hidden = v !== "3d"; $("#flat").hidden = v !== "flat";
-  $("#view3d").classList.toggle("on", v === "3d"); $("#viewflat").classList.toggle("on", v === "flat");
-  if (device3d) device3d.resize();
-}
-$("#view3d").onclick = () => setView("3d");
-$("#viewflat").onclick = () => setView("flat");
 
 // ---- control channel for tools/emu -------------------------------------------------------
 const handlers = {
@@ -381,7 +364,7 @@ const handlers = {
   async keys({ names }) { for (const n of names) { const [k, ms] = n.split(":"); setKey(k, true); await sleep(+(ms || 80)); setKey(k, false); await sleep(120); } return { ok: true }; },
   async shot() { return { ok: true, png: shotDataURL() }; },
   async log({ n }) { return { ok: true, lines: log.slice(-(n || 40)) }; },
-  async state() { return { ok: true, main, running, frames, fps, sharedKeys: !!sab, view: local.get("emu.view") || "3d", files: [...files.keys()] }; },
+  async state() { return { ok: true, main, running, frames, fps, sharedKeys: !!sab, files: [...files.keys()] }; },
   async reset() { return reboot(main); },
   async main({ name }) { setMain(name); return { ok: true }; },
   // waitId: return as soon as the device answers a JSON line with that id (a sign waits for a person)
@@ -449,15 +432,5 @@ $("#usepasskey").onclick = async () => {
 // ---- go ----------------------------------------------------------------------------------
 const T0 = performance.now();
 const mark = (what) => console.log(`[emu] ${what} at ${Math.round(performance.now() - T0)} ms`);
-setView(local.get("emu.view") || "3d");
 if (!sab) appendLog("no SharedArrayBuffer: keys reach the device only while it is idle (busy loops will not see them)", "err");
-const booting = reboot(main).then(() => mark("booted"));
-try {
-  device3d = await createDevice3D($("#stage"), screen, { onKey: setKey, onGrab: () => $("#right").focus({ preventScroll: true }) });
-  device3d.updateScreen();
-  mark("3d ready");
-} catch (e) {
-  appendLog("3D view unavailable (" + (e.message || e) + "), using flat view", "err");
-  setView("flat");
-}
-await booting;
+await reboot(main).then(() => mark("booted"));

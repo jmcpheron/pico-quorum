@@ -10,7 +10,7 @@ STAT_NO_AP_FOUND = -2
 STAT_CONNECT_FAIL = -1
 STAT_GOT_IP = 3
 
-_host = "picowallet"
+_host = "picoquorum"
 _state = {"active": True, "connected": True, "status": STAT_GOT_IP}
 _ap = {"active": False, "ssid": "", "key": ""}
 AIR = {"emulator": ("", -50, 0), "Home Wi-Fi": ("correct horse", -48, 3), "Cafe Guest": ("espresso99", -71, 3),

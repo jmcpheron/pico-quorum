@@ -1,9 +1,9 @@
 # tools
 
-Inherited picowallet scripts (`pico`, `push`, `emu`, `qr`, `wiring`, the `zez*` case generators
-and more) are unchanged; see the upstream half of [`../README.md`](../README.md).
+From picowallet (Austin Griffith, MIT): `emu`, the emulator's command line
+([`../emu/README.md`](../emu/README.md)), and the start of `check_config`. The rest is PicoQuorum's:
 
-PicoQuorum additions:
+- `usb`: the board's REPL and file pushes over USB serial (mpremote), for development boards
 
 - [`vectors/`](vectors/): generates the Safe hash test vectors, and what `firmware/decode.py` must
   say about each one

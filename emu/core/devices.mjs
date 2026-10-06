@@ -14,8 +14,8 @@ import { fileURLToPath } from "node:url";
 export const MPREMOTE = [join(homedir(), ".local/bin/mpremote"), "mpremote"].find((p) => !p.includes("/") || existsSync(p));
 export const lock = { busy: false };                 // set while ship/identify holds a port
 const known = new Map();                              // port -> { label, board } or "pending"
-const UF2_DIR = join(homedir(), ".cache", "picowallet-uf2");
-export const DEFAULT_MP_VERSION = process.env.MP_VERSION || "1.26.1";   // what the wallet Pico and the emulator run
+const UF2_DIR = join(homedir(), ".cache", "picoquorum-uf2");
+export const DEFAULT_MP_VERSION = process.env.MP_VERSION || "1.26.1";   // what the console and the emulator run
 // bootloader Board-ID -> MicroPython build, [without WiFi, with WiFi]; the drive cannot tell a W apart
 const BOARD_UF2 = { "RP2350": ["RPI_PICO2", "RPI_PICO2_W"], "RPI-RP2": ["RPI_PICO", "RPI_PICO_W"] };
 // pyserial lives in the mpremote install; used for port info, the 1200-baud bootloader touch, banners
