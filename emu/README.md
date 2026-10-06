@@ -17,7 +17,11 @@ tools/emu devices         # boards on USB (serial ports, bootloader drives)
 tools/emu ship hello      # copy hello.py (+ imports) to the Pico on USB and run it (--port /dev/cu.usbmodemN, --boot: run at power-up too)
 tools/emu flash --port /dev/cu.usbmodemN [--wifi]   # MicroPython onto any board (also works on a BOOTSEL drive without --port)
 tools/emu headless mock --wait 300 --key right --shot emu/shots/x.png    # no browser
+tools/emu serve --host 0.0.0.0   # server in the foreground, reachable from the LAN (EMU_HOST=0.0.0.0 too)
 ```
+
+The server listens on 127.0.0.1 only. Its `/ctl` routes run code on the emulated device and ship files
+to a Pico on USB, so `--host` opens that to anyone who can reach the machine: trusted networks only.
 
 Page: the device menu lists every board on USB; for one that is not running MicroPython the
 send button becomes ⚡ install MicroPython. The module menu top left picks what ▶ run, ↻ reset and
