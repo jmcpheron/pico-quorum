@@ -52,7 +52,7 @@ done
 [ -n "$out" ] || { [ "$sketch" = bootfx ] && out=docs/quorum-ui/boot || out=docs/quorum-ui/v2/boot; }
 src=emu/sketches/$sketch.py
 [ -f "$src" ] || { echo "no sketch $src" >&2; exit 1; }
-[ -d emu/node_modules ] || (cd emu && npm install --silent) || exit 1
+[ -d emu/node_modules ] || (cd emu && npm ci --silent) || exit 1
 tmp=$(mktemp -d)
 mkdir -p "$out"
 opts="$*"

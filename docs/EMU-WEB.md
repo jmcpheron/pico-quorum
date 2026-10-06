@@ -148,7 +148,7 @@ directly on Ethereum and Base, and it answered 1 on both. What this settles:
 - The verifier accepts high s as well. We should still normalize to low s, as `p256.py` and the
   signers do. It is harmless, and it stays correct if a future verifier gets stricter.
 
-Run it: `cd tools/vectors && npm install && npm run passkey` (`PQ_CHROMIUM=` if playwright-core has
+Run it: `cd tools/vectors && npm ci && npm run passkey` (`PQ_CHROMIUM=` if playwright-core has
 no Chromium of its own; `--chain eth` for one chain).
 
 ## Why not a "virtual Trust M" backed by the passkey

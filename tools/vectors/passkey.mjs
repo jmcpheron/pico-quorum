@@ -10,7 +10,7 @@
 // Then, read only on each chain's public RPC: the factory's getSigner(x, y, verifiers) and
 // isValidSignatureForSigner(safeTxHash, ...), with s as the browser gave it and flipped.
 //
-//   cd tools/vectors && npm install && node passkey.mjs [--chain basesep|base|eth ...] [--write]
+//   cd tools/vectors && npm ci && node passkey.mjs [--chain basesep|base|eth ...] [--write]
 // --write keeps this assertion as test-vectors/passkey.json once every chain asked accepts it, so
 // test-vectors/run.py checks firmware/webauthn.py packs a real browser's assertion the same way.
 //   PQ_CHROMIUM=/path/to/chrome if playwright-core has no Chromium of its own

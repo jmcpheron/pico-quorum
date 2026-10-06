@@ -113,7 +113,7 @@ async function doctor() {
   line(!!v, `anvil ${v || "missing"}${v && v !== FOUNDRY.slice(1) ? ` (tested with ${FOUNDRY})` : ""}${foundryBin("anvil")?.includes("/") ? " from ~/.foundry/bin" : ""}`,
     `curl -L https://foundry.paradigm.xyz | sh, then: ~/.foundry/bin/foundryup -i ${FOUNDRY}`);
   line(!!foundryBin("cast"), "cast (tools/quorum live)", `foundryup -i ${FOUNDRY}`);
-  line(existsSync(new URL("../../emu/node_modules", import.meta.url)), "emu/node_modules (e2e, shots, run-micropython.mjs)", "(cd emu && npm install)");
+  line(existsSync(new URL("../../emu/node_modules", import.meta.url)), "emu/node_modules (e2e, shots, run-micropython.mjs)", "(cd emu && npm ci)");
   try {
     const r = await fetch(FORK_RPC, { method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_chainId", params: [] }), signal: AbortSignal.timeout(8000) });

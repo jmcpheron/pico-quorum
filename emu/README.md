@@ -135,4 +135,4 @@ protocol, config zone and its locks, the slot table, GenKey, Nonce + Sign, Rando
 encrypted transfers, sockets, PIO, native/viper code generation (runs as bytecode), real timing of
 Python itself (wasm is much faster than the RP2350).
 
-Needs node 18+ and `npm install` in `emu/` (done by `tools/emu` on first run). No build step.
+Needs node 18+ and `npm ci` in `emu/` (done by `tools/emu` on first run). No build step.

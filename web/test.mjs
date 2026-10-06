@@ -11,6 +11,9 @@
 // 5. Proposing: every kind the page builds is read by the console's own decoder (firmware/decode.py)
 //    as what the page says it is; the typed data the wallet signs hashes to the console's hash; the
 //    signature is checked and normalised; the body has what Safe's service requires.
+// 6. Offchain lookups (EIP-3668) are never followed: against a local RPC whose contract answers every
+//    read with OffchainLookup, the page's client refuses the read and its gateway is never asked,
+//    where viem's default client asks it.
 import { spawnSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -297,6 +300,38 @@ try {
     same += B.passkeyOwner({ x, y }, cfg.signer) === getAddress(p256Owner(S.CFG.signer, "0x" + x, "0x" + y));
   }
   check(same === 4, "passkeyOwner: the passkey's owner address is p256Owner's (sigs.mjs), checksummed");
+}
+
+// ----------------------------------------------------------------------------- 6. offchain lookups
+{
+  const { createServer } = await import("node:http");
+  const { createPublicClient, encodeAbiParameters, encodeErrorResult, http, parseAbi } = await import("viem");
+  const target = getAddress("0x000000000000000000000000000000000000dead");
+  const CALLBACK = "0x12345678";
+  let gateway = 0, lookup = "0x";
+  const srv = createServer(async (req, res) => {
+    res.writeHead(200, { "content-type": "application/json" });
+    if (req.url.startsWith("/gateway/")) { gateway++; return res.end(JSON.stringify({ data: "0x" })); }
+    let body = "";
+    for await (const c of req) body += c;
+    const answer = (m) => m.method !== "eth_call" ? { jsonrpc: "2.0", id: m.id, result: "0x2105" }
+      : m.params[0].data.startsWith(CALLBACK) ? { jsonrpc: "2.0", id: m.id, result: encodeAbiParameters([{ type: "address[]" }], [[]]) }
+      : { jsonrpc: "2.0", id: m.id, error: { code: 3, message: "execution reverted", data: lookup } };
+    const msg = JSON.parse(body);
+    res.end(JSON.stringify(Array.isArray(msg) ? msg.map(answer) : answer(msg)));
+  });
+  await new Promise((r) => srv.listen(0, "127.0.0.1", r));
+  const rpc = `http://127.0.0.1:${srv.address().port}/`;
+  lookup = encodeErrorResult({
+    abi: parseAbi(["error OffchainLookup(address sender, string[] urls, bytes callData, bytes4 callbackFunction, bytes extraData)"]),
+    errorName: "OffchainLookup", args: [target, [rpc + "gateway/{sender}/{data}.json"], "0x1234", CALLBACK, "0x"],
+  });
+  const read = (c) => c.readContract({ address: target, abi: parseAbi(["function getOwners() view returns (address[])"]), functionName: "getOwners" });
+  const refused = await read(S.client("base", rpc)).then(() => false, () => true);
+  check(refused && gateway === 0, "client: a contract's offchain lookup (EIP-3668) is refused, and its URL is never fetched");
+  await read(createPublicClient({ transport: http(rpc) })).catch(() => {});
+  check(gateway > 0, "and the check is real: viem's default client would have fetched it");
+  srv.close();
 }
 
 console.log(failed ? `${failed} FAILED` : "all pass");
