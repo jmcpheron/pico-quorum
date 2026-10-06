@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""key-c P2 print mock-up: one plain solid of the key's shape and size, for a 3D printer.
+"""key-c print mock-up: one plain solid of the key's shape and size, for a 3D printer.
 
     pip install cadquery
-    python3 hardware/key-pcb/key-c-usbc/3d/print_mockup.py
+    python3 hardware/key-pcb/key-c-usbc/3d/print_mockup.py        # P2, as ordered
+    python3 hardware/key-pcb/key-c-usbc/3d/print_mockup.py P3     # P3: P2 plus the lock notches
 
-Writes key-c-P2-print.step next to this file. Unlike key-c-P2.step it has no real parts: the
+Writes key-c-P2-print.step (or key-c-P3-print.step) next to this file. Unlike key-c-P2.step it has no real parts: the
 board, the chips' bodies, the small parts and the USB-C shell are blocks fused into one solid.
 The USB-C shell is only its outside, with an open socket a real USB-C plug slides into (no
 tongue, no contacts). Its walls are thicker than metal so they print, so it is a little bigger
@@ -14,15 +15,17 @@ Frame as the other STEP files: origin at the board centre, Z = 0 the back face, 
 mm. Part positions are the board's (key-c-usbc.kicad_pcb), moved into this frame.
 """
 import os
+import sys
 
 import cadquery as cq
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(HERE, "key-c-P2-print.step")
 
 # board: 16 x 36 mm, 2 mm corners, 1.6 mm thick as ordered
 BOARD_W, BOARD_L, BOARD_T, BOARD_R = 16.0, 36.0, 1.6, 2.0
 HOLE_XY, HOLE_D = (0.0, 14.0), 3.0                 # H1, the lanyard hole
+# P3's lock notches: gen_cd.py's NOTCH_Y = -14.5 from the connector edge, NOTCH_R = 1.5
+NOTCH_Y, NOTCH_R = -BOARD_L / 2 + 14.5, 1.5
 
 # USB-C socket. A real plug is 8.25 x 2.40 mm, 6.65 mm long; these add print clearance.
 PLUG_W, PLUG_H = 8.70, 2.90                        # socket opening (stadium)
@@ -42,10 +45,14 @@ BODIES = [
 ]
 
 
-def board():
+def board(rev="P2"):
     b = (cq.Workplane("XY").rect(BOARD_W, BOARD_L).extrude(BOARD_T)
          .edges("|Z").fillet(BOARD_R))
-    return b.faces(">Z").workplane().center(*HOLE_XY).hole(HOLE_D)
+    b = b.faces(">Z").workplane().center(*HOLE_XY).hole(HOLE_D)
+    if rev == "P3":
+        for x in (-BOARD_W / 2, BOARD_W / 2):
+            b = b.cut(cq.Workplane("XY").center(x, NOTCH_Y).circle(NOTCH_R).extrude(BOARD_T))
+    return b
 
 
 def usb_shell():
@@ -62,8 +69,8 @@ def usb_shell():
     return rounded.union(footing).cut(socket)
 
 
-def mockup():
-    m = board()
+def mockup(rev="P2"):
+    m = board(rev)
     for _, x, y, sx, sy, h in BODIES:
         m = m.union(cq.Workplane("XY").box(sx, sy, h, centered=(True, True, False))
                     .translate((x, y, BOARD_T)))
@@ -75,7 +82,10 @@ def mockup():
 
 
 if __name__ == "__main__":
-    m = mockup()
+    rev = sys.argv[1] if len(sys.argv) > 1 else "P2"
+    assert rev in ("P2", "P3"), rev
+    OUT = os.path.join(HERE, f"key-c-{rev}-print.step")
+    m = mockup(rev)
     cq.exporters.export(m, OUT, opt={"write_pcurves": False})
     bb = m.val().BoundingBox()
     print(f"{OUT}\n  {bb.xlen:.2f} x {bb.ylen:.2f} x {bb.zlen:.2f} mm, "

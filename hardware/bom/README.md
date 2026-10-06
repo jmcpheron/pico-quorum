@@ -52,6 +52,17 @@ The order itself is in [key-pcb/ORDERING.md](../key-pcb/ORDERING.md).
 | Card-edge socket, 0.100″, 0.062″ card, 8/16 positions | 1–2 | Sullins EBC08DRXN (the 5/10 size is Digi-Key S9641-ND) | the console side; hand-solder, never reflow |
 | Sullins PLA-K1 polarizing key | 2 | Digi-Key PLA-K1-ND | optional; check which way it sits |
 
+## The cartridge bay
+
+For [hardware/case/](../case/README.md). Nothing ordered yet.
+
+| part | qty | notes |
+|---|---|---|
+| 2 mm steel dowel pins, 12 mm (P3) and 16 mm (P2) | a few of each | the lock pins, pressed into the carriage |
+| microswitch, D2F size (12.8 × 5.8 × 6.5 mm body, pin plunger) | 2 | cuts the console's 5 V until the key is locked; check its operating point and overtravel against `cartridge.py` |
+| USB-C male plug breakout | 2 | the console's plug at the back of the bay; measure it against the pocket |
+| M2 × 8 screws for plastic | 8 | the bottom plate |
+
 ## First order for the PicoQuorum console and keys
 
 From the [kickoff](../../docs/KICKOFF.md#first-parts-order). Nothing ordered yet.

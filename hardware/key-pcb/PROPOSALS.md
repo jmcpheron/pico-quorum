@@ -235,4 +235,5 @@ These are rough figures, built on ORDERING.md's 2026-10-02 lookups. Use JLCPCB's
       300 ns, and 2.2k at 218 ns. Use 2.2k on the console, a short cable (≤ 30 cm), or the dock.
       Then measure it on the bench
 - [ ] The enclosure for each: key-c needs an opening for the plug, and key-d a recess for the
-      magnets
+      magnets. key-c's is started: the [cartridge bay](../case/README.md), with key-c P3's lock
+      notches ([key-c-usbc/README.md](key-c-usbc/README.md#p3-lock-notches-and-the-licence-notice))

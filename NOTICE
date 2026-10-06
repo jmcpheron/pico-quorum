@@ -10,7 +10,8 @@ LICENSES, BY PATH
 
   Hardware: CERN-OHL-W-2.0 (LICENSE-HARDWARE)
     hardware/: the key boards (KiCad projects, fab files, STEP models, renders, the generators that
-    write them), the wiring, the parts lists, and the documents with them. See hardware/README.md
+    write them), the cartridge bay (hardware/case/), the wiring, the parts lists, and the documents
+    with them. See hardware/README.md
     for the Source Location and what a product made from it must show.
 
   Documentation: CC BY-SA 4.0 (LICENSE-DOCS)

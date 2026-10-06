@@ -4,6 +4,10 @@
 > checked and confirmed, and so is the parts placement (2026-10-04). JLCPCB estimates production
 > will finish 2026-10-07 05:00; then 8–13 business days by Global Standard.
 > JLCPCB order **W…1209** · PCBA **SMT…3772** · $38.96
+>
+> **P3 is drawn in `gen_cd.py`, not yet generated or ordered.** It adds lock notches and the
+> licence notice ([below](#p3-lock-notches-and-the-licence-notice)). The KiCad and fab files here are
+> still P2's, as ordered.
 
 | parts side | back |
 |---|---|
@@ -53,6 +57,47 @@ The design is in [../PROPOSALS.md](../PROPOSALS.md), and the full order record i
 | Files as ordered | commit `ac34fc55` on `key-pcb-learn`; Gerber zip SHA-256 `99a6dbb5…`, in `fab/` |
 | Checks | ERC 0 · DRC 0 · unconnected 0 · parity clean (`tools/keypcb check key-c-usbc`) |
 
+## P3: lock notches and the licence notice
+
+P3 is P2 plus two things, for the [cartridge bay](../../case/README.md). Nothing else moves: same
+parts, same placement, same routing.
+
+**Two half-round notches** in the long edges.
+- Each has radius 1.5 mm, so it is 3 mm wide and 1.5 mm deep.
+- They are centred 14.5 mm from the USB-C end (`NOTCH_Y`, `NOTCH_R` in `gen_cd.py`).
+- With the key half in the bay, the bay's pins rise through them, so it can't be pulled out while
+  the console is on.
+- There's one on each edge, so the key locks either way up.
+- They sit midway between the edge stitching vias at 11 and 19 mm, about 2 mm from the nearest via's
+  copper. Every part and pad is within ±5 mm of the centre line, and the notches reach in to
+  ±6.5 mm.
+- The outline is drawn with three-point arcs, so the notches can't come out as bumps.
+
+**The licence notice** on the back, in the connector half, as
+[hardware/README.md](../../README.md#license) asks:
+- the lines `CERN-OHL-W-2.0`, `github.com/`, `jmcpheron/`, `pico-quorum`
+- in 0.8 mm text, the board's minimum, at y −9.7 to −13.3 mm
+- clear of J1's shell legs, which end by −7.8 mm, and inside the notches
+
+The back text reads `key-c P3 2026-10`. Key-d keeps its own date: `gen_cd.py` now has a date per
+board.
+
+**To make P3 (KiCad 10):**
+1. `tools/keypcb gen-cd`. It rewrites key-d too: `git checkout hardware/key-pcb/key-d-pogo` if
+   only its UUIDs changed.
+2. `tools/keypcb check key-c-usbc`: expect 0 ERC, 0 DRC, 0 unconnected, parity clean.
+3. `tools/keypcb fab key-c-usbc` and `tools/keypcb render key-c-usbc`.
+4. In the render, look at:
+   - the notches: clean half-rounds, with the ground pour pulled back from them
+   - the licence block: readable, and off every pad
+5. The P2 files as ordered stay at commit `ac34fc55`, and in `3d/` and `renders/`.
+
+**The printed dummy:** `python3 3d/print_mockup.py P3` writes
+[`3d/key-c-P3-print.step`](3d/key-c-P3-print.step), P2's mock-up with the notches cut. Print it
+to try the bay before any P3 board exists.
+
+Don't order P3 until P2 has been on the bench and in the P2 cradle.
+
 ## Next
 
 1. **Before plugging anything in:** build the console's end of the cable
@@ -75,6 +120,12 @@ The design is in [../PROPOSALS.md](../PROPOSALS.md), and the full order record i
 4. **Practise provisioning on a spare** before any key becomes a Safe owner.
 
 ## Log (newest first)
+
+- **2026-10-06:** **P3 drawn in `gen_cd.py`**, for the cartridge bay (`hardware/case/`).
+  - Lock notches in both long edges.
+  - The Source Location and `CERN-OHL-W-2.0` on the back.
+  - A P3 print mock-up.
+  - Not generated (no KiCad 10 where it was written), not checked, not ordered.
 
 - **2026-10-04:** **placement confirmed**, and the order is in production.
   - "Yes, please proceed to production."

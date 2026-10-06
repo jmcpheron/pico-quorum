@@ -25,8 +25,8 @@ if os.path.isdir(_SS):
     gen.KISYM, gen.KIFP = _SS + "/symbols", _SS + "/footprints"
 
 HERE, LIB = gen.HERE, gen.LIB
-DATE = "2026-10-02"
-REVS = {"key-c-usbc": "P2", "key-d-pogo": "P1"}   # proposals, not releases
+DATES = {"key-c-usbc": "2026-10-06", "key-d-pogo": "2026-10-02"}
+REVS = {"key-c-usbc": "P3", "key-d-pogo": "P1"}   # proposals, not releases
 
 CHIP = dict(chip="ATECC608C-SSHDA", chip_fp="Package_SO:SOIC-8_3.9x4.9mm_P1.27mm", chip_lcsc="C28975195",
             chip_mpn="ATECC608C-SSHDA-B")
@@ -51,6 +51,11 @@ PAD_PITCH, PAD_D = 2.54, 1.8
 TPS = [("TP1", "GND"), ("TP2", "VCC"), ("TP3", "SDA"), ("TP4", "SCL")]   # key-c's test pads
 PAD_Y = -3.5                      # the pad row's distance from the key's end
 MAGNET_X, MAGNET_Y, MAGNET_HOLE = 6.0, -9.0, 3.2   # for 3 mm neodymium discs, glued in
+# key-c's lock notches (P3): a half-round cut in each long edge, inside a cartridge bay that takes
+# the key half way in. The bay's pins rise through them (hardware/case/). Both edges, so a key put
+# in the other way up still locks. Midway between the edge stitching vias at y = -11 and -19.
+NOTCH_Y, NOTCH_R = -14.5, 1.5
+SOURCE = ["CERN-OHL-W-2.0", "github.com/", "jmcpheron/", "pico-quorum"]   # the Source Location (hardware/README.md)
 
 
 # =================================================================================================
@@ -257,6 +262,7 @@ def _finish(sh, name, b, note):
     sh.write(path, b["title"])
     s = open(path).read()
     s = s.replace('(rev "A")', f'(rev "{REVS[name]}")', 1)
+    s = s.replace(f'(date "{gen.DATE}")', f'(date "{DATES[name]}")', 1)
     s = s.replace('(comment 1 "The PCB is the plug: see hardware/key-pcb/README.md")', f'(comment 1 "{note}")', 1)
     open(path, "w").write(s)
 
@@ -452,7 +458,7 @@ def write_board(name, b, netlist, dump=False):
     ds.m_CopperEdgeClearance = pcbnew.FromMM(0.3)
     ds.SetAuxOrigin(gen._mm(-W / 2, 0))
     tb = board.GetTitleBlock()
-    tb.SetTitle(b["title"]); tb.SetDate(DATE); tb.SetRevision(REVS[name]); tb.SetCompany("PicoQuorum")
+    tb.SetTitle(b["title"]); tb.SetDate(DATES[name]); tb.SetRevision(REVS[name]); tb.SetCompany("PicoQuorum")
 
     nets = {}
     for n in sorted({net for comp in netlist.values() for net in comp["pads"].values()}):
@@ -533,7 +539,7 @@ def write_board(name, b, netlist, dump=False):
         v.SetNet(nets[net])
         board.Add(v)
 
-    _outline(board, W, L, b["R"])
+    _outline(board, W, L, b["R"], notches=name == "key-c-usbc")
     _hole(board, "H1", "MountingHole_3mm", 0, -L + 4.0, "Lanyard")
     if name == "key-d-pogo":
         _hole(board, "H2", "MountingHole_3.2mm_M3", -MAGNET_X, MAGNET_Y, "Magnet")
@@ -558,17 +564,33 @@ def write_board(name, b, netlist, dump=False):
         os.remove(dru)   # P1's J1 clearance exception: the project footprint makes it unnecessary
 
 
-def _outline(board, W, L, r):
+def _outline(board, W, L, r, notches=False):
     import pcbnew
     E, h = pcbnew.Edge_Cuts, W / 2
     gen._seg(board, (-h + r, 0), (h - r, 0), E)
-    gen._seg(board, (h, -r), (h, -L + r), E)
     gen._seg(board, (h - r, -L), (-h + r, -L), E)
-    gen._seg(board, (-h, -L + r), (-h, -r), E)
+    if notches:
+        for s in (1, -1):   # each long edge is broken by a half-round notch, cut into the board
+            gen._seg(board, (s * h, -r), (s * h, NOTCH_Y + NOTCH_R), E)
+            _arc3(board, (s * h, NOTCH_Y + NOTCH_R), (s * (h - NOTCH_R), NOTCH_Y), (s * h, NOTCH_Y - NOTCH_R))
+            gen._seg(board, (s * h, NOTCH_Y - NOTCH_R), (s * h, -L + r), E)
+    else:
+        gen._seg(board, (h, -r), (h, -L + r), E)
+        gen._seg(board, (-h, -L + r), (-h, -r), E)
     gen._arc(board, (h - r, -r), (h - r, 0), -90)
     gen._arc(board, (h - r, -L + r), (h, -L + r), -90)
     gen._arc(board, (-h + r, -L + r), (-h + r, -L), -90)
     gen._arc(board, (-h + r, -r), (-h, -r), -90)
+
+
+def _arc3(board, start, mid, end):
+    """An Edge.Cuts arc through three points, so which way it bends can't depend on a sign."""
+    import pcbnew
+    a = pcbnew.PCB_SHAPE(board)
+    a.SetShape(pcbnew.SHAPE_T_ARC)
+    a.SetArcGeometry(gen._mm(*start), gen._mm(*mid), gen._mm(*end))
+    a.SetLayer(pcbnew.Edge_Cuts); a.SetWidth(pcbnew.FromMM(0.1))
+    board.Add(a)
 
 
 def _hole(board, ref, fpname, x, y, value):
@@ -632,15 +654,17 @@ def _silk(board, name, W, L):
     if name == "key-c-usbc":
         gen._text(board, "PICOQUORUM", 0, -26.8, F, 1.0)
         gen._text(board, "PicoQuorum key", 0, -23.9, B, 1.0, mirror=True)
-        gen._text(board, f"key-c {REVS[name]} {DATE[:7]}", 0, -22.5, B, 0.8, mirror=True)
+        gen._text(board, f"key-c {REVS[name]} {DATES[name][:7]}", 0, -22.5, B, 0.8, mirror=True)
         gen._text(board, "I2C on USB-C", 0, -21.3, B, 0.8, mirror=True)
+        for i, line in enumerate(SOURCE):   # in the connector half, inside the notches
+            gen._text(board, line, 0, -9.7 - 1.2 * i, B, 0.8, mirror=True)
         for ref, net in TPS:
             x, y, _, _ = LAYOUT[name]["parts"][ref]
             gen._text(board, net, x, y - 1.5, B, 0.8, mirror=True)
     else:
         gen._text(board, "PICOQUORUM", 0, -L + 8.5, F, 1.2)
         gen._text(board, "PicoQuorum key", 0, -19.8, B, 1.2, mirror=True)
-        gen._text(board, f"key-d pogo {REVS[name]} {DATE[:7]}", 0, -18.2, B, 0.8, mirror=True)
+        gen._text(board, f"key-d pogo {REVS[name]} {DATES[name][:7]}", 0, -18.2, B, 0.8, mirror=True)
         for n, sig, _ in PADS:
             # pads are numbered as seen from the bottom, so pad n sits at x = (3 - n) * pitch from the top
             gen._text(board, "D" if sig == "DETECT" else sig[:3] if sig != "GND" else "G",

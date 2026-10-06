@@ -10,12 +10,14 @@ Console and key electronics. The goals are in [`../docs/KICKOFF.md`](../docs/KIC
 - [`key-pcb/`](key-pcb/): the key's board. Rev A makes the board itself the plug (gold fingers into
   a card-edge socket). It has two KiCad projects, the fab files, and how to order them
   ([ORDERING.md](key-pcb/ORDERING.md))
+- [`case/`](case/): the cartridge bay. A key-c key plugs in half way, and one lever locks it in
+  and then turns the console on. A CadQuery script writes the parts; not printed yet
 
 The inherited picowallet wiring (Pico + Waveshare LCD + ATECC608 + 18650) is in
 [`wiring/SOLDERING.md`](wiring/SOLDERING.md) and `tools/wiring`.
 
-**The enclosure** isn't designed yet. Its open questions (button layout, a flip cover or a guard
-over Sign, printed or aluminum, the faceplate name) are in the kickoff's
+**The rest of the enclosure** isn't designed yet. Its open questions (button layout, a flip cover
+or a guard over Sign, printed or aluminum, the faceplate name) are in the kickoff's
 [open decisions](../docs/KICKOFF.md#open-decisions).
 
 ## License
@@ -39,3 +41,6 @@ The name and the mark on the boards are not part of this license ([TRADEMARK.md]
 a board you change carries your name, with the Source Location.
 
 - [ ] Put the Source Location on the silkscreen at the next key revision (key-c P3).
+  - `gen_cd.py` draws it for P3, with `CERN-OHL-W-2.0`, on the back. The KiCad files carry it once
+    `tools/keypcb gen-cd` is run (2026-10-06).
+  - The cartridge carries both on its underside ([case/](case/README.md#license)).
