@@ -9,8 +9,9 @@
 #             README's build badges (docs/releases/badges/) must name it too
 #   web       the app's tests, then a rebuild that must equal docs/ as committed (the build is
 #             reproducible: what Pages serves is what this source makes), then the browser e2e
-#   emu-web   the emulator's Pages build (docs/emu/), the same rebuild check, then Chromium against
-#             it served like Pages (no COOP/COEP headers)
+#   emu-web   the browser pages' build (docs/console/, and the deprecated docs/emu/), the same rebuild
+#             check, then Chromium against them served like Pages (no COOP/COEP headers), and against
+#             docs/console/ served alone, as a copy on your own computer
 name: CI
 
 on:

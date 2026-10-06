@@ -27,6 +27,9 @@ button:active { transform: translateY(1px); }
 #release { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; color: var(--dim); font-family: var(--mono); font-size: 12px; margin-right: 12px; }
 #release.edited { color: var(--yellow); }
 #release img { width: 16px; height: 16px; image-rendering: pixelated; border-radius: 2px; }
+/* the copy on GitHub Pages only (emu/build.mjs): it is deprecated, and says where the console went */
+#moved { margin: 0; padding: 6px 12px; background: #33270c; color: #ffd27a; border-bottom: 1px solid var(--line); font-size: 12px; }
+#moved a { color: #fff; }
 #skill { color: var(--yellow); text-decoration: none; font-size: 12px; margin-right: 12px; }
 #skill:hover { text-decoration: underline; }
 #stat { color: var(--dim); font-family: var(--mono); font-size: 12px; }

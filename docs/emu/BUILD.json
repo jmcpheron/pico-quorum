@@ -8,7 +8,7 @@
     "core/keccak.mjs": "d98224f46c3f6b6a4a925c731cdbaf65c7bd1f439a6593c8175d8f8ef885364a",
     "core/runtime.mjs": "407c853cfd6fe7882dde593a89b6e88879f2667447ef046bbcfbc2386a939dfb",
     "core/webauthn-assert.mjs": "2315708cdfcfd2ac8f4e1bf14b18984aa8173d71f928837c87c7d8886e40019c",
-    "index.html": "e8e5e0c40433d95d8bf268d808f3f8ad78e0b08bba62ff215059f3a7d8ad0f6e",
+    "index.html": "aa61753e12f615435e466cd4e2e21a9d89030f6cb56cf16f85a4e214ead20956",
     "shared/blockies.mjs": "45e8ad4cda19b5e53c0aaffc1fbcb2a081b1e7c121ad6f1545c86b3516f64750",
     "stl/NOTICE.txt": "3f9ed32224608b3eab87c1f2f422daa99e0f8825c89bac78206c197eb115924a",
     "stl/base_v5.stl": "8d6b628564c5fa399667964c6c8be82f284b1b111cc5a8a00b65561a2f8f5088",
@@ -28,9 +28,9 @@
     "vendor/three/addons/environments/RoomEnvironment.js": "85869bdd22f7cf0b22e68dcefe6cb710480af0f5c901a76f7a7764fd07fc8014",
     "vendor/three/addons/loaders/STLLoader.js": "a0a83c88b269c94e25b690fae770d350c4728c81853195186976be7af0f8a3b3",
     "vendor/three/three.module.js": "ce1fa418de16a19495a9f72495580e3015d7745c296d3ce0485897f902ddedfb",
-    "web/app.css": "147967d3e57a8af453cfe36d9628ed6e4d1b29e157d6b7e2d2abfc7d17148706",
+    "web/app.css": "7633360ec49f70787fea87926c7c7095e800fff799a5e9ac3b7b2a31b2cceed1",
     "web/app.js": "74631f1d5727cac60505d70b15eba9269ea0647566eaf82c8b7f6b79e9d060ea",
-    "web/browser.mjs": "a651dd689c89c97d57bdc4b39b8cbc538ac756c155e38c4fbd3e605f2fcab45d",
+    "web/browser.mjs": "04175d1e1d1f8987a06382354f3e8c391f64028f093d4c785e042cf7b9a9aada",
     "web/device3d.js": "e48d53aeae3a28e99e044fb8beae4da34389761e8ee72f42e4c3f4c99c4d06e8",
     "web/worker.js": "991404837ffe06e51c1fb32b7c055ccc6e12f0eabdb86c530fbba41ceeafbc35"
   }

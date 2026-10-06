@@ -4,11 +4,17 @@
 > - the check in `tools/vectors/passkey.mjs`;
 > - release fingerprints (`docs/releases/`);
 > - CI and signed releases (`docs/RELEASES.md`);
-> - the emulator on Pages (`docs/emu/`, `emu/README.md`);
+> - the emulator on Pages (`docs/emu/`, `emu/README.md`), deprecated since 2026-10-06: nothing links
+>   to it, and `tools/emu` is the developer's page;
 > - your passkey as the key: the toolbar's key menu, with `shims/passkey.py` and the page's WebAuthn;
 > - the console page (`docs/console/`): the console alone, screen and buttons, your passkey as its
->   key. The demo below starts there; `/emu/` is the developer's page. It shows the passkey's owner
->   address (to add to a Safe) and takes a Safe you already have by chain and address.
+>   key. The demo below starts there. It shows the passkey's owner address (to add to a Safe) and
+>   takes a Safe you already have by chain and address;
+> - (2026-10-06) the console page is one folder with everything it runs, its firmware the console
+>   image as plain files, so it can be saved, checked against the release fingerprint with
+>   `sha256sum`, and run from a copy on `localhost` with a passkey of its own
+>   ([guide/BROWSER.md](guide/BROWSER.md)). That is a sixth step for "Where the code comes from",
+>   below: take the code out of the site's hands.
 >
 > The goal is a demo: open a link, the console runs in the page, and Touch ID or Windows Hello is the chip.
 

@@ -1,23 +1,37 @@
 #!/usr/bin/env node
-// The emulator as a static site for GitHub Pages: writes docs/emu/ (commit it; Pages serves the
-// branch). Same page as tools/emu, laid out like the server's URLs (web/, core/, vendor/, stl/,
-// shared/) so the relative paths work under both. What the server did, done here once:
-//   boot.json       the firmware (firmware/, no sketches), the shims, and a build.py (IMAGE "web",
-//                   the version, BUILD "pages", RELEASE: the console's release fingerprint)
-//   coi.js, sw.js   COOP/COEP for SharedArrayBuffer: Pages can't send headers, so a service worker
-//                   adds them to this folder's own responses (the page reloads once, the first time)
-//   index.html      <meta name="emu-host" content="static">, and a strict CSP
-//   BUILD.json      the SHA-256 of every file written; rebuild from the same commit and compare
+// The browser pages for GitHub Pages (commit them; Pages serves the branch):
+//
+// docs/console/: the console alone (emu/console/), its screen and buttons, with your passkey as the
+// key. One folder that holds everything it runs and loads nothing from the rest of the site, so a
+// copy of the folder is the whole program (docs/guide/BROWSER.md):
+//   firmware/       the console image (firmware/manifest.json), the same files a Pico runs, as plain
+//                   files: their release fingerprint is the README's, worked out with sha256sum
+//   shims/          the emulator's Python half: machine, network, requests and the rest
+//   boot.json       which files to boot, and a build.py (IMAGE "web", the version, BUILD "pages",
+//                   RELEASE: the release fingerprint)
+//   web/, core/, shared/, vendor/micropython/   the page's runtime and MicroPython in WebAssembly
+//   fonts/          the site's fonts, from docs/app/fonts/ (web/build.mjs writes them)
+//   SHA256SUMS      every file but BUILD.json, for sha256sum -c
+//
+// docs/emu/: the emulator, deprecated on the site and linked from nowhere; tools/emu keeps it,
+// with its editor and 3D case, for development. Same page as tools/emu, laid out like the server's
+// URLs (web/, core/, vendor/, stl/, shared/) so the relative paths work under both.
+//   boot.json       the firmware (firmware/, no sketches), the shims, and the same build.py
+//   index.html      <meta name="emu-host" content="static">, a strict CSP, and a note that it moved
 // The chip state, a software key and edits stay in the visitor's browser (web/app.js).
-// And docs/console/: the console alone (emu/console/), the screen and buttons with your passkey as the
-// key. It runs docs/emu's boot.json, worker and MicroPython, and has its own coi.js, sw.js, CSP and
-// BUILD.json (the live-site check reads both).
+//
+// Both have:
+//   coi.js, sw.js   COOP/COEP for SharedArrayBuffer: Pages can't send headers, so a service worker
+//                   adds them to the folder's own responses (the page reloads once, the first time)
+//   BUILD.json      the SHA-256 of every file written; rebuild from the same commit and compare
+//                   (CI does; the live-site check compares what Pages serves with it)
 //   node emu/build.mjs        (cd emu && npm ci first)
 import { createHash } from "node:crypto";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { FIRMWARE, ROOT, isRunnable, entryFor, readShims, emuBuild } from "./core/workspace.mjs";
+import { fingerprint } from "../tools/releases/fingerprint.mjs";
 
 const EMU = dirname(fileURLToPath(import.meta.url));
 const OUT = join(ROOT, "docs", "emu");
@@ -98,7 +112,7 @@ const coi = (what) => `// GitHub Pages can't send COOP/COEP headers, and ${what}
 `;
 // A page's subresources, and its worker's imports, go through the service worker that controls the
 // page whatever their URL; the worker's own script goes through the one whose scope holds its URL.
-// So the console has a worker.js of its own, which imports ../emu/web/worker.js.
+// So each page's worker script sits inside its own folder (web/worker.js).
 const sw = (what) => `// COOP/COEP for ${what} (coi.js registers this). Same-origin responses get the headers;
 // everything else goes to the network untouched.
 self.addEventListener("install", () => self.skipWaiting());
@@ -137,20 +151,60 @@ const csp = [
 html = html.replace("<head>\n", `<head>\n<meta name="emu-host" content="static">\n<meta http-equiv="Content-Security-Policy" content="${csp}">\n<script src="coi.js"></script>\n`);
 html = html.replace("<title>picowallet emulator</title>", "<title>PicoQuorum console emulator</title>");
 html = html.replace(/<div class="brand">[^\n]*<\/div>/, '<a class="brand" href="../" title="PicoQuorum">pico<span>quorum</span> console</a> <a class="applink" href="../app/">app</a>');
+html = html.replace("</header>\n", '</header>\n<p id="moved">This page is deprecated and will go away. The console is at <a href="../console/">../console/</a>: the same firmware, with your passkey as its key. The editor and the 3D case stay in <code>tools/emu</code>, in a checkout of the repository.</p>\n');
 put("index.html", html);
 
 // ----------------------------------------------------------------------------- docs/console
+// Everything the console page runs, in its own folder; it loads nothing from ../emu/ or anywhere else
+// on the site. The firmware is the console image, not all of firmware/: test-vectors/manifest.mjs
+// checks that it is everything boot.py and main_console.py import, and quorum is one of those.
 const CSRC = join(EMU, "console");
 const cput = (rel, data) => write(CONSOLE, rel, data);
-for (const f of ["console.js", "console.css"]) cput(f, readFileSync(join(CSRC, f)));
+const ccopy = (from, rel) => cput(rel, readFileSync(from));
+for (const f of ["console.js", "console.css"]) ccopy(join(CSRC, f), f);
+for (const f of ["worker.js", "browser.mjs"]) ccopy(join(EMU, "web", f), `web/${f}`);
+for (const f of ["runtime.mjs", "webauthn-assert.mjs", "keccak.mjs"]) ccopy(join(EMU, "core", f), `core/${f}`);
+ccopy(join(ROOT, "web", "src", "blockies.mjs"), "shared/blockies.mjs");
+for (const f of ["micropython.mjs", "micropython.wasm"]) ccopy(join(MP, f), `vendor/micropython/${f}`);
+ccopy(join(OUT, "vendor", "micropython", "LICENSE.txt"), "vendor/micropython/LICENSE.txt");
+// the site's typeface, as web/build.mjs wrote it for the app (committed, so always here)
+for (const f of ["next-400.woff2", "next-700.woff2", "mono-500.woff2", "LICENSE-OFL.txt"]) ccopy(join(ROOT, "docs", "app", "fonts", f), `fonts/${f}`);
+for (const f of ["mark-dark.svg", "mark-light.svg"]) ccopy(join(ROOT, "docs", "brand", f), `brand/${f}`);
+
+// The console image as plain files, to read, diff and hash. Pages drops any file whose name starts
+// with "_" (Jekyll), so a shim's path may differ from its module name: shimPaths maps one to the other.
+const image = [...new Set(b.consoleFiles)].sort();
+for (const f of image) cput(`firmware/${f}`, readFileSync(join(FIRMWARE, f)));
+if (fingerprint(image, (n) => readFileSync(join(CONSOLE, "firmware", n))) !== b.release) throw new Error("docs/console/firmware/ doesn't hash to the release fingerprint");
+const shims = readShims(), shimPaths = {};
+for (const n of Object.keys(shims).sort()) { shimPaths[n] = `shims/${n.replace(/^_+/, "")}.py`; cput(shimPaths[n], shims[n]); }
+// one file to a line, to read
+const cboot = {
+  files: [
+    ...image.map((name) => {
+      const path = `firmware/${name}`;
+      if (!name.endsWith(".py")) return { name, src: "firmware", path };
+      const mod = name.slice(0, -3);
+      return { name, src: "firmware", path, runnable: isRunnable(mod, files[name]), entry: entryFor(mod) };
+    }),
+    boot.files.find((f) => f.name === "build.py"),
+  ],
+  shimPaths,
+  appUrl: null,
+  release: b.release,
+  consoleFiles: b.consoleFiles,
+};
+cput("boot.json", "{\n" + Object.entries(cboot).map(([k, v]) => ` ${JSON.stringify(k)}: ` +
+  (k === "files" ? `[\n${v.map((f) => "  " + JSON.stringify(f)).join(",\n")}\n ]` : JSON.stringify(v))).join(",\n") + "\n}\n");
+
 cput("coi.js", coi("the console"));
-cput("sw.js", sw("the console's files, and the emulator's files it runs"));
-cput("worker.js", '// The emulator\'s worker, started from this folder so that sw.js here gives it COOP/COEP.\nimport "../emu/web/worker.js";\n');
+cput("sw.js", sw("the console's own files"));
 const ccsp = [
   "default-src 'self'",
   "script-src 'self' 'wasm-unsafe-eval'",       // MicroPython's WebAssembly; no inline script at all
   "style-src 'self'",
-  "img-src 'self' data:",                       // the release blockie
+  "font-src 'self'",
+  "img-src 'self' data:",                       // the blockies
   "connect-src 'self' https:",                  // Safe's transaction service, per chain
   "worker-src 'self'",
   "object-src 'none'",
@@ -159,19 +213,45 @@ const ccsp = [
 ].join("; ");
 let chtml = readFileSync(join(CSRC, "index.html"), "utf8");
 if (/<script(?![^>]*\bsrc=)/.test(chtml) || /\sstyle=/.test(chtml)) throw new Error("emu/console/index.html: no inline scripts or styles (the CSP refuses them)");
+// What is in the folder, counted from the files just written, for the page to say
+const lines = (rels) => rels.reduce((n, r) => n + (readFileSync(join(CONSOLE, r), "utf8").match(/\n/g) || []).length, 0);
+const kb = (rels) => Math.round(rels.reduce((n, r) => n + statSync(join(CONSOLE, r)).size, 0) / 1024);
+const n = (x) => x.toLocaleString("en-US");
+const py = image.filter((f) => f.endsWith(".py")), data = image.length - py.length;
+const js = ["console.js", "coi.js", "sw.js", "web/worker.js", "web/browser.mjs", "core/runtime.mjs", "core/keccak.mjs", "core/webauthn-assert.mjs", "shared/blockies.mjs"];
+const mpVersion = JSON.parse(readFileSync(join(MP, "package.json"), "utf8")).version;
+const stack = [
+  ["firmware/", `The console image: the same ${image.length} files a Pico runs, in MicroPython. They hash to the release fingerprint.`,
+    `${n(lines(py.map((f) => `firmware/${f}`)))} lines, and ${data} data files`],
+  ["shims/", "Python in place of the Pico's hardware: its pins, screen and Wi-Fi, and your passkey as its chip.", `${n(lines(Object.values(shimPaths)))} lines`],
+  ["console.js, web/, core/, shared/, coi.js, sw.js", "The page's JavaScript: the buttons, your passkey, and the worker MicroPython runs in.", `${n(lines(js))} lines`],
+  ["vendor/micropython/", `MicroPython ${mpVersion} for WebAssembly, the one part built elsewhere: by the MicroPython project, from npm, pinned by its hash.`,
+    `${kb(["vendor/micropython/micropython.mjs", "vendor/micropython/micropython.wasm"])} KB`],
+  ["index.html, console.css, fonts/, brand/", "This page: its words, its look, the site's typeface and mark.", ""],
+];
+chtml = chtml.replace(/ *<!-- stack:[^>]*-->\n/, '    <table class="stack">\n      <thead><tr><th>In the folder</th><th>Size</th></tr></thead>\n      <tbody>\n' +
+  stack.map(([what, about, size]) => `        <tr><td><code>${what}</code><span>${about}</span></td><td>${size}</td></tr>\n`).join("") + "      </tbody>\n    </table>\n");
 chtml = chtml.replace('<meta charset="utf-8">\n', `<meta charset="utf-8">\n<meta http-equiv="Content-Security-Policy" content="${ccsp}">\n<script src="coi.js"></script>\n`);
 cput("index.html", chtml);
 
 // ----------------------------------------------------------------------------- BUILD.json
-function seal(dir, note) {
-  const all = [];
-  (function walk(d) { for (const f of readdirSync(d).sort()) { const p = join(d, f); statSync(p).isDirectory() ? walk(p) : all.push(p); } })(dir);
-  // Pages would run any file opening with YAML front matter through Jekyll and serve something else
-  const jekyll = all.filter((p) => readFileSync(p).subarray(0, 4).toString() === "---\n");
-  if (jekyll.length) throw new Error(`these would be rewritten by Jekyll on Pages (they open with ---): ${jekyll.map((p) => relative(dir, p)).join(", ")}`);
-  const hashes = Object.fromEntries(all.map((p) => [relative(dir, p).split("\\").join("/"), sha256(readFileSync(p))]));
+function seal(dir, note, { sums = false } = {}) {
+  const walk = () => {
+    const all = [];
+    (function w(d) { for (const f of readdirSync(d).sort()) { const p = join(d, f); statSync(p).isDirectory() ? w(p) : all.push(p); } })(dir);
+    return all;
+  };
+  const rel = (p) => relative(dir, p).split("\\").join("/");
+  // Pages runs the site through Jekyll: it rewrites any file opening with YAML front matter, and
+  // leaves out any file or folder whose name starts with "_" or "."
+  const jekyll = walk().filter((p) => readFileSync(p).subarray(0, 4).toString() === "---\n" || /(^|\/)[_.]/.test(rel(p)));
+  if (jekyll.length) throw new Error(`Jekyll on Pages would rewrite or drop these: ${jekyll.map(rel).join(", ")}`);
+  // SHA256SUMS, in sha256sum's own format: every file but itself and BUILD.json, which lists it
+  if (sums) write(dir, "SHA256SUMS", walk().map((p) => `${sha256(readFileSync(p))}  ${rel(p)}\n`).join(""));
+  const all = walk();
+  const hashes = Object.fromEntries(all.map((p) => [rel(p), sha256(readFileSync(p))]));
   write(dir, "BUILD.json", JSON.stringify({ note, release: b.release, files: hashes }, null, 2) + "\n");
   console.log(`${relative(ROOT, dir)}: release ${b.release.slice(0, 4)}·${b.release.slice(4, 8)}, ${all.length + 1} files, ${Math.round(all.reduce((n, p) => n + statSync(p).size, 0) / 1024)} KB`);
 }
 seal(OUT, "SHA-256 of every file emu/build.mjs wrote. Rebuild from the same commit (cd emu && npm ci && node build.mjs) and compare.");
-seal(CONSOLE, "SHA-256 of every file emu/build.mjs wrote for the console page. It runs ../emu/'s boot.json, worker and MicroPython, which ../emu/BUILD.json lists. Rebuild from the same commit (cd emu && npm ci && node build.mjs) and compare.");
+seal(CONSOLE, "SHA-256 of every file emu/build.mjs wrote for the console page, which holds everything it runs: firmware/ is the console image, and hashes to the release fingerprint. SHA256SUMS lists the same files for sha256sum -c. Rebuild from the same commit (cd emu && npm ci && node build.mjs) and compare.", { sums: true });

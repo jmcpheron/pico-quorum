@@ -1,13 +1,17 @@
-// docs/emu/ (node emu/build.mjs) as GitHub Pages serves it: a plain static server under
-// /pico-quorum/, no COOP/COEP headers. Chromium checks that the page isolates itself (the service
-// worker), boots MicroPython from boot.json, shows the release fingerprint it was built with, gets
-// keys through SharedArrayBuffer, keeps the chip state and a random software key in the browser,
-// marks edited files, runs the console on the Safes saved in the app, and breaks no CSP rule. Then
-// docs/console/: it asks for a passkey, then a Safe, then runs the console; its buttons reach it.
+// The browser pages (node emu/build.mjs) as GitHub Pages serves them: a plain static server under
+// /pico-quorum/, no COOP/COEP headers. First docs/emu/ (deprecated, still served): Chromium checks
+// that the page isolates itself (the service worker), boots MicroPython from boot.json, shows the
+// release fingerprint it was built with, gets keys through SharedArrayBuffer, keeps the chip state
+// and a random software key in the browser, marks edited files, runs the console on the Safes saved
+// in the app, and breaks no CSP rule. Then docs/console/: it asks for a passkey, then a Safe, then
+// runs the console; its buttons reach it; it asks for nothing outside its folder. Then the folder on
+// its own: its SHA256SUMS and firmware/ checked as the guide checks them (docs/guide/BROWSER.md),
+// and the folder served alone at the root of localhost, as a copy on your own computer, runs too.
 // Nothing leaves the machine: any other request is refused and counted.
 //   cd emu && npm ci && node build.mjs && node e2e-static.mjs     (PQ_CHROMIUM=/path/to/chrome)
+import { createHash } from "node:crypto";
 import { createServer } from "node:http";
-import { readFileSync, statSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import { extname, join, normalize } from "node:path";
 import { chromium } from "playwright-core";
 import { ROOT } from "./core/workspace.mjs";
@@ -19,16 +23,25 @@ let failed = 0;
 const check = (ok, what) => { console.log(`${ok ? "pass" : "FAIL"}  ${what}`); if (!ok) failed++; };
 
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".json": "application/json",
-  ".wasm": "application/wasm", ".stl": "model/stl", ".txt": "text/plain" };
-const server = createServer((req, res) => {
-  const path = decodeURIComponent(new URL(req.url, "http://x").pathname);
-  if (!path.startsWith("/pico-quorum/")) { res.writeHead(404); return res.end(); }
-  let f = join(DOCS, normalize(path.slice("/pico-quorum/".length)).replace(/^(\.\.[/\\])+/, ""));
-  try { if (statSync(f).isDirectory()) f = join(f, "index.html"); res.writeHead(200, { "Content-Type": TYPES[extname(f)] || "application/octet-stream" }); res.end(readFileSync(f)); }
-  catch { res.writeHead(404); res.end(); }
-});
-await new Promise((r) => server.listen(0, "127.0.0.1", r));
+  ".wasm": "application/wasm", ".stl": "model/stl", ".txt": "text/plain", ".svg": "image/svg+xml", ".woff2": "font/woff2" };
+/** A plain static server: dir served under prefix, nothing else. .asked: every path asked for (the
+ *  server sees what the service worker fetches too, which the browser context's route doesn't). */
+async function serve(dir, prefix) {
+  const asked = [];
+  const srv = createServer((req, res) => {
+    const path = decodeURIComponent(new URL(req.url, "http://x").pathname);
+    asked.push(path);
+    if (!path.startsWith(prefix)) { res.writeHead(404); return res.end(); }
+    let f = join(dir, normalize(path.slice(prefix.length)).replace(/^(\.\.[/\\])+/, ""));
+    try { if (statSync(f).isDirectory()) f = join(f, "index.html"); res.writeHead(200, { "Content-Type": TYPES[extname(f)] || "application/octet-stream" }); res.end(readFileSync(f)); }
+    catch { res.writeHead(404); res.end(); }
+  });
+  await new Promise((r) => srv.listen(0, "127.0.0.1", r));
+  return Object.assign(srv, { asked });
+}
+const server = await serve(DOCS, "/pico-quorum/");
 const BASE = `http://localhost:${server.address().port}/pico-quorum/`;     // localhost, not 127.0.0.1: WebAuthn refuses an IP as the site
+const SITE_APP = "https://jmcpheron.github.io/pico-quorum/app/";            // where a copy on localhost sends its app links
 
 const browser = await chromium.launch({ executablePath: process.env.PQ_CHROMIUM || undefined, args: ["--no-proxy-server"] });
 const ctx = await browser.newContext({ viewport: { width: 1300, height: 820 } });
@@ -132,12 +145,14 @@ const offsite = (route) => {
   return route.abort();
 };
 await ctx2.route("**/*", offsite);
+await ctx.close();                              // the emulator's page: from here on, the server hears only the console page
+const from = server.asked.length;
 const con = await ctx2.newPage();
 con.on("console", (m) => { if (/Content Security Policy|Refused to/.test(m.text())) csp.push("console page: " + m.text()); });
 con.on("pageerror", (e) => errors.push("console page: " + e.message));
 await con.goto(BASE + "console/");
 await con.waitForFunction(() => self.crossOriginIsolated && !document.querySelector("#overlay").hidden, null, { timeout: 30000 });
-check(await con.evaluate(() => self.crossOriginIsolated), "console page: it isolates itself too (its own sw.js, which also covers the files it runs from ../emu/)");
+check(await con.evaluate(() => self.crossOriginIsolated), "console page: it isolates itself too (its own sw.js)");
 check(/Make a passkey/.test(await con.locator("#overlay").innerText()), "no passkey yet: the screen asks you to make one");
 await con.waitForSelector("#release img");
 check((await con.locator("#release").innerText()).includes(short), `the bar shows release ${short}, computed in the browser over the files it runs`);
@@ -153,9 +168,11 @@ const conOwner = (await con.locator("#overlay .owner .addr").innerText()).trim()
 check(/^0x[0-9a-fA-F]{40}$/.test(conOwner) && (await con.locator("#owner .addr").innerText()).trim() === conOwner,
   `the screen and the panel show the passkey's owner address, to add to a Safe (${conOwner.slice(0, 10)}…)`);
 check(await con.locator("#owner .copy", { hasText: "Share deploy link" }).count() === 1, "and a deploy link to share, for a wallet elsewhere to deploy its signer");
-check(/your passkey, for localhost/.test(await con.locator("#key").innerText()) && await con.locator('#key a[href="../app/#/passkey"]').count() === 1,
-  "the panel names the key, your passkey for this site, and links to its page in the app");
 const made = JSON.parse(await con.evaluate(() => localStorage.getItem("emu.passkey")));
+check(/your passkey, for localhost/.test(await con.locator("#key").innerText()) && await con.locator(`#key a[href="${SITE_APP}#/signer/${made.x}/${made.y}"]`).count() === 1,
+  "the panel names the key, your passkey for this site, and (on localhost: a copy on your own computer) links to its signer's page in the app on the site, its key in the link");
+check(await con.evaluate(() => document.querySelector("header nav a").href) === "https://jmcpheron.github.io/pico-quorum/guide/",
+  "and the site's header links go to the site");
 const synced = (await cdp2.send("WebAuthn.getCredentials", { authenticatorId: auth2 })).credentials;
 // adding a Safe you already have, right there: a bad address is refused, Safe{Wallet}'s "basesep:0x…" picks the chain
 await con.fill("#overlay .add-safe input >> nth=0", "0x1234");
@@ -195,6 +212,9 @@ check(/Test Safe · Base Sepolia/.test(await con.locator("#safes").innerText()) 
 await con.waitForFunction(() => !/checking/.test(document.querySelector("#safes .status").textContent), null, { timeout: 15000 }).catch(() => {});
 check(/couldn't check/.test(await con.locator("#safes .status").innerText()), "its owner check asks Safe's service (refused here, and the page says so)");
 check(await con.locator("#add-safe .add-safe").count() === 1, "and offers to add another");
+const consoleAsked = new Set(server.asked.slice(from));
+const strays = [...consoleAsked].filter((p) => !p.startsWith("/pico-quorum/console/"));
+check(consoleAsked.size > 60 && !strays.length, `the console page, its worker and MicroPython asked the site for nothing outside console/ (${consoleAsked.size} files)${strays.length ? `: ${strays.slice(0, 4).join(", ")}` : ""}`);
 // the app's page for it: the owner address, the same on every chain, and the way into a Safe
 const app2 = await ctx2.newPage();
 await app2.goto(BASE + "app/#/passkey");
@@ -229,6 +249,50 @@ await app3.goto(BASE + "app/#/passkey");
 await app3.waitForSelector("h1:has-text('Your passkey')");
 check((await app3.locator(".card .inline-ident code").first().innerText()).trim() === owner2, "so the same owner address: one passkey, one Safe owner, whichever device signs");
 await ctx3.close();
+
+// 9. the folder as a copy: its SHA256SUMS and firmware/ checked the way docs/guide/BROWSER.md does
+// with sha256sum, then the folder served alone at the root of localhost (python3 -m http.server)
+const CON = join(DOCS, "console");
+const sha = (b) => createHash("sha256").update(b).digest("hex");
+const files = [];
+(function walk(d, pre) { for (const f of readdirSync(d)) statSync(join(d, f)).isDirectory() ? walk(join(d, f), `${pre}${f}/`) : files.push(pre + f); })(CON, "");
+const sums = readFileSync(join(CON, "SHA256SUMS"), "utf8").trim().split("\n").map((l) => [l.slice(0, 64), l.slice(66)]);
+check(sums.every(([h, f]) => sha(readFileSync(join(CON, f))) === h) && sums.length === files.length - 2 &&
+  files.filter((f) => f !== "SHA256SUMS" && f !== "BUILD.json").every((f) => sums.some(([, g]) => g === f)),
+  `SHA256SUMS: every file in console/ but itself and BUILD.json, each hash right (${sums.length} files)`);
+const fw = readdirSync(join(CON, "firmware")).sort();
+const fwPrint = sha(fw.map((f) => `${f}\0${sha(readFileSync(join(CON, "firmware", f)))}\n`).join(""));
+check(fwPrint === BOOT.release && fw.length === BOOT.consoleFiles.length, `firmware/ is the console image, and hashes to its release fingerprint ${short}`);
+check(!files.some((f) => /(^|\/)[_.]/.test(f)), "no file Jekyll would leave out on Pages (a name starting with _ or .)");
+
+const alone = await serve(CON, "/");
+const COPY = `http://localhost:${alone.address().port}/`;
+const ctx4 = await browser.newContext({ viewport: { width: 1000, height: 900 } });
+await ctx4.route("**/*", (route) => { const u = route.request().url(); if (u.startsWith(COPY)) return route.continue(); outside.push(u); return route.abort(); });
+const con4 = await ctx4.newPage();
+con4.on("console", (m) => { if (/Content Security Policy|Refused to/.test(m.text())) csp.push("console copy: " + m.text()); });
+con4.on("pageerror", (e) => errors.push("console copy: " + e.message));
+const cdp4 = await ctx4.newCDPSession(con4);
+await cdp4.send("WebAuthn.enable");
+await cdp4.send("WebAuthn.addVirtualAuthenticator", { options: {
+  protocol: "ctap2", transport: "internal", hasResidentKey: true, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true } });
+await con4.goto(COPY);
+await con4.waitForFunction(() => self.crossOriginIsolated && /Make a passkey/.test(document.querySelector("#overlay")?.innerText || ""), null, { timeout: 30000 });
+await con4.click("#overlay .go:not(.alt)");
+await con4.waitForFunction(() => /Add a Safe/.test(document.querySelector("#overlay").innerText), null, { timeout: 15000 });
+const cred4 = JSON.parse(await con4.evaluate(() => localStorage.getItem("emu.passkey")));
+check(cred4?.rpId === "localhost" && cred4.x !== made.x, "the folder alone, at the root of localhost: it isolates itself and makes a passkey of its own, for localhost");
+await con4.fill("#overlay .add-safe input >> nth=0", "basesep:0x1234567890abcdef1234567890abcdef12345678");
+await con4.locator("#overlay .add-safe input >> nth=0").dispatchEvent("input");
+await con4.click("#overlay .add-safe .go");
+const drew4 = await con4.waitForFunction(() => document.querySelector("#overlay").hidden && +(document.querySelector("#screen").dataset.frames || 0) > 0, null, { timeout: 60000 }).then(() => true, () => false);
+await con4.waitForSelector("#release img");
+check(drew4 && (await con4.locator("#release").innerText()).includes(short) && new Set(alone.asked).size > 60,
+  `and boots the console, release ${short}, from nothing but the folder (${new Set(alone.asked).size} files asked for)`);
+check(await con4.locator(`#owner .copy`, { hasText: "Share deploy link" }).count() === 1 && /^0x[0-9a-fA-F]{40}$/.test((await con4.locator("#owner .addr").innerText()).trim()),
+  "it shows the copy's passkey's owner address, with its deploy link");
+await ctx4.close();
+alone.close();
 
 check(!csp.length, `no CSP violations${csp.length ? ": " + csp.slice(0, 3).join(" | ") : ""}`);
 check(!errors.length, `no page errors${errors.length ? ": " + errors.join("; ") : ""}`);

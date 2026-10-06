@@ -14,6 +14,7 @@ its chip, but only after you have seen every page and held the green button.
 | [USING.md](USING.md) | The screens and buttons, approving, rejecting, and what red means |
 | [NETWORKS.md](NETWORKS.md) | Which chains work, watching several Safes at once, adding a chain |
 | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | What each stop screen means and what to do |
+| [BROWSER.md](BROWSER.md) | The console in your browser, with your passkey: save it, check it, run your own copy |
 
 **How it fits together.**
 

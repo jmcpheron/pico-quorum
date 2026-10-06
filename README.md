@@ -13,7 +13,7 @@
 
 <p align="center">
   <a href="https://jmcpheron.github.io/pico-quorum/"><img alt="Website" src="https://img.shields.io/website?url=https%3A%2F%2Fjmcpheron.github.io%2Fpico-quorum%2F&label=site&up_message=live&up_color=34C759&labelColor=0B0D11"></a>
-  <a href="https://jmcpheron.github.io/pico-quorum/emu/"><img alt="Try the console in your browser" src="https://img.shields.io/badge/console-try%20it%20in%20your%20browser-7A92FF?labelColor=0B0D11"></a>
+  <a href="https://jmcpheron.github.io/pico-quorum/console/"><img alt="Try the console in your browser" src="https://img.shields.io/badge/console-try%20it%20in%20your%20browser-7A92FF?labelColor=0B0D11"></a>
   <a href="https://github.com/jmcpheron/pico-quorum/actions/workflows/site-check.yml"><img alt="Site check: GitHub Pages serves exactly this source" src="https://github.com/jmcpheron/pico-quorum/actions/workflows/site-check.yml/badge.svg"></a>
   <a href="https://github.com/jmcpheron/pico-quorum/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/jmcpheron/pico-quorum/actions/workflows/ci.yml/badge.svg"></a>
   <br>
@@ -36,6 +36,10 @@ secure element inside. The console shows what a transaction does on its own scre
 Safe transaction hash itself, and asks the key to sign only after you have seen every page and held
 the green **Sign** button. **Reject** is red and easy.
 
+The same console also runs [in your browser](https://jmcpheron.github.io/pico-quorum/console/), with
+your own passkey as its key. That version is one short folder you can read, check against this
+README, and sign from on your own computer.
+
 ### A pico quorum
 
 A *pico quorum* is a small group that agrees before anything moves: a family's savings, a club's
@@ -46,7 +50,7 @@ small box and their own key, and makes every approval a deliberate thing you do 
 > **Experimental.** Early design. Use a testnet first, and only small amounts on mainnet. The Safe's
 > threshold is the real control: always keep owners on the Safe that are not this console.
 
-## Three ideas
+## Four ideas
 
 ### 1. A key that can't leak
 
@@ -118,12 +122,41 @@ and we suggest it for yours: **no technology, and no person, holds a threshold's
 - **A pico quorum per Safe.** A family Safe at 2 of 3, a team Safe at 3 of 5, each owner with a
   console and a key of their own.
 
+### 4. A short stack you can check yourself
+
+[The console page](https://jmcpheron.github.io/pico-quorum/console/) runs the console's firmware,
+file for file, on MicroPython for WebAssembly, with your passkey (Touch ID, Windows Hello, a phone,
+a security key) as its key. It is one folder, and it loads nothing from the rest of the site:
+
+| in the folder | |
+|---|---|
+| `firmware/` | the console image a Pico runs, as plain files: about 11,000 lines of MicroPython |
+| `shims/` | Python in place of the Pico's hardware: about 1,700 lines |
+| `console.js`, `web/`, `core/` | the page: about 1,200 lines of JavaScript |
+| `vendor/micropython/` | MicroPython 1.26 for WebAssembly, pinned by its hash: the one part built elsewhere |
+
+That is short enough to read, and you can check it without trusting the site that sent it:
+- **Save a copy.** `SHA256SUMS` lists every file: fetch them, then `sha256sum -c SHA256SUMS`. There
+  is no build step; these are the files that run.
+- **Hold it up to this README.** `firmware/`, hashed with `sha256sum` in a one-line loop, gives the
+  console's release fingerprint in [the build table](#the-build-youre-looking-at): the same one a
+  Pico running that release shows on its Device screen.
+- **Rebuild it.** `cd emu && npm ci && node build.mjs` writes the same bytes. CI checks that on every
+  push, and a check from outside compares what Pages serves with the source every six hours.
+- **Sign from your copy.** Run `python3 -m http.server` in the folder and open `localhost:8000`. A
+  passkey belongs to the site that made it, so one made on your copy can be asked to sign by your
+  copy and never by a later version of the site. Its owner address works on a Safe like any other.
+
+The commands: [docs/guide/BROWSER.md](docs/guide/BROWSER.md). The screen is still drawn by your
+computer, and the passkey's prompt never shows the transaction, so the hardware console is the
+stronger owner: keep passkey owners below the threshold.
+
 ## Try it
 
 - **[The site](https://jmcpheron.github.io/pico-quorum/)**, with the app.
-- **[The console in your browser](https://jmcpheron.github.io/pico-quorum/emu/)**: the same
-  firmware in MicroPython on WebAssembly, with your own passkey as its key
-  ([how](docs/EMU-WEB.md)).
+- **[The console in your browser](https://jmcpheron.github.io/pico-quorum/console/)**: the same
+  firmware in MicroPython on WebAssembly, with your own passkey as its key. Save it, check it and
+  run your own copy ([how](docs/guide/BROWSER.md); the design: [EMU-WEB.md](docs/EMU-WEB.md)).
 - **[The owner's guide](docs/guide/README.md)**: from a board to a console that signs for your
   Safes.
 - **Build a dev console**: a Pico 2 W, a Waveshare Pico-LCD-1.3 and an ATECC608 breakout, about
@@ -138,8 +171,9 @@ and we suggest it for yours: **no technology, and no person, holds a threshold's
 
 Every firmware image has a **release fingerprint**: one SHA-256 over its source files
 ([docs/releases](docs/releases/README.md)). A console shows its blockie and first 8 hex digits on the
-Device screen; the emulator shows the same picture for the same files; the app's Releases page lists
-each release's. The badges above and this table name the source in this commit, so you can hold a
+Device screen; the console page shows the same picture for the same files, and its `firmware/`
+folder hashes to it with `sha256sum` ([how](docs/guide/BROWSER.md#2-hold-it-up-to-the-readme)); the
+app's Releases page lists each release's. The badges above and this table name the source in this commit, so you can hold a
 console up to the README:
 
 <!-- build:begin (node tools/releases/badge.mjs writes this table) -->
@@ -155,8 +189,8 @@ console up to the README:
 How a release is trusted ([docs/RELEASES.md](docs/RELEASES.md)):
 - **Signed tags.** A release is an SSH-signed tag, `fw-<version>`, checked against
   [`.github/allowed_signers`](.github/allowed_signers) before anything is built.
-- **Reproducible pages.** CI rebuilds the app and the emulator from source and fails if they differ
-  from what is committed. The site check then compares what GitHub Pages serves, byte for byte,
+- **Reproducible pages.** CI rebuilds the app and the console page from source and fails if they
+  differ from what is committed. The site check then compares what GitHub Pages serves, byte for byte,
   with the commit it deployed.
 - **Approved by a Safe.** The project Safe will approve each release on chain, signed on PicoQuorum
   consoles, and the app then shows **Approved by the project Safe**. The code is ready; the Safe
@@ -179,9 +213,9 @@ Dated notes and photos, mistakes included, are in [`buildlog/`](buildlog/).
 |---|---|
 | `firmware/` | the console in MicroPython: `quorum.py` and `quorum_ui.py` (the console), `safe_tx.py` (the Safe hash), `decode.py`, `txservice.py`, `webauthn.py`, the chip drivers `trustm.py` and `atecc.py` |
 | `hardware/` | `key-pcb/` (the keys, [key-c](hardware/key-pcb/key-c-usbc/README.md) among them), `wiring/` ([Build 1](hardware/wiring/BUILD1.md), [perfboard](hardware/wiring/SOLDERING.md), [breadboard](hardware/wiring/BREADBOARD.md)), `bom/` |
-| `docs/` | everything to read ([index](docs/README.md)), and the site GitHub Pages serves: the front page, `app/`, `emu/`, `brand/` |
+| `docs/` | everything to read ([index](docs/README.md)), and the site GitHub Pages serves: the front page, `app/`, `console/`, `brand/` |
 | `web/` | the app's source; `npm run build` writes `docs/app/` |
-| `emu/` | the virtual console: MicroPython in WebAssembly, a virtual secure element, the case in 3D |
+| `emu/` | the console in a browser: MicroPython in WebAssembly and a virtual secure element. `build.mjs` writes the console page (`docs/console/`); `tools/emu` adds an editor and the case in 3D, for development |
 | `test-vectors/` | Safe transactions with known-correct hashes, and the suites CI runs |
 | `tools/` | `quorum` (Safes on a fork and on chain), `fw` (build and push images), `release`, `releases/`, `brand/`, `keypcb`, and picowallet's tools |
 | `cad/` | the console's case and the key's |
