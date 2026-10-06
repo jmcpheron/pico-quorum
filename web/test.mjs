@@ -235,6 +235,28 @@ const back5 = { ...body, safeTxHash: body.contractTransactionHash, confirmations
 const c5 = await S.checkTx(fake, chainId, safe, S5.owners, back5, { onchainHash: false });
 check(!c5.problems.length && c5.valid.length === 1, "proposalBody: read back from the queue, the page checks it and counts the confirmation");
 
+// ----------------------------------------------------------------------------- 7. a practice Safe
+// TM1's key (docs/STATUS.md). The address is the one SafeProxyFactory 1.5.0 on Base Sepolia returned
+// for this deploy call (eth_call, 2026-10-06), so the page works it out as the factory will.
+{
+  const ps = S.practiceSafe("ef6778077c0bf33ca82391a38d941cf33515da7900f02931e7c83399ee681719", "9f5232552d0346a94a92dcf5dab46c3bf83a0338b8ac98677dac8787a3d8cbe4");
+  check(ps.address === "0xC38bd1250cCa702D9e2bD206C7995506d68283A0" && ps.owner === "0x47c0998C6a7A1955794071b9f4058e7814178f35" && ps.deploy.to === S.SAFE150.factory,
+    "practiceSafe: TM1's practice Safe is where the 1.5.0 factory puts it, owned by TM1's signer");
+  const hot = privateKeyToAccount("0x" + "22".repeat(32)).address, hw = privateKeyToAccount("0x" + "33".repeat(32)).address;
+  const grow = P.safeTx(P.growCall(ps.address, [ps.owner], [hot, hw], 2), 0);
+  check(S.consoleRefuses(84532, grow) === "", "growCall: a batch to the pinned MultiSendCallOnly, which the console doesn't refuse");
+  const seen = JSON.parse(spawnSync("python3", ["-c", `import sys, json; sys.path.insert(0, ${JSON.stringify(ROOT + "firmware")})
+import decode
+from quorum_cfg import CFG
+r = decode.review(json.load(sys.stdin), decode.context(CFG, ${JSON.stringify(ps.address.toLowerCase())}, chain=84532))
+print(json.dumps({"summary": r["summary"], "level": r["level"], "refuse": r["refuse"], "to": [i.get("to") for i in r["items"]], "text": [i.get("text", "") for i in r["items"]]}))`],
+    { input: JSON.stringify(grow), encoding: "utf8" }).stdout);
+  check(seen.summary === "Batch: 2 actions" && seen.level === "red" && !seen.refuse && seen.to[0] === hot.toLowerCase() && seen.to[1] === hw.toLowerCase()
+    && /becomes 2/.test(seen.text[1]), "growCall: the console reads two owners added, the second making it 2, on red pages");
+  check(throws(() => P.growCall(ps.address, [ps.owner], [hot, hot], 2)) && throws(() => P.growCall(ps.address, [ps.owner], [ps.owner], 1))
+    && throws(() => P.growCall(ps.address, [ps.owner], [hot, hw], 4)), "growCall: the same owner twice, an existing owner, or a threshold above the owners is refused");
+}
+
 // ----------------------------------------------------------------------------- the built page
 try {
   const js = readFileSync(`${ROOT}docs/app/app.js`, "utf8");

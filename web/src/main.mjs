@@ -8,11 +8,11 @@ import { encodeFunctionData, getAddress, isAddress } from "viem";
 import { verifyBundle } from "./attest.mjs";
 import { blockieSrc } from "./blockies.mjs";
 import {
-  ERC20_ABI, KINDS, buildCall, isRejection, knownTokens, nextNonce, proposalBody, safeTx, typedData, walletSignature,
+  ERC20_ABI, KINDS, buildCall, growCall, isRejection, knownTokens, nextNonce, proposalBody, safeTx, typedData, walletSignature,
 } from "./propose.mjs";
 import {
   CFG, CHAINS, GS, SAFE_ABI, SIGNER_ABI, Service, chainById, checkTx, client, consoleRefuses, dataBytes, eth, execCall, knownName, outcome,
-  ownerKind, readSafe, reason, safeTxHash, verifyCode,
+  ownerKind, practiceSafe, readSafe, reason, safeTxHash, verifyCode,
 } from "./safe.mjs";
 import { wallet } from "./wallet.mjs";
 import { isApproved } from "../../tools/mock-tx-service/release.mjs";
@@ -266,7 +266,8 @@ function home() {
       h("p", { class: "muted", text: "Safe{Wallet} can't execute a transaction when a PicoQuorum key is one of two or more confirmations: it fails with GS021. This page can. Nothing here holds a key." })),
     h("section", { class: "card" }, h("h2", { text: "Open a Safe" }), form,
       h("p", { class: "small muted" }, "Or try ",
-        h("a", { href: `#/safe/${DEMO.chain}/${DEMO.address}`, text: DEMO.name }), " on Base Sepolia.")),
+        h("a", { href: `#/safe/${DEMO.chain}/${DEMO.address}`, text: DEMO.name }), " on Base Sepolia. New here? ",
+        h("a", { href: "#/start", text: "Start with a passkey" }), ".")),
     saved.length ? h("section", { class: "card" }, h("h2", { text: "Your Safes" }),
       h("ul", { class: "list" }, ...saved.map((s) => safeRow(s, true))),
       h("p", { class: "small muted" }, "Kept in this browser. ", h("a", { href: "#/settings", text: "Back them up" }), " to move them to another.")) : null,
@@ -930,6 +931,123 @@ function signerView(x, y) {
 
 // ----------------------------------------------------------------------------- settings
 // What a backup holds: saved Safes and names. Not the API key or the RPCs, which are this browser's.
+// ----------------------------------------------------------------------------- a passkey's practice Safe
+// The first visit's Safe (docs/ONBOARDING.md): a 1-of-1 on Base Sepolia that only the passkey
+// controls, then 2 of 3 with the person's hot wallet and hardware wallet. Its address follows from
+// the key, so a deploy link (#/start/<x>/<y>) lets any wallet make it. A passkey can't pay gas.
+const PRACTICE = "basesep";
+const startLink = (x, y) => new URL(`#/start/${x}/${y}`, location.href.split("#")[0]).href;
+
+async function startView(x, y) {
+  const k = x ? parseKey(`#/signer/${x}/${y}`) : myPasskey();
+  if (x && (!k || !onCurve(k.x, k.y))) return notFound();
+  if (!k) {
+    return fill($main(), h("section", { class: "hero" }, h("h1", { text: "Start with a passkey" }),
+      h("p", { class: "lede", text: "Your first key is a passkey: Touch ID, Windows Hello, your phone or a security key. Make one on the console page, then come back here for a Safe it controls." }),
+      h("p", {}, h("a", { class: "btn go", href: "../console/", text: "Open the console" }))));
+  }
+  const me = myPasskey();
+  const mine = !!me && me.x === k.x && me.y === k.y;
+  const ps = practiceSafe(k.x, k.y);
+  const pub = pubFor(PRACTICE);
+  const status = h("div", {}, h("p", { class: "muted", text: "Reading Base Sepolia…" }));
+  const grow = h("div", {});
+  fill($main(),
+    h("section", { class: "hero" },
+      h("div", { class: "safe-title" }, ident(ps.address, 56), h("div", {}, h("h1", { text: mine ? "Your practice Safe" : "A passkey's practice Safe" }),
+        h("div", { class: "chips" }, badge("warn", "Base Sepolia · test ETH only"), badge("muted", "1 of 1"), mine ? badge("ok", "Your passkey") : null))),
+      h("p", { class: "lede", text: "A Safe whose only owner is this passkey. It's a real Safe on a test network: what the passkey approves, the Safe does." }),
+      h("p", { class: "inline-ident" }, "Its address, worked out from the key: ", h("code", { class: "mono", text: ps.address }), " ", copyButton(ps.address), " ", explorer(PRACTICE, "address", ps.address)),
+      h("p", { class: "small muted" }, "The address exists before the Safe does. Base Sepolia ETH sent to it now is there when the Safe is deployed.")),
+    status, grow,
+    mine ? backupCard(k, ps) : null);
+  try {
+    const now = await readSafe(pub, ps.address);
+    if (now.missing) return fill(status, deployCard(k, ps, mine));
+    if (mine) saveSafe({ chain: PRACTICE, address: ps.address, name: savedSafe({ chain: PRACTICE, address: ps.address })?.name || "Practice Safe" });
+    fill(status, h("section", { class: "card" }, h("h2", { text: "Deployed" }),
+      h("p", {}, badge("ok", `${now.threshold} of ${now.owners.length}`), ` Holds ${eth(now.balance)} ETH. `,
+        h("a", { href: `#/safe/${PRACTICE}/${ps.address}`, text: "Open it" }), mine ? " · the console watches it now." : "")));
+    if (mine) fill(grow, growCard(ps, now));
+  } catch (e) { fail(status, e); }
+}
+
+function deployCard(k, ps, mine) {
+  const log = steps();
+  const b = h("button", { class: "btn go", type: "button", text: "Deploy it with my wallet" });
+  b.onclick = async () => {
+    b.disabled = true;
+    const c = CHAINS[PRACTICE], pub = pubFor(PRACTICE);
+    try {
+      const got = getAddress(await pub.readContract({ address: CFG.signer.factory, abi: SIGNER_ABI, functionName: "getSigner",
+        args: [BigInt("0x" + k.x), BigInt("0x" + k.y), BigInt(CFG.signer.verifiers)] }));
+      if (got !== ps.owner) throw new Error(`The passkey factory says ${got}, not ${ps.owner}. Nothing was sent.`);
+      if (!wallet.account) await connect();
+      await wallet.ensureChain(c, rpcFor(PRACTICE));
+      let s = log.run("Running it against the chain first…");
+      const gas = await pub.estimateGas({ account: wallet.account, ...ps.deploy });
+      log.done(s, "It runs");
+      s = log.run("Waiting for your wallet…");
+      const hash = await wallet.send({ ...ps.deploy, gas: (gas * 13n) / 10n });
+      log.done(s, "Sent");
+      s = log.run("Waiting for it to land…");
+      add(log.el, h("p", { class: "small" }, explorer(PRACTICE, "tx", hash, "See it on the explorer")));
+      const rc = await pub.waitForTransactionReceipt({ hash });
+      log.done(s, rc.status === "success" ? "Deployed: the Safe and the passkey's signer" : "Reverted", rc.status === "success" ? "ok" : "bad");
+      if (rc.status === "success") setTimeout(() => route(), 2500);
+      else b.disabled = false;
+    } catch (e) { log.add("bad", said(e)); b.disabled = false; }
+  };
+  return h("section", { class: "card" }, h("h2", { text: "Deploy it" }),
+    h("p", { text: "One transaction makes the Safe and the passkey's signer. A passkey can't pay gas, so a wallet sends it: any wallet, with a little Base Sepolia ETH from a faucet. The wallet doesn't become an owner, and nothing it holds moves." }),
+    h("div", { class: "row" }, b, mine ? shareButton(startLink(k.x, k.y), "Share the deploy link", "Deploy my practice Safe") : null),
+    mine ? h("p", { class: "small muted", text: "No wallet on this device? Share the link and open it where MetaMask or Rabby is." }) : null,
+    log.el);
+}
+
+// A passkey can't be rebuilt from a seed: its key is made inside the device and never leaves. The
+// backup is a synced passkey (iCloud Keychain, Google Password Manager, 1Password…), or a second key.
+function backupCard(k, ps) {
+  return h("section", { class: "card" }, h("h2", { text: "Is your passkey backed up?" }),
+    k.synced
+      ? h("p", {}, badge("ok", "synced"), " Your device says your account backs it up. This Safe is then as safe as that account.")
+      : h("p", {}, badge("bad", "this device only"), " Your device says this passkey lives only on it. Lose the device and you lose this Safe. Before it holds anything, add a second owner below."),
+    h("p", {}, h("strong", { text: "Test your backup. " }), "On another device or browser, open ", h("a", { href: "../console/", text: "the console" }),
+      " and choose ", h("em", { text: "I already have one" }), ". If it shows this owner, ", h("code", { class: "mono", text: short(ps.owner) }),
+      ", your backup works."),
+    h("p", { class: "small muted" }, `The passkey signs only on ${k.rpId}. If the console moves to another domain, it can't sign there. A 1-of-1 is fine for a practice Safe on Base Sepolia when the passkey is synced and you've tested it. Add a second owner before it holds anything you'd miss.`));
+}
+
+// 2 of 3: the hot wallet and the hardware wallet added in one batch, which the console proposes and
+// the passkey signs (firmware: secrets.QUORUM_PROPOSE). Then any wallet executes it.
+function growCard(ps, now) {
+  if (now.owners.length > 1) {
+    return h("section", { class: "card" }, h("h2", { text: `${now.threshold} of ${now.owners.length}` }),
+      h("p", {}, "It has grown up: ", h("a", { href: `#/safe/${PRACTICE}/${ps.address}`, text: "see its owners" }), "."));
+  }
+  const hot = h("input", { type: "text", placeholder: "Your hot wallet, 0x…", autocomplete: "off", spellcheck: "false", "aria-label": "Hot wallet address" });
+  const hw = h("input", { type: "text", placeholder: "Your hardware wallet, 0x…", autocomplete: "off", spellcheck: "false", "aria-label": "Hardware wallet address" });
+  const use = h("button", { class: "mini", type: "button", text: "Use my connected wallet", onclick: async () => {
+    try { if (!wallet.account) await connect(); hot.value = getAddress(wallet.account); } catch (e) { why.textContent = said(e); }
+  } });
+  const why = h("p", { class: "bad small", role: "alert" });
+  const done = h("div", {});
+  const go = h("button", { class: "btn go", type: "button", text: "Hand it to the console", onclick: () => {
+    why.textContent = "";
+    try {
+      const t = safeTx(growCall(ps.address, now.owners, [hot.value, hw.value], 2), now.nonce);
+      store.set("propose", [{ chainId: CHAINS[PRACTICE].id, safe: ps.address, ...t }]);
+      fill(done, h("ol", { class: "how" },
+        h("li", {}, h("a", { href: "../console/", text: "Open the console" }), ". It shows the two new owners on red pages, and that the Safe will need 2 of 3."),
+        h("li", { text: "See every page, then hold Sign. Your passkey signs, and the console sends it to Safe's service." }),
+        h("li", {}, "Back on ", h("a", { href: `#/safe/${PRACTICE}/${ps.address}`, text: "the Safe's page" }), ", execute it from your hot wallet: it pays the gas.")));
+    } catch (e) { why.textContent = e.message; }
+  } });
+  return h("section", { class: "card" }, h("h2", { text: "Make it 2 of 3" }),
+    h("p", { text: "Add your everyday wallet and your hardware wallet. Then any two of the three keys move the Safe, and losing one doesn't lose it. Your passkey approves the change on the console, like any transaction." }),
+    h("div", { class: "row" }, hot, use), h("div", { class: "row" }, hw), why, h("div", { class: "row" }, go), done);
+}
+
 const BACKUP = "picoquorum-backup";
 function backupFile() {
   const body = { kind: BACKUP, version: 1, safes: savedSafes(), names: store.get("names", {}) };
@@ -1103,6 +1221,7 @@ function route() {
   if (parts[0] === "keys") return keysView();
   if (parts[0] === "key") return keyView(parts[1]);
   if (parts[0] === "passkey") return passkeyView();
+  if (parts[0] === "start") return startView(parts[1], parts[2]);
   if (parts[0] === "signer") return parts[1] ? signerView(parts[1], parts[2]) : signerForm();
   if (parts[0] === "settings") return settingsView();
   if (parts[0] === "releases") return releasesView();

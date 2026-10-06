@@ -21,6 +21,10 @@
 # signs the hash computed here, never a string the service sent: wrapped as a WebAuthn assertion
 # (webauthn.py), because onchain this key owns the Safe through Safe's passkey signer.
 #
+# Proposing: secrets.QUORUM_PROPOSE hands the console a transaction's fields to propose itself (a
+# passkey's own 1-of-1, where no other owner can; docs/ONBOARDING.md). It is reviewed, hashed and
+# signed like any other, and its signature goes to the service as the proposal.
+#
 #   import lcd; import quorum; quorum.start()      (main_console.py does this)
 import sys, time, machine, network, gc
 import lcd as L
@@ -68,6 +72,7 @@ def new_watch(s):
 
 
 WATCH = [new_watch(s) for s in SAFES]
+PROPOSE, PROPOSE_WHY = policy.proposals(getattr(secrets, "QUORUM_PROPOSE", None), SAFES) if secrets else ([], "")
 # The Safe in view (focus): the one under review, or the highlighted row's on home. quorum_ui.py
 # draws from these.
 W = WATCH[0]
@@ -682,9 +687,32 @@ def fetch_queue(w):
     out = []
     for i, t in enumerate(txs):
         try:
-            out.append(entry(w, t))
+            e = entry(w, t)
+            e.pop("propose", None)      # listed now: a handed one, cached under the same hash, is proposed
+            out.append(e)
         except Exception as ex:
             out.append(bad_entry(w, t, i, ex))
+    return out + handed(w, out, nonce)
+
+
+def handed(w, listed, nonce):
+    """The transactions secrets.QUORUM_PROPOSE hands this console for Safe w, as entries to
+    propose. The hash is worked out here from the fields, as for any other; the page gives none.
+    One the service already lists (proposed) or whose nonce the Safe has passed is left out."""
+    out = []
+    have = set(e["h"] for e in listed)
+    for i, t in enumerate(PROPOSE):
+        if t["chainId"] != w["chain"] or t["safe"] != w["addr"] or t["nonce"] < nonce:
+            continue
+        try:
+            h = decode.hx(safe_tx.from_service(w["chain"], t))
+        except Exception as ex:
+            out.append(bad_entry(w, t, i, ex))
+            continue
+        if h not in have:
+            e = entry(w, dict(t, safeTxHash=h))
+            e["propose"] = True
+            out.append(e)
     return out
 
 
@@ -1070,7 +1098,7 @@ def send_saved(w):
         clear_unsent()
         return
     try:
-        ok, detail = svc.confirm(s["h"], s["sig"])
+        ok, detail = deliver([e for e in w["queue"] if e["h"] == s["h"]][0], s["sig"])
     except Exception as ex:
         ok, detail = False, net.short_err(ex)
     if ok:
@@ -1082,20 +1110,27 @@ def send_saved(w):
         qlog.write("saved signature for #%s refused: %s" % (s.get("n"), detail[:80]))
 
 
+def deliver(e, signature):
+    """The signature to the service: a confirmation, or for a handed transaction the proposal."""
+    if e.get("propose"):
+        return svc.propose(e["t"], e["h"], me, signature)
+    return svc.confirm(e["h"], signature)
+
+
 def post(e, signature):
     global result, unsent
     d.frames(U.draw_working, sys.modules[__name__], "Sending", "To the transaction service")
     watch.extend(45000)
     try:
         aim(e["w"])
-        ok, detail = svc.confirm(e["h"], signature)
+        ok, detail = deliver(e, signature)
     except Exception as ex:
         ok, detail = False, net.short_err(ex)
     if ok:
         unsent = None
         clear_unsent(e["h"])
         have, need = len(e["conf"]) + 1, threshold(e["w"])
-        lines = ["#%d %s" % (e["n"], e["r"]["summary"]), "Approvals now %d of %d" % (have, need)]
+        lines = ["#%d %s" % (e["n"], e["r"]["summary"]), ("Proposed \u00b7 " if e.get("propose") else "") + "Approvals now %d of %d" % (have, need)]
         if have >= need:
             lines += ["Ready \u00b7 the proposer executes it"]
         else:
@@ -1104,8 +1139,8 @@ def post(e, signature):
             lines += ["Key use #%d" % counter]
         result = (True, "Signed", lines)
         e["w"]["need_info"] = True
-        _log("confirmed #%d" % e["n"])
-        qlog.write("confirmed #%d" % e["n"])
+        _log("%s #%d" % ("proposed" if e.get("propose") else "confirmed", e["n"]))
+        qlog.write("%s #%d" % ("proposed" if e.get("propose") else "confirmed", e["n"]))
         note_recent(e["n"], e["w"], e["r"]["summary"])
     else:
         unsent = (e, signature)
@@ -1622,8 +1657,9 @@ def start():
     else:
         what = "safe svc " + (BASE or "").replace("http://", "").replace("https://", "").rstrip("/")
     splash.step("app", what[:24] if first else "no service", L.GREY if first and len(served) == len(WATCH) else L.RED)
-    if SAFES_WHY:
-        qlog.write("secrets.py: " + SAFES_WHY)
+    for why in (SAFES_WHY, PROPOSE_WHY):
+        if why:
+            qlog.write("secrets.py: " + why)
     if UNCONFIGURED:
         state = "unconfigured"
     elif first:

@@ -19,6 +19,8 @@ troubleshooting.
 - [`firmware-production/`](firmware-production/README.md) and [`quorum-ui/`](quorum-ui/README.md): screenshot walkthroughs
 - [`KICKOFF.md`](KICKOFF.md): what PicoQuorum is, goals, hardware, firmware layers, open decisions
 - [`UPSTREAM-TRACKING.md`](UPSTREAM-TRACKING.md): what came from picowallet, and how its fixes come across
+- [`ONBOARDING.md`](ONBOARDING.md): a new passkey's first Safe, a 1-of-1 on Base Sepolia grown to 2 of 3, and when a 1-of-1 is fine
+- [`GLAMSTERDAM-WATCH.md`](GLAMSTERDAM-WATCH.md): what the fork live on Sepolia since 2026-10-06 changes for PicoQuorum (not on Base yet)
 - [`HEGOTA-WATCH.md`](HEGOTA-WATCH.md): EIPs in the next Ethereum fork that touch the console
 - [`EMU-WEB.md`](EMU-WEB.md): the console on GitHub Pages, with your own passkey as the key: the design, and its limits
 - [`GOVERNANCE.md`](GOVERNANCE.md): the project Safe (Ethereum and Base), release approvals, the ENS name, and handing it over

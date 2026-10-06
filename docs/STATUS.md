@@ -72,6 +72,7 @@ is the source of truth, and this list follows it.
 | SafeWebAuthnSignerSingleton | `0x4E27b51350e6c2083EE19011120F50DAfEc5CA50` | the proxies' code |
 | P-256 verifiers | the precompile at `0x…0100`, then Daimo's `0xc2b78104907F722DABAc4C69f826a522B2754De4` | checking the keys' signatures |
 | SignMessageLib 1.4.1 | `0xd53cd0aB83D845Ac265BE939c57F53AD838012c9` | release approvals ([RELEASES.md](RELEASES.md)) |
+| SafeProxyFactory 1.5.0, SafeL2 1.5.0, CompatibilityFallbackHandler 1.5.0 | `0x14F2982D601c9458F93bd70B218933A6f8165e7b`, `0xEdd160fEBBD92E350D4D398fb636302fccd67C7e`, `0x3EfCBb83A4A7AfcB4F68D501E2c2203a38be77f4` | the app's practice Safes ([ONBOARDING.md](ONBOARDING.md)), pinned in `web/src/safe.mjs`; checked on Base Sepolia only |
 | MultiSendCallOnly 1.4.1 and 1.3.0 | `0x9641d764fc13c8B624c04430C7356C1C7C8102e2`, `0x40A2aCCbd92BCA938b02010E17A5b8929b49130D` | batches the console decodes |
 | Permit2, USDC, the Uniswap router on Base | in `quorum_cfg.py` | decoded on the console's screen |
 
@@ -119,6 +120,9 @@ From [LADDER.md](LADDER.md):
    approval.
 6. **Rungs 3 and 4:** the console's own approval on Base, then Ethereum.
 7. **key-c bring-up** on the bench.
+8. **Onboarding end to end** on Base Sepolia: a passkey's practice Safe deployed, its 2-of-3 batch
+   proposed by the console and executed ([ONBOARDING.md](ONBOARDING.md)). Built and tested; not yet run
+   against Safe's hosted service.
 
 ## Open decisions
 

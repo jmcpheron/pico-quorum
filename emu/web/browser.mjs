@@ -93,11 +93,20 @@ export function appSafes() {
 }
 export function staticSecrets() {
   const safes = appSafes().map((s) => ({ chainId: CHAIN_IDS[s.chain], address: s.address, name: String(s.name || "Safe").slice(0, 40) }));
-  let key = "";
+  let key = "", propose = [];
   try { key = JSON.parse(local.get("pq.apiKey") || '""'); } catch {}
+  // a transaction the app hands the console to propose (a practice Safe's first, docs/ONBOARDING.md):
+  // only its fields reach the firmware, which works out the hash and shows it like any other
+  // (strings and numbers only, as Python reads them: no null or true)
+  try {
+    propose = (JSON.parse(local.get("pq.propose") || "[]") || []).filter((t) => t && typeof t === "object").slice(0, 2).map((t) => ({
+      chainId: Number(t.chainId) || 0, safe: String(t.safe || ""), to: String(t.to || ""), value: String(t.value || "0"),
+      data: String(t.data || "0x"), operation: Number(t.operation) || 0, nonce: Number(t.nonce) || 0 }));
+  } catch {}
   return "\n# from the app's saved Safes and settings, in this browser\n" +
     (safes.length ? `QUORUM_SAFES = ${JSON.stringify(safes)}\n` : "") +
-    (key ? `QUORUM_API_KEY = ${JSON.stringify(key)}\n` : "");
+    (key ? `QUORUM_API_KEY = ${JSON.stringify(key)}\n` : "") +
+    (propose.length ? `QUORUM_PROPOSE = ${JSON.stringify(propose)}\n` : "");
 }
 
 /** Save a Safe to the app's list (same origin, so the app sees it too): {chain, address, name}.

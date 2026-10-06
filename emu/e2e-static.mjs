@@ -87,8 +87,14 @@ const auth2 = (await cdp2.send("WebAuthn.addVirtualAuthenticator", { options: {
   protocol: "ctap2", transport: "internal", hasResidentKey: true, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true } })).authenticatorId;
 check(/I already have one/.test(await con.locator("#overlay").innerText()), "it also offers to use a passkey you already have");
 await con.click("#overlay .go:not(.alt)");
-await con.waitForFunction(() => /Add a Safe/.test(document.querySelector("#overlay").innerText), null, { timeout: 15000 });
-check(!!JSON.parse(await con.evaluate(() => localStorage.getItem("emu.passkey")))?.x, "Make a passkey: made, kept in this browser; next the screen asks for a Safe");
+await con.waitForFunction(() => /Your practice Safe/.test(document.querySelector("#overlay").innerText), null, { timeout: 15000 });
+const madeNow = JSON.parse(await con.evaluate(() => localStorage.getItem("emu.passkey")));
+check(!!madeNow?.x, "Make a passkey: made, kept in this browser; next the screen offers a practice Safe");
+check(await con.locator(`#overlay a.go[href="${SITE_APP}#/start/${madeNow.x}/${madeNow.y}"]`).count() === 1,
+  "Make my practice Safe: the app's #/start, with the key in the link (on localhost, the app on the site)");
+check(new RegExp(madeNow.synced ? "backed up by your account" : "lives only on it").test(await con.locator("#overlay").innerText()),
+  `and it says whether the device reports the passkey backed up (${madeNow.synced ? "synced" : "this device only"})`);
+await con.click("#overlay details.have summary");
 const conOwner = (await con.locator("#overlay .owner .addr").innerText()).trim();
 check(/^0x[0-9a-fA-F]{40}$/.test(conOwner) && (await con.locator("#owner .addr").innerText()).trim() === conOwner,
   `the screen and the panel show the passkey's owner address, to add to a Safe (${conOwner.slice(0, 10)}…)`);
@@ -164,7 +170,7 @@ for (const c of synced) await cdp3.send("WebAuthn.addCredential", { authenticato
 await con3.goto(BASE + "console/");
 await con3.waitForFunction(() => self.crossOriginIsolated && /I already have one/.test(document.querySelector("#overlay")?.innerText || ""), null, { timeout: 30000 });
 await con3.click("#overlay .go.alt");
-const found = await con3.waitForFunction(() => /Add a Safe/.test(document.querySelector("#overlay").innerText), null, { timeout: 20000 }).then(() => true, () => false);
+const found = await con3.waitForFunction(() => /Your practice Safe/.test(document.querySelector("#overlay").innerText), null, { timeout: 20000 }).then(() => true, () => false);
 const cred3 = JSON.parse(await con3.evaluate(() => localStorage.getItem("emu.passkey")) || "null");
 check(found && cred3?.x === made.x && cred3?.y === made.y && cred3?.id === made.id,
   `I already have one: from two signatures, the same public key as where it was made${found ? "" : ` (overlay: ${(await con3.locator("#overlay").innerText()).slice(0, 160)})`}`);
@@ -202,7 +208,8 @@ await cdp4.send("WebAuthn.addVirtualAuthenticator", { options: {
 await con4.goto(COPY);
 await con4.waitForFunction(() => self.crossOriginIsolated && /Make a passkey/.test(document.querySelector("#overlay")?.innerText || ""), null, { timeout: 30000 });
 await con4.click("#overlay .go:not(.alt)");
-await con4.waitForFunction(() => /Add a Safe/.test(document.querySelector("#overlay").innerText), null, { timeout: 15000 });
+await con4.waitForFunction(() => /Your practice Safe/.test(document.querySelector("#overlay").innerText), null, { timeout: 15000 });
+await con4.click("#overlay details.have summary");
 const cred4 = JSON.parse(await con4.evaluate(() => localStorage.getItem("emu.passkey")));
 check(cred4?.rpId === "localhost" && cred4.x !== made.x, "the folder alone, at the root of localhost: it isolates itself and makes a passkey of its own, for localhost");
 await con4.fill("#overlay .add-safe input >> nth=0", "basesep:0x1234567890abcdef1234567890abcdef12345678");
@@ -259,7 +266,8 @@ const auth5 = (await cdp5.send("WebAuthn.addVirtualAuthenticator", { options: {
 await con5.goto(BASE + "console/");
 await con5.waitForFunction(() => self.crossOriginIsolated && /Make a passkey/.test(document.querySelector("#overlay")?.innerText || ""), null, { timeout: 30000 });
 await con5.click("#overlay .go:not(.alt)");
-await con5.waitForFunction(() => /Add a Safe/.test(document.querySelector("#overlay").innerText), null, { timeout: 15000 });
+await con5.waitForFunction(() => /Your practice Safe/.test(document.querySelector("#overlay").innerText), null, { timeout: 15000 });
+await con5.click("#overlay details.have summary");
 const cred5 = JSON.parse(await con5.evaluate(() => localStorage.getItem("emu.passkey")));
 const mine = sim.registerDevice(st, { name: "the console page's passkey", qx: "0x" + cred5.x, qy: "0x" + cred5.y });
 const to = Object.values(sim.BOOK)[0];
@@ -305,6 +313,69 @@ const inWorker = w5 ? await w5.evaluate(probe) : "no worker";
 check(inPage === "connect-src" && inWorker === "connect-src", `a request to any other host is refused by the CSP, in the page (${inPage || "allowed"}) and in the worker (${inWorker || "allowed"})`);
 await ctx5.close();
 for (let i = csp.length - 1; i >= 0; i--) if (csp[i].includes(PROBE.slice(8, -1))) csp.splice(i, 1);     // the probes' own reports
+
+// 11. proposing, for real: a practice Safe (docs/ONBOARDING.md) whose only owner is the passkey. The
+// app hands the console a transaction (pq.propose); no other owner can propose it, so the console
+// does, with its signature. The service here makes the real one's checks: the sender is an owner,
+// the hash is the fields' hash (viem's), and the signature verifies over it.
+{
+  const st6 = { ...sim.fresh(), chainId: 84532, name: "Practice Safe", owners: [], threshold: 1 };
+  const proposals = [];
+  const ctx6 = await browser.newContext({ viewport: { width: 1000, height: 900 } });
+  await ctx6.route("**/*", async (route) => {
+    const r = route.request(), u = r.url();
+    if (u.startsWith(BASE)) return route.continue();
+    if (!u.startsWith(SVC + "/")) { outside.push(u); return route.abort(); }
+    const cors = { "access-control-allow-origin": "*", "access-control-allow-headers": "authorization, content-type", "access-control-allow-methods": "GET, POST" };
+    if (r.method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors });
+    const url = new URL(u), path = url.pathname.slice(new URL(SVC).pathname.length);
+    const reply = (status, body) => route.fulfill({ status, headers: { ...cors, "content-type": "application/json" }, body: JSON.stringify(body) });
+    let m;
+    if ((m = path.match(/^\/api\/v1\/safes\/(0x[0-9a-fA-F]{40})\/?$/))) return reply(200, sim.apiSafe(st6));
+    if ((m = path.match(/^\/api\/v2\/safes\/(0x[0-9a-fA-F]{40})\/multisig-transactions\/?$/)) && r.method() === "POST") {
+      const b = JSON.parse(r.postData() || "{}");
+      if (!st6.owners.some((o) => o.address.toLowerCase() === String(b.sender).toLowerCase())) return reply(422, { nonFieldErrors: ["Sender is not an owner or delegate"] });
+      const tx = await sim.propose(st6, { to: b.to, value: b.value, data: b.data || "0x", operation: b.operation, nonce: b.nonce }, { scenario: "proposed by the console" });
+      if (tx.trueHash !== b.contractTransactionHash) { st6.txs.pop(); return reply(422, { nonFieldErrors: ["Contract-transaction-hash does not match"] }); }
+      const res = await sim.confirm(st6, tx, b.signature);
+      proposals.push({ body: b, res, hash: tx.trueHash });
+      if (!res.ok) { st6.txs.pop(); return reply(422, { nonFieldErrors: [res.error] }); }
+      return reply(201, null);
+    }
+    if ((m = path.match(/^\/api\/v2\/safes\/(0x[0-9a-fA-F]{40})\/multisig-transactions\/?$/))) return reply(200, sim.apiList(st6, url.searchParams));
+    return reply(404, { detail: "Not found." });
+  });
+  const con6 = await ctx6.newPage();
+  watch(con6, "console proposing");
+  con6.on("dialog", (d) => d.accept());
+  const cdp6 = await ctx6.newCDPSession(con6);
+  await cdp6.send("WebAuthn.enable");
+  await cdp6.send("WebAuthn.addVirtualAuthenticator", { options: {
+    protocol: "ctap2", transport: "internal", hasResidentKey: true, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true } });
+  await con6.goto(BASE + "console/");
+  await con6.waitForFunction(() => self.crossOriginIsolated && /Make a passkey/.test(document.querySelector("#overlay")?.innerText || ""), null, { timeout: 30000 });
+  await con6.click("#overlay .go:not(.alt)");
+  await con6.waitForFunction(() => /Your practice Safe/.test(document.querySelector("#overlay").innerText), null, { timeout: 15000 });
+  const cred6 = JSON.parse(await con6.evaluate(() => localStorage.getItem("emu.passkey")));
+  const me6 = sim.registerDevice(st6, { name: "the practice Safe's passkey", qx: "0x" + cred6.x, qy: "0x" + cred6.y });
+  const hot = Object.values(sim.BOOK)[0];
+  const add = "0x0d582f13" + hot.slice(2).toLowerCase().padStart(64, "0") + "1".padStart(64, "0");     // addOwnerWithThreshold(hot, 1)
+  await con6.evaluate(([safe, data]) => {
+    localStorage.setItem("pq.safes", JSON.stringify([{ chain: "basesep", address: safe, name: "Practice Safe" }]));
+    localStorage.setItem("pq.propose", JSON.stringify([{ chainId: 84532, safe, to: safe, value: "0", data, operation: 0, nonce: 0,
+      safeTxHash: "0x" + "ab".repeat(32) }]));              // a hash given here is never read
+  }, [st6.address, add]);
+  await con6.reload();
+  await con6.waitForFunction(() => document.querySelector("#overlay").hidden && +(document.querySelector("#screen").dataset.frames || 0) > 0, null, { timeout: 60000 });
+  const hold6 = async (ms) => { await con6.locator('[data-key="A"]').dispatchEvent("pointerdown"); await con6.waitForTimeout(ms); await con6.locator('[data-key="A"]').dispatchEvent("pointerup"); await con6.waitForTimeout(400); };
+  for (let i = 0; i < 14 && !proposals.length; i++) await hold6(3300);      // adding an owner is a red page: 3 s
+  const pr = proposals[0];
+  check(pr && pr.res.ok && pr.body.sender.toLowerCase() === me6.address.toLowerCase() && pr.body.contractTransactionHash === pr.hash
+    && pr.body.contractTransactionHash !== "0x" + "ab".repeat(32),
+    `a handed transaction, in a Safe only the passkey owns: the console proposed it, its own hash (viem's), the passkey as sender, and the signature verifies (${pr ? (pr.res.ok ? "ok" : pr.res.error) : "nothing proposed"})`);
+  check(st6.txs.length === 1 && st6.txs[0].isExecuted, "1 of 1: with the passkey's signature it is ready, and executes");
+  await ctx6.close();
+}
 
 check(!csp.length, `no CSP violations${csp.length ? ": " + csp.slice(0, 3).join(" | ") : ""}`);
 check(!errors.length, `no page errors${errors.length ? ": " + errors.join("; ") : ""}`);

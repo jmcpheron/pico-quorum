@@ -206,6 +206,18 @@ class Service:
         code, out = self._post("/api/v1/multisig-transactions/%s/confirmations/" % safe_tx_hash, {"signature": signature})
         return code in (200, 201), why(code, out)
 
+    def propose(self, t, safe_tx_hash, sender, signature):
+        """A new transaction, with this key's signature as its first confirmation: for a Safe whose
+        only owner is this key, where nobody else can propose (the service lists an unsigned one as
+        untrusted, and the queue leaves those out)."""
+        body = {"safe": self.safe, "to": checksum(t["to"]), "value": t["value"], "data": t.get("data"), "operation": t["operation"],
+                "safeTxGas": t["safeTxGas"], "baseGas": t["baseGas"], "gasPrice": t["gasPrice"],
+                "gasToken": checksum(t["gasToken"]), "refundReceiver": checksum(t["refundReceiver"]), "nonce": t["nonce"],
+                "contractTransactionHash": safe_tx_hash, "sender": checksum(sender), "signature": signature,
+                "origin": "PicoQuorum console"}
+        code, out = self._post("/api/v2/safes/%s/multisig-transactions/" % self.safe, body)
+        return code in (200, 201), why(code, out)
+
     # --- the simulation's own endpoints (tools/quorum). Never sent to a real service: they would
     # spend its quota and hand it this key's public key for nothing.
     def announce(self, name, qx, qy):

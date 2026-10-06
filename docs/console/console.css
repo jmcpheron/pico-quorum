@@ -101,6 +101,7 @@ h3 { font-size: 19px; margin: 0 0 6px; }
 .go { align-self: flex-start; min-height: 40px; padding: 8px 16px; border-radius: 10px; border: 1px solid #34C759; background: #34C759; color: #04130A; font: inherit; font-weight: 700; cursor: pointer; }
 .go:disabled { opacity: .6; cursor: progress; }
 .go.alt { background: transparent; color: #34C759; }
+a.go { display: inline-flex; align-items: center; text-decoration: none; }
 
 /* the panel */
 .panel { width: 100%; max-width: 720px; display: flex; flex-direction: column; gap: 14px; font-size: 16px; }

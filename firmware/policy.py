@@ -80,6 +80,44 @@ def safes(many, one):
     return out, why
 
 
+MAX_PROPOSE = 2     # the web console's first transaction for a new Safe; more is not needed
+
+
+def proposals(given, safes):
+    """secrets.QUORUM_PROPOSE: transactions the page hands this console to propose itself, because
+    no other owner can (a passkey's own 1-of-1, docs/ONBOARDING.md). Only the fields: the hash is
+    worked out on the console like any other, and a safeTxHash given here is never read. Each must
+    be for a Safe in `safes`. -> (list of service-shaped transactions, why)."""
+    if not given:
+        return [], ""
+    if not isinstance(given, (list, tuple)):
+        return [], "QUORUM_PROPOSE is not a list"
+    watched = set((s["chainId"], s["address"]) for s in safes)
+    out, why = [], ""
+    for t in given:
+        try:
+            c, a, to = int(t["chainId"]), str(t["safe"]).lower(), str(t["to"]).lower()
+            data = str(t.get("data") or "0x").lower()
+            e = {"chainId": c, "safe": a, "to": to, "value": str(int(t.get("value") or 0)),
+                 "data": None if data == "0x" else data, "operation": int(t.get("operation") or 0),
+                 "safeTxGas": "0", "baseGas": "0", "gasPrice": "0",
+                 "gasToken": "0x" + "0" * 40, "refundReceiver": "0x" + "0" * 40, "nonce": int(t["nonce"])}
+        except (KeyError, TypeError, ValueError):
+            why = why or "a transaction to propose without chainId, safe, to or nonce"
+            continue
+        if not (is_address(a) and is_address(to)) or data[:2] != "0x" or any(ch not in HEX for ch in data[2:]) or len(data) % 2:
+            why = why or "a transaction to propose with a bad address or data"
+            continue
+        if (c, a) not in watched:
+            why = why or "a transaction to propose for a Safe this console doesn't watch"
+            continue
+        if len(out) == MAX_PROPOSE:
+            why = why or "more than %d transactions to propose" % MAX_PROPOSE
+            break
+        out.append(e)
+    return out, why
+
+
 def service_url(cfg, chain, override=None):
     """Where to ask about a Safe on this chain: secrets.QUORUM_URL when set (the laptop's
     simulation or fork), else Safe's own service for the chain, pinned in cfg["services"]. None for

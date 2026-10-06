@@ -34,6 +34,7 @@ const SITE_APP = "https://jmcpheron.github.io/pico-quorum/app/";
 const ownCopy = /^(localhost|127\.0\.0\.1|\[::1\])$|\.localhost$/.test(location.hostname);
 const APP = ownCopy ? SITE_APP : new URL("../app/", location.href).href;
 const signerLink = (cred) => `${APP}#/signer/${cred.x}/${cred.y}`;
+const startLink = (cred) => `${APP}#/start/${cred.x}/${cred.y}`;          // the passkey's practice Safe
 const passkeyLink = (cred) => (ownCopy ? signerLink(cred) : `${APP}#/passkey`);
 if (ownCopy) for (const a of document.querySelectorAll('a[href^="../"]')) a.href = new URL(a.getAttribute("href"), new URL("../console/", SITE_APP)).href;
 
@@ -188,13 +189,21 @@ async function start() {
       why);
   }
   if (!appSafes().length) {
-    const owner = await myOwner();
-    return overlay(el("h2", { textContent: "Add a Safe to watch" }),
+    const owner = await myOwner(), cred = passkeyCred();
+    const have = el("details", { className: "have" }, el("summary", { textContent: "I already have a Safe" }),
       el("p", { textContent: "Your passkey signs as this owner, the same address on every chain:" }),
       ...(owner ? [ownerLine(owner)] : []),
-      el("p", { className: "small" }, "A passkey isn't a wallet: it can't pay gas or send a transaction. A wallet that owns the Safe deploys its signer and proposes adding this address as an owner (",
-        el("a", { href: passkeyLink(passkeyCred()), textContent: "your passkey in the app" }), " does both). Then the console shows the Safe's queue, and your passkey confirms what it shows."),
+      el("p", { className: "small" }, "A wallet that owns the Safe deploys its signer and proposes adding this address as an owner (",
+        el("a", { href: passkeyLink(cred), textContent: "your passkey in the app" }), " does both). Then the console shows the Safe's queue, and your passkey confirms what it shows."),
       addSafeForm());
+    return overlay(el("h2", { textContent: "Your practice Safe" }),
+      el("p", { textContent: "Next, a Safe your passkey controls: a 1-of-1 on Base Sepolia, a test network. What your passkey approves here, the Safe does. Later you add your other wallets and make it 2 of 3." }),
+      el("div", { className: "acts" }, el("a", { className: "go", href: startLink(cred), textContent: "Make my practice Safe" })),
+      el("p", { className: cred.synced ? "small" : "small bad", textContent: cred.synced
+        ? "Your device says this passkey is backed up by your account (iCloud Keychain, Google Password Manager…). Test it: on another device, open this page and choose I already have one. Same owner, the backup works."
+        : "Your device says this passkey lives only on it. Lose the device and you lose what only it controls. Fine for practice; add a second owner before the Safe holds anything." }),
+      el("p", { className: "small", textContent: "A passkey can't pay gas, so a wallet deploys the Safe: yours, or anyone's you send the link to." }),
+      have);
   }
   overlay();
   await boot();
@@ -222,6 +231,6 @@ window.addEventListener("keydown", (e) => {
 });
 window.addEventListener("keyup", (e) => { const k = keyOf(e); if (k) setKey(k, false); });
 window.addEventListener("blur", () => { for (const k of KEY_ORDER) setKey(k, false); });
-window.addEventListener("storage", (e) => { if (e.key === "pq.safes" || e.key === "pq.apiKey") start(); });   // saved in the app's tab
+window.addEventListener("storage", (e) => { if (["pq.safes", "pq.apiKey", "pq.propose"].includes(e.key)) start(); });   // saved in the app's tab
 
 start();

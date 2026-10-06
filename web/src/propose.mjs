@@ -6,7 +6,7 @@
 // hasn't pinned, and treats any gas field as worth a warning (firmware/decode.py).
 import { approvalTx } from "../../tools/mock-tx-service/release.mjs";
 import { encodeFunctionData, getAddress, isAddress, isHex, parseAbi, parseUnits, recoverAddress, size, slice, toHex } from "viem";
-import { TYPES, ZERO, fields, forChain } from "./safe.mjs";
+import { BATCHER, TYPES, ZERO, fields, forChain, multiSend } from "./safe.mjs";
 
 export const SENTINEL = "0x0000000000000000000000000000000000000001";
 export const OWNER_ABI = parseAbi([
@@ -165,6 +165,30 @@ export function buildCall(kind, input, s) {
     }
   }
   throw new Error(`Unknown kind ${kind}`);
+}
+
+// A practice Safe growing up (docs/ONBOARDING.md): the new owners added in one batch, each at
+// threshold 1 but the last, which sets the final threshold (2 of 3 from a passkey's 1-of-1). A
+// delegatecall to the console's pinned MultiSendCallOnly, which the console reads call by call, on
+// red pages. -> the call, for safeTx.
+export function growCall(safe, owners, add, finalThreshold) {
+  safe = getAddress(safe);
+  const have = owners.map((o) => getAddress(o));
+  const list = add.map((a, i) => {
+    if (!isAddress(String(a || "").trim(), { strict: false })) throw new Error(`Owner ${i + 1}: that isn't an address.`);
+    return getAddress(String(a).trim());
+  });
+  if (!list.length) throw new Error("Add at least one owner.");
+  if (new Set(list).size !== list.length) throw new Error("The same address twice. Each owner is a different key.");
+  for (const a of list) {
+    if (have.includes(a)) throw new Error(`${a} is already an owner.`);
+    if (a === safe) throw new Error("A Safe can't own itself.");
+  }
+  const n = have.length + list.length;
+  if (!Number.isInteger(finalThreshold) || finalThreshold < 1 || finalThreshold > n) throw new Error(`The threshold must be 1 to ${n}.`);
+  const calls = list.map((owner, i) => ({ to: safe, data: encodeFunctionData({ abi: OWNER_ABI, functionName: "addOwnerWithThreshold",
+    args: [owner, BigInt(i === list.length - 1 ? finalThreshold : 1)] }) }));
+  return { to: BATCHER, value: 0n, data: multiSend(calls), operation: 1 };
 }
 
 // The SafeTx a call becomes at a nonce: no refund, no gas fields.

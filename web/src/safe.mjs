@@ -9,8 +9,8 @@
 // confirmation is checked (ECDSA recovered, contract signatures asked of the owner contract).
 import { checkApproval } from "../../tools/mock-tx-service/release.mjs";
 import {
-  createPublicClient, decodeEventLog, encodeFunctionData, formatEther, getAddress, hashMessage, hashTypedData, http,
-  parseAbi, recoverAddress, size, slice, toHex,
+  concat, createPublicClient, decodeEventLog, encodeFunctionData, encodePacked, formatEther, getAddress, getContractAddress, hashMessage,
+  hashTypedData, http, keccak256, pad, parseAbi, recoverAddress, size, slice, toHex,
 } from "viem";
 import { base, baseSepolia, mainnet } from "viem/chains";
 import { p256Owner, packSignatures, parse } from "../../tools/mock-tx-service/sigs.mjs";
@@ -109,6 +109,46 @@ export class Service {
     return this.get(`/api/v2/safes/${safe}/multisig-transactions/?executed=false&nonce__gte=${nonce}&ordering=nonce&limit=20`);
   }
   recent(safe) { return this.get(`/api/v2/safes/${safe}/multisig-transactions/?executed=true&ordering=-nonce&limit=5`); }
+}
+
+// ----------------------------------------------------------------------------- a new Safe
+// A passkey's practice Safe (docs/ONBOARDING.md): Safe 1.5.0 L2, the version of the project's test
+// Safes, with the passkey's signer its only owner, threshold 1. Its setup also deploys that signer (a
+// call to the passkey factory through the console's pinned MultiSendCallOnly 1.4.1), so one
+// transaction from any wallet makes both. Its address follows from the key alone, before anything is
+// sent, and can be funded at once. Checked against the factory on Base Sepolia: web/test.mjs.
+export const SAFE150 = {
+  factory: "0x14F2982D601c9458F93bd70B218933A6f8165e7b",          // SafeProxyFactory 1.5.0
+  singleton: "0xEdd160fEBBD92E350D4D398fb636302fccd67C7e",        // SafeL2 1.5.0
+  fallbackHandler: "0x3EfCBb83A4A7AfcB4F68D501E2c2203a38be77f4",  // CompatibilityFallbackHandler 1.5.0
+  // the factory's proxyCreationCode()
+  proxyCode: "0x608060405234801561001057600080fd5b506040516101b63803806101b68339818101604052602081101561003357600080fd5b8101908080519060200190929190505050600073ffffffffffffffffffffffffffffffffffffffff168173ffffffffffffffffffffffffffffffffffffffff1614156100ca576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004018080602001828103825260228152602001806101946022913960400191505060405180910390fd5b806000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff16021790555050607b806101196000396000f3fe608060405260005463a619486e60003560e01c14156024578060601b606c5260206060f35b3660008037600080366000845af43d6000803e806040573d6000fd5b3d6000f3fea2646970667358221220e61834ebd2d8cd909d362bf67c47ef58fd665df38e6dd036ce65611101d072e964736f6c63430007060033496e76616c69642073696e676c65746f6e20616464726573732070726f7669646564",
+};
+export const BATCHER = getAddress("0x9641d764fc13c8b624c04430c7356c1c7c8102e2");   // MultiSendCallOnly 1.4.1, quorum_cfg "batchers"
+export const FACTORY_ABI = parseAbi(["function createProxyWithNonce(address _singleton, bytes initializer, uint256 saltNonce) returns (address)"]);
+const SETUP_ABI = parseAbi(["function setup(address[] _owners, uint256 _threshold, address to, bytes data, address fallbackHandler, address paymentToken, uint256 payment, address paymentReceiver)"]);
+const MULTISEND_ABI = parseAbi(["function multiSend(bytes transactions)"]);
+
+/** MultiSendCallOnly's argument: each call packed as (0, to, value, length, data). */
+export function multiSend(calls) {
+  const one = ({ to, value = 0n, data = "0x" }) =>
+    encodePacked(["uint8", "address", "uint256", "uint256", "bytes"], [0, getAddress(to), BigInt(value), BigInt(size(data)), data]);
+  return encodeFunctionData({ abi: MULTISEND_ABI, functionName: "multiSend", args: [concat(calls.map(one))] });
+}
+
+/** The practice Safe for a passkey's public key (x, y as 64 hex digits). -> {address, owner, deploy:
+ *  {to, data}}: deploy is the one transaction, from any wallet, that makes the Safe and the signer. */
+export function practiceSafe(x, y) {
+  const qx = BigInt("0x" + x), qy = BigInt("0x" + y), verifiers = BigInt(CFG.signer.verifiers);
+  const owner = getAddress(p256Owner(CFG.signer, "0x" + x, "0x" + y));
+  const signer = encodeFunctionData({ abi: SIGNER_ABI, functionName: "createSigner", args: [qx, qy, verifiers] });
+  const initializer = encodeFunctionData({ abi: SETUP_ABI, functionName: "setup",
+    args: [[owner], 1n, BATCHER, multiSend([{ to: CFG.signer.factory, data: signer }]), SAFE150.fallbackHandler, ZERO, 0n, ZERO] });
+  const salt = keccak256(encodePacked(["bytes32", "uint256"], [keccak256(initializer), 0n]));
+  const address = getContractAddress({ opcode: "CREATE2", from: SAFE150.factory, salt,
+    bytecode: concat([SAFE150.proxyCode, pad(SAFE150.singleton, { size: 32 })]) });
+  const data = encodeFunctionData({ abi: FACTORY_ABI, functionName: "createProxyWithNonce", args: [SAFE150.singleton, initializer, 0n] });
+  return { address, owner, deploy: { to: SAFE150.factory, data } };
 }
 
 // ----------------------------------------------------------------------------- the Safe, onchain

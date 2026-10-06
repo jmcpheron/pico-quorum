@@ -182,9 +182,9 @@ console up to the README:
 
 | | image | release fingerprint |
 |---|---|---|
-| <img src="docs/releases/badges/console-blockie.svg" width="32" height="32" alt=""> | **console** | `817a5ae67aeca901cea00b4348f3c376a654783bc4a13b1a28ebdb5cb9f1ddb1` |
+| <img src="docs/releases/badges/console-blockie.svg" width="32" height="32" alt=""> | **console** | `80ad741030ba4e8dd741fa6ad23f1b1b1a7656593a16bbcea84a5a35dfa46511` |
 | <img src="docs/releases/badges/ceremony-blockie.svg" width="32" height="32" alt=""> | **ceremony** | `0ab8c3573017c7d2fe31ca6f82073ab9a76024d613541a7a98a0facef79f239b` |
-| <img src="docs/releases/badges/dual-blockie.svg" width="32" height="32" alt=""> | **dual** | `68a7846ecec9a364397b84caab3cafb8472d9d4bf99647f93741cb57f8a07d30` |
+| <img src="docs/releases/badges/dual-blockie.svg" width="32" height="32" alt=""> | **dual** | `b41ea9d33e02b32df7243aa5a2995500f3c8c34aeb3e3b0b6120d98e2c775a88` |
 
 <!-- build:end -->
 

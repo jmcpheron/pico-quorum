@@ -74,7 +74,7 @@ class Service:
 
     def post(self, url, json=None, headers=None, timeout=None):
         self.calls.append(("POST", url, dict(headers or {})))
-        if "/confirmations/" in url:
+        if "/confirmations/" in url or url.endswith("/multisig-transactions/"):
             self.posted.append((url, json))
             return Resp(201, {})
         if url.endswith("/sim/device"):
@@ -961,6 +961,58 @@ def case_passkey():
         _emu.passkey_use(False)
 
 
+def case_propose():
+    """A transaction the page hands over (secrets.QUORUM_PROPOSE), for a Safe whose only owner is
+    this key: reviewed, hashed and signed here like any other, and its signature goes out as the
+    proposal. A safeTxHash the page gives is never read."""
+    chip()
+    add = "0x0d582f13" + "00" * 12 + ALICE[2:] + "%064x" % 1     # addOwnerWithThreshold(ALICE, 1)
+    handed = [{"chainId": CHAIN, "safe": SAFE, "to": SAFE, "value": "0", "data": add, "operation": 0, "nonce": 0,
+               "safeTxHash": "0x" + "ab" * 32},
+              {"chainId": CHAIN, "safe": OTHER, "to": ALICE, "nonce": 0}]
+    Q = fresh(extra="QUORUM_PROPOSE = " + json.dumps(handed))
+    check(len(Q.PROPOSE) == 1 and "doesn't watch" in Q.PROPOSE_WHY, "one for a Safe this console doesn't watch is dropped, and why is kept")
+    serve(Q, [], owners=[Q.me], threshold=1)
+    e = Q.queue[0] if Q.queue else {}
+    want = "0x" + "".join("%02x" % b for b in safe_tx.from_service(CHAIN, dict(handed[0], safeTxGas=0, baseGas=0, gasPrice=0, gasToken=ZERO, refundReceiver=ZERO)))
+    check(len(Q.queue) == 1 and e.get("propose") and e["h"] == want and e["h"] != handed[0]["safeTxHash"],
+          "the handed transaction is queued to propose, under the hash worked out here, not the one given")
+    check(Q.can_sign(e) == (True, "") and e["r"]["items"] and not e["why"], "it is reviewed and signable like any other")
+    check(e["r"]["level"] == "red" and not sign(Q, e, 2100), "adding an owner is red: 2.1 s is not enough")
+    check(sign(Q, e, 3100), "held 3.1 s: signed and sent")
+    url, body = SVC.posted[-1]
+    check(url.endswith("/api/v2/safes/%s/multisig-transactions/" % Q.txservice.checksum(SAFE))
+          and body["safe"].lower() == SAFE and body["contractTransactionHash"] == e["h"] and body["sender"].lower() == Q.me and body["data"] == add
+          and body["nonce"] == 0 and body["signature"].startswith("0x" + "00" * 12 + Q.me[2:]),
+          "sent as a proposal: the hash computed here, this key as sender, its contract signature")
+    check(any("Proposed" in l for l in Q.result[2]), "the result screen says it was proposed")
+    serve(Q, [tx(Q, 0, to=SAFE, data=add, conf=[Q.me])], owners=[Q.me], threshold=1)
+    check(len(Q.queue) == 1 and not Q.queue[0].get("propose") and Q.signed_by_me(Q.queue[0]),
+          "once the service lists it, the handed copy is gone: one entry, signed by this key")
+    serve(Q, [], owners=[Q.me], threshold=1)
+    SVC.info["nonce"] = 1
+    Q.WATCH[0]["need_info"], Q.last_poll = True, 0
+    Q.net_work()
+    check(not Q.queue, "executed (the Safe's nonce moved past it): not offered again")
+    bad = [dict(handed[0], to=OTHER, data="0x12345678", operation=1)]
+    Q = fresh(extra="QUORUM_PROPOSE = " + json.dumps(bad))
+    serve(Q, [], owners=[Q.me], threshold=1)
+    check(Q.queue and "delegatecall" in Q.queue[0]["why"].lower() and not sign(Q, Q.queue[0], 5000),
+          "a handed delegatecall to an unpinned contract is refused like any other")
+    Q = fresh(extra="QUORUM_PROPOSE = " + json.dumps(handed[:1]))
+    serve(Q, [], owners=[Q.me], threshold=1)
+    real_post = SVC.post
+    SVC.post = lambda url, json=None, headers=None, timeout=None: (_ for _ in ()).throw(OSError(12))
+    try:
+        check(not sign(Q, Q.queue[0], 3100) and "unsent.json" in os.listdir(), "a proposal the service didn't take is kept")
+    finally:
+        SVC.post = real_post
+    Q = fresh(keep=True, extra="QUORUM_PROPOSE = " + json.dumps(handed[:1]))
+    serve(Q, [], owners=[Q.me], threshold=1)
+    check(SVC.posted and SVC.posted[-1][0].endswith("/multisig-transactions/") and "unsent.json" not in os.listdir(),
+          "after a restart it goes out again as the proposal, not a confirmation")
+
+
 def case_release_approval():
     """The project Safe approving a PicoQuorum release (release.py): a delegatecall to the pinned
     SignMessageLib, its release named in the origin note. The console reads it, shows the release
@@ -1146,7 +1198,7 @@ def case_knob():
 
 
 def main():
-    for case in (case_pin, case_owners_pages, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_safes, case_watchdog, case_home, case_saver, case_release, case_passkey, case_release_approval, case_knob):
+    for case in (case_pin, case_owners_pages, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_safes, case_watchdog, case_home, case_saver, case_release, case_passkey, case_propose, case_release_approval, case_knob):
         print("--", case.__name__[5:])
         try:
             case()

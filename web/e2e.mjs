@@ -48,7 +48,8 @@ const SAFE = getAddress("0xEDEDC0063B23A309f4cAdA5e1225Ef21D8A30a43");
 const CHAIN_ID = 84532;
 const USDC = P.knownTokens(CHAIN_ID)[0].address;
 const chain = { owners: [who.alice.address, who.bob.address, who.carol.address], threshold: 2, nonce: 9, balance: parseEther("0.1"),
-  deployed: new Set(), sent: new Map() };     // passkey signers deployed here; transactions sent, by hash
+  deployed: new Set(), sent: new Map(),       // passkey signers deployed here; transactions sent, by hash
+  practice: new Map() };                      // practice Safes deployed here (#/start): address -> {owners, threshold, nonce}
 const FACTORY = getAddress(S.CFG.signer.factory);
 const ABI = [...S.SAFE_ABI, ...P.ERC20_ABI, ...S.SIGNER_ABI];
 function ethCall({ to, data }) {
@@ -64,6 +65,13 @@ function ethCall({ to, data }) {
       return out(S.safeTxHash(CHAIN_ID, SAFE, { to: to2, value, data: data2, operation, safeTxGas, baseGas, gasPrice, gasToken, refundReceiver, nonce }));
     }
   }
+  const ps = chain.practice.get(getAddress(to));
+  if (ps) {
+    if (functionName === "getOwners") return out(ps.owners);
+    if (functionName === "getThreshold") return out(BigInt(ps.threshold));
+    if (functionName === "nonce") return out(BigInt(ps.nonce));
+    if (functionName === "VERSION") return out("1.5.0");
+  }
   if (getAddress(to) === FACTORY && functionName === "getSigner") return out(p256Owner(S.CFG.signer, args[0], args[1]));
   if (getAddress(to) === USDC) {
     if (functionName === "decimals") return out(6);
@@ -78,7 +86,8 @@ function rpc(req) {
   try {
     if (method === "eth_chainId") return ok("0x" + CHAIN_ID.toString(16));
     if (method === "eth_blockNumber") return ok("0x100");
-    if (method === "eth_getCode") return ok([SAFE, USDC, FACTORY, ...chain.deployed].includes(getAddress(params[0])) ? "0x6080604052" : "0x");
+    if (method === "eth_getCode") return ok([SAFE, USDC, FACTORY, ...chain.deployed, ...chain.practice.keys()].includes(getAddress(params[0])) ? "0x6080604052" : "0x");
+    if (method === "eth_estimateGas") return ok("0x60000");
     if (method === "eth_getTransactionReceipt") {
       const tx = chain.sent.get(params[0]);
       return ok(tx && { transactionHash: params[0], transactionIndex: "0x0", blockHash: "0x" + "ab".repeat(32), blockNumber: "0x100", from: tx.from, to: tx.to,
@@ -140,12 +149,22 @@ async function service(method, url, body) {
 }
 
 // ----------------------------------------------------------------------------- the wallet
-const wallet = { as: "alice", signed: [], decline: false };
+const wallet = { as: "alice", signed: [], decline: false, practiceKeys: new Set() };
 async function walletRequest({ method, params }) {
   const me = who[wallet.as];
   if (method === "eth_requestAccounts" || method === "eth_accounts") return [me.address.toLowerCase()];
   if (method === "eth_chainId") return "0x" + CHAIN_ID.toString(16);
   if (method === "wallet_switchEthereumChain") return null;
+  if (method === "eth_sendTransaction" && getAddress(params[0].to) === getAddress(S.SAFE150.factory)) {   // a practice Safe (#/start)
+    const tx = params[0];
+    const want = [...wallet.practiceKeys].map(([x, y]) => S.practiceSafe(x, y)).find((p) => p.deploy.data === tx.data);
+    if (!want) throw { code: -32000, message: "the test chain only deploys the practice Safes it knows" };
+    const hash = "0x" + createHash("sha256").update(tx.data + chain.sent.size).digest("hex");
+    chain.practice.set(want.address, { owners: [want.owner], threshold: 1, nonce: 0 });
+    chain.deployed.add(want.owner);
+    chain.sent.set(hash, { ...tx });
+    return hash;
+  }
   if (method === "eth_sendTransaction") {         // only the passkey factory's createSigner, as the chain here knows it
     const tx = params[0];
     const { functionName, args } = decodeFunctionData({ abi: S.SIGNER_ABI, data: tx.data });
@@ -423,6 +442,43 @@ await step("a passkey's signer, from a deploy link, with a wallet that owns no S
   await page.getByText(/Your passkey · signer not deployed on Base Sepolia/).waitFor();
   check(await page.locator(`a[href="#/signer/${x2}/${y2}"]`).count() === 1, "the Safe page: your passkey as an owner, signer not deployed here, with its deploy link");
   chain.owners.pop();
+  wallet.as = "alice";
+});
+
+await step("a new passkey's practice Safe (#/start): deployed by a wallet, then 2 of 3 handed to the console", async () => {
+  const pk = p256.getPublicKey(p256.utils.randomPrivateKey(), false);
+  const x = Buffer.from(pk.slice(1, 33)).toString("hex"), y = Buffer.from(pk.slice(33)).toString("hex");
+  const ps = S.practiceSafe(x, y);
+  wallet.practiceKeys.add([x, y]);
+  await page.evaluate(([a, b]) => { localStorage.setItem("emu.passkey", JSON.stringify({ id: "e2e", x: a, y: b, rpId: "127.0.0.1", synced: true }));
+    localStorage.removeItem("pq.propose"); }, [x, y]);
+  await page.goto(`${BASE}app/#/start`);
+  await page.getByRole("button", { name: "Deploy it with my wallet" }).waitFor();
+  check((await text(".hero .inline-ident code")).trim() === ps.address, `#/start: the practice Safe's address (${ps.address.slice(0, 10)}…), worked out from the key before it exists`);
+  check(await page.getByText(/says your account backs it up/).count() === 1 && await page.getByText(/Test your backup/).count() === 1,
+    "#/start: a synced passkey is shown as backed up, with the test for it");
+  const saved = () => page.evaluate(() => JSON.parse(localStorage.getItem("pq.safes") || "[]"));
+  check(!(await saved()).some((s) => s.address === ps.address), "not deployed: not yet among the Safes the console watches");
+  wallet.as = "mallory";            // any wallet: it doesn't become an owner
+  await page.getByRole("button", { name: "Deploy it with my wallet" }).click();
+  await page.getByText("Deployed: the Safe and the passkey's signer").waitFor();
+  const tx = [...chain.sent.values()].at(-1);
+  check(getAddress(tx.to) === getAddress(S.SAFE150.factory) && tx.data === ps.deploy.data && getAddress(tx.from) === who.mallory.address,
+    "Deploy: one transaction from any wallet, to Safe's 1.5.0 factory");
+  await page.getByRole("heading", { name: "Make it 2 of 3" }).waitFor();
+  check((await saved()).some((s) => s.address === ps.address && s.chain === "basesep"), "deployed: saved, so the console watches it");
+  await page.getByRole("textbox", { name: "Hot wallet address" }).fill(who.alice.address);
+  await page.getByRole("textbox", { name: "Hardware wallet address" }).fill(who.alice.address);
+  await page.getByRole("button", { name: "Hand it to the console" }).click();
+  check(/same address twice/.test(await text("[role=alert]")), "the same address for both wallets is refused");
+  await page.getByRole("textbox", { name: "Hardware wallet address" }).fill(who.bob.address);
+  await page.getByRole("button", { name: "Hand it to the console" }).click();
+  await page.getByText(/hold Sign/).waitFor();
+  const [handed] = await page.evaluate(() => JSON.parse(localStorage.getItem("pq.propose") || "[]"));
+  const want = P.safeTx(P.growCall(ps.address, [ps.owner], [who.alice.address, who.bob.address], 2), 0);
+  check(handed && handed.chainId === CHAIN_ID && getAddress(handed.safe) === ps.address && handed.data === want.data && handed.operation === 1 && handed.nonce === 0,
+    "handed to the console: the 2-of-3 batch's fields for this Safe at nonce 0 (no hash: the console works it out)");
+  await shot("9-start");
   wallet.as = "alice";
 });
 
