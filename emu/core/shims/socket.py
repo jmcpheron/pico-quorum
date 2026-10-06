@@ -1,3 +1,4 @@
+# From picowallet by Austin Griffith (MIT): https://github.com/austintgriffith/picowallet
 # Emulator `socket`: enough for `import socket` to work. Raw sockets are not emulated;
 # use `requests`, which the host performs. net.console() is off in the emulator's secrets.py.
 AF_INET = 2

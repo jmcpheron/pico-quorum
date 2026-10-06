@@ -1,3 +1,4 @@
+// From picowallet by Austin Griffith (MIT): https://github.com/austintgriffith/picowallet
 // Every Pico-like thing on USB, for the page's device picker and `tools/emu devices`.
 //   listDevices() -> [{ kind: "serial", port, label, board? } | { kind: "bootsel", path, label, board }]
 // serial: /dev/cu.usbmodem* (mac) or /dev/ttyACM* (linux), a board running MicroPython. The first

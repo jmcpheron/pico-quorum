@@ -11,7 +11,7 @@ import theme as T
 import icons as I
 
 lcd = None
-TITLE = "picowallet"   # the app that boots sets its own name (quorum.py: "picoquorum")
+TITLE = "picoquorum"   # the app that boots sets its own name (quorum.py: "picoquorum", chipapp.py: "ceremony")
 rows = []           # [key, text, color], drawn in ORDER
 ORDER = ("screen", "wifi", "chip", "app")
 ICON = {"screen": "screen", "wifi": "wifi", "chip": "chip", "app": "app"}

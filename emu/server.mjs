@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// From picowallet by Austin Griffith (MIT): https://github.com/austintgriffith/picowallet
 // Dev server for the emulator: static UI, the emulated flash (firmware/ + emu/sketches/), a control
 // channel so tools/emu can drive the page (same origin only), and a proxy to a laptop service
 // (tools/quorum's mock, say) so requests from the emulated firmware are same-origin.

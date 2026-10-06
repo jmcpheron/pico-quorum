@@ -1,3 +1,4 @@
+# Started in picowallet by Austin Griffith (MIT): https://github.com/austintgriffith/picowallet
 # Blockies identicons (github.com/ethereum/blockies), ported so the wallet screen and the website
 # draw the same picture for the same seed. The website shows the blockie of the transaction digest;
 # the wallet computes the digest itself and draws its own. Same picture = same transaction.

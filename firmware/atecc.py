@@ -1,3 +1,4 @@
+# Started in picowallet by Austin Griffith (MIT): https://github.com/austintgriffith/picowallet
 # Minimal ATECC608 driver over I2C for MicroPython. Just what a wallet needs:
 # wake, serial, lock state, the slot table, public key of a slot, sign a 32-byte digest with a slot,
 # and the one-time provisioning steps (write + lock config, GenKey, lock data, lock a slot).
@@ -47,14 +48,14 @@ def explain(code):
     return STATUS.get(code, "unknown status 0x%02x" % code)
 
 # Microchip's ATECC608 reference config (cryptoauthlib test/api_calib/test_calib_config.c,
-# test_ecc608_configdata), byte for byte what reference/pi/signer.py wrote to chip #1, the chip
-# that owns the mainnet vault. Bytes 0-15 (serial, revision) and 84-87 (lock bytes) are
+# test_ecc608_configdata), byte for byte what ATECC608-demo's Raspberry Pi signer
+# (https://github.com/clawdbotatg/ATECC608-demo) wrote to chip #1. Bytes 0-15 (serial, revision) and 84-87 (lock bytes) are
 # read-only and skipped by write_config. With this table (see decode_slot):
-#   slot 0   P-256 private key, external sign, GenKey allowed, lockable   <- the wallet key
+#   slot 0   P-256 private key, external sign, GenKey allowed, lockable   <- the signing key
 #   slot 2   P-256 private key, external sign, GenKey allowed
 #   slot 7   P-256 private key, external sign, GenKey + encrypted PrivWrite, lockable
 #   slots 11, 14, 15  P-256 public keys; 5, 10 AES keys; the rest plain data
-# The same bytes as reference/pi/provision.py, copied by program on 2026-09-15 after a hand-copied
+# The same bytes as ATECC608-demo's provision.py, copied by program on 2026-09-15 after a hand-copied
 # table bricked a chip (upstream and this fork each found and fixed that separately; the two fixed
 # tables are identical). Never edit these bytes by hand: see the fingerprint below and
 # tools/check_config.
@@ -130,7 +131,7 @@ def decode_slot(cfg, slot):
 
 
 # The table above must make slot 0 a P-256 private key that GenKey may fill, or locking a chip with
-# it leaves the chip unable to ever hold the wallet key (that is the bug docs/UPSTREAM.md describes).
+# it leaves the chip unable to ever hold a key (the bug that bricked a chip on 2026-09-15).
 # Checked here, at import, on the Pico, before any lock can happen.
 assert decode_slot(CONFIG, 0)["kind"] == "P256" and decode_slot(CONFIG, 0)["genKey"], "CONFIG does not make slot 0 a P-256 key slot"
 

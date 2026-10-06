@@ -1,3 +1,4 @@
+// Started in picowallet by Austin Griffith (MIT): https://github.com/austintgriffith/picowallet
 // The page: editor + console on the left, the device on the right, a Worker running MicroPython,
 // and a control channel (SSE) so tools/emu can drive everything from a terminal. It runs under
 // tools/emu (emu/server.mjs): the flash, the chip state and saved files live on this Mac, and the

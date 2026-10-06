@@ -1,3 +1,4 @@
+# Started in picowallet by Austin Griffith (MIT): https://github.com/austintgriffith/picowallet
 # Emulator `network`: WiFi is up from the start. The host (browser or node) does the real HTTP.
 # For the Wi-Fi setup screen (wifisetup.py) the air holds a few made-up networks, and a join checks
 # the password: "emulator" is open, "Home Wi-Fi" wants "correct horse", "Cafe Guest" "espresso99".

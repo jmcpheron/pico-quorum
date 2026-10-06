@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Started in picowallet by Austin Griffith (MIT): https://github.com/austintgriffith/picowallet
 """Prove the ATECC608 config tables in firmware/ are the reviewed ones before anyone locks a chip.
 
   legacy-test (firmware/atecc.py CONFIG): its fingerprint. The table is the one the Raspberry Pi

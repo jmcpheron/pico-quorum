@@ -93,6 +93,15 @@ The tag says who cut a release. The project Safe says the project stands behind 
 - the console signs it, and it executes;
 - `isValidSignature` holds, and still holds after the console's owner is removed.
 
+## 2026.10.10 (2026-10-06)
+
+**No change in behaviour.** The files that came from Austin Griffith's
+[picowallet](https://github.com/austintgriffith/picowallet) now say so at their top (`atecc.py`,
+`trustm.py`, `p256.py`, `keccak.py`, `lcd.py`, `blockies.py`, `net.py`), a few comments no longer
+point at files removed before the repository went public, and the boot screen's default title is
+`picoquorum` (each image still sets its own). None of the picowallet-only modules removed with them
+was in an image. The release fingerprints change because the source did.
+
 ## 2026.10.9 (2026-10-03)
 
 **Fix: Build 1 sometimes stopped on boot** with "MemoryError … allocating 1280 bytes" and 221 KB

@@ -1,3 +1,4 @@
+// From picowallet by Austin Griffith (MIT): https://github.com/austintgriffith/picowallet
 // The emulated Pico: MicroPython (WebAssembly) plus the JS half of the machine/network/requests
 // shims. Runs the same way in a browser Worker (web/worker.js) and in node (headless.mjs).
 //

@@ -1,4 +1,5 @@
 #!/bin/sh
+# From picowallet by Austin Griffith (MIT): https://github.com/austintgriffith/picowallet
 # The PicoQuorum console in a browser. `tools/emu` opens it; `tools/emu run|exec|key|shot|log|reset|headless ...`
 # drives it. Details: emu/README.md and emu/SKILL.md.
 cd "$(dirname "$0")/.." || exit 1

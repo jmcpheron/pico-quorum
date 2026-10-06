@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Started in picowallet by Austin Griffith (MIT): https://github.com/austintgriffith/picowallet
 // Run a module on the emulated Pico without a browser, poke keys, save screenshots.
 //   node emu/headless.mjs quorum --wait 300 --key right --wait 200 --shot shots/1.png
 // Steps run in order:

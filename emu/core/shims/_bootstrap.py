@@ -1,3 +1,4 @@
+# From picowallet by Austin Griffith (MIT): https://github.com/austintgriffith/picowallet
 # Runs once after the interpreter boots, before any sketch. Fills the gaps between the
 # WebAssembly build and the rp2 build so firmware written for the Pico imports unchanged.
 import builtins, micropython, os, sys, _emu

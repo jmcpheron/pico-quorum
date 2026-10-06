@@ -1,3 +1,4 @@
+# Started in picowallet by Austin Griffith (MIT): https://github.com/austintgriffith/picowallet
 # The screen and the keys, for the board in board.py (secrets.BOARD):
 #   waveshare: Pico-LCD-1.3, 240x240 ST7789 over SPI1, joystick and A/B/X/Y
 #              (pins from waveshare.com/wiki/Pico-LCD-1.3)
@@ -31,7 +32,7 @@ YELLOW, GREY, DARK = color(255, 220, 0), color(120, 120, 120), color(30, 30, 30)
 
 
 # The one 115 KB framebuffer, allocated the moment lcd is imported. On an RP2040 board (264 KB
-# RAM) a block that big is only available on a fresh heap: after a 20 KB module like wallet.py
+# RAM) a block that big is only available on a fresh heap: after a 20 KB module like quorum_ui.py
 # has been compiled the heap is too fragmented and LCD() dies with MemoryError. So anything that
 # runs a big module (main.py, the emulator's send) imports lcd first, and LCD() reuses this.
 BANDS = board.BANDS

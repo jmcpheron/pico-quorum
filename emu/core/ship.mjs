@@ -1,3 +1,4 @@
+// From picowallet by Austin Griffith (MIT): https://github.com/austintgriffith/picowallet
 // Put a module on the real Pico and run it. Used by `tools/emu ship NAME` and the page's
 // "send to Pico" button (server route /ctl/ship).
 //   ship(name, { target: "usb" | "wifi", port, boot }) -> { ok, port, lines, blocking, error? }

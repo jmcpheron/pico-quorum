@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Started in picowallet by Austin Griffith (MIT): https://github.com/austintgriffith/picowallet
 // tools/emu: drive the emulator from a terminal (or a bot).
 //   tools/emu                    start the server (if needed) and open the page
 //   tools/emu run MODULE         fresh boot, then `import MODULE` (files re-read from disk)

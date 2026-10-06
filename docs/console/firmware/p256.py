@@ -1,3 +1,4 @@
+# From picowallet by Austin Griffith (MIT): https://github.com/austintgriffith/picowallet
 # NIST P-256 ECDSA in pure Python. Runs on MicroPython (RP2350: ~1 s per signature).
 # Stand-in for the ATECC608 until it is wired. Same output shape: (r, s) with low s.
 import os

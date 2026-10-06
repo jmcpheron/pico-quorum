@@ -1,3 +1,4 @@
+# From picowallet by Austin Griffith (MIT): https://github.com/austintgriffith/picowallet
 # Infineon OPTIGA Trust M (Adafruit 4351 breakout) on the wallet's I2C bus, GP4 SDA / GP5 SCL.
 # Physical layer only, straight from the datasheet (SLS32AIA, rev 3.70, chapter A):
 #   - 7-bit address 0x30

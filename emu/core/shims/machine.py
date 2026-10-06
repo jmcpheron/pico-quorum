@@ -1,3 +1,4 @@
+# Started in picowallet by Austin Griffith (MIT): https://github.com/austintgriffith/picowallet
 # Emulator stand-in for MicroPython's rp2 `machine` module. Everything goes through `_emu`,
 # the JS bridge registered by emu/core/runtime.mjs. Only what the firmware and
 # sketches use; unknown things are no-ops rather than errors.

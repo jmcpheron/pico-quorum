@@ -1,3 +1,4 @@
+// Started in picowallet by Austin Griffith (MIT): https://github.com/austintgriffith/picowallet
 // What the emulated flash holds: firmware/*.py and *.bin (never secrets.py), then emu/sketches/*
 // on top. Used by the server (for the browser) and by headless.mjs.
 import { readdirSync, readFileSync, statSync, existsSync, writeFileSync } from "node:fs";

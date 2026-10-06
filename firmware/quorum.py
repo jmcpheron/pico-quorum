@@ -2,7 +2,7 @@
 # the chip only after the person has seen every page and held A. Polls Safe's transaction service
 # over WiFi (for now tools/quorum's simulated Safe on the laptop).
 #
-# The loop is wallet.py's: one 50 ms Timer, keys every tick, redraw only when something changed,
+# The loop is picowallet's (its wallet.py): one 50 ms Timer, keys every tick, redraw only when something changed,
 # and the timer stopped around anything that blocks (HTTP, hashing, the chip). X shows the device:
 # build, chip, pin, signature counter. The chip map is not part of this image (tools/fw push
 # ceremony has it), so nothing reachable from here can make, switch or lock a key.

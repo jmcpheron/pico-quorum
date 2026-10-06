@@ -1,3 +1,4 @@
+// From picowallet by Austin Griffith (MIT): https://github.com/austintgriffith/picowallet
 // Minimal PNG encoder (RGBA, no deps) for headless screenshots.
 import { deflateSync } from "node:zlib";
 
