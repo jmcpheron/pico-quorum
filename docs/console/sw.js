@@ -1,4 +1,4 @@
-// COOP/COEP for the console's files, and the emulator's files it runs (coi.js registers this). Same-origin responses get the headers;
+// COOP/COEP for the console's own files (coi.js registers this). Same-origin responses get the headers;
 // everything else goes to the network untouched.
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));

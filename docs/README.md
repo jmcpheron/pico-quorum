@@ -6,7 +6,8 @@
 troubleshooting.
 
 - [`guide/`](guide/README.md): the owner's guide ([setup](guide/SETUP.md), [using it](guide/USING.md),
-  [networks](guide/NETWORKS.md), [troubleshooting](guide/TROUBLESHOOTING.md))
+  [networks](guide/NETWORKS.md), [troubleshooting](guide/TROUBLESHOOTING.md), [the console in your
+  browser](guide/BROWSER.md))
 - [`RELEASES.md`](RELEASES.md): firmware versions (year.month.n), what each holds, and how to make one
 - [`mainnet/`](mainnet/README.md): a Trust M signer in a mainnet Safe. Written for co-signers too: checking a chip, the threat model, the recommended configuration, the operator's runbook
 - [`SECURITY.md`](SECURITY.md): the console's trust model, then picowallet's
@@ -17,7 +18,7 @@ troubleshooting.
 - [`KICKOFF.md`](KICKOFF.md): what PicoQuorum is, goals, hardware, firmware layers, open decisions
 - [`UPSTREAM-TRACKING.md`](UPSTREAM-TRACKING.md): fork point, unmerged upstream work, how to merge
 - [`HEGOTA-WATCH.md`](HEGOTA-WATCH.md): EIPs in the next Ethereum fork that touch the console
-- [`EMU-WEB.md`](EMU-WEB.md): the emulator on GitHub Pages, with your own passkey as the key
+- [`EMU-WEB.md`](EMU-WEB.md): the console on GitHub Pages, with your own passkey as the key: the design, and its limits
 - [`GOVERNANCE.md`](GOVERNANCE.md): the project Safe (Ethereum and Base), release approvals, the ENS name, and handing it over
 
 The dev console's notes, from picowallet: [`picowallet.md`](picowallet.md) (build guide),

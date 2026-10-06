@@ -1,7 +1,8 @@
 // What a page needs to run the console from GitHub Pages, shared by the emulator (web/app.js) and
 // the plain console page (docs/console/, emu/console/): boot.json, the release fingerprint of what
 // boots, the Safes saved in the app, a per-browser software key, and the visitor's own passkey.
-// Relative URLs here resolve against this file (emu/web/), so both pages find the same boot.json.
+// Relative URLs here resolve against this file (web/), and each page has its own copy of it, so
+// each finds its own boot.json: docs/emu/boot.json, docs/console/boot.json.
 import { keccak256 } from "../core/keccak.mjs";
 import { assertionParts, b64url, derToRS, recoverKeys, spkiXY, unhex } from "../core/webauthn-assert.mjs";
 
@@ -64,10 +65,26 @@ export async function showRelease(el, fp, built) {
 export const EDIT = "emu.file:";       // + name: a file edited or made in the emulator, in this browser
 const ENTRY_OF = { demo: "demo.run()", wallet: "wallet.start()", usbwallet: "usbwallet.start()", quorum: "quorum.start()" };
 
-/** boot.json (emu/build.mjs: the firmware, the shims, build.py). edits: the emulator's edits in this
- *  browser on top; the console page runs the files exactly as built. */
+/** boot.json (emu/build.mjs: the firmware, the shims, build.py). A file is either in boot.json
+ *  (text, b64) or a path beside it: the console page keeps its firmware and shims as plain files,
+ *  to read and to hash. edits: the emulator's edits in this browser on top; the console page runs
+ *  the files exactly as built. */
 export async function staticBoot({ edits = false } = {}) {
-  const b = await (await fetch(new URL("../boot.json", import.meta.url), { cache: "no-cache" })).json();
+  const url = new URL("../boot.json", import.meta.url);
+  const b = await (await fetch(url, { cache: "no-cache" })).json();
+  const get = async (path) => {
+    const r = await fetch(new URL(path, url), { cache: "no-cache" });
+    if (!r.ok) throw new Error(`${path}: HTTP ${r.status}`);
+    return new Uint8Array(await r.arrayBuffer());
+  };
+  const utf8 = new TextDecoder("utf-8", { fatal: true });
+  const b64 = (bytes) => { let s = ""; for (const x of bytes) s += String.fromCharCode(x); return btoa(s); };
+  b.files = await Promise.all(b.files.map(async ({ path, ...f }) => {
+    if (!path) return f;
+    const bytes = await get(path);
+    return f.name.endsWith(".py") ? { ...f, text: utf8.decode(bytes) } : { ...f, b64: b64(bytes) };
+  }));
+  if (b.shimPaths) b.shims = Object.fromEntries(await Promise.all(Object.entries(b.shimPaths).map(async ([n, p]) => [n, utf8.decode(await get(p))])));
   const byName = new Map(b.files.map((f) => [f.name, f]));
   for (let i = 0; edits && i < localStorage.length; i++) {
     const k = localStorage.key(i);

@@ -1,13 +1,13 @@
-// The PicoQuorum console in a page: the console's screen and buttons, nothing else. The same firmware
-// as the Pico (the emulator's boot.json, run by its worker), the quorum console only, with your own
-// passkey as its key and the Safes you saved in the app (or add here: the same list). It shows your
-// passkey's owner address, the one to add to a Safe. emu/build.mjs writes it to docs/console/.
-// The emulator (../emu/) is the developer's page: an editor, the 3D case, every module.
+// The PicoQuorum console in a page: the console's screen and buttons. The same firmware as the Pico
+// (the console image, in firmware/ beside this file), the quorum console only, with your own passkey
+// as its key and the Safes you saved in the app (or add here: the same list). It shows your passkey's
+// owner address, the one to add to a Safe. emu/build.mjs writes it to docs/console/, one folder with
+// everything it runs, so a copy of that folder runs the same (docs/guide/BROWSER.md).
 import {
   CHAIN_IDS, KEY_ORDER, answer, appSafes, browserKey, checksum, consoleCfg, forgetAppSafe, keyOf, local, makePasskey,
   paintFrame, passkeyCred, passkeyOwner, safeInfo, saveAppSafe, showRelease, stampRelease, staticBoot, staticSecrets, usePasskey,
-} from "../emu/web/browser.mjs";
-import { blockieSrc } from "../emu/shared/blockies.mjs";
+} from "./web/browser.mjs";
+import { blockieSrc } from "./shared/blockies.mjs";
 
 const $ = (s) => document.querySelector(s);
 const sab = typeof SharedArrayBuffer !== "undefined" && self.crossOriginIsolated ? new SharedArrayBuffer(16 * 4) : null;
@@ -27,6 +27,16 @@ const el = (tag, attrs = {}, ...kids) => { const e = Object.assign(document.crea
 const CHAIN_NAMES = { eth: "Ethereum", base: "Base", basesep: "Base Sepolia" };
 const short = (a) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
+// The app: beside this page on the site. A copy of this folder on your own computer may have no app
+// beside it, and its passkey is the copy's own (made for localhost), so there the links go to the app
+// on the site and carry what it needs: only public things, a public key, an owner address, a Safe.
+const SITE_APP = "https://jmcpheron.github.io/pico-quorum/app/";
+const ownCopy = /^(localhost|127\.0\.0\.1|\[::1\])$|\.localhost$/.test(location.hostname);
+const APP = ownCopy ? SITE_APP : new URL("../app/", location.href).href;
+const signerLink = (cred) => `${APP}#/signer/${cred.x}/${cred.y}`;
+const passkeyLink = (cred) => (ownCopy ? signerLink(cred) : `${APP}#/passkey`);
+if (ownCopy) for (const a of document.querySelectorAll('a[href^="../"]')) a.href = new URL(a.getAttribute("href"), new URL("../console/", SITE_APP)).href;
+
 // Your passkey's owner address: the passkey signer's address, worked out here from its public key
 // and the factory in the console's own quorum_cfg.py. The console's screen computes the same one.
 async function myOwner() {
@@ -44,7 +54,7 @@ function ownerLine(owner) {
     setTimeout(() => { copy.textContent = "Copy"; }, 1500);
   };
   const cred = passkeyCred();
-  const link = cred && new URL(`../app/#/signer/${cred.x}/${cred.y}`, location.href).href;
+  const link = cred && signerLink(cred);
   const share = el("button", { className: "copy", type: "button", textContent: "Share deploy link", title: "Open it where MetaMask or Rabby is, to deploy this passkey's signer" });
   share.onclick = async () => {
     if (navigator.share) {
@@ -90,7 +100,7 @@ async function ownerStatus(where, s, owner) {
     } else {
       where.className = "status warn";
       where.replaceChildren(`${threshold} of ${owners.length}, your passkey isn't an owner yet · `,
-        ...(owner ? [el("a", { href: `../app/#/safe/${s.chain}/${checksum(s.address)}/new/add/${owner}`, textContent: "propose adding it" })] : []));
+        ...(owner ? [el("a", { href: `${APP}#/safe/${s.chain}/${checksum(s.address)}/new/add/${owner}`, textContent: "propose adding it" })] : []));
     }
   } catch (e) {
     where.className = "status";
@@ -101,7 +111,7 @@ async function ownerStatus(where, s, owner) {
 async function panel() {
   const cred = passkeyCred(), owner = await myOwner();
   $("#key").replaceChildren(...(cred
-    ? [`your passkey, for ${cred.rpId} (${cred.synced ? "synced by your account" : "kept on that device"}) · `, el("a", { href: "../app/#/passkey", textContent: "deploy its signer" })]
+    ? [`your passkey, for ${cred.rpId} (${cred.synced ? "synced by your account" : "kept on that device"}) · `, el("a", { href: passkeyLink(cred), textContent: "deploy its signer" })]
     : ["none yet"]));
   $("#owner-row").hidden = !owner;
   $("#owner").replaceChildren(...(owner ? [ownerLine(owner)] : []));
@@ -139,9 +149,9 @@ const built = (async () => {
 async function boot() {
   if (worker) worker.terminate();
   const b = await built, payload = b.files;
-  // ./worker.js imports the emulator's worker: a worker's own script is fetched under the service worker
-  // whose scope holds its URL, so it has to live here for this folder's sw.js to isolate it
-  worker = new Worker(new URL("worker.js", import.meta.url), { type: "module" });
+  // a worker's own script is fetched under the service worker whose scope holds its URL: web/ is in
+  // this folder, so this folder's sw.js isolates it
+  worker = new Worker(new URL("web/worker.js", import.meta.url), { type: "module" });
   worker.onmessage = (e) => {
     const m = e.data;
     if (m.type === "frame") { paintFrame(m.buf, img); ctx.putImageData(img, 0, 0); screen.dataset.frames = String(m.frames); }
@@ -185,7 +195,7 @@ async function start() {
       el("p", { textContent: "Your passkey signs as this owner, the same address on every chain:" }),
       ...(owner ? [ownerLine(owner)] : []),
       el("p", { className: "small" }, "A passkey isn't a wallet: it can't pay gas or send a transaction. A wallet that owns the Safe deploys its signer and proposes adding this address as an owner (",
-        el("a", { href: "../app/#/passkey", textContent: "your passkey in the app" }), " does both). Then the console shows the Safe's queue, and your passkey confirms what it shows."),
+        el("a", { href: passkeyLink(passkeyCred()), textContent: "your passkey in the app" }), " does both). Then the console shows the Safe's queue, and your passkey confirms what it shows."),
       addSafeForm());
   }
   overlay();

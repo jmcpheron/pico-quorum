@@ -2,54 +2,107 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; connect-src 'self' https:; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' https:; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <script src="coi.js"></script>
-<title>PicoQuorum console</title>
+<title>PicoQuorum · The console in your browser</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="The PicoQuorum console in your browser: the same firmware as the Pico, with your own passkey as its key.">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="The PicoQuorum console in your browser: the same firmware as the Pico, with your own passkey as its key. One folder you can read, check and run from your own copy.">
+<link rel="icon" href="brand/mark-dark.svg" type="image/svg+xml">
 <link rel="stylesheet" href="console.css">
 </head>
 <body>
-<header class="bar">
-  <a class="brand" href="../" title="PicoQuorum">pico<span>quorum</span> console</a>
-  <span id="release" class="release" title="the release fingerprint of the firmware running here"></span>
-  <nav><a href="../app/">App</a> <a href="../app/#/releases">Releases</a> <a href="../emu/" title="the emulator, with an editor and the 3D case">Emulator</a></nav>
+<header class="top">
+  <a class="lockup" href="../" aria-label="PicoQuorum home">
+    <picture>
+      <source media="(prefers-color-scheme: light)" srcset="brand/mark-light.svg">
+      <img src="brand/mark-dark.svg" width="28" height="26" alt="">
+    </picture>
+    <span>PicoQuorum</span>
+  </a>
+  <nav aria-label="Main">
+    <a href="../guide/">Guide</a>
+    <a href="../app/#/keys">Keys</a>
+    <a href="./" aria-current="page">Console</a>
+    <a href="https://github.com/jmcpheron/pico-quorum">Source</a>
+  </nav>
+  <a class="btn go" href="../app/">Launch app</a>
 </header>
 
 <main>
-  <section class="device" aria-label="The console">
-    <div class="pad" role="group" aria-label="Joystick">
-      <button class="dir up" data-key="up" aria-label="Up">▲</button>
-      <button class="dir left" data-key="left" aria-label="Left">◀</button>
-      <button class="dir press" data-key="press" aria-label="Press">●</button>
-      <button class="dir right" data-key="right" aria-label="Right">▶</button>
-      <button class="dir down" data-key="down" aria-label="Down">▼</button>
+  <section class="intro">
+    <p class="eyebrow">The console in your browser</p>
+    <h1>The same console, with your passkey as its&nbsp;key.</h1>
+    <p class="lede">The firmware a Pico runs, file for file, running in this page. It reads your Safes' queue, says what each transaction does, works out the hash itself, and asks your passkey to sign only what you have seen here.</p>
+    <p class="build"><span id="release" class="release" title="the release fingerprint of the firmware running here"></span><span class="muted">worked out in your browser, over the files it runs</span></p>
+  </section>
+
+  <section class="run" aria-label="The console">
+    <div class="device">
+      <div class="pad" role="group" aria-label="Joystick">
+        <button class="dir up" data-key="up" aria-label="Up">▲</button>
+        <button class="dir left" data-key="left" aria-label="Left">◀</button>
+        <button class="dir press" data-key="press" aria-label="Press">●</button>
+        <button class="dir right" data-key="right" aria-label="Right">▶</button>
+        <button class="dir down" data-key="down" aria-label="Down">▼</button>
+      </div>
+      <div class="screen-wrap">
+        <canvas id="screen" width="240" height="240" aria-label="The console's screen"></canvas>
+        <div id="overlay" class="overlay" hidden></div>
+      </div>
+      <div class="abxy" role="group" aria-label="Buttons">
+        <button class="btn-a" data-key="A" aria-label="A">A</button>
+        <button class="btn-b" data-key="B" aria-label="B">B</button>
+        <button class="btn-x" data-key="X" aria-label="X">X</button>
+        <button class="btn-y" data-key="Y" aria-label="Y">Y</button>
+      </div>
     </div>
-    <div class="screen-wrap">
-      <canvas id="screen" width="240" height="240" aria-label="The console's screen"></canvas>
-      <div id="overlay" class="overlay" hidden></div>
-    </div>
-    <div class="abxy" role="group" aria-label="Buttons">
-      <button class="btn-a" data-key="A" aria-label="A">A</button>
-      <button class="btn-b" data-key="B" aria-label="B">B</button>
-      <button class="btn-x" data-key="X" aria-label="X">X</button>
-      <button class="btn-y" data-key="Y" aria-label="Y">Y</button>
+
+    <div class="panel">
+      <div class="row"><span class="label">Key</span><div class="grow" id="key">—</div></div>
+      <div class="row" id="owner-row" hidden><span class="label">Owner</span><div class="grow"><div id="owner"></div>
+        <p class="small">What your passkey's signatures count as, the same on every chain: add this address to a Safe as an owner,
+          and deploy its signer on that chain (any wallet can: share the deploy link to one with MetaMask or Rabby).</p></div></div>
+      <div class="row"><span class="label">Safes</span><div class="grow"><div id="safes">—</div><div id="add-safe"></div></div></div>
+      <p class="warn-note"><strong>What you approve is this screen.</strong> Your browser draws it, and Touch ID won't show the
+        transaction. On a computer you don't trust, use a hardware key, and keep passkey owners below the Safe's threshold.</p>
+      <p class="keys">Keyboard: arrows or W A S D move, Enter or space presses; 9 6 3 . are A B X Y.</p>
+      <details><summary>Console output</summary><pre id="out"></pre></details>
     </div>
   </section>
 
-  <section class="panel">
-    <div class="row"><span class="label">Key</span><span id="key">—</span></div>
-    <div class="row" id="owner-row" hidden><span class="label">Owner</span><div class="grow"><div id="owner"></div>
-      <p class="small">What your passkey's signatures count as, the same on every chain: add this address to a Safe as an owner,
-        and deploy its signer on that chain (any wallet can: share the deploy link to one with MetaMask or Rabby).</p></div></div>
-    <div class="row"><span class="label">Safes</span><div class="grow"><div id="safes">—</div><div id="add-safe"></div></div></div>
-    <p class="note">The same firmware as the Pico, running in this page. The screen is drawn by your browser, and Touch ID
-      won't show the transaction: what you approve is this screen. On a computer you don't trust, use a hardware key,
-      and keep passkey owners below the Safe's threshold.</p>
-    <p class="keys">Keyboard: arrows or W A S D move, Enter or space presses; 9 6 3 . are A B X Y.</p>
-    <details><summary>Console output</summary><pre id="out"></pre></details>
+  <section class="folder" id="your-copy">
+    <h2>One folder you can read</h2>
+    <p class="lede">This page loads nothing from the rest of the site. Everything it runs sits in one folder, and the
+      firmware in it is the console image a Pico runs, as plain files. Save a copy, check it, and sign from your own.</p>
+    <table class="stack">
+      <thead><tr><th>In the folder</th><th>Size</th></tr></thead>
+      <tbody>
+        <tr><td><code>firmware/</code><span>The console image: the same 50 files a Pico runs, in MicroPython. They hash to the release fingerprint.</span></td><td>10,876 lines, and 10 data files</td></tr>
+        <tr><td><code>shims/</code><span>Python in place of the Pico's hardware: its pins, screen and Wi-Fi, and your passkey as its chip.</span></td><td>1,695 lines</td></tr>
+        <tr><td><code>console.js, web/, core/, shared/, coi.js, sw.js</code><span>The page's JavaScript: the buttons, your passkey, and the worker MicroPython runs in.</span></td><td>1,182 lines</td></tr>
+        <tr><td><code>vendor/micropython/</code><span>MicroPython 1.26.0 for WebAssembly, the one part built elsewhere: by the MicroPython project, from npm, pinned by its hash.</span></td><td>522 KB</td></tr>
+        <tr><td><code>index.html, console.css, fonts/, brand/</code><span>This page: its words, its look, the site's typeface and mark.</span></td><td></td></tr>
+      </tbody>
+    </table>
+    <ol class="steps">
+      <li><span class="n">1</span><h3>Save a copy</h3><p><code>SHA256SUMS</code> lists every file. Fetch them, then
+        <code>sha256sum -c SHA256SUMS</code>. No build step: these are the files that run.</p></li>
+      <li><span class="n">2</span><h3>Hold it up to the README</h3><p>Hash <code>firmware/</code> the way a release is hashed. It
+        gives the fingerprint above, the one in the README's build table and on a Pico's Device screen.</p></li>
+      <li><span class="n">3</span><h3>Run your copy</h3><p><code>python3 -m http.server</code> in the folder, then open
+        <code>localhost:8000</code>. A site can change its page on any visit. Your copy changes only when you change it.</p></li>
+      <li><span class="n">4</span><h3>Make its own passkey</h3><p>A passkey belongs to the site that made it. One made on your
+        copy can be asked to sign by your copy, on <code>localhost</code>, and never by this site.</p></li>
+    </ol>
+    <p class="more"><a class="btn" href="https://github.com/jmcpheron/pico-quorum/blob/main/docs/guide/BROWSER.md">The commands, step by step</a></p>
   </section>
 </main>
+
+<footer>
+  <p>PicoQuorum is a fork of <a href="https://github.com/austintgriffith/picowallet">picowallet</a> by Austin Griffith. MIT licensed. Runs on Raspberry Pi Pico 2 W, and here on MicroPython for WebAssembly.</p>
+  <p class="muted">Hardware approvals for Safe · <a href="https://github.com/jmcpheron/pico-quorum">Source</a> · <a href="https://github.com/jmcpheron/pico-quorum/blob/main/docs/README.md">All the docs</a></p>
+</footer>
 <script type="module" src="console.js"></script>
 </body>
 </html>

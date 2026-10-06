@@ -39,10 +39,53 @@ default `http://localhost:3001`) plus `emu/sketches/*` on top. Saving in the edi
 
 ## On GitHub Pages
 
-`node emu/build.mjs` (after `npm ci` here) writes `docs/emu/`, the same page as a static site:
-[jmcpheron.github.io/pico-quorum/emu/](https://jmcpheron.github.io/pico-quorum/emu/). Commit it, as with
-`docs/app/`. CI rebuilds it and fails if the committed copy differs.
+`node emu/build.mjs` (after `npm ci` here) writes the console page, `docs/console/`, and the
+emulator's page, `docs/emu/`. Commit both, as with `docs/app/`. CI rebuilds them and fails if the
+committed copy differs.
 
+**The console page** ([…/pico-quorum/console/](https://jmcpheron.github.io/pico-quorum/console/),
+`emu/console/`, written to `docs/console/` by the same build): the console alone, its screen with the
+joystick and A B X Y as on the board, for anyone without a Pico. No editor, no 3D case, no module
+menu; it always runs the quorum console with your passkey as the key, and the files exactly as built.
+- **First visit:** it asks you to **make a passkey**, or to use one you **already have** (made in
+  another browser, or synced from your other device by iCloud Keychain or Google Password Manager),
+  then to add a Safe you already have: its chain and address (Safe{Wallet}'s `base:0x…` works too),
+  saved to the same list the app keeps.
+- **Its owner address** is shown on the screen and in the panel, with Copy: the
+  `SafeWebAuthnSignerProxy` address the passkey's signatures count as, the same on every chain,
+  worked out in the page (`web/browser.mjs` `passkeyOwner`, `core/keccak.mjs`) from the factory in
+  the `quorum_cfg.py` it boots, and the same as the console's own (`webauthn.owner_address`).
+  A passkey isn't a wallet: a wallet that owns the Safe deploys its signer and proposes adding that
+  address; then the passkey only confirms, on this screen. Each Safe in the panel says, from Safe's
+  service, whether the passkey is an owner yet, and links the app's Add owner with it filled in.
+- **A passkey you already have:** WebAuthn only gives out a passkey's public key when it is made, so
+  the page has it sign twice and works the key out from the two signatures
+  (`core/webauthn-assert.mjs` `recoverKeys`), then checks it. Same passkey, same owner address.
+- **In the app,** `#/passkey` (Keys → Your passkey) shows its owner address, deploys its signer on
+  each chain from your wallet, and links each saved Safe's Add owner with it filled in.
+- **One folder with everything it runs.** It loads nothing from the rest of the site, so a copy of
+  the folder is the whole program ([docs/guide/BROWSER.md](../docs/guide/BROWSER.md): save it,
+  check it, run it on `localhost` with a passkey of its own):
+  - `firmware/`: the console image (`firmware/manifest.json`), the same files a Pico runs, as plain
+    files. They hash to the release fingerprint; the build checks that, and the page works it out
+    again in the browser and shows its blockie.
+  - `shims/`: the Python half of the emulator (`_bootstrap.py` is `bootstrap.py` there: Pages
+    leaves out any file whose name starts with `_`).
+  - `boot.json` names the files to boot (`web/browser.mjs` `staticBoot` fetches each) and carries
+    `build.py`.
+  - `web/`, `core/`, `shared/`, `vendor/micropython/`: the page's runtime, the same files as the
+    emulator's.
+  - `fonts/` and `brand/`: the site's, from `docs/app/fonts/` and `docs/brand/`.
+  - Its own `coi.js`, `sw.js` and CSP (no inline script or style); its worker is `web/worker.js`,
+    inside the folder, so this folder's service worker isolates it.
+  - `SHA256SUMS` (for `sha256sum -c`) and `BUILD.json` list every file. The page's table of what is
+    in the folder, with line counts, is written by the build.
+- **In a copy on your own computer** (`localhost`), the links to the app go to the app on the site,
+  carrying only public things: the deploy link's public key, Add owner's address and Safe.
+
+**The emulator on Pages** (`docs/emu/`) is **deprecated**. Nothing links to it any more, it says so
+at the top, and it will go away. The console page is what the site offers; the editor, the module
+menu and the 3D case stay here, in `tools/emu`. Until then it is this page as a static site:
 - **Boot data:** `boot.json`, written at build time. It is what `/ctl/boot` answers here, for
   `firmware/` alone, plus a `build.py` with `IMAGE "web"` and the console's release fingerprint.
 - **COOP/COEP:** `coi.js` and `sw.js`. Pages can't send headers, so a service worker adds them to the
@@ -74,35 +117,10 @@ phone or a security key, P-256 (ES256).
 Sepolia, Base and Ethereum. `test-vectors/passkey.json` pins the firmware's packing of it. Headless:
 `--passkey` signs with a software passkey (`core/softpasskey.mjs`).
 
-**The console page** ([…/pico-quorum/console/](https://jmcpheron.github.io/pico-quorum/console/),
-`emu/console/`, written to `docs/console/` by the same build): the console alone, its screen with the
-joystick and A B X Y as on the board, for anyone without a Pico. No editor, no 3D case, no module
-menu; it always runs the quorum console with your passkey as the key, and the files exactly as built.
-- **First visit:** it asks you to **make a passkey**, or to use one you **already have** (made in
-  another browser, or synced from your other device by iCloud Keychain or Google Password Manager),
-  then to add a Safe you already have: its chain and address (Safe{Wallet}'s `base:0x…` works too),
-  saved to the same list the app keeps.
-- **Its owner address** is shown on the screen and in the panel, with Copy: the
-  `SafeWebAuthnSignerProxy` address the passkey's signatures count as, the same on every chain,
-  worked out in the page (`web/browser.mjs` `passkeyOwner`, `core/keccak.mjs`) from the factory in
-  the `quorum_cfg.py` it boots, and the same as the console's own (`webauthn.owner_address`).
-  A passkey isn't a wallet: a wallet that owns the Safe deploys its signer and proposes adding that
-  address; then the passkey only confirms, on this screen. Each Safe in the panel says, from Safe's
-  service, whether the passkey is an owner yet, and links the app's Add owner with it filled in.
-- **A passkey you already have:** WebAuthn only gives out a passkey's public key when it is made, so
-  the page has it sign twice and works the key out from the two signatures
-  (`core/webauthn-assert.mjs` `recoverKeys`), then checks it. Same passkey, same owner address.
-- **In the app,** `#/passkey` (Keys → Your passkey) shows its owner address, deploys its signer on
-  each chain from your wallet, and links each saved Safe's Add owner with it filled in.
-- **It runs `docs/emu/`'s** `boot.json`, worker and MicroPython (`web/browser.mjs` is shared by both
-  pages), and shows the same release blockie.
-- **Its own** `coi.js`, `sw.js`, CSP (no inline script or style) and `BUILD.json`. It also has a
-  one-line `worker.js` importing the emulator's: a worker's own script goes through the service
-  worker whose scope holds its URL, so it must sit under `/console/` to be isolated.
+The front page, the app and the README link to the console page. Nothing links to the emulator.
 
-The front page and the app link to the console page; it links to the emulator for developers.
-
-`node emu/e2e-static.mjs` serves `docs/` like Pages and checks all of that in Chromium, both pages.
+`node emu/e2e-static.mjs` serves `docs/` like Pages and checks both pages in Chromium. It also
+serves `docs/console/` alone, as a copy on your own computer, and runs the console from it.
 
 ## Give it to your AI
 
