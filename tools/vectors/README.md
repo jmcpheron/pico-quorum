@@ -5,7 +5,7 @@ shares no code with `firmware/safe_tx.py`.
 
 ```sh
 cd tools/vectors
-npm install
+npm ci
 node fetch-real.mjs   # optional: refresh real-safe-txs.json from Safe's transaction service
 npm run gen           # rewrite ../../test-vectors/safe_tx.json
 ```

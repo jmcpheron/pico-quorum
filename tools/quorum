@@ -4,5 +4,5 @@
 # one on an Anvil fork of Base (`tools/quorum up`). The rest drive it; `doctor` checks the setup.
 # Details: tools/mock-tx-service/README.md.
 cd "$(dirname "$0")/.." || exit 1
-[ -d tools/mock-tx-service/node_modules ] || (cd tools/mock-tx-service && npm install --silent --no-audit --no-fund) || exit 1
+[ -d tools/mock-tx-service/node_modules ] || (cd tools/mock-tx-service && npm ci --silent --no-audit --no-fund) || exit 1
 exec node tools/mock-tx-service/cli.mjs "$@"

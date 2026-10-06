@@ -5,7 +5,7 @@ Safe transactions with known-correct hashes. **Every change to `firmware/safe_tx
 
 ```sh
 python3 test-vectors/run.py                 # CPython
-(cd emu && npm install)                     # once
+(cd emu && npm ci)                     # once
 node test-vectors/run-micropython.mjs       # MicroPython 1.26, as on the Pico
 ```
 
@@ -40,5 +40,5 @@ It writes nothing unless the chain agrees. `webauthn_check.py` is the check itse
 runners.
 
 ```sh
-(cd tools/vectors && npm install && node webauthn.mjs)
+(cd tools/vectors && npm ci && node webauthn.mjs)
 ```

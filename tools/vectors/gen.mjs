@@ -7,7 +7,7 @@
 // item's title and level), written by hand here from what the transaction does. Amounts are
 // formatted with viem's formatUnits, not the firmware's.
 //
-//   cd tools/vectors && npm install && npm run gen
+//   cd tools/vectors && npm ci && npm run gen
 import { readFileSync, writeFileSync } from "node:fs";
 import { encodeFunctionData, encodePacked, formatEther, hashDomain, hashTypedData, maxUint256, parseAbi, size, concat } from "viem";
 
