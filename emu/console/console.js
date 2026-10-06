@@ -30,7 +30,7 @@ const short = (a) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 // The app: beside this page on the site. A copy of this folder on your own computer may have no app
 // beside it, and its passkey is the copy's own (made for localhost), so there the links go to the app
 // on the site and carry what it needs: only public things, a public key, an owner address, a Safe.
-const SITE_APP = "https://jmcpheron.github.io/pico-quorum/app/";
+const SITE_APP = "https://picoquorum.app/app/";
 const ownCopy = /^(localhost|127\.0\.0\.1|\[::1\])$|\.localhost$/.test(location.hostname);
 const APP = ownCopy ? SITE_APP : new URL("../app/", location.href).href;
 const signerLink = (cred) => `${APP}#/signer/${cred.x}/${cred.y}`;

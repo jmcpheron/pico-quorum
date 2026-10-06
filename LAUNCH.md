@@ -16,10 +16,17 @@ manifest, which hashes the web builds.
 
 - [ ] Verify picoquorum.app for GitHub Pages (account Settings → Pages). It asks for a TXT record at
       the registrar.
-- [ ] DNS for picoquorum.app at the registrar. Check the values against GitHub's docs on the day.
-  - [ ] the apex A and AAAA records to GitHub Pages;
-  - [ ] `www` as a CNAME to `jmcpheron.github.io`;
-  - [ ] if there's a CAA record, it allows Let's Encrypt.
+- [ ] DNS for picoquorum.app at Porkbun (the pencil by DNS records). Delete Porkbun's two defaults,
+      the ALIAS to `pixie.porkbun.com` and the wildcard CNAME `*`, then add these, TTL 600. The values
+      are from GitHub's docs, read 2026-10-06. Keep the TXT record for good: it keeps the domain
+      verified.
+
+  | Type | Host | Answer |
+  |---|---|---|
+  | TXT | `_github-pages-challenge-jmcpheron` | the value GitHub shows |
+  | A | (blank) | `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`: one record each |
+  | AAAA | (blank) | `2606:50c0:8000::153`, `2606:50c0:8001::153`, `2606:50c0:8002::153`, `2606:50c0:8003::153`: one each |
+  | CNAME | `www` | `jmcpheron.github.io` |
 - [ ] One pull request moves the site:
   - [ ] `docs/CNAME` holding `picoquorum.app`.
   - [ ] `SITE` in `tools/releases/site.mjs`. It fetches with `redirect: "error"`, so the site check
@@ -32,9 +39,12 @@ manifest, which hashes the web builds.
         redirects.
 - [ ] Set the custom domain, wait for the certificate, then tick Enforce HTTPS. Expect one failed
       site check in that gap.
-- [ ] picoquorum.com, .org and .dev: the registrar's 301 forwarding to `https://picoquorum.app`. They
-      never serve the site, or passkeys split. .dev is HSTS-preloaded like .app, so check that its
-      forward answers over HTTPS.
+- [ ] picoquorum.com, .org and .dev: Porkbun's URL forwarding (the pencil by URL forwarding) to
+      `https://picoquorum.app`. Hostname blank, Permanent (301), include the path, wildcard on so
+      `www` goes too. They never serve the site, or passkeys split. Turn off .com's Link in Bio page
+      first. Porkbun's forwarder answers over HTTPS, which .dev needs: it is HSTS-preloaded like .app.
+- [ ] Turn on auto-renew for all four. .com, .org and .dev expire 2027-10-06. A lapsed one could be
+      bought by someone else and made to serve a fake console.
 - [ ] From a fresh browser profile, open the home page, the app, the console and the guide. Then the
       site-check workflow is green, and `tools/release check-site` passes.
 - [ ] Passkeys made on github.io stop working there. Find out whether the unlabelled signer

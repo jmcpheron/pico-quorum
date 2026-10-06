@@ -397,7 +397,7 @@ await step("a passkey's signer, from a deploy link, with a wallet that owns no S
   await page.fill("#signer-key", `${x} ${y.slice(0, 63)}0`);
   await page.getByRole("button", { name: "Show its signer" }).click();
   check(/isn't a P-256 public key|Paste a deploy link/.test(await text("[role=alert]")), "#/signer: a key that isn't on the curve is refused");
-  await page.fill("#signer-key", `https://jmcpheron.github.io/pico-quorum/app/#/signer/${x}/${y}`);
+  await page.fill("#signer-key", `https://picoquorum.app/app/#/signer/${x}/${y}`);
   await page.getByRole("button", { name: "Show its signer" }).click();
   await page.getByRole("button", { name: "Deploy on Base Sepolia" }).waitFor();
   check((await page.locator(".card .inline-ident code").first().innerText()).trim() === owner, `the deploy link's page: the owner address it deploys (${owner.slice(0, 10)}…), worked out from the key`);

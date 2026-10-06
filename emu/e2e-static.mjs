@@ -1,6 +1,6 @@
-// The console page (node emu/build.mjs) as GitHub Pages serves it: a plain static server under
-// /pico-quorum/, no COOP/COEP headers. Chromium checks that emu/, where the emulator's page was, sends
-// you to the console; that the console page isolates itself (its service worker), shows the release
+// The console page (node emu/build.mjs) as GitHub Pages serves it at picoquorum.app: a plain static
+// server at the root, no COOP/COEP headers. Chromium checks that emu/, where the emulator's page was,
+// sends you to the console; that the console page isolates itself (its service worker), shows the release
 // fingerprint, asks for a passkey and then a Safe, runs the console, and its buttons reach it; that it
 // asks for nothing outside its folder; and that the same passkey works from another browser. Then the
 // folder on its own: its SHA256SUMS and firmware/ checked as docs/guide/BROWSER.md does, and the
@@ -41,9 +41,9 @@ async function serve(dir, prefix) {
   await new Promise((r) => srv.listen(0, "127.0.0.1", r));
   return Object.assign(srv, { asked });
 }
-const server = await serve(DOCS, "/pico-quorum/");
-const BASE = `http://localhost:${server.address().port}/pico-quorum/`;     // localhost, not 127.0.0.1: WebAuthn refuses an IP as the site
-const SITE_APP = "https://jmcpheron.github.io/pico-quorum/app/";            // where a copy on localhost sends its app links
+const server = await serve(DOCS, "/");
+const BASE = `http://localhost:${server.address().port}/`;     // localhost, not 127.0.0.1: WebAuthn refuses an IP as the site
+const SITE_APP = "https://picoquorum.app/app/";            // where a copy on localhost sends its app links
 
 const browser = await chromium.launch({ executablePath: process.env.PQ_CHROMIUM || undefined, args: ["--no-proxy-server"] });
 const outside = [], csp = [], errors = [];
@@ -58,7 +58,7 @@ await ctx.route("**/*", (route) => { const u = route.request().url(); if (u.star
 const page = await ctx.newPage();
 await page.goto(BASE + "emu/");
 await page.waitForURL(BASE + "console/", { timeout: 15000 }).catch(() => {});
-check(page.url() === BASE + "console/", `the emulator's old address, emu/, sends you to the console (${page.url().slice(BASE.length - 13)})`);
+check(page.url() === BASE + "console/", `the emulator's old address, emu/, sends you to the console (${page.url().slice(BASE.length - 1)})`);
 await ctx.close();
 
 // 7. the console page (docs/console/): only the console, your passkey as its key. A fresh browser
@@ -96,7 +96,7 @@ check(await con.locator("#owner .copy", { hasText: "Share deploy link" }).count(
 const made = JSON.parse(await con.evaluate(() => localStorage.getItem("emu.passkey")));
 check(/your passkey, for localhost/.test(await con.locator("#key").innerText()) && await con.locator(`#key a[href="${SITE_APP}#/signer/${made.x}/${made.y}"]`).count() === 1,
   "the panel names the key, your passkey for this site, and (on localhost: a copy on your own computer) links to its signer's page in the app on the site, its key in the link");
-check(await con.evaluate(() => document.querySelector("header nav a").href) === "https://jmcpheron.github.io/pico-quorum/guide/",
+check(await con.evaluate(() => document.querySelector("header nav a").href) === "https://picoquorum.app/guide/",
   "and the site's header links go to the site");
 const synced = (await cdp2.send("WebAuthn.getCredentials", { authenticatorId: auth2 })).credentials;
 // adding a Safe you already have, right there: a bad address is refused, Safe{Wallet}'s "basesep:0x…" picks the chain
@@ -138,7 +138,7 @@ await con.waitForFunction(() => !/checking/.test(document.querySelector("#safes 
 check(/couldn't check/.test(await con.locator("#safes .status").innerText()), "its owner check asks Safe's service (refused here, and the page says so)");
 check(await con.locator("#add-safe .add-safe").count() === 1, "and offers to add another");
 const consoleAsked = new Set(server.asked.slice(from));
-const strays = [...consoleAsked].filter((p) => !p.startsWith("/pico-quorum/console/"));
+const strays = [...consoleAsked].filter((p) => !p.startsWith("/console/"));
 check(consoleAsked.size > 60 && !strays.length, `the console page, its worker and MicroPython asked the site for nothing outside console/ (${consoleAsked.size} files)${strays.length ? `: ${strays.slice(0, 4).join(", ")}` : ""}`);
 // the app's page for it: the owner address, the same on every chain, and the way into a Safe
 const app2 = await ctx2.newPage();

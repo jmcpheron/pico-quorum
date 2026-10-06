@@ -19,7 +19,7 @@ import { join } from "node:path";
 import { ROOT } from "./fingerprint.mjs";
 
 const sha256 = (b) => createHash("sha256").update(b).digest("hex");
-export const SITE = "https://jmcpheron.github.io/pico-quorum/";
+export const SITE = "https://picoquorum.app/";
 export const BUILDS = ["app", "emu", "console"];
 
 /** docs/<path> as the repository has it: at a commit, or in this checkout. null when absent. */

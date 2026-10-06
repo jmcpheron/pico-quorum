@@ -51,7 +51,7 @@ with `docs/app/`. CI rebuilds it and fails if the committed copy differs. This e
 editor and module menu, is not on the site any more: `docs/emu/` is only a redirect to the
 console page, so old links still land somewhere. It runs here, under `tools/emu`.
 
-**The console page** ([…/pico-quorum/console/](https://jmcpheron.github.io/pico-quorum/console/),
+**The console page** ([picoquorum.app/console/](https://picoquorum.app/console/),
 `emu/console/`, written to `docs/console/` by the same build): the console alone, its screen with the
 joystick and A B X Y as on the board, for anyone without a Pico. No editor, no module
 menu; it always runs the quorum console with your passkey as the key, and the files exactly as built.

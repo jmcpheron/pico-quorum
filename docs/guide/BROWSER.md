@@ -1,6 +1,6 @@
 # The console in your browser: read it, check it, run your own copy
 
-[The console page](https://jmcpheron.github.io/pico-quorum/console/) runs the console's firmware in
+[The console page](https://picoquorum.app/console/) runs the console's firmware in
 your browser, with your own passkey (Touch ID, Windows Hello, a phone, a security key) as its key.
 It is one folder. It loads nothing from the rest of the site, and the firmware in it is the console
 image a Pico runs, as plain files. So you can read all of it, check it against the release, and
@@ -73,7 +73,7 @@ hashes to the release a Pico runs:
 
 ```sh
 mkdir pq-console && cd pq-console
-site=https://jmcpheron.github.io/pico-quorum/console
+site=https://picoquorum.app/console
 curl -fsSO "$site/SHA256SUMS" && curl -fsSO "$site/BUILD.json"
 cut -c67- SHA256SUMS | while read -r f; do curl -fsS --create-dirs -o "$f" "$site/$f"; done
 sha256sum -c SHA256SUMS            # macOS: shasum -a 256 -c SHA256SUMS
@@ -101,7 +101,7 @@ Its first 8 digits and its blockie are what the page shows under its title, and 
 running the same release shows on its Device screen. The page works it out again in your browser,
 over the files it boots, before it runs them.
 
-Once releases are tagged, the app's [Releases page](https://jmcpheron.github.io/pico-quorum/app/#/releases)
+Once releases are tagged, the app's [Releases page](https://picoquorum.app/app/#/releases)
 lists each one's fingerprint, and `docs/releases/<version>.json` the SHA-256 of each file in it.
 
 ## 3. Check it against the source
@@ -145,7 +145,7 @@ its files. For a new release, save it next to the old one, check it the same way
 A passkey belongs to the site that made it: the host name, whatever the port. The console page
 makes yours for the host it is on.
 
-- **Made on the site** (`jmcpheron.github.io`): any page on that host can ask it to sign, behind
+- **Made on the site** (`picoquorum.app`): any page on that host can ask it to sign, behind
   your fingerprint. That includes every version of this page the site serves from now on.
 - **Made on your copy** (`localhost`): only pages on `localhost` can. Nothing the site serves later
   can, so the code you checked is the code that can use the key.
