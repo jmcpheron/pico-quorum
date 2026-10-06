@@ -13,8 +13,7 @@
   "type": "module",
   "dependencies": {
     "@micropython/micropython-webassembly-pyscript": "1.26.0",
-    "codemirror": "5.65.18",
-    "three": "0.170.0"
+    "codemirror": "5.65.18"
   },
   "private": true,
   "devDependencies": {
