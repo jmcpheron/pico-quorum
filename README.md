@@ -12,8 +12,8 @@
 </p>
 
 <p align="center">
-  <a href="https://jmcpheron.github.io/pico-quorum/"><img alt="Website" src="https://img.shields.io/website?url=https%3A%2F%2Fjmcpheron.github.io%2Fpico-quorum%2F&label=site&up_message=live&up_color=34C759&labelColor=0B0D11"></a>
-  <a href="https://jmcpheron.github.io/pico-quorum/console/"><img alt="Try the console in your browser" src="https://img.shields.io/badge/console-try%20it%20in%20your%20browser-7A92FF?labelColor=0B0D11"></a>
+  <a href="https://picoquorum.app/"><img alt="Website" src="https://img.shields.io/website?url=https%3A%2F%2Fpicoquorum.app%2F&label=site&up_message=live&up_color=34C759&labelColor=0B0D11"></a>
+  <a href="https://picoquorum.app/console/"><img alt="Try the console in your browser" src="https://img.shields.io/badge/console-try%20it%20in%20your%20browser-7A92FF?labelColor=0B0D11"></a>
   <a href="https://github.com/jmcpheron/pico-quorum/actions/workflows/site-check.yml"><img alt="Site check: GitHub Pages serves exactly this source" src="https://github.com/jmcpheron/pico-quorum/actions/workflows/site-check.yml/badge.svg"></a>
   <a href="https://github.com/jmcpheron/pico-quorum/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/jmcpheron/pico-quorum/actions/workflows/ci.yml/badge.svg"></a>
   <br>
@@ -36,7 +36,7 @@ secure element inside. The console shows what a transaction does on its own scre
 Safe transaction hash itself, and asks the key to sign only after you have seen every page and held
 the green **Sign** button. **Reject** is red and easy.
 
-The same console also runs [in your browser](https://jmcpheron.github.io/pico-quorum/console/), with
+The same console also runs [in your browser](https://picoquorum.app/console/), with
 your own passkey as its key. That version is one short folder you can read, check against this
 README, and sign from on your own computer.
 
@@ -115,7 +115,7 @@ and we suggest it for yours: **no technology, and no person, holds a threshold's
 
 - **Standard Safe.** Any Safe from 1.3.0 on, on Base and Ethereum. Propose anywhere; the console
   reads the same queue Safe{Wallet} does.
-- **The app** ([launch it](https://jmcpheron.github.io/pico-quorum/app/)) opens any Safe, proposes,
+- **The app** ([launch it](https://picoquorum.app/app/)) opens any Safe, proposes,
   checks every confirmation in your browser, and executes with your wallet. It holds no key.
 - **Several Safes, several chains.** One console watches up to 4 Safes on Base Sepolia, Base and
   Ethereum, with one queue across them ([networks](docs/guide/NETWORKS.md)).
@@ -124,7 +124,7 @@ and we suggest it for yours: **no technology, and no person, holds a threshold's
 
 ### 4. A short stack you can check yourself
 
-[The console page](https://jmcpheron.github.io/pico-quorum/console/) runs the console's firmware,
+[The console page](https://picoquorum.app/console/) runs the console's firmware,
 file for file, on MicroPython for WebAssembly, with your passkey (Touch ID, Windows Hello, a phone,
 a security key) as its key. It is one folder, it loads nothing from the rest of the site, and it can
 reach only Safe's transaction service: its Content-Security-Policy says so, and the browser enforces
@@ -155,8 +155,8 @@ stronger owner: keep passkey owners below the threshold.
 
 ## Try it
 
-- **[The site](https://jmcpheron.github.io/pico-quorum/)**, with the app.
-- **[The console in your browser](https://jmcpheron.github.io/pico-quorum/console/)**: the same
+- **[The site](https://picoquorum.app/)**, with the app.
+- **[The console in your browser](https://picoquorum.app/console/)**: the same
   firmware in MicroPython on WebAssembly, with your own passkey as its key. Save it, check it and
   run your own copy ([how](docs/guide/BROWSER.md); the design: [EMU-WEB.md](docs/EMU-WEB.md)).
 - **[The owner's guide](docs/guide/README.md)**: from a board to a console that signs for your

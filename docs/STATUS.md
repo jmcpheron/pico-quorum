@@ -12,7 +12,7 @@ before relying on it. The design is in [KICKOFF.md](KICKOFF.md), the per-chain t
 | | | |
 |---|---|---|
 | **picoquorum.eth** | owner and registrant `0x682De3ad16F47Acd01e97A73f1619be93672a9f3` (Jason's hardware wallet, an EOA) | Unwrapped. ENS Public Resolver `0xF29100983E058B709F3D539b0c765937B804AC15`; ETH address record: the hardware wallet; no contenthash. Expires **2031-10-06**. |
-| **picoquorum.app** | Jason | The site, once its DNS points at GitHub Pages. Today the site is https://jmcpheron.github.io/pico-quorum/. |
+| **picoquorum.app** | Jason | The site, on GitHub Pages (`docs/CNAME`; DNS at Porkbun). The old address, https://jmcpheron.github.io/pico-quorum/, redirects to it. |
 | **picoquorum.com, .org, .dev** | Jason | Redirects to picoquorum.app only. They never serve the site: a passkey belongs to the domain that made it, so a console served from two domains would split its passkeys. |
 | **GitHub** | [jmcpheron/pico-quorum](https://github.com/jmcpheron/pico-quorum) | Public from 2026-10. Releases are SSH-signed tags ([RELEASES.md](RELEASES.md)). |
 
@@ -109,9 +109,8 @@ From [LADDER.md](LADDER.md):
 ## Next
 
 1. **Public.** The repository goes public (this page is part of that sweep).
-2. **The domain.** picoquorum.app on GitHub Pages: verify the domain in GitHub, point its DNS, then
-   one change here (`docs/CNAME`, the site check's URL, the console page's app link, the e2e test's
-   paths). .com, .org and .dev redirect to it. Before any passkey holds value.
+2. **The domain.** picoquorum.app serves the site. Left: Enforce HTTPS once GitHub has its
+   certificate, and .com, .org and .dev forwarding to it ([LAUNCH.md](../LAUNCH.md)).
 3. **The project Safe** on Ethereum and Base, 2 of 3: a Trust M key, the hardware wallet
    `0x682D…a9f3`, and a passkey made on picoquorum.app ([GOVERNANCE.md](GOVERNANCE.md#first-steps)).
 4. **picoquorum.eth to the Safe**, with its records.

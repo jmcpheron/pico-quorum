@@ -63,7 +63,7 @@ key, and the Safe swaps that owner for the chip's.
 **The one thing it doesn't carry over is the last row.** The JavaScript sandbox protects your
 computer from the page. It does nothing to protect the page from your computer. Malware, or a
 browser extension allowed on the site, can redraw the canvas, or hand the passkey a different
-challenge than the hash on screen. The Touch ID prompt says "sign in to jmcpheron.github.io"; it
+challenge than the hash on screen. The Touch ID prompt says "sign in to picoquorum.app"; it
 never shows the transaction. So a passkey owner is safe from key theft but not from a compromised
 computer. Two things limit the damage:
 - **The quorum.** One passkey owner on a bad laptop is one wrong vote. The other owners' consoles
@@ -218,8 +218,7 @@ prompt and no hardware. It is useful for CI and Firefox, and it is labelled as s
 > stays local (`tools/emu`).
 
 Built into `docs/emu/` by an `emu/build.mjs`, in the style of `web/build.mjs`: pinned dependencies,
-SRI, and a `BUILD.json` of hashes. It is served under the same origin as the app, at
-`/pico-quorum/emu/`.
+SRI, and a `BUILD.json` of hashes. It is served under the same origin as the app, at `/emu/`.
 
 | Today (`emu/server.mjs`) | On Pages |
 |---|---|
@@ -239,7 +238,7 @@ the same `localStorage` the app uses for its setting (same origin), so it is set
 
 ## The demo
 
-1. Open `…/pico-quorum/console/`. The screen asks you to make a passkey; the OS asks for Touch ID.
+1. Open `picoquorum.app/console/`. The screen asks you to make a passkey; the OS asks for Touch ID.
    With a Safe saved in the app, the console boots and shows its owner address and blockie,
    computed on the console by `webauthn.owner_address`. On your other device (the passkey synced
    there), choose **I already have one**: it signs twice and the page works out the same key.
@@ -265,11 +264,10 @@ works as well (ES256).
 - **Synced passkeys live in the Apple or Google account.** iCloud Keychain and Google Password
   Manager copy the key to your other devices. For the threat model, that makes the account a
   separate trust domain, not one laptop. Windows Hello and YubiKeys stay on the device.
-- **The rpId is `jmcpheron.github.io`.** Every Pages site under that account shares it, and any of
-  them could ask for the passkey, behind a prompt. A credential is also tied to its rpId forever. A
-  custom domain should come before anyone holds value with a passkey owner. Moving domains later
-  means a new passkey, which is an owner change on the Safe (the address follows the key, not the
-  domain).
+- **The rpId is `picoquorum.app`.** A credential is tied to its rpId forever. The page was first
+  on `jmcpheron.github.io`, which every Pages site under that account shares; passkeys made there
+  don't work here, and that host now redirects. Moving domains again would mean a new passkey,
+  which is an owner change on the Safe (the address follows the key, not the domain).
 - **Losing the stored public key** (cleared site data) doesn't lose the key. One assertion gives two
   candidate public keys, and a second one picks between them. Or the page can recover the key from
   any confirmation it already posted.
