@@ -11,9 +11,6 @@ the shareable part. The chip profile and its ceremony are in [../TRUSTM.md](../T
 | [RUNBOOK.md](RUNBOOK.md) | the operator: a chip from the bag to an owner, and what to do when things go wrong |
 | [attest/](attest/) | each chip's ceremony record, checked with `tools/quorum verify` |
 
-**For people outside the repo:** a shareable co-signer guide condenses these pages:
-[PicoQuorum Trust M signer: guide for co-signers](https://claude.ai/code/artifact/f5ef9f4d-aab4-4925-bf3b-c384c3001822).
-
 ## Where it stands (2026-10-01)
 
 **TM1, the first Trust M** (serial `0a091b5c000b0062006c`, owner `0x47c0998C6a7A1955794071b9f4058e7814178f35`):

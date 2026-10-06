@@ -200,14 +200,20 @@ How a release is trusted ([docs/RELEASES.md](docs/RELEASES.md)):
 
 ## Where it stands
 
+PicoQuorum is built in public. **[docs/STATUS.md](docs/STATUS.md)** is the one page for what exists
+today: the name (picoquorum.eth) and the domains, every Safe and key with its address, the contracts
+the console relies on, and what's next.
+
 The [test ladder](docs/LADDER.md) tracks each chain:
 - ✅ a simulated Safe and a local fork, on the real Pico
 - ✅ Base Sepolia, end to end over HTTPS on the real Pico
-- Base with a few dollars: the Safe is ready, and the first approval is next
+- Base with a few dollars: the Safe is checked and a chip's confirmation has executed there; the
+  console's own approval is next
 - then Ethereum mainnet, whose contracts have been checked onchain
 
-The plan, the hardware and the open questions are in the [kickoff](docs/KICKOFF.md), a living draft.
-Dated notes and photos, mistakes included, are in [`buildlog/`](buildlog/).
+The design and the open questions are in the [kickoff](docs/KICKOFF.md), and the project Safe's plan
+in [GOVERNANCE.md](docs/GOVERNANCE.md). Dated notes and photos, mistakes included, are in
+[`buildlog/`](buildlog/).
 
 ## Layout
 

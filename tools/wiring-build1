@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Draws hardware/wiring/build1-wiring.svg, the Build 1 bench wiring in hardware/wiring/BUILD1.md: a Pico 2 W,
 # a 2.0" ST7789 240x320 screen, an EC11 knob, the two key jacks (3.5 mm and 2.5 mm TRRS), and the
-# ATECC608 key soldered to the two plugs. PINS below is the one pin table; BUILD1.md, hardware/HANDOFF.md
+# ATECC608 key soldered to the two plugs. PINS below is the one pin table; BUILD1.md
 # and firmware/bench1.py must agree with it, and `tools/wiring-build1 --check` says whether they do.
 # Run from the repo root: tools/wiring-build1
 import re, sys
@@ -259,10 +259,10 @@ def build():
 
 
 def check():
-    """Compare PINS with the tables in BUILD1.md and HANDOFF.md and the constants in firmware/bench1.py."""
+    """Compare PINS with the tables in BUILD1.md and the constants in firmware/bench1.py."""
     bad = 0
     want = {(p, c): (gp, n) for p, c, s, gp, n in PINS}
-    for path in ("hardware/wiring/BUILD1.md", "hardware/HANDOFF.md"):
+    for path in ("hardware/wiring/BUILD1.md",):
         got = {}
         part = None
         for line in open(path):

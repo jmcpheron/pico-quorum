@@ -18,7 +18,7 @@ From picowallet (Austin Griffith, MIT): `emu`, the emulator's command line
   [`../hardware/wiring/BREADBOARD.md`](../hardware/wiring/BREADBOARD.md); `--check` compares its wire list
 
 - `wiring-build1`: draws [`../hardware/wiring/build1-wiring.svg`](../hardware/wiring/build1-wiring.svg);
-  `--check` compares its pin table with BUILD1.md, hardware/HANDOFF.md and `firmware/bench1.py`
+  `--check` compares its pin table with BUILD1.md and `firmware/bench1.py`
 
 - `keypcb`: the key PCBs in [`../hardware/key-pcb/`](../hardware/key-pcb/), with KiCad 9's
   `kicad-cli`.

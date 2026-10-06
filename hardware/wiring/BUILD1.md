@@ -20,8 +20,7 @@ It only reads the chip. Nothing in this build writes or locks it.
 ![Build 1 wiring](build1-wiring.svg)
 
 `tools/wiring-build1` redraws the diagram. `tools/wiring-build1 --check` confirms that the tables
-below, the summary in [HANDOFF.md](../HANDOFF.md) and `firmware/bench1.py` all match the pin table
-in the script.
+below and `firmware/bench1.py` match the pin table in the script.
 
 Physical pin numbers count from the USB end, like [SOLDERING.md](SOLDERING.md): pins 1–20 run down
 the left side and 40–21 down the right, looking at the Pico from the top with USB up.
@@ -29,7 +28,8 @@ the left side and 40–21 down the right, looking at the Pico from the top with 
 **The connector changed from the kickoff draft.** The [kickoff](../../docs/KICKOFF.md#key-connector-draft-pinout)
 drafts a ¼″ TRS plus a 3.5 mm TRS. Build 1 uses the 3.5 mm and 2.5 mm TRRS parts that are on the
 bench. That gives 8 contacts instead of 6, which leaves room for DETECT, the Trust M's RST and an ID
-line. Which connector the real keys use is still open ([HANDOFF.md](../HANDOFF.md#7-open-decisions)).
+line. The keys have since moved on to a USB-C plug, [key-c](../key-pcb/key-c-usbc/README.md); the
+open hardware questions are in [STATUS.md](../../docs/STATUS.md#open-decisions).
 
 ## Pin map
 
@@ -174,29 +174,71 @@ Meter the key before it goes in for the first time:
 
 ## Order of work
 
-The full checklist is in [HANDOFF.md](../HANDOFF.md#4-build-order), with a pass test for each step.
-In short:
+Each step has a pass test. `bench1` means `firmware/bench1.py`; see
+[BREADBOARD.md](BREADBOARD.md#try-it) for how to run it.
 
-0. **ATECC608 today, no jacks.** Wire a breakout exactly as in
-   [SOLDERING.md section 1](SOLDERING.md#1-the-chip-four-wires):
-   - VIN to pin 36
-   - GND to pin 8
-   - SDA to pin 6
-   - SCL to pin 7
+**Now: the breadboard, no jacks** ([BREADBOARD.md](BREADBOARD.md), `JACKS = False` in `bench1.py`).
 
-   At the REPL, `import bench1` then `bench1.probe()` shows the scan and the chip's serial,
-   revision and lock state. So does a knob press, once the knob is wired.
+- [ ] **1. ATECC608 alone.** Wires 1–6: the power rails and the chip.
+      *Passes when* `import bench1` prints `key bus scan: ['0x60']`, a serial number, and
+      `config open, data open`.
+- [ ] **2. Screen.** Wires 7–14.
+      *Passes when* `bench1` shows the TL mark top left, the bars read red, green, blue and white in
+      that order, and the text isn't mirrored. If not, fix it with `MADCTL` and `INVERT`.
+- [ ] **3. Knob.** Wires 15–19.
+      *Passes when* one click moves the count by exactly 1, clockwise goes up, PUSH shows DOWN while
+      the knob is pressed, and a 2 s hold prints the chip report.
 
-   To try the switched power path before the jacks exist, move VIN from pin 36 to pin 9 (GP6), and
-   put a jumper from pin 10 (GP7) to pin 8 (GND). The jumper means "a key is in"; pull it and the key
-   is out.
-1. Mark the jack lugs with a meter.
-2. Screen.
-3. Knob.
-4. Jacks.
-5. Solder the key.
-6. The key scans as `['0x60']` through the jacks.
-7. Read the chip's status.
+**Later: the jacks and the key** (this page, `JACKS = True`). The chip comes off
+the red rail and into the key.
+
+- [ ] **4. Mark the jack lugs.** Put the matching plug in each jack. Beep each plug contact (tip,
+      ring 1, ring 2, sleeve) to the lugs, and label them. Note any switch lugs; Build 1 doesn't use
+      them.
+      *Passes when* every lug of both jacks has a label.
+- [ ] **5. Jacks to the console.** Before power, check continuity from each lug to its Pico pin, and
+      check that J2's tip (GP6) doesn't beep to ground. Then put a test plug in J1 with ring 2
+      shorted to its sleeve.
+      *Passes when* DETECT shows "key in" and POWER shows "ON" then drops to "off" with "not a key",
+      since that plug has no chip.
+- [ ] **6. Solder the key.** Solder the breakout to P1 and P2 as in
+      [the key](#the-key-build-1), then run the meter checks listed there.
+      *Passes when* every check in that list beeps as it should.
+- [ ] **7. Key scan.** Plug the key in.
+      *Passes when* the screen shows DETECT "key in", POWER "ON GP6", and BUS "60". Unplugging it shows
+      "key out: power cut".
+- [ ] **8. Chip status.**
+      *Passes when* the CHIP line shows 608A or 608B, the serial matches step 1's, and the locks
+      read `config open, data open`. Nothing has been written.
+
+**Wiring the chip alone** (step 1), and trying the switched power before the jacks exist:
+
+Wire a breakout exactly as in [SOLDERING.md section 1](SOLDERING.md#1-the-chip-four-wires):
+- VIN to pin 36
+- GND to pin 8
+- SDA to pin 6
+- SCL to pin 7
+
+At the REPL, `import bench1` then `bench1.probe()` shows the scan and the chip's serial,
+revision and lock state. So does a knob press, once the knob is wired.
+
+To try the switched power path before the jacks exist, move VIN from pin 36 to pin 9 (GP6), and
+put a jumper from pin 10 (GP7) to pin 8 (GND). The jumper means "a key is in"; pull it and the key
+is out.
+
+## Rules that prevent damage
+
+- **The screen runs on 3.3 V** from pin 36. Never connect it to VBUS or 5 V.
+- **GP6 is low before a key goes in or comes out.** Every plug tip wipes past every jack contact,
+  so a live J2 tip shorts to ground on the way in. The firmware handles this: DETECT has to settle
+  before power comes on, and power drops as soon as DETECT lifts. Any firmware that drives GP6 has
+  to keep that behavior.
+- **Never plug a key into a phone, laptop or audio jack.** Those drive the tip and put mic bias on
+  a ring.
+- **No 18650 without a protected TP4056** (the DW01 kind). Build 1 runs on USB.
+- **Config lock and data lock are permanent.** Build 1 only reads. `ALLOW_LOCK` and `ALLOW_GENKEY`
+  stay `False` in `secrets.py` until the slot plan is decided, and even then only on one chip marked
+  as sacrificial.
 
 ## Firmware: `bench1.py`
 
@@ -205,8 +247,9 @@ generates a key.
 
 To run it:
 
-1. `tools/usb push` copies it with the rest of `firmware/`.
-2. Stop the wallet with `import wallet; wallet.stop()`.
+1. `tools/usb push` copies it with the rest of `firmware/` (a development board, not a production
+   image).
+2. Boot with nothing running: hold the knob down (B on the Waveshare) while plugging the board in.
 3. Run `import bench1`.
 
 Set `JACKS = True` at the top of `bench1.py` once the jacks are wired. The default, `False`, is the
@@ -237,5 +280,33 @@ Settings at the top of the file:
 | `SPI_BAUD` | noise on the screen: go down to 10 MHz on long jumper wires |
 | `STEPS_PER_CLICK` | one click counts as 2, or only every other click counts |
 
-The wallet firmware doesn't know this build yet. Teaching it is the firmware list in
-[HANDOFF.md](../HANDOFF.md#6-firmware-to-do-in-order).
+## Firmware to do
+
+1. [x] **A size option for the screen:** `board.py` `"build1"` drives the 2.0″, 2.4″ and 2.8″ panels
+   as 320×240, in 8 bands.
+2. [x] **The knob:** `firmware/knob.py`, the same `pressed()` and `held()` shape as `lcd.Keys`.
+3. [ ] **Key presence and power in the console.** DETECT, then GP6 on, then scan, then the chip. Key
+   out means power off and the bus released, and the console shows "insert key" instead of failing
+   on a missing chip. `bench1.tick()` has the logic.
+4. [x] **Config and lock on the Pico:** the ceremony image ([PROVISIONING.md](../../docs/PROVISIONING.md)).
+5. [x] **The Trust M** (2026-09-28, [TRUSTM.md](../../docs/TRUSTM.md)). Still to do: `bench1.probe()`
+   stops at 0x30, and the Trust M's current draw on GP6.
+6. [ ] **Emulator.** The test vectors run Build 1's 320×240 screen headless; the page still has no
+   knob or virtual key jack (DETECT plus GP6).
+
+## Pin change log
+
+Earlier notes from the planning chat had different pins. The tables here replace them:
+
+| signal | old | now |
+|---|---|---|
+| key VCC | GP14 | GP6 |
+| key RST | GP6 | GP26 |
+| knob push | GP16 | GP1 |
+
+Compared with the Waveshare dev console, the joystick is gone:
+
+- GP2 and GP3 are now knob A and B.
+- GP16, GP18 and GP20 are free.
+- A, B, X and Y keep GP15, GP17, GP19 and GP21.
+- The screen keeps its SPI pins.

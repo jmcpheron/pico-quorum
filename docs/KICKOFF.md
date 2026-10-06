@@ -7,26 +7,17 @@
 
 A physical approval device for [Safe](https://safe.global) multisig wallets. Each signer holds a plug-in secure-element key; the console shows what a transaction does and signs only when you press Sign.
 
-## Status (2026-09-25)
+## Status
 
-The hardware in this kickoff (plug-in keys, the console with its guarded button and dial) doesn't exist yet. Until
-it does, the **dev console** is the picowallet this repo forked: a Pico 2 W, a Waveshare Pico-LCD-1.3 (240×240,
-joystick, A/B/X/Y) and an Adafruit ATECC608 breakout. Its build guide is [DEV-CONSOLE.md](../hardware/DEV-CONSOLE.md).
+Where things stand today, with every Safe, key and address: [STATUS.md](STATUS.md). The per-chain
+test steps: [LADDER.md](LADDER.md).
 
-| Layer | Where it lives | State |
-|---|---|---|
-| 1. Secure-element driver | `firmware/atecc.py` and `firmware/trustm.py` (upstream), `firmware/signer.py` | ATECC608 works; Trust M not yet run on a chip here |
-| 2. Safe hash | `firmware/safe_tx.py`, checked against `test-vectors/` | done |
-| 3. Signature packaging | `firmware/webauthn.py` | done: a WebAuthn assertion for Safe's passkey signer (safe-modules v0.2.1), checked against the deployed contracts (`test-vectors/webauthn.json`) |
-| 4. Transaction service client | `firmware/txservice.py`, against `tools/quorum`: simulated, or a real Safe on an Anvil fork of Base | working on the fork; next, `api.safe.global` |
-| 5. Decoder and display | `firmware/decode.py` (checked by `test-vectors/`), `firmware/quorum.py`, `quorum_ui.py` | started: [walkthrough](quorum-ui/README.md) |
-| Contracts | none of our own | Safe 1.4.1 and Safe's passkey signer, both deployed and audited |
-
-[Test ladder](#test-ladder) rung 1 runs on the laptop (`tools/quorum up`, and `tools/quorum e2e`
-with the emulator). Next: the real Pico on the fork, then rung 2. Progress: [LADDER.md](LADDER.md).
-
-Build 1, the first console with the real parts (2.0″ screen, knob, a 3.5 mm + 2.5 mm TRRS key jack pair, an
-ATECC608 stand-in key), is on the bench: [hardware/HANDOFF.md](../hardware/HANDOFF.md).
+This kickoff is the design: what PicoQuorum is for, the hardware and firmware layers, and the
+decisions still open. The hardware below (plug-in keys, the console with its guarded button and
+dial) is still being built. Until it is, the **dev console** is the build picowallet started from: a
+Pico 2 W, a Waveshare Pico-LCD-1.3 and an ATECC608 breakout
+([DEV-CONSOLE.md](../hardware/DEV-CONSOLE.md)). Build 1, the first console with the real parts, is on
+the bench ([BUILD1.md](../hardware/wiring/BUILD1.md)).
 
 ## What this is
 

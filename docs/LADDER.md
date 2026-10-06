@@ -116,7 +116,7 @@ Same steps as rung 2 with `--chain base` and `QUORUM_URL = ".../tx-service/base"
    - **Not the emulator's key**, which is public.
    The Safe: [`0xDebDE58b3ed0867d19285f6C8B0d81AdBC326Da9`](https://basescan.org/address/0xDebDE58b3ed0867d19285f6C8B0d81AdBC326Da9).
    Its owners are MetaMask, the Pico and `0xb78e…AdBD8` (an EOA, not the `0x1289…` in the plan;
-   Jason to confirm it's his).
+   confirmed Jason's on 2026-10-06).
 3. [x] **The check** (2026-09-25): Safe 1.5.0 L2, whose singleton and handler match safe-deployments
    for 8453. 2 of 3, nonce 0, no guard, no modules. `live status --chain base --safe 0x…`, plus the version, owners, threshold,
    modules and guard read onchain, and the singleton and handler matched against safe-deployments.
