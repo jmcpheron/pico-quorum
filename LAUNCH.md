@@ -90,6 +90,37 @@ saved it on github.io. picoquorum.app starts with empty storage.
       not Base Sepolia. Fix the address placeholder to match.
 - [ ] Update `web/test.mjs` and `web/e2e.mjs`, then rebuild `docs/app`.
 
+**A new passkey gets a starter Safe.** Today: a passkey's owner address looks like an Ethereum
+address, but it is a `SafeWebAuthnSignerProxy`, a small contract that only checks signatures. It
+can't hold or move funds. The console page makes the passkey (`makePasskey`), shows the address
+with a deploy link (`ownerLine`), and with no Safe offers only to watch one that exists
+(`addSafeForm`). Nothing in the app creates a Safe. Nothing warns against sending funds to the
+owner address.
+
+- [ ] A plain warning first, on the console's owner line and the app's passkey page: this address
+      can't hold funds, so don't send anything to it. Before writing it, check on a fork what
+      happens to ETH sent to the proxy, both deployed and not yet deployed.
+- [ ] A starter Safe, 1 of 1, owned by the passkey. Make it in the app and link to it from the
+      console's no-Safe overlay, as deploy and add-owner already are. The console page has no
+      wallet and loads nothing else.
+  - [ ] Work out the Safe's address in the page, with no network call. It can be shown, and receive
+        funds, at once.
+  - [ ] One wallet transaction deploys the signer and the Safe. Any wallet can pay.
+  - [ ] Pin the Safe 1.4.1 L2 singleton, proxy factory and fallback handler in `quorum_cfg.py`. That
+        is a new release fingerprint, and a new kind of transaction: AGENTS.md says ask first.
+  - [ ] Save it to `pq.safes`, so the console watches it.
+- [ ] Label it as a starter, for small amounts. The next screen is "add a second owner" (a
+      PicoQuorum key or a hardware wallet) and "raise the threshold to 2", through the add-owner
+      flow that exists (`web/src/propose.mjs`). The rule stays: keep passkey owners below the
+      threshold, because the browser can redraw the screen and the passkey prompt never shows the
+      transaction. Say in [EMU-WEB.md](docs/EMU-WEB.md), [BROWSER.md](docs/guide/BROWSER.md) and the
+      app's "keep the threshold at 2" lines that a 1-of-1 is where you start, not where you stay.
+- [ ] Gas: a passkey can't send a transaction, so each execution from the starter Safe still needs a
+      wallet to pay. ERC-4337 (Safe4337Module, a bundler, a paymaster) would change that, but it
+      is a new dependency and a new network call. Decide before building toward it;
+      [HEGOTA-WATCH.md](docs/HEGOTA-WATCH.md) has the longer path.
+- [ ] Build it on picoquorum.app, after section 1, since a passkey belongs to the host that made it.
+
 ## 5. Firmware ready for production
 
 Today: the console image boots only into the Safe console, signs only with the pinned chip, checks
