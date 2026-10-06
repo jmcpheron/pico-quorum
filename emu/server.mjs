@@ -2,7 +2,9 @@
 // Dev server for the emulator: static UI, the emulated flash (firmware/ + emu/sketches/), a control
 // channel so tools/emu can drive the page, and a proxy to the wallet app so requests from the
 // emulated firmware are same-origin.
-//   node emu/server.mjs [--port 4242] [--app http://localhost:3001] [--open]
+//   node emu/server.mjs [--port 4242] [--host 127.0.0.1] [--app http://localhost:3001] [--open]
+// It listens on loopback only. /ctl runs code on the emulated device and ships files to a Pico on
+// USB, so --host 0.0.0.0 (or EMU_HOST) lets anyone on the network do that: trusted networks only.
 import http from "node:http";
 import { readFileSync, existsSync, statSync, writeFileSync, unlinkSync } from "node:fs";
 import { join, extname, normalize } from "node:path";
@@ -17,6 +19,7 @@ const EMU = dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
 const opt = (k, d) => { const i = args.indexOf("--" + k); return i >= 0 ? args[i + 1] : d; };
 const PORT = +(opt("port", process.env.EMU_PORT || 4242));
+const HOST = opt("host", process.env.EMU_HOST || "127.0.0.1");
 const APP = opt("app", process.env.EMU_APP || "http://localhost:3001");
 const OPEN = args.includes("--open");
 
@@ -185,7 +188,8 @@ function openBrowser() {
   try { spawn(cmd, [u], { stdio: "ignore", detached: true }).unref(); } catch (e) {}
 }
 
-server.listen(PORT, () => {
+server.listen(PORT, HOST, () => {
   console.log(`picowallet emulator  http://localhost:${PORT}/   app proxy -> ${APP}`);
+  if (HOST !== "127.0.0.1") console.log(`listening on ${HOST}: anyone who can reach it can run code on the emulator and ship to USB boards`);
   if (OPEN) openBrowser();
 });
