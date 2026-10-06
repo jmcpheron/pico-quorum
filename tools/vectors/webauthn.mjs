@@ -12,7 +12,7 @@
 // (before a Safe on that chain is trusted to the console; docs/LADDER.md). It also asks the P-256
 // precompile at 0x100 directly, since the verifiers fall back to Daimo's contract without it.
 //
-//   cd tools/vectors && npm install && node webauthn.mjs [--chain base|eth]
+//   cd tools/vectors && npm ci && node webauthn.mjs [--chain base|eth]
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { p256 } from "@noble/curves/p256";

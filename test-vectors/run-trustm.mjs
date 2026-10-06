@@ -1,7 +1,7 @@
 // The Trust M beside the ATECC608 (test-vectors/trustm_test.py) on MicroPython 1.26 in WebAssembly with
 // the emulator's virtual Trust M and ATECC608: detection, the real chip's bytes, the quorum-tm1
 // ceremony, the refusals, the console signing with the result. Must pass before a real Trust M is written.
-//   (cd emu && npm install) && node test-vectors/run-trustm.mjs
+//   (cd emu && npm ci) && node test-vectors/run-trustm.mjs
 import { readFileSync } from "node:fs";
 import { loadMicroPython } from "../emu/node_modules/@micropython/micropython-webassembly-pyscript/micropython.mjs";
 import { createDevice } from "../emu/core/runtime.mjs";

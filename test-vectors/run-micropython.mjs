@@ -1,6 +1,6 @@
 // The same vectors under real MicroPython 1.26 (WebAssembly, from emu/), so safe_tx.py,
 // decode.py and webauthn.py are known to run on the Pico and not only on CPython.
-//   (cd emu && npm install) && node test-vectors/run-micropython.mjs
+//   (cd emu && npm ci) && node test-vectors/run-micropython.mjs
 import { readFileSync } from "node:fs";
 import { loadMicroPython } from "../emu/node_modules/@micropython/micropython-webassembly-pyscript/micropython.mjs";
 

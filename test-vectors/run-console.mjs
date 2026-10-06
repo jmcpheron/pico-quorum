@@ -1,6 +1,6 @@
 // The console's decisions (test-vectors/console_test.py) on MicroPython 1.26 in WebAssembly, with
 // the emulator's shims and its virtual ATECC608: the same firmware files the board runs.
-//   (cd emu && npm install) && node test-vectors/run-console.mjs
+//   (cd emu && npm ci) && node test-vectors/run-console.mjs
 import { readFileSync } from "node:fs";
 import { loadMicroPython } from "../emu/node_modules/@micropython/micropython-webassembly-pyscript/micropython.mjs";
 import { createDevice } from "../emu/core/runtime.mjs";

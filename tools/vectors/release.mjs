@@ -7,7 +7,7 @@
 //     is set (an eth_call state override: exactly the slot SignMessageLib.signMessage(D) writes)
 //   - SignMessageLib 1.4.1 must have the same code on Ethereum, Base and Base Sepolia
 // Nothing is written unless the chain agrees.
-//   cd tools/vectors && npm install && node release.mjs
+//   cd tools/vectors && npm ci && node release.mjs
 import { readFileSync, writeFileSync } from "node:fs";
 import { createPublicClient, encodeAbiParameters, http, keccak256, pad, toHex } from "viem";
 import { base, baseSepolia, mainnet } from "viem/chains";
