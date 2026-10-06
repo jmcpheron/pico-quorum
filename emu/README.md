@@ -39,9 +39,10 @@ default `http://localhost:3001`) plus `emu/sketches/*` on top. Saving in the edi
 
 ## On GitHub Pages
 
-`node emu/build.mjs` (after `npm ci` here) writes the console page, `docs/console/`, and the
-emulator's page, `docs/emu/`. Commit both, as with `docs/app/`. CI rebuilds them and fails if the
-committed copy differs.
+`node emu/build.mjs` (after `npm ci` here) writes the console page, `docs/console/`. Commit it, as
+with `docs/app/`. CI rebuilds it and fails if the committed copy differs. This emulator, with its
+editor, module menu and 3D case, is not on the site any more: `docs/emu/` is only a redirect to the
+console page, so old links still land somewhere. It runs here, under `tools/emu`.
 
 **The console page** ([…/pico-quorum/console/](https://jmcpheron.github.io/pico-quorum/console/),
 `emu/console/`, written to `docs/console/` by the same build): the console alone, its screen with the
@@ -69,41 +70,29 @@ menu; it always runs the quorum console with your passkey as the key, and the fi
   - `firmware/`: the console image (`firmware/manifest.json`), the same files a Pico runs, as plain
     files. They hash to the release fingerprint; the build checks that, and the page works it out
     again in the browser and shows its blockie.
-  - `shims/`: the Python half of the emulator (`_bootstrap.py` is `bootstrap.py` there: Pages
-    leaves out any file whose name starts with `_`).
-  - `boot.json` names the files to boot (`web/browser.mjs` `staticBoot` fetches each) and carries
-    `build.py`.
-  - `web/`, `core/`, `shared/`, `vendor/micropython/`: the page's runtime, the same files as the
-    emulator's.
+  - `shims/`: only the shims the console uses. The passkey is its only key, so the virtual chips
+    (`atecc_sim.py`, `trustm_sim.py`) and `rp2.py` never load and aren't there, and the page passes
+    `keyBin: null`: no `key.bin` at all. `_bootstrap.py` is `bootstrap.py` there, because Pages
+    leaves out any file whose name starts with `_`.
+  - `boot.json`: the release fingerprint, `build.py`, the console image's file names and the shims'
+    paths. `web/browser.mjs` `staticBoot` fetches each file.
+  - `worker.js` (`emu/console/worker.js`): the console's own worker. It boots, runs `quorum`, and
+    carries frames, HTTP and the passkey's question to the page. None of `web/worker.js`'s serial
+    line, server chip state or module running is in it.
+  - `web/browser.mjs`, `core/`, `shared/`, `vendor/micropython/`: the same files as here.
   - `fonts/` and `brand/`: the site's, from `docs/app/fonts/` and `docs/brand/`.
-  - Its own `coi.js`, `sw.js` and CSP (no inline script or style); its worker is `web/worker.js`,
-    inside the folder, so this folder's service worker isolates it.
+  - Its own `coi.js`, `sw.js` and CSP (no inline script or style). The CSP's `connect-src` is
+    `'self'` and the hosts of `quorum_cfg.py`'s services (`https://api.safe.global`). `sw.js` sends
+    it as a header too, with COOP/COEP, so it binds the worker as well; a `<meta>` tag doesn't reach
+    a worker.
   - `SHA256SUMS` (for `sha256sum -c`) and `BUILD.json` list every file. The page's table of what is
     in the folder, with line counts, is written by the build.
 - **In a copy on your own computer** (`localhost`), the links to the app go to the app on the site,
   carrying only public things: the deploy link's public key, Add owner's address and Safe.
 
-**The emulator on Pages** (`docs/emu/`) is **deprecated**. Nothing links to it any more, it says so
-at the top, and it will go away. The console page is what the site offers; the editor, the module
-menu and the 3D case stay here, in `tools/emu`. Until then it is this page as a static site:
-- **Boot data:** `boot.json`, written at build time. It is what `/ctl/boot` answers here, for
-  `firmware/` alone, plus a `build.py` with `IMAGE "web"` and the console's release fingerprint.
-- **COOP/COEP:** `coi.js` and `sw.js`. Pages can't send headers, so a service worker adds them to the
-  folder's own files. The first visit reloads once.
-- **Kept in the visitor's browser** (localStorage):
-  - the chip state;
-  - a **random software key** (`key.bin`), never the fixed test key the local emulator uses;
-  - edited files.
-- **The release fingerprint is computed again in the page** over the files it boots. An edited
-  console file shows another blockie, marked *edited*. The firmware's own `image.RELEASE` agrees.
-- **The console runs on the Safes saved in the app** (same origin), with the app's Safe API key
-  and no `APP_URL`, so it asks Safe's own service for each chain. With none saved, the module is
-  `mock`.
-- **No USB, no control channel.** `tools/emu` stays the local path.
-
-**Your passkey as the key** (both hosts). The toolbar's **key** menu picks the virtual chip or **your
+**Your passkey as the key**, here too. The toolbar's **key** menu picks the virtual chip or **your
 passkey**, and **make a passkey** creates one with WebAuthn for this site: Touch ID, Windows Hello, a
-phone or a security key, P-256 (ES256).
+phone or a security key, P-256 (ES256). It is the same code as the console page's (`web/browser.mjs`).
 - **What the console gets:** the public key, kept in the browser. The console computes its owner
   address from it, as for a chip.
 - **When it signs:** `shims/passkey.py` asks the page, through a shared buffer while Python waits,
@@ -117,10 +106,13 @@ phone or a security key, P-256 (ES256).
 Sepolia, Base and Ethereum. `test-vectors/passkey.json` pins the firmware's packing of it. Headless:
 `--passkey` signs with a software passkey (`core/softpasskey.mjs`).
 
-The front page, the app and the README link to the console page. Nothing links to the emulator.
+The front page, the app and the README link to the console page.
 
-`node emu/e2e-static.mjs` serves `docs/` like Pages and checks both pages in Chromium. It also
-serves `docs/console/` alone, as a copy on your own computer, and runs the console from it.
+`node emu/e2e-static.mjs` serves `docs/` like Pages and checks the console page in Chromium, and
+that `emu/` sends you there. It serves `docs/console/` alone, as a copy on your own computer, and runs
+the console from it. It also signs a transaction through the page's buttons, with a virtual
+authenticator, against `tools/mock-tx-service/sim.mjs` standing in for Safe's service, and checks
+that the CSP refuses any other host in the page and in its worker.
 
 ## Give it to your AI
 

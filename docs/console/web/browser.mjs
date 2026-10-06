@@ -1,8 +1,7 @@
-// What a page needs to run the console from GitHub Pages, shared by the emulator (web/app.js) and
-// the plain console page (docs/console/, emu/console/): boot.json, the release fingerprint of what
-// boots, the Safes saved in the app, a per-browser software key, and the visitor's own passkey.
-// Relative URLs here resolve against this file (web/), and each page has its own copy of it, so
-// each finds its own boot.json: docs/emu/boot.json, docs/console/boot.json.
+// What the console page (emu/console/, docs/console/) needs around the firmware: its boot.json, the
+// release fingerprint of what boots, the Safes saved in the app, and the visitor's own passkey.
+// The local emulator (web/app.js, under tools/emu) shares the keys, the fingerprint and the passkey.
+// Relative URLs here resolve against this file, in web/ of the console folder.
 import { keccak256 } from "../core/keccak.mjs";
 import { assertionParts, b64url, derToRS, recoverKeys, spkiXY, unhex } from "../core/webauthn-assert.mjs";
 
@@ -32,15 +31,16 @@ export async function fingerprint(names, payload) {
   for (const n of [...new Set(names)].sort()) {
     const f = byName.get(n);
     if (!f) return "";
-    const bytes = f.text !== undefined ? enc.encode(f.text) : Uint8Array.from(atob(f.b64), (c) => c.charCodeAt(0));
+    const bytes = f.text !== undefined ? enc.encode(f.text) : f.bytes || Uint8Array.from(atob(f.b64), (c) => c.charCodeAt(0));
     lines += `${n}\0${hex(await crypto.subtle.digest("SHA-256", bytes))}\n`;
   }
   return hex(await crypto.subtle.digest("SHA-256", enc.encode(lines)));
 }
 
-/** build.py's RELEASE set to the fingerprint of the payload that boots; returns that fingerprint. */
-export async function stampRelease(consoleFiles, payload) {
-  const fp = await fingerprint(consoleFiles || [], payload);
+/** build.py's RELEASE set to the fingerprint of the payload that boots; returns that fingerprint.
+ *  names: the console image's files (the local emulator's /ctl/boot sends b64, the page bytes). */
+export async function stampRelease(names, payload) {
+  const fp = await fingerprint(names || [], payload);
   const bp = payload.find((f) => f.name === "build.py");
   if (bp && fp) bp.text = bp.text.replace(/^RELEASE = .*$/m, `RELEASE = ${JSON.stringify(fp)}`);
   return fp;
@@ -62,14 +62,10 @@ export async function showRelease(el, fp, built) {
 }
 
 // ---- boot.json -------------------------------------------------------------------------------------
-export const EDIT = "emu.file:";       // + name: a file edited or made in the emulator, in this browser
-const ENTRY_OF = { demo: "demo.run()", wallet: "wallet.start()", usbwallet: "usbwallet.start()", quorum: "quorum.start()" };
-
-/** boot.json (emu/build.mjs: the firmware, the shims, build.py). A file is either in boot.json
- *  (text, b64) or a path beside it: the console page keeps its firmware and shims as plain files,
- *  to read and to hash. edits: the emulator's edits in this browser on top; the console page runs
- *  the files exactly as built. */
-export async function staticBoot({ edits = false } = {}) {
+/** The console page's boot.json (emu/build.mjs): the release fingerprint, build.py, the console
+ *  image's file names (each in firmware/ beside it) and the shims' paths. Every file is fetched as it
+ *  is, so what boots is exactly what the folder holds. -> { release, names, files, shims } */
+export async function staticBoot() {
   const url = new URL("../boot.json", import.meta.url);
   const b = await (await fetch(url, { cache: "no-cache" })).json();
   const get = async (path) => {
@@ -78,31 +74,18 @@ export async function staticBoot({ edits = false } = {}) {
     return new Uint8Array(await r.arrayBuffer());
   };
   const utf8 = new TextDecoder("utf-8", { fatal: true });
-  const b64 = (bytes) => { let s = ""; for (const x of bytes) s += String.fromCharCode(x); return btoa(s); };
-  b.files = await Promise.all(b.files.map(async ({ path, ...f }) => {
-    if (!path) return f;
-    const bytes = await get(path);
-    return f.name.endsWith(".py") ? { ...f, text: utf8.decode(bytes) } : { ...f, b64: b64(bytes) };
+  const files = await Promise.all(b.firmware.map(async (name) => {
+    const bytes = await get(`firmware/${name}`);
+    return name.endsWith(".py") ? { name, text: utf8.decode(bytes) } : { name, bytes };
   }));
-  if (b.shimPaths) b.shims = Object.fromEntries(await Promise.all(Object.entries(b.shimPaths).map(async ([n, p]) => [n, utf8.decode(await get(p))])));
-  const byName = new Map(b.files.map((f) => [f.name, f]));
-  for (let i = 0; edits && i < localStorage.length; i++) {
-    const k = localStorage.key(i);
-    if (!k || !k.startsWith(EDIT)) continue;
-    try {
-      const { text, src } = JSON.parse(local.get(k));
-      const name = k.slice(EDIT.length), mod = name.replace(/\.py$/, "");
-      const runnable = name.endsWith(".py") && (!!ENTRY_OF[mod] || mod === "main" || /^(start|run|main)\(\)\s*$/m.test(text));
-      byName.set(name, { ...(byName.get(name) || { name, src: src || "sketches", entry: ENTRY_OF[mod] || "" }), text, runnable });
-    } catch {}
-  }
-  return { ...b, files: [...byName.values()] };
+  const shims = Object.fromEntries(await Promise.all(Object.entries(b.shims).map(async ([n, p]) => [n, utf8.decode(await get(p))])));
+  return { release: b.release, names: b.firmware, files: [...files, { name: "build.py", text: b.build }], shims };
 }
 
 // ---- the app's Safes ------------------------------------------------------------------------------
 // The Safes saved in the app ({chain, address, name}; same origin, so the same localStorage), as
-// secrets.py's QUORUM_SAFES, and the app's Safe API key. APP_URL is None (boot.json appUrl null), so
-// the console asks Safe's own service for each chain, as a production console does.
+// secrets.py's QUORUM_SAFES, and the app's Safe API key. APP_URL is None (the page boots with
+// appUrl null), so the console asks Safe's own service for each chain, as a production console does.
 export const CHAIN_IDS = { eth: 1, base: 8453, basesep: 84532 };
 export function appSafes() {
   try { return (JSON.parse(local.get("pq.safes") || "[]") || []).filter((s) => CHAIN_IDS[s.chain] && /^0x[0-9a-fA-F]{40}$/.test(s.address)); }
@@ -183,22 +166,12 @@ export function passkeyOwner(cred, signer) {
   return checksum("0x" + hex(keccak256(pre)).slice(24));
 }
 
-// The software key (key.bin): random, made once in this browser and kept there. The fixed test key
-// the local emulator uses would be anyone's on a public page.
-export function browserKey() {
-  let h = local.get("emu.keybin");
-  if (!/^[0-9a-f]{64}$/.test(h || "")) { h = hex(crypto.getRandomValues(new Uint8Array(32))); local.set("emu.keybin", h); }
-  return Uint8Array.from(h.match(/../g), (x) => parseInt(x, 16));
-}
-
 // ---- your passkey ---------------------------------------------------------------------------------
 // The visitor's own passkey as the console's key (shims/passkey.py). Made here with WebAuthn, for
 // this site (rpId: this host); its public key is kept in this browser and handed to the console at
 // boot. The private key never leaves the authenticator: Touch ID, Windows Hello, a phone, a
 // security key. The console asks for an assertion over the hash it computed; the person approves
 // with the authenticator, which never shows the transaction: what they approve is the console's screen.
-export const keyMode = () => (local.get("emu.key") === "passkey" ? "passkey" : "chip");
-export const setKeyMode = (m) => local.set("emu.key", m === "passkey" ? "passkey" : "chip");
 export const passkeyCred = () => { try { return JSON.parse(local.get("emu.passkey") || "null"); } catch { return null; } };
 
 /** Make the passkey (the OS asks), keep its public key here. -> the credential, or throws. */
@@ -218,7 +191,6 @@ export async function makePasskey() {
     attachment: transports.includes("hybrid") ? "hybrid" : c.authenticatorAttachment === "platform" ? "platform" : "security-key",
     synced: !!(flags & 0x10), made: new Date().toISOString().slice(0, 10) };
   local.set("emu.passkey", JSON.stringify(cred));
-  setKeyMode("passkey");
   return cred;
 }
 
@@ -246,7 +218,6 @@ export async function usePasskey() {
     attachment: one.a.authenticatorAttachment === "cross-platform" ? "security-key" : "platform",
     synced: !!(two.ad[32] & 0x10), made: new Date().toISOString().slice(0, 10), found: true };
   local.set("emu.passkey", JSON.stringify(cred));
-  setKeyMode("passkey");
   return cred;
 }
 

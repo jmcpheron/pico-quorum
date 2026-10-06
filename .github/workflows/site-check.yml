@@ -58,5 +58,5 @@ jobs:
           if [ -z "$(gh issue list --repo "$REPO" --state open --search "$title in:title" --json number --jq '.[].number')" ]; then
             gh issue create --repo "$REPO" --title "$title" --body "Site check found files on GitHub Pages that are not the ones docs/ holds at the deployed commit: $RUN
 
-          Until this is explained, don't trust the live app or emulator. Check the run's log for which files differ, and docs/GOVERNANCE.md."
+          Until this is explained, don't trust the live app or console page. Check the run's log for which files differ, and docs/GOVERNANCE.md."
           fi

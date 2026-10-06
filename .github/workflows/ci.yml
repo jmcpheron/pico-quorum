@@ -9,9 +9,10 @@
 #             README's build badges (docs/releases/badges/) must name it too
 #   web       the app's tests, then a rebuild that must equal docs/ as committed (the build is
 #             reproducible: what Pages serves is what this source makes), then the browser e2e
-#   emu-web   the browser pages' build (docs/console/, and the deprecated docs/emu/), the same rebuild
-#             check, then Chromium against them served like Pages (no COOP/COEP headers), and against
-#             docs/console/ served alone, as a copy on your own computer
+#   emu-web   the console page's build (docs/console/, and docs/emu/'s redirect), the same rebuild
+#             check, then Chromium against it served like Pages (no COOP/COEP headers), signing for
+#             real against the mock Safe service, and against docs/console/ served alone, as a copy
+#             on your own computer
 name: CI
 
 on:
@@ -149,19 +150,23 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: emu/package-lock.json
+          cache-dependency-path: |
+            emu/package-lock.json
+            tools/mock-tx-service/package-lock.json
       - run: npm ci
         working-directory: emu
-      - name: Rebuild docs/emu and docs/console; they must equal what is committed
+      - run: npm ci         # viem, for the mock Safe service the signing test confirms against
+        working-directory: tools/mock-tx-service
+      - name: Rebuild docs/console and docs/emu; they must equal what is committed
         working-directory: emu
         run: |
           node build.mjs
           if [ -n "$(git status --porcelain -- ../docs/emu ../docs/console)" ]; then
             git status --short -- ../docs/emu ../docs/console
-            echo "::error::docs/emu or docs/console differs from a rebuild of this commit. Run cd emu && node build.mjs, and commit both."
+            echo "::error::docs/console or docs/emu differs from a rebuild of this commit. Run cd emu && node build.mjs, and commit both."
             exit 1
           fi
-      - name: The static emulator in Chromium
+      - name: The console page in Chromium
         working-directory: emu
         run: |
           npx playwright-core install --with-deps chromium

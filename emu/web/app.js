@@ -1,19 +1,15 @@
 // The page: editor + console on the left, the device on the right, a Worker running MicroPython,
-// and a control channel (SSE) so tools/emu can drive everything from a terminal.
-//
-// Two hosts. Under tools/emu (emu/server.mjs) the flash, the chip state and saved files live on this
-// Mac, and the page can reach boards on USB. On GitHub Pages (emu/build.mjs writes docs/emu/ with
-// <meta name="emu-host" content="static">) the same page boots from boot.json, keeps the chip
-// state, a software key and any edited files in this browser, and runs the console on the Safes
-// saved in the app (same origin).
+// and a control channel (SSE) so tools/emu can drive everything from a terminal. It runs under
+// tools/emu (emu/server.mjs): the flash, the chip state and saved files live on this Mac, and the
+// page can reach boards on USB. The site's console page (emu/console/, docs/console/) shares
+// browser.mjs with it: the keys, the release fingerprint and your passkey.
 import { createDevice3D } from "./device3d.js";
-import {
-  KEY_ORDER, answer, appSafes, browserKey, keyOf, keyMode, local, makePasskey, paintFrame, passkeyCred, setKeyMode, usePasskey,
-  showRelease, stampRelease, staticBoot, staticSecrets, EDIT,
-} from "./browser.mjs";
+import { KEY_ORDER, answer, keyOf, local, makePasskey, paintFrame, passkeyCred, usePasskey, showRelease, stampRelease } from "./browser.mjs";
 
-const STATIC = document.querySelector('meta[name="emu-host"]')?.content === "static";
 const $ = (s) => document.querySelector(s);
+// What signs: the virtual chip, or your passkey (the toolbar's key menu)
+const keyMode = () => (local.get("emu.key") === "passkey" ? "passkey" : "chip");
+const setKeyMode = (m) => local.set("emu.key", m === "passkey" ? "passkey" : "chip");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const sab = typeof SharedArrayBuffer !== "undefined" && self.crossOriginIsolated ? new SharedArrayBuffer(16 * 4) : null;
@@ -37,7 +33,7 @@ const screen = $("#screen"), sctx = screen.getContext("2d");
 const flatscreen = $("#flatscreen"), fctx = flatscreen.getContext("2d");
 const img = sctx.createImageData(240, 240);
 
-let worker = null, seq = 0, running = null, main = local.get("emu.main") || (STATIC && appSafes().length ? "quorum" : "mock");
+let worker = null, seq = 0, running = null, main = local.get("emu.main") || "mock";
 const files = new Map();          // name -> { src, text?, b64?, dirty }
 let current = null, editor = null, editorFallback = null, loading = false;
 const log = [];
@@ -99,8 +95,7 @@ function setMain(name) { main = name; local.set("emu.main", main); renderTabs();
 async function saveFile(name) {
   const f = files.get(name);
   if (!f || f.text === undefined || !f.dirty) return;
-  if (STATIC) local.set(EDIT + name, JSON.stringify({ text: f.text, src: f.src }));     // kept in this browser
-  else await fetch("ctl/file", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name, content: f.text, src: f.src }) });
+  await fetch("ctl/file", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name, content: f.text, src: f.src }) });
   f.dirty = false;
   if (worker) await ask({ type: "write", name, data: f.text });
   renderTabs();
@@ -206,7 +201,7 @@ async function reboot(runName) {
   for (const i of KEY_ORDER.keys()) keys[i] = 0;
   if (serialCtl) { Atomics.store(serialCtl, 0, 0); Atomics.store(serialCtl, 1, 0); }
   setConn("booting", "");
-  const b = STATIC ? await staticBoot({ edits: true }) : await (await fetch("ctl/boot")).json();
+  const b = await (await fetch("ctl/boot")).json();
   mark("boot payload");
   for (const f of b.files) {
     const old = files.get(f.name);
@@ -222,8 +217,7 @@ async function reboot(runName) {
   // gets a different blockie than the release's, never the release's own.
   const fp = await stampRelease(b.consoleFiles, payload);
   showRelease($("#release"), fp, b.release);
-  const host = { rpc: rpcSab, passkey: keyMode() === "passkey" ? local.get("emu.passkey") : null,
-    ...(STATIC ? { secrets: staticSecrets(), chip: local.get("emu.chip"), keyBin: browserKey() } : {}) };
+  const host = { rpc: rpcSab, passkey: keyMode() === "passkey" ? local.get("emu.passkey") : null };
   renderKey();
   worker = new Worker(new URL("./worker.js", import.meta.url), { type: "module" });
   worker.onmessage = onMsg;
@@ -262,7 +256,6 @@ function onMsg(e) {
   else if (m.type === "pwm") { if (m.pin === 13 && device3d) device3d.setBacklight(m.frac); }
   else if (m.type === "pin") { if (m.pin === "LED" && device3d) device3d.setLed(!!m.v); }
   else if (m.type === "reset") { appendLog("machine.reset()", "sys"); reboot(main); }
-  else if (m.type === "chip") local.set("emu.chip", m.data);
   else if (m.type === "rpc") answer(rpcSab, m);
   else if (m.type === "started") { const r = started.get(m.id); if (r) r(); }
   else if (m.type === "done") { const w = waiting.get(m.id); if (w) { waiting.delete(m.id); m.error ? w.reject(new Error(m.error)) : w.resolve(); } }
@@ -309,8 +302,7 @@ async function pollDevices() {
     : d.mp === false ? `this board runs something else; reboot it into its bootloader and put MicroPython on it`
     : d.mp === null ? "asking the board what it is…" : `copy ${main}.py to ${d.port} and import it`;
 }
-if (STATIC) for (const el of ["#device", "#ship", "#bootlabel"]) $(el).hidden = true;     // no USB from a web page (yet)
-else { pollDevices(); setInterval(pollDevices, 3000); }
+pollDevices(); setInterval(pollDevices, 3000);
 $("#boot").checked = local.get("emu.boot") === "1";
 $("#boot").onchange = () => local.set("emu.boot", $("#boot").checked ? "1" : "0");
 devSel.onchange = pollDevices;
@@ -406,16 +398,14 @@ const handlers = {
     return { ok: true, lines: log.slice(at + 1), reply };
   },
 };
-if (!STATIC) {
-  const es = new EventSource("ctl/events");
-  es.onmessage = async (e) => {
-    const c = JSON.parse(e.data);
-    let result;
-    try { result = handlers[c.cmd] ? await handlers[c.cmd](c) : { ok: false, error: "unknown cmd " + c.cmd }; }
-    catch (err) { result = { ok: false, error: String(err && err.message || err) }; }
-    fetch("ctl/reply", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: c.id, result }) });
-  };
-}
+const es = new EventSource("ctl/events");
+es.onmessage = async (e) => {
+  const c = JSON.parse(e.data);
+  let result;
+  try { result = handlers[c.cmd] ? await handlers[c.cmd](c) : { ok: false, error: "unknown cmd " + c.cmd }; }
+  catch (err) { result = { ok: false, error: String(err && err.message || err) }; }
+  fetch("ctl/reply", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: c.id, result }) });
+};
 
 // ---- your passkey ------------------------------------------------------------------------
 // The visitor's own passkey as the console's key (shims/passkey.py). Made here with WebAuthn, for
@@ -441,6 +431,7 @@ $("#keymode").onchange = (e) => {
 $("#mkpasskey").onclick = async () => {
   try {
     const cred = await makePasskey();
+    setKeyMode("passkey");
     appendLog(`Made your passkey for ${cred.rpId} (${cred.synced ? "synced by your account" : "kept on that device"}). The console's owner address follows from it: see Chip.`, "sys");
     await reboot(main);
   } catch (e) { appendLog(`No passkey made: ${e.name || ""} ${e.message || e}`.trim(), "err"); }
@@ -449,6 +440,7 @@ $("#usepasskey").onclick = async () => {
   try {
     appendLog("Pick your passkey. It signs twice (two prompts): its public key is worked out from the two signatures.", "sys");
     const cred = await usePasskey();
+    setKeyMode("passkey");
     appendLog(`Using your passkey for ${cred.rpId} (${cred.synced ? "synced by your account" : "kept on that device"}). Same key, same owner address as wherever you made it: see Chip.`, "sys");
     await reboot(main);
   } catch (e) { appendLog(`No passkey: ${e.name || ""} ${e.message || e}`.trim(), "err"); }
@@ -458,9 +450,6 @@ $("#usepasskey").onclick = async () => {
 const T0 = performance.now();
 const mark = (what) => console.log(`[emu] ${what} at ${Math.round(performance.now() - T0)} ms`);
 setView(local.get("emu.view") || "3d");
-if (STATIC) appendLog(appSafes().length
-  ? `The PicoQuorum console, in your browser, watching the ${appSafes().length} Safe${appSafes().length > 1 ? "s" : ""} saved in the app. Same firmware as the Pico; the release fingerprint is in the toolbar.`
-  : "The Pico wallet in your browser. To run the PicoQuorum console on a Safe, save the Safe in the app (../app/), then pick quorum in the module menu.", "sys");
 if (!sab) appendLog("no SharedArrayBuffer: keys reach the device only while it is idle (busy loops will not see them)", "err");
 const booting = reboot(main).then(() => mark("booted"));
 try {

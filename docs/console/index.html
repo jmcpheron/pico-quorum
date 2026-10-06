@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' https:; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://api.safe.global; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <script src="coi.js"></script>
 <title>PicoQuorum · The console in your browser</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -79,8 +79,8 @@
       <thead><tr><th>In the folder</th><th>Size</th></tr></thead>
       <tbody>
         <tr><td><code>firmware/</code><span>The console image: the same 50 files a Pico runs, in MicroPython. They hash to the release fingerprint.</span></td><td>10,876 lines, and 10 data files</td></tr>
-        <tr><td><code>shims/</code><span>Python in place of the Pico's hardware: its pins, screen and Wi-Fi, and your passkey as its chip.</span></td><td>1,695 lines</td></tr>
-        <tr><td><code>console.js, web/, core/, shared/, coi.js, sw.js</code><span>The page's JavaScript: the buttons, your passkey, and the worker MicroPython runs in.</span></td><td>1,182 lines</td></tr>
+        <tr><td><code>shims/</code><span>Python in place of the Pico's hardware: its pins, screen and Wi-Fi, and your passkey as its key.</span></td><td>633 lines</td></tr>
+        <tr><td><code>console.js, worker.js, web/, core/, shared/, coi.js, sw.js</code><span>The page's JavaScript: the buttons, your passkey, and the worker MicroPython runs in.</span></td><td>1,109 lines</td></tr>
         <tr><td><code>vendor/micropython/</code><span>MicroPython 1.26.0 for WebAssembly, the one part built elsewhere: by the MicroPython project, from npm, pinned by its hash.</span></td><td>522 KB</td></tr>
         <tr><td><code>index.html, console.css, fonts/, brand/</code><span>This page: its words, its look, the site's typeface and mark.</span></td><td></td></tr>
       </tbody>

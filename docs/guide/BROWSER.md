@@ -16,11 +16,11 @@ sign from a copy on your own computer that changes only when you change it.
 | | what | size |
 |---|---|---|
 | `firmware/` | The console image ([`firmware/manifest.json`](../../firmware/manifest.json)): the same files a Pico runs, in MicroPython. Together they hash to the release fingerprint. | about 11,000 lines, and 10 data files (fonts and TLS roots) |
-| `shims/` | Python in place of the Pico's hardware: its pins, screen and Wi-Fi, and your passkey as its chip ([`emu/core/shims/`](../../emu/core/shims/)) | about 1,700 lines |
-| `console.js`, `web/`, `core/`, `shared/`, `coi.js`, `sw.js` | The page's JavaScript: the buttons, your passkey, and the worker MicroPython runs in | about 1,200 lines |
+| `shims/` | Python in place of the Pico's hardware: its pins, screen and Wi-Fi, and your passkey as its key ([`emu/core/shims/`](../../emu/core/shims/)). Only the ones the console uses: no virtual chips | about 630 lines |
+| `console.js`, `worker.js`, `web/`, `core/`, `shared/`, `coi.js`, `sw.js` | The page's JavaScript: the buttons, your passkey, and the worker MicroPython runs in | about 1,100 lines |
 | `vendor/micropython/` | MicroPython 1.26 for WebAssembly | about 520 KB |
 | `index.html`, `console.css`, `fonts/`, `brand/` | The page's words and looks | |
-| `boot.json` | Which files to boot, and a `build.py` naming the release | |
+| `boot.json` | The release fingerprint, a `build.py` naming the release, and the files to boot | |
 | `SHA256SUMS`, `BUILD.json` | The SHA-256 of every file | |
 
 The page shows the exact counts; `node emu/build.mjs` works them out as it writes the folder.
@@ -29,11 +29,43 @@ MicroPython's WebAssembly is the one part built elsewhere, by the MicroPython pr
 npm, pinned by its hash in [`emu/package-lock.json`](../../emu/package-lock.json), so everyone gets
 the same bytes. Everything else is source you can read as it is.
 
-The page talks to one thing outside the folder: Safe's transaction service, for each chain your
-Safes are on ([`quorum_cfg.py`](../../firmware/quorum_cfg.py) `"services"`), asked by the firmware
-itself. Its Content-Security-Policy refuses scripts from any other site.
-[`emu/e2e-static.mjs`](../../emu/e2e-static.mjs) checks in Chromium, on every push, that the page
-asks for nothing outside its folder but Safe's service, and that the folder runs on its own.
+**The page can reach one thing outside its folder:** Safe's transaction service
+([`quorum_cfg.py`](../../firmware/quorum_cfg.py) `"services"`: today `https://api.safe.global`, for
+every chain). That isn't just what the code happens to do. The page's Content-Security-Policy allows
+that host and nothing else, and `sw.js` sends the same policy as a header, so it also binds the
+worker that makes the firmware's calls. The browser refuses any other request. You can read the
+whole rule in one line of `index.html`.
+
+[`emu/e2e-static.mjs`](../../emu/e2e-static.mjs) checks in Chromium, on every push:
+- the page asks for nothing outside its folder, and any other host is refused, in the page and in
+  its worker;
+- the folder runs on its own;
+- it signs a transaction through its own buttons, against a stand-in for Safe's service that checks
+  the signature the way the Safe does.
+
+## Where to start reading
+
+The path from Safe's queue to your signature, by file and function:
+
+| step | where |
+|---|---|
+| Ask Safe's service for the Safe and its queue | `firmware/txservice.py` (`Service`, `safe_info`, `pending`), `firmware/policy.py` (`service_url`, `valid_info`) |
+| Hash each transaction itself, from the fields it shows | `firmware/safe_tx.py` (`from_service`, `safe_tx_hash`), `firmware/quorum.py` `entry` |
+| Say what it does, in red when it changes who controls the Safe | `firmware/decode.py` (`review`) |
+| Sign only after every page is seen and A is held | `firmware/quorum.py` (`can_sign`, `press_sign`, `hold_tick`) |
+| Ask your passkey | `firmware/quorum.py` `sign_it` → `shims/passkey.py` `PasskeySigner.assertion` → `worker.js` `askPage` → `web/browser.mjs` `passkeyGet`: the one-time note, then WebAuthn over the hash the console computed, checked against your key before the console gets it |
+| Pack it and post it | `firmware/webauthn.py` (`contract_signature`), `firmware/quorum.py` `post`, `firmware/txservice.py` `confirm` |
+| Your owner address | `firmware/webauthn.py` `owner_address`; the page's `web/browser.mjs` `passkeyOwner` works out the same one |
+
+Some of `firmware/` never runs in a browser. It stays so that the folder is the console image and
+hashes to the release a Pico runs:
+- the chip drivers (`atecc.py`, `chipcfg.py`, `trustm.py`, `trustm_q.py`, `tmcfg.py`): your
+  passkey is the key;
+- `boot.py` and `main_console.py`: the page starts the console itself;
+- Wi-Fi setup (`wifisetup.py`, `qrcode.py`);
+- the knob and the small screen of other boards (`knob.py`, `quorum_ui_s.py`), and the boot art
+  (`bootart.py`);
+- `vhttp.py` and the three TLS roots (`ca_*.bin`): your browser does TLS.
 
 ## 1. Save a copy
 
