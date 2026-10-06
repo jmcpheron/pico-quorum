@@ -68,9 +68,12 @@ export function safeTxHash(chainId, safe, t) {
 // The console's verify code: the hash's last 8 hex characters (firmware/safe_tx.py verify_code).
 export const verifyCode = (h) => `${h.slice(-8, -4)} ${h.slice(-4)}`.toLowerCase();
 
+// Every read the page makes goes through this client, often of a contract named in a link (a Safe, the
+// owners it lists). ccipRead: false: such a contract can't have the visitor's browser fetch a URL it
+// chooses (EIP-3668 offchain lookups), which viem otherwise follows.
 export function client(name, rpc) {
   const c = CHAINS[name];
-  return createPublicClient({ chain: c.chain, transport: http(rpc || c.rpc, { batch: true, retryCount: 2 }) });
+  return createPublicClient({ chain: c.chain, ccipRead: false, transport: http(rpc || c.rpc, { batch: true, retryCount: 2 }) });
 }
 
 // ----------------------------------------------------------------------------- the service
