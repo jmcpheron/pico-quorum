@@ -126,13 +126,15 @@ and we suggest it for yours: **no technology, and no person, holds a threshold's
 
 [The console page](https://jmcpheron.github.io/pico-quorum/console/) runs the console's firmware,
 file for file, on MicroPython for WebAssembly, with your passkey (Touch ID, Windows Hello, a phone,
-a security key) as its key. It is one folder, and it loads nothing from the rest of the site:
+a security key) as its key. It is one folder, it loads nothing from the rest of the site, and it can
+reach only Safe's transaction service: its Content-Security-Policy says so, and the browser enforces
+it.
 
 | in the folder | |
 |---|---|
 | `firmware/` | the console image a Pico runs, as plain files: about 11,000 lines of MicroPython |
-| `shims/` | Python in place of the Pico's hardware: about 1,700 lines |
-| `console.js`, `web/`, `core/` | the page: about 1,200 lines of JavaScript |
+| `shims/` | Python in place of the Pico's hardware: about 630 lines |
+| `console.js`, `worker.js`, `web/`, `core/` | the page: about 1,100 lines of JavaScript |
 | `vendor/micropython/` | MicroPython 1.26 for WebAssembly, pinned by its hash: the one part built elsewhere |
 
 That is short enough to read, and you can check it without trusting the site that sent it:

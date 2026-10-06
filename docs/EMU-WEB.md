@@ -4,8 +4,8 @@
 > - the check in `tools/vectors/passkey.mjs`;
 > - release fingerprints (`docs/releases/`);
 > - CI and signed releases (`docs/RELEASES.md`);
-> - the emulator on Pages (`docs/emu/`, `emu/README.md`), deprecated since 2026-10-06: nothing links
->   to it, and `tools/emu` is the developer's page;
+> - the emulator on Pages (`docs/emu/`), deprecated and then removed on 2026-10-06: `docs/emu/` is
+>   a redirect to the console page, and `tools/emu` is the developer's page;
 > - your passkey as the key: the toolbar's key menu, with `shims/passkey.py` and the page's WebAuthn;
 > - the console page (`docs/console/`): the console alone, screen and buttons, your passkey as its
 >   key. The demo below starts there. It shows the passkey's owner address (to add to a Safe) and
@@ -210,6 +210,12 @@ digest the console wants, so the console writes the assertion as it does for the
 prompt and no hardware. It is useful for CI and Firefox, and it is labelled as software.
 
 ## Hosting on Pages: what changes
+
+> **Now (2026-10-06):** only the console page is on Pages (`docs/console/`, `emu/README.md`). It is
+> one folder: the console image as plain files, only the shims it uses, its own small worker. Its
+> CSP allows the folder and Safe's service and nothing else, and `sw.js` sends that as a header with
+> COOP/COEP, so it binds the worker too. The emulator's page below, with the editor and the 3D case,
+> stays local (`tools/emu`).
 
 Built into `docs/emu/` by an `emu/build.mjs`, in the style of `web/build.mjs`: pinned dependencies,
 SRI, and a `BUILD.json` of hashes. It is served under the same origin as the app, at

@@ -4,7 +4,7 @@
 // owner address, the one to add to a Safe. emu/build.mjs writes it to docs/console/, one folder with
 // everything it runs, so a copy of that folder runs the same (docs/guide/BROWSER.md).
 import {
-  CHAIN_IDS, KEY_ORDER, answer, appSafes, browserKey, checksum, consoleCfg, forgetAppSafe, keyOf, local, makePasskey,
+  CHAIN_IDS, KEY_ORDER, answer, appSafes, checksum, consoleCfg, forgetAppSafe, keyOf, local, makePasskey,
   paintFrame, passkeyCred, passkeyOwner, safeInfo, saveAppSafe, showRelease, stampRelease, staticBoot, staticSecrets, usePasskey,
 } from "./web/browser.mjs";
 import { blockieSrc } from "./shared/blockies.mjs";
@@ -141,7 +141,7 @@ function out(line) {
 const built = (async () => {
   const b = await staticBoot();
   const files = b.files.map((f) => ({ ...f }));
-  const fp = await stampRelease(b.consoleFiles, files);
+  const fp = await stampRelease(b.names, files);
   showRelease($("#release"), fp, b.release);
   return { ...b, files };
 })();
@@ -149,21 +149,19 @@ const built = (async () => {
 async function boot() {
   if (worker) worker.terminate();
   const b = await built, payload = b.files;
-  // a worker's own script is fetched under the service worker whose scope holds its URL: web/ is in
-  // this folder, so this folder's sw.js isolates it
-  worker = new Worker(new URL("web/worker.js", import.meta.url), { type: "module" });
+  // worker.js runs the console (quorum.start()). A worker's own script is fetched under the service
+  // worker whose scope holds its URL: it is in this folder, so this folder's sw.js isolates it.
+  worker = new Worker(new URL("worker.js", import.meta.url), { type: "module" });
   worker.onmessage = (e) => {
     const m = e.data;
     if (m.type === "frame") { paintFrame(m.buf, img); ctx.putImageData(img, 0, 0); screen.dataset.frames = String(m.frames); }
     else if (m.type === "out") out(m.line);
     else if (m.type === "pwm" && m.pin === 13) screen.style.filter = m.frac >= 0.99 ? "" : `brightness(${(0.2 + 0.8 * m.frac).toFixed(2)})`;  // the backlight (the screensaver dims it)
     else if (m.type === "rpc") answer(rpcSab, m);
-    else if (m.type === "chip") local.set("emu.chip", m.data);
     else if (m.type === "reset") boot();
   };
   worker.onerror = (e) => out("worker: " + e.message);
-  worker.postMessage({ type: "boot", id: 1, keys: sab, files: payload, shims: b.shims, appUrl: b.appUrl, run: "quorum", entry: "quorum.start()",
-    secrets: staticSecrets(), chip: local.get("emu.chip"), keyBin: browserKey(), passkey: local.get("emu.passkey"), rpc: rpcSab });
+  worker.postMessage({ type: "boot", keys: sab, rpc: rpcSab, files: payload, shims: b.shims, secrets: staticSecrets(), passkey: local.get("emu.passkey") });
 }
 
 async function start() {

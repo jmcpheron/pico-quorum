@@ -1,14 +1,16 @@
-// The browser pages (node emu/build.mjs) as GitHub Pages serves them: a plain static server under
-// /pico-quorum/, no COOP/COEP headers. First docs/emu/ (deprecated, still served): Chromium checks
-// that the page isolates itself (the service worker), boots MicroPython from boot.json, shows the
-// release fingerprint it was built with, gets keys through SharedArrayBuffer, keeps the chip state
-// and a random software key in the browser, marks edited files, runs the console on the Safes saved
-// in the app, and breaks no CSP rule. Then docs/console/: it asks for a passkey, then a Safe, then
-// runs the console; its buttons reach it; it asks for nothing outside its folder. Then the folder on
-// its own: its SHA256SUMS and firmware/ checked as the guide checks them (docs/guide/BROWSER.md),
-// and the folder served alone at the root of localhost, as a copy on your own computer, runs too.
+// The console page (node emu/build.mjs) as GitHub Pages serves it: a plain static server under
+// /pico-quorum/, no COOP/COEP headers. Chromium checks that emu/, where the emulator's page was, sends
+// you to the console; that the console page isolates itself (its service worker), shows the release
+// fingerprint, asks for a passkey and then a Safe, runs the console, and its buttons reach it; that it
+// asks for nothing outside its folder; and that the same passkey works from another browser. Then the
+// folder on its own: its SHA256SUMS and firmware/ checked as docs/guide/BROWSER.md does, and the
+// folder served alone at the root of localhost, as a copy on your own computer. Then a real signature:
+// Safe's service is tools/mock-tx-service/sim.mjs, the console signs through its own buttons with a
+// virtual authenticator, and the confirmation must verify; no user verification, no signature; and
+// the CSP refuses any other host, in the page and in its worker.
 // Nothing leaves the machine: any other request is refused and counted.
-//   cd emu && npm ci && node build.mjs && node e2e-static.mjs     (PQ_CHROMIUM=/path/to/chrome)
+//   cd emu && npm ci && node build.mjs && node e2e-static.mjs     (PQ_CHROMIUM=/path/to/chrome;
+//   tools/mock-tx-service needs npm ci too)
 import { createHash } from "node:crypto";
 import { createServer } from "node:http";
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -17,7 +19,7 @@ import { chromium } from "playwright-core";
 import { ROOT } from "./core/workspace.mjs";
 
 const DOCS = join(ROOT, "docs");
-const BOOT = JSON.parse(readFileSync(join(DOCS, "emu", "boot.json"), "utf8"));
+const BOOT = JSON.parse(readFileSync(join(DOCS, "console", "boot.json"), "utf8"));
 const short = `${BOOT.release.slice(0, 4)}·${BOOT.release.slice(4, 8)}`;
 let failed = 0;
 const check = (ok, what) => { console.log(`${ok ? "pass" : "FAIL"}  ${what}`); if (!ok) failed++; };
@@ -44,98 +46,23 @@ const BASE = `http://localhost:${server.address().port}/pico-quorum/`;     // lo
 const SITE_APP = "https://jmcpheron.github.io/pico-quorum/app/";            // where a copy on localhost sends its app links
 
 const browser = await chromium.launch({ executablePath: process.env.PQ_CHROMIUM || undefined, args: ["--no-proxy-server"] });
-const ctx = await browser.newContext({ viewport: { width: 1300, height: 820 } });
 const outside = [], csp = [], errors = [];
+const watch = (pg, what) => {
+  pg.on("console", (m) => { if (/Content Security Policy|Refused to/.test(m.text())) csp.push(`${what}: ${m.text()}`); });
+  pg.on("pageerror", (e) => errors.push(`${what}: ${e.message}`));
+};
+
+// 1. where the emulator's page was: its old address lands on the console
+const ctx = await browser.newContext();
 await ctx.route("**/*", (route) => { const u = route.request().url(); if (u.startsWith(BASE)) return route.continue(); outside.push(u); return route.abort(); });
 const page = await ctx.newPage();
-page.on("console", (m) => { if (/Content Security Policy|Refused to/.test(m.text())) csp.push(m.text()); });
-page.on("pageerror", (e) => errors.push(e.message));
-
-const log = () => page.locator("#log").innerText();
-async function repl(code, expect, what) {
-  await page.fill("#repl", code);
-  await page.press("#repl", "Enter");
-  try { await page.waitForFunction(([re, fl]) => new RegExp(re, fl).test(document.querySelector("#log").innerText), [expect.source, expect.flags], { timeout: 15000 }); check(true, what); }
-  catch { check(false, `${what} (log ends: ${(await log()).slice(-200).replace(/\n/g, " | ")})`); }
-}
-async function booted() {
-  await page.waitForFunction(() => self.crossOriginIsolated && /running|error/.test(document.querySelector("#conn")?.textContent || ""), null, { timeout: 60000 });
-}
-
-// 1. first visit: the service worker takes over, the page reloads once, isolated
 await page.goto(BASE + "emu/");
-await booted();
-check(await page.evaluate(() => self.crossOriginIsolated && typeof SharedArrayBuffer === "function"), "Pages-like hosting: the page isolates itself (COOP/COEP from sw.js), SharedArrayBuffer available");
-check(/running mock/.test(await page.locator("#conn").innerText()), "no Safes saved in the app: the Pico wallet (mock) runs");
-await page.waitForSelector("#release img");
-const rel = await page.locator("#release").innerText();
-check(rel.includes(short) && !rel.includes("edited"), `the toolbar shows release ${short}, the fingerprint this build was made from, computed again in the browser`);
-check(await page.locator("#ship").isHidden() && await page.locator("#device").isHidden(), "no USB controls on the static page");
-
-// 2. Python runs, and keys reach it while it does
-await repl("print(6 * 7)", /^42$/m, "the REPL runs Python on the virtual Pico");
-await page.click("#stage");
-await page.keyboard.down("9");                   // A, held
-await repl("import _emu; print('A=%d' % _emu.pin_read(15))", /A=0/, "a held key reaches Python through SharedArrayBuffer (GP15 pulled low)");
-await page.keyboard.up("9");
-
-// 3. the chip state and the software key stay in this browser
-await repl(`_emu.chip_save('{"e2e": 1}'); print('saved')`, /^saved$/m, "the chip state saves");
-check(await page.evaluate(() => localStorage.getItem("emu.chip")) === '{"e2e": 1}', "it is kept in localStorage");
-const key = await page.evaluate(() => localStorage.getItem("emu.keybin"));
-check(/^[0-9a-f]{64}$/.test(key || "") && key !== "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20", "the software key is random, made in this browser (not the local emulator's fixed test key)");
-await page.reload();
-await booted();
-await repl("import _emu; print('chip:' + _emu.chip_load())", /chip:\{"e2e": 1\}/, "after a reload the chip state is still there");
-await repl("print('key:' + open('key.bin','rb').read().hex())", new RegExp(`key:${key}`), "and the same software key");
-
-// 4. an edited console file: a different fingerprint, marked as edited
-const cfg = BOOT.files.find((f) => f.name === "quorum_cfg.py").text;
-await page.evaluate((t) => localStorage.setItem("emu.file:quorum_cfg.py", JSON.stringify({ text: t + "\n# edited\n", src: "firmware" })), cfg);
-await page.reload();
-await booted();
-const rel2 = await page.locator("#release").innerText();
-check(rel2.includes("edited") && !rel2.includes(short), `an edited console file: the toolbar says edited, with another fingerprint (${rel2.trim()})`);
-await repl("import image; print('img:' + image.RELEASE[:8])", new RegExp(`img:(?!${BOOT.release.slice(0, 8)})[0-9a-f]{8}`), "and the firmware's own image.RELEASE is that other fingerprint, never the release's");
-await page.evaluate(() => localStorage.removeItem("emu.file:quorum_cfg.py"));
-
-// 5. Safes saved in the app: the console runs on them, against Safe's own service
-await page.evaluate(() => { localStorage.setItem("pq.safes", JSON.stringify([{ chain: "basesep", address: "0x1234567890abcdef1234567890abcdef12345678", name: "Test Safe" }])); localStorage.setItem("pq.apiKey", JSON.stringify("k-e2e")); localStorage.removeItem("emu.main"); });
-await page.reload();
-await booted();
-check(await page.locator("#main").inputValue() === "quorum", "with a Safe saved in the app, the console (quorum) is the module");
-await repl("import secrets; print('safes:%d %s %s' % (secrets.QUORUM_SAFES[0]['chainId'], secrets.APP_URL, secrets.QUORUM_API_KEY))", /safes:84532 None k-e2e/, "its secrets.py: the saved Safe on Base Sepolia, the app's API key, no APP_URL");
-
-// 6. your passkey: made with WebAuthn (a virtual platform authenticator with user verification,
-// the path Touch ID takes), and the console's key: an assertion over a hash, checked in Python
-const cdp = await ctx.newCDPSession(page);
-await cdp.send("WebAuthn.enable");
-const { authenticatorId } = await cdp.send("WebAuthn.addVirtualAuthenticator", { options: {
-  protocol: "ctap2", transport: "internal", hasResidentKey: true, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true } });
-page.on("dialog", (d) => d.accept());           // the one-time note before the first signature
-await page.selectOption("#keymode", "passkey");
-check(await page.locator("#mkpasskey").isVisible(), "key: your passkey, none yet: the page offers to make one");
-await page.click("#mkpasskey");
-await page.waitForFunction(() => !!localStorage.getItem("emu.passkey"), null, { timeout: 15000 });
-await booted();
-const cred = JSON.parse(await page.evaluate(() => localStorage.getItem("emu.passkey")));
-check(cred.rpId === "localhost" && /^[0-9a-f]{64}$/.test(cred.x) && /^[0-9a-f]{64}$/.test(cred.y), "made a P-256 passkey for this site; its public key is kept in this browser, its private key never leaves the authenticator");
-await repl("import signer; _s = signer.load(); print('signer:' + _s.name)", /signer:passkey/, "the console's signer is now the passkey");
-const PY_CHECK = "import webauthn, hashlib, p256; _a, _f, _r, _t = _s.assertion('0x' + 'ab' * 32); _x, _y = _s.pubkey(); _c = '{\"type\":\"webauthn.get\",\"challenge\":\"%s\",%s}' % (webauthn.b64url(bytes([0xab] * 32)), _f); print('verified:%s uv:%d' % (p256.verify(_x, _y, hashlib.sha256(_a + hashlib.sha256(_c.encode()).digest()).digest(), _r, _t), _a[32] & 4))";
-await repl(PY_CHECK, /verified:True uv:4/, "the passkey's assertion over a hash, rebuilt as Safe's signer rebuilds it, verifies in the console's own P-256 code, with UV");
-await repl("import quorum_cfg; print('owner:' + webauthn.owner_address('0x%064x' % _x, '0x%064x' % _y, quorum_cfg.CFG['signer']))", /owner:0x[0-9a-fA-F]{40}/, "the console works out its owner address from the passkey's key");
-const pyOwner = ((await log()).match(/owner:(0x[0-9a-fA-F]{40})/g) || [""]).pop().slice(6);
-const jsOwner = await page.evaluate(async () => {
-  const b = await import(new URL("web/browser.mjs", location.href).href);
-  return b.passkeyOwner(b.passkeyCred(), b.consoleCfg((await b.staticBoot()).files).signer);
-});
-check(!!pyOwner && jsOwner.toLowerCase() === pyOwner.toLowerCase(), `the page's owner address for the passkey (browser.mjs) is the console's (webauthn.owner_address): ${jsOwner}`);
-await repl("print('fields:' + _f)", /fields:"origin":"http:\/\/localhost:\d+","crossOrigin":false/, "its clientData fields are the browser's own (origin, crossOrigin)");
-await cdp.send("WebAuthn.setUserVerified", { authenticatorId, isUserVerified: false });
-await repl("exec(\"try:\\n    _s.assertion('0x' + 'cd' * 32)\\nexcept Exception as _e:\\n    print('refused:' + str(_e))\")", /refused:.*(UV|verif|NotAllowedError)/i, "without user verification it is refused (by the browser, or the page checks the UV flag): the console gets an error, never a signature");
+await page.waitForURL(BASE + "console/", { timeout: 15000 }).catch(() => {});
+check(page.url() === BASE + "console/", `the emulator's old address, emu/, sends you to the console (${page.url().slice(BASE.length - 13)})`);
+await ctx.close();
 
 // 7. the console page (docs/console/): only the console, your passkey as its key. A fresh browser
-// profile: no passkey, no Safes. It asks for each in turn, then runs the firmware from ../emu/.
+// profile: no passkey, no Safes. It asks for each in turn, then runs the firmware.
 const ctx2 = await browser.newContext({ viewport: { width: 1000, height: 900 } });
 // the console may only reach Safe's service; the app (its passkey page) also reads each chain: refused, not counted
 const offsite = (route) => {
@@ -145,11 +72,9 @@ const offsite = (route) => {
   return route.abort();
 };
 await ctx2.route("**/*", offsite);
-await ctx.close();                              // the emulator's page: from here on, the server hears only the console page
-const from = server.asked.length;
+const from = server.asked.length;                // from here on, the server hears only the console page
 const con = await ctx2.newPage();
-con.on("console", (m) => { if (/Content Security Policy|Refused to/.test(m.text())) csp.push("console page: " + m.text()); });
-con.on("pageerror", (e) => errors.push("console page: " + e.message));
+watch(con, "console page");
 await con.goto(BASE + "console/");
 await con.waitForFunction(() => self.crossOriginIsolated && !document.querySelector("#overlay").hidden, null, { timeout: 30000 });
 check(await con.evaluate(() => self.crossOriginIsolated), "console page: it isolates itself too (its own sw.js)");
@@ -230,8 +155,7 @@ await ctx2.close();
 const ctx3 = await browser.newContext({ viewport: { width: 1000, height: 900 } });
 await ctx3.route("**/*", offsite);
 const con3 = await ctx3.newPage();
-con3.on("console", (m) => { if (/Content Security Policy|Refused to/.test(m.text())) csp.push("console page (found): " + m.text()); });
-con3.on("pageerror", (e) => errors.push("console page (found): " + e.message));
+watch(con3, "console page (found)");
 const cdp3 = await ctx3.newCDPSession(con3);
 await cdp3.send("WebAuthn.enable");
 const auth3 = (await cdp3.send("WebAuthn.addVirtualAuthenticator", { options: {
@@ -262,7 +186,7 @@ check(sums.every(([h, f]) => sha(readFileSync(join(CON, f))) === h) && sums.leng
   `SHA256SUMS: every file in console/ but itself and BUILD.json, each hash right (${sums.length} files)`);
 const fw = readdirSync(join(CON, "firmware")).sort();
 const fwPrint = sha(fw.map((f) => `${f}\0${sha(readFileSync(join(CON, "firmware", f)))}\n`).join(""));
-check(fwPrint === BOOT.release && fw.length === BOOT.consoleFiles.length, `firmware/ is the console image, and hashes to its release fingerprint ${short}`);
+check(fwPrint === BOOT.release && fw.length === BOOT.firmware.length, `firmware/ is the console image, and hashes to its release fingerprint ${short}`);
 check(!files.some((f) => /(^|\/)[_.]/.test(f)), "no file Jekyll would leave out on Pages (a name starting with _ or .)");
 
 const alone = await serve(CON, "/");
@@ -270,8 +194,7 @@ const COPY = `http://localhost:${alone.address().port}/`;
 const ctx4 = await browser.newContext({ viewport: { width: 1000, height: 900 } });
 await ctx4.route("**/*", (route) => { const u = route.request().url(); if (u.startsWith(COPY)) return route.continue(); outside.push(u); return route.abort(); });
 const con4 = await ctx4.newPage();
-con4.on("console", (m) => { if (/Content Security Policy|Refused to/.test(m.text())) csp.push("console copy: " + m.text()); });
-con4.on("pageerror", (e) => errors.push("console copy: " + e.message));
+watch(con4, "console copy");
 const cdp4 = await ctx4.newCDPSession(con4);
 await cdp4.send("WebAuthn.enable");
 await cdp4.send("WebAuthn.addVirtualAuthenticator", { options: {
@@ -293,6 +216,95 @@ check(await con4.locator(`#owner .copy`, { hasText: "Share deploy link" }).count
   "it shows the copy's passkey's owner address, with its deploy link");
 await ctx4.close();
 alone.close();
+
+// 10. signing, for real: Safe's service is tools/mock-tx-service/sim.mjs, in this process (its
+// hashes come from viem, which shares no code with the firmware). The passkey is an owner of its Safe,
+// Alice has proposed a send and signed it; the console reads the queue, the person sees every page and
+// holds A, the passkey signs, and the posted confirmation must verify the way the Safe checks it.
+const sim = await import("../tools/mock-tx-service/sim.mjs").catch((e) => {
+  throw new Error(`tools/mock-tx-service needs its packages (cd tools/mock-tx-service && npm ci): ${e.message}`);
+});
+const st = { ...sim.fresh(), chainId: 84532, name: "Test Safe" };
+const SVC = "https://api.safe.global/tx-service/basesep";
+const posted = [], auths = new Set();
+const ctx5 = await browser.newContext({ viewport: { width: 1000, height: 900 } });
+await ctx5.route("**/*", async (route) => {
+  const r = route.request(), u = r.url();
+  if (u.startsWith(BASE)) return route.continue();
+  if (!u.startsWith(SVC + "/")) { outside.push(u); return route.abort(); }
+  const cors = { "access-control-allow-origin": "*", "access-control-allow-headers": "authorization, content-type", "access-control-allow-methods": "GET, POST" };
+  if (r.method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors });
+  auths.add(r.headers().authorization || "");
+  const url = new URL(u), path = url.pathname.slice(new URL(SVC).pathname.length);
+  const reply = (status, body) => route.fulfill({ status, headers: { ...cors, "content-type": "application/json" }, body: JSON.stringify(body) });
+  let m;
+  if ((m = path.match(/^\/api\/v1\/safes\/(0x[0-9a-fA-F]{40})\/?$/))) return m[1].toLowerCase() === st.address.toLowerCase() ? reply(200, sim.apiSafe(st)) : reply(404, { detail: "Not found." });
+  if ((m = path.match(/^\/api\/v2\/safes\/(0x[0-9a-fA-F]{40})\/multisig-transactions\/?$/))) return reply(200, sim.apiList(st, url.searchParams));
+  if ((m = path.match(/^\/api\/v1\/multisig-transactions\/(0x[0-9a-fA-F]{64})\/?$/))) { const t = sim.find(st, m[1]); return t ? reply(200, sim.apiTx(st, t)) : reply(404, {}); }
+  if ((m = path.match(/^\/api\/v1\/multisig-transactions\/(0x[0-9a-fA-F]{64})\/confirmations\/?$/)) && r.method() === "POST") {
+    const t = sim.find(st, m[1]);
+    const res = t ? await sim.confirm(st, t, JSON.parse(r.postData() || "{}").signature || "0x") : { ok: false, error: "no such transaction" };
+    posted.push(res);
+    return res.ok ? reply(201, {}) : reply(400, { detail: res.error });
+  }
+  return reply(404, { detail: "Not found." });
+});
+const con5 = await ctx5.newPage();
+watch(con5, "console signing");
+con5.on("dialog", (d) => d.accept());           // the one-time note before the first signature
+const cdp5 = await ctx5.newCDPSession(con5);
+await cdp5.send("WebAuthn.enable");
+const auth5 = (await cdp5.send("WebAuthn.addVirtualAuthenticator", { options: {
+  protocol: "ctap2", transport: "internal", hasResidentKey: true, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true } })).authenticatorId;
+await con5.goto(BASE + "console/");
+await con5.waitForFunction(() => self.crossOriginIsolated && /Make a passkey/.test(document.querySelector("#overlay")?.innerText || ""), null, { timeout: 30000 });
+await con5.click("#overlay .go:not(.alt)");
+await con5.waitForFunction(() => /Add a Safe/.test(document.querySelector("#overlay").innerText), null, { timeout: 15000 });
+const cred5 = JSON.parse(await con5.evaluate(() => localStorage.getItem("emu.passkey")));
+const mine = sim.registerDevice(st, { name: "the console page's passkey", qx: "0x" + cred5.x, qy: "0x" + cred5.y });
+const to = Object.values(sim.BOOK)[0];
+const tx5 = await sim.propose(st, { to, value: "50000000000000000" }, { scenario: "send" });
+await sim.signAs(st, "alice", tx5);
+await con5.evaluate(() => localStorage.setItem("pq.apiKey", JSON.stringify("k-e2e")));
+await con5.fill("#overlay .add-safe input >> nth=0", `basesep:${st.address}`);
+await con5.locator("#overlay .add-safe input >> nth=0").dispatchEvent("input");
+await con5.click("#overlay .add-safe .go");
+await con5.waitForFunction(() => document.querySelector("#overlay").hidden && +(document.querySelector("#screen").dataset.frames || 0) > 0, null, { timeout: 60000 });
+check((await con5.locator("#owner .addr").innerText()).trim() === mine.address, `the page's owner address is the one the Safe has as an owner (${mine.address.slice(0, 10)}…)`);
+const statusOk = await con5.waitForFunction(() => /your passkey is an owner/.test(document.querySelector("#safes")?.innerText || ""), null, { timeout: 15000 }).then(() => true, () => false);
+check(statusOk, "the panel asks Safe's service, and says the passkey is an owner");
+
+// count the page's WebAuthn requests, to know when the console asked the passkey
+await con5.evaluate(() => { const get = navigator.credentials.get.bind(navigator.credentials); window.asked = 0; navigator.credentials.get = (o) => { window.asked++; return get(o); }; });
+const holdA = async (ms) => { await con5.locator('[data-key="A"]').dispatchEvent("pointerdown"); await con5.waitForTimeout(ms); await con5.locator('[data-key="A"]').dispatchEvent("pointerup"); await con5.waitForTimeout(400); };
+// Each press of A opens the transaction, or turns to a page not yet seen; once every page is seen,
+// holding it signs. Without user verification first: the passkey is asked, and nothing is posted.
+await cdp5.send("WebAuthn.setUserVerified", { authenticatorId: auth5, isUserVerified: false });
+for (let i = 0; i < 12 && !(await con5.evaluate(() => window.asked)); i++) await holdA(2600);
+await con5.waitForTimeout(1500);
+check(await con5.evaluate(() => window.asked) > 0 && !posted.length,
+  `without user verification the passkey is asked and refuses: nothing is posted (${await con5.evaluate(() => window.asked)} asked, ${posted.length} posted)`);
+await cdp5.send("WebAuthn.setUserVerified", { authenticatorId: auth5, isUserVerified: true });
+for (let i = 0; i < 12 && !posted.length; i++) await holdA(2600);
+const conf = tx5.confirmations.find((c) => c.owner === mine.address);
+check(posted.length === 1 && posted[0].ok && posted[0].owner === mine.address && conf?.signatureType === "CONTRACT_SIGNATURE",
+  `held A after seeing every page: the passkey signed, and the confirmation verifies the way the Safe checks it: WebAuthn P-256, over the hash viem computes from the fields (${JSON.stringify(posted.map((p) => p.ok ? "ok" : p.error))})`);
+check(tx5.isExecuted === true, "with Alice's, that makes 2 of 2: the Safe executes it");
+check(auths.size === 1 && auths.has("Bearer k-e2e"), `every call to Safe's service carried the API key saved in the app (${[...auths].join(", ") || "none"})`);
+// the network is Safe's service and this folder, enforced by the browser: in the page, and in the
+// worker that makes the firmware's calls (its CSP comes from sw.js's header, not the page's <meta>)
+const PROBE = "https://csp-probe.invalid/";
+const probe = () => new Promise((done) => {
+  self.addEventListener("securitypolicyviolation", (e) => done(e.effectiveDirective), { once: true });
+  try { const x = new XMLHttpRequest(); x.open("GET", "https://csp-probe.invalid/", false); x.send(); } catch {}
+  setTimeout(() => done(""), 3000);
+});
+const inPage = await con5.evaluate(probe);
+const w5 = con5.workers()[0];
+const inWorker = w5 ? await w5.evaluate(probe) : "no worker";
+check(inPage === "connect-src" && inWorker === "connect-src", `a request to any other host is refused by the CSP, in the page (${inPage || "allowed"}) and in the worker (${inWorker || "allowed"})`);
+await ctx5.close();
+for (let i = csp.length - 1; i >= 0; i--) if (csp[i].includes(PROBE.slice(8, -1))) csp.splice(i, 1);     // the probes' own reports
 
 check(!csp.length, `no CSP violations${csp.length ? ": " + csp.slice(0, 3).join(" | ") : ""}`);
 check(!errors.length, `no page errors${errors.length ? ": " + errors.join("; ") : ""}`);

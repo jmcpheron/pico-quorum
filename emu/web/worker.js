@@ -45,16 +45,12 @@ function xhr(method, url, body, headers, timeoutMs) {
   return { status: x.status, text: x.responseText, headers: hdrs };
 }
 
-// The virtual chips' state (emu/chip.json) survives reboots. Under tools/emu it lives on the server;
-// on GitHub Pages (static) the page hands it over at boot and keeps each save in the browser.
+// The virtual chips' state (emu/chip.json) survives reboots: it lives on the server (tools/emu).
 const CHIP_URL = new URL("../ctl/chip", import.meta.url).href;
 const serverChip = {
   load() { const x = new XMLHttpRequest(); x.open("GET", CHIP_URL, false); x.send(); return x.status === 200 ? x.responseText : null; },
   save(s) { const x = new XMLHttpRequest(); x.open("POST", CHIP_URL, false); x.setRequestHeader("content-type", "application/json"); x.send(s); },
 };
-function pageChip(state) {
-  return { load: () => state, save(s) { state = s; postMessage({ type: "chip", data: s }); } };
-}
 
 // A question only the page can answer (WebAuthn exists there, not in a worker), asked while Python
 // waits: post it, block on the shared buffer until the page writes the answer. Int32 [ready, length]
@@ -83,7 +79,7 @@ onmessage = async (e) => {
         loadMicroPython, keys, files, shims: m.shims, appUrl: m.appUrl, heapsize: m.heapsize, mark,
         secrets: m.secrets, keyBin: m.keyBin, passkey: pagePasskey(m.passkey),
         http: xhr,
-        chip: m.chip !== undefined ? pageChip(m.chip) : serverChip,
+        chip: serverChip,
         stdin: serialCtl ? stdinByte : undefined,
         onFrame,
         onStdout: (line) => postMessage({ type: "out", line }),

@@ -19,7 +19,9 @@
 //   opts.heapsize         MicroPython heap in bytes (default ~ a Pico 2 W)
 //   opts.passkey          { info() -> JSON|null, get(challengeHex) -> JSON }: the visitor's passkey
 //                         (shims/passkey.py); the page's WebAuthn, or core/softpasskey.mjs in tests
-//   opts.keyBin           the software key's 32 bytes (default: a fixed test key)
+//   opts.keyBin           the software key's 32 bytes (default: a fixed test key; null: no key.bin,
+//                         for the console page, whose only key is the visitor's passkey)
+//   opts.shims            { name: source } for /lib; the console page passes only the shims it uses
 
 export const KEY_ORDER = ["A", "B", "X", "Y", "up", "down", "left", "right", "press"];
 // GPIO -> key, from firmware/lcd.py
@@ -206,15 +208,14 @@ export async function createDevice(opts) {
   mp.registerJsModule("_emu", bridge);
   const FS = mp.FS;
   try { FS.mkdir("/lib"); } catch (e) {}
-  for (const name of SHIMS) FS.writeFile(`/lib/${name}.py`, opts.shims[name]);
+  for (const name of SHIMS) if (opts.shims[name] !== undefined) FS.writeFile(`/lib/${name}.py`, opts.shims[name]);
   FS.writeFile("/lib/_bootstrap.py", opts.shims._bootstrap);
   for (const [name, data] of Object.entries(opts.files || {})) writeFile(name, data);
   writeFile("secrets.py", secretsPy(opts.appUrl === null ? null : opts.appUrl || "http://localhost:3001") + (opts.secrets || ""));
   // A fixed throwaway software key, so the virtual wallet's address survives reboots and a vault
-  // deployed against it on anvil keeps working across runs. Never a real key. The page on GitHub
-  // Pages passes its own (opts.keyBin): random, kept in that browser, since a fixed key in a public
-  // page would be anyone's.
-  writeFile("key.bin", opts.keyBin || Uint8Array.from({ length: 32 }, (_, i) => i + 1));
+  // deployed against it on anvil keeps working across runs. Never a real key, and never on a public
+  // page, where it would be anyone's: the console page passes null and gets no key.bin at all.
+  if (opts.keyBin !== null) writeFile("key.bin", opts.keyBin || Uint8Array.from({ length: 32 }, (_, i) => i + 1));
   mark("flash written");
   mp.runPython("import _bootstrap");
   mark("bootstrapped");
