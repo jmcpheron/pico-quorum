@@ -69,6 +69,8 @@ def walk(rev):
     cfg = bytes(sim.cfg)
     check(chipcfg.identify(cfg) == "quorum-v2" and cfg[86] == 0 and cfg[87] == 0 and cfg[88] == 0xFE,
           "%s: quorum v2, locked 00 00, slot 0 sealed" % rev)
+    c3, _ = ceremony()
+    check(c3.branded == bytes(sim.otp), "%s: after a reboot the bench reads the record from the locked OTP (the screen's number)" % rev)
     rec = chipcfg.brand_decode(bytes(sim.otp))
     check(rec is not None and rec["bench"] == chipcfg.TEST_BENCH and rec["seq"] == 42 and rec["serial"] == c.serial
           and rec["zeros"], "%s: the OTP holds the test-bench record, number 42, this serial" % rev)

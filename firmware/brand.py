@@ -121,6 +121,15 @@ class Ceremony(P.Ceremony):
         self.timing = None
         P.Ceremony.__init__(self, sig)
 
+    def read(self):
+        P.Ceremony.read(self)
+        if self.data_locked and self.branded is None:
+            try:            # frozen and readable now: the screen shows the chip's own number
+                self.branded = bytes(self.chip.read_otp(0)) + bytes(self.chip.read_otp(1))
+            except atecc.AteccError:
+                pass
+        return self
+
     def index(self, st):
         if st[0] == "B":
             return int(st[1:])

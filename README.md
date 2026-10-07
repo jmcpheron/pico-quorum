@@ -184,7 +184,7 @@ console up to the README:
 |---|---|---|
 | <img src="docs/releases/badges/console-blockie.svg" width="32" height="32" alt=""> | **console** | `39a5749ef170754d6295385725a877c99389ed6be4b5234c6e4b7f5547a3ac1b` |
 | <img src="docs/releases/badges/ceremony-blockie.svg" width="32" height="32" alt=""> | **ceremony** | `cd387e337e9825009629f06c25663ab26baca5dc4008aa17a09b9f356aa30807` |
-| <img src="docs/releases/badges/brand-blockie.svg" width="32" height="32" alt=""> | **brand** | `4c6d971fd1ecbae002a52231e8a5988b78fcac765d2990ed71e157d7eb91b144` |
+| <img src="docs/releases/badges/brand-blockie.svg" width="32" height="32" alt=""> | **brand** | `a2eb567d5fb41cb5795e7749dd84ce5f2700ae551556cae7fbfc138d6463bd5e` |
 | <img src="docs/releases/badges/dual-blockie.svg" width="32" height="32" alt=""> | **dual** | `2560ae85caf5996ae1634b21a3ca07ee59eb53fa9bbcd9ca4d856204594b8993` |
 
 <!-- build:end -->

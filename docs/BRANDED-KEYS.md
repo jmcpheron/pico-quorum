@@ -255,6 +255,15 @@ and A held for 3 s.
 - How long U1 takes on the Pico: one P-256 verify. The Trust M certificate check, also one verify,
   takes about 1.4 s.
 
+**Chip 5, a spare 608A, 2026-10-07** ([buildlog](../buildlog/BUILDLOG.md)):
+- GenKey after the data lock: **works.** S1 made a key in slot 0, which had never held one.
+- PrivWrite after the data lock: **not tested.** The driver has no PrivWrite command.
+- Slot 8: **reads in the clear after the lock, and is in the data CRC** (the lock took a CRC over it).
+- Revision: `00006002`, a 608A. No 608C has been on the bench.
+- U1's check: **2.3 s** on the Pico.
+- **New:** counter 0 was **1** before any key existed, most likely the bench's public-key read of the
+  empty slot 0 after the data lock (not yet tried in isolation). U1's "Never used: 0 signatures" needs rewording.
+
 ## The chip on every screen
 
 Every step, on the bench and on the user's console, shows the chip under its header, so the wizard
@@ -378,13 +387,13 @@ In order. Each item that changes firmware is a new release fingerprint.
 
 ## The first build: a spare on Build 1
 
-The bench half, B1–B7, runs on a **spare** ATECC608A (chip 5, `0123a431b1490801ee`) to settle the
-silicon list above. It is the `brand` image (`tools/fw push brand`): `firmware/brand.py` for the
+The bench half, B1–B7, ran on a **spare** ATECC608A (chip 5, `0123a431b1490801ee`) on 2026-10-07,
+to settle the silicon list above (results there). It is the `brand` image (`tools/fw push brand`): `firmware/brand.py` for the
 steps and checks, `firmware/brand_ui.py` for the screens above, built from the same kit as the
 mockups.
 
 - **B5 signs with a public test key, not key 0000.** Key 0000 doesn't exist yet. The record says
-  bench `0xFF` (number `T0042`), and the brand check refuses it as a brand, so the spare can never
+  bench `0xFF` (chip 5 is `T0001`; the pictures say `T0042`), and the brand check refuses it as a brand, so the spare can never
   pass as a branded key.
 - **S1–S3 do the claim's key steps on the bench:** GenKey after the data lock, two signatures, the
   slot lock. They are tests, not the claim.
