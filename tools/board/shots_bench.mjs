@@ -54,6 +54,10 @@ for (const st of ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "S1", "S2", "S3", "S
   const gated = ["B3", "B6", "S1", "S3"].includes(st);
   py(`assert c.step() == "${st}", c.step()\npaint()`);
   shot(st.toLowerCase());
+  if (st === "B3") {             // ALLOW_LOCK False: the red line, and Lock grey
+    py(`real = S.flag\nS.flag = lambda n: False if n == "ALLOW_LOCK" else real(n)\npaint()\nS.flag = real`);
+    shot("b3-not-allowed");
+  }
   if (gated) {
     py(`half()`);
     shot(st.toLowerCase() + "-hold");

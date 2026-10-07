@@ -286,7 +286,10 @@ class UI(P.UI):
                     frac = min(1, time.ticks_diff(time.ticks_ms(), self.armhold) / P.ARM_MS)
                 hold_bar(d, frac, red and bool(left))
         if self.knob:
-            U.knob_choices(d, _Q, (("go", go), ("back", "Back")), ("go", "back")[self.choice], "turn · press")
+            # an ALLOW_* flag off: nothing to do here, so the go choice stays grey even in focus
+            blocked = gated and st not in c.FINAL and why and not why.startswith("not armed")
+            focus = ("go", "back")[self.choice]
+            U.knob_choices(d, _Q, (("go", go), ("back", "Back")), None if blocked and focus == "go" else focus, "turn · press")
         else:
             hints(d, (("A", ("Hold " + go) if gated else go), ("Y", "Back")))
 
