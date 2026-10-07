@@ -14,6 +14,7 @@ troubleshooting.
 - [`mainnet/`](mainnet/README.md): a Trust M signer in a mainnet Safe. Written for co-signers too: checking a chip, the threat model, the recommended configuration, the operator's runbook
 - [`SECURITY.md`](SECURITY.md): how to report a vulnerability, and the console's trust model
 - [`PROVISIONING.md`](PROVISIONING.md): the quorum v1 chip config and the fresh-chip ceremony
+- [`BRANDED-KEYS.md`](BRANDED-KEYS.md): the plan for the keys we ship: branded at our bench, the Safe key made by its owner, and a key's first Safe
 - [`LOCKING.md`](LOCKING.md): what each ATECC608 lock does to the multisig
 - [`LADDER.md`](LADDER.md): the test ladder from a simulated Safe to Ethereum mainnet, and the `tools/quorum live` runbook
 - [`firmware-production/`](firmware-production/README.md) and [`quorum-ui/`](quorum-ui/README.md): screenshot walkthroughs

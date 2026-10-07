@@ -88,6 +88,9 @@ host the console page may reach.
 
 ## Hardware
 
+- **Shipped keys are ATECC608** (decided 2026-10-07): key-c's 608C, branded at our bench, with the
+  Safe key made by its owner ([BRANDED-KEYS.md](BRANDED-KEYS.md), a plan). The Trust M stays the
+  project Safe's own key.
 - **The dev console** (Waveshare, [DEV-CONSOLE.md](../hardware/DEV-CONSOLE.md)) runs the console
   image, with chip #1 or TM1.
 - **Build 1** (2.0″ screen, knob, TRRS jacks) is on the bench ([BUILD1.md](../hardware/wiring/BUILD1.md)).
@@ -122,10 +125,9 @@ From [LADDER.md](LADDER.md):
 ## Open decisions
 
 Hardware (from the Build 1 bench and the kickoff):
-- **The production key's chip:** Trust M (attempt throttling) or ATECC608 (needs a counter-based
-  limit). key-c carries an ATECC608C; the mainnet plan uses a Trust M.
-- **The slot plan** before locking any ATECC: which slot signs, what's lockable, a CheckMac or PIN
-  gate. The config lock freezes all of it.
+- **The slot plan** for branded keys: quorum-v2, a brand key beside the Safe key
+  ([BRANDED-KEYS.md](BRANDED-KEYS.md)), until a sacrificial chip has run it. The config lock freezes
+  all of it.
 - **The connector:** key-c's USB-C plug is the one in production; the card-edge and pogo designs
   stay in [key-pcb/](../hardware/key-pcb/README.md).
 - **Key power:** GP6 directly, or a PNP high-side switch. Measure whether a Sign holds up on GP6.

@@ -193,7 +193,7 @@ See [`hardware/bom/README.md`](../hardware/bom/README.md).
 
 ## Open decisions
 
-- [ ] Secure element for real keys: ATECC608 (driver here) vs Trust M (driver and on-chain attestation upstream)
+- [x] Secure element for real keys: ATECC608 for every key we ship (key-c carries a 608C), decided 2026-10-07. Each is branded at our bench and its owner makes the Safe key ([BRANDED-KEYS.md](BRANDED-KEYS.md)). The Trust M stays the project Safe's own key.
 - [x] WebAuthn-shaped signatures vs. a custom ERC-1271 signer: Safe's passkey signer, one SafeWebAuthnSignerProxy per key, verifiers = the P-256 precompile then Daimo. No contract of our own. (Safe's unreleased native P-256 owners could replace the proxy later; the packaging is all in `webauthn.py`.)
   - Keep the format reusable by Hegotá frame transactions; see [Hegotá watch](HEGOTA-WATCH.md). A WebAuthn assertion is what a P-256 validation frame would check too, so the chip signs nothing new.
 - [ ] Whether a PIN/authorization is feasible on the chosen chip

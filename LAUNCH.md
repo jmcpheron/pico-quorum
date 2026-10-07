@@ -130,6 +130,8 @@ owner address.
       is a new dependency and a new network call. Decide before building toward it;
       [HEGOTA-WATCH.md](docs/HEGOTA-WATCH.md) has the longer path.
 - [ ] Build it on picoquorum.app, after section 1, since a passkey belongs to the host that made it.
+- [ ] A branded chip gets the same starter Safe, deployed at the project's cost
+      ([docs/BRANDED-KEYS.md](docs/BRANDED-KEYS.md#a-keys-first-safe)).
 
 ## 5. Firmware ready for production
 
@@ -161,7 +163,7 @@ What's left:
 
 Today:
 - **The decision.** Shipped keys are ATECC608 (key-c carries a 608C); the Trust M is for the
-  project Safe's key. STATUS.md still lists this as open.
+  project Safe's key. Settled 2026-10-07.
 - **The chip's job.** Every fresh chip gets quorum v1 through the C1–C10 ceremony
   ([PROVISIONING.md](docs/PROVISIONING.md)), proven on chip #2. That is one sealed P-256 key in
   slot 0, slots 1–15 dead, and a use counter.
@@ -173,9 +175,10 @@ Today:
 - **The list there is.** The off-chain [key registry](docs/registry/README.md) covers Trust M
   only, and `tools/fw attest` refuses an ATECC608.
 
-To do:
+To do. The plan for the rest of this section, and for a branded key's first Safe, is
+[docs/BRANDED-KEYS.md](docs/BRANDED-KEYS.md).
 
-- [ ] STATUS.md: close the open decision on the production chip, as above.
+- [x] STATUS.md: close the open decision on the production chip, as above.
 - [ ] Before sealing chip #3, decide the brand and quorum record. Either:
   - a version 2 OTP record that makes room for a quorum ID; or
   - a quorum v2 table with one readable slot, written before the data lock. For example, slot 8
