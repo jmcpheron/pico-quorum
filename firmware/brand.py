@@ -70,6 +70,22 @@ def brand_check(rec, slot8, serial, revision, cfg, keys):
             ("the rest of slot 8 zeros", slot8[224:] == bytes(len(slot8) - 224))]
 
 
+LOG = "brand-log.txt"
+
+
+def log(step, out):
+    """Every step's full result into brand-log.txt on the board (the screen shows only a few lines):
+    the record of what this silicon did, read back over USB."""
+    ok, checks, msg = out
+    try:
+        with open(LOG, "a") as f:
+            f.write("%d %s %s: %s\n" % (time.time(), step, "ok" if ok else "STOPPED", msg))
+            for label, k in checks:
+                f.write("  %s %s\n" % ("ok" if k else "NO", label))
+    except OSError:
+        pass
+
+
 TITLES = {"B1": "Pre-flight", "B2": "Write quorum v2", "B3": "Lock the config", "B4": "Write the brand",
           "B5": "Sign the brand", "B6": "Lock the data zone", "B7": "Check it", "S1": "Make a key",
           "S2": "Test signatures", "S3": "Seal slot 0", "S4": "Done", "other": "Not for this bench"}
@@ -139,6 +155,7 @@ class Ceremony(P.Ceremony):
         except Exception as e:
             out = (False, [], "%s" % e)
         self.read()
+        log(step, out)
         return out
 
     def cother(self):

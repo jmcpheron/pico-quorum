@@ -164,17 +164,19 @@ class FakeKnob:
 
 
 def case_knob():
-    """The knob alone (build1): press for B1 and B2; B3 takes a 3 s hold to arm, then another to lock."""
+    """The knob alone (build1) on brand_ui's screen: press for B1 and B2; B3 takes a 3 s hold to arm,
+    then another to lock."""
     import time
     import lcd as L
     secrets()
     fresh_chip()
     c, B = ceremony()
     P = B.P                             # the provision module brand.py runs on, after secrets() reloaded it
+    import brand_ui
     k = FakeKnob()
     L.KNOB = True
     try:
-        ui = P.UI(None, k, None, "dark", c)
+        ui = brand_ui.UI(None, k, None, "dark", c)     # the bench's own screen, on provision.UI's handling
         ui.busy = lambda st: None
         for st in ("B1", "B2"):
             ui.tick(["press"])

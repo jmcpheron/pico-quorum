@@ -215,5 +215,7 @@ def brand_digest(record):
 
 
 def brand_number(rec):
-    """The label's number: 0042 on bench 0, B2-0042 on any other."""
+    """The label's number: 0042 on bench 0, B2-0042 on any other, T0042 on the test bench."""
+    if rec["bench"] == TEST_BENCH:
+        return "T%04d" % rec["seq"]
     return "%04d" % rec["seq"] if rec["bench"] == 0 else "B%d-%04d" % (rec["bench"], rec["seq"])

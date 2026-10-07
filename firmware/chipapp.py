@@ -16,8 +16,9 @@ chip = None         # this chip's entry in chips.json (name, theme): which chip 
 profile = ""
 _busy = False
 sel = 0             # the knob's choice on the banner: 0 PROVISION, 1 the map
-# The brand image (main_brand.py) sets these: its own ceremony class for an ATECC608, and its banner.
-CEREMONY = None
+# The brand image (main_brand.py) sets these: its own screen for an ATECC608, make_ui(d, keys, sig,
+# theme), and its banner.
+make_ui = None
 TITLE, LABEL = "CEREMONY IMAGE", "PROVISION (quorum v1)"
 STATE = {"factory": "FRESH: ready for PROVISION", "quorum-v1": "sealed or in progress: quorum v1",
          "quorum-v2": "branded or in progress: quorum v2", "quorum-tm1": "sealed: Trust M quorum-tm1", "quorum-tm1-open": "in progress: Trust M",
@@ -96,7 +97,7 @@ def open_choice(what):
             import provision_tm
             prov = provision.UI(d, keys, sig, chip["theme"], provision_tm.Ceremony(sig))
         else:
-            prov = provision.UI(d, keys, sig, chip["theme"], CEREMONY(sig) if CEREMONY else None)
+            prov = (make_ui or provision.UI)(d, keys, sig, chip["theme"])
         prov.draw()
     elif what == "map":
         import provision_tm
