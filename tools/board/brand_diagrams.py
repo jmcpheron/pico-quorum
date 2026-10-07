@@ -149,7 +149,7 @@ def chip_map():
     o.append(box(24, y, W - 48, 154, fill=PANEL))
     o.append(t(44, y + 30, "OTP zone", 18, TEXT, 700) + t(146, y + 30, "64 bytes", 13, MUTED))
     o.append(lock(W - 250, y + 15, RED) + t(W - 228, y + 30, "B6: frozen with the data", 13, BENCH, 600))
-    segs = [(2, "PQ"), (1, "v2"), (1, "prof"), (9, "serial"), (4, "rev"), (2, "CRC"), (2, "batch"), (4, "number"),
+    segs = [(2, "PQ"), (1, "v2"), (1, "prof"), (9, "serial"), (4, "rev"), (2, "CRC"), (2, "batch"), (1, "bench"), (3, "seq"),
             (4, "date"), (4, "build"), (16, "brand key id"), (15, "zeros")]
     bx, bw = 44, W - 88
     x, low = bx, False
@@ -174,8 +174,8 @@ def brand_record():
     y = 120
     # the record
     o.append(box(32, y, 270, 150, fill=PANEL) + t(52, y + 30, "OTP · brand record", 15, TEXT, 700))
-    o.append(lines(52, y + 56, ["PQ · v2 · quorum v2", "serial 0123e1…e1ee · 608C", "config CRC · batch 3 · 0042",
-                                "date · bench build", "brand key id"], 12, 17, MUTED, font=MONO))
+    o.append(lines(52, y + 56, ["PQ · v2 · quorum v2", "serial 0123e1…e1ee · 608C", "config CRC · batch 3",
+                                "bench 0 · seq 42 (0042)", "date · bench build · key id"], 12, 17, MUTED, font=MONO))
     o.append(arrow(306, y + 75, 340, y + 75))
     # the digest
     o.append(box(344, y + 30, 250, 90, fill=PANEL, stroke=WARN) + t(469, y + 58, "SHA-256(", 13, WARN, 600, "middle", MONO))
@@ -192,13 +192,16 @@ def brand_record():
     o.append(t(52, y2 - 10, "slot 8 · 416 bytes", 13, TEXT, 700))
     sx, sw = 52, W - 104
     o.append(box(sx, y2 + 16, sw * 64 / 416, 42, fill=BENCH + "40", stroke=BENCH, r=4) + t(sx + sw * 32 / 416, y2 + 42, "r ‖ s · 64 B", 12, TEXT, 600, "middle"))
-    o.append(box(sx + sw * 64 / 416 + 2, y2 + 16, sw * 352 / 416 - 2, 42, fill=DEAD + "40", stroke=DEAD, r=4) +
-             t(sx + sw * 240 / 416, y2 + 42, "zeros", 12, MUTED, anchor="middle"))
+    o.append(box(sx + sw * 64 / 416 + 2, y2 + 16, sw * 160 / 416 - 2, 42, fill=BG, stroke=BENCH, r=4, dash="4 3") +
+             t(sx + sw * 144 / 416, y2 + 35, "bench certificate · 160 B", 12, BENCH, 600, "middle") +
+             t(sx + sw * 144 / 416, y2 + 51, "kept for a second bench: zeros for now", 11, MUTED, anchor="middle"))
+    o.append(box(sx + sw * 224 / 416 + 2, y2 + 16, sw * 192 / 416 - 2, 42, fill=DEAD + "40", stroke=DEAD, r=4) +
+             t(sx + sw * 320 / 416, y2 + 42, "zeros", 12, MUTED, anchor="middle"))
     o.append('<path d="M%g %g C %g %g, %g %g, %g %g" fill="none" stroke="%s" stroke-width="2" marker-end="url(#a)"/>' % (
         890, y + 100, 900, y + 190, 200, y2 - 60, sx + 50, y2 + 12, MUTED))
-    o.append(t(32, 430, "The console checks it at U1: the signature under the pinned key 0000, the record's serial, revision and CRC "
-                        "against the chip, and both zones locked.", 12, MUTED))
-    o.append(t(32, 450, "The label's picture is the blockie of the digest's first 20 bytes.", 12, MUTED))
+    o.append(t(32, 430, "The console checks it at U1: the signature under the pinned key 0000; the record's serial, revision and CRC "
+                        "against the chip; both zones locked;", 12, MUTED))
+    o.append(t(32, 450, "bench 0 with no certificate. The label's picture is the blockie of the digest's first 20 bytes.", 12, MUTED))
     return svg(W, H, "The brand record is hashed with a fixed prefix, signed by PicoQuorum key 0000, and the signature is stored in slot 8", "".join(o))
 
 

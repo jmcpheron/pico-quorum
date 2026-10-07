@@ -123,7 +123,8 @@ yet:
 | 13 | 4 | Revision (608A, B or C) |
 | 17 | 2 | Config CRC (the one B3 locked with) |
 | 19 | 2 | Batch |
-| 21 | 4 | Label number (0042) |
+| 21 | 1 | Bench id (0 for now: key 0000's own bench) |
+| 22 | 3 | Sequence on that bench (42, printed as 0042) |
 | 25 | 4 | Date |
 | 29 | 4 | Bench build (the `brand` image's fingerprint, first 4 bytes) |
 | 33 | 16 | Brand key id: SHA-256(qx‖qy)[:16] of the brand key |
@@ -131,15 +132,20 @@ yet:
 
 <img src="branded-keys/brand-record.svg" width="100%" alt="How a chip gets its brand: the OTP record is hashed with the prefix PicoQuorum brand v1, key 0000 signs the digest, and its r and s, 64 bytes, go into the start of slot 8, the rest zeros.">
 
-Slot 8 holds the brand signature:
+Slot 8 holds the brand signature, with room kept for a bench certificate:
 - **Bytes 0–63:** the brand key's (r, s), low s.
 - **The digest it signs:** `SHA-256("PicoQuorum brand v1" ‖ OTP record)`.
-- **Bytes 64–415:** zeros.
+- **Bytes 64–223: the bench certificate, all zeros in version 2.** It is kept for a second bench
+  (point 5): that bench's id, its key's public half (qx‖qy), and key 0000's signature over both.
+  While it is zeros, the brand key must be key 0000 itself.
+- **Bytes 224–415:** zeros.
 
-The console checks three things:
+The console checks four things:
 - the signature, under the pinned brand key
 - that the record's serial, revision and config CRC match the chip in front of it
 - that both zones read locked
+- that the bench id is 0 and the certificate bytes are zeros. Until a second bench exists, any other
+  value is refused, not guessed at.
 
 **3. The brand key: a PicoQuorum key, number 0000.**
 - **A PicoQuorum key brands the others.** The brand key is the product itself: a key-c board with an
@@ -149,12 +155,13 @@ The console checks three things:
 - **It has today's whole ceremony, run by the project on the bench.** That is quorum v1, C1–C10
   ([PROVISIONING.md](PROVISIONING.md)), not the split below. It is the one key that can't be branded
   by another, so its record and the ceremony log are published instead.
-- **Its use counter is a public tally.** LimitedUse counts every signature in counter 0, which only
-  goes up. Key 0000 signs once per chip branded, plus its checks. A counter far above the number of
-  chips in the registry means it signed something else.
+- **Its use counter is a public tally.** LimitedUse counts every use in counter 0, which only goes
+  up. Key 0000 signs once per chip branded. Its other uses are its own checks, and each public-key
+  read once its data zone is locked (PROVISIONING.md). The bench logs those. A counter far above the
+  chips in the registry plus the logged uses means it signed something else.
 - **Never a Safe owner, and the brand image signs only brand digests.** Their fixed prefix keeps
   them apart from a WebAuthn digest.
-- **It can't prove it is genuine silicon.** An ATECC608 has no factory certificate (point 6). What
+- **It can't prove it is genuine silicon.** An ATECC608 has no factory certificate (point 7). What
   stands behind key 0000 is the project: its published record, and its key pinned in the firmware.
 - **Its public half is pinned in `quorum_cfg.py`.** That is a firmware change and a new release
   fingerprint. It is also published in `docs/registry/`. Once the project Safe holds picoquorum.eth, a
@@ -164,12 +171,37 @@ The console checks three things:
   it branded.
 
 **4. The label number and the brand picture.**
-- **The number:** each chip gets the next one across all batches (0042). It goes on the label, in
-  the record, and on the console's U1 screen.
+- **The number is a bench id and a sequence.** It is 1 byte for the bench and 3 bytes for the count
+  on that bench, which is 256 benches and about 16.7 million chips each.
+  - **Bench 0 prints just the sequence:** 0042. That is the only bench for now.
+  - **Any other bench prints its id first:** B2-0042.
+  - It goes on the label, in the record, and on the console's U1 screen.
+- **The number is a name, not the security.** The chip's factory serial (9 bytes, set by
+  Microchip) is what is unique, and key 0000's signature is what makes the brand hold. The number
+  is how people refer to the chip: on the label, in the registry, in a support thread.
+- **A number used up by a chip that fails** after B5 and before the B6 lock is logged with the
+  reason. The registry lists it, so the gap isn't a mystery.
+- **Sequential, on purpose:**
+  - **Pros:** short and easy to compare, no collisions on one bench, and gaps are easy to spot.
+  - **Cons:** one counter per bench, a burned number when a chip fails, and it shows how many were
+    made. The bench id is what keeps one counter from limiting the project to one bench.
 - **The picture:** the blockie of the brand digest's first 20 bytes. B7 and U1 both draw it, so the user
   matches the label to the chip by eye, as they already do for the verify code.
 
-**5. The list.**
+**5. More than one bench, later.** Nothing is built for this yet, but the record and slot 8 leave
+room for it. Both are written once and frozen, so the room has to be there from the first chip.
+- A new bench gets its own brand key, itself a PicoQuorum key, and a bench id.
+- Key 0000 signs that bench's certificate: its id and its key's public half. The certificate goes
+  into slot 8's bytes 64–223 of every chip that bench brands.
+- **The console then checks two signatures:** key 0000's over the certificate, then the bench key's
+  over the record.
+- **The firmware still pins only key 0000,** so a new bench needs no firmware release.
+- **A bench whose key leaks** is revoked in the registry without touching the others.
+- **Key 0000 then signs only certificates.** It could live in a drawer between benches.
+- **Further off, and not proposed:** numbers taken from a hash of the serial, with no counter;
+  project Safe approval for each bench key; or other brands beside PicoQuorum's (TRADEMARK.md).
+
+**6. The list.**
 - The registry ([registry/README.md](registry/README.md)) covers Trust M only today, and `tools/fw
   attest` refuses an ATECC608.
 - Each batch would add `docs/registry/brands/batch-<n>.json`: serial, number, OTP record and
@@ -178,7 +210,7 @@ The console checks three things:
 - One owner per serial: a second claim on the same serial is the sign of a copied brand.
 - An onchain Merkle root (LAUNCH.md) can come later. It would be PicoQuorum's first contract.
 
-**6. What the brand proves, and what it doesn't.**
+**7. What the brand proves, and what it doesn't.**
 - **It proves** the project's brand key signed this serial's record, with this config CRC, and that
   the chip in the console has that serial and that config, locked.
 - **It doesn't prove** the physical chip is the one the bench branded.
@@ -193,7 +225,7 @@ The console checks three things:
     must be confirmed against the datasheet and a spare chip. It is a later profile.
 - **It says nothing about the user's key.** The user's console made that.
 
-**7. The images.**
+**8. The images.**
 - **On the bench:** `brand` (B1–B7, the brand signature, both data locks).
 - **On the user's console:** today's `dual` image routes a fresh chip to the ceremony. It would
   route a quorum v2 chip with both zones locked and slot 0 unsealed to **claim** (U1–U5).
@@ -203,7 +235,7 @@ The console checks three things:
 - **The console image gets read-only brand lines** on its Chip page: "PicoQuorum key 0042, batch 3,
   brand checked".
 
-**8. The user's gates.** Today a permanent step needs `ALLOW_*` set from the laptop, the B+Y arm,
+**9. The user's gates.** Today a permanent step needs `ALLOW_*` set from the laptop, the B+Y arm,
 and A held for 3 s.
 - **Proposed for claim:** keep the arm and the hold, and drop `ALLOW_*`. The state check is the gate:
   claim offers its two writes only on a chip that is branded, locked 00/00 and unsealed. A user
