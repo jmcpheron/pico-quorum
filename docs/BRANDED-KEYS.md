@@ -49,16 +49,17 @@ one thing that matters: a key that only their console asked for.
 
 ### The rig
 
-- **One Pico with two chips on its I2C bus:**
-  - **The brand key**, a Trust M at 0x30, wired in for good. It is made with the Trust M ceremony as
-    it stands (T1–T10, [TRUSTM.md](TRUSTM.md)). It is never a Safe owner.
-  - **The chip being branded**, an ATECC608C on a key-c board, in a USB-C receptacle at 0x60.
-  - The board already handles both chips on one bus (`signer.load`, TRUSTM.md "Which chip is in").
+- **One Pico with two key-c receptacles:**
+  - **The brand key**, PicoQuorum key 0000. It is a key-c board like every other, plugged in for good.
+  - **The chip being branded**, an ATECC608C on a key-c board.
+  - Both ATECCs answer at 0x60, so each gets one of the Pico's two I2C controllers. The driver
+    already takes its pins as arguments (`atecc.ATECC608(sda, scl)`). The bench board needs the
+    second receptacle wired.
 - **A new `brand` image.** It holds B1–B7 and the brand signature. Like the ceremony image, it
   never goes on a user's console. It would be a fourth image in `firmware/manifest.json`, beside
   console, ceremony and dual, checked by `test-vectors/manifest.mjs`.
 - **A label printer** on the laptop. It prints from what B7 reports.
-- **The local inventory** (gitignored `chips/`), as for the Trust M chips (mainnet/RUNBOOK.md).
+- **The local inventory** (gitignored `chips/`), as for the chips so far (mainnet/RUNBOOK.md).
 
 ### The steps
 
@@ -76,7 +77,7 @@ B1–B3 are C1–C3 today, with a new table. B6 is C9. The new parts are B4, B5 
 
 | B4: write the brand | B6: lock the data zone | B7: what leaves the bench |
 |---|---|---|
-| <img src="branded-keys/b4-brand.png" width="240" alt="B4/7 Brand: writes the brand into slot 8 and the OTP zone, no key is made here, rewritable until B6"> | <img src="branded-keys/b6-data-lock.png" width="240" alt="B6/7 Lock the data zone: permanent, after this only the chip's own GenKey can put a key into slot 0"> | <img src="branded-keys/b7-label.png" width="240" alt="B7 Label OK: quorum v2 locked, brand signed by bench key 3c9a51, slot 0 empty, counter 0, and the brand picture"> |
+| <img src="branded-keys/b4-brand.png" width="240" alt="B4/7 Brand: writes the brand into slot 8 and the OTP zone, no key is made here, rewritable until B6"> | <img src="branded-keys/b6-data-lock.png" width="240" alt="B6/7 Lock the data zone: permanent, after this only the chip's own GenKey can put a key into slot 0"> | <img src="branded-keys/b7-label.png" width="240" alt="B7 Label OK: quorum v2 locked, brand signed by key 0000, slot 0 empty, counter 0, and the brand picture"> |
 
 The other bench screens look like today's ceremony ([firmware-production/shots](firmware-production/shots/)):
 [C1 pre-flight](firmware-production/shots/60-ceremony-C1.png),
@@ -127,12 +128,21 @@ The console checks three things:
 - that the record's serial, revision and config CRC match the chip in front of it
 - that both zones read locked
 
-**3. The brand key: a Trust M on the bench.**
-- **Not a laptop key.** A brand key in a file can leak, and a leaked brand key brands fakes.
-- **A Trust M.** It is sealed by the project's own ceremony, and Infineon's certificate shows it is
-  genuine silicon. Anyone can check it with `tools/quorum verify`, as for TM1.
-- **Never a Safe owner, and the brand image signs only brand digests.** Its fixed prefix keeps it
-  apart from a WebAuthn digest.
+**3. The brand key: a PicoQuorum key, number 0000.**
+- **A PicoQuorum key brands the others.** The brand key is the product itself: a key-c board with an
+  ATECC608C.
+- **Not a laptop key.** A brand key in a file can leak, and a leaked brand key brands fakes. Key
+  0000's private key was made in its chip and can't be read out, like every PicoQuorum key's.
+- **It has today's whole ceremony, run by the project on the bench.** That is quorum v1, C1–C10
+  ([PROVISIONING.md](PROVISIONING.md)), not the split below. It is the one key that can't be branded
+  by another, so its record and the ceremony log are published instead.
+- **Its use counter is a public tally.** LimitedUse counts every signature in counter 0, which only
+  goes up. Key 0000 signs once per chip branded, plus its checks. A counter far above the number of
+  chips in the registry means it signed something else.
+- **Never a Safe owner, and the brand image signs only brand digests.** Their fixed prefix keeps
+  them apart from a WebAuthn digest.
+- **It can't prove it is genuine silicon.** An ATECC608 has no factory certificate (point 6). What
+  stands behind key 0000 is the project: its published record, and its key pinned in the firmware.
 - **Its public half is pinned in `quorum_cfg.py`.** That is a firmware change and a new release
   fingerprint. It is also published in `docs/registry/`. Once the project Safe holds picoquorum.eth, a
   text record such as `org.picoquorum.brand` could name it, so changing the brand key would need the
@@ -196,7 +206,8 @@ and A held for 3 s.
 - PrivWrite on slot 0 after the data lock: refused. Try it only on the spare.
 - Slot 8 reads back in the clear after the lock, and its bytes are in the data CRC.
 - The 608C's revision bytes and factory table (C1 knows 608A and B only).
-- How long U1 takes on the Pico: one P-256 verify, about 1.4 s on the Trust M certificate check.
+- How long U1 takes on the Pico: one P-256 verify. The Trust M certificate check, also one verify,
+  takes about 1.4 s.
 
 ## The user
 
@@ -273,8 +284,8 @@ In order. Each item that changes firmware is a new release fingerprint.
 3. **`provision.py` split** into bench steps (B) and claim steps (U). Extend
    `test-vectors/run-ceremony.mjs` to walk both halves on the virtual chip, with a reboot after every
    step, plus the claim refusals above.
-4. **The brand key:** a Trust M through T1–T10, its bundle in the registry, its key in
-   `quorum_cfg.py`.
+4. **The brand key:** key 0000 through C1–C10 on the bench, the second receptacle wired, its
+   record in the registry, its key in `quorum_cfg.py`.
 5. **The `brand` image** and the claim route in `dual`. Update `manifest.mjs` for both.
 6. **The registry:** batch files, the ATECC entries, and `tools/fw attest` for a 608.
 7. **The label:** `tools/board/brand_label.py` draws it today from fixed values. It would take them
@@ -288,5 +299,5 @@ In order. Each item that changes firmware is a new release fingerprint.
   on every run, so U4 and U5 change each time.
 - `python3 tools/board/brand_label.py` draws the label with the firmware's `blockies.py` and
   `qrcode.py`.
-- The serial `0123e100e1e1e1e1ee` is the emulator's virtual chip. Batch 3, key 0042 and bench key
-  `3c9a51…` are made up.
+- The serial `0123e100e1e1e1e1ee` is the emulator's virtual chip. Batch 3 and key 0042 are made
+  up.

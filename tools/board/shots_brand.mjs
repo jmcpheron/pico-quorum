@@ -64,7 +64,7 @@ class Mock:
 BT = {"B1": "Pre-flight", "B2": "Write quorum v2", "B3": "Lock the config", "B4": "Brand",
       "B5": "Countersign", "B6": "Lock the data zone", "B7": "Label"}
 BW = {"B4": "Writes the brand: PicoQuorum, batch 3, key 0042, the config CRC, into slot 8 and the OTP zone. No key is made here. Rewritable until B6.",
-      "B5": "The bench's brand key signs this chip's brand. The signature goes into slot 8 beside it.",
+      "B5": "The brand key, PicoQuorum key 0000, signs this chip's brand. The signature goes into slot 8 beside it.",
       "B6": "Locks the data and OTP zones forever. The chip checks their CRC, brand included. After this nothing can put a key into slot 0 except the chip's own GenKey.",
       "B7": "Prints the label. The chip leaves the bench with no key in it."}
 UT = {"U1": "Check the brand", "U2": "Make your key", "U3": "Test signatures", "U4": "Seal your key", "U5": "Your owner address"}
@@ -90,7 +90,7 @@ shot("b4-brand");
 py(`show(m, "B6")`);
 shot("b6-data-lock");
 py(`m._pic = BRAND
-ui = show(m, "B7", ("B7", True, [("quorum v2, locked 00/00", True), ("brand signed: bench 3c9a51e0", True),
+ui = show(m, "B7", ("B7", True, [("quorum v2, locked 00/00", True), ("brand signed: key 0000", True),
      ("slot 0 empty, not sealed", True), ("counter 0: 0", True), ("PrivWrite: never", True)],
      "Label 0042. The picture is the brand's: the user's console draws the same one."), "dark")
 `);
