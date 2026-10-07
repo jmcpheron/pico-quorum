@@ -176,7 +176,8 @@ Today:
 To do:
 
 - [ ] STATUS.md: close the open decision on the production chip, as above.
-- [ ] Before sealing chip #3, decide the brand and quorum record. Either:
+- [ ] Before sealing chip #3, decide the brand and quorum record (a proposal:
+      [BRANDED-KEYS.md](docs/BRANDED-KEYS.md)). Either:
   - a version 2 OTP record that makes room for a quorum ID; or
   - a quorum v2 table with one readable slot, written before the data lock. For example, slot 8
     could hold "PicoQuorum", the quorum ID and the record.
