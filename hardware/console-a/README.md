@@ -30,7 +30,7 @@ How to order it: [ORDERING.md](ORDERING.md).
 ## The pin map
 
 This is the Waveshare board's map, and `firmware/board.py`'s. `gen.py` has it as one table,
-`PINS`. `python3 hardware/console-pcb/gen.py check` (or `tools/keypcb check console-a`) checks it
+`PINS`. `python3 hardware/console-a/gen.py check` (or `tools/keypcb check console-a`) checks it
 three ways: against `firmware/board.py`, against the emulator's `emu/core/runtime.mjs`, and against
 the nets on the saved board.
 

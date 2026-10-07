@@ -4,7 +4,7 @@ buttons on one board, wired exactly as the Waveshare Pico-LCD-1.3, so the consol
 unchanged. Writes the KiCad 10 project from scratch.
 
     tools/keypcb gen-console      (KiCad's own Python, which has the pcbnew module)
-    python3 hardware/console-pcb/gen.py check     (the pin check alone; needs no KiCad)
+    python3 hardware/console-a/gen.py check     (the pin check alone; needs no KiCad)
 
 One table, PINS, says which GPIO each signal is on, and `check` compares it with firmware/board.py
 and the emulator's emu/core/runtime.mjs. Every part is in PARTS: its symbol, footprint, LCSC
@@ -406,7 +406,7 @@ def write_schematic(own):
     sh.write(path, TITLE)
     # A3, and our own comment in place of the key boards'
     s = open(path).read().replace('(paper "A4")', '(paper "A3")', 1)
-    s = s.replace("The PCB is the plug: see hardware/key-pcb/README.md", "See hardware/console-pcb/README.md", 1)
+    s = s.replace("The PCB is the plug: see hardware/key-pcb/README.md", "See hardware/console-a/README.md", 1)
     open(path, "w").write(s)
 
 

@@ -10,15 +10,15 @@
 #                                 (hardware/key-pcb/keycalc.py, run with uv; needs no KiCad)
 #   tools/keypcb gen-cd           rewrites proposals key-c-usbc and key-d-pogo from gen_cd.py (KiCad's own
 #                                 Python, for pcbnew); rev A's boards are never touched
-#   tools/keypcb gen-console      rewrites the console board, hardware/console-pcb/console-a, from its gen.py
+#   tools/keypcb gen-console      rewrites the console board, hardware/console-a/console-a, from its gen.py
 #
-# board is any key-* folder in hardware/key-pcb or console-* folder in hardware/console-pcb; without one,
+# board is any key-* folder in hardware/key-pcb or console-* folder in hardware/console-a; without one,
 # every board. check on a console board also checks its pin map against the firmware. Run from anywhere.
 import csv, glob, io, os, re, shutil, subprocess, sys, tempfile, zipfile
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "hardware", "key-pcb")
 ROOT = os.path.normpath(ROOT)
-CONSOLE = os.path.normpath(os.path.join(ROOT, "..", "console-pcb"))
+CONSOLE = os.path.normpath(os.path.join(ROOT, "..", "console-a"))
 
 # Gerber layers JLCPCB wants for a 2-layer board. Paste layers are only used for assembly orders,
 # and harmless on a bare-board order.

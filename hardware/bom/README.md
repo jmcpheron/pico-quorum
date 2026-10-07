@@ -55,7 +55,7 @@ The order itself is in [key-pcb/ORDERING.md](../key-pcb/ORDERING.md).
 ## Console PCB, rev A
 
 The parts JLCPCB places, with LCSC numbers, and the ones you buy yourself (a Pico 2 W without
-headers, the 24-pin panel) are in [console-pcb/ORDERING.md](../console-pcb/ORDERING.md).
+headers, the 24-pin panel) are in [console-a/ORDERING.md](../console-a/ORDERING.md).
 
 ## First order for the PicoQuorum console and keys
 
