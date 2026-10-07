@@ -55,6 +55,11 @@ def files(name):
 def check(name):
     d, sch, pcb = files(name)
     ok = True
+    if name.startswith("console-"):
+        # the board's pin table against firmware/board.py and the emulator; plain Python, no KiCad
+        r = subprocess.run([sys.executable, os.path.join(CONSOLE, "gen.py"), "check"], capture_output=True, text=True)
+        print(r.stdout.rstrip() or r.stderr.rstrip())
+        ok = r.returncode == 0
     with tempfile.TemporaryDirectory() as t:
         rpt = os.path.join(t, "erc.rpt")
         kicad("sch", "erc", "--severity-all", "-o", rpt, sch)
@@ -155,7 +160,7 @@ def render(name):
 
 
 def main():
-    if len(sys.argv) > 1 and sys.argv[1] == "gen-cd":
+    if len(sys.argv) > 1 and sys.argv[1] in ("gen-cd", "gen-console"):
         py = "/Applications/KiCad/KiCad.app/Contents/Frameworks/Python.framework/Versions/Current/bin/python3"
         py = py if os.path.exists(py) else "python3"   # on Linux, KiCad's pcbnew is in the system Python
         os.execvp(py, [py, os.path.join(ROOT, "gen_cd.py"), *sys.argv[2:]])
