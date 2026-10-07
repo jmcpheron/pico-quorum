@@ -22,7 +22,6 @@
   </a>
   <nav aria-label="Main">
     <a href="../guide/">Guide</a>
-    <a href="../app/#/keys">Keys</a>
     <a href="./" aria-current="page">Console</a>
     <a href="https://github.com/jmcpheron/pico-quorum">Source</a>
   </nav>
@@ -32,7 +31,7 @@
   <section class="intro">
     <p class="eyebrow">The console in your browser</p>
     <h1>The same console, with your passkey as its&nbsp;key.</h1>
-    <p class="lede">The firmware a Pico runs, file for file, running in this page. It reads your Safes' queue, says what each transaction does, works out the hash itself, and asks your passkey to sign only what you have seen here.</p>
+    <p class="lede">A Pico's firmware, file for file, running here. It shows what a transaction does, works out its hash itself, and has your passkey sign only that.</p>
     <p class="build"><span id="release" class="release" title="the release fingerprint of the firmware running here"></span><span class="muted">worked out in your browser, over the files it runs</span></p>
   </section>
 
@@ -82,7 +81,7 @@
       <tbody>
         <tr><td><code>firmware/</code><span>The console image: the same 50 files a Pico runs, in MicroPython. They hash to the release fingerprint.</span></td><td>10,883 lines, and 10 data files</td></tr>
         <tr><td><code>shims/</code><span>Python in place of the Pico's hardware: its pins, screen and Wi-Fi, and your passkey as its key.</span></td><td>638 lines</td></tr>
-        <tr><td><code>console.js, worker.js, web/, core/, shared/, coi.js, sw.js</code><span>The page's JavaScript: the buttons, your passkey, and the worker MicroPython runs in.</span></td><td>1,103 lines</td></tr>
+        <tr><td><code>console.js, worker.js, web/, core/, shared/, coi.js, sw.js</code><span>The page's JavaScript: the buttons, your passkey, and the worker MicroPython runs in.</span></td><td>1,125 lines</td></tr>
         <tr><td><code>vendor/micropython/</code><span>MicroPython 1.26.0 for WebAssembly, the one part built elsewhere: by the MicroPython project, from npm, pinned by its hash.</span></td><td>522 KB</td></tr>
         <tr><td><code>index.html, console.css, fonts/, brand/</code><span>This page: its words, its look, the site's typeface and mark.</span></td><td></td></tr>
       </tbody>

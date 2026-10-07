@@ -77,8 +77,29 @@ function addSafeForm() {
   return el("div", { className: "add-safe" }, el("div", { className: "fields" }, chain, address, name, add), why);
 }
 
+/** One tap, for a Safe your passkey doesn't own yet: a note for an owner of it, with the two links it
+ *  needs, deploy the signer (any wallet) and propose adding it (a wallet that owns the Safe). Only
+ *  public things: the passkey's public key, its owner address, the Safe. Shared where the device
+ *  can (AirDrop, Messages), else copied. */
+function askOwner(s, owner, addLink) {
+  const text = [`Please add my passkey as an owner of ${s.name || "our Safe"} (${CHAIN_NAMES[s.chain] || s.chain}, ${checksum(s.address)}).`,
+    `Its owner address: ${owner}`,
+    `1. Deploy its signer on ${CHAIN_NAMES[s.chain] || s.chain}, if no one has yet. Any wallet can; it only pays the gas: ${signerLink(passkeyCred())}`,
+    `2. Propose adding it as an owner, from a wallet that owns the Safe: ${addLink}`].join("\n");
+  const b = el("button", { className: "copy", type: "button", textContent: "Ask an owner", title: "A note for an owner of this Safe, with the two links they need" });
+  b.onclick = async () => {
+    if (navigator.share) {
+      try { await navigator.share({ title: "Add my passkey to the Safe", text }); return; } catch (e) { if (e && e.name === "AbortError") return; }
+    }
+    try { await navigator.clipboard.writeText(text); b.textContent = "Note copied"; } catch { b.textContent = "Couldn't copy"; }
+    setTimeout(() => { b.textContent = "Ask an owner"; }, 1500);
+  };
+  return b;
+}
+
 /** Is your passkey an owner? Safe's service says (read only). Yes: step 3 is done. Not yet: the app's
- *  add-owner page, the address filled in, where a wallet that owns the Safe proposes it. */
+ *  add-owner page, the address filled in, where a wallet that owns the Safe proposes it, and a note
+ *  to send an owner. */
 async function ownerStatus(where, s, owner) {
   try {
     const { owners, threshold } = await safeInfo(consoleCfg((await built).files), s);
@@ -88,8 +109,9 @@ async function ownerStatus(where, s, owner) {
       $("#owner-row").classList.add("done");
     } else {
       where.className = "status warn";
+      const add = `${APP}#/safe/${s.chain}/${checksum(s.address)}/new/add/${owner}`;
       where.replaceChildren(`${threshold} of ${owners.length}, your passkey isn't an owner yet · `,
-        ...(owner ? [el("a", { href: `${APP}#/safe/${s.chain}/${checksum(s.address)}/new/add/${owner}`, textContent: "propose adding it" })] : []));
+        ...(owner ? [el("a", { href: add, textContent: "propose adding it" }), " ", askOwner(s, owner, add)] : []));
     }
   } catch (e) {
     where.className = "status";
