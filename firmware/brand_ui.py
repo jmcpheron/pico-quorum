@@ -230,7 +230,8 @@ class UI(P.UI):
         c = self.c
         st = c.step()
         why = self.need(st) if st not in c.FINAL else ""
-        self.d.frames(self._paint, st, why, chip_state(c, st), number(c), self._part())
+        # a result shows the chip with the part that step wrote ringed, not the next step's
+        self.d.frames(self._paint, st, why, chip_state(c, self.result[0] if self.result else st), number(c), self._part())
 
     def _part(self):
         return chipcfg.REVISIONS.get(self.c.revision, "ATECC608")
