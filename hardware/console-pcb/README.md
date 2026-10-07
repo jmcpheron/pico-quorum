@@ -30,7 +30,7 @@ Why this one, and the other boards considered (cheaper, smaller, with a battery)
 |---|---|
 | Board | 160 × 51 mm, 2 layers, 1.6 mm, lead-free HASL. A 14.2 × 8.5 mm cut-out under the antenna |
 | Parts | U1 Pico 2 W, J1 USB-C plug 918-118A2021Y40002, U2 AP22653W6-7, U3/U4 USBLC6-2SC6, D1 ESD5Z5V0, D2 red LED, SW1 PEC11R-4215F-S0024, SW2–SW5 K2-1102SP-K4SC-04, J2 the screen's 1×8 header, 13 resistors, 2 capacitors |
-| Files | `console-a/` (KiCad 10), `console-a/fab/` (Gerber zip SHA-256 `cb03f1ae…`, `bom.csv`, `cpl.csv`) |
+| Files | `console-a/` (KiCad 10), `console-a/fab/` (Gerber zip SHA-256 `4c6746e0…`, `bom.csv`, `cpl.csv`) |
 | Checks | ERC 0 · DRC 0 · unconnected 0 · parity clean (`tools/keypcb check console-a`) |
 | Source | `gen_console.py`, with its footprints in `lib/` |
 
@@ -95,8 +95,23 @@ Upload to https://jlcpcb.com, as for key-b
 2. Choose: qty 5, 1.6 mm, lead-free HASL, any mask colour, "Remove mark" if offered.
 3. Turn on **PCB Assembly**: Economic, top side.
 4. Upload `console-a/fab/bom.csv` and `console-a/fab/cpl.csv`.
-5. In the placement preview, check every pin 1. Pay most attention to U1 (turned 180°: its pin 1
-   is at the bottom right), J1, U2–U4 and D1.
+5. In the placement preview, check every pin 1, and that each part sits on its pads.
+   - `cpl.csv` already turns the parts whose JLCPCB footprint isn't drawn like KiCad's. Each
+     offset is its "JLCPCB Rotation Offset" field (`JLC_ROT` in `gen_console.py`).
+   - **The Pico runs the board's height.** Its micro-USB is at the bottom edge, and its antenna end
+     is over the cut-out at the top.
+   - **U2 must not be turned 180°.** That would put IN and OUT on the wrong pads. Its pin 1 is at
+     the top left, by the silkscreen dot.
+   - **The LED and the TVS need no turn.** JLCPCB's LED calls its anode pin 1, but its cathode
+     sits on the same side as KiCad's.
+
+   | part | KiCad | in `cpl.csv` |
+   |---|---|---|
+   | U1 Pico 2 W | 180 | 90 |
+   | J1 plug | 0 | 270 (the same either way round) |
+   | U2 AP22653 | 0 | 180 |
+   | U3, U4 USBLC6 | 0 | 270 |
+   | SW2–SW5 buttons | 0 | 270 |
 
 JLCPCB's stock and prices on 2026-10-07:
 
@@ -168,6 +183,12 @@ module, shipping and tax.
 
 ## Log (newest first)
 
+- **2026-10-07:** JLCPCB rotations.
+  - In JLCPCB's 3D preview, the Pico lay across its pads, turned 90° and off the board's edge.
+  - Every placed part's footprint was compared with JLCPCB's EasyEDA one, by pin function.
+  - `cpl.csv` now carries the offsets: U1, J1, U3, U4 and SW2–SW5 by −90°, U2 by 180°.
+  - `tools/keypcb` applies a part's "JLCPCB Rotation Offset" field. The key boards have none, and
+    their files come out unchanged.
 - **2026-10-07:** drawn.
   - Options compared in OPTIONS.md.
   - Parts chosen from JLCPCB's stock: the plug, the switch, the knob and the buttons.

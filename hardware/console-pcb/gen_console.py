@@ -110,6 +110,16 @@ P = dict(
 R0402, C0402, C0603 = "Resistor_SMD:R_0402_1005Metric", "Capacitor_SMD:C_0402_1005Metric", "Capacitor_SMD:C_0603_1608Metric"
 LCSC_R = {"10k": "C25744", "2.2k": "C25879", "1k": "C11702", "0R": "C17168"}
 LCSC_C = {"100n": "C1525", "10u": "C19702"}
+# JLCPCB places a part by its own footprint, whose zero rotation isn't always KiCad's. These are the
+# turns from KiCad's footprint to JLCPCB's, found by matching the pads of each in their EasyEDA
+# data (2026-10-07), by pin function: JLCPCB's LED calls its anode pin 1, but its cathode sits where
+# KiCad's does. They go on the parts as "JLCPCB Rotation Offset", which tools/keypcb adds to the
+# rotation in cpl.csv. Parts not listed (D1, D2, the 0402s and 0603s) need none.
+JLC_ROT = {"C42394205": -90,   # Pico 2 W: JLCPCB draws it lying along x, pin 1 at the left
+           "C399939": -90,     # the plug: rows along x. It is the same either way round
+           "C2158037": 180,    # AP22653: pin 1 at the bottom right
+           "C7519": -90,       # USBLC6: pins 1-3 along the bottom, as key-c found
+           "C129461": -90}     # K2-1102SP: drawn upright; the joined pad pairs match ours
 
 # The screen module, as a placeholder until one is measured: an 86 x 50 mm board with the 8-pin
 # header on its left edge and an M3 hole in each corner. PINS runs top to bottom with the header on
@@ -391,7 +401,8 @@ def write_schematic(syms):
                       ("Connector", "TestPoint"), ("power", "GND"), ("power", "+3V3"), ("power", "PWR_FLAG")):
         s.lib(f"{lib}:{name}", gen.stock_symbol(lib, name))
     F = lambda p, desc, **kw: ([("Datasheet", P[p]["ds"])] if P[p].get("ds") else []) + [("MPN", P[p]["mpn"])] + \
-        ([("LCSC", P[p]["lcsc"])] if P[p].get("lcsc") else []) + [("Description", desc)]
+        ([("LCSC", P[p]["lcsc"])] if P[p].get("lcsc") else []) + [("Description", desc)] + \
+        ([("JLCPCB Rotation Offset", str(JLC_ROT[P[p]["lcsc"]]))] if P[p].get("lcsc") in JLC_ROT else [])
     R = lambda v, desc: [("LCSC", LCSC_R[v]), ("Description", desc)]
     C = lambda v, desc: [("LCSC", LCSC_C[v]), ("Description", desc)]
     gp = {f"GP{v}": k for k, v in {**GPIO, **NEW_GPIO}.items()}
@@ -657,7 +668,10 @@ def write_board(netlist):
         fp.SetValue(comp["value"])
         fp.SetPath(pcbnew.KIID_PATH(comp["path"]))
         fp.SetSheetname("/"); fp.SetSheetfile(NAME + ".kicad_sch")
-        for k, v in comp["fields"].items():
+        fields = dict(comp["fields"])
+        if fields.get("LCSC") in JLC_ROT:     # read_netlist keeps only the usual fields
+            fields["JLCPCB Rotation Offset"] = str(JLC_ROT[fields["LCSC"]])
+        for k, v in fields.items():
             fp.SetField(k, v)
             f = fp.GetField(k)
             f.SetVisible(False)

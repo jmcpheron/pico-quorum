@@ -78,27 +78,31 @@ def check(name):
 
 def jlc_bom(name, sch, out):
     """JLCPCB's BOM: Comment, Designator, Footprint, LCSC Part #. Only parts with an LCSC number that
-    are fitted; the rest (the fingers, a DNP resistor, a chip you solder yourself) stay off it."""
-    r = kicad("sch", "export", "bom", "--fields", "Reference,Value,Footprint,LCSC,${DNP}",
-              "--labels", "ref,value,fp,lcsc,dnp", "--ref-range-delimiter", "", "-o", "/dev/stdout", sch)
-    rows = {}
+    are fitted; the rest (the fingers, a DNP resistor, a chip you solder yourself) stay off it.
+    Returns each placed ref's "JLCPCB Rotation Offset" field (0 where a part has none)."""
+    r = kicad("sch", "export", "bom", "--fields", "Reference,Value,Footprint,LCSC,${DNP},JLCPCB Rotation Offset",
+              "--labels", "ref,value,fp,lcsc,dnp,rot", "--ref-range-delimiter", "", "-o", "/dev/stdout", sch)
+    rows, offsets = {}, {}
     for row in csv.DictReader(io.StringIO(r.stdout)):
         if not row["lcsc"] or row["dnp"].strip():
             continue
         key = (row["value"], row["fp"].split(":")[-1], row["lcsc"])
         rows.setdefault(key, []).append(row["ref"])
+        offsets[row["ref"]] = float(row["rot"] or 0)
     with open(out, "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["Comment", "Designator", "Footprint", "LCSC Part #"])
         for (value, fp, lcsc), refs in sorted(rows.items(), key=lambda kv: kv[1]):
             w.writerow([value, ",".join(refs), fp, lcsc])
-    return {ref for refs in rows.values() for ref in refs}
+    return offsets
 
 
 def jlc_cpl(pcb, refs, out):
-    """JLCPCB's CPL: Designator, Mid X, Mid Y, Layer, Rotation, for the parts in the BOM. Rotation is
-    KiCad's; JLCPCB's preview shows each part on the board, and that is where a pin 1 that landed
-    in the wrong corner gets fixed (see ORDERING.md)."""
+    """JLCPCB's CPL: Designator, Mid X, Mid Y, Layer, Rotation, for the parts in the BOM (refs: ref ->
+    rotation offset). Rotation is KiCad's plus the part's "JLCPCB Rotation Offset", where a board's
+    generator knows JLCPCB's footprint turns differently (console-a does; the key boards don't).
+    JLCPCB's preview still shows each part on the board, and that is where a pin 1 that landed in
+    the wrong corner gets fixed otherwise (see ORDERING.md)."""
     with tempfile.TemporaryDirectory() as t:
         pos = os.path.join(t, "pos.csv")
         kicad("pcb", "export", "pos", "--format", "csv", "--units", "mm", "--side", "both",
@@ -111,7 +115,7 @@ def jlc_cpl(pcb, refs, out):
             if r["Ref"] in refs:
                 side = "Top" if r["Side"] == "top" else "Bottom"
                 w.writerow([r["Ref"], f'{float(r["PosX"]):.4f}mm', f'{float(r["PosY"]):.4f}mm', side,
-                            f'{float(r["Rot"]) % 360:.0f}'])
+                            f'{(float(r["Rot"]) + refs[r["Ref"]]) % 360:.0f}'])
 
 
 def fab(name):
