@@ -16,8 +16,12 @@ chip = None         # this chip's entry in chips.json (name, theme): which chip 
 profile = ""
 _busy = False
 sel = 0             # the knob's choice on the banner: 0 PROVISION, 1 the map
+# The brand image (main_brand.py) sets these: its own screen for an ATECC608, make_ui(d, keys, sig,
+# theme), and its banner.
+make_ui = None
+TITLE, LABEL = "CEREMONY IMAGE", "PROVISION (quorum v1)"
 STATE = {"factory": "FRESH: ready for PROVISION", "quorum-v1": "sealed or in progress: quorum v1",
-         "quorum-tm1": "sealed: Trust M quorum-tm1", "quorum-tm1-open": "in progress: Trust M",
+         "quorum-v2": "branded or in progress: quorum v2", "quorum-tm1": "sealed: Trust M quorum-tm1", "quorum-tm1-open": "in progress: Trust M",
          "legacy-test": "test table (chip #1 style)", "unknown": "unknown table"}
 
 
@@ -39,7 +43,7 @@ def choices():
     """The banner's entries: (label, what). The ATECC's chip map is button-driven, so on the knob
     only a Trust M's read-only object map is offered next to PROVISION."""
     tm = sig is not None and sig.name == "trustm"
-    out = [("PROVISION (Trust M)" if tm else "PROVISION (quorum v1)", "prov")]
+    out = [("PROVISION (Trust M)" if tm else LABEL, "prov")]
     if tm:
         out.append(("its objects", "map"))
     elif not L.KNOB:
@@ -62,7 +66,7 @@ def _banner(tail):
     import provision
     p = provision.palette(chip["theme"] if chip else "dark")
     d.fill(p["bg"])
-    d.center_text("CEREMONY IMAGE", 40, p["accent"], 2)
+    d.center_text(TITLE, 40, p["accent"], 2)
     y = 70
     for line in ("Not a signing console:", "no Safe, no service."):
         d.center_text(line, y, p["fg"])
@@ -93,7 +97,7 @@ def open_choice(what):
             import provision_tm
             prov = provision.UI(d, keys, sig, chip["theme"], provision_tm.Ceremony(sig))
         else:
-            prov = provision.UI(d, keys, sig, chip["theme"])
+            prov = (make_ui or provision.UI)(d, keys, sig, chip["theme"])
         prov.draw()
     elif what == "map":
         import provision_tm

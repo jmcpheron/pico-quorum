@@ -1,6 +1,7 @@
 # Which firmware image this board runs. `tools/fw build` writes build.py into the files it pushes
 # (never committed): IMAGE is "console" (the production Safe console: nothing else on the board
-# can use the chip), "ceremony" (the chip map and provisioning, for a fresh chip), or "dual" (both,
+# can use the chip), "ceremony" (the chip map and provisioning, for a fresh chip), "brand" (the
+# bench half of a branded key, brand.py, on the ceremony's screen), or "dual" (both,
 # for while a new chip is being set up: main_dual.py picks one at each boot from the chip on the
 # bus). Without build.py this is a development board or the emulator, and everything stays as
 # flexible as before.

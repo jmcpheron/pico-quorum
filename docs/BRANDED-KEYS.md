@@ -1,6 +1,7 @@
 # Branded keys: the bench brands the chip, the user makes the key
 
-> **A proposal (2026-10-07). Nothing here is built.** It answers LAUNCH.md section 6, "decide the
+> **A proposal (2026-10-07). The bench half is built for a spare chip only** ([the first
+> build](#the-first-build-a-spare-on-build-1)); claim and key 0000 are not. It answers LAUNCH.md section 6, "decide the
 > brand and quorum record before sealing chip #3", and says what a user does with a branded key.
 > The screens below are mockups in the console's own look (the fonts, colours and drawing kit of
 > `firmware/quorum_ui.py`), drawn on the emulator. No firmware has these steps yet. Locks are permanent
@@ -254,6 +255,18 @@ and A held for 3 s.
 - How long U1 takes on the Pico: one P-256 verify. The Trust M certificate check, also one verify,
   takes about 1.4 s.
 
+**Chip 5, a spare 608A, 2026-10-07** ([buildlog](../buildlog/BUILDLOG.md)):
+- GenKey after the data lock: **works.** S1 made a key in slot 0, which had never held one.
+- PrivWrite after the data lock: **not tested.** The driver has no PrivWrite command.
+- Slot 8: **reads in the clear after the lock, and is in the data CRC** (the lock took a CRC over it).
+- Revision: `00006002`, a 608A. No 608C has been on the bench.
+- U1's check: **2.3–2.8 s** on the Pico, nearly all of it the P-256 verify (reads and CRC: 0.2 s).
+- **Counter 0 was 1 before any key existed.** After the data lock a public-key read of slot 0 counts
+  as a use, and the reads of config, OTP, slot 8, Random and Info don't. So the 1 was most likely
+  the bench's read of the then-empty slot 0 (not measured on its own; the slot holds a key now). U1's
+  "Never used: 0 signatures" must count the bench's reads, or the bench must not read slot 0.
+- Every write, lock and key command after the seal is refused, GenKey on slot 0 included.
+
 ## The chip on every screen
 
 Every step, on the bench and on the user's console, shows the chip under its header, so the wizard
@@ -374,6 +387,32 @@ In order. Each item that changes firmware is a new release fingerprint.
 7. **The label:** `tools/board/brand_label.py` draws it today from fixed values. It would take them
    from B7's output.
 8. **The app:** the check page behind the label's QR code, and the claim badge.
+
+## The first build: a spare on Build 1
+
+The bench half, B1–B7, ran on a **spare** ATECC608A (chip 5, `0123a431b1490801ee`) on 2026-10-07,
+to settle the silicon list above (results there). It is the `brand` image (`tools/fw push brand`): `firmware/brand.py` for the
+steps and checks, `firmware/brand_ui.py` for the screens above, built from the same kit as the
+mockups.
+
+- **B5 signs with a public test key, not key 0000.** Key 0000 doesn't exist yet. The record says
+  bench `0xFF` (chip 5 is `T0001`; the pictures say `T0042`), and the brand check refuses it as a brand, so the spare can never
+  pass as a branded key.
+- **S1–S3 do the claim's key steps on the bench:** GenKey after the data lock, two signatures, the
+  slot lock. They are tests, not the claim.
+- **Every step's full result goes to `brand-log.txt`** on the board. The screen shows a few lines.
+- **Not tested yet: PrivWrite refused after the data lock.** It needs a PrivWrite command, which the
+  driver doesn't have.
+- `node test-vectors/run-brand.mjs` walks it all on the virtual chip, with the refusals and the knob.
+
+The screens as built, from `node tools/board/shots_bench.mjs` (the emulator's 240 px; Build 1 is
+320 wide). The key and owner change on every run.
+
+| B1: pre-flight | B2: written | B3: hold to lock |
+|---|---|---|
+| <img src="branded-keys/bench/b1.png" width="240" alt="B1 Pre-flight on the built screen: the factory chip, Do it or Back on the knob."> | <img src="branded-keys/bench/b2-done.png" width="240" alt="B2 done: quorum v2 written and read back, the config CRC to compare on the laptop."> | <img src="branded-keys/bench/b3-hold.png" width="240" alt="B3 Lock the config, red card, armed, the hold bar half full in red."> |
+| **B5: the test key signs** | **B7: checked** | **S3: seal the spare's key** |
+| <img src="branded-keys/bench/b5.png" width="240" alt="B5 Sign the brand: the test key signs, slot 8 ringed. The OTP shows T0042."> | <img src="branded-keys/bench/b7-done.png" width="240" alt="B7 Check it, done: record, slot 8 read in the clear, signature, and more in brand-log.txt."> | <img src="branded-keys/bench/s3-hold.png" width="240" alt="S3 Seal slot 0 on a red card, armed, the hold bar half full."> |
 
 ## How these pictures were made
 

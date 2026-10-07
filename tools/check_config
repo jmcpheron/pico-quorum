@@ -10,11 +10,14 @@
       from the datasheet's bit tables, independently of atecc.decode_slot: slot 0 the sealed signing
       key, slots 1-15 dead, the header off. Plus atecc.write_policy for all 16 WriteConfig codes and
       the CRC against the wake reply's own.
+  quorum-v2 (QUORUM_V2): its fingerprint, that it is quorum-v1 but for byte 36, and slot 8 decoded
+      here: readable in the clear, never written, not a key (docs/BRANDED-KEYS.md).
 
 Exit 0 = safe. Anything else: do not provision a chip until it is 0.
     python3 tools/check_config
     python3 tools/check_config --summary SNAPSHOT.bin   the config CRC a fresh chip must match at C3
                                                         (SNAPSHOT: its 128 factory bytes, from C1)
+    python3 tools/check_config --summary SNAPSHOT.bin --v2   the same for quorum-v2, at B3 (brand.py)
 """
 import hashlib, importlib.util, os, sys, types
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -83,18 +86,30 @@ check(T[68:84] == bytes(16), "UseLock, VolatileKeyPermission, SecureBoot, KdfIv 
 check(T[88:90] == b"\xff\xff", "SlotLocked FF FF at the config lock (slot 0 needs its key first)")
 check(T[90:96] == bytes(6), "ChipOptions 0 (no IO protection, no KDF AES), X509 0")
 
+# --- quorum-v2: quorum-v1 with slot 8 readable in the clear, for the brand signature ----------
+V2 = chipcfg.QUORUM_V2
+check(hashlib.sha256(V2).hexdigest() == chipcfg.QUORUM_V2_SHA256 == "36da855657a3ee7e098f27cd17b2a636c9e51adec02d252ee0adbe905b8113e1",
+      "quorum-v2 fingerprint 36da8556...")
+check([i for i in range(128) if V2[i] != T[i]] == [36], "quorum-v2 differs from quorum-v1 in byte 36 only (slot 8's SlotConfig, low byte)")
+v8, k8 = V2[36] | V2[37] << 8, V2[112] | V2[113] << 8
+check(v8 & 0xF == 0xF and v8 >> 7 & 1 == 0 and v8 >> 6 & 1 == 0 and v8 >> 5 & 1 == 0 and v8 >> 12 == 0b1000,
+      "slot  8: ReadKey F, IsSecret 0, EncryptRead 0 (clear reads), WriteConfig 1000 (Write never)")
+check(k8 & 1 == 0 and k8 >> 2 & 7 == 7 and k8 >> 5 & 1 == 0 and k8 >> 1 & 1 == 0, "slot  8: KeyConfig data, not a key, not lockable")
+
 # --- the driver's decode and CRC ----------------------------------------------------------------
 want = ["clear", "pubinvalid", "never", "never", "encrypted", "encrypted", "encrypted", "encrypted",
         "never", "never", "never", "never", "encrypted", "encrypted", "encrypted", "encrypted"]
 check([atecc.write_policy(w) for w in range(16)] == want, "atecc.write_policy follows the datasheet for all 16 WriteConfig codes")
 check(atecc.crc16(b"\x04\x11") == b"\x33\x43", "crc16(04 11) = 33 43, the wake reply's own CRC")
-check([chipcfg.identify(x) for x in (T, atecc.CONFIG, chipcfg.FACTORY)] == ["quorum-v1", "legacy-test", "factory"],
-      "chipcfg.identify tells the three tables apart")
+check([chipcfg.identify(x) for x in (T, V2, atecc.CONFIG, chipcfg.FACTORY)] == ["quorum-v1", "quorum-v2", "legacy-test", "factory"],
+      "chipcfg.identify tells the four tables apart")
 
 if "--summary" in sys.argv:
     snap = open(sys.argv[sys.argv.index("--summary") + 1], "rb").read()
     if len(snap) != 128:
         sys.exit("a snapshot is 128 bytes")
-    print("\nchip %s, %s: its config CRC for the quorum-v1 lock is %04x" % (
-        snap[0:4].hex() + snap[8:13].hex(), chipcfg.identify(snap), chipcfg.config_summary(snap)))
+    v2 = "--v2" in sys.argv
+    print("\nchip %s, %s: its config CRC for the %s lock is %04x" % (
+        snap[0:4].hex() + snap[8:13].hex(), chipcfg.identify(snap), "quorum-v2" if v2 else "quorum-v1",
+        chipcfg.config_summary(snap, V2 if v2 else T)))
 sys.exit(1 if fails else 0)
