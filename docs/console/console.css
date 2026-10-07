@@ -55,7 +55,7 @@ h3 { font-size: 19px; margin: 0 0 6px; }
 .eyebrow { color: var(--ok); font-weight: 700; margin: 0; }
 .lede { font-size: 20px; max-width: 60ch; margin: 0 0 20px; }
 
-.intro { text-align: center; padding-bottom: 24px; }
+.intro { text-align: center; padding: 28px 0 20px; }
 .intro .lede { margin: 0 auto 14px; }
 .build { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 10px; margin: 0; font-size: 15px; }
 .release { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); white-space: nowrap; }
@@ -179,4 +179,12 @@ summary { cursor: pointer; }
   .setup > li { padding: 12px; gap: 10px; }
   .keys { display: none; }           /* no keyboard on a phone */
   .stack td:last-child { white-space: normal; }
+}
+/* wide screens: the steps beside the device, a little wider than the page's column */
+@media (min-width: 1160px) {
+  .run { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 12px 28px;
+    margin-inline: calc(50% - min(600px, 50vw - 16px)); }
+  .device { grid-area: 1 / 1; }
+  .keys { grid-area: 2 / 1; margin: 0; }
+  .panel { grid-area: 1 / 2 / span 2; max-width: none; }
 }
