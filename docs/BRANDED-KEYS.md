@@ -34,6 +34,8 @@ flowchart LR
   U5 --> A[The app: deploy the signer,<br/>starter Safe, test ETH]
 ```
 
+<img src="branded-keys/lifecycle.svg" width="100%" alt="A branded key's life: factory, then configured at B3 on the bench, then branded at B6, when it ships with no key, then claimed at U4 by the user's console. Each step is permanent.">
+
 ## Why split it
 
 | Who makes the key | What the user must trust | What can go wrong |
@@ -48,6 +50,8 @@ one thing that matters: a key that only their console asked for.
 ## On the bench
 
 ### The rig
+
+<img src="branded-keys/bench.svg" width="100%" alt="The branding bench: a Pico 2 W running the brand image, the chip being branded on I2C0, key 0000 on I2C1, a laptop with tools/fw, and a label printer.">
 
 - **One Pico with two key-c receptacles:**
   - **The brand key**, PicoQuorum key 0000. It is a key-c board like every other, plugged in for good.
@@ -86,6 +90,10 @@ The other bench screens look like today's ceremony ([firmware-production/shots](
 
 ### The technical decisions
 
+The whole chip, as the bench leaves it and the user finishes it:
+
+<img src="branded-keys/chip-map.svg" width="100%" alt="quorum v2 on an ATECC608C. Config zone, 128 bytes, locked at B3 with a CRC. Data zone: slot 0 is your P-256 key, GenKey only, LimitedUse, sealed at U4; slot 8, 416 bytes, holds the brand signature, readable and never written; slots 1 to 7 and 9 to 15 are dead, zeros, never read or written; locked at B6. OTP zone, 64 bytes: the brand record, frozen at B6.">
+
 **1. Where the brand lives: OTP and slot 8.**
 - **Why not OTP alone:** the 64-byte OTP zone is full with today's record, and a signature alone is
   64 bytes.
@@ -117,6 +125,8 @@ yet:
 | 29 | 4 | Bench build (the `brand` image's fingerprint, first 4 bytes) |
 | 33 | 16 | Brand key id: SHA-256(qx‖qy)[:16] of the brand key |
 | 49 | 15 | Zeros |
+
+<img src="branded-keys/brand-record.svg" width="100%" alt="How a chip gets its brand: the OTP record is hashed with the prefix PicoQuorum brand v1, key 0000 signs the digest, and its r and s, 64 bytes, go into the start of slot 8, the rest zeros.">
 
 Slot 8 holds the brand signature:
 - **Bytes 0–63:** the brand key's (r, s), low s.
@@ -297,6 +307,9 @@ In order. Each item that changes firmware is a new release fingerprint.
 - `node tools/board/shots_brand.mjs` draws the B and U screens. It runs a virtual ATECC608 through
   C1–C4 for a real key and owner, then gives the ceremony screen new titles and words. The key is new
   on every run, so U4 and U5 change each time.
+- `python3 tools/board/brand_diagrams.py` draws the four diagrams, in the brand's colours
+  ([BRAND.md](BRAND.md)) with the lockup from `docs/brand/`. Their slot rules are the proposal's: no
+  firmware has quorum v2 yet.
 - `python3 tools/board/brand_label.py` draws the label with the firmware's `blockies.py` and
   `qrcode.py`.
 - The serial `0123e100e1e1e1e1ee` is the emulator's virtual chip. Batch 3 and key 0042 are made
