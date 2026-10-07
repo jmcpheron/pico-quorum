@@ -486,8 +486,8 @@ async function push(image) {
   const b = build(image);
   if (b.id.endsWith("+dirty") && !has("--dirty-ok")) die(`firmware/ has uncommitted changes: commit them (the build id names a commit) or pass --dirty-ok`);
   const flags = tagged(run(FLAGS_PY), "FLAGS") || {};
-  if (image === "ceremony" && flags.QUORUM_EXPECT && !has("--pinned-chip-ok"))
-    die(`this board pins a chip (QUORUM_EXPECT ${JSON.stringify(flags.QUORUM_EXPECT)}): the ceremony image is for a fresh chip. Take QUORUM_EXPECT out first, or pass --pinned-chip-ok`);
+  if ((image === "ceremony" || image === "brand") && flags.QUORUM_EXPECT && !has("--pinned-chip-ok"))
+    die(`this board pins a chip (QUORUM_EXPECT ${JSON.stringify(flags.QUORUM_EXPECT)}): the ${image} image is for a fresh chip. Take QUORUM_EXPECT out first, or pass --pinned-chip-ok`);
   if (image === "console" && !flags.QUORUM_EXPECT)
     console.log("note: no QUORUM_EXPECT in the board's secrets.py yet: the console will start on the Not pinned screen (tools/fw pin)");
   const { dir: bdir, files } = backup();

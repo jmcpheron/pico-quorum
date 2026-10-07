@@ -637,3 +637,53 @@ holes they added in plain ground pour.
 Notes: [2026-10-02-key-c-order.md](2026-10-02-key-c-order.md). Status, newest first:
 [hardware/key-pcb/key-c-usbc](../hardware/key-pcb/key-c-usbc/README.md). Design:
 [hardware/key-pcb/PROPOSALS.md](../hardware/key-pcb/PROPOSALS.md).
+
+## 2026-10-07 — chip 5 (`0123a431b1490801ee`): the brand bench on a spare
+
+The first run of [BRANDED-KEYS.md](../docs/BRANDED-KEYS.md)'s bench half, on Build 1 with the knob
+alone, from the `brand` image (branch `brand-bench`). Chip 5 is one of five ATECC608A from one
+Amazon order, used as the **spare**: it is branded with the public test key (bench `0xFF`, number
+`T0001`), never as a real brand, and it will never be a Safe owner.
+
+- **Read-only first (2026-10-06):** ATECC608A, revision `00006002`, both zones `55 55`, SlotLocked
+  `FF FF`, Random's unlocked pattern, self-test 0, the Adafruit factory table. OTP reads were refused
+  before any lock (status `0x0F`).
+- **B1–B3:** quorum v2 written; the board and `tools/check_config --summary <snapshot> --v2` both said
+  config CRC `2136`; the CRC lock took it. B1 and B2 ran on the old 8 px screen, B3 on the new one.
+- **B4–B6:** zeros in slots 1–15, the v2 record in OTP, the test key's signature in slot 8, and the
+  data lock with CRC `337d`, which covers slot 8. B4 ran three times and B5 twice before the lock,
+  as designed (a restart goes back to B4).
+- **B7:** the record and slot 8 read back in the clear after the lock; the signature verifies under
+  the test key and is refused as a brand. Slot 0 empty, slot 1 unreadable.
+- **S1–S3:** GenKey on slot 0 **after** the data lock works (key `7262a070`); two signatures verify
+  and count exactly 2 (6 → 8); slot 0 sealed `FE FF`. Owner address of this test key:
+  `0x9ff86c3d3fdb64503eb6adaa80614ab38946cdcc` (not deployed, not an owner anywhere).
+
+What it settled, and what it didn't:
+- **Settled:** GenKey after the data lock on a slot that never had a key; slot 8 readable after the
+  lock and inside the data CRC.
+- **A finding for the claim's U1 screen:** counter 0 read **1** at B7, before any key existed. Most
+  likely the bench's own public-key read of the empty slot 0 after the data lock counted as a use
+  (not yet tried in isolation). "Never used:
+  0 signatures" can't be promised as written; the claim must account for the bench's reads.
+- **U1's check took 2.3 s** on the Pico (one P-256 verify plus the CRC), against about 1.4 s guessed.
+- **Not tested:** PrivWrite on slot 0 after the data lock. The driver has no PrivWrite command.
+- **No 608C here:** this order was 608A, so the 608C's revision bytes are still unknown.
+
+**Later the same day: everything left that doesn't need a new command** (a script run over USB with
+the bench app paused; counter 0 went from 22 to 27):
+- **What counts as a use of slot 0:** only a public-key read of slot 0, 1 each time. Reads of the
+  config, OTP and slot 8, Random, Info and the counter itself cost nothing. So the 1 at B7 was most
+  likely the bench's own read of the then-empty slot 0 (it can't be measured alone now). A claim
+  that reads the key before it shows the count will see its own reads, as chip 2's console does.
+- **Refused, each with the counter unmoved:** GenKey on sealed slot 0 (the key read back unchanged
+  after), GenKey on slot 1, Write to slots 0, 1 and 8, Write to OTP, Write to the config (the driver
+  saw an I2C error, not a status byte), Lock config and Lock data again, Sign with slot 1, Read slot 1,
+  the public key of slot 1. GenKey on the sealed slot is the test chip 1 skipped.
+- **Onchain, read only, Base Sepolia:** the passkey factory's `getSigner` gives this key
+  `0x9ff86c3D3Fdb64503eB6ADAa80614Ab38946CDCC`, the owner the board showed. A WebAuthn signature from
+  chip 5 over a test hash passes `isValidSignatureForSigner` (`0x1626ba7e`); a wrong hash gets
+  `0x00000000`. Nothing deployed.
+- **U1's 2.3 s, split:** the P-256 verify is 2.8 s alone in this run, the config CRC 10 ms, the OTP
+  and slot 8 reads 210 ms. The verify is the cost.
+- **Self-test 0, Random live, locks `00 00 / FE FF`** at the end.

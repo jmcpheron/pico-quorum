@@ -1,6 +1,6 @@
 // firmware/manifest.json against the firmware itself: each image is exactly what its main and
 // boot.py import, the console image carries nothing else that can use the chip, no image carries
-// secrets, and the ceremony image has no Safe console in it.
+// secrets, and the ceremony and brand images have no Safe console in them.
 //   node test-vectors/manifest.mjs
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -15,7 +15,7 @@ const closure = (...mods) => [...new Set(mods.flatMap((m) => dependencies(m)))].
 
 // Apps and screens that can use the chip other than the console's one signature path.
 const NOT_IN_CONSOLE = ["chipcheck.py", "slots.py", "chipmap.py", "learn.py", "snakelab.py", "ceremony.py",
-  "chipapp.py", "provision.py", "provision_tm.py", "main_ceremony.py"];
+  "chipapp.py", "provision.py", "provision_tm.py", "main_ceremony.py", "brand.py", "main_brand.py"];
 // qrcode.py is not on the list: it only turns text into a picture (the Wi-Fi setup screen, wifisetup.py).
 // Signer and driver calls that change the chip. Only signer.py and the drivers may even name them
 // (atecc.py; trustm_q.py for the Trust M: trustm.py itself has none).
@@ -62,6 +62,9 @@ for (const [name, img] of Object.entries(M.images)) {
 
 const cer = M.images.ceremony.files;
 check(!cer.includes("quorum.py") && !cer.includes("txservice.py"), "ceremony: no Safe console and no transaction service");
+const brd = M.images.brand.files;
+check(!brd.includes("quorum.py") && !brd.includes("txservice.py"), "brand: no Safe console and no transaction service");
+check(!M.images.dual.files.includes("brand.py") && !cer.includes("brand.py"), "brand.py is on the brand image only");
 check(M.preserve.some((p) => p === "secrets.py"), "secrets.py is preserved by every push");
 console.log(failed ? `${failed} FAILED` : "manifest: all pass");
 process.exit(failed ? 1 : 0);
