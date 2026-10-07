@@ -44,27 +44,15 @@ async function myOwner() {
   return cred && cfg ? passkeyOwner(cred, cfg.signer) : "";
 }
 
-/** The address with its blockie, a Copy button, and its deploy link: the app's page where any wallet
- *  (MetaMask, Rabby; it needn't own the Safe) deploys the passkey's signer. The link carries the
- *  public key, since the address is only a hash of it. A phone shares it (AirDrop, Messages). */
+/** The address with its blockie and a Copy button. */
 function ownerLine(owner) {
   const copy = el("button", { className: "copy", type: "button", textContent: "Copy" });
   copy.onclick = async () => {
     try { await navigator.clipboard.writeText(owner); copy.textContent = "Copied"; } catch { copy.textContent = "Select it"; }
     setTimeout(() => { copy.textContent = "Copy"; }, 1500);
   };
-  const cred = passkeyCred();
-  const link = cred && signerLink(cred);
-  const share = el("button", { className: "copy", type: "button", textContent: "Share deploy link", title: "Open it where MetaMask or Rabby is, to deploy this passkey's signer" });
-  share.onclick = async () => {
-    if (navigator.share) {
-      try { await navigator.share({ title: "Deploy my passkey's signer", url: link }); return; } catch (e) { if (e && e.name === "AbortError") return; }
-    }
-    try { await navigator.clipboard.writeText(link); share.textContent = "Link copied"; } catch { share.textContent = "Couldn't copy"; }
-    setTimeout(() => { share.textContent = "Share deploy link"; }, 1500);
-  };
   return el("div", { className: "owner" }, el("img", { className: "blockie", src: blockieSrc(owner), alt: "" }),
-    el("code", { className: "addr", textContent: owner }), copy, ...(link ? [share] : []));
+    el("code", { className: "addr", textContent: owner }), copy);
 }
 
 /** Adding a Safe you already have, by chain and address, to the list the app keeps too. A wallet that
@@ -89,14 +77,15 @@ function addSafeForm() {
   return el("div", { className: "add-safe" }, el("div", { className: "fields" }, chain, address, name, add), why);
 }
 
-/** Is your passkey an owner? Safe's service says (read only). Not yet: the app's add-owner page, the
- *  address filled in, where a wallet that owns the Safe proposes it. */
+/** Is your passkey an owner? Safe's service says (read only). Yes: step 3 is done. Not yet: the app's
+ *  add-owner page, the address filled in, where a wallet that owns the Safe proposes it. */
 async function ownerStatus(where, s, owner) {
   try {
     const { owners, threshold } = await safeInfo(consoleCfg((await built).files), s);
     if (owner && owners.includes(owner.toLowerCase())) {
       where.className = "status ok";
       where.textContent = `your passkey is an owner · ${threshold} of ${owners.length}`;
+      $("#owner-row").classList.add("done");
     } else {
       where.className = "status warn";
       where.replaceChildren(`${threshold} of ${owners.length}, your passkey isn't an owner yet · `,
@@ -110,12 +99,19 @@ async function ownerStatus(where, s, owner) {
 
 async function panel() {
   const cred = passkeyCred(), owner = await myOwner();
-  $("#key").replaceChildren(...(cred
-    ? [`your passkey, for ${cred.rpId} (${cred.synced ? "synced by your account" : "kept on that device"}) · `, el("a", { href: passkeyLink(cred), textContent: "deploy its signer" })]
-    : ["none yet"]));
-  $("#owner-row").hidden = !owner;
-  $("#owner").replaceChildren(...(owner ? [ownerLine(owner)] : []));
   const safes = appSafes();
+  // the three steps: done ones turn green (step 3 when Safe's service says so, in ownerStatus)
+  $("#key-row").classList.toggle("done", !!cred);
+  $("#safes-row").classList.toggle("done", !!safes.length);
+  $("#owner-row").classList.remove("done");
+  $("#key").replaceChildren(cred
+    ? `made for ${cred.rpId}, ${cred.synced ? "synced by your account" : "kept on that device"}`
+    : el("span", { className: "dim", textContent: "none yet: make one on the screen" }));
+  $("#owner").replaceChildren(...(owner ? [ownerLine(owner)] : []));
+  $("#owner-how").replaceChildren(...(owner
+    ? ["Your passkey signs as this address, the same on every chain. A passkey can't pay gas, so an owner of the Safe adds it, from their own wallet: ",
+       el("a", { href: passkeyLink(cred), textContent: "the steps, in the app" }), "."]
+    : ["Your passkey's owner address shows here."]));
   $("#safes").replaceChildren(safes.length
     ? el("ul", { className: "safes" }, ...safes.map((s) => {
         const status = el("span", { className: "status", textContent: "checking…" });
@@ -126,7 +122,7 @@ async function panel() {
           el("div", { className: "grow" }, el("div", {}, el("b", { textContent: s.name || "Safe" }), ` · ${CHAIN_NAMES[s.chain] || s.chain} · `,
             el("code", { textContent: short(checksum(s.address)), title: checksum(s.address) })), status), rm);
       }))
-    : el("span", { className: "dim", textContent: "none yet" }));
+    : el("span", { className: "dim", textContent: cred ? "none yet: add one on the screen" : "none yet" }));
   $("#add-safe").replaceChildren(...(cred && safes.length ? [addSafeForm()] : []));     // with none, the screen asks
 }
 
@@ -190,11 +186,11 @@ async function start() {
   if (!appSafes().length) {
     const owner = await myOwner();
     return overlay(el("h2", { textContent: "Add a Safe to watch" }),
-      el("p", { textContent: "Your passkey signs as this owner, the same address on every chain:" }),
+      el("p", { textContent: "Your passkey signs as this owner address, the same on every chain:" }),
       ...(owner ? [ownerLine(owner)] : []),
-      el("p", { className: "small" }, "A passkey isn't a wallet: it can't pay gas or send a transaction. A wallet that owns the Safe deploys its signer and proposes adding this address as an owner (",
-        el("a", { href: passkeyLink(passkeyCred()), textContent: "your passkey in the app" }), " does both). Then the console shows the Safe's queue, and your passkey confirms what it shows."),
-      addSafeForm());
+      addSafeForm(),
+      el("p", { className: "small" }, "The console shows the Safe's queue, and your passkey confirms what it shows once it is an owner. Not one yet? An owner of the Safe adds it from their own wallet: ",
+        el("a", { href: passkeyLink(passkeyCred()), textContent: "the steps, in the app" }), "."));
   }
   overlay();
   await boot();

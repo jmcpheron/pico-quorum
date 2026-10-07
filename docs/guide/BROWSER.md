@@ -153,9 +153,9 @@ makes yours for the host it is on.
 **The same Safe owner, either way.** The owner address follows from the passkey's public key alone.
 Safe's passkey signer doesn't look at the site, and
 [`tools/vectors/passkey.mjs`](../../tools/vectors/passkey.mjs) showed a `localhost` passkey's
-signature valid on Base Sepolia, Base and Ethereum. Your copy shows its owner address: share its
-deploy link to any wallet to deploy its signer, and have a wallet that owns the Safe propose adding
-it, as on the site.
+signature valid on Base Sepolia, Base and Ethereum. Your copy shows its owner address, and links
+to its signer's page in the app on the site: any wallet deploys the signer there, and a wallet that
+owns the Safe proposes adding it, as on the site.
 
 **But a different passkey.** One made on your copy is not the one made on the site, so it is a
 different owner. Decide where you will sign before you add the owner: moving later is an owner swap

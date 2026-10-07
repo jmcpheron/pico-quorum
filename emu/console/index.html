@@ -24,7 +24,6 @@
     <a href="./" aria-current="page">Console</a>
     <a href="https://github.com/jmcpheron/pico-quorum">Source</a>
   </nav>
-  <a class="btn go" href="../app/">Launch app</a>
 </header>
 
 <main>
@@ -56,15 +55,18 @@
       </div>
     </div>
 
+    <p class="keys">Move <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>
+      · press <kbd>Enter</kbd> or <kbd>Space</kbd> · A B X Y are <kbd>9</kbd><kbd>6</kbd><kbd>3</kbd><kbd>.</kbd></p>
+
     <div class="panel">
-      <div class="row"><span class="label">Key</span><div class="grow" id="key">—</div></div>
-      <div class="row" id="owner-row" hidden><span class="label">Owner</span><div class="grow"><div id="owner"></div>
-        <p class="small">What your passkey's signatures count as, the same on every chain: add this address to a Safe as an owner,
-          and deploy its signer on that chain (any wallet can: share the deploy link to one with MetaMask or Rabby).</p></div></div>
-      <div class="row"><span class="label">Safes</span><div class="grow"><div id="safes">—</div><div id="add-safe"></div></div></div>
       <p class="warn-note"><strong>What you approve is this screen.</strong> Your browser draws it, and Touch ID won't show the
         transaction. On a computer you don't trust, use a hardware key, and keep passkey owners below the Safe's threshold.</p>
-      <p class="keys">Keyboard: arrows or W A S D move, Enter or space presses; 9 6 3 . are A B X Y.</p>
+      <ol class="setup" aria-label="Setting up">
+        <li id="key-row"><span class="n">1</span><div class="grow"><h3>Your passkey</h3><div id="key">—</div></div></li>
+        <li id="safes-row"><span class="n">2</span><div class="grow"><h3>A Safe to watch</h3><div id="safes">—</div><div id="add-safe"></div></div></li>
+        <li id="owner-row"><span class="n">3</span><div class="grow"><h3>Your passkey as its owner</h3><div id="owner"></div>
+          <p class="small" id="owner-how"></p></div></li>
+      </ol>
       <details><summary>Console output</summary><pre id="out"></pre></details>
     </div>
   </section>

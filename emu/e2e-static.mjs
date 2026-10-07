@@ -92,10 +92,12 @@ check(!!JSON.parse(await con.evaluate(() => localStorage.getItem("emu.passkey"))
 const conOwner = (await con.locator("#overlay .owner .addr").innerText()).trim();
 check(/^0x[0-9a-fA-F]{40}$/.test(conOwner) && (await con.locator("#owner .addr").innerText()).trim() === conOwner,
   `the screen and the panel show the passkey's owner address, to add to a Safe (${conOwner.slice(0, 10)}…)`);
-check(await con.locator("#owner .copy", { hasText: "Share deploy link" }).count() === 1, "and a deploy link to share, for a wallet elsewhere to deploy its signer");
+check(!/Launch app|Connect wallet|deploy link|MetaMask|Rabby/.test(await con.locator("body").innerText()), "the page asks for no wallet: its passkey is its key");
+check(await con.evaluate(() => ["key-row", "safes-row", "owner-row"].map((id) => document.getElementById(id).classList.contains("done")).join()) === "true,false,false",
+  "the panel's steps: 1, the passkey, done; 2, a Safe, and 3, an owner, still to do");
 const made = JSON.parse(await con.evaluate(() => localStorage.getItem("emu.passkey")));
-check(/your passkey, for localhost/.test(await con.locator("#key").innerText()) && await con.locator(`#key a[href="${SITE_APP}#/signer/${made.x}/${made.y}"]`).count() === 1,
-  "the panel names the key, your passkey for this site, and (on localhost: a copy on your own computer) links to its signer's page in the app on the site, its key in the link");
+check(/made for localhost/.test(await con.locator("#key").innerText()) && await con.locator(`#owner-how a[href="${SITE_APP}#/signer/${made.x}/${made.y}"]`).count() === 1,
+  "the panel names the key, your passkey for this site, and (on localhost: a copy on your own computer) links an owner of the Safe to its signer's page in the app on the site, its key in the link");
 check(await con.evaluate(() => document.querySelector("header nav a").href) === "https://picoquorum.app/guide/",
   "and the site's header links go to the site");
 const synced = (await cdp2.send("WebAuthn.getCredentials", { authenticatorId: auth2 })).credentials;
@@ -212,8 +214,8 @@ const drew4 = await con4.waitForFunction(() => document.querySelector("#overlay"
 await con4.waitForSelector("#release img");
 check(drew4 && (await con4.locator("#release").innerText()).includes(short) && new Set(alone.asked).size > 60,
   `and boots the console, release ${short}, from nothing but the folder (${new Set(alone.asked).size} files asked for)`);
-check(await con4.locator(`#owner .copy`, { hasText: "Share deploy link" }).count() === 1 && /^0x[0-9a-fA-F]{40}$/.test((await con4.locator("#owner .addr").innerText()).trim()),
-  "it shows the copy's passkey's owner address, with its deploy link");
+check(await con4.locator(`#owner-how a[href^="${SITE_APP}#/signer/"]`).count() === 1 && /^0x[0-9a-fA-F]{40}$/.test((await con4.locator("#owner .addr").innerText()).trim()),
+  "it shows the copy's passkey's owner address, with its signer's page in the app on the site");
 await ctx4.close();
 alone.close();
 
@@ -272,7 +274,8 @@ await con5.click("#overlay .add-safe .go");
 await con5.waitForFunction(() => document.querySelector("#overlay").hidden && +(document.querySelector("#screen").dataset.frames || 0) > 0, null, { timeout: 60000 });
 check((await con5.locator("#owner .addr").innerText()).trim() === mine.address, `the page's owner address is the one the Safe has as an owner (${mine.address.slice(0, 10)}…)`);
 const statusOk = await con5.waitForFunction(() => /your passkey is an owner/.test(document.querySelector("#safes")?.innerText || ""), null, { timeout: 15000 }).then(() => true, () => false);
-check(statusOk, "the panel asks Safe's service, and says the passkey is an owner");
+check(statusOk && await con5.evaluate(() => document.querySelector("#owner-row").classList.contains("done")),
+  "the panel asks Safe's service, says the passkey is an owner, and marks step 3 done");
 
 // count the page's WebAuthn requests, to know when the console asked the passkey
 await con5.evaluate(() => { const get = navigator.credentials.get.bind(navigator.credentials); window.asked = 0; navigator.credentials.get = (o) => { window.asked++; return get(o); }; });

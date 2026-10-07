@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 132 64" width="1056" height="512">
+<title>A · two round detents</title>
+<rect x="0.000" y="0.000" width="132.000" height="64.000" rx="0" fill="#ffffff" stroke="none" stroke-width="0.15" />
+<text x="4.00" y="4.60" font-size="2.8" text-anchor="start" font-weight="bold" fill="#222222" font-family="Helvetica, Arial, sans-serif">A · two round detents</text>
+<text x="18.00" y="7.40" font-size="1.9" text-anchor="middle" font-weight="normal" fill="#222222" font-family="Helvetica, Arial, sans-serif">the key</text>
+<text x="70.00" y="7.40" font-size="1.9" text-anchor="middle" font-weight="normal" fill="#222222" font-family="Helvetica, Arial, sans-serif">in the dock, locked</text>
+<g transform="translate(8.0,9.0)">
+<polygon points="0.000,2.000 0.017,1.739 0.068,1.482 0.152,1.235 0.268,1.000 0.413,0.782 0.586,0.586 0.782,0.413 1.000,0.268 1.235,0.152 1.482,0.068 1.739,0.017 2.000,0.000 18.000,0.000 18.261,0.017 18.518,0.068 18.765,0.152 19.000,0.268 19.218,0.413 19.414,0.586 19.587,0.782 19.732,1.000 19.848,1.235 19.932,1.482 19.983,1.739 20.000,2.000 20.000,22.500 19.274,22.688 19.008,22.875 18.829,23.062 18.701,23.250 18.609,23.438 18.548,23.625 18.512,23.812 18.500,24.000 18.512,24.188 18.548,24.375 18.609,24.562 18.701,24.750 18.829,24.938 19.008,25.125 19.274,25.312 20.000,25.500 20.000,34.000 19.983,34.261 19.932,34.518 19.848,34.765 19.732,35.000 19.587,35.218 19.414,35.414 19.218,35.587 19.000,35.732 18.765,35.848 18.518,35.932 18.261,35.983 18.000,36.000 2.000,36.000 1.739,35.983 1.482,35.932 1.235,35.848 1.000,35.732 0.782,35.587 0.586,35.414 0.413,35.218 0.268,35.000 0.152,34.765 0.068,34.518 0.017,34.261 0.000,34.000 0.000,25.500 0.726,25.312 0.992,25.125 1.171,24.938 1.299,24.750 1.391,24.562 1.452,24.375 1.488,24.188 1.500,24.000 1.488,23.812 1.452,23.625 1.391,23.438 1.299,23.250 1.171,23.062 0.992,22.875 0.726,22.688 0.000,22.500" fill="#1d4f91" stroke="#0e2d57" stroke-width="0.2" />
+<circle cx="10.0" cy="4" r="1.5" fill="#ffffff" stroke="#0e2d57" stroke-width="0.15"/>
+<rect x="7.895" y="12.475" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="7.895" y="17.275" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="9.165" y="12.475" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="9.165" y="17.275" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="10.435" y="12.475" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="10.435" y="17.275" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="11.705" y="12.475" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="11.705" y="17.275" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="7.550" y="13.375" width="4.900" height="3.900" rx="0.1" fill="#1b1b1b" stroke="none" stroke-width="0.15" />
+<rect x="8.550" y="22.700" width="2.900" height="1.600" rx="0.1" fill="#1b1b1b" stroke="none" stroke-width="0.15" />
+<rect x="13.250" y="17.550" width="1.000" height="0.500" rx="0.1" fill="#a0703c" stroke="none" stroke-width="0.15" />
+<rect x="9.750" y="20.000" width="0.500" height="1.000" rx="0.1" fill="#a0703c" stroke="none" stroke-width="0.15" />
+<rect x="7.350" y="25.100" width="0.500" height="1.000" rx="0.1" fill="#a0703c" stroke="none" stroke-width="0.15" />
+<rect x="11.900" y="25.500" width="0.500" height="1.000" rx="0.1" fill="#a0703c" stroke="none" stroke-width="0.15" />
+<text x="10.00" y="16.02" font-size="1.6" text-anchor="middle" font-weight="normal" fill="#bbbbbb" font-family="Helvetica, Arial, sans-serif">U1</text>
+<rect x="5.530" y="28.200" width="8.940" height="7.800" rx="0.5" fill="#c8ccd2" stroke="#7d828a" stroke-width="0.15" />
+<rect x="6.400" y="35.100" width="7.200" height="0.500" rx="0.25" fill="#555a61" stroke="none" stroke-width="0.15" />
+<text x="10.00" y="32.90" font-size="1.8" text-anchor="middle" font-weight="normal" fill="#5a5f66" font-family="Helvetica, Arial, sans-serif">J1</text>
+<text x="10.00" y="9.40" font-size="1.8" text-anchor="middle" font-weight="normal" fill="#ffffff" font-family="Helvetica, Arial, sans-serif">key-c</text>
+</g>
+<rect x="55.200" y="23.000" width="29.600" height="31.300" rx="1.2" fill="#c3c6cc" stroke="#6b6f76" stroke-width="0.2" />
+<rect x="59.700" y="23.000" width="20.600" height="22.300" rx="0" fill="#8f939a" stroke="none" stroke-width="0.15" />
+<rect x="63.800" y="45.300" width="12.400" height="5.200" rx="1.0" fill="#2b2b2b" stroke="none" stroke-width="0.15" />
+<rect x="67.800" y="50.500" width="4.400" height="7.500" rx="0.8" fill="#3a3a3a" stroke="none" stroke-width="0.15" />
+<text x="70.00" y="48.40" font-size="1.6" text-anchor="middle" font-weight="normal" fill="#dddddd" font-family="Helvetica, Arial, sans-serif">USB-C plug</text>
+<g transform="translate(60.0,9.0)">
+<polygon points="0.000,2.000 0.017,1.739 0.068,1.482 0.152,1.235 0.268,1.000 0.413,0.782 0.586,0.586 0.782,0.413 1.000,0.268 1.235,0.152 1.482,0.068 1.739,0.017 2.000,0.000 18.000,0.000 18.261,0.017 18.518,0.068 18.765,0.152 19.000,0.268 19.218,0.413 19.414,0.586 19.587,0.782 19.732,1.000 19.848,1.235 19.932,1.482 19.983,1.739 20.000,2.000 20.000,22.500 19.274,22.688 19.008,22.875 18.829,23.062 18.701,23.250 18.609,23.438 18.548,23.625 18.512,23.812 18.500,24.000 18.512,24.188 18.548,24.375 18.609,24.562 18.701,24.750 18.829,24.938 19.008,25.125 19.274,25.312 20.000,25.500 20.000,34.000 19.983,34.261 19.932,34.518 19.848,34.765 19.732,35.000 19.587,35.218 19.414,35.414 19.218,35.587 19.000,35.732 18.765,35.848 18.518,35.932 18.261,35.983 18.000,36.000 2.000,36.000 1.739,35.983 1.482,35.932 1.235,35.848 1.000,35.732 0.782,35.587 0.586,35.414 0.413,35.218 0.268,35.000 0.152,34.765 0.068,34.518 0.017,34.261 0.000,34.000 0.000,25.500 0.726,25.312 0.992,25.125 1.171,24.938 1.299,24.750 1.391,24.562 1.452,24.375 1.488,24.188 1.500,24.000 1.488,23.812 1.452,23.625 1.391,23.438 1.299,23.250 1.171,23.062 0.992,22.875 0.726,22.688 0.000,22.500" fill="#1d4f91" stroke="#0e2d57" stroke-width="0.2" />
+<circle cx="10.0" cy="4" r="1.5" fill="#ffffff" stroke="#0e2d57" stroke-width="0.15"/>
+<rect x="7.895" y="12.475" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="7.895" y="17.275" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="9.165" y="12.475" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="9.165" y="17.275" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="10.435" y="12.475" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="10.435" y="17.275" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="11.705" y="12.475" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="11.705" y="17.275" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="7.550" y="13.375" width="4.900" height="3.900" rx="0.1" fill="#1b1b1b" stroke="none" stroke-width="0.15" />
+<rect x="8.550" y="22.700" width="2.900" height="1.600" rx="0.1" fill="#1b1b1b" stroke="none" stroke-width="0.15" />
+<rect x="13.250" y="17.550" width="1.000" height="0.500" rx="0.1" fill="#a0703c" stroke="none" stroke-width="0.15" />
+<rect x="9.750" y="20.000" width="0.500" height="1.000" rx="0.1" fill="#a0703c" stroke="none" stroke-width="0.15" />
+<rect x="7.350" y="25.100" width="0.500" height="1.000" rx="0.1" fill="#a0703c" stroke="none" stroke-width="0.15" />
+<rect x="11.900" y="25.500" width="0.500" height="1.000" rx="0.1" fill="#a0703c" stroke="none" stroke-width="0.15" />
+<text x="10.00" y="16.02" font-size="1.6" text-anchor="middle" font-weight="normal" fill="#bbbbbb" font-family="Helvetica, Arial, sans-serif">U1</text>
+<rect x="5.530" y="28.200" width="8.940" height="7.800" rx="0.5" fill="#c8ccd2" stroke="#7d828a" stroke-width="0.15" />
+<rect x="6.400" y="35.100" width="7.200" height="0.500" rx="0.25" fill="#555a61" stroke="none" stroke-width="0.15" />
+<text x="10.00" y="32.90" font-size="1.8" text-anchor="middle" font-weight="normal" fill="#5a5f66" font-family="Helvetica, Arial, sans-serif">J1</text>
+<text x="10.00" y="9.40" font-size="1.8" text-anchor="middle" font-weight="normal" fill="#ffffff" font-family="Helvetica, Arial, sans-serif">key-c</text>
+</g>
+<rect x="81.600" y="24.800" width="0.800" height="15.200" rx="0" fill="#8f939a" stroke="none" stroke-width="0.15" />
+<rect x="80.300" y="24.800" width="1.300" height="0.800" rx="0" fill="#8f939a" stroke="none" stroke-width="0.15" />
+<rect x="80.300" y="25.600" width="1.300" height="14.400" rx="0" fill="#e8772e" stroke="#9c4613" stroke-width="0.12" />
+<polygon points="80.300,31.750 79.609,31.958 79.368,32.167 79.217,32.375 79.121,32.583 79.067,32.792 79.050,33.000 79.067,33.208 79.121,33.417 79.217,33.625 79.368,33.833 79.609,34.042 80.300,34.250" fill="#e8772e" stroke="#9c4613" stroke-width="0.12" />
+<rect x="57.600" y="24.800" width="0.800" height="15.200" rx="0" fill="#8f939a" stroke="none" stroke-width="0.15" />
+<rect x="58.400" y="24.800" width="1.300" height="0.800" rx="0" fill="#8f939a" stroke="none" stroke-width="0.15" />
+<rect x="58.400" y="25.600" width="1.300" height="14.400" rx="0" fill="#e8772e" stroke="#9c4613" stroke-width="0.12" />
+<polygon points="59.700,31.750 60.391,31.958 60.632,32.167 60.783,32.375 60.879,32.583 60.933,32.792 60.950,33.000 60.933,33.208 60.879,33.417 60.783,33.625 60.632,33.833 60.391,34.042 59.700,34.250" fill="#e8772e" stroke="#9c4613" stroke-width="0.12" />
+<line x1="27.50" y1="34.00" x2="8.00" y2="50.30" stroke="#222222" stroke-width="0.15"/><text x="8.00" y="51.00" font-size="1.9" text-anchor="start" font-weight="normal" fill="#222222" font-family="Helvetica, Arial, sans-serif">R1.5 half-round notch, both sides</text>
+<line x1="81.00" y1="29.00" x2="89.00" y2="24.30" stroke="#222222" stroke-width="0.15"/><text x="89.00" y="25.00" font-size="1.9" text-anchor="start" font-weight="normal" fill="#222222" font-family="Helvetica, Arial, sans-serif">printed flex finger, in each wall</text>
+<line x1="80.60" y1="33.00" x2="89.00" y2="36.30" stroke="#222222" stroke-width="0.15"/><text x="89.00" y="37.00" font-size="1.9" text-anchor="start" font-weight="normal" fill="#222222" font-family="Helvetica, Arial, sans-serif">its bump clicks into the notch</text>
+</svg>
