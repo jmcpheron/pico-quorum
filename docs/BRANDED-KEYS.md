@@ -79,11 +79,13 @@ B1–B3 are C1–C3 today, with a new table. B6 is C9. The new parts are B4, B5 
 | B6 Lock the data zone | With the CRC of every slot that is not a private key, plus OTP, so the brand is in the CRC. | **yes** |
 | B7 Check + label | Read everything back, verify the signature, slot 0 empty, counter 0 = 0. Print the label. | read-only |
 
-| B4: write the brand | B6: lock the data zone | B7: what leaves the bench |
+| B1: pre-flight | B3: lock the config | B4: write the brand |
 |---|---|---|
-| <img src="branded-keys/b4-brand.png" width="240" alt="B4/7 Brand: writes the brand into slot 8 and the OTP zone, no key is made here, rewritable until B6"> | <img src="branded-keys/b6-data-lock.png" width="240" alt="B6/7 Lock the data zone: permanent, after this only the chip's own GenKey can put a key into slot 0"> | <img src="branded-keys/b7-ready.png" width="240" alt="B7 Ready to ship: brand signed by key 0000, locked 00/00 and checked, no key inside, slot 0 empty; print the label 0042 with the brand picture"> |
+| <img src="branded-keys/b1-preflight.png" width="240" alt="B1 A factory chip: ATECC608C self-test ok, nothing locked yet, factory table saved. The chip graphic is empty, both padlocks open."> | <img src="branded-keys/b3-config-lock.png" width="240" alt="B3 Lock the config, a red page: slot rules fixed for good, the chip checks the table's CRC first. The cfg padlock is ringed in red."> | <img src="branded-keys/b4-brand.png" width="240" alt="B4 Write the brand: PicoQuorum, quorum v2, key 0042, batch 3, zeros elsewhere; no key is made here. The OTP area now shows the mark and 0042."> |
+| **B5: key 0000 signs it** | **B6: lock the data zone** | **B7: ready to ship** |
+| <img src="branded-keys/b5-countersign.png" width="240" alt="B5 Key 0000 signs it: PicoQuorum key 0000, the brand key, on I2C1; signature into slot 8. Slot 8 fills in blue."> | <img src="branded-keys/b6-data-lock.png" width="240" alt="B6 Lock the data, a red page: the brand and every slot freeze for good; then only the chip's own GenKey can fill slot 0. The data padlock is ringed in red."> | <img src="branded-keys/b7-ready.png" width="240" alt="B7 Ready to ship: brand signed by key 0000, locked 00/00 and checked, no key inside, slot 0 empty. Both padlocks shut. Print the label 0042."> |
 
-B1–B3 would take the same look. For comparison, today's ceremony screens use the 8-pixel framebuf
+B2 (writing the table) looks like B4. For comparison, today's ceremony screens use the 8-pixel framebuf
 font ([firmware-production/shots](firmware-production/shots/)):
 [C1 pre-flight](firmware-production/shots/60-ceremony-C1.png),
 [C3 lock the config](firmware-production/shots/64-ceremony-C3.png),
@@ -220,6 +222,27 @@ and A held for 3 s.
 - How long U1 takes on the Pico: one P-256 verify. The Trust M certificate check, also one verify,
   takes about 1.4 s.
 
+## The chip on every screen
+
+Every step, on the bench and on the user's console, shows the chip under its header, so the wizard
+reads as the chip filling in:
+
+<img src="branded-keys/chip-stages.png" width="240" align="right" alt="The chip graphic at four stages: 1 Factory, everything dashed and both padlocks open; 2 Branded, the OTP shows the PicoQuorum mark and 0042, slot 8 is blue, both padlocks shut, slot 0 still dashed; 3 Key made, slot 0 green; 4 Sealed, slot 0 green with a white border.">
+
+- **The package** names the part, ATECC608C. Once branded, the PicoQuorum mark sits beside it.
+- **The padlocks** for the config and data zones, open or shut.
+- **The OTP zone:** dashed while empty, then blue with the mark and the key's number.
+- **The sixteen slots:** 0–7 on top, 8–15 below.
+  - Slot 0 is dashed green while it waits for the user's key, half green while it is made, and green
+    once made. A white border means sealed.
+  - Slot 8 turns blue when key 0000's signature goes in.
+  - The dead slots go solid grey when the bench zeroes them.
+- **What the step writes is ringed:** blue for the bench's writes, green for the user's key, red for
+  a permanent lock.
+- **On a chip whose brand fails,** the OTP shows "brand ?" in red.
+
+<br clear="right">
+
 ## The user
 
 ### What arrives
@@ -322,8 +345,8 @@ In order. Each item that changes firmware is a new release fingerprint.
 
 ## How these pictures were made
 
-- `node tools/board/shots_brand.mjs` draws the B and U screens with `tools/board/brand_screens.py`,
-  which uses `quorum_ui.py`'s drawing kit and fonts. It runs a virtual ATECC608 through C1–C4 for a
+- `node tools/board/shots_brand.mjs` draws the B and U screens and the chip card with
+  `tools/board/brand_screens.py`, which uses `quorum_ui.py`'s drawing kit and fonts. It runs a virtual ATECC608 through C1–C4 for a
   real key and owner. The key is new
   on every run, so U4 and U5 change each time.
 - `python3 tools/board/brand_diagrams.py` draws the four diagrams, in the brand's colours

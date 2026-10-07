@@ -39,6 +39,9 @@ U.use("dark")
 d = splash.begin()`);
 
 const screens = [
+  ["b1-preflight", `d.frames(B.b1_preflight, d)`],
+  ["b3-config-lock", `d.frames(B.b3_config, d)`],
+  ["b5-countersign", `d.frames(B.b5_sign, d, "0042")`],
   ["b4-brand", `d.frames(B.b4_brand, d, "0042", 3)`],
   ["b6-data-lock", `d.frames(B.b6_lock, d)`],
   ["b7-ready", `d.frames(B.b7_ready, d, "0042", BRAND)`],
@@ -49,6 +52,7 @@ const screens = [
   ["u4-seal", `d.frames(B.u4_seal, d, KEY)`],
   ["u5-owner", `d.frames(B.u5_done, d, OWNER)`],
   ["u1-brand-bad", `d.frames(B.u_bad, d)`],
+  ["chip-stages", `d.frames(B.stages, d)`],
 ];
 for (const [name, code] of screens) {
   py(code);
