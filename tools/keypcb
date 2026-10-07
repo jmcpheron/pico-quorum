@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-# The key PCBs in hardware/key-pcb (see its README.md and ORDERING.md). Needs KiCad 9's kicad-cli.
+# The key PCBs in hardware/key-pcb (see its README.md and ORDERING.md), and the console boards in
+# hardware/console-pcb. Needs KiCad's kicad-cli: 9 for rev A, 10 for the rest.
 #
 #   tools/keypcb check [board]    ERC on the schematic, then DRC with schematic parity on the board
 #   tools/keypcb fab [board]      writes <board>/fab/: the Gerber + drill zip, and the BOM and CPL
@@ -10,12 +11,14 @@
 #                                 (hardware/key-pcb/keycalc.py, run with uv; needs no KiCad)
 #   tools/keypcb gen-cd           rewrites proposals key-c-usbc and key-d-pogo from gen_cd.py (KiCad's own
 #                                 Python, for pcbnew); rev A's boards are never touched
+#   tools/keypcb gen-console      rewrites console-a from hardware/console-pcb/gen_console.py, the same way
 #
-# board is key-a-soic or key-b-udfn; without one, every board. Run from anywhere.
+# board is one of the key-* or console-* folders; without one, every board. Run from anywhere.
 import csv, glob, io, os, re, shutil, subprocess, sys, tempfile, zipfile
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "hardware", "key-pcb")
 ROOT = os.path.normpath(ROOT)
+CONSOLE = os.path.join(os.path.dirname(ROOT), "console-pcb")
 
 # Gerber layers JLCPCB wants for a 2-layer board. Paste layers are only used for assembly orders,
 # and harmless on a bare-board order.
@@ -24,6 +27,7 @@ LAYERS = "F.Cu,B.Cu,F.Paste,B.Paste,F.Silkscreen,B.Silkscreen,F.Mask,B.Mask,Edge
 
 def boards(arg):
     names = sorted(os.path.basename(d) for d in glob.glob(os.path.join(ROOT, "key-*")) if os.path.isdir(d))
+    names += sorted(os.path.basename(d) for d in glob.glob(os.path.join(CONSOLE, "console-*")) if os.path.isdir(d))
     if arg:
         if arg not in names:
             sys.exit(f"no board {arg!r}; boards: {', '.join(names)}")
@@ -44,7 +48,7 @@ def kicad(*args):
 
 
 def files(name):
-    d = os.path.join(ROOT, name)
+    d = os.path.join(CONSOLE if name.startswith("console-") else ROOT, name)
     return d, os.path.join(d, name + ".kicad_sch"), os.path.join(d, name + ".kicad_pcb")
 
 
@@ -138,10 +142,11 @@ def render(name):
     d, sch, pcb = files(name)
     out = os.path.join(d, "fab")
     os.makedirs(out, exist_ok=True)
+    w, h, zoom = ("1600", "700", "2.2") if name.startswith("console-") else ("900", "1100", "1")   # the console lies flat
     for side in ("top", "bottom"):
         png = os.path.join(out, f"{name}-{side}.png")
-        kicad("pcb", "render", "--side", side, "--quality", "high", "--width", "900", "--height", "1100",
-              "--background", "opaque", "--zoom", "1", "-o", png, pcb)
+        kicad("pcb", "render", "--side", side, "--quality", "high", "--width", w, "--height", h,
+              "--background", "opaque", "--zoom", zoom, "-o", png, pcb)
         print(f"{name}: {os.path.relpath(png)}")
 
 
@@ -150,13 +155,17 @@ def main():
         py = "/Applications/KiCad/KiCad.app/Contents/Frameworks/Python.framework/Versions/Current/bin/python3"
         py = py if os.path.exists(py) else "python3"   # on Linux, KiCad's pcbnew is in the system Python
         os.execvp(py, [py, os.path.join(ROOT, "gen_cd.py"), *sys.argv[2:]])
+    if len(sys.argv) > 1 and sys.argv[1] == "gen-console":
+        py = "/Applications/KiCad/KiCad.app/Contents/Frameworks/Python.framework/Versions/Current/bin/python3"
+        py = py if os.path.exists(py) else "python3"
+        os.execvp(py, [py, os.path.join(CONSOLE, "gen_console.py"), *sys.argv[2:]])
     if len(sys.argv) > 1 and sys.argv[1] == "calc":
         calc = os.path.join(ROOT, "keycalc.py")
         os.execvp("uv", ["uv", "run", "--quiet", "--python", "3.12", calc, *sys.argv[2:]])
     if len(sys.argv) < 2 or sys.argv[1] not in ("check", "fab", "render"):
         sys.exit(__doc__ or open(__file__).read().split("\nimport")[0])
     if not KICAD_CLI:
-        sys.exit("kicad-cli not found: install KiCad 9 (https://www.kicad.org/download/)")
+        sys.exit("kicad-cli not found: install KiCad 10 (https://www.kicad.org/download/)")
     cmd, arg = sys.argv[1], (sys.argv[2] if len(sys.argv) > 2 else None)
     ok = True
     for name in boards(arg):
