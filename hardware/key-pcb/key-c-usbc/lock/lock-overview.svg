@@ -1,0 +1,130 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 152 60" width="1216" height="480">
+<title>key-c lock options</title>
+<rect x="0.000" y="0.000" width="152.000" height="60.000" rx="0" fill="#ffffff" stroke="none" stroke-width="0.15" />
+<text x="4.00" y="5.00" font-size="2.6" text-anchor="start" font-weight="bold" fill="#222222" font-family="Helvetica, Arial, sans-serif">Ways to lock key-c into a dock (top view, parts side, USB-C end down)</text>
+<g transform="translate(6,12)">
+<polygon points="0.000,2.000 0.017,1.739 0.068,1.482 0.152,1.235 0.268,1.000 0.413,0.782 0.586,0.586 0.782,0.413 1.000,0.268 1.235,0.152 1.482,0.068 1.739,0.017 2.000,0.000 18.000,0.000 18.261,0.017 18.518,0.068 18.765,0.152 19.000,0.268 19.218,0.413 19.414,0.586 19.587,0.782 19.732,1.000 19.848,1.235 19.932,1.482 19.983,1.739 20.000,2.000 20.000,22.500 19.274,22.688 19.008,22.875 18.829,23.062 18.701,23.250 18.609,23.438 18.548,23.625 18.512,23.812 18.500,24.000 18.512,24.188 18.548,24.375 18.609,24.562 18.701,24.750 18.829,24.938 19.008,25.125 19.274,25.312 20.000,25.500 20.000,34.000 19.983,34.261 19.932,34.518 19.848,34.765 19.732,35.000 19.587,35.218 19.414,35.414 19.218,35.587 19.000,35.732 18.765,35.848 18.518,35.932 18.261,35.983 18.000,36.000 2.000,36.000 1.739,35.983 1.482,35.932 1.235,35.848 1.000,35.732 0.782,35.587 0.586,35.414 0.413,35.218 0.268,35.000 0.152,34.765 0.068,34.518 0.017,34.261 0.000,34.000 0.000,25.500 0.726,25.312 0.992,25.125 1.171,24.938 1.299,24.750 1.391,24.562 1.452,24.375 1.488,24.188 1.500,24.000 1.488,23.812 1.452,23.625 1.391,23.438 1.299,23.250 1.171,23.062 0.992,22.875 0.726,22.688 0.000,22.500" fill="#1d4f91" stroke="#0e2d57" stroke-width="0.2" />
+<circle cx="10.0" cy="4" r="1.5" fill="#ffffff" stroke="#0e2d57" stroke-width="0.15"/>
+<rect x="7.895" y="12.475" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="7.895" y="17.275" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="9.165" y="12.475" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="9.165" y="17.275" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="10.435" y="12.475" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="10.435" y="17.275" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="11.705" y="12.475" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="11.705" y="17.275" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="7.550" y="13.375" width="4.900" height="3.900" rx="0.1" fill="#1b1b1b" stroke="none" stroke-width="0.15" />
+<rect x="8.550" y="22.700" width="2.900" height="1.600" rx="0.1" fill="#1b1b1b" stroke="none" stroke-width="0.15" />
+<rect x="13.250" y="17.550" width="1.000" height="0.500" rx="0.1" fill="#a0703c" stroke="none" stroke-width="0.15" />
+<rect x="9.750" y="20.000" width="0.500" height="1.000" rx="0.1" fill="#a0703c" stroke="none" stroke-width="0.15" />
+<rect x="7.350" y="25.100" width="0.500" height="1.000" rx="0.1" fill="#a0703c" stroke="none" stroke-width="0.15" />
+<rect x="11.900" y="25.500" width="0.500" height="1.000" rx="0.1" fill="#a0703c" stroke="none" stroke-width="0.15" />
+<text x="10.00" y="16.02" font-size="1.6" text-anchor="middle" font-weight="normal" fill="#bbbbbb" font-family="Helvetica, Arial, sans-serif">U1</text>
+<rect x="5.530" y="28.200" width="8.940" height="7.800" rx="0.5" fill="#c8ccd2" stroke="#7d828a" stroke-width="0.15" />
+<rect x="6.400" y="35.100" width="7.200" height="0.500" rx="0.25" fill="#555a61" stroke="none" stroke-width="0.15" />
+<text x="10.00" y="32.90" font-size="1.8" text-anchor="middle" font-weight="normal" fill="#5a5f66" font-family="Helvetica, Arial, sans-serif">J1</text>
+<text x="10.00" y="9.40" font-size="1.8" text-anchor="middle" font-weight="normal" fill="#ffffff" font-family="Helvetica, Arial, sans-serif">key-c</text>
+</g>
+<text x="16.00" y="53.00" font-size="3.2" text-anchor="middle" font-weight="bold" fill="#222222" font-family="Helvetica, Arial, sans-serif">A</text>
+<text x="16.00" y="56.50" font-size="1.55" text-anchor="middle" font-weight="normal" fill="#222222" font-family="Helvetica, Arial, sans-serif">two round detents</text>
+<g transform="translate(35,12)">
+<polygon points="0.000,2.000 0.017,1.739 0.068,1.482 0.152,1.235 0.268,1.000 0.413,0.782 0.586,0.586 0.782,0.413 1.000,0.268 1.235,0.152 1.482,0.068 1.739,0.017 2.000,0.000 18.000,0.000 18.261,0.017 18.518,0.068 18.765,0.152 19.000,0.268 19.218,0.413 19.414,0.586 19.587,0.782 19.732,1.000 19.848,1.235 19.932,1.482 19.983,1.739 20.000,2.000 20.000,22.500 19.274,22.688 19.008,22.875 18.829,23.062 18.701,23.250 18.609,23.438 18.548,23.625 18.512,23.812 18.500,24.000 18.512,24.188 18.548,24.375 18.609,24.562 18.701,24.750 18.829,24.938 19.008,25.125 19.274,25.312 20.000,25.500 20.000,34.000 19.983,34.261 19.932,34.518 19.848,34.765 19.732,35.000 19.587,35.218 19.414,35.414 19.218,35.587 19.000,35.732 18.765,35.848 18.518,35.932 18.261,35.983 18.000,36.000 3.500,36.000 3.000,35.500 3.000,31.000 3.000,31.000 2.991,30.869 2.966,30.741 2.924,30.617 2.866,30.500 2.793,30.391 2.707,30.293 2.609,30.207 2.500,30.134 2.383,30.076 2.259,30.034 2.131,30.009 2.000,30.000 0.000,30.000" fill="#1d4f91" stroke="#0e2d57" stroke-width="0.2" />
+<circle cx="10.0" cy="4" r="1.5" fill="#ffffff" stroke="#0e2d57" stroke-width="0.15"/>
+<rect x="7.895" y="12.475" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="7.895" y="17.275" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="9.165" y="12.475" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="9.165" y="17.275" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="10.435" y="12.475" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="10.435" y="17.275" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="11.705" y="12.475" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="11.705" y="17.275" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="7.550" y="13.375" width="4.900" height="3.900" rx="0.1" fill="#1b1b1b" stroke="none" stroke-width="0.15" />
+<rect x="8.550" y="22.700" width="2.900" height="1.600" rx="0.1" fill="#1b1b1b" stroke="none" stroke-width="0.15" />
+<rect x="13.250" y="17.550" width="1.000" height="0.500" rx="0.1" fill="#a0703c" stroke="none" stroke-width="0.15" />
+<rect x="9.750" y="20.000" width="0.500" height="1.000" rx="0.1" fill="#a0703c" stroke="none" stroke-width="0.15" />
+<rect x="7.350" y="25.100" width="0.500" height="1.000" rx="0.1" fill="#a0703c" stroke="none" stroke-width="0.15" />
+<rect x="11.900" y="25.500" width="0.500" height="1.000" rx="0.1" fill="#a0703c" stroke="none" stroke-width="0.15" />
+<text x="10.00" y="16.02" font-size="1.6" text-anchor="middle" font-weight="normal" fill="#bbbbbb" font-family="Helvetica, Arial, sans-serif">U1</text>
+<rect x="5.530" y="28.200" width="8.940" height="7.800" rx="0.5" fill="#c8ccd2" stroke="#7d828a" stroke-width="0.15" />
+<rect x="6.400" y="35.100" width="7.200" height="0.500" rx="0.25" fill="#555a61" stroke="none" stroke-width="0.15" />
+<text x="10.00" y="32.90" font-size="1.8" text-anchor="middle" font-weight="normal" fill="#5a5f66" font-family="Helvetica, Arial, sans-serif">J1</text>
+<text x="10.00" y="9.40" font-size="1.8" text-anchor="middle" font-weight="normal" fill="#ffffff" font-family="Helvetica, Arial, sans-serif">key-c</text>
+</g>
+<text x="45.00" y="53.00" font-size="3.2" text-anchor="middle" font-weight="bold" fill="#222222" font-family="Helvetica, Arial, sans-serif">B</text>
+<text x="45.00" y="56.50" font-size="1.55" text-anchor="middle" font-weight="normal" fill="#222222" font-family="Helvetica, Arial, sans-serif">keyed corner + one detent</text>
+<g transform="translate(64,12)">
+<polygon points="0.000,2.000 0.017,1.739 0.068,1.482 0.152,1.235 0.268,1.000 0.413,0.782 0.586,0.586 0.782,0.413 1.000,0.268 1.235,0.152 1.482,0.068 1.739,0.017 2.000,0.000 18.000,0.000 18.261,0.017 18.518,0.068 18.765,0.152 19.000,0.268 19.218,0.413 19.414,0.586 19.587,0.782 19.732,1.000 19.848,1.235 19.932,1.482 19.983,1.739 20.000,2.000 20.000,22.000 19.000,22.000 18.741,22.034 18.500,22.134 18.293,22.293 18.134,22.500 18.034,22.741 18.000,23.000 18.000,25.000 18.034,25.259 18.134,25.500 18.293,25.707 18.500,25.866 18.741,25.966 19.000,26.000 20.000,26.000 20.000,34.000 19.983,34.261 19.932,34.518 19.848,34.765 19.732,35.000 19.587,35.218 19.414,35.414 19.218,35.587 19.000,35.732 18.765,35.848 18.518,35.932 18.261,35.983 18.000,36.000 2.000,36.000 1.739,35.983 1.482,35.932 1.235,35.848 1.000,35.732 0.782,35.587 0.586,35.414 0.413,35.218 0.268,35.000 0.152,34.765 0.068,34.518 0.017,34.261 0.000,34.000 0.000,26.000 1.000,26.000 1.259,25.966 1.500,25.866 1.707,25.707 1.866,25.500 1.966,25.259 2.000,25.000 2.000,23.000 1.966,22.741 1.866,22.500 1.707,22.293 1.500,22.134 1.259,22.034 1.000,22.000 0.000,22.000" fill="#1d4f91" stroke="#0e2d57" stroke-width="0.2" />
+<circle cx="10.0" cy="4" r="1.5" fill="#ffffff" stroke="#0e2d57" stroke-width="0.15"/>
+<rect x="7.895" y="12.475" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="7.895" y="17.275" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="9.165" y="12.475" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="9.165" y="17.275" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="10.435" y="12.475" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="10.435" y="17.275" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="11.705" y="12.475" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="11.705" y="17.275" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="7.550" y="13.375" width="4.900" height="3.900" rx="0.1" fill="#1b1b1b" stroke="none" stroke-width="0.15" />
+<rect x="8.550" y="22.700" width="2.900" height="1.600" rx="0.1" fill="#1b1b1b" stroke="none" stroke-width="0.15" />
+<rect x="13.250" y="17.550" width="1.000" height="0.500" rx="0.1" fill="#a0703c" stroke="none" stroke-width="0.15" />
+<rect x="9.750" y="20.000" width="0.500" height="1.000" rx="0.1" fill="#a0703c" stroke="none" stroke-width="0.15" />
+<rect x="7.350" y="25.100" width="0.500" height="1.000" rx="0.1" fill="#a0703c" stroke="none" stroke-width="0.15" />
+<rect x="11.900" y="25.500" width="0.500" height="1.000" rx="0.1" fill="#a0703c" stroke="none" stroke-width="0.15" />
+<text x="10.00" y="16.02" font-size="1.6" text-anchor="middle" font-weight="normal" fill="#bbbbbb" font-family="Helvetica, Arial, sans-serif">U1</text>
+<rect x="5.530" y="28.200" width="8.940" height="7.800" rx="0.5" fill="#c8ccd2" stroke="#7d828a" stroke-width="0.15" />
+<rect x="6.400" y="35.100" width="7.200" height="0.500" rx="0.25" fill="#555a61" stroke="none" stroke-width="0.15" />
+<text x="10.00" y="32.90" font-size="1.8" text-anchor="middle" font-weight="normal" fill="#5a5f66" font-family="Helvetica, Arial, sans-serif">J1</text>
+<text x="10.00" y="9.40" font-size="1.8" text-anchor="middle" font-weight="normal" fill="#ffffff" font-family="Helvetica, Arial, sans-serif">key-c</text>
+</g>
+<text x="74.00" y="53.00" font-size="3.2" text-anchor="middle" font-weight="bold" fill="#222222" font-family="Helvetica, Arial, sans-serif">C</text>
+<text x="74.00" y="56.50" font-size="1.55" text-anchor="middle" font-weight="normal" fill="#222222" font-family="Helvetica, Arial, sans-serif">square notches + lid with prongs</text>
+<g transform="translate(93,12)">
+<polygon points="0.000,2.000 0.017,1.739 0.068,1.482 0.152,1.235 0.268,1.000 0.413,0.782 0.586,0.586 0.782,0.413 1.000,0.268 1.235,0.152 1.482,0.068 1.739,0.017 2.000,0.000 18.000,0.000 18.261,0.017 18.518,0.068 18.765,0.152 19.000,0.268 19.218,0.413 19.414,0.586 19.587,0.782 19.732,1.000 19.848,1.235 19.932,1.482 19.983,1.739 20.000,2.000 20.000,22.000 18.000,25.000 18.000,25.600 18.014,25.704 18.054,25.800 18.117,25.883 18.200,25.946 18.296,25.986 18.400,26.000 20.000,26.000 20.000,34.000 19.983,34.261 19.932,34.518 19.848,34.765 19.732,35.000 19.587,35.218 19.414,35.414 19.218,35.587 19.000,35.732 18.765,35.848 18.518,35.932 18.261,35.983 18.000,36.000 2.000,36.000 1.739,35.983 1.482,35.932 1.235,35.848 1.000,35.732 0.782,35.587 0.586,35.414 0.413,35.218 0.268,35.000 0.152,34.765 0.068,34.518 0.017,34.261 0.000,34.000 0.000,26.000 1.600,26.000 1.704,25.986 1.800,25.946 1.883,25.883 1.946,25.800 1.986,25.704 2.000,25.600 2.000,25.000 0.000,22.000" fill="#1d4f91" stroke="#0e2d57" stroke-width="0.2" />
+<circle cx="10.0" cy="4" r="1.5" fill="#ffffff" stroke="#0e2d57" stroke-width="0.15"/>
+<rect x="7.895" y="12.475" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="7.895" y="17.275" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="9.165" y="12.475" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="9.165" y="17.275" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="10.435" y="12.475" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="10.435" y="17.275" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="11.705" y="12.475" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="11.705" y="17.275" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="7.550" y="13.375" width="4.900" height="3.900" rx="0.1" fill="#1b1b1b" stroke="none" stroke-width="0.15" />
+<rect x="8.550" y="22.700" width="2.900" height="1.600" rx="0.1" fill="#1b1b1b" stroke="none" stroke-width="0.15" />
+<rect x="13.250" y="17.550" width="1.000" height="0.500" rx="0.1" fill="#a0703c" stroke="none" stroke-width="0.15" />
+<rect x="9.750" y="20.000" width="0.500" height="1.000" rx="0.1" fill="#a0703c" stroke="none" stroke-width="0.15" />
+<rect x="7.350" y="25.100" width="0.500" height="1.000" rx="0.1" fill="#a0703c" stroke="none" stroke-width="0.15" />
+<rect x="11.900" y="25.500" width="0.500" height="1.000" rx="0.1" fill="#a0703c" stroke="none" stroke-width="0.15" />
+<text x="10.00" y="16.02" font-size="1.6" text-anchor="middle" font-weight="normal" fill="#bbbbbb" font-family="Helvetica, Arial, sans-serif">U1</text>
+<rect x="5.530" y="28.200" width="8.940" height="7.800" rx="0.5" fill="#c8ccd2" stroke="#7d828a" stroke-width="0.15" />
+<rect x="6.400" y="35.100" width="7.200" height="0.500" rx="0.25" fill="#555a61" stroke="none" stroke-width="0.15" />
+<text x="10.00" y="32.90" font-size="1.8" text-anchor="middle" font-weight="normal" fill="#5a5f66" font-family="Helvetica, Arial, sans-serif">J1</text>
+<text x="10.00" y="9.40" font-size="1.8" text-anchor="middle" font-weight="normal" fill="#ffffff" font-family="Helvetica, Arial, sans-serif">key-c</text>
+</g>
+<text x="103.00" y="53.00" font-size="3.2" text-anchor="middle" font-weight="bold" fill="#222222" font-family="Helvetica, Arial, sans-serif">D</text>
+<text x="103.00" y="56.50" font-size="1.55" text-anchor="middle" font-weight="normal" fill="#222222" font-family="Helvetica, Arial, sans-serif">barbs + release tabs</text>
+<g transform="translate(124,12)">
+<polygon points="0.000,2.000 0.017,1.739 0.068,1.482 0.152,1.235 0.268,1.000 0.413,0.782 0.586,0.586 0.782,0.413 1.000,0.268 1.235,0.152 1.482,0.068 1.739,0.017 2.000,0.000 14.000,0.000 14.261,0.017 14.518,0.068 14.765,0.152 15.000,0.268 15.218,0.413 15.414,0.586 15.587,0.782 15.732,1.000 15.848,1.235 15.932,1.482 15.983,1.739 16.000,2.000 16.000,34.000 15.983,34.261 15.932,34.518 15.848,34.765 15.732,35.000 15.587,35.218 15.414,35.414 15.218,35.587 15.000,35.732 14.765,35.848 14.518,35.932 14.261,35.983 14.000,36.000 2.000,36.000 1.739,35.983 1.482,35.932 1.235,35.848 1.000,35.732 0.782,35.587 0.586,35.414 0.413,35.218 0.268,35.000 0.152,34.765 0.068,34.518 0.017,34.261 0.000,34.000" fill="#1d4f91" stroke="#0e2d57" stroke-width="0.2" />
+<circle cx="8.0" cy="4" r="1.5" fill="#ffffff" stroke="#0e2d57" stroke-width="0.15"/>
+<rect x="5.895" y="12.475" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="5.895" y="17.275" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="7.165" y="12.475" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="7.165" y="17.275" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="8.435" y="12.475" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="8.435" y="17.275" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="9.705" y="12.475" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="9.705" y="17.275" width="0.400" height="0.900" rx="0" fill="#b8bcc2" stroke="none" stroke-width="0.15" />
+<rect x="5.550" y="13.375" width="4.900" height="3.900" rx="0.1" fill="#1b1b1b" stroke="none" stroke-width="0.15" />
+<rect x="6.550" y="22.700" width="2.900" height="1.600" rx="0.1" fill="#1b1b1b" stroke="none" stroke-width="0.15" />
+<rect x="11.250" y="17.550" width="1.000" height="0.500" rx="0.1" fill="#a0703c" stroke="none" stroke-width="0.15" />
+<rect x="7.750" y="20.000" width="0.500" height="1.000" rx="0.1" fill="#a0703c" stroke="none" stroke-width="0.15" />
+<rect x="5.350" y="25.100" width="0.500" height="1.000" rx="0.1" fill="#a0703c" stroke="none" stroke-width="0.15" />
+<rect x="9.900" y="25.500" width="0.500" height="1.000" rx="0.1" fill="#a0703c" stroke="none" stroke-width="0.15" />
+<text x="8.00" y="16.02" font-size="1.6" text-anchor="middle" font-weight="normal" fill="#bbbbbb" font-family="Helvetica, Arial, sans-serif">U1</text>
+<rect x="3.530" y="28.200" width="8.940" height="7.800" rx="0.5" fill="#c8ccd2" stroke="#7d828a" stroke-width="0.15" />
+<rect x="4.400" y="35.100" width="7.200" height="0.500" rx="0.25" fill="#555a61" stroke="none" stroke-width="0.15" />
+<text x="8.00" y="32.90" font-size="1.8" text-anchor="middle" font-weight="normal" fill="#5a5f66" font-family="Helvetica, Arial, sans-serif">J1</text>
+<text x="8.00" y="9.40" font-size="1.8" text-anchor="middle" font-weight="normal" fill="#ffffff" font-family="Helvetica, Arial, sans-serif">key-c</text>
+</g>
+<text x="132.00" y="53.00" font-size="3.2" text-anchor="middle" font-weight="bold" fill="#222222" font-family="Helvetica, Arial, sans-serif">E</text>
+<text x="132.00" y="56.50" font-size="1.55" text-anchor="middle" font-weight="normal" fill="#222222" font-family="Helvetica, Arial, sans-serif">pin through H1 (P2 as ordered)</text>
+</svg>
