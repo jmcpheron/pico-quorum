@@ -2,8 +2,8 @@
 
 > **A proposal (2026-10-07). Nothing here is built.** It answers LAUNCH.md section 6, "decide the
 > brand and quorum record before sealing chip #3", and says what a user does with a branded key.
-> The screens below are mockups, drawn by the real ceremony screen (`firmware/provision.py`) on the
-> emulator with new words. No firmware has these steps yet. Locks are permanent
+> The screens below are mockups in the console's own look (the fonts, colours and drawing kit of
+> `firmware/quorum_ui.py`), drawn on the emulator. No firmware has these steps yet. Locks are permanent
 > ([LOCKING.md](LOCKING.md)), so every new step goes on a spare chip first.
 
 ## The idea in one paragraph
@@ -81,9 +81,10 @@ B1–B3 are C1–C3 today, with a new table. B6 is C9. The new parts are B4, B5 
 
 | B4: write the brand | B6: lock the data zone | B7: what leaves the bench |
 |---|---|---|
-| <img src="branded-keys/b4-brand.png" width="240" alt="B4/7 Brand: writes the brand into slot 8 and the OTP zone, no key is made here, rewritable until B6"> | <img src="branded-keys/b6-data-lock.png" width="240" alt="B6/7 Lock the data zone: permanent, after this only the chip's own GenKey can put a key into slot 0"> | <img src="branded-keys/b7-label.png" width="240" alt="B7 Label OK: quorum v2 locked, brand signed by key 0000, slot 0 empty, counter 0, and the brand picture"> |
+| <img src="branded-keys/b4-brand.png" width="240" alt="B4/7 Brand: writes the brand into slot 8 and the OTP zone, no key is made here, rewritable until B6"> | <img src="branded-keys/b6-data-lock.png" width="240" alt="B6/7 Lock the data zone: permanent, after this only the chip's own GenKey can put a key into slot 0"> | <img src="branded-keys/b7-ready.png" width="240" alt="B7 Ready to ship: brand signed by key 0000, locked 00/00 and checked, no key inside, slot 0 empty; print the label 0042 with the brand picture"> |
 
-The other bench screens look like today's ceremony ([firmware-production/shots](firmware-production/shots/)):
+B1–B3 would take the same look. For comparison, today's ceremony screens use the 8-pixel framebuf
+font ([firmware-production/shots](firmware-production/shots/)):
 [C1 pre-flight](firmware-production/shots/60-ceremony-C1.png),
 [C3 lock the config](firmware-production/shots/64-ceremony-C3.png),
 [C9 lock the data zone](firmware-production/shots/76-ceremony-C9.png).
@@ -239,7 +240,8 @@ and A held for 3 s.
 The user needs a PicoQuorum console, built or bought, on a release that carries claim. The Device
 screen shows the release fingerprint, to compare with the README's build table.
 
-1. **Plug the key in.** The console sees a branded, unclaimed chip and opens CLAIM.
+1. **Plug the key in.** The console sees a branded, unclaimed chip and says so: "A PicoQuorum key.
+   No key inside it yet." A starts.
 2. **U1 Check the brand.** The console checks it with no network. Check that the label's number
    and picture match the screen.
 3. **U2 Make your key.** B+Y to arm, then hold A for 3 s. You can make it again until U4.
@@ -248,13 +250,29 @@ screen shows the release fingerprint, to compare with the README's build table.
 6. **U5 Your owner address**, with its blockie. The console pins the chip and restarts into the
    console.
 
-| U1: the brand checks | U2: make your key | U4: seal it | U5: your owner address |
-|---|---|---|---|
-| <img src="branded-keys/u1-brand-ok.png" width="200" alt="U1 Check the brand OK: signed by PicoQuorum, batch 3 key 0042, locked at the bench, no key yet, counter 0 never used, and the brand picture to compare with the label"> | <img src="branded-keys/u2-make-key.png" width="200" alt="U2/5 Make your key: inside the chip, nobody chose it, the bench included; armed, hold A 3 s"> | <img src="branded-keys/u4-seal.png" width="200" alt="U4/5 Seal your key: permanent, hold A 3 s"> | <img src="branded-keys/u5-owner.png" width="200" alt="U5 Your owner address OK: slot 0 sealed, signs and verifies, the owner address and its blockie"> |
+| Plug in | U1: the brand checks | U2: make your key |
+|---|---|---|
+| <img src="branded-keys/u0-welcome.png" width="240" alt="New key: the PicoQuorum mark, A PicoQuorum key, key 0042, batch 3. No key inside it yet: this console makes your key in the chip, in about a minute. A Start, Y Not now."> | <img src="branded-keys/u1-brand-ok.png" width="240" alt="Check the brand: Made by PicoQuorum. Signed by PicoQuorum key 0000, locked at the bench, never used, 0 signatures. Your label says 0042, with the brand picture. A It matches, Y It doesn't."> | <img src="branded-keys/u2-make-key.png" width="240" alt="Make your key: your key is made inside the chip. What this key is: signs your Safe's approvals; can't hold ETH, tokens or funds; can't be copied or read out. Armed, hold A for 3 s."> |
+| **U3: test it** | **U4: seal it** | **U5: ready** |
+| <img src="branded-keys/u3-test.png" width="240" alt="Testing your key: two test signatures, checked here. Nothing leaves this console."> | <img src="branded-keys/u4-seal.png" width="240" alt="Seal your key: Permanent. After this, your key can never be changed or replaced. Lose the chip, and your Safe's other owners swap it out. Hold A, the bar in red."> | <img src="branded-keys/u5-owner.png" width="240" alt="Your key is ready: the Safe owner address and its blockie. A signer, not a wallet: don't send ETH or tokens here. Funds go to your Safe."> |
+
+### Plain words on the screen
+
+The claim says what the key is in words a new owner can act on, not in chip terms:
+
+| The screen says | Why |
+|---|---|
+| "No key inside it yet. This console makes your key." | The point of the split: the user's console makes the key. |
+| "Signs your Safe's approvals." | All the key does. |
+| "Can't hold ETH, tokens or funds." | The owner address is a signer contract, not a wallet (LAUNCH.md section 4). People will try to send funds to anything that looks like an address. |
+| "Can't be copied or read out." | No seed phrase to write down, and nothing to back up. |
+| "Never used: 0 signatures." | The use counter starts at 0, so the user sees nobody signed with this chip before them. |
+| "Lose the chip, and your Safe's other owners swap it out." | Recovery is the Safe's threshold, not a backup. |
+| "A signer, not a wallet. Don't send ETH or tokens here. Funds go to your Safe." | The same warning again, beside the address itself. |
 
 **When the brand doesn't check out**, claim stops before anything is written:
 
-<img src="branded-keys/u1-brand-bad.png" width="200" alt="U1 Check the brand STOPPED: no brand signature. Don't use it as a key, and tell the project.">
+<img src="branded-keys/u1-brand-bad.png" width="240" alt="Check the brand, on a red page: Not a PicoQuorum key. Its brand doesn't verify. Nothing was written to it. Don't use it. Tell the project the number on its label.">
 
 Claim also refuses:
 - a chip whose slot 0 is already sealed (claimed before)
@@ -304,8 +322,9 @@ In order. Each item that changes firmware is a new release fingerprint.
 
 ## How these pictures were made
 
-- `node tools/board/shots_brand.mjs` draws the B and U screens. It runs a virtual ATECC608 through
-  C1–C4 for a real key and owner, then gives the ceremony screen new titles and words. The key is new
+- `node tools/board/shots_brand.mjs` draws the B and U screens with `tools/board/brand_screens.py`,
+  which uses `quorum_ui.py`'s drawing kit and fonts. It runs a virtual ATECC608 through C1–C4 for a
+  real key and owner. The key is new
   on every run, so U4 and U5 change each time.
 - `python3 tools/board/brand_diagrams.py` draws the four diagrams, in the brand's colours
   ([BRAND.md](BRAND.md)) with the lockup from `docs/brand/`. Their slot rules are the proposal's: no
