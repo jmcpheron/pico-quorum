@@ -48,6 +48,18 @@ for _n in range(1, 16):
         "slot %d must be dead" % _n
 del _s0, _r, _n
 
+# "quorum-v2" is quorum v1 with one change, for a branded chip (docs/BRANDED-KEYS.md): slot 8 (416
+# bytes) is the dead row with IsSecret cleared (SlotConfig 0x8F1F), so it reads in the clear once the
+# data zone is locked. It holds the brand signature, written before that lock and never after.
+QUORUM_V2 = QUORUM_V1[:36] + b"\x1f\x8f" + QUORUM_V1[38:]
+QUORUM_V2_SHA256 = "36da855657a3ee7e098f27cd17b2a636c9e51adec02d252ee0adbe905b8113e1"
+assert hexlify(hashlib.sha256(QUORUM_V2).digest()).decode() == QUORUM_V2_SHA256, "QUORUM_V2 changed: see tools/check_config"
+assert [i for i in range(128) if QUORUM_V1[i] != QUORUM_V2[i]] == [36], "quorum v2 differs from v1 in slot 8's IsSecret only"
+_r = decode_slot(QUORUM_V2, 8)
+assert (_r["kind"], _r["private"], _r["isSecret"], _r["clearWrite"], _r["lockable"], _r["encRead"]) == \
+       ("DATA", False, False, "never", False, False), "slot 8 must be readable in the clear and never writable"
+del _r
+
 # The Adafruit 4314's factory table, bytes 16-127 (bytes 0-15 are the chip's own).
 FACTORY = bytes(16) + bytes([
     0xC0, 0x00, 0x00, 0x00, 0x83, 0x20, 0x87, 0x20, 0x8F, 0x20, 0xC4, 0x8F, 0x8F, 0x8F, 0x8F, 0x8F,
@@ -60,8 +72,8 @@ FACTORY = bytes(16) + bytes([
 ])
 assert len(FACTORY) == 128
 
-PROFILES = (("quorum-v1", QUORUM_V1), ("legacy-test", LEGACY), ("factory", FACTORY))
-PROFILE_ID = {"quorum-v1": 1}
+PROFILES = (("quorum-v1", QUORUM_V1), ("quorum-v2", QUORUM_V2), ("legacy-test", LEGACY), ("factory", FACTORY))
+PROFILE_ID = {"quorum-v1": 1, "quorum-v2": 2}
 REVISIONS = {"00006002": "ATECC608A", "00006003": "ATECC608B"}
 
 # The bytes that say what a chip IS: the slot table and header. Not the counters (52-67, they move),
@@ -94,6 +106,12 @@ def summary(data):
 
 def config_summary(chip_cfg, table=QUORUM_V1):
     return summary(expected_image(chip_cfg, table))
+
+
+def locked_summary(chip_cfg, table):
+    """The CRC a chip's config lock was checked against, worked out again after the lock: the
+    table with the chip's own bytes, and the lock bytes as they were (55 55)."""
+    return summary(bytes(chip_cfg[0:16]) + table[16:84] + bytes(chip_cfg[84:86]) + b"\x55\x55" + table[88:128])
 
 
 def data_image(table, slots, otp):
@@ -157,3 +175,45 @@ def record_matches(rec, qx, qy):
     """Does the record describe this public key?"""
     pub = int(qx).to_bytes(32, "big") + int(qy).to_bytes(32, "big")
     return rec is not None and rec["pubHash"] == hexlify(hashlib.sha256(pub).digest()[:16]).decode()
+
+
+# ----------------------------------------------------------------------------- the brand record (v2)
+# A branded chip's OTP zone (docs/BRANDED-KEYS.md). No key fields: the bench makes no key.
+BRAND_PREFIX = b"PicoQuorum brand v1"
+TEST_BENCH = 0xFF       # a spare branded with the public test key (brand.py): never a brand
+
+
+def brand_encode(serial, revision, config_crc, batch, bench, seq, date, build, key_id):
+    """64 bytes, integers big-endian:
+      0 "PQ" | 2 version 2 | 3 profile (2) | 4 serial (9) | 13 revision (4) | 17 config CRC (2) |
+      19 batch (2) | 21 bench id | 22 sequence on that bench (3) | 25 date (4) | 29 bench build (4) |
+      33 brand key id: SHA-256(qx || qy)[:16] | 49 zeros (15)"""
+    b = (build or "")[:8]
+    bid = bytes.fromhex(b + "0" * (8 - len(b))) if all(c in "0123456789abcdef" for c in b) else bytes(4)
+    r = (MAGIC + bytes([2, PROFILE_ID["quorum-v2"]]) + bytes(serial) + bytes(revision) + int(config_crc).to_bytes(2, "big")
+         + int(batch).to_bytes(2, "big") + bytes([bench]) + int(seq).to_bytes(3, "big") + int(date).to_bytes(4, "big")
+         + bid + bytes(key_id) + bytes(15))
+    assert len(r) == 64
+    return r
+
+
+def brand_decode(b):
+    """The OTP zone as a brand record, or None when it is not one."""
+    b = bytes(b)
+    if len(b) != 64 or b[:2] != MAGIC or b[2] != 2:
+        return None
+    return {"profile": {v: k for k, v in PROFILE_ID.items()}.get(b[3], "?"), "serial": hexlify(b[4:13]).decode(),
+            "revision": hexlify(b[13:17]).decode(), "configCrc": int.from_bytes(b[17:19], "big"),
+            "batch": int.from_bytes(b[19:21], "big"), "bench": b[21], "seq": int.from_bytes(b[22:25], "big"),
+            "date": int.from_bytes(b[25:29], "big"), "build": hexlify(b[29:33]).decode(), "keyId": hexlify(b[33:49]).decode(),
+            "zeros": b[49:64] == bytes(15)}
+
+
+def brand_digest(record):
+    """What the brand key signs: SHA-256("PicoQuorum brand v1" || the 64-byte record)."""
+    return hashlib.sha256(BRAND_PREFIX + bytes(record)).digest()
+
+
+def brand_number(rec):
+    """The label's number: 0042 on bench 0, B2-0042 on any other."""
+    return "%04d" % rec["seq"] if rec["bench"] == 0 else "B%d-%04d" % (rec["bench"], rec["seq"])

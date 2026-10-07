@@ -19,6 +19,14 @@
                 "keccak.py", "knob.py", "lcd.py", "learn.py", "main_ceremony.py", "net.py", "p256.py", "provision.py", "qrcode.py", "chips.py",
                 "quorum_cfg.py", "signer.py", "slots.py", "snakelab.py", "splash.py", "theme.py", "webauthn.py", "wificfg.py", "wifisetup.py", "provision_tm.py", "tmcfg.py", "trustm.py", "trustm_q.py"]
     },
+    "brand": {
+      "main": "main_brand.py",
+      "files": ["atecc.py", "blockies.py", "board.py", "boot.py", "bootart.py", "bootmark.py", "brand.py", "ceremony.py", "chipapp.py", "chipcfg.py",
+                "chipmap.py", "chips.py", "fonts.py", "icons.py", "image.py", "keccak.py", "knob.py", "lcd.py", "learn.py", "main_brand.py", "net.py",
+                "p256.py", "provision.py", "provision_tm.py", "qf_bold14.bin", "qf_bold18.bin", "qf_bold26.bin", "qf_mono13.bin", "qf_monob28.bin",
+                "qf_sans12.bin", "qf_sans14.bin", "qrcode.py", "quorum_cfg.py", "signer.py", "slots.py", "snakelab.py", "splash.py", "taglines.py",
+                "theme.py", "tmcfg.py", "trustm.py", "trustm_q.py", "webauthn.py", "wificfg.py", "wifisetup.py"]
+    },
     "dual": {
       "main": "main_dual.py",
       "files": ["atecc.py", "board.py", "bootart.py", "bootmark.py", "taglines.py", "blockies.py", "boot.py", "ca_amazon_root1.bin", "ca_amazon_root3.bin",

@@ -55,10 +55,11 @@ jobs:
           node test-vectors/manifest.mjs
       - name: Console
         run: node test-vectors/run-console.mjs
-      - name: Trust M and ceremony
+      - name: Trust M, ceremony and brand
         run: |
           node test-vectors/run-trustm.mjs
           node test-vectors/run-ceremony.mjs
+          node test-vectors/run-brand.mjs
       - name: Display and boot art
         run: |
           node test-vectors/run-display.mjs
