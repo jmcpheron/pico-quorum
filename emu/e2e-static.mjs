@@ -229,6 +229,7 @@ const sim = await import("../tools/mock-tx-service/sim.mjs").catch((e) => {
 const st = { ...sim.fresh(), chainId: 84532, name: "Test Safe" };
 const SVC = "https://api.safe.global/tx-service/basesep";
 const posted = [], auths = new Set();
+const OTHER = "0x00000000000000000000000000000000000000aa";      // a Safe the passkey doesn't own: Alice and Bob do
 const ctx5 = await browser.newContext({ viewport: { width: 1000, height: 900 } });
 await ctx5.route("**/*", async (route) => {
   const r = route.request(), u = r.url();
@@ -240,6 +241,7 @@ await ctx5.route("**/*", async (route) => {
   const url = new URL(u), path = url.pathname.slice(new URL(SVC).pathname.length);
   const reply = (status, body) => route.fulfill({ status, headers: { ...cors, "content-type": "application/json" }, body: JSON.stringify(body) });
   let m;
+  if ((m = path.match(/^\/api\/v1\/safes\/(0x[0-9a-fA-F]{40})\/?$/)) && m[1].toLowerCase() === OTHER) return reply(200, { ...sim.apiSafe(st), address: m[1], owners: sim.apiSafe(st).owners.filter((o) => o !== mine.address) });
   if ((m = path.match(/^\/api\/v1\/safes\/(0x[0-9a-fA-F]{40})\/?$/))) return m[1].toLowerCase() === st.address.toLowerCase() ? reply(200, sim.apiSafe(st)) : reply(404, { detail: "Not found." });
   if ((m = path.match(/^\/api\/v2\/safes\/(0x[0-9a-fA-F]{40})\/multisig-transactions\/?$/))) return reply(200, sim.apiList(st, url.searchParams));
   if ((m = path.match(/^\/api\/v1\/multisig-transactions\/(0x[0-9a-fA-F]{64})\/?$/))) { const t = sim.find(st, m[1]); return t ? reply(200, sim.apiTx(st, t)) : reply(404, {}); }
@@ -306,6 +308,19 @@ const inPage = await con5.evaluate(probe);
 const w5 = con5.workers()[0];
 const inWorker = w5 ? await w5.evaluate(probe) : "no worker";
 check(inPage === "connect-src" && inWorker === "connect-src", `a request to any other host is refused by the CSP, in the page (${inPage || "allowed"}) and in the worker (${inWorker || "allowed"})`);
+// a second Safe, one the passkey doesn't own yet: the panel says so, and Ask an owner copies a note
+// with both links an owner needs (no share sheet here: it falls back to the clipboard)
+await ctx5.grantPermissions(["clipboard-read", "clipboard-write"], { origin: BASE.slice(0, -1) });
+await con5.evaluate(() => { navigator.share = undefined; });
+await con5.fill("#add-safe .add-safe input >> nth=0", `basesep:${OTHER}`);
+await con5.locator("#add-safe .add-safe input >> nth=0").dispatchEvent("input");
+await con5.click("#add-safe .add-safe .go");
+const ask = con5.locator("#safes .status button", { hasText: "Ask an owner" });
+const asks = await ask.waitFor({ timeout: 15000 }).then(() => true, () => false);
+if (asks) await ask.click();
+const note = asks ? await con5.waitForFunction(() => navigator.clipboard.readText(), null, { timeout: 5000 }).then((h) => h.jsonValue(), () => "") : "";
+check(asks && note.includes(`Its owner address: ${mine.address}`) && note.includes(`#/signer/${cred5.x}/${cred5.y}`) && note.includes(`/new/add/${mine.address}`),
+  `not an owner yet: Ask an owner copies a note with the owner address, its signer's deploy link and the add-owner link${asks ? "" : " (no button)"}`);
 await ctx5.close();
 for (let i = csp.length - 1; i >= 0; i--) if (csp[i].includes(PROBE.slice(8, -1))) csp.splice(i, 1);     // the probes' own reports
 
