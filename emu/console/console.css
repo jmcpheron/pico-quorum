@@ -1,6 +1,6 @@
 /* The console page: the site's look (docs/home.css, the same tokens as the app), the device's face
-   (joystick, screen, A B X Y as on the Waveshare 1.3" board) and a short panel. Dark first, light for
-   light mode. No inline styles: the page's CSP is style-src 'self'. The fonts are this folder's own. */
+   (joystick, screen, A B X Y as on the Waveshare 1.3" board) and three steps under it. Dark first,
+   light for light mode. No inline styles: the page's CSP is style-src 'self'. The fonts are this folder's own. */
 @font-face { font-family: "Atkinson Next"; src: url(fonts/next-400.woff2) format("woff2"); font-weight: 400; font-display: swap; }
 @font-face { font-family: "Atkinson Next"; src: url(fonts/next-700.woff2) format("woff2"); font-weight: 700; font-display: swap; }
 @font-face { font-family: "Atkinson Mono"; src: url(fonts/mono-500.woff2) format("woff2"); font-weight: 500; font-display: swap; }
@@ -43,8 +43,6 @@ nav a:hover, nav a[aria-current] { color: var(--text); background: var(--panel);
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; padding: 8px 18px; border-radius: 10px;
   border: 1px solid var(--line); background: var(--panel); color: var(--text); font: inherit; font-weight: 700; text-decoration: none; }
 .btn:hover { border-color: var(--muted); color: var(--text); }
-.btn.go { background: var(--ok); border-color: var(--ok); color: var(--ok-ink); }
-.btn.go:hover { color: var(--ok-ink); filter: brightness(1.08); box-shadow: 0 0 0 6px var(--glow); }
 footer { max-width: 1080px; margin: 0 auto; padding: 24px 16px 48px; border-top: 1px solid var(--line); font-size: 15px; }
 footer p { margin: 4px 0; }
 
@@ -65,7 +63,7 @@ h3 { font-size: 19px; margin: 0 0 6px; }
 .release.edited { color: var(--warn); }
 
 /* the device: the front page's screen figure, with the board's buttons around it */
-.run { border-top: 0; padding-top: 8px; display: flex; flex-direction: column; align-items: center; gap: 28px; }
+.run { border-top: 0; padding-top: 8px; display: flex; flex-direction: column; align-items: center; gap: 20px; }
 .device {
   --screen: min(480px, calc(100vw - 32px - 2 * 96px - 2 * 18px - 2 * 12px));
   display: grid; grid-template-columns: auto auto auto; align-items: center; gap: 18px;
@@ -102,11 +100,20 @@ h3 { font-size: 19px; margin: 0 0 6px; }
 .go:disabled { opacity: .6; cursor: progress; }
 .go.alt { background: transparent; color: #34C759; }
 
-/* the panel */
+/* the keyboard, under the device */
+.keys { margin: -4px 0 0; color: var(--muted); font-size: 14px; text-align: center; }
+kbd { display: inline-block; min-width: 1.7em; margin: 0 1px; padding: 0 5px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px;
+  background: var(--panel); color: var(--text); font: 12px/1.6 var(--mono); text-align: center; }
+
+/* the panel: the warning, then three steps, each green once done */
 .panel { width: 100%; max-width: 720px; display: flex; flex-direction: column; gap: 14px; font-size: 16px; }
-.row { display: flex; gap: 14px; }
-.label { flex: 0 0 60px; color: var(--muted); }
 .grow { flex: 1; min-width: 0; }
+.setup { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.setup > li { display: flex; gap: 14px; padding: 14px 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; }
+.setup h3 { font-size: 16px; margin: 1px 0 4px; }
+.setup .n { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line); color: var(--muted); font-weight: 700; font-size: 14px; }
+.setup .done .n { border-color: var(--ok); background: var(--ok-soft); color: var(--ok); font-size: 0; }
+.setup .done .n::before { content: "✓"; font-size: 15px; }
 .small { margin: 4px 0 0; font-size: 14px; color: var(--muted); }
 .dim { color: var(--muted); }
 .ok { color: var(--ok); }
@@ -132,9 +139,8 @@ h3 { font-size: 19px; margin: 0 0 6px; }
 .add-safe select, .add-safe input { min-height: 40px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); font: inherit; font-size: 15px; }
 .add-safe input:first-of-type { flex: 1 1 220px; font-family: var(--mono); font-size: 13px; }
 .add-safe input + input { flex: 0 1 150px; }
-.warn-note { margin: 4px 0 0; background: var(--warn-soft); border-radius: 10px; padding: 12px 14px; font-size: 15px; }
+.warn-note { margin: 0; background: var(--warn-soft); border-radius: 10px; padding: 12px 14px; font-size: 15px; }
 .warn-note strong { color: var(--warn); }
-.keys { margin: 0; color: var(--muted); font-size: 14px; }
 details { color: var(--muted); font-size: 14px; }
 summary { cursor: pointer; }
 #out { max-height: 240px; overflow: auto; margin: 6px 0 0; padding: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; font: 12px/1.4 var(--mono); white-space: pre-wrap; }
@@ -161,7 +167,6 @@ summary { cursor: pointer; }
 @media (max-width: 560px) {
   .top { gap: 10px; }
   nav { margin-left: 0; order: 3; width: 100%; }
-  .top > .btn { margin-left: auto; }
   h1 { font-size: 30px; }
   .lede { font-size: 18px; }
   .device { --screen: calc(100vw - 32px - 28px - 12px); grid-template-columns: 1fr 1fr; padding: 16px 14px; }
@@ -171,5 +176,7 @@ summary { cursor: pointer; }
   .abxy { justify-self: center; display: grid; grid-template-columns: 52px 52px; gap: 10px; }
   .abxy button { width: 52px; height: 52px; }
   .steps { grid-template-columns: 1fr; }
+  .setup > li { padding: 12px; gap: 10px; }
+  .keys { display: none; }           /* no keyboard on a phone */
   .stack td:last-child { white-space: normal; }
 }
