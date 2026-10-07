@@ -157,6 +157,26 @@ def case_refusals():
     check(c.step() == "other", "a sealed quorum v1 chip: this bench stops at 'not for this bench'")
 
 
+def case_console():
+    """The console image on a branded spare: pinned like any chip, it signs, and a sealed quorum v2
+    chip boots the console in the dual image, never the ceremony."""
+    walk("608a")
+    sys.path.insert(0, "/")
+    import console_test as T
+    import quorum_cfg, webauthn, p256
+    sim = atecc_sim.chip()
+    x, y = p256.pubkey(sim.keys[0])
+    owner = webauthn.owner_address("0x%064x" % x, "0x%064x" % y, quorum_cfg.CFG["signer"])
+    pin = {"serial": T.SERIAL, "slot": 0, "owner": owner, "locked": True}
+    Q = T.fresh(expect=pin)
+    check(Q.state == "home" and Q.pin_ok, "the console accepts the branded spare it is pinned to")
+    before = sim.counters[0]
+    T.serve(Q, [T.tx(Q, 0)])
+    check(T.sign(Q, Q.queue[0], 2100) and sim.counters[0] == before + 1, "it signs a Safe transaction: one use")
+    import signer
+    check(not signer.ChipSigner().needs_ceremony(), "a sealed quorum v2 chip needs no ceremony: dual boots the console")
+
+
 class FakeKnob:
     def __init__(self):
         self.down = False
@@ -206,7 +226,7 @@ def case_knob():
 
 
 def main():
-    for case in (case_full, case_brand_check, case_refusals, case_knob):
+    for case in (case_full, case_brand_check, case_refusals, case_knob, case_console):
         try:
             case()
         except Exception as e:

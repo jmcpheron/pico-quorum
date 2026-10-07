@@ -260,9 +260,12 @@ and A held for 3 s.
 - PrivWrite after the data lock: **not tested.** The driver has no PrivWrite command.
 - Slot 8: **reads in the clear after the lock, and is in the data CRC** (the lock took a CRC over it).
 - Revision: `00006002`, a 608A. No 608C has been on the bench.
-- U1's check: **2.3 s** on the Pico.
-- **New:** counter 0 was **1** before any key existed, most likely the bench's public-key read of the
-  empty slot 0 after the data lock (not yet tried in isolation). U1's "Never used: 0 signatures" needs rewording.
+- U1's check: **2.3–2.8 s** on the Pico, nearly all of it the P-256 verify (reads and CRC: 0.2 s).
+- **Counter 0 was 1 before any key existed.** After the data lock a public-key read of slot 0 counts
+  as a use, and the reads of config, OTP, slot 8, Random and Info don't. So the 1 was most likely
+  the bench's read of the then-empty slot 0 (not measured on its own; the slot holds a key now). U1's
+  "Never used: 0 signatures" must count the bench's reads, or the bench must not read slot 0.
+- Every write, lock and key command after the seal is refused, GenKey on slot 0 included.
 
 ## The chip on every screen
 

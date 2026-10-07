@@ -669,3 +669,21 @@ What it settled, and what it didn't:
 - **U1's check took 2.3 s** on the Pico (one P-256 verify plus the CRC), against about 1.4 s guessed.
 - **Not tested:** PrivWrite on slot 0 after the data lock. The driver has no PrivWrite command.
 - **No 608C here:** this order was 608A, so the 608C's revision bytes are still unknown.
+
+**Later the same day: everything left that doesn't need a new command** (a script run over USB with
+the bench app paused; counter 0 went from 22 to 27):
+- **What counts as a use of slot 0:** only a public-key read of slot 0, 1 each time. Reads of the
+  config, OTP and slot 8, Random, Info and the counter itself cost nothing. So the 1 at B7 was most
+  likely the bench's own read of the then-empty slot 0 (it can't be measured alone now). A claim
+  that reads the key before it shows the count will see its own reads, as chip 2's console does.
+- **Refused, each with the counter unmoved:** GenKey on sealed slot 0 (the key read back unchanged
+  after), GenKey on slot 1, Write to slots 0, 1 and 8, Write to OTP, Write to the config (the driver
+  saw an I2C error, not a status byte), Lock config and Lock data again, Sign with slot 1, Read slot 1,
+  the public key of slot 1. GenKey on the sealed slot is the test chip 1 skipped.
+- **Onchain, read only, Base Sepolia:** the passkey factory's `getSigner` gives this key
+  `0x9ff86c3D3Fdb64503eB6ADAa80614Ab38946CDCC`, the owner the board showed. A WebAuthn signature from
+  chip 5 over a test hash passes `isValidSignatureForSigner` (`0x1626ba7e`); a wrong hash gets
+  `0x00000000`. Nothing deployed.
+- **U1's 2.3 s, split:** the P-256 verify is 2.8 s alone in this run, the config CRC 10 ms, the OTP
+  and slot 8 reads 210 ms. The verify is the cost.
+- **Self-test 0, Random live, locks `00 00 / FE FF`** at the end.

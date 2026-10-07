@@ -13,7 +13,7 @@ const t = (f) => readFileSync(new URL(f, import.meta.url), "utf8");
 const dev = await createDevice({
   loadMicroPython,
   keys: new Int32Array(16),
-  files: { ...readWorkspace(), "brand_test.py": t("brand_test.py") },
+  files: { ...readWorkspace(), "brand_test.py": t("brand_test.py"), "console_test.py": t("console_test.py") },
   shims: readShims(),
   onStdout: (l) => { out.push(l); if (!quiet || /^FAIL/.test(l)) console.log(l); },
 });
