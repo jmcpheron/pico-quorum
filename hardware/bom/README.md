@@ -52,6 +52,11 @@ The order itself is in [key-pcb/ORDERING.md](../key-pcb/ORDERING.md).
 | Card-edge socket, 0.100″, 0.062″ card, 8/16 positions | 1–2 | Sullins EBC08DRXN (the 5/10 size is Digi-Key S9641-ND) | the console side; hand-solder, never reflow |
 | Sullins PLA-K1 polarizing key | 2 | Digi-Key PLA-K1-ND | optional; check which way it sits |
 
+## Console PCB, rev A
+
+The parts JLCPCB places, with LCSC numbers, and the ones you buy yourself (a Pico 2 W without
+headers, the 24-pin panel) are in [console-pcb/ORDERING.md](../console-pcb/ORDERING.md).
+
 ## First order for the PicoQuorum console and keys
 
 From the [kickoff](../../docs/KICKOFF.md#first-parts-order). Nothing ordered yet.

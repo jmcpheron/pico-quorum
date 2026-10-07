@@ -1,0 +1,5 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "console")(type "KiCad")(uri "${KIPRJMOD}/../lib/console.pretty")(options "")(descr "PicoQuorum console footprints"))
+  (lib (name "picoquorum")(type "KiCad")(uri "${KIPRJMOD}/../../key-pcb/lib/picoquorum.pretty")(options "")(descr "PicoQuorum key footprints"))
+)
