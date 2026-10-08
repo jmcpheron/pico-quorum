@@ -46,6 +46,34 @@ Probably not on a WROOM-32. Plan on the bench test there, and on a board with PS
 
 The bench test (`bench1.py`) is small and draws in 30-row bands (19 KB), so it should fit a WROOM-32.
 
+## Freenove's ESP32-WROVER
+
+Freenove's ESP32-WROVER board (USB-C, a camera on a ribbon, an ESP32-WROVER-E module with PSRAM)
+takes the same wires. Every GPIO here is at the same pin number on its headers as on the DevKitC,
+so the wire list and the tables below hold. It differs in four ways:
+
+- **Unplug the camera first.** Its ribbon shares IO4, IO5, IO18, IO19, IO21, IO22, IO23, IO25, IO26
+  and IO27 with the screen, the chip, the knob and the buttons (Espressif's `CAMERA_MODEL_WROVER_KIT`
+  pins, which this board follows). The camera drives some of them.
+- **20 pins a side.** Where the DevKitC has IO16 and IO17, this board has GND: they are the PSRAM.
+  Its flash pins come out as 3.3 V and GND, and the bottom two pins on the left are **5 V**.
+- **MicroPython's `ESP32_GENERIC-SPIRAM` build**, for the PSRAM.
+- An LED marked IO2, which the firmware lights as the status LED.
+
+To free the ribbon, find out how the connector locks before pulling anything. Never push the latch
+down first.
+
+- **A flip lock:** a dark bar along the connector's long edge that hinges. Lift it with a fingernail
+  until it stands up. The ribbon then slides straight out.
+- **A slide lock:** the bar on the ribbon's side slides about 1 mm out, toward the ribbon. Pull it
+  out evenly at both ends. The ribbon then slides straight out.
+
+If the ribbon resists, the connector is still locked. Pulling a locked ribbon can tear it.
+
+![The Freenove ESP32-WROVER on two breadboards, every wire numbered](esp32-wrover-breadboard.svg)
+
+![The Freenove ESP32-WROVER's pins](esp32-wrover-pinmap.svg)
+
 ## The pictures
 
 ![The ESP32 on two breadboards, every wire numbered](esp32-breadboard.svg)

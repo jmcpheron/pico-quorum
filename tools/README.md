@@ -20,9 +20,9 @@ From picowallet (Austin Griffith, MIT): `emu`, the emulator's command line
 - `wiring-build1`: draws [`../hardware/wiring/build1-wiring.svg`](../hardware/wiring/build1-wiring.svg);
   `--check` compares its pin table with BUILD1.md and `firmware/bench1.py`
 
-- `wiring-esp32`: draws the ESP32 build on two breadboards and its pin map for
-  [`../hardware/wiring/ESP32.md`](../hardware/wiring/ESP32.md); `--check` compares its pin table with
-  ESP32.md, `firmware/board.py`'s `"esp32"` profile and the DevKitC's headers
+- `wiring-esp32`: draws the ESP32 build on two breadboards and its pin map, for the DevKitC and for
+  Freenove's ESP32-WROVER, for [`../hardware/wiring/ESP32.md`](../hardware/wiring/ESP32.md); `--check`
+  compares its pin table with ESP32.md, `firmware/board.py`'s `"esp32"` profile and both boards' headers
 
 - `keypcb`: the key PCBs in [`../hardware/key-pcb/`](../hardware/key-pcb/), with KiCad 9's
   `kicad-cli`.

@@ -3,8 +3,9 @@
 # DevKit instead of a Pico:
 #   hardware/wiring/esp32-breadboard.svg   the DevKit across two breadboards, every jumper wire numbered
 #   hardware/wiring/esp32-pinmap.svg       the DevKit's two headers: which pin goes where, and why
+#   hardware/wiring/esp32-wrover-*.svg     the same two for Freenove's ESP32-WROVER board
 # PINS below is the one pin table. `--check` compares it with board.py's "esp32" profile (run here
-# as if on an ESP32), with the tables in ESP32.md, and with the DevKitC's header layout.
+# as if on an ESP32), with the tables in ESP32.md, and with both boards' header layouts.
 # Run from the repo root: tools/wiring-esp32
 import re, sys
 from importlib.machinery import SourceFileLoader
@@ -25,6 +26,50 @@ J2 = ["3V3", "EN", "VP", "VN", "IO34", "IO35", "IO32", "IO33", "IO25", "IO26", "
       "GND", "IO13", "D2", "D3", "CMD", "5V"]
 J3 = ["GND", "IO23", "IO22", "TX", "RX", "IO21", "GND", "IO19", "IO18", "IO5", "IO17", "IO16", "IO4",
       "IO0", "IO2", "IO15", "D1", "D0", "CLK"]
+DEVKITC = (J2, J3)
+
+# Freenove's ESP32-WROVER board (USB-C, a camera on a ribbon), 20 pins a side, read off the board
+# (2026-10-07). Every GPIO here sits at the same pin number as on the DevKitC. It brings IO16 and
+# IO17 (the WROVER's PSRAM) and the flash pins out as ground and 3.3 V, and 5 V at the bottom left.
+# J2 and J3 are the DevKitC's names, kept for its left and right headers.
+FREENOVE = (J2[:15] + ["3V3", "3V3", "3V3", "5V", "5V"],
+            J3[:10] + ["GND", "GND"] + J3[12:16] + ["GND"] * 4)
+
+# What the pictures say about each board.
+BOARDS = {
+    "devkitc": dict(
+        headers=DEVKITC, files=("esp32-breadboard.svg", "esp32-pinmap.svg"), name="ESP32 DevKitC",
+        module=("ESP32-", "WROOM-32"), pinmap_title="ESP32-DevKitC pin map", usb="micro-USB",
+        intro=("An ESP32-DevKitC (38 pins) from the top, USB to the left. It is too wide for one breadboard: it bridges two, its pins in row j of the top board and row a",
+               "of the bottom one. Each pin then has 4 free holes beside it on the outside (f-i above, b-e below). Wire by the names printed next to the pins."),
+        pinmap_sub=("Seen from the top, antenna up, USB at the bottom. Header J2 runs down the left, J3 down the right, pin 1 at the top. Names as printed on the board.",
+                    "A 30-pin board (DOIT DevKit V1) has the same GPIOs in another order, some printed D23 for IO23: wire by the names, not by position."),
+        rules=("Nothing in the 5V pin's holes (J2 pin 19, next to the USB end): it is 5 V and the screen and the chip want 3.3 V.",
+               "No wire on D0-D3, CMD or CLK (the left end of each row): they are the module's flash."),
+        why=("2. Never D0-D3, CMD or CLK (GPIO 6-11): they are the module's flash, and the board stops.",
+             "5. IO16 and IO17 are free on a WROOM-32 but hold the PSRAM on a WROVER, so this map leaves them alone: the same wires work on both."),
+        notes={}),
+    "wrover": dict(
+        headers=FREENOVE, files=("esp32-wrover-breadboard.svg", "esp32-wrover-pinmap.svg"), name="Freenove ESP32 WROVER",
+        module=("ESP32-", "WROVER-E"), pinmap_title="Freenove ESP32-WROVER pin map", usb="USB-C",
+        intro=("Freenove's ESP32-WROVER (40 pins), camera unplugged, from the top, USB-C to the left. It bridges two breadboards, its pins in row j of the top board",
+               "and row a of the bottom one, each pin with 4 free holes beside it on the outside (f-i above, b-e below). Wire by the names printed next to the pins."),
+        pinmap_sub=("Seen from the top, antenna up, USB-C at the bottom, pin 1 at the top of each side. J2 and J3 are the DevKitC's names for the left and right headers.",
+                    "The GPIOs sit at the same pin numbers as on the DevKitC, so the wire list is the same. Unplug the camera first: its ribbon uses IO4, 5, 18-27."),
+        rules=("Nothing in the 5V holes (left pins 19 and 20, next to the USB end): it is 5 V and the screen and the chip want 3.3 V.",
+               "The camera is unplugged: its ribbon shares IO4, IO5, IO18, IO19, IO21, IO22, IO23, IO25, IO26 and IO27 with the screen, chip and knob."),
+        why=("2. Unplug the camera: its ribbon shares IO4, 5, 18, 19, 21, 22, 23, 25, 26 and 27 with the screen, the chip, the knob and the buttons.",
+             "5. IO16 and IO17 hold the WROVER's PSRAM; this board brings them out as GND. Flash it with MicroPython's ESP32_GENERIC-SPIRAM build."),
+        notes={"IO2": "the LED marked IO2; a boot pin", "3V3": "3.3 V", "5V": "5 V from USB: never", "GND": "ground"}),
+}
+B = BOARDS["devkitc"]
+
+
+def use(key):
+    """Draw for this board from now on."""
+    global B, J2, J3
+    B = BOARDS[key]
+    J2, J3 = B["headers"]
 
 # (part, contact, signal, ESP32 pin as printed, header pin)
 PINS = [
@@ -168,8 +213,8 @@ def breadboard():
     add('<rect width="%d" height="%d" fill="#fbfbf8"/>' % (W, H))
     text(24, 34, "The console on an ESP32: the chip, the screen and the knob on two breadboards", 18, bold=True)
     text(24, 56, "21 jumper wires, and 6 more for the optional buttons (dashed). Plug them in number order with the USB cable unplugged. Red = 3.3 V, black = ground.", 11.5, GREY)
-    text(24, 74, "An ESP32-DevKitC (38 pins) from the top, USB to the left. It is too wide for one breadboard: it bridges two, its pins in row j of the top board and row a", 11.5, GREY)
-    text(24, 92, "of the bottom one. Each pin then has 4 free holes beside it on the outside (f-i above, b-e below). Wire by the names printed next to the pins.", 11.5, GREY)
+    text(24, 74, B["intro"][0], 11.5, GREY)
+    text(24, 92, B["intro"][1], 11.5, GREY)
 
     # --- the two boards
     rect(X0 - 40, UP_RP - 26, cx(NCOL) - X0 + 80, UP["j"] - UP_RP + 44, "#f1ede4", "#c9c2b0", 10, 1.5)
@@ -194,18 +239,19 @@ def breadboard():
 
     # --- the DevKit
     top_y, bot_y = UP["j"], LO["a"]
-    bx0, bx1 = cx(6) - 64, cx(24) + 96
+    bx0, bx1 = cx(25 - len(J2)) - 64, cx(24) + 96
     rect(bx0, top_y - 16, bx1 - bx0, bot_y - top_y + 32, "#1d2733", "#0c1117", 6, 2)
     rect(bx0 - 22, (top_y + bot_y) / 2 - 22, 30, 44, "#bbb", "#777", 3)
     rtext(bx0 - 2, (top_y + bot_y) / 2 + 14, "USB", 9, "#333")
     rect(cx(19) - 10, top_y + 40, bx1 - cx(19) + 2, bot_y - top_y - 80, "#9aa3ad", "#59616a", 4)     # the module's can
-    text((cx(19) + bx1) / 2 - 4, (top_y + bot_y) / 2 - 4, "ESP32-", 11, "#1d2733", "middle", True)
-    text((cx(19) + bx1) / 2 - 4, (top_y + bot_y) / 2 + 10, "WROOM-32", 11, "#1d2733", "middle", True)
+    text((cx(19) + bx1) / 2 - 4, (top_y + bot_y) / 2 - 4, B["module"][0], 11, "#1d2733", "middle", True)
+    text((cx(19) + bx1) / 2 - 4, (top_y + bot_y) / 2 + 10, B["module"][1], 11, "#1d2733", "middle", True)
     add('<path d="M%s %s h14 v40 h-10 v-30 h-8" fill="none" stroke="#c9a227" stroke-width="2"/>' % (bx1 - 30, top_y + 52))
     rtext(bx1 - 4, (top_y + bot_y) / 2 + 26, "antenna", 8.5, "#c9d1d9")
-    rect(cx(6) - 40, top_y + 26, 26, 18, "#444", "#222", 2); text(cx(6) - 27, top_y + 22, "EN", 8, "#c9d1d9", "middle")
-    rect(cx(6) - 40, bot_y - 44, 26, 18, "#444", "#222", 2); text(cx(6) - 27, bot_y - 14, "BOOT", 8, "#c9d1d9", "middle")
-    text(cx(12), (top_y + bot_y) / 2 + 4, "ESP32 DevKitC", 13, "#e6edf3", "middle", True)
+    bc = cx(25 - len(J2)) - 40
+    rect(bc, top_y + 26, 26, 18, "#444", "#222", 2); text(bc + 13, top_y + 22, "EN", 8, "#c9d1d9", "middle")
+    rect(bc, bot_y - 44, 26, 18, "#444", "#222", 2); text(bc + 13, bot_y - 14, "BOOT", 8, "#c9d1d9", "middle")
+    text(cx(12), (top_y + bot_y) / 2 + 4, B["name"], 13, "#e6edf3", "middle", True)
     used = {}
     for part, contact, sig, name, h in PINS:
         used[h] = name
@@ -372,8 +418,8 @@ def breadboard():
     rect(24, RY - 26, 1250, 108, "#fff4f2", RED, 6, 1.5)
     text(40, RY - 4, "Before the USB cable goes in", 12, RED, "start", True)
     rules = [
-        "Nothing in the 5V pin's holes (J2 pin 19, next to the USB end): it is 5 V and the screen and the chip want 3.3 V.",
-        "No wire on D0-D3, CMD or CLK (the left end of each row): they are the module's flash.",
+        B["rules"][0],
+        B["rules"][1],
         "The top red rail has wires 1 and 3 (and a KY-040's +); the bottom red rail has 3, 5 and 15. No red wire in a blue rail, no black in a red one.",
         "A meter on continuity from a red rail to a blue rail must not beep.",
     ]
@@ -387,21 +433,21 @@ def breadboard():
 # ------------------------------------------------------------------------------------------------ pin map
 def pinmap():
     wb1.out = []
-    W, H = 1400, 980
+    W, H = 1400, 960 + 20 * len(J2) - 360
     add('<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d">' % (W, H, W, H))
     add('<rect width="%d" height="%d" fill="#fbfbf8"/>' % (W, H))
-    text(24, 34, "ESP32-DevKitC pin map: the console's screen, knob, chip and buttons", 18, bold=True)
-    text(24, 56, "Seen from the top, antenna up, USB at the bottom. Header J2 runs down the left, J3 down the right, pin 1 at the top. Names as printed on the board.", 11.5, GREY)
-    text(24, 74, "A 30-pin board (DOIT DevKit V1) has the same GPIOs in another order, some printed D23 for IO23: wire by the names, not by position.", 11.5, GREY)
+    text(24, 34, B["pinmap_title"] + ": the console's screen, knob, chip and buttons", 18, bold=True)
+    text(24, 56, B["pinmap_sub"][0], 11.5, GREY)
+    text(24, 74, B["pinmap_sub"][1], 11.5, GREY)
 
-    BX, BY, BW, BH = 560, 120, 280, 560
+    BX, BY, BW, BH = 560, 120, 280, 180 + 20 * len(J2)
     rect(BX, BY, BW, BH, "#1d2733", "#0c1117", 8, 2)
     rect(BX + 30, BY + 10, BW - 60, 150, "#9aa3ad", "#59616a", 4)
-    text(BX + BW / 2, BY + 90, "ESP32-WROOM-32", 12, "#1d2733", "middle", True)
+    text(BX + BW / 2, BY + 90, "".join(B["module"]), 12, "#1d2733", "middle", True)
     add('<path d="M%s %s h50 v14 h-40 v12 h40" fill="none" stroke="#c9a227" stroke-width="2"/>' % (BX + BW / 2 - 25, BY + 26))
     text(BX + BW / 2, BY + 128, "antenna end", 9, "#1d2733", "middle")
     rect(BX + BW / 2 - 28, BY + BH - 6, 56, 28, "#bbb", "#777", 3)
-    text(BX + BW / 2, BY + BH + 36, "micro-USB: power and programming", 9.5, GREY, "middle")
+    text(BX + BW / 2, BY + BH + 36, B["usb"] + ": power and programming", 9.5, GREY, "middle")
     rect(BX + BW / 2 - 62, BY + BH - 30, 30, 20, "#444", "#222", 2); text(BX + BW / 2 - 47, BY + BH - 36, "EN", 8.5, "#c9d1d9", "middle")
     rect(BX + BW / 2 + 32, BY + BH - 30, 30, 20, "#444", "#222", 2); text(BX + BW / 2 + 47, BY + BH - 36, "BOOT", 8.5, "#c9d1d9", "middle")
 
@@ -414,6 +460,7 @@ def pinmap():
             "IO35": "input only", "VP": "input only", "VN": "input only", "TX": "USB serial", "RX": "USB serial",
             "D0": "flash: never", "D1": "flash: never", "D2": "flash: never", "D3": "flash: never", "CMD": "flash: never",
             "CLK": "flash: never", "5V": "5 V from USB: never", "EN": "reset"}
+    note.update(B["notes"])
     def side(names, j, x, right):
         for n, name in enumerate(names, 1):
             y = BY + 186 + (n - 1) * 20
@@ -438,16 +485,16 @@ def pinmap():
     side(J3, "J3", BX + BW - 14, True)
 
     # the rules
-    RX0, RY0 = 24, 740
+    RX0, RY0 = 24, BY + BH + 60
     rect(RX0, RY0, 1352, 220, "#fff4f2", RED, 6, 1.5)
     text(RX0 + 14, RY0 + 24, "Why these pins, and the rules", 13, RED, "start", True)
     lines = [
         "1. Everything runs on 3.3 V from the 3V3 pin. The 5V pin is the USB's 5 V: nothing goes there.",
-        "2. Never D0-D3, CMD or CLK (GPIO 6-11): they are the module's flash, and the board stops.",
+        B["why"][0],
         "3. The screen's clock and data are on VSPI's own pins, IO18 and IO23, so firmware drives them as SPI(2) at full speed.",
         "4. Boot pins: IO0 (the BOOT button), IO2 and IO12 decide how the ESP32 starts. Nothing here pulls them. CS (IO5) and RST (IO15) are",
         "     boot pins too, but both rest high, which is what the ESP32 wants at power-up.",
-        "5. IO16 and IO17 are free on a WROOM-32 but hold the PSRAM on a WROVER, so this map leaves them alone: the same wires work on both.",
+        B["why"][1],
         "6. IO34-39 (and VP, VN) are inputs with no pull-ups: no knob or button there. The knob and buttons use the ESP32's own pull-ups.",
         "7. The chip only gets read on the bench. Locking an ATECC608 is permanent (docs/LOCKING.md).",
     ]
@@ -486,9 +533,15 @@ def check():
     def fail(msg):
         nonlocal bad
         print(msg); bad += 1
-    for part, contact, sig, name, h in PINS:
-        if hdr(h) != name:
-            fail("PINS %s %s: %s is %s on the DevKitC, not %s" % (part, contact, h, hdr(h), name))
+    for key in BOARDS:
+        use(key)
+        for part, contact, sig, name, h in PINS:
+            if hdr(h) != name:
+                fail("PINS %s %s: %s is %s on the %s, not %s" % (part, contact, h, hdr(h), B["name"], name))
+        for h in ("J2-14", "J3-1"):     # wires 2 and 4
+            if hdr(h) != "GND":
+                fail("%s on the %s is %s, not GND" % (h, B["name"], hdr(h)))
+    use("devkitc")
     b = board_esp32()
     io = lambda part, contact: int(gp(part, contact)[2:])
     want = {
@@ -542,6 +595,9 @@ def check():
 if __name__ == "__main__":
     if "--check" in sys.argv:
         sys.exit(1 if check() else 0)
-    open("hardware/wiring/esp32-breadboard.svg", "w").write(breadboard())
-    open("hardware/wiring/esp32-pinmap.svg", "w").write(pinmap())
-    print("wrote hardware/wiring/esp32-breadboard.svg, hardware/wiring/esp32-pinmap.svg")
+    for key in BOARDS:
+        use(key)
+        bb, pm = ("hardware/wiring/" + f for f in B["files"])
+        open(bb, "w").write(breadboard())
+        open(pm, "w").write(pinmap())
+        print("wrote %s, %s" % (bb, pm))
