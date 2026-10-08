@@ -52,14 +52,20 @@ The order itself is in [key-pcb/ORDERING.md](../key-pcb/ORDERING.md).
 | Card-edge socket, 0.100″, 0.062″ card, 8/16 positions | 1–2 | Sullins EBC08DRXN (the 5/10 size is Digi-Key S9641-ND) | the console side; hand-solder, never reflow |
 | Sullins PLA-K1 polarizing key | 2 | Digi-Key PLA-K1-ND | optional; check which way it sits |
 
-## Console PCB, rev A
+## Console board on the Waveshare pins (hardware/console-a)
 
-The board itself is in [console-pcb/README.md](../console-pcb/README.md), with the ordering steps.
-Prices and LCSC numbers looked up 2026-10-07.
+The parts JLCPCB places, with LCSC numbers, and the ones you buy yourself (a Pico 2 W without
+headers, the 24-pin panel) are in [console-a/ORDERING.md](../console-a/ORDERING.md). JLCPCB can also
+solder the Pico itself (LCSC C42394205), from `fab/factory-pico/`.
+
+## The pocket console board (hardware/console-pocket)
+
+The board, its pin map and the ordering steps are in
+[console-pocket/README.md](../console-pocket/README.md). Prices and LCSC numbers looked up 2026-10-07.
 
 | part | qty for 5 | source | notes |
 |---|---|---|---|
-| console-a boards, assembled | 5 | JLCPCB Economic PCBA, `console-pcb/console-a/fab/` | 51 × 85 mm, 2 layers, HASL; the switch is the one extended part |
+| console-pocket boards, assembled | 5 | JLCPCB Economic PCBA, `console-pocket/console-pocket/fab/` | 51 × 85 mm, 2 layers, HASL; the switch is the one extended part |
 | Raspberry Pi Pico 2 W, **no headers** | 5 | any | soldered on the back as a module (JLCPCB has it as C42394205, not in the BOM) |
 | 1.54″ ST7789 240×240 IPS panel, 12-pin 0.7 mm FPC, soldering type | 5 + 1 spare | MKTechnic, AliExpress ("1.54 inch 12PIN 0.7mm"), ~$2 | measure one against `PANEL` in `gen_console.py` before ordering boards |
 | SW1–SW7 XUNPU TS-1097A-05026, 6×6×5 mm | 35 | placed by JLCPCB, C720496 | 2.6 N |

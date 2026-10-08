@@ -10,9 +10,17 @@ Console and key electronics. The goals are in [`../docs/KICKOFF.md`](../docs/KIC
 - [`key-pcb/`](key-pcb/): the key's board. Rev A makes the board itself the plug (gold fingers into
   a card-edge socket). It has two KiCad projects, the fab files, and how to order them
   ([ORDERING.md](key-pcb/ORDERING.md))
-- [`console-pcb/`](console-pcb/README.md): the console's board, rev A: a Pico 2 W soldered on the
-  back as a module, a bare 1.54″ 240×240 panel, seven buttons and pads for the key's wires.
-  Written by a script, with the KiCad project and how to order it
+- [`console-pcb/`](console-pcb/): the console on one board. console-a holds a Pico 2 W, Build 1's
+  screen, knob and buttons, and a USB-C plug for key-c. The options weighed are in
+  [OPTIONS.md](console-pcb/OPTIONS.md)
+- [`console-a/`](console-a/): a second one-board console, on the Waveshare Pico-LCD-1.3's pins
+  (a bare 1.3″ panel, a d-pad and A/B/X/Y, pads for the key), so the console image runs with the
+  default `BOARD`. JLCPCB can solder its Pico too. Designed and checked, not ordered
+  ([ORDERING.md](console-a/ORDERING.md))
+- [`console-pocket/`](console-pocket/README.md): a third, the pocket size, also on the Waveshare
+  pins: the Pico 2 W soldered on the back as a module, a bare 1.54″ panel, seven buttons and pads
+  for the key's wires, 51 × 85 mm. Written by a script, routed, self-checked; not yet checked in
+  KiCad, not ordered
 
 The inherited picowallet wiring (Pico + Waveshare LCD + ATECC608 + 18650) is in
 [`wiring/SOLDERING.md`](wiring/SOLDERING.md) and `tools/wiring`.
