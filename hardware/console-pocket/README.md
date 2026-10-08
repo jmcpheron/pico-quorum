@@ -1,10 +1,15 @@
-# Console PCB, console-a
+# The pocket console PCB, console-pocket
 
 *Rev A, drawn 2026-10-07. Not yet checked in KiCad, not yet ordered.*
 
-One board for the console: a Pico 2 W soldered on the back as a module, a bare 1.54″ ST7789
-240×240 panel on the front, seven buttons, and pads for the key's wires. It runs the same console
-image as the dev console, on the same GPIOs, so the firmware does not change.
+One board for the console, the small one: a Pico 2 W soldered on the back as a module, a bare
+1.54″ ST7789 240×240 panel on the front, seven buttons, and pads for the key's wires. It runs the
+same console image as the dev console, on the same GPIOs, so the firmware does not change.
+
+It is the third one-board console in this repository, drawn in parallel with the other two:
+[`console-pcb/console-a`](../console-pcb/README.md) is Build 1 on one board (2.8″ screen, knob,
+USB-C plug) and [`console-a/console-a`](../console-a/README.md) is the Waveshare build with a 1.3″
+panel and nine buttons, Pico on the front. This one is the pocket size: the Pico goes on the back.
 
 | front | back |
 |---|---|
@@ -70,7 +75,7 @@ LEDK through R1 to Q1, GP13 drives the base through R2, R3 holds it off at boot.
 sits on the board above the pads, held with double-sided tape; the silkscreen corners show where.
 
 The firmware's Waveshare init sequence should drive this panel as is (same controller, same
-240×240). If the picture is mirrored or inverted, `board.py` gets a `"console-a"` entry.
+240×240). If the picture is mirrored or inverted, `board.py` gets a `"console-pocket"` entry.
 
 ### The buttons
 
@@ -107,17 +112,17 @@ strip above the Pico's top pad row to the vias.
 | path | what |
 |---|---|
 | `gen_console.py` | writes everything below from Python, no KiCad needed; its self-check stands in for DRC here |
-| `lib/picoquorum-console.kicad_sym`, `lib/picoquorum-console.pretty/` | the symbols and footprints, all written by the script (no stock library is read) |
+| `lib/picoquorum-pocket.kicad_sym`, `lib/picoquorum-pocket.pretty/` | the symbols and footprints, all written by the script (no stock library is read) |
 | `lib/picoquorum.pretty/PicoQuorum_Mark.kicad_mod` | the mark, a copy of the key library's |
-| `console-a/` | the KiCad 9 project: open `console-a.kicad_pro` |
-| `console-a/fab/` | what you upload, written on a machine with KiCad by `tools/keypcb fab console-a` |
+| `console-pocket/` | the KiCad 9 project: open `console-pocket.kicad_pro` |
+| `console-pocket/fab/` | what you upload, written on a machine with KiCad by `tools/keypcb fab console-pocket` |
 
 Once a board is edited in KiCad, the KiCad files are the source of truth: don't run the
-generator again, or the edits are lost (`tools/keypcb gen-console` reruns it).
+generator again, or the edits are lost (`tools/keypcb gen-console-pocket` reruns it).
 
 ## Checking it
 
-Here, with no KiCad, `python3 hardware/console-pcb/gen_console.py` writes the project and checks
+Here, with no KiCad, `python3 hardware/console-pocket/gen_console.py` writes the project and checks
 the board it wrote: every pad of a net connected, 0.2 mm between copper of different nets, 0.3 mm
 to the edge, nothing in the antenna keep-out, no via in a pad, the board's nets equal to the
 schematic's, and the Pico's pins 1, 20, 21 and 40 where the datasheet puts them. It reports
@@ -125,22 +130,22 @@ clean. That is a stand-in for DRC, not DRC.
 
 On a machine with KiCad 9 or 10:
 
-1. `tools/keypcb fill console-a`: fills the copper pours and saves the board. The generator
+1. `tools/keypcb fill console-pocket`: fills the copper pours and saves the board. The generator
    writes the zones unfilled, and `kicad-cli` doesn't fill them.
-2. `tools/keypcb check console-a`: ERC, then DRC with schematic parity. Expect 0 errors, 0
+2. `tools/keypcb check console-pocket`: ERC, then DRC with schematic parity. Expect 0 errors, 0
    violations, 0 unconnected, parity clean. The likely first-run complaints are
    `lib_footprint_mismatch` on U1 if KiCad flips a footprint differently from the script, and a
    silkscreen text too near a pad; fix those in the GUI and note it here.
 3. Open the project and look at the 3D view from the back: the Pico's USB at the right edge,
    pin 1 at the bottom-right corner of its footprint, the antenna end at the left edge.
-4. `tools/keypcb fab console-a` writes `fab/console-a-gerbers.zip`, `bom.csv` and `cpl.csv`;
-   `tools/keypcb render console-a` draws both sides.
+4. `tools/keypcb fab console-pocket` writes `fab/console-pocket-gerbers.zip`, `bom.csv` and `cpl.csv`;
+   `tools/keypcb render console-pocket` draws both sides.
 
 ## Ordering
 
 1. **Panels and Picos first.** Buy a 1.54″ panel and measure its FPC against `PANEL` before the
    boards go in. Pico 2 W without headers.
-2. **Upload** `fab/console-a-gerbers.zip` at https://jlcpcb.com. It should read 2 layers,
+2. **Upload** `fab/console-pocket-gerbers.zip` at https://jlcpcb.com. It should read 2 layers,
    51 × 85 mm.
 3. **Board:** 1.6 mm, LeadFree HASL, any colour, "Remove Mark" if offered.
 4. **PCB Assembly:** Economic, top side, qty 5, Confirm Parts Placement. Upload `fab/bom.csv` and

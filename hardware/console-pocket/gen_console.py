@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""PicoQuorum console PCB, console-a: the Pico 2 W, a 1.54" ST7789 panel, seven buttons and pads
+"""PicoQuorum console PCB, console-pocket: the Pico 2 W, a 1.54" ST7789 panel, seven buttons and pads
 for the key, on one 51 x 85 mm board. Writes the whole KiCad 9 project as text:
 
-    python3 hardware/console-pcb/gen_console.py            write lib/, console-a/, then self-check
-    python3 hardware/console-pcb/gen_console.py --check    self-check console-a/console-a.kicad_pcb only
+    python3 hardware/console-pocket/gen_console.py          write lib/, console-pocket/, then self-check
+    python3 hardware/console-pocket/gen_console.py --check  self-check console-pocket/console-pocket.kicad_pcb only
 
 No KiCad is needed here: symbols, footprints, the schematic, the board, its routing and the
 project file are all written by this script, and a geometric self-check stands in for DRC until
-`tools/keypcb check console-a` runs on a machine with KiCad (README.md). The zones are written
-unfilled: `tools/keypcb fill console-a` fills them with KiCad's Python before check and fab.
+`tools/keypcb check console-pocket` runs on a machine with KiCad (README.md). The zones are written
+unfilled: `tools/keypcb fill console-pocket` fills them with KiCad's Python before check and fab.
 
 As with hardware/key-pcb/gen.py: once a board is edited in KiCad, the KiCad files are the source
 of truth; don't run this again or the edits are lost. Frames: the board frame has its origin at
@@ -23,13 +23,13 @@ sys.path.insert(0, os.path.normpath(os.path.join(HERE, "..", "key-pcb")))
 import gen        # noqa: E402  the text helpers of the key boards: uid, _pin, box_symbol, Sheet
 import gen_cd     # noqa: E402  _sexpr, STACKUP, write_mark_footprint
 
-NAME = "console-a"
-L = "picoquorum-console"                        # the library name, in sym-lib-table and fp-lib-table
+NAME = "console-pocket"
+L = "picoquorum-pocket"                        # the library name, in sym-lib-table and fp-lib-table
 LIB = os.path.join(HERE, "lib")
 OUT = os.path.join(HERE, NAME)
 DATE = "2026-10-07"
-TITLE = "PicoQuorum console, rev A: Pico 2 W, 1.54in ST7789, 7 buttons, key pads"
-NOTE = "One board for the console: see hardware/console-pcb/README.md"
+TITLE = "PicoQuorum console-pocket, rev A: Pico 2 W on the back, 1.54in ST7789, 7 buttons, key pads"
+NOTE = "The pocket console on one board: see hardware/console-pocket/README.md"
 PICO_DS = "https://datasheets.raspberrypi.com/picow/pico-2-w-datasheet.pdf"
 SRC = "github.com/jmcpheron/pico-quorum"        # the Source Location, CERN-OHL-W 4.1
 
@@ -1214,7 +1214,7 @@ def write_board(uids, router):
     for i, (name, _net) in enumerate(J4_PINS, 1):
         out.append(gr_text(name, 5.5, 60.0 + 2.54 - 2.54 * (i - 1), "B.SilkS", 0.8, back=True))
     out.append(gr_text("PICOQUORUM", 25.5, 83.6, "F.SilkS", 1.0))
-    out.append(gr_text(f"PicoQuorum console-a {DATE[:7]}", 25.5, 33.2, "B.SilkS", 1.0, back=True))
+    out.append(gr_text(f"PicoQuorum console-pocket {DATE[:7]}", 25.5, 33.2, "B.SilkS", 1.0, back=True))
     out.append(gr_text(SRC, 25.5, 31.2, "B.SilkS", 0.8, back=True))
     out.append(gr_text("Pico 2 W on this side, USB at the right edge", 25.5, 29.2, "B.SilkS", 0.8, back=True))
     out.append(gr_text("key wires", 45.6, 65.5, "B.SilkS", 0.8, back=True))

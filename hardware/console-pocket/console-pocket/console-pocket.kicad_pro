@@ -230,7 +230,7 @@
     "pinned_symbol_libs": []
   },
   "meta": {
-    "filename": "console-a.kicad_pro",
+    "filename": "console-pocket.kicad_pro",
     "version": 3
   },
   "net_settings": {
@@ -281,7 +281,7 @@
   },
   "sheets": [
     [
-      "e89e9d71-409e-496a-943f-7ac86f0b87df",
+      "0a3ff382-cb8f-4db6-b964-8a3b61e0d0d0",
       "Root"
     ]
   ],
