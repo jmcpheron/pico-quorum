@@ -20,6 +20,7 @@
 # Nothing here signs anything but the brand digest and S2's test digests.
 import time
 import hashlib
+import board
 import atecc
 import chipcfg
 import p256
@@ -79,7 +80,7 @@ def log(step, out):
     ok, checks, msg = out
     try:
         with open(LOG, "a") as f:
-            f.write("%d %s %s: %s\n" % (time.time(), step, "ok" if ok else "STOPPED", msg))
+            f.write("%d %s %s: %s\n" % (board.unix(), step, "ok" if ok else "STOPPED", msg))
             for label, k in checks:
                 f.write("  %s %s\n" % ("ok" if k else "NO", label))
     except OSError:
@@ -198,7 +199,7 @@ class Ceremony(P.Ceremony):
         _, qx, qy = test_key()
         rec = chipcfg.brand_encode(self.chip.serial(), self.chip.revision(), chipcfg.locked_summary(self.cfg, TABLE),
                                    int(S.setting("BRAND_BATCH", 0)), chipcfg.TEST_BENCH, int(S.setting("BRAND_SEQ", 1)),
-                                   time.time(), image.BUILD, key_id(qx, qy))
+                                   board.unix(), image.BUILD, key_id(qx, qy))
         P.write_record_and_fill(self.sig, rec, TABLE)
         self.branded, self.signed = rec, None
         r = chipcfg.brand_decode(rec)

@@ -4,6 +4,9 @@ Console and key schematics and pinouts. Draft only.
 
 Build 1 on a breadboard, no jacks: [BREADBOARD.md](BREADBOARD.md), drawn by `tools/wiring-breadboard`.
 
+The same screen, knob and chip on an ESP32 DevKit (WROOM-32) instead of a Pico, on two breadboards:
+[ESP32.md](ESP32.md), drawn by `tools/wiring-esp32`. Not yet run on a board.
+
 Build 1 (Pico 2 W, 2.0″ screen, EC11 knob, 3.5 mm + 2.5 mm TRRS jacks, ATECC608 stand-in key):
 [BUILD1.md](BUILD1.md), drawn by `tools/wiring-build1`.
 

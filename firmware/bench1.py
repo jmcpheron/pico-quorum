@@ -2,6 +2,8 @@
 # EC11 knob, and the ATECC608, wired straight to the Pico or behind the two key jacks. It only reads
 # the chip: no config write, no lock, no GenKey.
 # Pins match the table in tools/wiring-build1; `tools/wiring-build1 --check` says whether they still do.
+# On an ESP32 (hardware/wiring/ESP32.md) the same parts on board.py's "esp32" pins, which
+# `tools/wiring-esp32 --check` holds to that page. No jacks there.
 #
 # Run: `tools/usb push`, then `tools/usb` for the REPL and `import bench1`. On a board whose main.py
 # starts the wallet, stop it first (`import wallet; wallet.stop()`) or boot with main.py held back:
@@ -21,6 +23,7 @@
 import time
 import framebuf
 from machine import Pin, SPI, PWM
+import board
 
 SCR_DC = 8
 SCR_CS = 9
@@ -37,9 +40,16 @@ KEY_PWR = 6
 KEY_DETECT = 7
 KEY_RST = 26            # J2 ring 1; left alone here (a Trust M key soft-resets over I2C)
 KEY_ID = 27             # J2 ring 2; open on every Build 1 key
+if board.ESP32:
+    SCR_DC, SCR_CS, SCR_SCK, SCR_MOSI, SCR_RST, SCR_BL = board.DC, board.CS, board.SCK, board.MOSI, board.RST, board.BL
+    ENC_A, ENC_B, ENC_SW = board.ENC_A, board.ENC_B, board.ENC_SW      # read as the console reads them
+    KEY_SDA, KEY_SCL = board.SDA, board.SCL
 
 JACKS = False           # True once the key jacks are wired (BUILD1.md); False: chip wired straight to 3V3
+if JACKS and board.ESP32:
+    raise ValueError("bench1: the key jacks are Build 1's, on a Pico; JACKS = False on an ESP32")
 W, H = 320, 240         # landscape
+BANDS = 8 if board.ESP32 else 1     # an ESP32 has no 150 KB block for the whole frame: 30 rows at a time
 MADCTL = 0x60           # MX|MV: landscape. Upside down: 0xA0. Mirrored: flip 0x40 or 0x80. Red and blue swapped: add 0x08
 INVERT = True           # IPS ST7789 panels want inversion on; colors look like a negative -> False
 SPI_BAUD = 24_000_000   # jumper wires; garbage on screen -> 10_000_000, short soldered leads -> 62_500_000
@@ -61,18 +71,20 @@ RED, GREEN, BLUE, YELLOW, ORANGE = rgb(255, 0, 0), rgb(0, 255, 0), rgb(0, 0, 255
 
 class Screen(framebuf.FrameBuffer):
     """A 240x320 ST7789 run landscape as 320x240. The console's own driver is lcd.py with board.py
-    "build1" (hardware/wiring/BUILD1.md, firmware to do 1); this one stays the bench's reference."""
+    "build1" (hardware/wiring/BUILD1.md, firmware to do 1); this one stays the bench's reference.
+    It holds rows y0 .. y0 + H // BANDS - 1 of the screen; frames(draw) draws once per band."""
 
     def __init__(self):
         self.cs = Pin(SCR_CS, Pin.OUT, value=1)
         self.dc = Pin(SCR_DC, Pin.OUT, value=1)
         self.rst = Pin(SCR_RST, Pin.OUT, value=1)
-        self.spi = SPI(1, SPI_BAUD, polarity=0, phase=0, sck=Pin(SCR_SCK), mosi=Pin(SCR_MOSI), miso=None)
+        self.spi = SPI(board.SPI_ID, SPI_BAUD, polarity=0, phase=0, sck=Pin(SCR_SCK), mosi=Pin(SCR_MOSI), miso=None)
         self.bl = PWM(Pin(SCR_BL))
         self.bl.freq(1000)
         self.bl.duty_u16(65535)
-        self.buf = bytearray(W * H * 2)
-        super().__init__(self.buf, W, H, framebuf.RGB565)
+        self.y0 = 0
+        self.buf = bytearray(W * (H // BANDS) * 2)
+        super().__init__(self.buf, W, H // BANDS, framebuf.RGB565)
         self.rst(0); time.sleep_ms(20); self.rst(1); time.sleep_ms(150)
         self._cmd(0x01); time.sleep_ms(150)            # software reset
         self._cmd(0x11); time.sleep_ms(120)            # sleep out
@@ -88,10 +100,17 @@ class Screen(framebuf.FrameBuffer):
             self.dc(1); self.cs(0); self.spi.write(data); self.cs(1)
 
     def show(self):
+        y1 = self.y0 + H // BANDS - 1
         self._cmd(0x2A, bytes([0, 0, (W - 1) >> 8, (W - 1) & 0xFF]))
-        self._cmd(0x2B, bytes([0, 0, (H - 1) >> 8, (H - 1) & 0xFF]))
+        self._cmd(0x2B, bytes([self.y0 >> 8, self.y0 & 0xFF, y1 >> 8, y1 & 0xFF]))
         self._cmd(0x2C)
         self.dc(1); self.cs(0); self.spi.write(self.buf); self.cs(1)
+
+    def frames(self, draw, *args):
+        for y0 in range(0, H, H // BANDS):
+            self.y0 = y0
+            draw(*args)
+        self.y0 = 0
 
     def big(self, s, x, y, c, scale=2):
         w = 8 * len(s)
@@ -103,12 +122,27 @@ class Screen(framebuf.FrameBuffer):
                     self.fill_rect(x + xx * scale, y + yy * scale, scale, scale, c)
 
 
-# --- knob: quadrature on two edge interrupts -----------------------------------------------------
+class BandScreen(Screen):
+    """Screen for BANDS > 1: drawing takes screen rows and lands in the band, framebuf clips the rest."""
+
+    def fill_rect(self, x, y, w, h, c):
+        super().fill_rect(x, y - self.y0, w, h, c)
+
+    def text(self, s, x, y, c):
+        super().text(s, x, y - self.y0, c)
+
+
+if BANDS > 1:
+    Screen = BandScreen
+
+
+# --- knob: quadrature on two edge interrupts; on an ESP32, its pulse counter (knob.py says why) ---
 _enc_a = Pin(ENC_A, Pin.IN, Pin.PULL_UP)
 _enc_b = Pin(ENC_B, Pin.IN, Pin.PULL_UP)
 _push = Pin(ENC_SW, Pin.IN, Pin.PULL_UP)
 _QUAD = (0, -1, 1, 0, 1, 0, 0, -1, -1, 0, 0, 1, 0, 1, -1, 0)
 _enc_state = (_enc_a.value() << 1) | _enc_b.value()
+_enc = None
 steps = 0
 
 
@@ -119,12 +153,21 @@ def _enc_irq(_):
     _enc_state = s
 
 
-_enc_a.irq(_enc_irq, Pin.IRQ_RISING | Pin.IRQ_FALLING, hard=True)    # knob.py says why hard
-_enc_b.irq(_enc_irq, Pin.IRQ_RISING | Pin.IRQ_FALLING, hard=True)
+if board.ESP32:
+    from machine import Encoder
+    _enc = Encoder(0, _enc_a, _enc_b, phases=4, filter_ns=10_000)
+else:
+    _enc_a.irq(_enc_irq, Pin.IRQ_RISING | Pin.IRQ_FALLING, hard=True)    # knob.py says why hard
+    _enc_b.irq(_enc_irq, Pin.IRQ_RISING | Pin.IRQ_FALLING, hard=True)
+
+
+def count():
+    """Quadrature steps since the start."""
+    return _enc.value() if _enc else steps
 
 
 def clicks():
-    return int(steps / STEPS_PER_CLICK)
+    return int(count() / STEPS_PER_CLICK)
 
 
 # --- key: detect, power, bus ---------------------------------------------------------------------
@@ -190,7 +233,7 @@ def probe():
 def draw(scr, st):
     scr.fill(BLACK)
     scr.text("TL", 2, 2, GREY)                          # top-left corner: orientation check
-    scr.big("BUILD 1 BENCH", 56, 4, YELLOW)
+    scr.big("ESP32 BENCH" if board.ESP32 else "BUILD 1 BENCH", 56, 4, YELLOW)
     for i, (c, name) in enumerate(((RED, "RED"), (GREEN, "GRN"), (BLUE, "BLU"), (WHITE, "WHT"))):
         scr.fill_rect(8 + i * 78, 26, 72, 18, c)
         scr.text(name, 8 + i * 78 + 24, 31, BLACK if c in (GREEN, WHITE) else WHITE)
@@ -201,7 +244,7 @@ def draw(scr, st):
         scr.big(val, 112, y, c)
         y += 22
     row("KNOB", "%+d" % clicks())
-    scr.text("%d steps" % steps, 230, y - 16, GREY)
+    scr.text("%d steps" % count(), 230, y - 16, GREY)
     row("PUSH", "DOWN" if st["down"] else "up", GREEN if st["down"] else WHITE)
     if JACKS:
         row("DETECT", "key in" if st["present"] else "no key", GREEN if st["present"] else WHITE)
@@ -287,9 +330,9 @@ def tick(_=None):
                     release_bus()
             _down_at = None
         st["down"] = down
-        key = (steps, st["down"], st["present"], st["powered"], id(st["probe"]), st["msg"])
+        key = (count(), st["down"], st["present"], st["powered"], id(st["probe"]), st["msg"])
         if key != _last:
-            draw(scr, st)
+            scr.frames(draw, scr, st)
             _last = key
     finally:
         _busy = False
@@ -297,13 +340,12 @@ def tick(_=None):
 
 def start():
     global scr, timer
-    from machine import Timer
     power(False)
     scr = Screen()
     if not JACKS:
         st["probe"] = probe()
-    draw(scr, st)
-    timer = Timer(period=20, mode=Timer.PERIODIC, callback=tick)
+    scr.frames(draw, scr, st)
+    timer = board.timer("tick", 20, tick)
     print("bench1 running: turn the knob, press it%s. bench1.stop() to stop." % (", plug the key" if JACKS else ""))
 
 

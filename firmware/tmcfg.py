@@ -52,13 +52,13 @@ CAS = {
         0x1EA249AE7910F052C59D85514A8215E2D63E4730CDFB5CC153BBCC00A7E6408B),
 }
 # The emulator's virtual Trust M (emu/core/shims/trustm_sim.py) signs its certificate with a test
-# CA. Accepted only off the Pico: on rp2 this name means nothing.
+# CA. Accepted only off a board: on rp2 or an ESP32 this name means nothing.
 EMU_CA = "PicoQuorum emulator CA (not Infineon)"
 
 
 def _emu_ca():
     import sys
-    if sys.platform == "rp2":
+    if sys.platform in ("rp2", "esp32"):
         return None
     try:
         import trustm_sim
@@ -524,7 +524,8 @@ def detail_pages(uid, cert=None, ca_ok=None, key=None, bound=None, rec=None, sec
                               False: "MISSING or does not verify", None: "not checked"}[bound]))
         if rec and rec.get("date"):
             import time
-            t = time.gmtime(rec["date"])
+            import board
+            t = time.gmtime(rec["date"] - board.EPOCH)
             k.append(("Made", "%04d-%02d-%02d, build %s" % (t[0], t[1], t[2], rec.get("build", "?"))))
         pages.append(("Signing key", k))
     return pages

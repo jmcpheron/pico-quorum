@@ -51,8 +51,10 @@ ALLOW_LOCK = False     # lock the config zone (required before the chip will mak
 ALLOW_GENKEY = False   # make a new key in a slot, replacing the one there
 # The hardware (firmware/board.py). "waveshare" (the default): the Pico-LCD-1.3, 240x240 with the
 # joystick and A/B/X/Y. "build1": the 2.0" screen as 320x240 and the knob (hardware/wiring/BUILD1.md).
+# An ESP32 is always "esp32" (hardware/wiring/ESP32.md), whatever this says; SCREEN still applies.
 # BOARD = "build1"
-# ATECC608 bus pins. GP4/GP5 is the wallet wiring; set these only for a board where those pins
-# are taken (a clone with something on GP5, say). Any two free GPIOs work.
+# SCREEN = "2.8"       # build1 and esp32: "2.8", "2.4" or "2.0" (240x320), or "1.8" (128x160)
+# ATECC608 bus pins. GP4/GP5 is the wallet wiring (GPIO21/22 on an ESP32); set these only for a
+# board where those pins are taken (a clone with something on GP5, say). Any two free GPIOs work.
 # ATECC_SDA = 4
 # ATECC_SCL = 5

@@ -23,6 +23,7 @@
 #
 #   import lcd; import quorum; quorum.start()      (main_console.py does this)
 import sys, time, machine, network, gc
+import board
 import lcd as L
 import net
 import image
@@ -374,7 +375,7 @@ def note_recent(n, w, what):
     Only what the screens show: nonce, Safe, chain, a one-line summary, when."""
     global recent
     recent = [{"n": n, "safe": w["addr"].lower(), "chain": w["chain"], "name": w["name"], "what": what[:48],
-               "t": time.time()}] + recent[:RECENT_MAX - 1]
+               "t": board.unix()}] + recent[:RECENT_MAX - 1]
     try:
         import json
         with open(RECENT_FILE, "w") as f:
@@ -1555,7 +1556,7 @@ def outside_seen():
 # ----------------------------------------------------------------------------- entry
 def start_timer():
     global timer
-    timer = machine.Timer(period=50, mode=machine.Timer.PERIODIC, callback=tick)
+    timer = board.timer("tick", 50, tick)
 
 
 def start_watch():

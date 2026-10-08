@@ -10,6 +10,7 @@
 #   entry: {"n": 2, "name": "chip 2", "theme": "light", "first": unix, "profile": "quorum-v1", ...}
 import json
 import time
+import board
 
 FILE = "chips.json"
 THEMES = ("dark", "light")
@@ -35,8 +36,7 @@ def save(d):
 
 
 def _now():
-    t = time.time()
-    return t if time.gmtime(t)[0] >= 2025 else 0
+    return board.unix() if time.gmtime()[0] >= 2025 else 0
 
 
 def seen(serial, profile=None, **extra):

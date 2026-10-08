@@ -14,15 +14,17 @@
 #   good (KeyConfig.Lockable), after which nothing can replace the key in it.
 from machine import I2C, SoftI2C, Pin
 import time
+import board
 
-# Bus pins. secrets.py may set ATECC_SDA / ATECC_SCL; the default is the wallet's GP4/GP5. A pair
-# that is a hardware I2C0/I2C1 pair (SDA on 0,4,8,.. / 2,6,10,..; SCL the next pin up) uses the
-# peripheral, anything else is bit-banged at 100 kHz, which this chip does not mind.
+# Bus pins. secrets.py may set ATECC_SDA / ATECC_SCL; the default is the board's (board.py): the
+# wallet's GP4/GP5 on a Pico, GPIO21/22 on an ESP32. A pair that is a hardware I2C0/I2C1 pair on the
+# Pico (SDA on 0,4,8,.. / 2,6,10,..; SCL the next pin up) uses the peripheral, anything else is
+# bit-banged at 100 kHz, which this chip does not mind.
 try:
     import secrets as _s
-    SDA, SCL = int(getattr(_s, "ATECC_SDA", 4)), int(getattr(_s, "ATECC_SCL", 5))
+    SDA, SCL = int(getattr(_s, "ATECC_SDA", board.SDA)), int(getattr(_s, "ATECC_SCL", board.SCL))
 except ImportError:
-    SDA, SCL = 4, 5
+    SDA, SCL = board.SDA, board.SCL
 
 
 def make_i2c(sda, scl, freq):

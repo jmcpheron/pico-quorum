@@ -1,0 +1,1224 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1580" height="1700" viewBox="0 0 1580 1700">
+<rect width="1580" height="1700" fill="#fbfbf8"/>
+<text x="24" y="34" font-size="18" text-anchor="start" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">The console on an ESP32: the chip, the screen and the knob on two breadboards</text>
+<text x="24" y="56" font-size="11.5" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">21 jumper wires, and 6 more for the optional buttons (dashed). Plug them in number order with the USB cable unplugged. Red = 3.3 V, black = ground.</text>
+<text x="24" y="74" font-size="11.5" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">An ESP32-DevKitC (38 pins) from the top, USB to the left. It is too wide for one breadboard: it bridges two, its pins in row j of the top board and row a</text>
+<text x="24" y="92" font-size="11.5" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">of the bottom one. Each pin then has 4 free holes beside it on the outside (f-i above, b-e below). Wire by the names printed next to the pins.</text>
+<rect x="90" y="330" width="1066" height="322" rx="10" fill="#f1ede4" stroke="#c9c2b0" stroke-width="1.5"/>
+<rect x="90" y="514" width="1066" height="18" fill="#e3ddcf"/>
+<rect x="90" y="836" width="1066" height="326" rx="10" fill="#f1ede4" stroke="#c9c2b0" stroke-width="1.5"/>
+<rect x="90" y="956" width="1066" height="18" fill="#e3ddcf"/>
+<line x1="100" y1="345" x2="1146" y2="345" stroke="#b3261e" stroke-width="2" opacity="0.9"/>
+<text x="100" y="360" font-size="13" text-anchor="middle" fill="#b3261e" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">+</text>
+<rect x="127" y="353" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="161" y="353" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="195" y="353" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="263" y="353" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="297" y="353" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="331" y="353" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="365" y="353" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="399" y="353" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="467" y="353" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="501" y="353" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="535" y="353" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="569" y="353" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="603" y="353" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="671" y="353" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="705" y="353" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="739" y="353" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="773" y="353" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="807" y="353" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="875" y="353" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="909" y="353" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="943" y="353" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="977" y="353" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="1011" y="353" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="1079" y="353" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="1113" y="353" width="6" height="6" fill="#555" opacity="0.8"/>
+<line x1="100" y1="367" x2="1146" y2="367" stroke="#1f5fbf" stroke-width="2" opacity="0.9"/>
+<text x="100" y="382" font-size="13" text-anchor="middle" fill="#1f5fbf" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">-</text>
+<rect x="127" y="375" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="161" y="375" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="195" y="375" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="263" y="375" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="297" y="375" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="331" y="375" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="365" y="375" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="399" y="375" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="467" y="375" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="501" y="375" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="535" y="375" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="569" y="375" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="603" y="375" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="671" y="375" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="705" y="375" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="739" y="375" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="773" y="375" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="807" y="375" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="875" y="375" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="909" y="375" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="943" y="375" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="977" y="375" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="1011" y="375" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="1079" y="375" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="1113" y="375" width="6" height="6" fill="#555" opacity="0.8"/>
+<line x1="100" y1="1103" x2="1146" y2="1103" stroke="#b3261e" stroke-width="2" opacity="0.9"/>
+<text x="100" y="1118" font-size="13" text-anchor="middle" fill="#b3261e" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">+</text>
+<rect x="127" y="1111" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="161" y="1111" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="195" y="1111" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="263" y="1111" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="297" y="1111" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="331" y="1111" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="365" y="1111" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="399" y="1111" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="467" y="1111" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="501" y="1111" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="535" y="1111" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="569" y="1111" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="603" y="1111" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="671" y="1111" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="705" y="1111" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="739" y="1111" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="773" y="1111" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="807" y="1111" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="875" y="1111" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="909" y="1111" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="943" y="1111" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="977" y="1111" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="1011" y="1111" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="1079" y="1111" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="1113" y="1111" width="6" height="6" fill="#555" opacity="0.8"/>
+<line x1="100" y1="1125" x2="1146" y2="1125" stroke="#1f5fbf" stroke-width="2" opacity="0.9"/>
+<text x="100" y="1140" font-size="13" text-anchor="middle" fill="#1f5fbf" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">-</text>
+<rect x="127" y="1133" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="161" y="1133" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="195" y="1133" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="263" y="1133" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="297" y="1133" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="331" y="1133" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="365" y="1133" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="399" y="1133" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="467" y="1133" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="501" y="1133" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="535" y="1133" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="569" y="1133" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="603" y="1133" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="671" y="1133" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="705" y="1133" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="739" y="1133" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="773" y="1133" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="807" y="1133" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="875" y="1133" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="909" y="1133" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="943" y="1133" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="977" y="1133" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="1011" y="1133" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="1079" y="1133" width="6" height="6" fill="#555" opacity="0.8"/>
+<rect x="1113" y="1133" width="6" height="6" fill="#555" opacity="0.8"/>
+<text x="108" y="416" font-size="9" text-anchor="middle" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">a</text>
+<rect x="127" y="409" width="6" height="6" fill="#555"/>
+<rect x="161" y="409" width="6" height="6" fill="#555"/>
+<rect x="195" y="409" width="6" height="6" fill="#555"/>
+<rect x="229" y="409" width="6" height="6" fill="#555"/>
+<rect x="263" y="409" width="6" height="6" fill="#555"/>
+<rect x="297" y="409" width="6" height="6" fill="#555"/>
+<rect x="331" y="409" width="6" height="6" fill="#555"/>
+<rect x="365" y="409" width="6" height="6" fill="#555"/>
+<rect x="399" y="409" width="6" height="6" fill="#555"/>
+<rect x="433" y="409" width="6" height="6" fill="#555"/>
+<rect x="467" y="409" width="6" height="6" fill="#555"/>
+<rect x="501" y="409" width="6" height="6" fill="#555"/>
+<rect x="535" y="409" width="6" height="6" fill="#555"/>
+<rect x="569" y="409" width="6" height="6" fill="#555"/>
+<rect x="603" y="409" width="6" height="6" fill="#555"/>
+<rect x="637" y="409" width="6" height="6" fill="#555"/>
+<rect x="671" y="409" width="6" height="6" fill="#555"/>
+<rect x="705" y="409" width="6" height="6" fill="#555"/>
+<rect x="739" y="409" width="6" height="6" fill="#555"/>
+<rect x="773" y="409" width="6" height="6" fill="#555"/>
+<rect x="807" y="409" width="6" height="6" fill="#555"/>
+<rect x="841" y="409" width="6" height="6" fill="#555"/>
+<rect x="875" y="409" width="6" height="6" fill="#555"/>
+<rect x="909" y="409" width="6" height="6" fill="#555"/>
+<rect x="943" y="409" width="6" height="6" fill="#555"/>
+<rect x="977" y="409" width="6" height="6" fill="#555"/>
+<rect x="1011" y="409" width="6" height="6" fill="#555"/>
+<rect x="1045" y="409" width="6" height="6" fill="#555"/>
+<rect x="1079" y="409" width="6" height="6" fill="#555"/>
+<rect x="1113" y="409" width="6" height="6" fill="#555"/>
+<text x="108" y="438" font-size="9" text-anchor="middle" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">b</text>
+<rect x="127" y="431" width="6" height="6" fill="#555"/>
+<rect x="161" y="431" width="6" height="6" fill="#555"/>
+<rect x="195" y="431" width="6" height="6" fill="#555"/>
+<rect x="229" y="431" width="6" height="6" fill="#555"/>
+<rect x="263" y="431" width="6" height="6" fill="#555"/>
+<rect x="297" y="431" width="6" height="6" fill="#555"/>
+<rect x="331" y="431" width="6" height="6" fill="#555"/>
+<rect x="365" y="431" width="6" height="6" fill="#555"/>
+<rect x="399" y="431" width="6" height="6" fill="#555"/>
+<rect x="433" y="431" width="6" height="6" fill="#555"/>
+<rect x="467" y="431" width="6" height="6" fill="#555"/>
+<rect x="501" y="431" width="6" height="6" fill="#555"/>
+<rect x="535" y="431" width="6" height="6" fill="#555"/>
+<rect x="569" y="431" width="6" height="6" fill="#555"/>
+<rect x="603" y="431" width="6" height="6" fill="#555"/>
+<rect x="637" y="431" width="6" height="6" fill="#555"/>
+<rect x="671" y="431" width="6" height="6" fill="#555"/>
+<rect x="705" y="431" width="6" height="6" fill="#555"/>
+<rect x="739" y="431" width="6" height="6" fill="#555"/>
+<rect x="773" y="431" width="6" height="6" fill="#555"/>
+<rect x="807" y="431" width="6" height="6" fill="#555"/>
+<rect x="841" y="431" width="6" height="6" fill="#555"/>
+<rect x="875" y="431" width="6" height="6" fill="#555"/>
+<rect x="909" y="431" width="6" height="6" fill="#555"/>
+<rect x="943" y="431" width="6" height="6" fill="#555"/>
+<rect x="977" y="431" width="6" height="6" fill="#555"/>
+<rect x="1011" y="431" width="6" height="6" fill="#555"/>
+<rect x="1045" y="431" width="6" height="6" fill="#555"/>
+<rect x="1079" y="431" width="6" height="6" fill="#555"/>
+<rect x="1113" y="431" width="6" height="6" fill="#555"/>
+<text x="108" y="460" font-size="9" text-anchor="middle" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">c</text>
+<rect x="127" y="453" width="6" height="6" fill="#555"/>
+<rect x="161" y="453" width="6" height="6" fill="#555"/>
+<rect x="195" y="453" width="6" height="6" fill="#555"/>
+<rect x="229" y="453" width="6" height="6" fill="#555"/>
+<rect x="263" y="453" width="6" height="6" fill="#555"/>
+<rect x="297" y="453" width="6" height="6" fill="#555"/>
+<rect x="331" y="453" width="6" height="6" fill="#555"/>
+<rect x="365" y="453" width="6" height="6" fill="#555"/>
+<rect x="399" y="453" width="6" height="6" fill="#555"/>
+<rect x="433" y="453" width="6" height="6" fill="#555"/>
+<rect x="467" y="453" width="6" height="6" fill="#555"/>
+<rect x="501" y="453" width="6" height="6" fill="#555"/>
+<rect x="535" y="453" width="6" height="6" fill="#555"/>
+<rect x="569" y="453" width="6" height="6" fill="#555"/>
+<rect x="603" y="453" width="6" height="6" fill="#555"/>
+<rect x="637" y="453" width="6" height="6" fill="#555"/>
+<rect x="671" y="453" width="6" height="6" fill="#555"/>
+<rect x="705" y="453" width="6" height="6" fill="#555"/>
+<rect x="739" y="453" width="6" height="6" fill="#555"/>
+<rect x="773" y="453" width="6" height="6" fill="#555"/>
+<rect x="807" y="453" width="6" height="6" fill="#555"/>
+<rect x="841" y="453" width="6" height="6" fill="#555"/>
+<rect x="875" y="453" width="6" height="6" fill="#555"/>
+<rect x="909" y="453" width="6" height="6" fill="#555"/>
+<rect x="943" y="453" width="6" height="6" fill="#555"/>
+<rect x="977" y="453" width="6" height="6" fill="#555"/>
+<rect x="1011" y="453" width="6" height="6" fill="#555"/>
+<rect x="1045" y="453" width="6" height="6" fill="#555"/>
+<rect x="1079" y="453" width="6" height="6" fill="#555"/>
+<rect x="1113" y="453" width="6" height="6" fill="#555"/>
+<text x="108" y="482" font-size="9" text-anchor="middle" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">d</text>
+<rect x="127" y="475" width="6" height="6" fill="#555"/>
+<rect x="161" y="475" width="6" height="6" fill="#555"/>
+<rect x="195" y="475" width="6" height="6" fill="#555"/>
+<rect x="229" y="475" width="6" height="6" fill="#555"/>
+<rect x="263" y="475" width="6" height="6" fill="#555"/>
+<rect x="297" y="475" width="6" height="6" fill="#555"/>
+<rect x="331" y="475" width="6" height="6" fill="#555"/>
+<rect x="365" y="475" width="6" height="6" fill="#555"/>
+<rect x="399" y="475" width="6" height="6" fill="#555"/>
+<rect x="433" y="475" width="6" height="6" fill="#555"/>
+<rect x="467" y="475" width="6" height="6" fill="#555"/>
+<rect x="501" y="475" width="6" height="6" fill="#555"/>
+<rect x="535" y="475" width="6" height="6" fill="#555"/>
+<rect x="569" y="475" width="6" height="6" fill="#555"/>
+<rect x="603" y="475" width="6" height="6" fill="#555"/>
+<rect x="637" y="475" width="6" height="6" fill="#555"/>
+<rect x="671" y="475" width="6" height="6" fill="#555"/>
+<rect x="705" y="475" width="6" height="6" fill="#555"/>
+<rect x="739" y="475" width="6" height="6" fill="#555"/>
+<rect x="773" y="475" width="6" height="6" fill="#555"/>
+<rect x="807" y="475" width="6" height="6" fill="#555"/>
+<rect x="841" y="475" width="6" height="6" fill="#555"/>
+<rect x="875" y="475" width="6" height="6" fill="#555"/>
+<rect x="909" y="475" width="6" height="6" fill="#555"/>
+<rect x="943" y="475" width="6" height="6" fill="#555"/>
+<rect x="977" y="475" width="6" height="6" fill="#555"/>
+<rect x="1011" y="475" width="6" height="6" fill="#555"/>
+<rect x="1045" y="475" width="6" height="6" fill="#555"/>
+<rect x="1079" y="475" width="6" height="6" fill="#555"/>
+<rect x="1113" y="475" width="6" height="6" fill="#555"/>
+<text x="108" y="504" font-size="9" text-anchor="middle" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">e</text>
+<rect x="127" y="497" width="6" height="6" fill="#555"/>
+<rect x="161" y="497" width="6" height="6" fill="#555"/>
+<rect x="195" y="497" width="6" height="6" fill="#555"/>
+<rect x="229" y="497" width="6" height="6" fill="#555"/>
+<rect x="263" y="497" width="6" height="6" fill="#555"/>
+<rect x="297" y="497" width="6" height="6" fill="#555"/>
+<rect x="331" y="497" width="6" height="6" fill="#555"/>
+<rect x="365" y="497" width="6" height="6" fill="#555"/>
+<rect x="399" y="497" width="6" height="6" fill="#555"/>
+<rect x="433" y="497" width="6" height="6" fill="#555"/>
+<rect x="467" y="497" width="6" height="6" fill="#555"/>
+<rect x="501" y="497" width="6" height="6" fill="#555"/>
+<rect x="535" y="497" width="6" height="6" fill="#555"/>
+<rect x="569" y="497" width="6" height="6" fill="#555"/>
+<rect x="603" y="497" width="6" height="6" fill="#555"/>
+<rect x="637" y="497" width="6" height="6" fill="#555"/>
+<rect x="671" y="497" width="6" height="6" fill="#555"/>
+<rect x="705" y="497" width="6" height="6" fill="#555"/>
+<rect x="739" y="497" width="6" height="6" fill="#555"/>
+<rect x="773" y="497" width="6" height="6" fill="#555"/>
+<rect x="807" y="497" width="6" height="6" fill="#555"/>
+<rect x="841" y="497" width="6" height="6" fill="#555"/>
+<rect x="875" y="497" width="6" height="6" fill="#555"/>
+<rect x="909" y="497" width="6" height="6" fill="#555"/>
+<rect x="943" y="497" width="6" height="6" fill="#555"/>
+<rect x="977" y="497" width="6" height="6" fill="#555"/>
+<rect x="1011" y="497" width="6" height="6" fill="#555"/>
+<rect x="1045" y="497" width="6" height="6" fill="#555"/>
+<rect x="1079" y="497" width="6" height="6" fill="#555"/>
+<rect x="1113" y="497" width="6" height="6" fill="#555"/>
+<text x="108" y="550" font-size="9" text-anchor="middle" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">f</text>
+<rect x="127" y="543" width="6" height="6" fill="#555"/>
+<rect x="161" y="543" width="6" height="6" fill="#555"/>
+<rect x="195" y="543" width="6" height="6" fill="#555"/>
+<rect x="229" y="543" width="6" height="6" fill="#555"/>
+<rect x="263" y="543" width="6" height="6" fill="#555"/>
+<rect x="297" y="543" width="6" height="6" fill="#555"/>
+<rect x="331" y="543" width="6" height="6" fill="#555"/>
+<rect x="365" y="543" width="6" height="6" fill="#555"/>
+<rect x="399" y="543" width="6" height="6" fill="#555"/>
+<rect x="433" y="543" width="6" height="6" fill="#555"/>
+<rect x="467" y="543" width="6" height="6" fill="#555"/>
+<rect x="501" y="543" width="6" height="6" fill="#555"/>
+<rect x="535" y="543" width="6" height="6" fill="#555"/>
+<rect x="569" y="543" width="6" height="6" fill="#555"/>
+<rect x="603" y="543" width="6" height="6" fill="#555"/>
+<rect x="637" y="543" width="6" height="6" fill="#555"/>
+<rect x="671" y="543" width="6" height="6" fill="#555"/>
+<rect x="705" y="543" width="6" height="6" fill="#555"/>
+<rect x="739" y="543" width="6" height="6" fill="#555"/>
+<rect x="773" y="543" width="6" height="6" fill="#555"/>
+<rect x="807" y="543" width="6" height="6" fill="#555"/>
+<rect x="841" y="543" width="6" height="6" fill="#555"/>
+<rect x="875" y="543" width="6" height="6" fill="#555"/>
+<rect x="909" y="543" width="6" height="6" fill="#555"/>
+<rect x="943" y="543" width="6" height="6" fill="#555"/>
+<rect x="977" y="543" width="6" height="6" fill="#555"/>
+<rect x="1011" y="543" width="6" height="6" fill="#555"/>
+<rect x="1045" y="543" width="6" height="6" fill="#555"/>
+<rect x="1079" y="543" width="6" height="6" fill="#555"/>
+<rect x="1113" y="543" width="6" height="6" fill="#555"/>
+<text x="108" y="572" font-size="9" text-anchor="middle" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">g</text>
+<rect x="127" y="565" width="6" height="6" fill="#555"/>
+<rect x="161" y="565" width="6" height="6" fill="#555"/>
+<rect x="195" y="565" width="6" height="6" fill="#555"/>
+<rect x="229" y="565" width="6" height="6" fill="#555"/>
+<rect x="263" y="565" width="6" height="6" fill="#555"/>
+<rect x="297" y="565" width="6" height="6" fill="#555"/>
+<rect x="331" y="565" width="6" height="6" fill="#555"/>
+<rect x="365" y="565" width="6" height="6" fill="#555"/>
+<rect x="399" y="565" width="6" height="6" fill="#555"/>
+<rect x="433" y="565" width="6" height="6" fill="#555"/>
+<rect x="467" y="565" width="6" height="6" fill="#555"/>
+<rect x="501" y="565" width="6" height="6" fill="#555"/>
+<rect x="535" y="565" width="6" height="6" fill="#555"/>
+<rect x="569" y="565" width="6" height="6" fill="#555"/>
+<rect x="603" y="565" width="6" height="6" fill="#555"/>
+<rect x="637" y="565" width="6" height="6" fill="#555"/>
+<rect x="671" y="565" width="6" height="6" fill="#555"/>
+<rect x="705" y="565" width="6" height="6" fill="#555"/>
+<rect x="739" y="565" width="6" height="6" fill="#555"/>
+<rect x="773" y="565" width="6" height="6" fill="#555"/>
+<rect x="807" y="565" width="6" height="6" fill="#555"/>
+<rect x="841" y="565" width="6" height="6" fill="#555"/>
+<rect x="875" y="565" width="6" height="6" fill="#555"/>
+<rect x="909" y="565" width="6" height="6" fill="#555"/>
+<rect x="943" y="565" width="6" height="6" fill="#555"/>
+<rect x="977" y="565" width="6" height="6" fill="#555"/>
+<rect x="1011" y="565" width="6" height="6" fill="#555"/>
+<rect x="1045" y="565" width="6" height="6" fill="#555"/>
+<rect x="1079" y="565" width="6" height="6" fill="#555"/>
+<rect x="1113" y="565" width="6" height="6" fill="#555"/>
+<text x="108" y="594" font-size="9" text-anchor="middle" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">h</text>
+<rect x="127" y="587" width="6" height="6" fill="#555"/>
+<rect x="161" y="587" width="6" height="6" fill="#555"/>
+<rect x="195" y="587" width="6" height="6" fill="#555"/>
+<rect x="229" y="587" width="6" height="6" fill="#555"/>
+<rect x="263" y="587" width="6" height="6" fill="#555"/>
+<rect x="297" y="587" width="6" height="6" fill="#555"/>
+<rect x="331" y="587" width="6" height="6" fill="#555"/>
+<rect x="365" y="587" width="6" height="6" fill="#555"/>
+<rect x="399" y="587" width="6" height="6" fill="#555"/>
+<rect x="433" y="587" width="6" height="6" fill="#555"/>
+<rect x="467" y="587" width="6" height="6" fill="#555"/>
+<rect x="501" y="587" width="6" height="6" fill="#555"/>
+<rect x="535" y="587" width="6" height="6" fill="#555"/>
+<rect x="569" y="587" width="6" height="6" fill="#555"/>
+<rect x="603" y="587" width="6" height="6" fill="#555"/>
+<rect x="637" y="587" width="6" height="6" fill="#555"/>
+<rect x="671" y="587" width="6" height="6" fill="#555"/>
+<rect x="705" y="587" width="6" height="6" fill="#555"/>
+<rect x="739" y="587" width="6" height="6" fill="#555"/>
+<rect x="773" y="587" width="6" height="6" fill="#555"/>
+<rect x="807" y="587" width="6" height="6" fill="#555"/>
+<rect x="841" y="587" width="6" height="6" fill="#555"/>
+<rect x="875" y="587" width="6" height="6" fill="#555"/>
+<rect x="909" y="587" width="6" height="6" fill="#555"/>
+<rect x="943" y="587" width="6" height="6" fill="#555"/>
+<rect x="977" y="587" width="6" height="6" fill="#555"/>
+<rect x="1011" y="587" width="6" height="6" fill="#555"/>
+<rect x="1045" y="587" width="6" height="6" fill="#555"/>
+<rect x="1079" y="587" width="6" height="6" fill="#555"/>
+<rect x="1113" y="587" width="6" height="6" fill="#555"/>
+<text x="108" y="616" font-size="9" text-anchor="middle" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">i</text>
+<rect x="127" y="609" width="6" height="6" fill="#555"/>
+<rect x="161" y="609" width="6" height="6" fill="#555"/>
+<rect x="195" y="609" width="6" height="6" fill="#555"/>
+<rect x="229" y="609" width="6" height="6" fill="#555"/>
+<rect x="263" y="609" width="6" height="6" fill="#555"/>
+<rect x="297" y="609" width="6" height="6" fill="#555"/>
+<rect x="331" y="609" width="6" height="6" fill="#555"/>
+<rect x="365" y="609" width="6" height="6" fill="#555"/>
+<rect x="399" y="609" width="6" height="6" fill="#555"/>
+<rect x="433" y="609" width="6" height="6" fill="#555"/>
+<rect x="467" y="609" width="6" height="6" fill="#555"/>
+<rect x="501" y="609" width="6" height="6" fill="#555"/>
+<rect x="535" y="609" width="6" height="6" fill="#555"/>
+<rect x="569" y="609" width="6" height="6" fill="#555"/>
+<rect x="603" y="609" width="6" height="6" fill="#555"/>
+<rect x="637" y="609" width="6" height="6" fill="#555"/>
+<rect x="671" y="609" width="6" height="6" fill="#555"/>
+<rect x="705" y="609" width="6" height="6" fill="#555"/>
+<rect x="739" y="609" width="6" height="6" fill="#555"/>
+<rect x="773" y="609" width="6" height="6" fill="#555"/>
+<rect x="807" y="609" width="6" height="6" fill="#555"/>
+<rect x="841" y="609" width="6" height="6" fill="#555"/>
+<rect x="875" y="609" width="6" height="6" fill="#555"/>
+<rect x="909" y="609" width="6" height="6" fill="#555"/>
+<rect x="943" y="609" width="6" height="6" fill="#555"/>
+<rect x="977" y="609" width="6" height="6" fill="#555"/>
+<rect x="1011" y="609" width="6" height="6" fill="#555"/>
+<rect x="1045" y="609" width="6" height="6" fill="#555"/>
+<rect x="1079" y="609" width="6" height="6" fill="#555"/>
+<rect x="1113" y="609" width="6" height="6" fill="#555"/>
+<text x="108" y="638" font-size="9" text-anchor="middle" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">j</text>
+<rect x="127" y="631" width="6" height="6" fill="#555"/>
+<rect x="161" y="631" width="6" height="6" fill="#555"/>
+<rect x="195" y="631" width="6" height="6" fill="#555"/>
+<rect x="229" y="631" width="6" height="6" fill="#555"/>
+<rect x="263" y="631" width="6" height="6" fill="#555"/>
+<rect x="297" y="631" width="6" height="6" fill="#555"/>
+<rect x="331" y="631" width="6" height="6" fill="#555"/>
+<rect x="365" y="631" width="6" height="6" fill="#555"/>
+<rect x="399" y="631" width="6" height="6" fill="#555"/>
+<rect x="433" y="631" width="6" height="6" fill="#555"/>
+<rect x="467" y="631" width="6" height="6" fill="#555"/>
+<rect x="501" y="631" width="6" height="6" fill="#555"/>
+<rect x="535" y="631" width="6" height="6" fill="#555"/>
+<rect x="569" y="631" width="6" height="6" fill="#555"/>
+<rect x="603" y="631" width="6" height="6" fill="#555"/>
+<rect x="637" y="631" width="6" height="6" fill="#555"/>
+<rect x="671" y="631" width="6" height="6" fill="#555"/>
+<rect x="705" y="631" width="6" height="6" fill="#555"/>
+<rect x="739" y="631" width="6" height="6" fill="#555"/>
+<rect x="773" y="631" width="6" height="6" fill="#555"/>
+<rect x="807" y="631" width="6" height="6" fill="#555"/>
+<rect x="841" y="631" width="6" height="6" fill="#555"/>
+<rect x="875" y="631" width="6" height="6" fill="#555"/>
+<rect x="909" y="631" width="6" height="6" fill="#555"/>
+<rect x="943" y="631" width="6" height="6" fill="#555"/>
+<rect x="977" y="631" width="6" height="6" fill="#555"/>
+<rect x="1011" y="631" width="6" height="6" fill="#555"/>
+<rect x="1045" y="631" width="6" height="6" fill="#555"/>
+<rect x="1079" y="631" width="6" height="6" fill="#555"/>
+<rect x="1113" y="631" width="6" height="6" fill="#555"/>
+<text x="108" y="858" font-size="9" text-anchor="middle" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">a</text>
+<rect x="127" y="851" width="6" height="6" fill="#555"/>
+<rect x="161" y="851" width="6" height="6" fill="#555"/>
+<rect x="195" y="851" width="6" height="6" fill="#555"/>
+<rect x="229" y="851" width="6" height="6" fill="#555"/>
+<rect x="263" y="851" width="6" height="6" fill="#555"/>
+<rect x="297" y="851" width="6" height="6" fill="#555"/>
+<rect x="331" y="851" width="6" height="6" fill="#555"/>
+<rect x="365" y="851" width="6" height="6" fill="#555"/>
+<rect x="399" y="851" width="6" height="6" fill="#555"/>
+<rect x="433" y="851" width="6" height="6" fill="#555"/>
+<rect x="467" y="851" width="6" height="6" fill="#555"/>
+<rect x="501" y="851" width="6" height="6" fill="#555"/>
+<rect x="535" y="851" width="6" height="6" fill="#555"/>
+<rect x="569" y="851" width="6" height="6" fill="#555"/>
+<rect x="603" y="851" width="6" height="6" fill="#555"/>
+<rect x="637" y="851" width="6" height="6" fill="#555"/>
+<rect x="671" y="851" width="6" height="6" fill="#555"/>
+<rect x="705" y="851" width="6" height="6" fill="#555"/>
+<rect x="739" y="851" width="6" height="6" fill="#555"/>
+<rect x="773" y="851" width="6" height="6" fill="#555"/>
+<rect x="807" y="851" width="6" height="6" fill="#555"/>
+<rect x="841" y="851" width="6" height="6" fill="#555"/>
+<rect x="875" y="851" width="6" height="6" fill="#555"/>
+<rect x="909" y="851" width="6" height="6" fill="#555"/>
+<rect x="943" y="851" width="6" height="6" fill="#555"/>
+<rect x="977" y="851" width="6" height="6" fill="#555"/>
+<rect x="1011" y="851" width="6" height="6" fill="#555"/>
+<rect x="1045" y="851" width="6" height="6" fill="#555"/>
+<rect x="1079" y="851" width="6" height="6" fill="#555"/>
+<rect x="1113" y="851" width="6" height="6" fill="#555"/>
+<text x="108" y="880" font-size="9" text-anchor="middle" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">b</text>
+<rect x="127" y="873" width="6" height="6" fill="#555"/>
+<rect x="161" y="873" width="6" height="6" fill="#555"/>
+<rect x="195" y="873" width="6" height="6" fill="#555"/>
+<rect x="229" y="873" width="6" height="6" fill="#555"/>
+<rect x="263" y="873" width="6" height="6" fill="#555"/>
+<rect x="297" y="873" width="6" height="6" fill="#555"/>
+<rect x="331" y="873" width="6" height="6" fill="#555"/>
+<rect x="365" y="873" width="6" height="6" fill="#555"/>
+<rect x="399" y="873" width="6" height="6" fill="#555"/>
+<rect x="433" y="873" width="6" height="6" fill="#555"/>
+<rect x="467" y="873" width="6" height="6" fill="#555"/>
+<rect x="501" y="873" width="6" height="6" fill="#555"/>
+<rect x="535" y="873" width="6" height="6" fill="#555"/>
+<rect x="569" y="873" width="6" height="6" fill="#555"/>
+<rect x="603" y="873" width="6" height="6" fill="#555"/>
+<rect x="637" y="873" width="6" height="6" fill="#555"/>
+<rect x="671" y="873" width="6" height="6" fill="#555"/>
+<rect x="705" y="873" width="6" height="6" fill="#555"/>
+<rect x="739" y="873" width="6" height="6" fill="#555"/>
+<rect x="773" y="873" width="6" height="6" fill="#555"/>
+<rect x="807" y="873" width="6" height="6" fill="#555"/>
+<rect x="841" y="873" width="6" height="6" fill="#555"/>
+<rect x="875" y="873" width="6" height="6" fill="#555"/>
+<rect x="909" y="873" width="6" height="6" fill="#555"/>
+<rect x="943" y="873" width="6" height="6" fill="#555"/>
+<rect x="977" y="873" width="6" height="6" fill="#555"/>
+<rect x="1011" y="873" width="6" height="6" fill="#555"/>
+<rect x="1045" y="873" width="6" height="6" fill="#555"/>
+<rect x="1079" y="873" width="6" height="6" fill="#555"/>
+<rect x="1113" y="873" width="6" height="6" fill="#555"/>
+<text x="108" y="902" font-size="9" text-anchor="middle" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">c</text>
+<rect x="127" y="895" width="6" height="6" fill="#555"/>
+<rect x="161" y="895" width="6" height="6" fill="#555"/>
+<rect x="195" y="895" width="6" height="6" fill="#555"/>
+<rect x="229" y="895" width="6" height="6" fill="#555"/>
+<rect x="263" y="895" width="6" height="6" fill="#555"/>
+<rect x="297" y="895" width="6" height="6" fill="#555"/>
+<rect x="331" y="895" width="6" height="6" fill="#555"/>
+<rect x="365" y="895" width="6" height="6" fill="#555"/>
+<rect x="399" y="895" width="6" height="6" fill="#555"/>
+<rect x="433" y="895" width="6" height="6" fill="#555"/>
+<rect x="467" y="895" width="6" height="6" fill="#555"/>
+<rect x="501" y="895" width="6" height="6" fill="#555"/>
+<rect x="535" y="895" width="6" height="6" fill="#555"/>
+<rect x="569" y="895" width="6" height="6" fill="#555"/>
+<rect x="603" y="895" width="6" height="6" fill="#555"/>
+<rect x="637" y="895" width="6" height="6" fill="#555"/>
+<rect x="671" y="895" width="6" height="6" fill="#555"/>
+<rect x="705" y="895" width="6" height="6" fill="#555"/>
+<rect x="739" y="895" width="6" height="6" fill="#555"/>
+<rect x="773" y="895" width="6" height="6" fill="#555"/>
+<rect x="807" y="895" width="6" height="6" fill="#555"/>
+<rect x="841" y="895" width="6" height="6" fill="#555"/>
+<rect x="875" y="895" width="6" height="6" fill="#555"/>
+<rect x="909" y="895" width="6" height="6" fill="#555"/>
+<rect x="943" y="895" width="6" height="6" fill="#555"/>
+<rect x="977" y="895" width="6" height="6" fill="#555"/>
+<rect x="1011" y="895" width="6" height="6" fill="#555"/>
+<rect x="1045" y="895" width="6" height="6" fill="#555"/>
+<rect x="1079" y="895" width="6" height="6" fill="#555"/>
+<rect x="1113" y="895" width="6" height="6" fill="#555"/>
+<text x="108" y="924" font-size="9" text-anchor="middle" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">d</text>
+<rect x="127" y="917" width="6" height="6" fill="#555"/>
+<rect x="161" y="917" width="6" height="6" fill="#555"/>
+<rect x="195" y="917" width="6" height="6" fill="#555"/>
+<rect x="229" y="917" width="6" height="6" fill="#555"/>
+<rect x="263" y="917" width="6" height="6" fill="#555"/>
+<rect x="297" y="917" width="6" height="6" fill="#555"/>
+<rect x="331" y="917" width="6" height="6" fill="#555"/>
+<rect x="365" y="917" width="6" height="6" fill="#555"/>
+<rect x="399" y="917" width="6" height="6" fill="#555"/>
+<rect x="433" y="917" width="6" height="6" fill="#555"/>
+<rect x="467" y="917" width="6" height="6" fill="#555"/>
+<rect x="501" y="917" width="6" height="6" fill="#555"/>
+<rect x="535" y="917" width="6" height="6" fill="#555"/>
+<rect x="569" y="917" width="6" height="6" fill="#555"/>
+<rect x="603" y="917" width="6" height="6" fill="#555"/>
+<rect x="637" y="917" width="6" height="6" fill="#555"/>
+<rect x="671" y="917" width="6" height="6" fill="#555"/>
+<rect x="705" y="917" width="6" height="6" fill="#555"/>
+<rect x="739" y="917" width="6" height="6" fill="#555"/>
+<rect x="773" y="917" width="6" height="6" fill="#555"/>
+<rect x="807" y="917" width="6" height="6" fill="#555"/>
+<rect x="841" y="917" width="6" height="6" fill="#555"/>
+<rect x="875" y="917" width="6" height="6" fill="#555"/>
+<rect x="909" y="917" width="6" height="6" fill="#555"/>
+<rect x="943" y="917" width="6" height="6" fill="#555"/>
+<rect x="977" y="917" width="6" height="6" fill="#555"/>
+<rect x="1011" y="917" width="6" height="6" fill="#555"/>
+<rect x="1045" y="917" width="6" height="6" fill="#555"/>
+<rect x="1079" y="917" width="6" height="6" fill="#555"/>
+<rect x="1113" y="917" width="6" height="6" fill="#555"/>
+<text x="108" y="946" font-size="9" text-anchor="middle" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">e</text>
+<rect x="127" y="939" width="6" height="6" fill="#555"/>
+<rect x="161" y="939" width="6" height="6" fill="#555"/>
+<rect x="195" y="939" width="6" height="6" fill="#555"/>
+<rect x="229" y="939" width="6" height="6" fill="#555"/>
+<rect x="263" y="939" width="6" height="6" fill="#555"/>
+<rect x="297" y="939" width="6" height="6" fill="#555"/>
+<rect x="331" y="939" width="6" height="6" fill="#555"/>
+<rect x="365" y="939" width="6" height="6" fill="#555"/>
+<rect x="399" y="939" width="6" height="6" fill="#555"/>
+<rect x="433" y="939" width="6" height="6" fill="#555"/>
+<rect x="467" y="939" width="6" height="6" fill="#555"/>
+<rect x="501" y="939" width="6" height="6" fill="#555"/>
+<rect x="535" y="939" width="6" height="6" fill="#555"/>
+<rect x="569" y="939" width="6" height="6" fill="#555"/>
+<rect x="603" y="939" width="6" height="6" fill="#555"/>
+<rect x="637" y="939" width="6" height="6" fill="#555"/>
+<rect x="671" y="939" width="6" height="6" fill="#555"/>
+<rect x="705" y="939" width="6" height="6" fill="#555"/>
+<rect x="739" y="939" width="6" height="6" fill="#555"/>
+<rect x="773" y="939" width="6" height="6" fill="#555"/>
+<rect x="807" y="939" width="6" height="6" fill="#555"/>
+<rect x="841" y="939" width="6" height="6" fill="#555"/>
+<rect x="875" y="939" width="6" height="6" fill="#555"/>
+<rect x="909" y="939" width="6" height="6" fill="#555"/>
+<rect x="943" y="939" width="6" height="6" fill="#555"/>
+<rect x="977" y="939" width="6" height="6" fill="#555"/>
+<rect x="1011" y="939" width="6" height="6" fill="#555"/>
+<rect x="1045" y="939" width="6" height="6" fill="#555"/>
+<rect x="1079" y="939" width="6" height="6" fill="#555"/>
+<rect x="1113" y="939" width="6" height="6" fill="#555"/>
+<text x="108" y="992" font-size="9" text-anchor="middle" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">f</text>
+<rect x="127" y="985" width="6" height="6" fill="#555"/>
+<rect x="161" y="985" width="6" height="6" fill="#555"/>
+<rect x="195" y="985" width="6" height="6" fill="#555"/>
+<rect x="229" y="985" width="6" height="6" fill="#555"/>
+<rect x="263" y="985" width="6" height="6" fill="#555"/>
+<rect x="297" y="985" width="6" height="6" fill="#555"/>
+<rect x="331" y="985" width="6" height="6" fill="#555"/>
+<rect x="365" y="985" width="6" height="6" fill="#555"/>
+<rect x="399" y="985" width="6" height="6" fill="#555"/>
+<rect x="433" y="985" width="6" height="6" fill="#555"/>
+<rect x="467" y="985" width="6" height="6" fill="#555"/>
+<rect x="501" y="985" width="6" height="6" fill="#555"/>
+<rect x="535" y="985" width="6" height="6" fill="#555"/>
+<rect x="569" y="985" width="6" height="6" fill="#555"/>
+<rect x="603" y="985" width="6" height="6" fill="#555"/>
+<rect x="637" y="985" width="6" height="6" fill="#555"/>
+<rect x="671" y="985" width="6" height="6" fill="#555"/>
+<rect x="705" y="985" width="6" height="6" fill="#555"/>
+<rect x="739" y="985" width="6" height="6" fill="#555"/>
+<rect x="773" y="985" width="6" height="6" fill="#555"/>
+<rect x="807" y="985" width="6" height="6" fill="#555"/>
+<rect x="841" y="985" width="6" height="6" fill="#555"/>
+<rect x="875" y="985" width="6" height="6" fill="#555"/>
+<rect x="909" y="985" width="6" height="6" fill="#555"/>
+<rect x="943" y="985" width="6" height="6" fill="#555"/>
+<rect x="977" y="985" width="6" height="6" fill="#555"/>
+<rect x="1011" y="985" width="6" height="6" fill="#555"/>
+<rect x="1045" y="985" width="6" height="6" fill="#555"/>
+<rect x="1079" y="985" width="6" height="6" fill="#555"/>
+<rect x="1113" y="985" width="6" height="6" fill="#555"/>
+<text x="108" y="1014" font-size="9" text-anchor="middle" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">g</text>
+<rect x="127" y="1007" width="6" height="6" fill="#555"/>
+<rect x="161" y="1007" width="6" height="6" fill="#555"/>
+<rect x="195" y="1007" width="6" height="6" fill="#555"/>
+<rect x="229" y="1007" width="6" height="6" fill="#555"/>
+<rect x="263" y="1007" width="6" height="6" fill="#555"/>
+<rect x="297" y="1007" width="6" height="6" fill="#555"/>
+<rect x="331" y="1007" width="6" height="6" fill="#555"/>
+<rect x="365" y="1007" width="6" height="6" fill="#555"/>
+<rect x="399" y="1007" width="6" height="6" fill="#555"/>
+<rect x="433" y="1007" width="6" height="6" fill="#555"/>
+<rect x="467" y="1007" width="6" height="6" fill="#555"/>
+<rect x="501" y="1007" width="6" height="6" fill="#555"/>
+<rect x="535" y="1007" width="6" height="6" fill="#555"/>
+<rect x="569" y="1007" width="6" height="6" fill="#555"/>
+<rect x="603" y="1007" width="6" height="6" fill="#555"/>
+<rect x="637" y="1007" width="6" height="6" fill="#555"/>
+<rect x="671" y="1007" width="6" height="6" fill="#555"/>
+<rect x="705" y="1007" width="6" height="6" fill="#555"/>
+<rect x="739" y="1007" width="6" height="6" fill="#555"/>
+<rect x="773" y="1007" width="6" height="6" fill="#555"/>
+<rect x="807" y="1007" width="6" height="6" fill="#555"/>
+<rect x="841" y="1007" width="6" height="6" fill="#555"/>
+<rect x="875" y="1007" width="6" height="6" fill="#555"/>
+<rect x="909" y="1007" width="6" height="6" fill="#555"/>
+<rect x="943" y="1007" width="6" height="6" fill="#555"/>
+<rect x="977" y="1007" width="6" height="6" fill="#555"/>
+<rect x="1011" y="1007" width="6" height="6" fill="#555"/>
+<rect x="1045" y="1007" width="6" height="6" fill="#555"/>
+<rect x="1079" y="1007" width="6" height="6" fill="#555"/>
+<rect x="1113" y="1007" width="6" height="6" fill="#555"/>
+<text x="108" y="1036" font-size="9" text-anchor="middle" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">h</text>
+<rect x="127" y="1029" width="6" height="6" fill="#555"/>
+<rect x="161" y="1029" width="6" height="6" fill="#555"/>
+<rect x="195" y="1029" width="6" height="6" fill="#555"/>
+<rect x="229" y="1029" width="6" height="6" fill="#555"/>
+<rect x="263" y="1029" width="6" height="6" fill="#555"/>
+<rect x="297" y="1029" width="6" height="6" fill="#555"/>
+<rect x="331" y="1029" width="6" height="6" fill="#555"/>
+<rect x="365" y="1029" width="6" height="6" fill="#555"/>
+<rect x="399" y="1029" width="6" height="6" fill="#555"/>
+<rect x="433" y="1029" width="6" height="6" fill="#555"/>
+<rect x="467" y="1029" width="6" height="6" fill="#555"/>
+<rect x="501" y="1029" width="6" height="6" fill="#555"/>
+<rect x="535" y="1029" width="6" height="6" fill="#555"/>
+<rect x="569" y="1029" width="6" height="6" fill="#555"/>
+<rect x="603" y="1029" width="6" height="6" fill="#555"/>
+<rect x="637" y="1029" width="6" height="6" fill="#555"/>
+<rect x="671" y="1029" width="6" height="6" fill="#555"/>
+<rect x="705" y="1029" width="6" height="6" fill="#555"/>
+<rect x="739" y="1029" width="6" height="6" fill="#555"/>
+<rect x="773" y="1029" width="6" height="6" fill="#555"/>
+<rect x="807" y="1029" width="6" height="6" fill="#555"/>
+<rect x="841" y="1029" width="6" height="6" fill="#555"/>
+<rect x="875" y="1029" width="6" height="6" fill="#555"/>
+<rect x="909" y="1029" width="6" height="6" fill="#555"/>
+<rect x="943" y="1029" width="6" height="6" fill="#555"/>
+<rect x="977" y="1029" width="6" height="6" fill="#555"/>
+<rect x="1011" y="1029" width="6" height="6" fill="#555"/>
+<rect x="1045" y="1029" width="6" height="6" fill="#555"/>
+<rect x="1079" y="1029" width="6" height="6" fill="#555"/>
+<rect x="1113" y="1029" width="6" height="6" fill="#555"/>
+<text x="108" y="1058" font-size="9" text-anchor="middle" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">i</text>
+<rect x="127" y="1051" width="6" height="6" fill="#555"/>
+<rect x="161" y="1051" width="6" height="6" fill="#555"/>
+<rect x="195" y="1051" width="6" height="6" fill="#555"/>
+<rect x="229" y="1051" width="6" height="6" fill="#555"/>
+<rect x="263" y="1051" width="6" height="6" fill="#555"/>
+<rect x="297" y="1051" width="6" height="6" fill="#555"/>
+<rect x="331" y="1051" width="6" height="6" fill="#555"/>
+<rect x="365" y="1051" width="6" height="6" fill="#555"/>
+<rect x="399" y="1051" width="6" height="6" fill="#555"/>
+<rect x="433" y="1051" width="6" height="6" fill="#555"/>
+<rect x="467" y="1051" width="6" height="6" fill="#555"/>
+<rect x="501" y="1051" width="6" height="6" fill="#555"/>
+<rect x="535" y="1051" width="6" height="6" fill="#555"/>
+<rect x="569" y="1051" width="6" height="6" fill="#555"/>
+<rect x="603" y="1051" width="6" height="6" fill="#555"/>
+<rect x="637" y="1051" width="6" height="6" fill="#555"/>
+<rect x="671" y="1051" width="6" height="6" fill="#555"/>
+<rect x="705" y="1051" width="6" height="6" fill="#555"/>
+<rect x="739" y="1051" width="6" height="6" fill="#555"/>
+<rect x="773" y="1051" width="6" height="6" fill="#555"/>
+<rect x="807" y="1051" width="6" height="6" fill="#555"/>
+<rect x="841" y="1051" width="6" height="6" fill="#555"/>
+<rect x="875" y="1051" width="6" height="6" fill="#555"/>
+<rect x="909" y="1051" width="6" height="6" fill="#555"/>
+<rect x="943" y="1051" width="6" height="6" fill="#555"/>
+<rect x="977" y="1051" width="6" height="6" fill="#555"/>
+<rect x="1011" y="1051" width="6" height="6" fill="#555"/>
+<rect x="1045" y="1051" width="6" height="6" fill="#555"/>
+<rect x="1079" y="1051" width="6" height="6" fill="#555"/>
+<rect x="1113" y="1051" width="6" height="6" fill="#555"/>
+<text x="108" y="1080" font-size="9" text-anchor="middle" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">j</text>
+<rect x="127" y="1073" width="6" height="6" fill="#555"/>
+<rect x="161" y="1073" width="6" height="6" fill="#555"/>
+<rect x="195" y="1073" width="6" height="6" fill="#555"/>
+<rect x="229" y="1073" width="6" height="6" fill="#555"/>
+<rect x="263" y="1073" width="6" height="6" fill="#555"/>
+<rect x="297" y="1073" width="6" height="6" fill="#555"/>
+<rect x="331" y="1073" width="6" height="6" fill="#555"/>
+<rect x="365" y="1073" width="6" height="6" fill="#555"/>
+<rect x="399" y="1073" width="6" height="6" fill="#555"/>
+<rect x="433" y="1073" width="6" height="6" fill="#555"/>
+<rect x="467" y="1073" width="6" height="6" fill="#555"/>
+<rect x="501" y="1073" width="6" height="6" fill="#555"/>
+<rect x="535" y="1073" width="6" height="6" fill="#555"/>
+<rect x="569" y="1073" width="6" height="6" fill="#555"/>
+<rect x="603" y="1073" width="6" height="6" fill="#555"/>
+<rect x="637" y="1073" width="6" height="6" fill="#555"/>
+<rect x="671" y="1073" width="6" height="6" fill="#555"/>
+<rect x="705" y="1073" width="6" height="6" fill="#555"/>
+<rect x="739" y="1073" width="6" height="6" fill="#555"/>
+<rect x="773" y="1073" width="6" height="6" fill="#555"/>
+<rect x="807" y="1073" width="6" height="6" fill="#555"/>
+<rect x="841" y="1073" width="6" height="6" fill="#555"/>
+<rect x="875" y="1073" width="6" height="6" fill="#555"/>
+<rect x="909" y="1073" width="6" height="6" fill="#555"/>
+<rect x="943" y="1073" width="6" height="6" fill="#555"/>
+<rect x="977" y="1073" width="6" height="6" fill="#555"/>
+<rect x="1011" y="1073" width="6" height="6" fill="#555"/>
+<rect x="1045" y="1073" width="6" height="6" fill="#555"/>
+<rect x="1079" y="1073" width="6" height="6" fill="#555"/>
+<rect x="1113" y="1073" width="6" height="6" fill="#555"/>
+<text x="130" y="401" font-size="8.5" text-anchor="middle" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">1</text>
+<text x="266" y="401" font-size="8.5" text-anchor="middle" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">5</text>
+<text x="436" y="401" font-size="8.5" text-anchor="middle" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">10</text>
+<text x="606" y="401" font-size="8.5" text-anchor="middle" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">15</text>
+<text x="776" y="401" font-size="8.5" text-anchor="middle" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">20</text>
+<text x="946" y="401" font-size="8.5" text-anchor="middle" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">25</text>
+<text x="1116" y="401" font-size="8.5" text-anchor="middle" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">30</text>
+<text x="1166" y="360" font-size="10" text-anchor="start" fill="#b3261e" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">top red + rail</text>
+<text x="1166" y="382" font-size="10" text-anchor="start" fill="#1f5fbf" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">top blue - rail</text>
+<text x="1166" y="1118" font-size="10" text-anchor="start" fill="#b3261e" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">bottom red + rail</text>
+<text x="1166" y="1140" font-size="10" text-anchor="start" fill="#1f5fbf" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">bottom blue - rail</text>
+<text x="1166" y="456" font-size="10" text-anchor="start" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">top board</text>
+<text x="1166" y="469" font-size="9" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">its bottom rails</text>
+<text x="1166" y="481" font-size="9" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">taken off</text>
+<text x="1166" y="1032" font-size="10" text-anchor="start" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">bottom board</text>
+<text x="1166" y="1045" font-size="9" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">its top rails</text>
+<text x="1166" y="1057" font-size="9" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">taken off</text>
+<text x="1166" y="738.0" font-size="9" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">slide the boards</text>
+<text x="1166" y="750.0" font-size="9" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">apart until the</text>
+<text x="1166" y="762.0" font-size="9" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">pins drop in</text>
+<rect x="236" y="618" width="772" height="252" rx="6" fill="#1d2733" stroke="#0c1117" stroke-width="2"/>
+<rect x="214" y="722.0" width="30" height="44" rx="3" fill="#bbb" stroke="#777" stroke-width="1.5"/>
+<text x="0" y="0" font-size="9" fill="#333" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(234 758.0) rotate(-90)">USB</text>
+<rect x="732" y="674" width="268" height="140" rx="4" fill="#9aa3ad" stroke="#59616a" stroke-width="1.5"/>
+<text x="871.0" y="740.0" font-size="11" text-anchor="middle" fill="#1d2733" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">ESP32-</text>
+<text x="871.0" y="754.0" font-size="11" text-anchor="middle" fill="#1d2733" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">WROOM-32</text>
+<path d="M978 686 h14 v40 h-10 v-30 h-8" fill="none" stroke="#c9a227" stroke-width="2"/>
+<text x="0" y="0" font-size="8.5" fill="#c9d1d9" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(1004 770.0) rotate(-90)">antenna</text>
+<rect x="260" y="660" width="26" height="18" rx="2" fill="#444" stroke="#222" stroke-width="1.5"/>
+<text x="273" y="656" font-size="8" text-anchor="middle" fill="#c9d1d9" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">EN</text>
+<rect x="260" y="810" width="26" height="18" rx="2" fill="#444" stroke="#222" stroke-width="1.5"/>
+<text x="273" y="840" font-size="8" text-anchor="middle" fill="#c9d1d9" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">BOOT</text>
+<text x="504" y="748.0" font-size="13" text-anchor="middle" fill="#e6edf3" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">ESP32 DevKitC</text>
+<circle cx="912" cy="634" r="5" fill="#f2c14e" stroke="#333"/>
+<text x="0" y="0" font-size="9.5" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(916 664.6) rotate(-90)">3V3</text>
+<circle cx="878" cy="634" r="5" fill="#e8e0b0" stroke="#333"/>
+<text x="0" y="0" font-size="8.5" fill="#8a96a3" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(882 658.4) rotate(-90)">EN</text>
+<circle cx="844" cy="634" r="5" fill="#e8e0b0" stroke="#333"/>
+<text x="0" y="0" font-size="8.5" fill="#8a96a3" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(848 658.4) rotate(-90)">VP</text>
+<circle cx="810" cy="634" r="5" fill="#e8e0b0" stroke="#333"/>
+<text x="0" y="0" font-size="8.5" fill="#8a96a3" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(814 658.4) rotate(-90)">VN</text>
+<circle cx="776" cy="634" r="5" fill="#e8e0b0" stroke="#333"/>
+<text x="0" y="0" font-size="8.5" fill="#8a96a3" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(780 670.8) rotate(-90)">IO34</text>
+<circle cx="742" cy="634" r="5" fill="#e8e0b0" stroke="#333"/>
+<text x="0" y="0" font-size="8.5" fill="#8a96a3" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(746 670.8) rotate(-90)">IO35</text>
+<circle cx="708" cy="634" r="5" fill="#f2c14e" stroke="#333"/>
+<text x="0" y="0" font-size="9.5" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(712 670.8) rotate(-90)">IO32</text>
+<circle cx="674" cy="634" r="5" fill="#f2c14e" stroke="#333"/>
+<text x="0" y="0" font-size="9.5" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(678 670.8) rotate(-90)">IO33</text>
+<circle cx="640" cy="634" r="5" fill="#f2c14e" stroke="#333"/>
+<text x="0" y="0" font-size="9.5" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(644 670.8) rotate(-90)">IO25</text>
+<circle cx="606" cy="634" r="5" fill="#f2c14e" stroke="#333"/>
+<text x="0" y="0" font-size="9.5" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(610 670.8) rotate(-90)">IO26</text>
+<circle cx="572" cy="634" r="5" fill="#f2c14e" stroke="#333"/>
+<text x="0" y="0" font-size="9.5" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(576 670.8) rotate(-90)">IO27</text>
+<circle cx="538" cy="634" r="5" fill="#e8e0b0" stroke="#333"/>
+<text x="0" y="0" font-size="8.5" fill="#8a96a3" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(542 670.8) rotate(-90)">IO14</text>
+<circle cx="504" cy="634" r="5" fill="#e8e0b0" stroke="#333"/>
+<text x="0" y="0" font-size="8.5" fill="#8a96a3" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(508 670.8) rotate(-90)">IO12</text>
+<circle cx="470" cy="634" r="5" fill="#f2c14e" stroke="#333"/>
+<text x="0" y="0" font-size="9.5" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(474 664.6) rotate(-90)">GND</text>
+<circle cx="436" cy="634" r="5" fill="#f2c14e" stroke="#333"/>
+<text x="0" y="0" font-size="9.5" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(440 670.8) rotate(-90)">IO13</text>
+<circle cx="402" cy="634" r="5" fill="#e8e0b0" stroke="#333"/>
+<text x="0" y="0" font-size="8.5" fill="#8a96a3" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(406 658.4) rotate(-90)">D2</text>
+<circle cx="368" cy="634" r="5" fill="#e8e0b0" stroke="#333"/>
+<text x="0" y="0" font-size="8.5" fill="#8a96a3" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(372 658.4) rotate(-90)">D3</text>
+<circle cx="334" cy="634" r="5" fill="#e8e0b0" stroke="#333"/>
+<text x="0" y="0" font-size="8.5" fill="#8a96a3" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(338 664.6) rotate(-90)">CMD</text>
+<circle cx="300" cy="634" r="5" fill="#e8e0b0" stroke="#333"/>
+<text x="0" y="0" font-size="8.5" fill="#8a96a3" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(304 658.4) rotate(-90)">5V</text>
+<circle cx="912" cy="854" r="5" fill="#f2c14e" stroke="#333"/>
+<text x="0" y="0" font-size="9.5" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(916 844) rotate(-90)">GND</text>
+<circle cx="878" cy="854" r="5" fill="#f2c14e" stroke="#333"/>
+<text x="0" y="0" font-size="9.5" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(882 844) rotate(-90)">IO23</text>
+<circle cx="844" cy="854" r="5" fill="#f2c14e" stroke="#333"/>
+<text x="0" y="0" font-size="9.5" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(848 844) rotate(-90)">IO22</text>
+<circle cx="810" cy="854" r="5" fill="#e8e0b0" stroke="#333"/>
+<text x="0" y="0" font-size="8.5" fill="#8a96a3" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(814 844) rotate(-90)">TX</text>
+<circle cx="776" cy="854" r="5" fill="#e8e0b0" stroke="#333"/>
+<text x="0" y="0" font-size="8.5" fill="#8a96a3" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(780 844) rotate(-90)">RX</text>
+<circle cx="742" cy="854" r="5" fill="#f2c14e" stroke="#333"/>
+<text x="0" y="0" font-size="9.5" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(746 844) rotate(-90)">IO21</text>
+<circle cx="708" cy="854" r="5" fill="#e8e0b0" stroke="#333"/>
+<text x="0" y="0" font-size="8.5" fill="#8a96a3" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(712 844) rotate(-90)">GND</text>
+<circle cx="674" cy="854" r="5" fill="#f2c14e" stroke="#333"/>
+<text x="0" y="0" font-size="9.5" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(678 844) rotate(-90)">IO19</text>
+<circle cx="640" cy="854" r="5" fill="#f2c14e" stroke="#333"/>
+<text x="0" y="0" font-size="9.5" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(644 844) rotate(-90)">IO18</text>
+<circle cx="606" cy="854" r="5" fill="#f2c14e" stroke="#333"/>
+<text x="0" y="0" font-size="9.5" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(610 844) rotate(-90)">IO5</text>
+<circle cx="572" cy="854" r="5" fill="#e8e0b0" stroke="#333"/>
+<text x="0" y="0" font-size="8.5" fill="#8a96a3" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(576 844) rotate(-90)">IO17</text>
+<circle cx="538" cy="854" r="5" fill="#e8e0b0" stroke="#333"/>
+<text x="0" y="0" font-size="8.5" fill="#8a96a3" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(542 844) rotate(-90)">IO16</text>
+<circle cx="504" cy="854" r="5" fill="#f2c14e" stroke="#333"/>
+<text x="0" y="0" font-size="9.5" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(508 844) rotate(-90)">IO4</text>
+<circle cx="470" cy="854" r="5" fill="#e8e0b0" stroke="#333"/>
+<text x="0" y="0" font-size="8.5" fill="#8a96a3" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(474 844) rotate(-90)">IO0</text>
+<circle cx="436" cy="854" r="5" fill="#e8e0b0" stroke="#333"/>
+<text x="0" y="0" font-size="8.5" fill="#8a96a3" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(440 844) rotate(-90)">IO2</text>
+<circle cx="402" cy="854" r="5" fill="#f2c14e" stroke="#333"/>
+<text x="0" y="0" font-size="9.5" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(406 844) rotate(-90)">IO15</text>
+<circle cx="368" cy="854" r="5" fill="#e8e0b0" stroke="#333"/>
+<text x="0" y="0" font-size="8.5" fill="#8a96a3" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(372 844) rotate(-90)">D1</text>
+<circle cx="334" cy="854" r="5" fill="#e8e0b0" stroke="#333"/>
+<text x="0" y="0" font-size="8.5" fill="#8a96a3" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(338 844) rotate(-90)">D0</text>
+<circle cx="300" cy="854" r="5" fill="#e8e0b0" stroke="#333"/>
+<text x="0" y="0" font-size="8.5" fill="#8a96a3" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace" transform="translate(304 844) rotate(-90)">CLK</text>
+<text x="244" y="704" font-size="9" text-anchor="start" fill="#8a96a3" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">J2</text>
+<text x="244" y="794" font-size="9" text-anchor="start" fill="#8a96a3" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">J3</text>
+<rect x="624" y="200" width="168" height="92" rx="8" fill="#3a3a3a" stroke="#111" stroke-width="2"/>
+<text x="708.0" y="190" font-size="11.5" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">the knob (EC11)</text>
+<circle cx="708.0" cy="240" r="28" fill="#777" stroke="#222" stroke-width="2"/>
+<circle cx="708.0" cy="240" r="11" fill="#bbb" stroke="#222"/>
+<rect x="635" y="287" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="640" y="280" font-size="9" text-anchor="middle" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">SW1</text>
+<rect x="669" y="287" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="674" y="280" font-size="9" text-anchor="middle" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">B</text>
+<rect x="703" y="287" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="708" y="280" font-size="9" text-anchor="middle" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">A</text>
+<rect x="737" y="287" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="742" y="280" font-size="9" text-anchor="middle" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">C</text>
+<rect x="771" y="287" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="776" y="280" font-size="9" text-anchor="middle" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">SW2</text>
+<text x="804" y="222" font-size="9" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">which leg is which:</text>
+<text x="804" y="235" font-size="9.5" text-anchor="start" fill="#138a8a" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">knob-ec11.svg</text>
+<text x="804" y="252" font-size="9" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">KY-040 board instead:</text>
+<text x="804" y="265" font-size="9" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">CLK = A, DT = B, SW = SW1,</text>
+<text x="804" y="278" font-size="9" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">+ and GND to the top rails</text>
+<rect x="386" y="232" width="66" height="60" rx="6" fill="#5a1f3a" stroke="#111" stroke-width="2" stroke-dasharray="6 4"/>
+<circle cx="419.0" cy="258" r="11" fill="#ddd" stroke="#222"/>
+<text x="419.0" y="222" font-size="10.5" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">Reject (Y)</text>
+<rect x="397" y="287" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="402" y="280" font-size="9" text-anchor="middle" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">GND</text>
+<rect x="431" y="287" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="436" y="280" font-size="9" text-anchor="middle" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">13</text>
+<rect x="522" y="232" width="66" height="60" rx="6" fill="#6b3a12" stroke="#111" stroke-width="2" stroke-dasharray="6 4"/>
+<circle cx="555.0" cy="258" r="11" fill="#ddd" stroke="#222"/>
+<text x="555.0" y="222" font-size="10.5" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">Sign (A)</text>
+<rect x="533" y="287" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="538" y="280" font-size="9" text-anchor="middle" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">GND</text>
+<rect x="567" y="287" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="572" y="280" font-size="9" text-anchor="middle" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">27</text>
+<rect x="488" y="154" width="134" height="52" rx="6" fill="#4d3f17" stroke="#111" stroke-width="2" stroke-dasharray="6 4"/>
+<circle cx="555.0" cy="178" r="10" fill="#ddd" stroke="#222"/>
+<text x="555.0" y="144" font-size="10.5" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">Back (B)</text>
+<rect x="499" y="201" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="504" y="194" font-size="9" text-anchor="middle" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">GND</text>
+<rect x="601" y="201" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="606" y="194" font-size="9" text-anchor="middle" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">26</text>
+<text x="372" y="176" font-size="9.5" text-anchor="end" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">buttons: optional,</text>
+<text x="372" y="189" font-size="9.5" text-anchor="end" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">for later (dashed)</text>
+<text x="372" y="202" font-size="9.5" text-anchor="end" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">6 mm tact switches</text>
+<path d="M640 546 L640 292" fill="none" stroke="#138a8a" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="640" cy="546" r="4" fill="#138a8a"/>
+<circle cx="640" cy="326" r="10" fill="#fff" stroke="#138a8a" stroke-width="2"/>
+<text x="640" y="330" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">20</text>
+<path d="M674 546 L674 292" fill="none" stroke="#138a8a" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="674" cy="546" r="4" fill="#138a8a"/>
+<circle cx="674" cy="326" r="10" fill="#fff" stroke="#138a8a" stroke-width="2"/>
+<text x="674" y="330" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">19</text>
+<path d="M708 546 L708 292" fill="none" stroke="#138a8a" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="708" cy="546" r="4" fill="#138a8a"/>
+<circle cx="708" cy="326" r="10" fill="#fff" stroke="#138a8a" stroke-width="2"/>
+<text x="708" y="330" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">18</text>
+<path d="M742 378 L742 292" fill="none" stroke="#222" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="742" cy="378" r="4" fill="#222"/>
+<circle cx="742" cy="326" r="10" fill="#fff" stroke="#222" stroke-width="2"/>
+<text x="742" y="330" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">17</text>
+<path d="M776 378 L776 292" fill="none" stroke="#222" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="776" cy="378" r="4" fill="#222"/>
+<circle cx="776" cy="326" r="10" fill="#fff" stroke="#222" stroke-width="2"/>
+<text x="776" y="330" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">21</text>
+<path d="M436 546 L436 292" fill="none" stroke="#9b3d8f" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="7 5"/>
+<circle cx="436" cy="546" r="4" fill="#9b3d8f"/>
+<circle cx="436" cy="326" r="10" fill="#fff" stroke="#9b3d8f" stroke-width="2" stroke-dasharray="3 2"/>
+<text x="436" y="330" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">24</text>
+<path d="M402 378 L402 292" fill="none" stroke="#222" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="7 5"/>
+<circle cx="402" cy="378" r="4" fill="#222"/>
+<circle cx="402" cy="326" r="10" fill="#fff" stroke="#222" stroke-width="2" stroke-dasharray="3 2"/>
+<text x="402" y="330" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">25</text>
+<path d="M572 546 L572 292" fill="none" stroke="#d2691e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="7 5"/>
+<circle cx="572" cy="546" r="4" fill="#d2691e"/>
+<circle cx="572" cy="326" r="10" fill="#fff" stroke="#d2691e" stroke-width="2" stroke-dasharray="3 2"/>
+<text x="572" y="330" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">22</text>
+<path d="M538 378 L538 292" fill="none" stroke="#222" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="7 5"/>
+<circle cx="538" cy="378" r="4" fill="#222"/>
+<circle cx="538" cy="326" r="10" fill="#fff" stroke="#222" stroke-width="2" stroke-dasharray="3 2"/>
+<text x="538" y="330" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">23</text>
+<path d="M606 546 L606 206" fill="none" stroke="#8a6d1f" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="7 5"/>
+<circle cx="606" cy="546" r="4" fill="#8a6d1f"/>
+<circle cx="606" cy="326" r="10" fill="#fff" stroke="#8a6d1f" stroke-width="2" stroke-dasharray="3 2"/>
+<text x="606" y="330" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">26</text>
+<path d="M504 378 L504 206" fill="none" stroke="#222" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="7 5"/>
+<circle cx="504" cy="378" r="4" fill="#222"/>
+<circle cx="504" cy="326" r="10" fill="#fff" stroke="#222" stroke-width="2" stroke-dasharray="3 2"/>
+<text x="504" y="330" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">27</text>
+<path d="M912 546 L912 356" fill="none" stroke="#b3261e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="912" cy="546" r="4" fill="#b3261e"/>
+<circle cx="912" cy="356" r="4" fill="#b3261e"/>
+<circle cx="930" cy="456" r="10" fill="#fff" stroke="#b3261e" stroke-width="2"/>
+<text x="930" y="460" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">1</text>
+<path d="M470 546 L470 378" fill="none" stroke="#222" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="470" cy="546" r="4" fill="#222"/>
+<circle cx="470" cy="378" r="4" fill="#222"/>
+<circle cx="452" cy="456" r="10" fill="#fff" stroke="#222" stroke-width="2"/>
+<text x="452" y="460" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">2</text>
+<path d="M1082 356 L1138 356 L1138 1114 L1082 1114" fill="none" stroke="#b3261e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1082" cy="356" r="4" fill="#b3261e"/>
+<circle cx="1082" cy="1114" r="4" fill="#b3261e"/>
+<circle cx="1138" cy="804.0" r="10" fill="#fff" stroke="#b3261e" stroke-width="2"/>
+<text x="1138" y="808.0" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">3</text>
+<text x="1152" y="836.0" font-size="9" text-anchor="start" fill="#b3261e" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">wire 3: round the</text>
+<text x="1152" y="848.0" font-size="9" text-anchor="start" fill="#b3261e" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">end, + rail to + rail</text>
+<path d="M912 942 L912 1136" fill="none" stroke="#222" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="912" cy="942" r="4" fill="#222"/>
+<circle cx="912" cy="1136" r="4" fill="#222"/>
+<circle cx="930" cy="1076" r="10" fill="#fff" stroke="#222" stroke-width="2"/>
+<text x="930" y="1080" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">4</text>
+<rect x="726" y="1206" width="134" height="76" rx="8" fill="#1e5aa8" stroke="#111" stroke-width="2"/>
+<text x="793.0" y="1300" font-size="11.5" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">the chip</text>
+<text x="793.0" y="1314" font-size="9" text-anchor="middle" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">STEMMA QT to male-pins cable</text>
+<text x="793.0" y="1254" font-size="11" text-anchor="middle" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">ATECC608</text>
+<text x="793.0" y="1268" font-size="9" text-anchor="middle" fill="#dbe7ff" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">breakout</text>
+<rect x="737" y="1201" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="742" y="1228" font-size="9" text-anchor="middle" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">SDA</text>
+<rect x="771" y="1201" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="776" y="1228" font-size="9" text-anchor="middle" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">VIN</text>
+<rect x="805" y="1201" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="810" y="1228" font-size="9" text-anchor="middle" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">GND</text>
+<rect x="839" y="1201" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="844" y="1228" font-size="9" text-anchor="middle" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">SCL</text>
+<rect x="386" y="1346" width="508" height="130" rx="8" fill="#1b1b1b" stroke="#111" stroke-width="2"/>
+<text x="640.0" y="1494" font-size="11.5" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">the screen</text>
+<text x="640.0" y="1508" font-size="9" text-anchor="middle" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">real pin order differs: see the right</text>
+<rect x="504" y="1388" width="272" height="76" rx="2" fill="#27496d" stroke="#555" stroke-width="1.5"/>
+<text x="640.0" y="1422" font-size="11" text-anchor="middle" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">2.0" / 2.4" / 2.8" 240x320</text>
+<text x="640.0" y="1438" font-size="10" text-anchor="middle" fill="#dbe7ff" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">or 1.8" 128x160</text>
+<rect x="397" y="1341" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="402" y="1368" font-size="9" text-anchor="middle" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">RST</text>
+<rect x="499" y="1341" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="504" y="1368" font-size="9" text-anchor="middle" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">BL</text>
+<rect x="533" y="1341" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="538" y="1368" font-size="9" text-anchor="middle" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">3V3</text>
+<rect x="567" y="1341" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="572" y="1368" font-size="9" text-anchor="middle" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">GND</text>
+<rect x="601" y="1341" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="606" y="1368" font-size="9" text-anchor="middle" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">CS</text>
+<rect x="635" y="1341" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="640" y="1368" font-size="9" text-anchor="middle" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">SCL</text>
+<rect x="669" y="1341" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="674" y="1368" font-size="9" text-anchor="middle" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">DC</text>
+<rect x="873" y="1341" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="878" y="1368" font-size="9" text-anchor="middle" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">MOSI</text>
+<path d="M742 942 L742 1206" fill="none" stroke="#1f5fbf" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="742" cy="942" r="4" fill="#1f5fbf"/>
+<circle cx="742" cy="1172" r="10" fill="#fff" stroke="#1f5fbf" stroke-width="2"/>
+<text x="742" y="1176" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">7</text>
+<path d="M844 942 L844 1206" fill="none" stroke="#c99a00" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="844" cy="942" r="4" fill="#c99a00"/>
+<circle cx="844" cy="1172" r="10" fill="#fff" stroke="#c99a00" stroke-width="2"/>
+<text x="844" y="1176" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">8</text>
+<path d="M776 1114 L776 1206" fill="none" stroke="#b3261e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="776" cy="1114" r="4" fill="#b3261e"/>
+<circle cx="776" cy="1172" r="10" fill="#fff" stroke="#b3261e" stroke-width="2"/>
+<text x="776" y="1176" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">5</text>
+<path d="M810 1136 L810 1206" fill="none" stroke="#222" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="810" cy="1136" r="4" fill="#222"/>
+<circle cx="810" cy="1172" r="10" fill="#fff" stroke="#222" stroke-width="2"/>
+<text x="810" y="1176" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">6</text>
+<path d="M674 942 L674 1346" fill="none" stroke="#6a3fbf" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="674" cy="942" r="4" fill="#6a3fbf"/>
+<circle cx="674" cy="1172" r="10" fill="#fff" stroke="#6a3fbf" stroke-width="2"/>
+<text x="674" y="1176" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">11</text>
+<path d="M606 942 L606 1346" fill="none" stroke="#6a3fbf" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="606" cy="942" r="4" fill="#6a3fbf"/>
+<circle cx="606" cy="1172" r="10" fill="#fff" stroke="#6a3fbf" stroke-width="2"/>
+<text x="606" y="1176" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">12</text>
+<path d="M640 942 L640 1346" fill="none" stroke="#6a3fbf" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="640" cy="942" r="4" fill="#6a3fbf"/>
+<circle cx="640" cy="1172" r="10" fill="#fff" stroke="#6a3fbf" stroke-width="2"/>
+<text x="640" y="1176" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">13</text>
+<path d="M878 942 L878 1346" fill="none" stroke="#6a3fbf" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="878" cy="942" r="4" fill="#6a3fbf"/>
+<circle cx="878" cy="1172" r="10" fill="#fff" stroke="#6a3fbf" stroke-width="2"/>
+<text x="878" y="1176" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">14</text>
+<path d="M402 942 L402 1346" fill="none" stroke="#6a3fbf" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="402" cy="942" r="4" fill="#6a3fbf"/>
+<circle cx="402" cy="1172" r="10" fill="#fff" stroke="#6a3fbf" stroke-width="2"/>
+<text x="402" y="1176" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">15</text>
+<path d="M504 942 L504 1346" fill="none" stroke="#2a8c4a" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="504" cy="942" r="4" fill="#2a8c4a"/>
+<circle cx="504" cy="1172" r="10" fill="#fff" stroke="#2a8c4a" stroke-width="2"/>
+<text x="504" y="1176" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">16</text>
+<path d="M538 1114 L538 1346" fill="none" stroke="#b3261e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="538" cy="1114" r="4" fill="#b3261e"/>
+<circle cx="538" cy="1172" r="10" fill="#fff" stroke="#b3261e" stroke-width="2"/>
+<text x="538" y="1176" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">9</text>
+<path d="M572 1136 L572 1346" fill="none" stroke="#222" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="572" cy="1136" r="4" fill="#222"/>
+<circle cx="572" cy="1172" r="10" fill="#fff" stroke="#222" stroke-width="2"/>
+<text x="572" y="1176" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">10</text>
+<text x="1146" y="1200" font-size="11" text-anchor="start" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">Your screen's pins, as printed</text>
+<text x="1146" y="1214" font-size="9" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">(order varies by maker; match the names)</text>
+<rect x="1146" y="1226" width="70" height="222" rx="6" fill="#1b1b1b" stroke="#111" stroke-width="2"/>
+<rect x="1211" y="1239" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="1208" y="1248" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">BL</text>
+<path d="M1221 1244 L1242 1244" fill="none" stroke="#2a8c4a" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1254" cy="1244" r="10" fill="#fff" stroke="#2a8c4a" stroke-width="2"/>
+<text x="1254" y="1248" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">16</text>
+<text x="1270" y="1248" font-size="10" text-anchor="start" fill="#2a8c4a" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">IO4</text>
+<text x="1270" y="1259" font-size="8" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">or BLK, LEDA</text>
+<rect x="1211" y="1265" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="1208" y="1274" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">RST</text>
+<path d="M1221 1270 L1242 1270" fill="none" stroke="#6a3fbf" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1254" cy="1270" r="10" fill="#fff" stroke="#6a3fbf" stroke-width="2"/>
+<text x="1254" y="1274" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">15</text>
+<text x="1270" y="1274" font-size="10" text-anchor="start" fill="#6a3fbf" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">IO15</text>
+<text x="1270" y="1285" font-size="8" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">or RES</text>
+<rect x="1211" y="1291" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="1208" y="1300" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">DC</text>
+<path d="M1221 1296 L1242 1296" fill="none" stroke="#6a3fbf" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1254" cy="1296" r="10" fill="#fff" stroke="#6a3fbf" stroke-width="2"/>
+<text x="1254" y="1300" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">11</text>
+<text x="1270" y="1300" font-size="10" text-anchor="start" fill="#6a3fbf" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">IO19</text>
+<text x="1270" y="1311" font-size="8" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">or RS, A0</text>
+<rect x="1211" y="1317" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="1208" y="1326" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">SCL</text>
+<path d="M1221 1322 L1242 1322" fill="none" stroke="#6a3fbf" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1254" cy="1322" r="10" fill="#fff" stroke="#6a3fbf" stroke-width="2"/>
+<text x="1254" y="1326" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">13</text>
+<text x="1270" y="1326" font-size="10" text-anchor="start" fill="#6a3fbf" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">IO18</text>
+<text x="1270" y="1337" font-size="8" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">or SCLK, SCK, CLK</text>
+<rect x="1211" y="1343" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="1208" y="1352" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">MOSI</text>
+<path d="M1221 1348 L1242 1348" fill="none" stroke="#6a3fbf" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1254" cy="1348" r="10" fill="#fff" stroke="#6a3fbf" stroke-width="2"/>
+<text x="1254" y="1352" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">14</text>
+<text x="1270" y="1352" font-size="10" text-anchor="start" fill="#6a3fbf" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">IO23</text>
+<text x="1270" y="1363" font-size="8" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">or SDA, DIN</text>
+<rect x="1211" y="1369" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="1208" y="1378" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">CS</text>
+<path d="M1221 1374 L1242 1374" fill="none" stroke="#6a3fbf" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1254" cy="1374" r="10" fill="#fff" stroke="#6a3fbf" stroke-width="2"/>
+<text x="1254" y="1378" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">12</text>
+<text x="1270" y="1378" font-size="10" text-anchor="start" fill="#6a3fbf" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">IO5</text>
+<rect x="1211" y="1395" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="1208" y="1404" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">3V3</text>
+<path d="M1221 1400 L1242 1400" fill="none" stroke="#b3261e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1254" cy="1400" r="10" fill="#fff" stroke="#b3261e" stroke-width="2"/>
+<text x="1254" y="1404" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">9</text>
+<text x="1270" y="1404" font-size="10" text-anchor="start" fill="#b3261e" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">bottom red + rail</text>
+<text x="1270" y="1415" font-size="8" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">or VCC, VDD</text>
+<rect x="1211" y="1421" width="10" height="10" fill="#e8c27a" stroke="#333"/>
+<text x="1208" y="1430" font-size="9" text-anchor="end" fill="#fff" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">GND</text>
+<path d="M1221 1426 L1242 1426" fill="none" stroke="#222" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1254" cy="1426" r="10" fill="#fff" stroke="#222" stroke-width="2"/>
+<text x="1254" y="1430" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">10</text>
+<text x="1270" y="1430" font-size="10" text-anchor="start" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">bottom blue - rail</text>
+<text x="1146" y="1470" font-size="9.5" text-anchor="start" fill="#b3261e" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">SCL here is the screen's clock,</text>
+<text x="1146" y="1483" font-size="9.5" text-anchor="start" fill="#b3261e" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">not the chip's SCL. 3V3 = 3.3 V,</text>
+<text x="1146" y="1496" font-size="9.5" text-anchor="start" fill="#b3261e" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">never 5 V.</text>
+<rect x="1286" y="166" width="280" height="1012" rx="8" fill="#fff" stroke="#ccc" stroke-width="1"/>
+<text x="1300" y="190" font-size="13" text-anchor="start" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">Wires, in order</text>
+<text x="1300" y="206" font-size="9" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">a dot = the end goes in that hole</text>
+<text x="1300" y="234" font-size="10.5" text-anchor="start" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">Power rails</text>
+<circle cx="1310" cy="246" r="10" fill="#fff" stroke="#b3261e" stroke-width="2"/>
+<text x="1310" y="250" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">1</text>
+<text x="1326" y="245" font-size="9" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">3V3</text>
+<text x="1326" y="257" font-size="9" text-anchor="start" fill="#b3261e" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">-&gt; top red + rail</text>
+<circle cx="1310" cy="275" r="10" fill="#fff" stroke="#222" stroke-width="2"/>
+<text x="1310" y="279" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">2</text>
+<text x="1326" y="274" font-size="9" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">GND (J2 pin 14, by IO13)</text>
+<text x="1326" y="286" font-size="9" text-anchor="start" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">-&gt; top blue - rail</text>
+<circle cx="1310" cy="304" r="10" fill="#fff" stroke="#b3261e" stroke-width="2"/>
+<text x="1310" y="308" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">3</text>
+<text x="1326" y="303" font-size="9" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">top red + rail</text>
+<text x="1326" y="315" font-size="9" text-anchor="start" fill="#b3261e" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">-&gt; bottom red + rail</text>
+<circle cx="1310" cy="333" r="10" fill="#fff" stroke="#222" stroke-width="2"/>
+<text x="1310" y="337" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">4</text>
+<text x="1326" y="332" font-size="9" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">GND (J3 pin 1, by IO23)</text>
+<text x="1326" y="344" font-size="9" text-anchor="start" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">-&gt; bottom blue - rail</text>
+<text x="1300" y="372" font-size="10.5" text-anchor="start" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">The chip</text>
+<circle cx="1310" cy="384" r="10" fill="#fff" stroke="#b3261e" stroke-width="2"/>
+<text x="1310" y="388" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">5</text>
+<text x="1326" y="383" font-size="9" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">bottom red + rail</text>
+<text x="1326" y="395" font-size="9" text-anchor="start" fill="#b3261e" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">-&gt; chip VIN (red)</text>
+<circle cx="1310" cy="413" r="10" fill="#fff" stroke="#222" stroke-width="2"/>
+<text x="1310" y="417" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">6</text>
+<text x="1326" y="412" font-size="9" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">bottom blue - rail</text>
+<text x="1326" y="424" font-size="9" text-anchor="start" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">-&gt; chip GND (black)</text>
+<circle cx="1310" cy="442" r="10" fill="#fff" stroke="#1f5fbf" stroke-width="2"/>
+<text x="1310" y="446" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">7</text>
+<text x="1326" y="441" font-size="9" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">IO21</text>
+<text x="1326" y="453" font-size="9" text-anchor="start" fill="#1f5fbf" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">-&gt; chip SDA (blue)</text>
+<circle cx="1310" cy="471" r="10" fill="#fff" stroke="#c99a00" stroke-width="2"/>
+<text x="1310" y="475" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">8</text>
+<text x="1326" y="470" font-size="9" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">IO22</text>
+<text x="1326" y="482" font-size="9" text-anchor="start" fill="#9a7600" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">-&gt; chip SCL (yellow)</text>
+<text x="1300" y="510" font-size="10.5" text-anchor="start" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">The screen</text>
+<circle cx="1310" cy="522" r="10" fill="#fff" stroke="#b3261e" stroke-width="2"/>
+<text x="1310" y="526" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">9</text>
+<text x="1326" y="521" font-size="9" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">bottom red + rail</text>
+<text x="1326" y="533" font-size="9" text-anchor="start" fill="#b3261e" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">-&gt; screen 3V3</text>
+<circle cx="1310" cy="551" r="10" fill="#fff" stroke="#222" stroke-width="2"/>
+<text x="1310" y="555" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">10</text>
+<text x="1326" y="550" font-size="9" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">bottom blue - rail</text>
+<text x="1326" y="562" font-size="9" text-anchor="start" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">-&gt; screen GND</text>
+<circle cx="1310" cy="580" r="10" fill="#fff" stroke="#6a3fbf" stroke-width="2"/>
+<text x="1310" y="584" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">11</text>
+<text x="1326" y="579" font-size="9" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">IO19</text>
+<text x="1326" y="591" font-size="9" text-anchor="start" fill="#6a3fbf" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">-&gt; screen DC</text>
+<circle cx="1310" cy="609" r="10" fill="#fff" stroke="#6a3fbf" stroke-width="2"/>
+<text x="1310" y="613" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">12</text>
+<text x="1326" y="608" font-size="9" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">IO5</text>
+<text x="1326" y="620" font-size="9" text-anchor="start" fill="#6a3fbf" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">-&gt; screen CS</text>
+<circle cx="1310" cy="638" r="10" fill="#fff" stroke="#6a3fbf" stroke-width="2"/>
+<text x="1310" y="642" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">13</text>
+<text x="1326" y="637" font-size="9" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">IO18</text>
+<text x="1326" y="649" font-size="9" text-anchor="start" fill="#6a3fbf" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">-&gt; screen SCL</text>
+<circle cx="1310" cy="667" r="10" fill="#fff" stroke="#6a3fbf" stroke-width="2"/>
+<text x="1310" y="671" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">14</text>
+<text x="1326" y="666" font-size="9" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">IO23</text>
+<text x="1326" y="678" font-size="9" text-anchor="start" fill="#6a3fbf" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">-&gt; screen MOSI</text>
+<circle cx="1310" cy="696" r="10" fill="#fff" stroke="#6a3fbf" stroke-width="2"/>
+<text x="1310" y="700" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">15</text>
+<text x="1326" y="695" font-size="9" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">IO15</text>
+<text x="1326" y="707" font-size="9" text-anchor="start" fill="#6a3fbf" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">-&gt; screen RST</text>
+<circle cx="1310" cy="725" r="10" fill="#fff" stroke="#2a8c4a" stroke-width="2"/>
+<text x="1310" y="729" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">16</text>
+<text x="1326" y="724" font-size="9" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">IO4</text>
+<text x="1326" y="736" font-size="9" text-anchor="start" fill="#2a8c4a" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">-&gt; screen BL</text>
+<text x="1300" y="764" font-size="10.5" text-anchor="start" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">The knob</text>
+<circle cx="1310" cy="776" r="10" fill="#fff" stroke="#222" stroke-width="2"/>
+<text x="1310" y="780" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">17</text>
+<text x="1326" y="775" font-size="9" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">top blue - rail</text>
+<text x="1326" y="787" font-size="9" text-anchor="start" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">-&gt; knob C (middle leg)</text>
+<circle cx="1310" cy="805" r="10" fill="#fff" stroke="#138a8a" stroke-width="2"/>
+<text x="1310" y="809" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">18</text>
+<text x="1326" y="804" font-size="9" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">IO32</text>
+<text x="1326" y="816" font-size="9" text-anchor="start" fill="#138a8a" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">-&gt; knob A</text>
+<circle cx="1310" cy="834" r="10" fill="#fff" stroke="#138a8a" stroke-width="2"/>
+<text x="1310" y="838" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">19</text>
+<text x="1326" y="833" font-size="9" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">IO33</text>
+<text x="1326" y="845" font-size="9" text-anchor="start" fill="#138a8a" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">-&gt; knob B</text>
+<circle cx="1310" cy="863" r="10" fill="#fff" stroke="#138a8a" stroke-width="2"/>
+<text x="1310" y="867" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">20</text>
+<text x="1326" y="862" font-size="9" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">IO25</text>
+<text x="1326" y="874" font-size="9" text-anchor="start" fill="#138a8a" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">-&gt; knob switch leg 1</text>
+<circle cx="1310" cy="892" r="10" fill="#fff" stroke="#222" stroke-width="2"/>
+<text x="1310" y="896" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">21</text>
+<text x="1326" y="891" font-size="9" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">top blue - rail</text>
+<text x="1326" y="903" font-size="9" text-anchor="start" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">-&gt; knob switch leg 2</text>
+<text x="1300" y="931" font-size="10.5" text-anchor="start" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">Buttons, optional</text>
+<circle cx="1310" cy="943" r="10" fill="#fff" stroke="#d2691e" stroke-width="2" stroke-dasharray="3 2"/>
+<text x="1310" y="947" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">22</text>
+<text x="1326" y="942" font-size="9" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">IO27</text>
+<text x="1326" y="954" font-size="9" text-anchor="start" fill="#d2691e" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">-&gt; Sign button, one leg</text>
+<circle cx="1310" cy="972" r="10" fill="#fff" stroke="#222" stroke-width="2" stroke-dasharray="3 2"/>
+<text x="1310" y="976" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">23</text>
+<text x="1326" y="971" font-size="9" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">top blue - rail</text>
+<text x="1326" y="983" font-size="9" text-anchor="start" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">-&gt; Sign button, other leg</text>
+<circle cx="1310" cy="1001" r="10" fill="#fff" stroke="#9b3d8f" stroke-width="2" stroke-dasharray="3 2"/>
+<text x="1310" y="1005" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">24</text>
+<text x="1326" y="1000" font-size="9" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">IO13</text>
+<text x="1326" y="1012" font-size="9" text-anchor="start" fill="#9b3d8f" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">-&gt; Reject button, one leg</text>
+<circle cx="1310" cy="1030" r="10" fill="#fff" stroke="#222" stroke-width="2" stroke-dasharray="3 2"/>
+<text x="1310" y="1034" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">25</text>
+<text x="1326" y="1029" font-size="9" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">top blue - rail</text>
+<text x="1326" y="1041" font-size="9" text-anchor="start" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">-&gt; Reject button, other leg</text>
+<circle cx="1310" cy="1059" r="10" fill="#fff" stroke="#8a6d1f" stroke-width="2" stroke-dasharray="3 2"/>
+<text x="1310" y="1063" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">26</text>
+<text x="1326" y="1058" font-size="9" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">IO26</text>
+<text x="1326" y="1070" font-size="9" text-anchor="start" fill="#8a6d1f" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">-&gt; Back button, one leg</text>
+<circle cx="1310" cy="1088" r="10" fill="#fff" stroke="#222" stroke-width="2" stroke-dasharray="3 2"/>
+<text x="1310" y="1092" font-size="10" text-anchor="middle" fill="#111" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">27</text>
+<text x="1326" y="1087" font-size="9" text-anchor="start" fill="#222" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">top blue - rail</text>
+<text x="1326" y="1099" font-size="9" text-anchor="start" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">-&gt; Back button, other leg</text>
+<rect x="24" y="1574" width="1250" height="108" rx="6" fill="#fff4f2" stroke="#b3261e" stroke-width="1.5"/>
+<text x="40" y="1596" font-size="12" text-anchor="start" fill="#b3261e" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">Before the USB cable goes in</text>
+<text x="40" y="1616" font-size="10" text-anchor="start" fill="#3a1410" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">- Nothing in the 5V pin's holes (J2 pin 19, next to the USB end): it is 5 V and the screen and the chip want 3.3 V.</text>
+<text x="40" y="1632" font-size="10" text-anchor="start" fill="#3a1410" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">- No wire on D0-D3, CMD or CLK (the left end of each row): they are the module's flash.</text>
+<text x="40" y="1648" font-size="10" text-anchor="start" fill="#3a1410" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">- The top red rail has wires 1 and 3 (and a KY-040's +); the bottom red rail has 3, 5 and 9. No red wire in a blue rail, no black in a red one.</text>
+<text x="40" y="1664" font-size="10" text-anchor="start" fill="#3a1410" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">- A meter on continuity from a red rail to a blue rail must not beep.</text>
+</svg>

@@ -5,9 +5,12 @@
 # being fed and the board resets itself 8 s later. Started only by the production image, and only
 # once the chip is the pinned one: a watchdog on a board that is being repaired over USB would
 # reset it in the middle of a copy.
+# On an ESP32 the feeding timer is a soft one (board.timer; MicroPython has no hard timers there): it
+# runs between bytecodes and while a socket waits, not inside one long C call. Not yet tried there.
 import time
 import machine
 import micropython
+import board
 
 TIMEOUT_MS = 8000
 _wdt = None
@@ -29,7 +32,7 @@ def start():
     extend(TIMEOUT_MS)
     # The feeder before the watchdog: if the timer could not be made, nothing is armed that would
     # then reset the board every 8 s, boot after boot. (hard=True: checked on the board, 1.26.1.)
-    _timer = machine.Timer(period=1000, mode=machine.Timer.PERIODIC, callback=_feed, hard=True)
+    _timer = board.timer("watch", 1000, _feed, hard=True)
     _wdt = machine.WDT(timeout=TIMEOUT_MS)
 
 

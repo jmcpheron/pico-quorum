@@ -18,6 +18,7 @@
 # monograms, not copies of anyone's artwork.
 from array import array
 import time
+import board
 import lcd as L
 import fonts as F
 import blockies
@@ -385,14 +386,14 @@ def chain_short(q, chain):
 
 def clock_set():
     """Is the wall clock set (NTP, or the host in the emulator)? The clock card needs it."""
-    return time.time() > 1700000000
+    return board.unix() > 1700000000
 
 
 def ago(t):
     """When, briefly: "just now", "5m ago", "3h ago", "2d ago" ("" before the clock is set)."""
     if not t or t < 1700000000:
         return ""
-    s = time.time() - t
+    s = board.unix() - t
     if s < 60:
         return "just now"
     if s < 3600:

@@ -88,7 +88,7 @@ def _normal_boot():
         splash.wifi_at = time.ticks_ms()    # for quorum's "boot ms" line in log.txt
 
 if board.MAINTENANCE:
-    Pin("LED", Pin.OUT).on()
+    Pin(board.LED, Pin.OUT).on()
     print("maintenance: USB ready; display, WiFi and console skipped")
 else:
     _normal_boot()

@@ -1,0 +1,538 @@
+#!/usr/bin/env python3
+# Draws the pictures for hardware/wiring/ESP32.md, the console's screen, knob and chip on an ESP32
+# DevKit instead of a Pico:
+#   hardware/wiring/esp32-breadboard.svg   the DevKit across two breadboards, every jumper wire numbered
+#   hardware/wiring/esp32-pinmap.svg       the DevKit's two headers: which pin goes where, and why
+# PINS below is the one pin table. `--check` compares it with board.py's "esp32" profile (run here
+# as if on an ESP32), with the tables in ESP32.md, and with the DevKitC's header layout.
+# Run from the repo root: tools/wiring-esp32
+import re, sys
+from importlib.machinery import SourceFileLoader
+from importlib.util import module_from_spec, spec_from_loader
+
+_spec = spec_from_loader("wb1", SourceFileLoader("wb1", "tools/wiring-build1"))
+wb1 = module_from_spec(_spec); _spec.loader.exec_module(wb1)
+text, wire, dot, rect, pad = wb1.text, wb1.wire, wb1.dot, wb1.rect, wb1.pad
+RED, BLK, BLU, YEL, GRN, PUR, GREY = wb1.RED, wb1.BLK, wb1.BLU, wb1.YEL, wb1.GRN, wb1.PUR, wb1.GREY
+ORG, TEAL, MAG = wb1.ORG, wb1.TEAL, wb1.MAG
+BRN = "#8a6d1f"
+MONO = wb1.MONO
+def add(s): wb1.out.append(s)
+
+# The ESP32-DevKitC V4's headers, pin 1 to 19 (Espressif's user guide). Antenna up, parts toward
+# you: J2 runs down the left side, J3 down the right. D0-D3, CMD and CLK are the module's flash.
+J2 = ["3V3", "EN", "VP", "VN", "IO34", "IO35", "IO32", "IO33", "IO25", "IO26", "IO27", "IO14", "IO12",
+      "GND", "IO13", "D2", "D3", "CMD", "5V"]
+J3 = ["GND", "IO23", "IO22", "TX", "RX", "IO21", "GND", "IO19", "IO18", "IO5", "IO17", "IO16", "IO4",
+      "IO0", "IO2", "IO15", "D1", "D0", "CLK"]
+
+# (part, contact, signal, ESP32 pin as printed, header pin)
+PINS = [
+    ("screen", "3V3", "3.3 V", "3V3", "J2-1"),
+    ("screen", "GND", "ground", "GND", "J3-1"),
+    ("screen", "DC", "data/command", "IO19", "J3-8"),
+    ("screen", "CS", "chip select", "IO5", "J3-10"),
+    ("screen", "SCL", "VSPI clock", "IO18", "J3-9"),
+    ("screen", "MOSI", "VSPI data", "IO23", "J3-2"),
+    ("screen", "RST", "reset", "IO15", "J3-16"),
+    ("screen", "BL", "backlight PWM", "IO4", "J3-13"),
+    ("chip", "VIN", "3.3 V", "3V3", "J2-1"),
+    ("chip", "GND", "ground", "GND", "J3-1"),
+    ("chip", "SDA", "I2C data", "IO21", "J3-6"),
+    ("chip", "SCL", "I2C clock", "IO22", "J3-3"),
+    ("knob", "A", "encoder A", "IO32", "J2-7"),
+    ("knob", "B", "encoder B", "IO33", "J2-8"),
+    ("knob", "C", "encoder common", "GND", "J2-14"),
+    ("knob", "SW1", "push", "IO25", "J2-9"),
+    ("knob", "SW2", "push, other side", "GND", "J2-14"),
+    ("buttons", "Sign", "A, held to sign", "IO27", "J2-11"),
+    ("buttons", "Reject", "Y, and Wi-Fi setup at power-up", "IO13", "J2-15"),
+    ("buttons", "Back", "B", "IO26", "J2-10"),
+]
+
+
+def hdr(h):
+    """'J3-8' -> the name printed beside that pin."""
+    j, n = h.split("-")
+    return (J2 if j == "J2" else J3)[int(n) - 1]
+
+
+def gp(part, contact):
+    return next(p[3] for p in PINS if p[0] == part and p[1] == contact)
+
+
+# The wire list, in the order to plug them in: (number, color, from, to, part, contact or None,
+# optional). "from" is where the wire starts, "to" the part's pin. ESP32 pins come from PINS.
+UP_P, UP_M, LO_P, LO_M = "top red + rail", "top blue - rail", "bottom red + rail", "bottom blue - rail"
+def esp(part, contact):
+    p = gp(part, contact)
+    return "ESP32 %s" % p
+WIRES = [
+    (1, RED, "ESP32 3V3", UP_P, "power", None, False),
+    (2, BLK, "ESP32 GND (J2 pin 14, by IO13)", UP_M, "power", None, False),
+    (3, RED, UP_P, LO_P, "power", None, False),
+    (4, BLK, "ESP32 GND (J3 pin 1, by IO23)", LO_M, "power", None, False),
+    (5, RED, LO_P, "chip VIN (red)", "chip", None, False),
+    (6, BLK, LO_M, "chip GND (black)", "chip", None, False),
+    (7, BLU, esp("chip", "SDA"), "chip SDA (blue)", "chip", "SDA", False),
+    (8, YEL, esp("chip", "SCL"), "chip SCL (yellow)", "chip", "SCL", False),
+    (9, RED, LO_P, "screen 3V3", "screen", None, False),
+    (10, BLK, LO_M, "screen GND", "screen", None, False),
+    (11, PUR, esp("screen", "DC"), "screen DC", "screen", "DC", False),
+    (12, PUR, esp("screen", "CS"), "screen CS", "screen", "CS", False),
+    (13, PUR, esp("screen", "SCL"), "screen SCL", "screen", "SCL", False),
+    (14, PUR, esp("screen", "MOSI"), "screen MOSI", "screen", "MOSI", False),
+    (15, PUR, esp("screen", "RST"), "screen RST", "screen", "RST", False),
+    (16, GRN, esp("screen", "BL"), "screen BL", "screen", "BL", False),
+    (17, BLK, UP_M, "knob C (middle leg)", "knob", None, False),
+    (18, TEAL, esp("knob", "A"), "knob A", "knob", "A", False),
+    (19, TEAL, esp("knob", "B"), "knob B", "knob", "B", False),
+    (20, TEAL, esp("knob", "SW1"), "knob switch leg 1", "knob", "SW1", False),
+    (21, BLK, UP_M, "knob switch leg 2", "knob", None, False),
+    (22, ORG, esp("buttons", "Sign"), "Sign button, one leg", "buttons", "Sign", True),
+    (23, BLK, UP_M, "Sign button, other leg", "buttons", None, True),
+    (24, MAG, esp("buttons", "Reject"), "Reject button, one leg", "buttons", "Reject", True),
+    (25, BLK, UP_M, "Reject button, other leg", "buttons", None, True),
+    (26, BRN, esp("buttons", "Back"), "Back button, one leg", "buttons", "Back", True),
+    (27, BLK, UP_M, "Back button, other leg", "buttons", None, True),
+]
+
+
+def rtext(x, y, s, size=10, color="#222", bold=False):
+    """Text reading bottom to top, anchored at its start."""
+    add('<text x="0" y="0" font-size="%s" fill="%s" font-weight="%s" font-family="%s" transform="translate(%s %s) rotate(-90)">%s</text>'
+        % (size, color, "bold" if bold else "normal", MONO, x, y, s))
+def tag(x, y, n, color, dashed=False):
+    add('<circle cx="%s" cy="%s" r="10" fill="#fff" stroke="%s" stroke-width="2"%s/>' % (x, y, color, ' stroke-dasharray="3 2"' if dashed else ""))
+    text(x, y + 4, str(n), 10, "#111", "middle", True)
+
+
+# ------------------------------------------------------------------------------------------------ breadboard
+P = 34                                  # column pitch
+X0 = 130                                # column 1
+NCOL = 30
+def cx(c): return X0 + (c - 1) * P
+def col(h):                             # USB to the left: both headers read pin 19 .. pin 1, left to right
+    return 25 - int(h.split("-")[1])
+DY = 56                                 # room above for the title
+UP = dict(zip("abcdefghij", (DY + y for y in (356, 378, 400, 422, 444, 490, 512, 534, 556, 578))))
+LO = dict(zip("abcdefghij", (DY + y for y in (798, 820, 842, 864, 886, 932, 954, 976, 998, 1020))))
+UP_RP, UP_RM = DY + 300, DY + 322       # the top board's own rails, along its top edge
+LO_RP, LO_RM = DY + 1058, DY + 1080     # the bottom board's, along its bottom edge
+TIER1, TIER2 = DY + 236, DY + 150       # the bottom edges of the parts above: knob and buttons, then Back
+LOW1, LOW2 = DY + 1150, DY + 1290       # the top edges of the parts below: chip, then screen
+RAIL_GAP = 4                            # a rail's holes come in fives; no hole where col % 6 == RAIL_GAP
+
+
+def rails(y_p, y_m):
+    for y, c, s in ((y_p, RED, "+"), (y_m, BLU, "-")):
+        add('<line x1="%s" y1="%s" x2="%s" y2="%s" stroke="%s" stroke-width="2" opacity="0.9"/>' % (X0 - 30, y - 11, cx(NCOL) + 30, y - 11, c))
+        text(X0 - 30, y + 4, s, 13, c, "middle", True)
+        for k in range(1, NCOL + 1):
+            if k % 6 != RAIL_GAP:
+                add('<rect x="%s" y="%s" width="6" height="6" fill="#555" opacity="0.8"/>' % (cx(k) - 3, y - 3))
+
+
+def holes(rows):
+    for r, y in rows.items():
+        text(X0 - 22, y + 4, r, 9, GREY, "middle")
+        for k in range(1, NCOL + 1):
+            add('<rect x="%s" y="%s" width="6" height="6" fill="#555"/>' % (cx(k) - 3, y - 3))
+
+
+def part_box(c0, c1, y, h, fill, title, sub=None, above=True):
+    """A part whose terminals sit under columns c0..c1, along its bottom edge (above the boards) or
+    its top edge (below them)."""
+    x0, x1 = cx(c0) - 16, cx(c1) + 16
+    rect(x0, y - h if above else y, x1 - x0, h, fill, "#111", 8, 2)
+    ty = y - h - 10 if above else y + h + 18
+    text((x0 + x1) / 2, ty, title, 11.5, "#111", "middle", True)
+    if sub:
+        text((x0 + x1) / 2, ty + 14, sub, 9, GREY, "middle")
+    return x0, x1
+
+
+def terminal(c, y, label, above=True):
+    pad(cx(c), y)
+    text(cx(c), y - 12 if above else y + 22, label, 9, "#fff", "middle", True)
+
+
+def breadboard():
+    wb1.out = []
+    W, H = 1580, 1700
+    add('<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d">' % (W, H, W, H))
+    add('<rect width="%d" height="%d" fill="#fbfbf8"/>' % (W, H))
+    text(24, 34, "The console on an ESP32: the chip, the screen and the knob on two breadboards", 18, bold=True)
+    text(24, 56, "21 jumper wires, and 6 more for the optional buttons (dashed). Plug them in number order with the USB cable unplugged. Red = 3.3 V, black = ground.", 11.5, GREY)
+    text(24, 74, "An ESP32-DevKitC (38 pins) from the top, USB to the left. It is too wide for one breadboard: it bridges two, its pins in row j of the top board and row a", 11.5, GREY)
+    text(24, 92, "of the bottom one. Each pin then has 4 free holes beside it on the outside (f-i above, b-e below). Wire by the names printed next to the pins.", 11.5, GREY)
+
+    # --- the two boards
+    rect(X0 - 40, UP_RP - 26, cx(NCOL) - X0 + 80, UP["j"] - UP_RP + 44, "#f1ede4", "#c9c2b0", 10, 1.5)
+    add('<rect x="%s" y="%s" width="%s" height="18" fill="#e3ddcf"/>' % (X0 - 40, UP["e"] + 14, cx(NCOL) - X0 + 80))
+    rect(X0 - 40, LO["a"] - 18, cx(NCOL) - X0 + 80, LO_RM - LO["a"] + 44, "#f1ede4", "#c9c2b0", 10, 1.5)
+    add('<rect x="%s" y="%s" width="%s" height="18" fill="#e3ddcf"/>' % (X0 - 40, LO["e"] + 14, cx(NCOL) - X0 + 80))
+    rails(UP_RP, UP_RM)
+    rails(LO_RP, LO_RM)
+    holes(UP)
+    holes(LO)
+    for k in (1, 5, 10, 15, 20, 25, NCOL):
+        text(cx(k), UP["a"] - 11, str(k), 8.5, GREY, "middle")
+    for y, s in ((UP_RP, "top red + rail"), (UP_RM, "top blue - rail"), (LO_RP, "bottom red + rail"), (LO_RM, "bottom blue - rail")):
+        text(cx(NCOL) + 50, y + 4, s, 10, RED if "red" in s else BLU, "start", True)
+    text(cx(NCOL) + 50, UP["c"], "top board", 10, "#111", "start", True)
+    text(cx(NCOL) + 50, UP["c"] + 13, "its bottom rails", 9, GREY); text(cx(NCOL) + 50, UP["c"] + 25, "taken off", 9, GREY)
+    text(cx(NCOL) + 50, LO["h"], "bottom board", 10, "#111", "start", True)
+    text(cx(NCOL) + 50, LO["h"] + 13, "its top rails", 9, GREY); text(cx(NCOL) + 50, LO["h"] + 25, "taken off", 9, GREY)
+    text(cx(NCOL) + 50, (UP["j"] + LO["a"]) / 2 - 6, "slide the boards", 9, GREY)
+    text(cx(NCOL) + 50, (UP["j"] + LO["a"]) / 2 + 6, "apart until the", 9, GREY)
+    text(cx(NCOL) + 50, (UP["j"] + LO["a"]) / 2 + 18, "pins drop in", 9, GREY)
+
+    # --- the DevKit
+    top_y, bot_y = UP["j"], LO["a"]
+    bx0, bx1 = cx(6) - 64, cx(24) + 96
+    rect(bx0, top_y - 16, bx1 - bx0, bot_y - top_y + 32, "#1d2733", "#0c1117", 6, 2)
+    rect(bx0 - 22, (top_y + bot_y) / 2 - 22, 30, 44, "#bbb", "#777", 3)
+    rtext(bx0 - 2, (top_y + bot_y) / 2 + 14, "USB", 9, "#333")
+    rect(cx(19) - 10, top_y + 40, bx1 - cx(19) + 2, bot_y - top_y - 80, "#9aa3ad", "#59616a", 4)     # the module's can
+    text((cx(19) + bx1) / 2 - 4, (top_y + bot_y) / 2 - 4, "ESP32-", 11, "#1d2733", "middle", True)
+    text((cx(19) + bx1) / 2 - 4, (top_y + bot_y) / 2 + 10, "WROOM-32", 11, "#1d2733", "middle", True)
+    add('<path d="M%s %s h14 v40 h-10 v-30 h-8" fill="none" stroke="#c9a227" stroke-width="2"/>' % (bx1 - 30, top_y + 52))
+    rtext(bx1 - 4, (top_y + bot_y) / 2 + 26, "antenna", 8.5, "#c9d1d9")
+    rect(cx(6) - 40, top_y + 26, 26, 18, "#444", "#222", 2); text(cx(6) - 27, top_y + 22, "EN", 8, "#c9d1d9", "middle")
+    rect(cx(6) - 40, bot_y - 44, 26, 18, "#444", "#222", 2); text(cx(6) - 27, bot_y - 14, "BOOT", 8, "#c9d1d9", "middle")
+    text(cx(12), (top_y + bot_y) / 2 + 4, "ESP32 DevKitC", 13, "#e6edf3", "middle", True)
+    used = {}
+    for part, contact, sig, name, h in PINS:
+        used[h] = name
+    used.update({"J2-14": "GND", "J3-1": "GND"})
+    for j, names, y in (("J2", J2, top_y), ("J3", J3, bot_y)):
+        for n, name in enumerate(names, 1):
+            h = "%s-%d" % (j, n)
+            x = cx(col(h))
+            on = h in used
+            add('<circle cx="%s" cy="%s" r="5" fill="%s" stroke="#333"/>' % (x, y, "#f2c14e" if on else "#e8e0b0"))
+            lab = name
+            if j == "J2":
+                rtext(x + 4, y + 12 + 6.2 * len(lab), lab, 9.5 if on else 8.5, "#fff" if on else "#8a96a3", on)
+            else:
+                rtext(x + 4, y - 10, lab, 9.5 if on else 8.5, "#fff" if on else "#8a96a3", on)
+    text(bx0 + 8, top_y + 70, "J2", 9, "#8a96a3"); text(bx0 + 8, bot_y - 60, "J3", 9, "#8a96a3")
+
+    wcol = {w[0]: w[1] for w in WIRES}
+    wopt = {w[0]: w[6] for w in WIRES}
+
+    TAG_UP, TAG_LO = TIER1 + 34, LO_RM + 36      # every part's wire is numbered on one line, above and below
+
+    def from_pin(h, n, ty, up):
+        """Wire n from pin h's outermost free hole straight to a terminal at height ty (same column)."""
+        x = cx(col(h))
+        y0 = UP["f"] if up else LO["e"]
+        wire([(x, y0), (x, ty)], wcol[n], 3, wopt[n])
+        dot(x, y0, wcol[n])
+        tag(x, TAG_UP if up else TAG_LO, n, wcol[n], wopt[n])
+
+    def from_rail(c, y_rail, n, ty, up):
+        x = cx(c)
+        wire([(x, y_rail), (x, ty)], wcol[n], 3, wopt[n])
+        dot(x, y_rail, wcol[n])
+        tag(x, TAG_UP if up else TAG_LO, n, wcol[n], wopt[n])
+
+    # --- parts above: the knob and the buttons (tier 1), Back behind them (tier 2)
+    kx = part_box(16, 20, TIER1, 92, "#3a3a3a", "the knob (EC11)", above=True)
+    add('<circle cx="%s" cy="%s" r="28" fill="#777" stroke="#222" stroke-width="2"/>' % ((kx[0] + kx[1]) / 2, TIER1 - 52))
+    add('<circle cx="%s" cy="%s" r="11" fill="#bbb" stroke="#222"/>' % ((kx[0] + kx[1]) / 2, TIER1 - 52))
+    for c, lab in ((16, "SW1"), (17, "B"), (18, "A"), (19, "C"), (20, "SW2")):
+        terminal(c, TIER1, lab)
+    text(kx[1] + 12, TIER1 - 70, "which leg is which:", 9, GREY)
+    text(kx[1] + 12, TIER1 - 57, "knob-ec11.svg", 9.5, TEAL, "start", True)
+    text(kx[1] + 12, TIER1 - 40, "KY-040 board instead:", 9, GREY)
+    text(kx[1] + 12, TIER1 - 27, "CLK = A, DT = B, SW = SW1,", 9, GREY)
+    text(kx[1] + 12, TIER1 - 14, "+ and GND to the top rails", 9, GREY)
+    for (c0, c1, title, fill, labs) in ((9, 10, "Reject (Y)", "#5a1f3a", ("GND", "IO13")),
+                                        (13, 14, "Sign (A)", "#6b3a12", ("GND", "IO27"))):
+        x0, x1 = cx(c0) - 16, cx(c1) + 16
+        rect(x0, TIER1 - 60, x1 - x0, 60, fill, "#111", 6, 2, dash=True)
+        add('<circle cx="%s" cy="%s" r="11" fill="#ddd" stroke="#222"/>' % ((x0 + x1) / 2, TIER1 - 34))
+        text((x0 + x1) / 2, TIER1 - 70, title, 10.5, "#111", "middle", True)
+        terminal(c0, TIER1, labs[0][:3]); terminal(c1, TIER1, labs[1][2:])
+    x0, x1 = cx(12) - 16, cx(15) + 16
+    rect(x0, TIER2 - 52, x1 - x0, 52, "#4d3f17", "#111", 6, 2, dash=True)
+    add('<circle cx="%s" cy="%s" r="10" fill="#ddd" stroke="#222"/>' % ((x0 + x1) / 2, TIER2 - 28))
+    text((x0 + x1) / 2, TIER2 - 62, "Back (B)", 10.5, "#111", "middle", True)
+    terminal(12, TIER2, "GND"); terminal(15, TIER2, "26")
+    text(cx(9) - 30, TIER2 - 30, "buttons: optional,", 9.5, GREY, "end")
+    text(cx(9) - 30, TIER2 - 17, "for later (dashed)", 9.5, GREY, "end")
+    text(cx(9) - 30, TIER2 - 4, "6 mm tact switches", 9.5, GREY, "end")
+
+    from_pin("J2-9", 20, TIER1, True)            # IO25 -> SW1
+    from_pin("J2-8", 19, TIER1, True)            # IO33 -> B
+    from_pin("J2-7", 18, TIER1, True)            # IO32 -> A
+    from_rail(19, UP_RM, 17, TIER1, True)        # C
+    from_rail(20, UP_RM, 21, TIER1, True)        # SW2
+    from_pin("J2-15", 24, TIER1, True)           # IO13 -> Reject
+    from_rail(9, UP_RM, 25, TIER1, True)
+    from_pin("J2-11", 22, TIER1, True)           # IO27 -> Sign
+    from_rail(13, UP_RM, 23, TIER1, True)
+    from_pin("J2-10", 26, TIER2, True)           # IO26 -> Back
+    from_rail(12, UP_RM, 27, TIER2, True)
+
+    # --- power: wires 1 to 4
+    x = cx(col("J2-1"))
+    wire([(x, UP["f"]), (x, UP_RP)], RED, 3); dot(x, UP["f"], RED); dot(x, UP_RP, RED)
+    tag(x + 18, UP["c"], 1, RED)
+    x = cx(col("J2-14"))
+    wire([(x, UP["f"]), (x, UP_RM)], BLK, 3); dot(x, UP["f"], BLK); dot(x, UP_RM, BLK)
+    tag(x - 18, UP["c"], 2, BLK)
+    xr = cx(NCOL) + 22
+    wire([(cx(29), UP_RP), (xr, UP_RP), (xr, LO_RP), (cx(29), LO_RP)], RED, 3)
+    dot(cx(29), UP_RP, RED); dot(cx(29), LO_RP, RED)
+    tag(xr, (UP["j"] + LO["a"]) / 2 + 60, 3, RED)
+    text(xr + 14, (UP["j"] + LO["a"]) / 2 + 92, "wire 3: round the", 9, RED, "start", True)
+    text(xr + 14, (UP["j"] + LO["a"]) / 2 + 104, "end, + rail to + rail", 9, RED, "start", True)
+    x = cx(col("J3-1"))
+    wire([(x, LO["e"]), (x, LO_RM)], BLK, 3); dot(x, LO["e"], BLK); dot(x, LO_RM, BLK)
+    tag(x + 18, LO["j"], 4, BLK)
+
+    # --- parts below: the chip (tier 1), the screen (tier 2, wider, its wires pass the chip)
+    cxx = part_box(19, 22, LOW1, 76, "#1e5aa8", "the chip", "STEMMA QT to male-pins cable", above=False)
+    text((cxx[0] + cxx[1]) / 2, LOW1 + 48, "ATECC608", 11, "#fff", "middle", True)
+    text((cxx[0] + cxx[1]) / 2, LOW1 + 62, "breakout", 9, "#dbe7ff", "middle")
+    for c, lab in ((19, "SDA"), (20, "VIN"), (21, "GND"), (22, "SCL")):
+        terminal(c, LOW1, lab, above=False)
+    sx = part_box(9, 23, LOW2, 130, "#1b1b1b", "the screen", "real pin order differs: see the right", above=False)
+    rect(cx(12), LOW2 + 42, cx(20) - cx(12), 76, "#27496d", "#555", 2)
+    text((cx(12) + cx(20)) / 2, LOW2 + 76, "2.0\" / 2.4\" / 2.8\" 240x320", 11, "#fff", "middle", True)
+    text((cx(12) + cx(20)) / 2, LOW2 + 92, "or 1.8\" 128x160", 10, "#dbe7ff", "middle")
+    for c, lab in ((9, "RST"), (12, "BL"), (13, "3V3"), (14, "GND"), (15, "CS"), (16, "SCL"), (17, "DC"), (23, "MOSI")):
+        terminal(c, LOW2, lab, above=False)
+    from_pin("J3-6", 7, LOW1, False)             # IO21 -> SDA
+    from_pin("J3-3", 8, LOW1, False)             # IO22 -> SCL
+    from_rail(20, LO_RP, 5, LOW1, False)
+    from_rail(21, LO_RM, 6, LOW1, False)
+    from_pin("J3-8", 11, LOW2, False)            # IO19 -> DC
+    from_pin("J3-10", 12, LOW2, False)           # IO5 -> CS
+    from_pin("J3-9", 13, LOW2, False)            # IO18 -> SCL
+    from_pin("J3-2", 14, LOW2, False)            # IO23 -> MOSI
+    from_pin("J3-16", 15, LOW2, False)           # IO15 -> RST
+    from_pin("J3-13", 16, LOW2, False)           # IO4 -> BL
+    from_rail(13, LO_RP, 9, LOW2, False)
+    from_rail(14, LO_RM, 10, LOW2, False)
+
+    # --- the screen's pins as printed
+    IX, IY = cx(NCOL) + 70, LOW1 - 6
+    text(IX - 40, IY, "Your screen's pins, as printed", 11, "#111", "start", True)
+    text(IX - 40, IY + 14, "(order varies by maker; match the names)", 9, GREY)
+    rect(IX - 40, IY + 26, 70, 222, "#1b1b1b", "#111", 6, 2)
+    header = [("BL", "BLK, LEDA", 16), ("RST", "RES", 15), ("DC", "RS, A0", 11), ("SCL", "SCLK, SCK, CLK", 13),
+              ("MOSI", "SDA, DIN", 14), ("CS", "", 12), ("3V3", "VCC, VDD", 9), ("GND", "", 10)]
+    for i, (lab, alt, n) in enumerate(header):
+        y = IY + 44 + i * 26
+        c = wcol[n]
+        pad(IX + 30, y); text(IX + 22, y + 4, lab, 9, "#fff", "end", True)
+        wire([(IX + 35, y), (IX + 56, y)], c, 3)
+        tag(IX + 68, y, n, c)
+        to = next(w[2] for w in WIRES if w[0] == n).replace("ESP32 ", "")
+        text(IX + 84, y + 4, to, 10, c, "start", True)
+        if alt:
+            text(IX + 84, y + 15, "or " + alt, 8, GREY)
+    text(IX - 40, IY + 270, "SCL here is the screen's clock,", 9.5, RED, "start", True)
+    text(IX - 40, IY + 283, "not the chip's SCL. 3V3 = 3.3 V,", 9.5, RED, "start", True)
+    text(IX - 40, IY + 296, "never 5 V.", 9.5, RED, "start", True)
+
+    # --- the wire list
+    LX = 1300
+    rect(LX - 14, 110 + DY, 280, 1012, "#fff", "#ccc", 8, 1)
+    text(LX, 134 + DY, "Wires, in order", 13, "#111", "start", True)
+    text(LX, 150 + DY, "a dot = the end goes in that hole", 9, GREY)
+    y = 172 + DY
+    groups = {"power": "Power rails", "chip": "The chip", "screen": "The screen", "knob": "The knob",
+              "buttons": "Buttons, optional"}
+    seen = set()
+    for n, c, a, b, part, contact, opt in WIRES:
+        if part not in seen:
+            seen.add(part); y += 6
+            text(LX, y, groups[part], 10.5, "#111", "start", True); y += 16
+        tag(LX + 10, y - 4, n, c, opt)
+        text(LX + 26, y - 5, a.replace("ESP32 ", ""), 9, "#222")
+        text(LX + 26, y + 7, "-> " + b, 9, c if c != YEL else "#9a7600", "start", True)
+        y += 29
+
+    # --- the rules
+    RY = 1600
+    rect(24, RY - 26, 1250, 108, "#fff4f2", RED, 6, 1.5)
+    text(40, RY - 4, "Before the USB cable goes in", 12, RED, "start", True)
+    rules = [
+        "Nothing in the 5V pin's holes (J2 pin 19, next to the USB end): it is 5 V and the screen and the chip want 3.3 V.",
+        "No wire on D0-D3, CMD or CLK (the left end of each row): they are the module's flash.",
+        "The top red rail has wires 1 and 3 (and a KY-040's +); the bottom red rail has 3, 5 and 9. No red wire in a blue rail, no black in a red one.",
+        "A meter on continuity from a red rail to a blue rail must not beep.",
+    ]
+    for i, r in enumerate(rules):
+        text(40, RY + 16 + i * 16, "- " + r, 10, "#3a1410")
+
+    add("</svg>")
+    return "\n".join(wb1.out) + "\n"
+
+
+# ------------------------------------------------------------------------------------------------ pin map
+def pinmap():
+    wb1.out = []
+    W, H = 1400, 980
+    add('<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d">' % (W, H, W, H))
+    add('<rect width="%d" height="%d" fill="#fbfbf8"/>' % (W, H))
+    text(24, 34, "ESP32-DevKitC pin map: the console's screen, knob, chip and buttons", 18, bold=True)
+    text(24, 56, "Seen from the top, antenna up, USB at the bottom. Header J2 runs down the left, J3 down the right, pin 1 at the top. Names as printed on the board.", 11.5, GREY)
+    text(24, 74, "A 30-pin board (DOIT DevKit V1) has the same GPIOs in another order, some printed D23 for IO23: wire by the names, not by position.", 11.5, GREY)
+
+    BX, BY, BW, BH = 560, 120, 280, 560
+    rect(BX, BY, BW, BH, "#1d2733", "#0c1117", 8, 2)
+    rect(BX + 30, BY + 10, BW - 60, 150, "#9aa3ad", "#59616a", 4)
+    text(BX + BW / 2, BY + 90, "ESP32-WROOM-32", 12, "#1d2733", "middle", True)
+    add('<path d="M%s %s h50 v14 h-40 v12 h40" fill="none" stroke="#c9a227" stroke-width="2"/>' % (BX + BW / 2 - 25, BY + 26))
+    text(BX + BW / 2, BY + 128, "antenna end", 9, "#1d2733", "middle")
+    rect(BX + BW / 2 - 28, BY + BH - 6, 56, 28, "#bbb", "#777", 3)
+    text(BX + BW / 2, BY + BH + 36, "micro-USB: power and programming", 9.5, GREY, "middle")
+    rect(BX + BW / 2 - 62, BY + BH - 30, 30, 20, "#444", "#222", 2); text(BX + BW / 2 - 47, BY + BH - 36, "EN", 8.5, "#c9d1d9", "middle")
+    rect(BX + BW / 2 + 32, BY + BH - 30, 30, 20, "#444", "#222", 2); text(BX + BW / 2 + 47, BY + BH - 36, "BOOT", 8.5, "#c9d1d9", "middle")
+
+    color = {"screen": PUR, "chip": BLU, "knob": TEAL, "buttons": ORG}
+    by_h = {}
+    for part, contact, sig, name, h in PINS:
+        by_h.setdefault(h, []).append((part, contact, sig))
+    note = {"IO0": "BOOT button: never", "IO2": "boot pin; the LED on some boards", "IO12": "boot pin: never high at power-up",
+            "IO16": "free here; PSRAM on a WROVER", "IO17": "free here; PSRAM on a WROVER", "IO14": "free", "IO34": "input only",
+            "IO35": "input only", "VP": "input only", "VN": "input only", "TX": "USB serial", "RX": "USB serial",
+            "D0": "flash: never", "D1": "flash: never", "D2": "flash: never", "D3": "flash: never", "CMD": "flash: never",
+            "CLK": "flash: never", "5V": "5 V from USB: never", "EN": "reset"}
+    def side(names, j, x, right):
+        for n, name in enumerate(names, 1):
+            y = BY + 186 + (n - 1) * 20
+            h = "%s-%d" % (j, n)
+            uses = by_h.get(h, [])
+            c = (RED if name == "3V3" else BLK if name == "GND" else color[uses[0][0]]) if uses else None
+            add('<circle cx="%s" cy="%s" r="5" fill="%s" stroke="#333"/>' % (x, y, c or "#e8e0b0"))
+            text(x + (12 if not right else -12), y + 4, "%d %s" % (n, name) if not right else "%s %d" % (name, n), 10 if uses else 9,
+                 "#fff" if uses else "#8a96a3", "start" if not right else "end", bool(uses))
+            if uses:
+                lab = {"3V3": "3.3 V: screen 3V3, chip VIN (by the rails)",
+                       "GND": "ground: screen, chip (by the rails)" if j == "J3" else "ground: knob C and SW2, buttons (by the rails)"}.get(name)
+                if not lab:
+                    p, ct, s = uses[0]
+                    lab = "%s button: %s" % (ct, s) if p == "buttons" else "%s %s: %s" % (p, ct, s)
+                lx = x - 40 if not right else x + 40
+                wire([(x + (-8 if not right else 8), y), (lx + (6 if not right else -6), y)], c, 2)
+                text(lx, y + 4, lab, 10, c if c != YEL else "#9a7600", "end" if not right else "start", True)
+            elif name in note:
+                text(x + (-40 if not right else 40), y + 4, note[name], 9, GREY, "end" if not right else "start")
+    side(J2, "J2", BX + 14, False)
+    side(J3, "J3", BX + BW - 14, True)
+
+    # the rules
+    RX0, RY0 = 24, 740
+    rect(RX0, RY0, 1352, 220, "#fff4f2", RED, 6, 1.5)
+    text(RX0 + 14, RY0 + 24, "Why these pins, and the rules", 13, RED, "start", True)
+    lines = [
+        "1. Everything runs on 3.3 V from the 3V3 pin. The 5V pin is the USB's 5 V: nothing goes there.",
+        "2. Never D0-D3, CMD or CLK (GPIO 6-11): they are the module's flash, and the board stops.",
+        "3. The screen's clock and data are on VSPI's own pins, IO18 and IO23, so firmware drives them as SPI(2) at full speed.",
+        "4. Boot pins: IO0 (the BOOT button), IO2 and IO12 decide how the ESP32 starts. Nothing here pulls them. CS (IO5) and RST (IO15) are",
+        "     boot pins too, but both rest high, which is what the ESP32 wants at power-up.",
+        "5. IO16 and IO17 are free on a WROOM-32 but hold the PSRAM on a WROVER, so this map leaves them alone: the same wires work on both.",
+        "6. IO34-39 (and VP, VN) are inputs with no pull-ups: no knob or button there. The knob and buttons use the ESP32's own pull-ups.",
+        "7. The chip only gets read on the bench. Locking an ATECC608 is permanent (docs/LOCKING.md).",
+    ]
+    y = RY0 + 48
+    for line in lines:
+        indent = line.startswith(" ")
+        text(RX0 + (40 if indent else 14), y, line.strip(), 10.5, "#3a1410"); y += 20
+
+    add("</svg>")
+    return "\n".join(wb1.out) + "\n"
+
+
+# ------------------------------------------------------------------------------------------------ check
+def board_esp32():
+    """firmware/board.py run as if on an ESP32, with no secrets.py. Compiled from the source each
+    time: a cached .pyc can outlive an edit that keeps the file's size."""
+    import types
+    saved = sys.platform, sys.modules.get("secrets")
+    sys.platform = "esp32"
+    sys.modules["secrets"] = types.ModuleType("secrets")
+    try:
+        m = types.ModuleType("board_esp32")
+        exec(compile(open("firmware/board.py").read(), "firmware/board.py", "exec"), m.__dict__)
+    finally:
+        sys.platform = saved[0]
+        if saved[1] is None:
+            del sys.modules["secrets"]
+        else:
+            sys.modules["secrets"] = saved[1]
+    return m
+
+
+def check():
+    """PINS against the DevKitC's headers, board.py's "esp32" profile, and the tables in ESP32.md."""
+    bad = 0
+    def fail(msg):
+        nonlocal bad
+        print(msg); bad += 1
+    for part, contact, sig, name, h in PINS:
+        if hdr(h) != name:
+            fail("PINS %s %s: %s is %s on the DevKitC, not %s" % (part, contact, h, hdr(h), name))
+    b = board_esp32()
+    io = lambda part, contact: int(gp(part, contact)[2:])
+    want = {
+        "DC": io("screen", "DC"), "CS": io("screen", "CS"), "SCK": io("screen", "SCL"), "MOSI": io("screen", "MOSI"),
+        "RST": io("screen", "RST"), "BL": io("screen", "BL"), "SDA": io("chip", "SDA"), "SCL": io("chip", "SCL"),
+        # read the other way round, as on the Pico (board.py says why)
+        "ENC_A": io("knob", "B"), "ENC_B": io("knob", "A"), "ENC_SW": io("knob", "SW1"),
+    }
+    if b.BOARD != "esp32" or not b.KNOB or b.SPI_ID != 2:
+        fail("board.py on an ESP32: BOARD %r, KNOB %r, SPI_ID %r" % (b.BOARD, b.KNOB, b.SPI_ID))
+    for k, v in want.items():
+        if getattr(b, k) != v:
+            fail("board.py %s = %s, PINS says GPIO%d" % (k, getattr(b, k), v))
+    buttons = {"A": io("buttons", "Sign"), "B": io("buttons", "Back"), "Y": io("buttons", "Reject")}
+    if b.BUTTONS != buttons:
+        fail("board.py BUTTONS = %s, PINS says %s" % (b.BUTTONS, buttons))
+    gpios = [int(n[2:]) for _, _, _, n, _ in PINS if n.startswith("IO")]
+    for g in gpios:
+        if 6 <= g <= 11 or g in (0, 2, 12, 16, 17) or g >= 34:
+            fail("GPIO%d: flash, a boot pin that matters, PSRAM or input-only" % g)
+    if len(set(gpios)) != len(gpios):
+        fail("a GPIO is used twice")
+    # ESP32.md: the pin tables (<!-- pins: part -->) and the wire table
+    got, part, rows = {}, None, {}
+    for line in open("hardware/wiring/ESP32.md"):
+        m = re.match(r"<!-- pins: (\w+) -->", line.strip())
+        if m:
+            part = m.group(1); continue
+        if part and line.startswith("|"):
+            cells = [c.strip().strip("*`") for c in line.strip().strip("|").split("|")]
+            if not line.startswith("|---") and cells[0] != "contact":
+                got[(part, cells[0])] = (cells[2], cells[3])
+            continue
+        part = None
+        m = re.match(r"\|\s*(\d+)\s*\|([^|]*)\|([^|]*)\|", line)
+        if m:
+            rows[int(m.group(1))] = (m.group(2).strip().strip("*"), m.group(3).strip().strip("*"))
+    want_t = {(p, c): (n, h) for p, c, s, n, h in PINS}
+    for k in sorted(set(want_t) | set(got)):
+        if want_t.get(k) != got.get(k):
+            fail("ESP32.md %s %s: table says %s, PINS says %s" % (k[0], k[1], got.get(k), want_t.get(k)))
+    for n, c, a, b_, part, contact, opt in WIRES:
+        if rows.get(n) != (a, b_):
+            fail("ESP32.md wire %d: %s, want %s" % (n, rows.get(n), (a, b_)))
+    if set(rows) - {w[0] for w in WIRES}:
+        fail("ESP32.md has extra wires %s" % sorted(set(rows) - {w[0] for w in WIRES}))
+    print("pins agree" if not bad else "%d mismatches" % bad)
+    return bad
+
+
+if __name__ == "__main__":
+    if "--check" in sys.argv:
+        sys.exit(1 if check() else 0)
+    open("hardware/wiring/esp32-breadboard.svg", "w").write(breadboard())
+    open("hardware/wiring/esp32-pinmap.svg", "w").write(pinmap())
+    print("wrote hardware/wiring/esp32-breadboard.svg, hardware/wiring/esp32-pinmap.svg")

@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 boot = Path(__file__).resolve().parents[1] / 'firmware' / 'boot.py'
 for marker, held in ((True, False), (False, True)):
-    board = types.SimpleNamespace(MAINT=1)
+    board = types.SimpleNamespace(MAINT=1, LED="LED")
     class Pin:
         IN, OUT, PULL_UP = 0, 1, 2
         def __init__(self, *args): pass

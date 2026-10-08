@@ -6,6 +6,7 @@
 # no art). The console calls finish before starting its
 # timer/watchdog, releasing the art's code before normal transaction-service polling.
 import time
+import board
 import lcd as L
 import theme as T
 import icons as I
@@ -43,8 +44,7 @@ def run(period=30):
     global _timer
     if _art is None or _timer is not None or _finished:
         return
-    from machine import Timer
-    _timer = Timer(period=period, mode=Timer.PERIODIC, callback=_tick)
+    _timer = board.timer("splash", period, _tick)
 
 
 def _tick(_t):

@@ -6,7 +6,7 @@
 # On build1 the knob drives it: turn to choose, press to open. Every screen is drawn through
 # d.frames, so the strip-buffered 320x240 panel gets all of it.
 import time
-import machine
+import board
 import lcd as L
 import splash
 import signer as S
@@ -149,7 +149,7 @@ def tick(t):
 
 def start_timer():
     global timer
-    timer = machine.Timer(period=50, mode=machine.Timer.PERIODIC, callback=tick)
+    timer = board.timer("tick", 50, tick)
 
 
 def start():
