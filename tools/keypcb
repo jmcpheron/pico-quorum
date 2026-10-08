@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 # The key PCBs in hardware/key-pcb (see its README.md and ORDERING.md), and the console boards in
-# hardware/console-pcb and hardware/console-a. Needs KiCad's kicad-cli: 9 for rev A, 10 for the rest.
+# hardware/console-pcb, hardware/console-a and hardware/console-pocket. Needs KiCad's kicad-cli: 9
+# for rev A, 10 for the rest.
 #
 #   tools/keypcb check [board]    ERC on the schematic, then DRC with schematic parity on the board
 #   tools/keypcb fab [board]      writes <board>/fab/: the Gerber + drill zip, and the BOM and CPL
 #                                 in JLCPCB's column format
 #   tools/keypcb render [board]   top and bottom 3D renders into <board>/fab/ (part bodies show only
 #                                 if KiCad's 3D models are installed; the pads, fingers and silk always do)
+#   tools/keypcb fill [board]     fills the copper pours and saves the board (KiCad's own Python, for
+#                                 pcbnew): a board written as text has its zones unfilled
 #   tools/keypcb calc ...         the numbers behind the design: insert, rise, power, spice
 #                                 (hardware/key-pcb/keycalc.py, run with uv; needs no KiCad)
 #   tools/keypcb gen-cd           rewrites proposals key-c-usbc and key-d-pogo from gen_cd.py (KiCad's own
@@ -15,6 +18,9 @@
 #                                 the same way
 #   tools/keypcb gen-console-a    rewrites console-a/console-a (the Waveshare-pin board) from
 #                                 hardware/console-a/gen.py
+#   tools/keypcb gen-console-pocket  rewrites console-pocket (the Pico-on-the-back board) from
+#                                 hardware/console-pocket/gen_console.py: plain Python, no KiCad,
+#                                 and it ends with its own self-check
 #
 # board is one of the key-* or console-* folders; without one, every board. A name used in two
 # folders (console-a) is written with its folder: console-pcb/console-a, console-a/console-a.
@@ -26,6 +32,7 @@ ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "hardware"
 ROOT = os.path.normpath(ROOT)
 CONSOLE = os.path.join(os.path.dirname(ROOT), "console-pcb")
 CONSOLE_A = os.path.join(os.path.dirname(ROOT), "console-a")
+CONSOLE_POCKET = os.path.join(os.path.dirname(ROOT), "console-pocket")
 
 # Gerber layers JLCPCB wants for a 2-layer board. Paste layers are only used for assembly orders,
 # and harmless on a bare-board order.
@@ -36,7 +43,8 @@ def _board_dirs():
     """board name -> its folder. A folder name found in more than one place gets its parent's name
     in front: console-pcb/console-a and console-a/console-a."""
     dirs = sorted(d for d in glob.glob(os.path.join(ROOT, "key-*")) + glob.glob(os.path.join(CONSOLE, "console-*"))
-                  + glob.glob(os.path.join(CONSOLE_A, "console-*")) if os.path.isdir(d))
+                  + glob.glob(os.path.join(CONSOLE_A, "console-*")) + glob.glob(os.path.join(CONSOLE_POCKET, "console-*"))
+                  if os.path.isdir(d))
     base = [os.path.basename(d) for d in dirs]
     return {(b if base.count(b) == 1 else os.path.basename(os.path.dirname(d)) + "/" + b): d for b, d in zip(base, dirs)}
 
@@ -189,17 +197,37 @@ def render(name):
         print(f"{name}: {os.path.relpath(png)}")
 
 
+KICAD_PY = "/Applications/KiCad/KiCad.app/Contents/Frameworks/Python.framework/Versions/Current/bin/python3"
+KICAD_PY = KICAD_PY if os.path.exists(KICAD_PY) else "python3"   # on Linux, KiCad's pcbnew is in the system Python
+
+FILL = """import sys, pcbnew
+b = pcbnew.LoadBoard(sys.argv[1])
+pcbnew.ZONE_FILLER(b).Fill(b.Zones())
+pcbnew.SaveBoard(sys.argv[1], b)
+"""
+
+
+def fill(name):
+    """Fill the pours and save. pcbnew rewrites the file in its own layout, which is fine: from then
+    on the KiCad files are the source of truth, as the generators' docstrings say."""
+    d, sch, pcb = files(name)
+    r = subprocess.run([KICAD_PY, "-c", FILL, pcb], capture_output=True, text=True)
+    if r.returncode:
+        sys.exit(f"fill {name} failed:\n{r.stdout}{r.stderr}")
+    print(f"{name}: zones filled, {os.path.relpath(pcb)} saved")
+
+
 def main():
     gens = {"gen-cd": os.path.join(ROOT, "gen_cd.py"), "gen-console": os.path.join(CONSOLE, "gen_console.py"),
-            "gen-console-a": os.path.join(CONSOLE_A, "gen.py")}
+            "gen-console-a": os.path.join(CONSOLE_A, "gen.py"),
+            "gen-console-pocket": os.path.join(CONSOLE_POCKET, "gen_console.py")}
     if len(sys.argv) > 1 and sys.argv[1] in gens:
-        py = "/Applications/KiCad/KiCad.app/Contents/Frameworks/Python.framework/Versions/Current/bin/python3"
-        py = py if os.path.exists(py) else "python3"   # on Linux, KiCad's pcbnew is in the system Python
+        py = KICAD_PY if sys.argv[1] != "gen-console-pocket" else "python3"
         os.execvp(py, [py, gens[sys.argv[1]], *sys.argv[2:]])
     if len(sys.argv) > 1 and sys.argv[1] == "calc":
         calc = os.path.join(ROOT, "keycalc.py")
         os.execvp("uv", ["uv", "run", "--quiet", "--python", "3.12", calc, *sys.argv[2:]])
-    if len(sys.argv) < 2 or sys.argv[1] not in ("check", "fab", "render"):
+    if len(sys.argv) < 2 or sys.argv[1] not in ("check", "fab", "render", "fill"):
         sys.exit(__doc__ or open(__file__).read().split("\nimport")[0])
     if not KICAD_CLI:
         sys.exit("kicad-cli not found: install KiCad 10 (https://www.kicad.org/download/)")
@@ -210,6 +238,8 @@ def main():
             ok &= check(name)
         elif cmd == "fab":
             fab(name)
+        elif cmd == "fill":
+            fill(name)
         else:
             render(name)
     sys.exit(0 if ok else 1)

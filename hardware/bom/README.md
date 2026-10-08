@@ -58,6 +58,20 @@ The parts JLCPCB places, with LCSC numbers, and the ones you buy yourself (a Pic
 headers, the 24-pin panel) are in [console-a/ORDERING.md](../console-a/ORDERING.md). JLCPCB can also
 solder the Pico itself (LCSC C42394205), from `fab/factory-pico/`.
 
+## The pocket console board (hardware/console-pocket)
+
+The board, its pin map and the ordering steps are in
+[console-pocket/README.md](../console-pocket/README.md). Prices and LCSC numbers looked up 2026-10-07.
+
+| part | qty for 5 | source | notes |
+|---|---|---|---|
+| console-pocket boards, assembled | 5 | JLCPCB Economic PCBA, `console-pocket/console-pocket/fab/` | 51 × 85 mm, 2 layers, HASL; the switch is the one extended part |
+| Raspberry Pi Pico 2 W, **no headers** | 5 | any | soldered on the back as a module (JLCPCB has it as C42394205, not in the BOM) |
+| 1.54″ ST7789 240×240 IPS panel, 12-pin 0.7 mm FPC, soldering type | 5 + 1 spare | MKTechnic, AliExpress ("1.54 inch 12PIN 0.7mm"), ~$2 | measure one against `PANEL` in `gen_console.py` before ordering boards |
+| SW1–SW7 XUNPU TS-1097A-05026, 6×6×5 mm | 35 | placed by JLCPCB, C720496 | 2.6 N |
+| Q1 S8050 SOT-23; R 10 Ω, 1 kΩ, 10 kΩ 0603; C 100 nF 0603 | 5 each | placed by JLCPCB, basic parts | the backlight switch and the panel's decoupling |
+| M3 screws or standoffs | 4 per board | | the holes are 3.2 mm |
+
 ## First order for the PicoQuorum console and keys
 
 From the [kickoff](../../docs/KICKOFF.md#first-parts-order). Nothing ordered yet.
