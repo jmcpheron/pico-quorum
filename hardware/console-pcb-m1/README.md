@@ -4,6 +4,10 @@
 The user chose an LCD module and a separate protected key adapter. The carrier
 can now be quoted as a PCB assembly. It has not been built or bench-tested.
 
+This version lives in `hardware/console-pcb-m1/`. Its CAD, local libraries,
+fabrication exports and review drawings are kept together. Earlier concepts
+remain in `hardware/console-pcb/`; they are separate versions.
+
 ![Carrier preview; LCD and connector body not shown](review/top.png)
 
 - [Native schematic](m1.kicad_sch), [PCB](m1.kicad_pcb), [project](m1.kicad_pro).
@@ -68,7 +72,7 @@ board and refuses to overwrite without `--force`. **Do not rerun it on this rout
 design.** The native files are now the source. Regenerate exports with:
 
 ```sh
-python3 hardware/console-pcb/minimal/m1/export.py
+python3 hardware/console-pcb-m1/export.py
 ```
 
 That command needs `kicad-cli`. STEP/rendering additionally use the installed KiCad

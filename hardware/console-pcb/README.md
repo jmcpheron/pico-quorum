@@ -1,6 +1,6 @@
 # Console PCB, concept 1
 
-The current board is the [M1 prototype carrier](minimal/m1/README.md): a 1.3 inch
+The separate [M1 prototype carrier](../console-pcb-m1/README.md) has a 1.3 inch
 colour LCD module, eight SMT buttons, a Pico 2 W module and internal key-adapter
 pads. Its routed KiCad files and manufacturing quote package are separate from
 the earlier knob/dock concept and CAD studies below.

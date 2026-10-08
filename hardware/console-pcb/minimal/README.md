@@ -1,6 +1,6 @@
 # Minimal console, M0
 
-The current board is the [M1 prototype carrier](m1/README.md), with routed KiCad
+The separate [M1 prototype carrier](../../console-pcb-m1/README.md) has routed KiCad
 files and a manufacturing quote package. It uses a Waveshare LCD module and a
 separate protected key adapter, as chosen by the user. The M0 brief below is
 historical; its bare-panel candidate, six-pad bank and cost allowance do not apply

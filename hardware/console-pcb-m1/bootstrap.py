@@ -16,7 +16,7 @@ import xml.etree.ElementTree as ET
 import pcbnew as pcb
 
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parents[2]
+ROOT = HERE.parent
 sys.path.insert(0, str(ROOT / 'key-pcb'))
 import gen
 
