@@ -128,6 +128,7 @@ word on I2C.
 - [ ] Pull-ups: BUILD1's 10k is marginal for the ATECC608C's 300 ns rise time above 100 kHz.
       4.7k is safer
 - [ ] KEY ID resistor codes per key type ([open decisions](../../docs/STATUS.md#open-decisions))
-- [x] A socket breakout PCB for the console (rev B): the console board itself,
-      [console-pcb](../console-pcb/README.md), brings the key's wires out to pads (J2)
+- [x] A socket breakout PCB for the console (rev B): the console boards bring the key out
+      themselves, [console-pcb](../console-pcb/README.md) as a USB-C plug, [console-a](../console-a/README.md)
+      and [console-pocket](../console-pocket/README.md) as pads
 - [ ] The key's shell, if any
