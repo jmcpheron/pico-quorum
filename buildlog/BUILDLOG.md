@@ -687,3 +687,29 @@ the bench app paused; counter 0 went from 22 to 27):
 - **U1's 2.3 s, split:** the P-256 verify is 2.8 s alone in this run, the config CRC 10 ms, the OTP
   and slot 8 reads 210 ms. The verify is the cost.
 - **Self-test 0, Random live, locks `00 00 / FE FF`** at the end.
+
+## 2026-10-07 — the ESP32 bench: screen, knob and both chips on a WROOM-32
+
+The first run of [ESP32.md](../hardware/wiring/ESP32.md) on hardware: a DevKit with an
+ESP32-D0WDQ6 (revision v1.0, 4 MB flash, no PSRAM) on two breadboards, the 2.8″ screen from the
+Pico's custom build, the EC11 knob and no buttons, `bench1.py` from maintenance mode.
+
+- **MicroPython:** `ESP32_GENERIC-20250911-v1.26.1.bin` (sha256 `6b5272b6…7edd4e`), erase and write
+  with esptool 5.4.0. `tools/usb push` copied every firmware file. With bench1 running, 108 KB of
+  the heap was still free.
+- **The 2.8″:** right on the first try at 24 MHz, with board.py's `MADCTL = 0x60` and inversion on:
+  TL top-left, the bars red, green, blue and white. The console's own `lcd.py` drew the same.
+  The 2.4″ tried first showed nothing; its wiring was not checked.
+- **The knob:** the press worked from the start. The turn counted nothing (A and B never left 1, 1,
+  polled every millisecond) until the 3-post side was rewired A, C, B to IO32, ground, IO33. It then
+  counted on the pulse counter. Direction and steps per click not yet checked.
+- **The Trust M** (a sacrificial chip, LcsA operational, E0F1 a frozen P-256 key): `scan()` returned
+  `[]`, as on the Pico (docs/TRUSTM.md). A poll of its state register answered. `bench1.probe()` now
+  polls 0x30 when the scan finds nothing, and shows the serial, LcsA and E0F1, read only.
+- **Chip 5** (`0123a431b1490801ee`) on the same wires: 608A at 0x60, both zones locked, slot 0 key
+  `7262a070` sealed `FE FF`, as above. `chipcheck` read slot 0's public key, so counter 0 went up by 1.
+- **This DevKit resets every time its serial port opens.** mpremote's first raw-REPL attempt raced
+  the reset; each new connection also stops bench1.
+- Not tried: Wi-Fi, HTTPS, the console image, the watchdog. Holding the knob for the chip report
+  (`chipcheck`, an ATECC report) with a Trust M on the bus seemed to stall the bench once; not
+  looked into.

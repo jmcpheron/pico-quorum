@@ -13,7 +13,7 @@ Build 1's parts on an ESP32 DevKit instead of a Pico 2 W:
 The firmware is the same image as the Pico's. On an ESP32, `firmware/board.py` always picks its
 `"esp32"` profile, so there is nothing to set but the screen size.
 
-**Not yet run on an ESP32.** What has been checked, and how:
+**The bench test has run on an ESP32; the console has not.** What has been checked, and how:
 
 - Every MicroPython call on the ESP32 path was read against MicroPython 1.26's ESP32 port: pins,
   SPI, I2C, timers, the pulse counter, the clock, TLS.
@@ -21,8 +21,14 @@ The firmware is the same image as the Pico's. On an ESP32, `firmware/board.py` a
   source, bench1 included. CI runs it.
 - The Pico's own suites still pass, the console in the emulator among them.
 
-Nothing has been checked on hardware: the screen on long jumpers, which way the knob counts, Wi-Fi,
-HTTPS, the watchdog, or memory. Nor have `tools/usb` and `tools/fw` been run against an ESP32.
+On hardware, 2026-10-07 ([the build log](../../buildlog/BUILDLOG.md)): a WROOM-32 DevKit (no PSRAM)
+with MicroPython 1.26.1, the 2.8″ and the EC11 knob, from maintenance mode. `tools/usb push` with
+`PICO_PORT` copied the firmware, and `bench1` ran with 108 KB of the heap free. The screen was right
+at 24 MHz as board.py sets it, the knob counted turns and presses, and both chips read on IO21/IO22:
+a Trust M at 0x30 and an ATECC608A at 0x60.
+
+Not yet checked on hardware: which way the knob counts and how many steps per click, the 2.0″ and
+2.4″, the buttons, Wi-Fi, HTTPS, the watchdog, the console image, or `tools/fw`.
 
 ## Will the whole console fit?
 
@@ -287,10 +293,12 @@ tools/usb                                     # the prompt; Ctrl-] leaves
 - **ESP32 BENCH**, a small **TL** in the top-left corner, and bars reading **red, green, blue,
   white** from left to right
 - **KNOB** counting up by one each click clockwise, and **PUSH** showing DOWN while you press
-- **BUS 60** and **CHIP 608A** or **608B**, a serial number, and `config open data open`
+- **BUS 60** and **CHIP 608A** or **608B**, a serial number, and the two locks (`config open data
+  open` on a new chip). A Trust M shows **BUS 30**, **CHIP Trust M** and its lifecycle, a serial, and
+  its E0F1 key
 
 Pressing the knob reads the chip again. Holding it for 2 seconds prints the full chip report at the
-prompt. `bench1.stop()` ends the test. It draws for the 240 × 320 panels only; on the 1.8″ its
+prompt, for an ATECC608 only. Reading slot 0's public key counts as a use of that key. `bench1.stop()` ends the test. It draws for the 240 × 320 panels only; on the 1.8″ its
 picture comes out wrong, and the console itself drives that one with `SCREEN = "1.8"`. It only reads the chip: locking an ATECC608 is permanent
 ([LOCKING.md](../../docs/LOCKING.md)).
 
@@ -302,10 +310,11 @@ picture comes out wrong, and the console itself drives that one with `SCREEN = "
 | red and blue swapped | add `0x08` to `MADCTL` |
 | colors look like a photo negative | `INVERT = False` |
 | BUS says `nothing` | wires 5 to 8. Swap 7 and 8 to test; that's harmless |
+| PUSH works, KNOB never moves | the 3-post side is A, C, B: the middle post C to ground (wire 17), the outer two to IO32 and IO33 |
 | knob counts down when turned clockwise | swap wires 18 and 19 |
 | knob counts 2 per click, or every other click | `STEPS_PER_CLICK` at the top of `bench1.py` |
 | PUSH never shows DOWN | wires 20 and 21 must be on the 2-leg side |
-| the board resets as the prompt opens | some DevKits reset when the serial port opens. Open it again |
+| the board resets as the prompt opens | some DevKits reset whenever the serial port opens, and the bench stops. Open it, then `import bench1` again |
 | `MemoryError` | on a WROOM-32, start from maintenance (step 2), so nothing else is loaded |
 
 **4. The console**, on a board with PSRAM (see [Will the whole console fit?](#will-the-whole-console-fit)).
