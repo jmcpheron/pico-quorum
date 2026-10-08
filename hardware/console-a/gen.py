@@ -3,7 +3,7 @@
 buttons on one board, wired exactly as the Waveshare Pico-LCD-1.3, so the console image runs on it
 unchanged. Writes the KiCad 10 project from scratch.
 
-    tools/keypcb gen-console      (KiCad's own Python, which has the pcbnew module)
+    tools/keypcb gen-console-a    (KiCad's own Python, which has the pcbnew module)
     python3 hardware/console-a/gen.py check     (the pin check alone; needs no KiCad)
 
 One table, PINS, says which GPIO each signal is on, and `check` compares it with firmware/board.py
@@ -165,8 +165,9 @@ def SW(ref, label, net, xy):
 
 PARTS = [
     dict(ref="U1", sym="console:Pico2W", value="Pico 2 W", fp=PICO_FP, lcsc="", nets={str(k): v for k, v in pico_nets().items()},
-         at=PICO_XY + (180,), back=True, mpn="SC1634",
-         desc="Raspberry Pi Pico 2 W, castellated module soldered flat on the back by hand, antenna over the notch"),
+         at=PICO_XY + (180,), back=True, mpn="SC1633", lcsc_factory="C42394205",
+         desc="Raspberry Pi Pico 2 W (no headers), castellated, flat on the back, antenna over the notch. "
+              "Hand-soldered, or by JLCPCB from LCSC_FACTORY (fab/factory-pico)"),
     # the screen
     dict(ref="J2", sym="Connector_Generic_MountingPin:Conn_01x24_MountingPin", value="AFC07-S24FCA-00", fp=FPC_FP,
          lcsc="C262567", mpn="AFC07-S24FCA-00",
@@ -367,6 +368,9 @@ def write_schematic(own):
             fields.append(("MPN", p["mpn"]))
         if p["lcsc"]:
             fields.append(("LCSC", p["lcsc"]))
+        if p.get("lcsc_factory"):
+            # only fab/factory-pico's BOM reads this: the default BOM leaves the part to you
+            fields.append(("LCSC_FACTORY", p["lcsc_factory"]))
         box = "box" if p["sym"].startswith(("console:", "picoquorum:", "Connector")) else None
         bh = max(abs(py) for _, _, py, _ in pins) if box else None
         sh.symbol(p["sym"], p["ref"], p["value"], x, y, [n for n, *_ in pins], fp=p["fp"], fields=fields,
@@ -421,7 +425,7 @@ def read_netlist():
     for c in K(K(root, "components")[0], "comp"):
         fields = {}
         for f in K(K(c, "fields")[0], "field") if K(c, "fields") else []:
-            if V(f, "name") in ("LCSC", "MPN", "Description", "Datasheet") and len(f) > 2:
+            if V(f, "name") in ("LCSC", "LCSC_FACTORY", "MPN", "Description", "Datasheet") and len(f) > 2:
                 fields[V(f, "name")] = f[2]
         comps[V(c, "ref")] = dict(value=V(c, "value"), footprint=V(c, "footprint"), path="/" + V(c, "tstamps"),
                                   pads={}, fields=fields)
@@ -665,10 +669,11 @@ def write_board(netlist):
             f = fp.GetField(k)
             f.SetVisible(False)
             f.SetLayer(pcbnew.F_Fab)
-        if not parts[ref]["lcsc"]:
-            # hand-soldered (the Pico) or not a part at all (the key pads): off the CPL, and J3 off the BOM
+        if not parts[ref]["lcsc"] and not parts[ref].get("lcsc_factory"):
+            # not a part at all (the key pads, the solder jumper): off the CPL and the BOM. The Pico
+            # stays in the position file for fab/factory-pico; the default CPL lists only BOM parts
             fp.SetExcludedFromPosFiles(True)
-            fp.SetExcludedFromBOM(ref != "U1")
+            fp.SetExcludedFromBOM(True)
             # (JP1 is a solder jumper: copper only)
             if ref == "J3":
                 fp.Models().clear()     # nothing is fitted there: the renders shouldn't show a header
