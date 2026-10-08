@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="790" viewBox="0 0 1200 790">
+  <title>PicoQuorum console: knob and USB-C dock, concept 1</title>
+  <desc>Proposed 130 by 110 millimetre desktop console with a landscape colour screen, knob, four buttons, rear power socket and upright key dock. Circuit blocks are provisional, not a wiring diagram.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto-start-reverse"><path d="M0 0 L7 3.5 L0 7" fill="none" stroke="#76869a"/></marker>
+  </defs>
+  <rect width="1200" height="790" fill="#f3f5f8"/>
+  <g font-family="Arial, sans-serif" fill="#172332">
+    <text x="40" y="42" font-size="25" font-weight="bold">PicoQuorum · console concept 1</text>
+    <text x="40" y="70" font-size="15" fill="#526174">USB-C key dock + rotary knob · 7 October 2026 · design study only</text>
+
+    <text x="50" y="112" font-size="16" font-weight="bold">TOP VIEW</text>
+    <text x="50" y="135" font-size="13" fill="#526174">Outline target: 130 × 110 mm · PCB target: 120 × 100 mm</text>
+    <rect x="50" y="170" width="520" height="440" rx="25" fill="#202b3b" stroke="#101925" stroke-width="2"/>
+    <rect x="70" y="190" width="480" height="400" rx="12" fill="none" stroke="#8391a5" stroke-dasharray="6 6"/>
+    <rect x="130" y="164" width="42" height="12" rx="6" fill="#101925" stroke="#98a8bc" stroke-width="2"/>
+    <text x="151" y="157" text-anchor="middle" font-size="12">POWER · female, rear</text>
+
+    <rect x="90" y="240" width="280" height="204" rx="5" fill="#09111b" stroke="#667890"/>
+    <rect x="115" y="255" width="230" height="173" rx="2" fill="#152c3c"/>
+    <text x="230" y="317" text-anchor="middle" fill="#edf5fa" font-size="20">2.8″ colour</text>
+    <text x="230" y="347" text-anchor="middle" fill="#acbecd" font-size="17">320 × 240</text>
+    <text x="230" y="375" text-anchor="middle" fill="#acbecd" font-size="13">Panel envelope: 70 × 51 mm</text>
+
+    <rect x="426" y="222" width="88" height="100" rx="16" fill="#0b131e" stroke="#a0afc1" stroke-width="2"/>
+    <rect x="438" y="247" width="64" height="40" rx="7" fill="none" stroke="#708298" stroke-dasharray="4 3"/>
+    <rect x="453" y="263" width="34" height="10" rx="5" fill="#b9c5d3"/>
+    <text x="470" y="210" text-anchor="middle" fill="#e1e8f1" font-size="13">KEY DOCK</text>
+    <text x="470" y="343" text-anchor="middle" fill="#bac7d7" font-size="12">Insert key vertically</text>
+
+    <circle cx="470" cy="425" r="48" fill="#8792a1" stroke="#0b131e" stroke-width="6"/>
+    <circle cx="470" cy="425" r="38" fill="#b5bdc8"/>
+    <path d="M470 393 V402" stroke="#263344" stroke-width="4" stroke-linecap="round"/>
+    <text x="470" y="490" text-anchor="middle" font-size="12" fill="#d9e1eb">TURN / SELECT</text>
+
+    <circle cx="145" cy="533" r="24" fill="#cc494c"/>
+    <text x="145" y="579" text-anchor="middle" font-size="13" fill="#f0b4b5">REJECT</text>
+    <circle cx="310" cy="533" r="32" fill="none" stroke="#8391a5" stroke-width="3"/>
+    <circle cx="310" cy="533" r="24" fill="#32976d"/>
+    <text x="310" y="579" text-anchor="middle" font-size="13" fill="#b1e0ca">HOLD TO SIGN</text>
+    <circle cx="433" cy="537" r="13" fill="#63748a"/>
+    <circle cx="506" cy="537" r="13" fill="#63748a"/>
+    <text x="433" y="571" text-anchor="middle" font-size="11" fill="#d9e1eb">BACK</text>
+    <text x="506" y="571" text-anchor="middle" font-size="11" fill="#d9e1eb">DEVICE</text>
+
+    <path d="M50 642 H570" stroke="#76869a" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+    <text x="310" y="665" text-anchor="middle" font-size="13">130 mm proposed case width</text>
+    <text x="50" y="695" font-size="13" fill="#526174">Dashed outline: PCB allowance. No mounting holes placed yet.</text>
+    <text x="50" y="716" font-size="13" fill="#526174">Dock guides support the key. Plug sits below the protective rim.</text>
+
+    <text x="640" y="112" font-size="16" font-weight="bold">CIRCUIT BLOCKS</text>
+    <text x="640" y="135" font-size="13" fill="#526174">Functional intent · not a schematic or approved parts list</text>
+    <rect x="640" y="168" width="220" height="64" rx="10" fill="#fff" stroke="#b4c1d0"/>
+    <text x="750" y="194" text-anchor="middle" font-size="16">Rear power socket</text>
+    <text x="750" y="214" text-anchor="middle" font-size="13" fill="#526174">5 V input + protection</text>
+    <rect x="905" y="168" width="245" height="64" rx="10" fill="#fff" stroke="#b4c1d0"/>
+    <text x="1027" y="194" text-anchor="middle" font-size="16">Pico 2 W + display supply</text>
+    <text x="1027" y="214" text-anchor="middle" font-size="13" fill="#526174">Power budget still to calculate</text>
+    <path d="M860 200 H897" stroke="#76869a" stroke-width="2" marker-end="url(#arrow)"/>
+    <path d="M1027 232 V256 H750 V280" fill="none" stroke="#76869a" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <rect x="640" y="290" width="220" height="82" rx="10" fill="#e4f0ed" stroke="#87aaa0"/>
+    <text x="750" y="316" text-anchor="middle" font-size="16">Protected key power</text>
+    <text x="750" y="338" text-anchor="middle" font-size="13">Default off · current limited</text>
+    <text x="750" y="357" text-anchor="middle" font-size="13">Reverse blocking · discharge</text>
+    <rect x="905" y="290" width="245" height="82" rx="10" fill="#fff" stroke="#b4c1d0"/>
+    <text x="1027" y="319" text-anchor="middle" font-size="16">USB-C male key dock</text>
+    <text x="1027" y="345" text-anchor="middle" font-size="13" fill="#526174">Switched 3.3 V + I²C</text>
+    <path d="M860 331 H897" stroke="#76869a" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <rect x="640" y="415" width="510" height="79" rx="10" fill="#e7edf6" stroke="#9aadca"/>
+    <text x="895" y="443" text-anchor="middle" font-size="16">Protected sensing + isolated bidirectional data</text>
+    <text x="895" y="468" text-anchor="middle" font-size="13">MCU ↔ dock · removal cancels review and cuts key power</text>
+    <path d="M1027 374 V407" stroke="#76869a" stroke-width="2" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+
+    <text x="640" y="537" font-size="16" font-weight="bold">RESOLVE BEFORE PCB ROUTING</text>
+    <text x="640" y="567" font-size="14">1. Exact screen, ribbon, backlight and voltage levels.</text>
+    <text x="640" y="594" font-size="14">2. Male-plug pin map, attachment and foreign-power faults.</text>
+    <text x="640" y="621" font-size="14">3. Encoder assembly process and support near the shaft.</text>
+    <text x="640" y="648" font-size="14">4. Key-case fit, mating depth and Pico antenna clearance.</text>
+    <text x="640" y="695" font-size="13" fill="#526174">No battery · no touchscreen · no latch in this concept.</text>
+    <text x="640" y="716" font-size="13" fill="#526174">Component drawings and physical samples set final dimensions.</text>
+    <path d="M40 745 H1160" stroke="#cbd4df"/>
+    <text x="40" y="772" font-size="13" fill="#526174">CONCEPT ONLY · Shapes are layout allowances, not footprints. No electrical or mechanical validation yet.</text>
+  </g>
+</svg>

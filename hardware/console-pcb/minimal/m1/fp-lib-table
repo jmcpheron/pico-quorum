@@ -1,0 +1,1 @@
+(fp_lib_table (version 7) (lib (name "console_m1")(type "KiCad")(uri "${KIPRJMOD}/console_m1.pretty")(options "")(descr "M1 carrier footprints")))

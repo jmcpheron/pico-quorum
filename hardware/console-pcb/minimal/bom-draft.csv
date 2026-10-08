@@ -1,0 +1,12 @@
+Reference,Quantity,Candidate,Status,Assembly note
+U1,1,Raspberry Pi Pico 2 W without headers,Working choice,Castellated module; confirm assembler sourcing and stencil
+DISP1,1,EastRising ER-TFT013-2 no touch,Candidate only; drawing not verified,Solder-type FPC after reflow; quote process separately
+SW1-SW8,8,E-Switch TL3305AF160QG,Working candidate; supplier code and footprint pending,SMT; case-held caps separate
+R_BTN1-R_BTN8,8,10k 0603 1 percent,Candidate value; exact MPN pending,3V3 external button pull-ups
+KEY_POWER,TBD,Default-off current-limited reverse-blocking switch,Not selected,Must cover powered and unpowered fault paths
+KEY_BUS,TBD,Protected isolatable I2C path and pull-ups,Not selected,Check ATECC wake pulse and foreign bus voltage
+KEY_SENSE,TBD,Two protected attachment-sense paths,Not selected,Final harness continuity determines circuit
+KEY_ESD,TBD,Key-interface ESD protection,Not selected,Not a substitute for sustained overvoltage protection
+DISPLAY_POWER,TBD,Panel supply and backlight support,Not selected,Set from exact panel specification
+J_KEY,1,Six labelled solder pads,Interface proposal only,GND KEY_3V3 SDA SCL SENSE_A SENSE_B; harness separate
+PCB,1,Two-layer 1.6mm FR-4,70x85mm initial allowance only,Final routing and antenna cutout pending

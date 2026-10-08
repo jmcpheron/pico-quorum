@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="760" viewBox="0 0 1100 760" role="img" aria-labelledby="title desc">
+  <title id="title">Minimal PicoQuorum console: eight buttons and a small colour screen</title>
+  <desc id="desc">Concept only. Four directions, Select, Back, guarded Sign and separate Reject. Pico 2 W module, USB power and six key harness pads. No rotary encoder or dock connector.</desc>
+  <rect width="1100" height="760" fill="#101820"/>
+  <g font-family="Arial, sans-serif" fill="#edf2f7">
+    <text x="48" y="55" font-size="28" font-weight="bold">PicoQuorum / minimal console</text>
+    <text x="48" y="85" font-size="16" fill="#a9bac9">M0 · 8 buttons · 1.3-inch colour · key harness pads · 2026-10-07</text>
+    <rect x="48" y="112" width="460" height="563" rx="24" fill="#22323e" stroke="#6c8598" stroke-width="2"/>
+    <text x="278" y="142" text-anchor="middle" font-size="14" fill="#a9bac9">FACE STUDY — PCB ALLOWANCE 70 × 85 mm</text>
+    <rect x="124" y="171" width="247" height="239" rx="9" fill="#0b1118" stroke="#7a92ff" stroke-width="2"/>
+    <rect x="139" y="186" width="217" height="207" rx="3" fill="#142f43"/>
+    <text x="247" y="260" text-anchor="middle" font-size="24" font-weight="bold">240 × 240</text>
+    <text x="247" y="291" text-anchor="middle" font-size="18">IPS colour / SPI</text>
+    <text x="247" y="327" text-anchor="middle" font-size="14" fill="#b5c7d8">Exact panel and ribbon pending</text>
+    <text x="412" y="248" text-anchor="middle" font-size="13" fill="#a9bac9">Pico</text>
+    <text x="412" y="269" text-anchor="middle" font-size="13" fill="#a9bac9">placement</text>
+    <text x="412" y="290" text-anchor="middle" font-size="13" fill="#a9bac9">to solve</text>
+    <g fill="#344b5d" stroke="#91a9bc" stroke-width="1.5">
+      <rect x="165" y="434" width="60" height="52" rx="10"/>
+      <rect x="98" y="494" width="60" height="52" rx="10"/>
+      <rect x="232" y="494" width="60" height="52" rx="10"/>
+      <rect x="165" y="554" width="60" height="52" rx="10"/>
+      <rect x="327" y="434" width="112" height="52" rx="10"/>
+      <rect x="327" y="494" width="112" height="52" rx="10"/>
+    </g>
+    <g text-anchor="middle" font-size="17">
+      <text x="195" y="466">Up</text>
+      <text x="128" y="526">Left</text>
+      <text x="262" y="526">Right</text>
+      <text x="195" y="586">Down</text>
+      <text x="383" y="466">Select</text>
+      <text x="383" y="526">Back</text>
+    </g>
+    <rect x="319" y="552" width="128" height="64" rx="14" fill="none" stroke="#7ead99" stroke-width="3"/>
+    <rect x="327" y="560" width="112" height="48" rx="9" fill="#216343"/>
+    <text x="383" y="590" text-anchor="middle" font-size="18">Sign</text>
+    <rect x="327" y="627" width="112" height="34" rx="9" fill="#a83440"/>
+    <text x="383" y="650" text-anchor="middle" font-size="18">Reject</text>
+    <text x="80" y="643" font-size="13" fill="#a9bac9">Recess Sign in case.</text>
+    <text x="80" y="662" font-size="13" fill="#a9bac9">Reject: one press.</text>
+    <text x="560" y="147" font-size="21" font-weight="bold">One carrier board</text>
+    <text x="560" y="178" font-size="16" fill="#a9bac9">Surface-mount buttons + headerless Pico 2 W.</text>
+    <text x="560" y="201" font-size="16" fill="#a9bac9">LCD attached after reflow. No battery or knob.</text>
+    <g fill="#22323e" stroke="#6c8598" stroke-width="1.5">
+      <rect x="560" y="225" width="235" height="62" rx="9"/>
+      <rect x="560" y="319" width="235" height="78" rx="9"/>
+      <rect x="850" y="319" width="202" height="78" rx="9"/>
+      <rect x="560" y="435" width="492" height="70" rx="9"/>
+    </g>
+    <g text-anchor="middle" font-size="17">
+      <text x="677" y="252">Existing Pico micro-USB</text>
+      <text x="677" y="274" font-size="14" fill="#a9bac9">Power + programming</text>
+      <text x="677" y="350">Pico 2 W module</text>
+      <text x="677" y="376" font-size="14" fill="#a9bac9">Antenna edge / cutout required</text>
+      <text x="951" y="350">LCD + backlight</text>
+      <text x="951" y="376" font-size="14" fill="#a9bac9">Exact supply circuit pending</text>
+      <text x="806" y="463">Protected key power, bus and attachment sensing</text>
+      <text x="806" y="489" font-size="14" fill="#a9bac9">Default off · current limit · isolation · ESD</text>
+    </g>
+    <g fill="none" stroke="#7a92ff" stroke-width="2">
+      <path d="M677 287 V319 M795 358 H850 M677 397 V435 M806 505 V536"/>
+    </g>
+    <text x="560" y="542" font-size="15">Harness pads</text>
+    <g fill="#c9a65b">
+      <circle cx="591" cy="574" r="10"/><circle cx="677" cy="574" r="10"/>
+      <circle cx="763" cy="574" r="10"/><circle cx="849" cy="574" r="10"/>
+      <circle cx="935" cy="574" r="10"/><circle cx="1021" cy="574" r="10"/>
+    </g>
+    <g text-anchor="middle" font-size="12" fill="#cbd7e1">
+      <text x="591" y="601">GND</text><text x="677" y="601">KEY_3V3</text>
+      <text x="763" y="601">SDA</text><text x="849" y="601">SCL</text>
+      <text x="935" y="601">SENSE_A</text><text x="1021" y="601">SENSE_B</text>
+    </g>
+    <text x="560" y="638" font-size="15" fill="#a9bac9">Hand-wired plug later; add case strain relief.</text>
+    <text x="560" y="661" font-size="15" fill="#a9bac9">Select and Device navigation need firmware work.</text>
+    <text x="48" y="717" font-size="17" fill="#ffcf84">Concept only. No footprints, routing, measured stack or quote-ready manufacturing files.</text>
+    <text x="48" y="742" font-size="13" fill="#a9bac9">Source: github.com/jmcpheron/pico-quorum · Screen and control shapes are allowances, not component outlines.</text>
+  </g>
+</svg>

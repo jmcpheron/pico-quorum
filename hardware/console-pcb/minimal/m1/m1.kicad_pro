@@ -1,0 +1,20 @@
+{
+  "meta": {
+    "filename": "m1.kicad_pro",
+    "version": 1
+  },
+  "net_settings": {
+    "classes": [
+      {
+        "name": "Default",
+        "clearance": 0.2,
+        "track_width": 0.25,
+        "via_diameter": 0.7,
+        "via_drill": 0.3
+      }
+    ],
+    "meta": {
+      "version": 4
+    }
+  }
+}
