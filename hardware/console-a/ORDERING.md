@@ -9,7 +9,7 @@ the quote JLCPCB shows over the numbers here.
 
 ## 1. The files
 
-All in `console-a/fab/`, written by `tools/keypcb fab console-a`:
+All in `console-a/fab/`, written by `tools/keypcb fab console-a/console-a`:
 
 | file | what |
 |---|---|
@@ -21,8 +21,8 @@ All in `console-a/fab/`, written by `tools/keypcb fab console-a`:
 The panel and the key pads are never in the BOM or the CPL: you fit those yourself. The Pico is
 in the `factory-pico` pair only.
 
-Before you upload anything, run `tools/keypcb check console-a` (ERC, DRC, parity and the pin map)
-and `tools/keypcb fab console-a`, then `git status`: the fab files should match the board.
+Before you upload anything, run `tools/keypcb check console-a/console-a` (ERC, DRC, parity and the pin map)
+and `tools/keypcb fab console-a/console-a`, then `git status`: the fab files should match the board.
 
 ## 2. At jlcpcb.com
 

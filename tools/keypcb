@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-# The key PCBs in hardware/key-pcb (see its README.md and ORDERING.md). Needs KiCad 9's kicad-cli.
+# The key PCBs in hardware/key-pcb (see its README.md and ORDERING.md), and the console boards in
+# hardware/console-pcb and hardware/console-a. Needs KiCad's kicad-cli: 9 for rev A, 10 for the rest.
 #
 #   tools/keypcb check [board]    ERC on the schematic, then DRC with schematic parity on the board
 #   tools/keypcb fab [board]      writes <board>/fab/: the Gerber + drill zip, and the BOM and CPL
@@ -10,24 +11,38 @@
 #                                 (hardware/key-pcb/keycalc.py, run with uv; needs no KiCad)
 #   tools/keypcb gen-cd           rewrites proposals key-c-usbc and key-d-pogo from gen_cd.py (KiCad's own
 #                                 Python, for pcbnew); rev A's boards are never touched
-#   tools/keypcb gen-console      rewrites the console board, hardware/console-a/console-a, from its gen.py
+#   tools/keypcb gen-console      rewrites console-pcb/console-a from hardware/console-pcb/gen_console.py,
+#                                 the same way
+#   tools/keypcb gen-console-a    rewrites console-a/console-a (the Waveshare-pin board) from
+#                                 hardware/console-a/gen.py
 #
-# board is any key-* folder in hardware/key-pcb or console-* folder in hardware/console-a; without one,
-# every board. check on a console board also checks its pin map against the firmware. Run from anywhere.
+# board is one of the key-* or console-* folders; without one, every board. A name used in two
+# folders (console-a) is written with its folder: console-pcb/console-a, console-a/console-a.
+# check on a board whose folder has a gen.py also runs `gen.py check` (its pin map against the
+# firmware). Run from anywhere.
 import csv, glob, io, os, re, shutil, subprocess, sys, tempfile, zipfile
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "hardware", "key-pcb")
 ROOT = os.path.normpath(ROOT)
-CONSOLE = os.path.normpath(os.path.join(ROOT, "..", "console-a"))
+CONSOLE = os.path.join(os.path.dirname(ROOT), "console-pcb")
+CONSOLE_A = os.path.join(os.path.dirname(ROOT), "console-a")
 
 # Gerber layers JLCPCB wants for a 2-layer board. Paste layers are only used for assembly orders,
 # and harmless on a bare-board order.
 LAYERS = "F.Cu,B.Cu,F.Paste,B.Paste,F.Silkscreen,B.Silkscreen,F.Mask,B.Mask,Edge.Cuts"
 
 
+def _board_dirs():
+    """board name -> its folder. A folder name found in more than one place gets its parent's name
+    in front: console-pcb/console-a and console-a/console-a."""
+    dirs = sorted(d for d in glob.glob(os.path.join(ROOT, "key-*")) + glob.glob(os.path.join(CONSOLE, "console-*"))
+                  + glob.glob(os.path.join(CONSOLE_A, "console-*")) if os.path.isdir(d))
+    base = [os.path.basename(d) for d in dirs]
+    return {(b if base.count(b) == 1 else os.path.basename(os.path.dirname(d)) + "/" + b): d for b, d in zip(base, dirs)}
+
+
 def boards(arg):
-    names = sorted(os.path.basename(d) for d in glob.glob(os.path.join(ROOT, "key-*")) + glob.glob(os.path.join(CONSOLE, "console-*"))
-                   if os.path.isdir(d))
+    names = list(_board_dirs())
     if arg:
         if arg not in names:
             sys.exit(f"no board {arg!r}; boards: {', '.join(names)}")
@@ -48,16 +63,18 @@ def kicad(*args):
 
 
 def files(name):
-    d = os.path.join(CONSOLE if name.startswith("console-") else ROOT, name)
-    return d, os.path.join(d, name + ".kicad_sch"), os.path.join(d, name + ".kicad_pcb")
+    d = _board_dirs()[name]
+    b = os.path.basename(d)
+    return d, os.path.join(d, b + ".kicad_sch"), os.path.join(d, b + ".kicad_pcb")
 
 
 def check(name):
     d, sch, pcb = files(name)
     ok = True
-    if name.startswith("console-"):
+    gen = os.path.join(os.path.dirname(d), "gen.py")
+    if os.path.basename(os.path.dirname(d)) != "key-pcb" and os.path.exists(gen):
         # the board's pin table against firmware/board.py and the emulator; plain Python, no KiCad
-        r = subprocess.run([sys.executable, os.path.join(CONSOLE, "gen.py"), "check"], capture_output=True, text=True)
+        r = subprocess.run([sys.executable, gen, "check"], capture_output=True, text=True)
         print(r.stdout.rstrip() or r.stderr.rstrip())
         ok = r.returncode == 0
     with tempfile.TemporaryDirectory() as t:
@@ -84,32 +101,36 @@ def check(name):
 def jlc_bom(name, sch, out, option=None):
     """JLCPCB's BOM: Comment, Designator, Footprint, LCSC Part #. Only parts with an LCSC number that
     are fitted; the rest (the fingers, a DNP resistor, a chip you solder yourself) stay off it.
+    Returns each placed ref's "JLCPCB Rotation Offset" field (0 where a part has none).
     option names a second field (LCSC_FACTORY) whose number stands in where LCSC is empty: the parts
     JLCPCB fits only when you ask it to."""
-    fields, labels = "Reference,Value,Footprint,LCSC,${DNP}", "ref,value,fp,lcsc,dnp"
+    fields, labels = "Reference,Value,Footprint,LCSC,${DNP},JLCPCB Rotation Offset", "ref,value,fp,lcsc,dnp,rot"
     if option:
         fields, labels = fields + "," + option, labels + ",option"
     r = kicad("sch", "export", "bom", "--fields", fields,
               "--labels", labels, "--ref-range-delimiter", "", "-o", "/dev/stdout", sch)
-    rows = {}
+    rows, offsets = {}, {}
     for row in csv.DictReader(io.StringIO(r.stdout)):
         lcsc = row["lcsc"] or (row.get("option") or "")
         if not lcsc or row["dnp"].strip():
             continue
         key = (row["value"], row["fp"].split(":")[-1], lcsc)
         rows.setdefault(key, []).append(row["ref"])
+        offsets[row["ref"]] = float(row["rot"] or 0)
     with open(out, "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["Comment", "Designator", "Footprint", "LCSC Part #"])
         for (value, fp, lcsc), refs in sorted(rows.items(), key=lambda kv: kv[1]):
             w.writerow([value, ",".join(refs), fp, lcsc])
-    return {ref for refs in rows.values() for ref in refs}
+    return offsets
 
 
 def jlc_cpl(pcb, refs, out):
-    """JLCPCB's CPL: Designator, Mid X, Mid Y, Layer, Rotation, for the parts in the BOM. Rotation is
-    KiCad's; JLCPCB's preview shows each part on the board, and that is where a pin 1 that landed
-    in the wrong corner gets fixed (see ORDERING.md)."""
+    """JLCPCB's CPL: Designator, Mid X, Mid Y, Layer, Rotation, for the parts in the BOM (refs: ref ->
+    rotation offset). Rotation is KiCad's plus the part's "JLCPCB Rotation Offset", where a board's
+    generator knows JLCPCB's footprint turns differently (console-a does; the key boards don't).
+    JLCPCB's preview still shows each part on the board, and that is where a pin 1 that landed in
+    the wrong corner gets fixed otherwise (see ORDERING.md)."""
     with tempfile.TemporaryDirectory() as t:
         pos = os.path.join(t, "pos.csv")
         kicad("pcb", "export", "pos", "--format", "csv", "--units", "mm", "--side", "both",
@@ -122,7 +143,7 @@ def jlc_cpl(pcb, refs, out):
             if r["Ref"] in refs:
                 side = "Top" if r["Side"] == "top" else "Bottom"
                 w.writerow([r["Ref"], f'{float(r["PosX"]):.4f}mm', f'{float(r["PosY"]):.4f}mm', side,
-                            f'{float(r["Rot"]) % 360:.0f}'])
+                            f'{(float(r["Rot"]) + refs[r["Ref"]]) % 360:.0f}'])
 
 
 def fab(name):
@@ -135,7 +156,7 @@ def fab(name):
               "-o", t + "/", pcb)
         kicad("pcb", "export", "drill", "--format", "excellon", "--excellon-separate-th", "--drill-origin", "plot",
               "-o", t + "/", pcb)
-        z = os.path.join(out, f"{name}-gerbers.zip")
+        z = os.path.join(out, f"{os.path.basename(d)}-gerbers.zip")
         with zipfile.ZipFile(z, "w", zipfile.ZIP_DEFLATED) as zf:
             for p in sorted(os.listdir(t)):
                 if p.endswith(".gbrjob"):
@@ -148,39 +169,40 @@ def fab(name):
     jlc_cpl(pcb, refs, os.path.join(out, "cpl.csv"))
     print(f"{name}: fab/bom.csv and fab/cpl.csv ({', '.join(sorted(refs)) or 'nothing to place'})")
     if "LCSC_FACTORY" in open(sch).read():
-        # the same board with JLCPCB also fitting the parts you'd otherwise solder (the console's Pico)
+        # the same board with JLCPCB also fitting the parts you'd otherwise solder (console-a's Pico)
         alt = os.path.join(out, "factory-pico")
         os.makedirs(alt, exist_ok=True)
         more = jlc_bom(name, sch, os.path.join(alt, "bom.csv"), option="LCSC_FACTORY")
         jlc_cpl(pcb, more, os.path.join(alt, "cpl.csv"))
-        print(f"{name}: fab/factory-pico/bom.csv and cpl.csv (adds {', '.join(sorted(more - refs))})")
+        print(f"{name}: fab/factory-pico/bom.csv and cpl.csv (adds {', '.join(sorted(set(more) - set(refs)))})")
 
 
 def render(name):
     d, sch, pcb = files(name)
     out = os.path.join(d, "fab")
     os.makedirs(out, exist_ok=True)
-    w, h = ("1400", "900") if name.startswith("console-") else ("900", "1100")   # the console is landscape
+    w, h, zoom = ("1600", "700", "2.2") if name.startswith("console-") else ("900", "1100", "1")   # the console lies flat
     for side in ("top", "bottom"):
-        png = os.path.join(out, f"{name}-{side}.png")
+        png = os.path.join(out, f"{os.path.basename(d)}-{side}.png")
         kicad("pcb", "render", "--side", side, "--quality", "high", "--width", w, "--height", h,
-              "--background", "opaque", "--zoom", "1", "-o", png, pcb)
+              "--background", "opaque", "--zoom", zoom, "-o", png, pcb)
         print(f"{name}: {os.path.relpath(png)}")
 
 
 def main():
-    if len(sys.argv) > 1 and sys.argv[1] in ("gen-cd", "gen-console"):
+    gens = {"gen-cd": os.path.join(ROOT, "gen_cd.py"), "gen-console": os.path.join(CONSOLE, "gen_console.py"),
+            "gen-console-a": os.path.join(CONSOLE_A, "gen.py")}
+    if len(sys.argv) > 1 and sys.argv[1] in gens:
         py = "/Applications/KiCad/KiCad.app/Contents/Frameworks/Python.framework/Versions/Current/bin/python3"
         py = py if os.path.exists(py) else "python3"   # on Linux, KiCad's pcbnew is in the system Python
-        script = os.path.join(ROOT, "gen_cd.py") if sys.argv[1] == "gen-cd" else os.path.join(CONSOLE, "gen.py")
-        os.execvp(py, [py, script, *sys.argv[2:]])
+        os.execvp(py, [py, gens[sys.argv[1]], *sys.argv[2:]])
     if len(sys.argv) > 1 and sys.argv[1] == "calc":
         calc = os.path.join(ROOT, "keycalc.py")
         os.execvp("uv", ["uv", "run", "--quiet", "--python", "3.12", calc, *sys.argv[2:]])
     if len(sys.argv) < 2 or sys.argv[1] not in ("check", "fab", "render"):
         sys.exit(__doc__ or open(__file__).read().split("\nimport")[0])
     if not KICAD_CLI:
-        sys.exit("kicad-cli not found: install KiCad 9 (https://www.kicad.org/download/)")
+        sys.exit("kicad-cli not found: install KiCad 10 (https://www.kicad.org/download/)")
     cmd, arg = sys.argv[1], (sys.argv[2] if len(sys.argv) > 2 else None)
     ok = True
     for name in boards(arg):

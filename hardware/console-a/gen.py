@@ -3,7 +3,7 @@
 buttons on one board, wired exactly as the Waveshare Pico-LCD-1.3, so the console image runs on it
 unchanged. Writes the KiCad 10 project from scratch.
 
-    tools/keypcb gen-console      (KiCad's own Python, which has the pcbnew module)
+    tools/keypcb gen-console-a    (KiCad's own Python, which has the pcbnew module)
     python3 hardware/console-a/gen.py check     (the pin check alone; needs no KiCad)
 
 One table, PINS, says which GPIO each signal is on, and `check` compares it with firmware/board.py

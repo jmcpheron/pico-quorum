@@ -1,9 +1,13 @@
 # The console PCB, rev A ("console-a")
 
 > **Status: designed and checked, not ordered.** ERC 0, DRC 0, nothing unconnected, schematic
-> parity clean (`tools/keypcb check console-a`, 2026-10-07, KiCad 10.0.6). No board has been made
+> parity clean (`tools/keypcb check console-a/console-a`, 2026-10-07, KiCad 10.0.6). No board has been made
 > and nothing on it has been tried on a bench. Before ordering, see
 > [what to check first](#check-these-before-ordering).
+
+Not to be confused with [`console-pcb/console-a`](../console-pcb/README.md), the one-board Build 1
+(2.8″ screen, knob, USB-C plug), drawn in parallel. Both are called console-a, so `tools/keypcb`
+names this one `console-a/console-a`.
 
 One board that holds the whole console: a Pico 2 W, a bare 1.3″ 240×240 color panel, nine buttons,
 and pads for the key. It's wired exactly like the Waveshare Pico-LCD-1.3, so **the console image
@@ -48,7 +52,7 @@ on the back. Check both before paying (ORDERING.md).
 ## The pin map
 
 This is the Waveshare board's map, and `firmware/board.py`'s. `gen.py` has it as one table,
-`PINS`. `python3 hardware/console-a/gen.py check` (or `tools/keypcb check console-a`) checks it
+`PINS`. `python3 hardware/console-a/gen.py check` (or `tools/keypcb check console-a/console-a`) checks it
 three ways: against `firmware/board.py`, against the emulator's `emu/core/runtime.mjs`, and against
 the nets on the saved board.
 
@@ -224,7 +228,7 @@ These come from datasheets and photos, not from a board on the bench.
 
 ## How it's made
 
-[`gen.py`](gen.py) writes the whole KiCad project from scratch. `tools/keypcb gen-console` runs it
+[`gen.py`](gen.py) writes the whole KiCad project from scratch. `tools/keypcb gen-console-a` runs it
 with KiCad's Python. It reuses the key boards' helpers (`../key-pcb/gen.py`):
 - **The schematic** is drawn from one parts table. Every pin gets a short wire and its net's
   label, so the drawing is plain, not pretty.
