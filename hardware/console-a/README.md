@@ -20,12 +20,30 @@ will sit. On the back, the Pico 2 W is soldered flat, chips facing out.
 | | |
 |---|---|
 | Board | 92 × 52 mm, 2 layers, 1.6 mm, lead-free HASL, a notch in the top edge under the Pico's antenna, 4 × M2.5 holes |
-| JLCPCB places (front only) | 9 buttons, the panel connector, the key-port parts, the backlight switch: 30 parts, 3 of them Extended |
-| You solder | the Pico 2 W (castellated, flat on the back), and the key's wires to J3 |
-| You plug in | the panel's flex, into J2 |
+| JLCPCB places | on the front: 9 buttons, the panel connector, the key-port parts, the backlight switch (30 parts, 3 of them Extended). On the back, if you ask: the Pico 2 W |
+| You plug in | the panel's flex, into J2 (no solder) |
+| You solder | the key's wires to J3, and the Pico if JLCPCB doesn't |
 | Files | `console-a/` (KiCad 10), fab files in `console-a/fab/`, made by [`gen.py`](gen.py) |
 
 How to order it: [ORDERING.md](ORDERING.md).
+
+## Two ways to build it
+
+It's the same board and the same Gerbers either way. Only the BOM and CPL you upload differ.
+
+| | Pico soldered by you | Pico soldered by JLCPCB |
+|---|---|---|
+| Files | `fab/bom.csv`, `fab/cpl.csv` | `fab/factory-pico/bom.csv`, `fab/factory-pico/cpl.csv` |
+| JLCPCB fits | the 30 front parts | the same 30, plus U1, the Pico 2 W, on the back |
+| Assembly | one side | both sides, with X-ray (JLCPCB requires it for this part) |
+| The Pico | you buy one without headers (about $7) and solder 40 pads by hand | LCSC **C42394205**, Raspberry Pi SC1633 (the Pico 2 W without headers), $11.68 on 2026-10-07 |
+| You still do | the panel, the key's wires | the panel, the key's wires |
+
+The factory route costs more per board (the dearer Pico, a second side, X-ray), but nobody holds an
+iron to 40 pads per console. JLCPCB had 82 in stock on 2026-10-07. For more, pre-order them into
+your JLCPCB parts library before the order. Parts there can only be used in assembly, not shipped
+to you. Only JLCPCB's quote shows the real price, and its preview shows how they'll place a module
+on the back. Check both before paying (ORDERING.md).
 
 ## The pin map
 
@@ -58,9 +76,8 @@ column to the right of the screen, top to bottom, the way the emulator draws the
 two white backlight LEDs. It has a 24-pin, 0.5 mm flex tail that folds behind the panel. It's from
 the same ZJY 1.3″ family as the Waveshare board's panel. The Waveshare schematic's 12 panel pins
 match ZJY133T-IG01, the solder-tail sibling.
-- Datasheet:
-  [Smart Prototyping 102108](https://www.smart-prototyping.com/1_3-inch-TFT-IPS-Bare-Display-ST7789-SPI-240-240),
-  "Plug-in type 24pin". LCSC doesn't stock this panel.
+- Datasheet: the ZJY133T-IF05 spec, published by both sellers in
+  [Getting the right panel](#getting-the-right-panel). LCSC doesn't stock this panel.
 - Wiring, as on the Waveshare board:
   - The backlight is switched on its low side by Q1 (SS8050) from GP13, with a 10 Ω resistor in
     series. That's about 30 mA.
@@ -79,6 +96,63 @@ match ZJY133T-IG01, the solder-tail sibling.
   2 mm tall. It sits under the panel, 12.8 mm in from the panel's right edge. That's where the folded
   tail ends on the drawing.
 - The panel rests on 2–2.5 mm foam tape, over J2 and the small parts under it.
+
+## Getting the right panel
+
+Many 1.3″ screens look alike, and most of them won't fit J2. The right one is all of these:
+- **ZJY133T-IF05** (also sold as ZJY130T-IF05)
+- 1.3″ IPS, 240×240, ST7789V or ST7789VW driver
+- a **24-pin plug-in flex at 0.5 mm pitch**, 12.5 mm wide, made to fold behind the panel
+
+**Where to buy it.** These two sellers publish the ZJY133T-IF05 datasheet. Their pin tables are
+identical to the one this board was designed to (compared on 2026-10-07):
+
+| seller | listing | price on 2026-10-07 |
+|---|---|---|
+| Adafruit | [4520](https://www.adafruit.com/product/4520), "1.3 240x240 Wide Angle TFT LCD Display, bare" | $12.50, $11.25 at 10+, $10 at 100+ |
+| Smart Prototyping | [102108](https://www.smart-prototyping.com/1_3-inch-TFT-IPS-Bare-Display-ST7789-SPI-240-240): **pick "Plug-in type 24pin"**, not the default 12-pin welded type | $8.90, $8 at 30+, $7.50 at 100+ |
+
+Adafruit's page says the panel wants a bottom-contact connector, and J2 is one.
+
+**Another seller, or a cheaper one.** Ask for the datasheet before buying, and check that its pin
+table matches this one line for line. No datasheet, no order.
+
+| pin | name | pin | name | pin | name |
+|---|---|---|---|---|---|
+| 1 | LEDA | 9 | D/C (the SPI clock) | 17 | DB4 |
+| 2 | LEDK | 10 | WR (D/C in SPI) | 18 | DB5 |
+| 3 | GND | 11 | RD | 19 | DB6 |
+| 4 | VDD | 12 | SDA | 20 | DB7 |
+| 5 | IOVCC | 13 | DB0 | 21 | TE |
+| 6 | IM1/2 | 14 | DB1 | 22 | NC |
+| 7 | RESET | 15 | DB2 | 23 | GND |
+| 8 | CS | 16 | DB3 | 24 | GND |
+
+**Look-alikes that won't work:**
+- the same panel with the **12-pin solder tail** (the one on the Waveshare board)
+- red or blue breakout boards with a 7- or 8-pin header
+- round 1.28″ GC9A01 panels
+- 1.3″ ST7735 panels
+- 1.54″ and 1.69″ panels, and 240×280 panels
+- anything whose tail isn't 24 contacts at 0.5 mm
+
+**Check each batch when it arrives:**
+1. Count 24 contacts, and measure the tail's end: 12.5 mm wide.
+2. Fold the tail behind the panel the way it will sit, and look at the contacts. They should face
+   away from the panel, toward the board.
+3. First article: plug one into an assembled board and flash the console image. The picture should
+   be upright with the flex on its right, and the backlight should light. Then fit the rest.
+
+**Getting panels into each console.** JLCPCB can't fit or ship the panels, so they come to you:
+- Buy them yourself, with about 10% spare: tails tear.
+- Fitting one takes about a minute and no solder:
+  1. Slide J2's latch out.
+  2. Push the tail in straight, contacts down.
+  3. Slide the latch back.
+  4. Fold the panel over onto 2–2.5 mm foam tape.
+- For consoles you hand out, fit and test each panel before it leaves (step 3 above for every
+  unit). Or ship the panel loose with the four steps on a card, if the people building them are
+  comfortable with a 0.5 mm latch.
 
 ## The key port
 
@@ -133,8 +207,9 @@ These come from datasheets and photos, not from a board on the bench.
 - [ ] **Buy one panel first** and look at its tail:
   - Is it 24 pins at 0.5 mm, with the pin table above?
   - Which face are the contacts on, once the tail is folded behind the panel?
-  - J2 as ordered is bottom-contact (contacts toward the PCB). If the folded tail's contacts face
-    up, order **AFC07-S24ECA-00 (C262643)** instead: same footprint, other contact side.
+  - J2 as ordered is bottom-contact (contacts toward the PCB), which is what Adafruit says this
+    panel wants. If the folded tail's contacts face up anyway, order **AFC07-S24ECA-00 (C262643)**
+    instead: same footprint, other contact side.
 - [ ] Check the folded tail's length: its end should reach about 12.8 mm in from the panel's
   edge, at J2's latch.
 - [ ] Check the orientation on a Waveshare board you already have: the flex should come out on
@@ -173,6 +248,13 @@ Around J2 it's dense, and you may want to tidy it in the GUI.
 rotary knob, SWD pads, and an enclosure.
 
 ## Log
+
+- **2026-10-08:**
+  - **Factory-soldered Pico** added as a second assembly option (`fab/factory-pico/`). The board,
+    the Gerbers and the default BOM and CPL are unchanged.
+  - U1's part number corrected to SC1633, the Pico 2 W without headers (SC1634 is the version
+    with headers).
+  - "Getting the right panel" added: Adafruit 4520 confirmed as the same ZJY133T-IF05.
 
 - **2026-10-07:** rev A designed: the parts chosen, routed, checked (ERC 0, DRC 0, parity clean,
   pin map matched three ways), and the fab files written. Not ordered.

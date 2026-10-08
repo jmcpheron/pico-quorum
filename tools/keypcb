@@ -81,16 +81,22 @@ def check(name):
     return ok
 
 
-def jlc_bom(name, sch, out):
+def jlc_bom(name, sch, out, option=None):
     """JLCPCB's BOM: Comment, Designator, Footprint, LCSC Part #. Only parts with an LCSC number that
-    are fitted; the rest (the fingers, a DNP resistor, a chip you solder yourself) stay off it."""
-    r = kicad("sch", "export", "bom", "--fields", "Reference,Value,Footprint,LCSC,${DNP}",
-              "--labels", "ref,value,fp,lcsc,dnp", "--ref-range-delimiter", "", "-o", "/dev/stdout", sch)
+    are fitted; the rest (the fingers, a DNP resistor, a chip you solder yourself) stay off it.
+    option names a second field (LCSC_FACTORY) whose number stands in where LCSC is empty: the parts
+    JLCPCB fits only when you ask it to."""
+    fields, labels = "Reference,Value,Footprint,LCSC,${DNP}", "ref,value,fp,lcsc,dnp"
+    if option:
+        fields, labels = fields + "," + option, labels + ",option"
+    r = kicad("sch", "export", "bom", "--fields", fields,
+              "--labels", labels, "--ref-range-delimiter", "", "-o", "/dev/stdout", sch)
     rows = {}
     for row in csv.DictReader(io.StringIO(r.stdout)):
-        if not row["lcsc"] or row["dnp"].strip():
+        lcsc = row["lcsc"] or (row.get("option") or "")
+        if not lcsc or row["dnp"].strip():
             continue
-        key = (row["value"], row["fp"].split(":")[-1], row["lcsc"])
+        key = (row["value"], row["fp"].split(":")[-1], lcsc)
         rows.setdefault(key, []).append(row["ref"])
     with open(out, "w", newline="") as f:
         w = csv.writer(f)
@@ -141,6 +147,13 @@ def fab(name):
     refs = jlc_bom(name, sch, os.path.join(out, "bom.csv"))
     jlc_cpl(pcb, refs, os.path.join(out, "cpl.csv"))
     print(f"{name}: fab/bom.csv and fab/cpl.csv ({', '.join(sorted(refs)) or 'nothing to place'})")
+    if "LCSC_FACTORY" in open(sch).read():
+        # the same board with JLCPCB also fitting the parts you'd otherwise solder (the console's Pico)
+        alt = os.path.join(out, "factory-pico")
+        os.makedirs(alt, exist_ok=True)
+        more = jlc_bom(name, sch, os.path.join(alt, "bom.csv"), option="LCSC_FACTORY")
+        jlc_cpl(pcb, more, os.path.join(alt, "cpl.csv"))
+        print(f"{name}: fab/factory-pico/bom.csv and cpl.csv (adds {', '.join(sorted(more - refs))})")
 
 
 def render(name):
