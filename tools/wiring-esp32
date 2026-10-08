@@ -28,14 +28,14 @@ J3 = ["GND", "IO23", "IO22", "TX", "RX", "IO21", "GND", "IO19", "IO18", "IO5", "
 
 # (part, contact, signal, ESP32 pin as printed, header pin)
 PINS = [
-    ("screen", "3V3", "3.3 V", "3V3", "J2-1"),
-    ("screen", "GND", "ground", "GND", "J3-1"),
+    ("screen", "BL", "backlight PWM", "IO4", "J3-13"),
+    ("screen", "RST", "reset", "IO15", "J3-16"),
     ("screen", "DC", "data/command", "IO19", "J3-8"),
-    ("screen", "CS", "chip select", "IO5", "J3-10"),
     ("screen", "SCL", "VSPI clock", "IO18", "J3-9"),
     ("screen", "MOSI", "VSPI data", "IO23", "J3-2"),
-    ("screen", "RST", "reset", "IO15", "J3-16"),
-    ("screen", "BL", "backlight PWM", "IO4", "J3-13"),
+    ("screen", "CS", "chip select", "IO5", "J3-10"),
+    ("screen", "3V3", "3.3 V", "3V3", "J2-1"),
+    ("screen", "GND", "ground", "GND", "J3-1"),
     ("chip", "VIN", "3.3 V", "3V3", "J2-1"),
     ("chip", "GND", "ground", "GND", "J3-1"),
     ("chip", "SDA", "I2C data", "IO21", "J3-6"),
@@ -76,14 +76,14 @@ WIRES = [
     (6, BLK, LO_M, "chip GND (black)", "chip", None, False),
     (7, BLU, esp("chip", "SDA"), "chip SDA (blue)", "chip", "SDA", False),
     (8, YEL, esp("chip", "SCL"), "chip SCL (yellow)", "chip", "SCL", False),
-    (9, RED, LO_P, "screen 3V3", "screen", None, False),
-    (10, BLK, LO_M, "screen GND", "screen", None, False),
+    (9, GRN, esp("screen", "BL"), "screen BL", "screen", "BL", False),
+    (10, PUR, esp("screen", "RST"), "screen RST", "screen", "RST", False),
     (11, PUR, esp("screen", "DC"), "screen DC", "screen", "DC", False),
-    (12, PUR, esp("screen", "CS"), "screen CS", "screen", "CS", False),
-    (13, PUR, esp("screen", "SCL"), "screen SCL", "screen", "SCL", False),
-    (14, PUR, esp("screen", "MOSI"), "screen MOSI", "screen", "MOSI", False),
-    (15, PUR, esp("screen", "RST"), "screen RST", "screen", "RST", False),
-    (16, GRN, esp("screen", "BL"), "screen BL", "screen", "BL", False),
+    (12, PUR, esp("screen", "SCL"), "screen SCL", "screen", "SCL", False),
+    (13, PUR, esp("screen", "MOSI"), "screen MOSI", "screen", "MOSI", False),
+    (14, PUR, esp("screen", "CS"), "screen CS", "screen", "CS", False),
+    (15, RED, LO_P, "screen 3V3", "screen", None, False),
+    (16, BLK, LO_M, "screen GND", "screen", None, False),
     (17, BLK, UP_M, "knob C (middle leg)", "knob", None, False),
     (18, TEAL, esp("knob", "A"), "knob A", "knob", "A", False),
     (19, TEAL, esp("knob", "B"), "knob B", "knob", "B", False),
@@ -120,8 +120,12 @@ LO = dict(zip("abcdefghij", (DY + y for y in (798, 820, 842, 864, 886, 932, 954,
 UP_RP, UP_RM = DY + 300, DY + 322       # the top board's own rails, along its top edge
 LO_RP, LO_RM = DY + 1058, DY + 1080     # the bottom board's, along its bottom edge
 TIER1, TIER2 = DY + 236, DY + 150       # the bottom edges of the parts above: knob and buttons, then Back
-LOW1, LOW2 = DY + 1150, DY + 1290       # the top edges of the parts below: chip, then screen
+LOW1, LOW2 = DY + 1150, DY + 1376       # the top edges of the parts below: chip, then screen
+LANE0 = DY + 1280                       # under the chip: where the screen's wires run across, one lane each
 RAIL_GAP = 4                            # a rail's holes come in fives; no hole where col % 6 == RAIL_GAP
+# The screen's pins along the part's edge in the order printed on the panel (header on the right,
+# top to bottom), at these columns: SCL right under its ESP32 pin, 3V3 and GND under their rails.
+SCREEN_ORDER = ((7, "BL"), (10, "RST"), (13, "DC"), (16, "SCL"), (19, "MOSI"), (22, "CS"), (25, "3V3"), (27, "GND"))
 
 
 def rails(y_p, y_m):
@@ -159,7 +163,7 @@ def terminal(c, y, label, above=True):
 
 def breadboard():
     wb1.out = []
-    W, H = 1580, 1700
+    W, H = 1580, 1790
     add('<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d">' % (W, H, W, H))
     add('<rect width="%d" height="%d" fill="#fbfbf8"/>' % (W, H))
     text(24, 34, "The console on an ESP32: the chip, the screen and the knob on two breadboards", 18, bold=True)
@@ -300,32 +304,37 @@ def breadboard():
     text((cxx[0] + cxx[1]) / 2, LOW1 + 62, "breakout", 9, "#dbe7ff", "middle")
     for c, lab in ((19, "SDA"), (20, "VIN"), (21, "GND"), (22, "SCL")):
         terminal(c, LOW1, lab, above=False)
-    sx = part_box(9, 23, LOW2, 130, "#1b1b1b", "the screen", "real pin order differs: see the right", above=False)
-    rect(cx(12), LOW2 + 42, cx(20) - cx(12), 76, "#27496d", "#555", 2)
-    text((cx(12) + cx(20)) / 2, LOW2 + 76, "2.0\" / 2.4\" / 2.8\" 240x320", 11, "#fff", "middle", True)
-    text((cx(12) + cx(20)) / 2, LOW2 + 92, "or 1.8\" 128x160", 10, "#dbe7ff", "middle")
-    for c, lab in ((9, "RST"), (12, "BL"), (13, "3V3"), (14, "GND"), (15, "CS"), (16, "SCL"), (17, "DC"), (23, "MOSI")):
+    sx = part_box(7, 27, LOW2, 130, "#1b1b1b", "the screen", "its 8 pins in the order printed on it, BL to GND", above=False)
+    rect(cx(11), LOW2 + 42, cx(23) - cx(11), 76, "#27496d", "#555", 2)
+    text((cx(11) + cx(23)) / 2, LOW2 + 76, "2.0\" / 2.4\" / 2.8\" 240x320", 11, "#fff", "middle", True)
+    text((cx(11) + cx(23)) / 2, LOW2 + 92, "or 1.8\" 128x160", 10, "#dbe7ff", "middle")
+    wno = dict((w[3].replace("screen ", ""), w[0]) for w in WIRES if w[4] == "screen")
+    for c, lab in SCREEN_ORDER:
         terminal(c, LOW2, lab, above=False)
+        text(cx(c), LOW2 + 36, "wire %d" % wno[lab], 8.5, "#aab4c0", "middle")
     from_pin("J3-6", 7, LOW1, False)             # IO21 -> SDA
     from_pin("J3-3", 8, LOW1, False)             # IO22 -> SCL
     from_rail(20, LO_RP, 5, LOW1, False)
     from_rail(21, LO_RM, 6, LOW1, False)
-    from_pin("J3-8", 11, LOW2, False)            # IO19 -> DC
-    from_pin("J3-10", 12, LOW2, False)           # IO5 -> CS
-    from_pin("J3-9", 13, LOW2, False)            # IO18 -> SCL
-    from_pin("J3-2", 14, LOW2, False)            # IO23 -> MOSI
-    from_pin("J3-16", 15, LOW2, False)           # IO15 -> RST
-    from_pin("J3-13", 16, LOW2, False)           # IO4 -> BL
-    from_rail(13, LO_RP, 9, LOW2, False)
-    from_rail(14, LO_RM, 10, LOW2, False)
+    # the screen's signal wires: down from the pin, across on a lane of its own, down to the pin on
+    # the screen. Lanes top to bottom in the screen's order; 5 crossings, the fewest this order allows
+    term = dict((lab, c) for c, lab in SCREEN_ORDER)
+    for k, (contact, n) in enumerate((("BL", 9), ("RST", 10), ("DC", 11), ("SCL", 12), ("MOSI", 13), ("CS", 14))):
+        h = next(p[4] for p in PINS if p[0] == "screen" and p[1] == contact)
+        x, tx, lane = cx(col(h)), cx(term[contact]), LANE0 + k * 15
+        wire([(x, LO["e"]), (x, lane), (tx, lane), (tx, LOW2)], wcol[n], 3)
+        dot(x, LO["e"], wcol[n])
+        tag(x, TAG_LO, n, wcol[n])
+    from_rail(25, LO_RP, 15, LOW2, False)
+    from_rail(27, LO_RM, 16, LOW2, False)
 
     # --- the screen's pins as printed
     IX, IY = cx(NCOL) + 70, LOW1 - 6
     text(IX - 40, IY, "Your screen's pins, as printed", 11, "#111", "start", True)
-    text(IX - 40, IY + 14, "(order varies by maker; match the names)", 9, GREY)
+    text(IX - 40, IY + 14, "(header on the right, top to bottom)", 9, GREY)
     rect(IX - 40, IY + 26, 70, 222, "#1b1b1b", "#111", 6, 2)
-    header = [("BL", "BLK, LEDA", 16), ("RST", "RES", 15), ("DC", "RS, A0", 11), ("SCL", "SCLK, SCK, CLK", 13),
-              ("MOSI", "SDA, DIN", 14), ("CS", "", 12), ("3V3", "VCC, VDD", 9), ("GND", "", 10)]
+    header = [("BL", "BLK, LEDA", 9), ("RST", "RES", 10), ("DC", "RS, A0", 11), ("SCL", "SCLK, SCK, CLK", 12),
+              ("MOSI", "SDA, DIN", 13), ("CS", "", 14), ("3V3", "VCC, VDD", 15), ("GND", "", 16)]
     for i, (lab, alt, n) in enumerate(header):
         y = IY + 44 + i * 26
         c = wcol[n]
@@ -359,13 +368,13 @@ def breadboard():
         y += 29
 
     # --- the rules
-    RY = 1600
+    RY = 1690
     rect(24, RY - 26, 1250, 108, "#fff4f2", RED, 6, 1.5)
     text(40, RY - 4, "Before the USB cable goes in", 12, RED, "start", True)
     rules = [
         "Nothing in the 5V pin's holes (J2 pin 19, next to the USB end): it is 5 V and the screen and the chip want 3.3 V.",
         "No wire on D0-D3, CMD or CLK (the left end of each row): they are the module's flash.",
-        "The top red rail has wires 1 and 3 (and a KY-040's +); the bottom red rail has 3, 5 and 9. No red wire in a blue rail, no black in a red one.",
+        "The top red rail has wires 1 and 3 (and a KY-040's +); the bottom red rail has 3, 5 and 15. No red wire in a blue rail, no black in a red one.",
         "A meter on continuity from a red rail to a blue rail must not beep.",
     ]
     for i, r in enumerate(rules):

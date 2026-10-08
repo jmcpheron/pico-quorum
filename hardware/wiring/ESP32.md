@@ -103,14 +103,14 @@ group is one part.
 | 6 | bottom blue - rail | chip GND (black) | the cable's black wire |
 | 7 | ESP32 IO21 | chip SDA (blue) | the cable's blue wire |
 | 8 | ESP32 IO22 | chip SCL (yellow) | the cable's yellow wire |
-| 9 | bottom red + rail | screen 3V3 | red |
-| 10 | bottom blue - rail | screen GND | black |
+| 9 | ESP32 IO4 | screen BL | any color |
+| 10 | ESP32 IO15 | screen RST | any color |
 | 11 | ESP32 IO19 | screen DC | any color |
-| 12 | ESP32 IO5 | screen CS | any color |
-| 13 | ESP32 IO18 | screen SCL | any color |
-| 14 | ESP32 IO23 | screen MOSI | any color |
-| 15 | ESP32 IO15 | screen RST | any color |
-| 16 | ESP32 IO4 | screen BL | any color |
+| 12 | ESP32 IO18 | screen SCL | any color |
+| 13 | ESP32 IO23 | screen MOSI | any color |
+| 14 | ESP32 IO5 | screen CS | any color |
+| 15 | bottom red + rail | screen 3V3 | red |
+| 16 | bottom blue - rail | screen GND | black |
 | 17 | top blue - rail | knob C (middle leg) | black |
 | 18 | ESP32 IO32 | knob A | any color |
 | 19 | ESP32 IO33 | knob B | any color |
@@ -127,19 +127,23 @@ Red for 3.3 V and black for ground aren't required, but they make the checks eas
 
 ### The screen
 
-The pack's panels share one set of 8 wires. Wire by the names printed on the panel. The order varies
-between makers, and some print other names for the same pin:
+The pack's panels share one set of 8 wires. The bench screen's header runs down its right-hand edge
+in this order, and the wires are numbered the same way, top to bottom. Another maker's order may
+differ, and some print other names for the same pin: wire by the names.
 
 | printed | also printed as | goes to | wire |
 |---|---|---|---|
-| 3V3 | VCC, VDD | bottom red + rail | 9 |
-| GND | | bottom blue - rail | 10 |
+| BL | BLK, LEDA, LED | IO4 | 9 |
+| RST | RES | IO15 | 10 |
 | DC | RS, A0 | IO19 | 11 |
-| CS | | IO5 | 12 |
-| SCL | SCLK, SCK, CLK | IO18 | 13 |
-| MOSI | SDA, DIN | IO23 | 14 |
-| RST | RES | IO15 | 15 |
-| BL | BLK, LEDA, LED | IO4 | 16 |
+| SCL | SCLK, SCK, CLK | IO18 | 12 |
+| MOSI | SDA, DIN | IO23 | 13 |
+| CS | | IO5 | 14 |
+| 3V3 | VCC, VDD | bottom red + rail | 15 |
+| GND | | bottom blue - rail | 16 |
+
+The ESP32 pins are in another order, so some of these wires cross on the way. That's fine: each
+wire only has to join the right two holes.
 
 - **SCL on the screen is the screen's own clock.** It goes to IO18, not to the chip's SCL on IO22.
   **SDA on a screen** is its data line, MOSI, and goes to IO23, not to the chip's SDA.
@@ -193,14 +197,14 @@ down the right, antenna up, pin 1 at the top).
 <!-- pins: screen -->
 | contact | signal | ESP32 pin | header pin | notes |
 |---|---|---|---|---|
-| 3V3 | 3.3 V | 3V3 | J2-1 | by the rails. Never the 5V pin |
-| GND | ground | GND | J3-1 | by the rails |
+| BL | backlight PWM | IO4 | J3-13 | |
+| RST | reset | IO15 | J3-16 | a boot pin; it rests high |
 | DC | data/command | IO19 | J3-8 | |
-| CS | chip select | IO5 | J3-10 | a boot pin; it rests high, which is what the ESP32 wants |
 | SCL | VSPI clock | IO18 | J3-9 | VSPI's own pin: SPI(2) at full speed |
 | MOSI | VSPI data | IO23 | J3-2 | VSPI's own pin |
-| RST | reset | IO15 | J3-16 | a boot pin; it rests high |
-| BL | backlight PWM | IO4 | J3-13 | |
+| CS | chip select | IO5 | J3-10 | a boot pin; it rests high, which is what the ESP32 wants |
+| 3V3 | 3.3 V | 3V3 | J2-1 | by the rails. Never the 5V pin |
+| GND | ground | GND | J3-1 | by the rails |
 
 ### Chip
 
@@ -250,7 +254,7 @@ down the right, antenna up, pin 1 at the top).
 
 - [ ] Nothing in the 5V pin's holes (J2 pin 19, next to the USB end).
 - [ ] No wire on D0-D3, CMD or CLK, at the USB end of each row.
-- [ ] The top red rail has wires 1 and 3 (and a KY-040's +). The bottom red rail has 3, 5 and 9.
+- [ ] The top red rail has wires 1 and 3 (and a KY-040's +). The bottom red rail has 3, 5 and 15.
 - [ ] No red wire in a blue rail, no black wire in a red one.
 - [ ] A meter on continuity from either red rail to either blue rail must **not** beep.
 - [ ] No bare metal, such as knob legs or wire ends, touches its neighbor.
@@ -292,8 +296,8 @@ picture comes out wrong, and the console itself drives that one with `SCREEN = "
 
 | what you see | what to check |
 |---|---|
-| screen dark, backlight off | wires 9, 10 and 16; that wire 3 joins the two red rails |
-| backlight on, no picture | wires 11 to 15, going by the printed names. Then `SPI_BAUD = 10_000_000` at the top of `bench1.py` |
+| screen dark, backlight off | wires 9, 15 and 16; that wire 3 joins the two red rails |
+| backlight on, no picture | wires 10 to 14, going by the printed names. Then `SPI_BAUD = 10_000_000` at the top of `bench1.py` |
 | picture upside down or mirrored | `MADCTL` at the top of `bench1.py`: try `0xA0` |
 | red and blue swapped | add `0x08` to `MADCTL` |
 | colors look like a photo negative | `INVERT = False` |
