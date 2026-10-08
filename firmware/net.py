@@ -3,13 +3,14 @@
 # The console is passwordless arbitrary code execution and must remain disabled when holding value.
 import network, socket, os, time
 from machine import Pin
+import board
 import wificfg
 try:
     import secrets
 except ImportError:
     secrets = None      # a board without secrets.py: WiFi from wifi.json only, no console
 
-led = Pin("LED", Pin.OUT)
+led = Pin(board.LED, Pin.OUT)
 PORT = 2323
 _listen = None
 tried = False       # connect() ran once (boot.py); wallet.start does not wait a second time

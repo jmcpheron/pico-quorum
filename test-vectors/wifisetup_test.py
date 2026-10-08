@@ -135,7 +135,7 @@ boot = (FW / "boot.py").read_text()
 
 def _boot(nets, image="console", y_held=False, files=(), maint_held=False):
     ran = []
-    board = types.SimpleNamespace(MAINT=1, SETUP=2)
+    board = types.SimpleNamespace(MAINT=1, SETUP=2, LED="LED")
 
     class Pin(_Pin):
         def __init__(self, p, *a, **k):

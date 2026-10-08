@@ -19,6 +19,7 @@
 # are apart so test-vectors/run-ceremony.mjs can walk the whole thing on the virtual chip.
 import time
 import hashlib
+import board
 import atecc
 import chipcfg
 import signer as S
@@ -278,7 +279,7 @@ class Ceremony:
         except Exception:
             pass
         x, y = self.key
-        rec = chipcfg.record_encode(self.chip.serial(), 0, x, y, self.owner(), time.time(), image.BUILD, self.chip.counter(0))
+        rec = chipcfg.record_encode(self.chip.serial(), 0, x, y, self.owner(), board.unix(), image.BUILD, self.chip.counter(0))
         self.summary = write_record_and_fill(self.sig, rec, TABLE)
         self.record = rec
         return True, [("slots 1-15 zeroed", True), ("record in OTP", True), ("data CRC %04x" % self.summary, True)], \

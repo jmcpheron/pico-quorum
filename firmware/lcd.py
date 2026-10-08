@@ -5,6 +5,7 @@
 #   build1:    2.0" 240x320 ST7789 run landscape as 320x240 on the same SPI pins, the knob
 #              (knob.py) and A/B/X/Y (hardware/wiring/BUILD1.md). The console draws at
 #              full native resolution, using small horizontal strips.
+#   esp32:     build1's screen and knob on an ESP32's VSPI (hardware/wiring/ESP32.md)
 # W and H are the size the apps draw, in pixels; draw with them rather than with numbers.
 #
 # Bands (board.BANDS > 1, the 320x240 panels): the framebuffer holds one horizontal strip of the
@@ -47,7 +48,7 @@ class LCD(framebuf.FrameBuffer):
         self.cs = Pin(CS, Pin.OUT, value=1)
         self.rst = Pin(RST, Pin.OUT, value=1)
         self.dc = Pin(DC, Pin.OUT, value=1)
-        self.spi = SPI(1, board.SPI_BAUD, polarity=0, phase=0, sck=Pin(SCK), mosi=Pin(MOSI), miso=None)
+        self.spi = SPI(board.SPI_ID, board.SPI_BAUD, polarity=0, phase=0, sck=Pin(SCK), mosi=Pin(MOSI), miso=None)
         self.bl = PWM(Pin(BL))
         self.bl.freq(1000)
         self.backlight(100)

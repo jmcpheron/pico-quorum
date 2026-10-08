@@ -43,7 +43,8 @@ try:
         print("maintenance: the console is not started")
         # Leave the heap and USB free even when the display driver is broken.
         from machine import Pin
-        Pin("LED", Pin.OUT).on()
+        import board
+        Pin(board.LED, Pin.OUT).on()
     else:
         # The big blocks first, while the heap is still in one piece: the framebuffer (lcd), every
         # font (bold26 alone is 10.9 KB) and the 32 KB that HTTPS borrows for each call. Everything

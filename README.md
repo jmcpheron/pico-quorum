@@ -182,10 +182,10 @@ console up to the README:
 
 | | image | release fingerprint |
 |---|---|---|
-| <img src="docs/releases/badges/console-blockie.svg" width="32" height="32" alt=""> | **console** | `39a5749ef170754d6295385725a877c99389ed6be4b5234c6e4b7f5547a3ac1b` |
-| <img src="docs/releases/badges/ceremony-blockie.svg" width="32" height="32" alt=""> | **ceremony** | `cd387e337e9825009629f06c25663ab26baca5dc4008aa17a09b9f356aa30807` |
-| <img src="docs/releases/badges/brand-blockie.svg" width="32" height="32" alt=""> | **brand** | `a2eb567d5fb41cb5795e7749dd84ce5f2700ae551556cae7fbfc138d6463bd5e` |
-| <img src="docs/releases/badges/dual-blockie.svg" width="32" height="32" alt=""> | **dual** | `2560ae85caf5996ae1634b21a3ca07ee59eb53fa9bbcd9ca4d856204594b8993` |
+| <img src="docs/releases/badges/console-blockie.svg" width="32" height="32" alt=""> | **console** | `a675bcda48ac88c50abf8a59b3f809e30215bc36be3f0aec9bd6a1683f01f150` |
+| <img src="docs/releases/badges/ceremony-blockie.svg" width="32" height="32" alt=""> | **ceremony** | `538dbcd9fe0bcec70feb2e1d370ea58b08af8aa7644cf6d7a7fcd2a2509d67e8` |
+| <img src="docs/releases/badges/brand-blockie.svg" width="32" height="32" alt=""> | **brand** | `e710fe16e3738300ca9dbc9ada732abb1b8dcd3daa990ecdbd2214d641e304a8` |
+| <img src="docs/releases/badges/dual-blockie.svg" width="32" height="32" alt=""> | **dual** | `7100a27f2306ba025b6ee2bc820dc45cf8823a8bd989890f39e1dfad47db40ec` |
 
 <!-- build:end -->
 
@@ -221,12 +221,12 @@ in [GOVERNANCE.md](docs/GOVERNANCE.md). Dated notes and photos, mistakes include
 | path | what |
 |---|---|
 | `firmware/` | the console in MicroPython: `quorum.py` and `quorum_ui.py` (the console), `safe_tx.py` (the Safe hash), `decode.py`, `txservice.py`, `webauthn.py`, the chip drivers `trustm.py` and `atecc.py` |
-| `hardware/` | `key-pcb/` (the keys, [key-c](hardware/key-pcb/key-c-usbc/README.md) among them), `wiring/` ([Build 1](hardware/wiring/BUILD1.md), [perfboard](hardware/wiring/SOLDERING.md), [breadboard](hardware/wiring/BREADBOARD.md)), `bom/` |
+| `hardware/` | `key-pcb/` (the keys, [key-c](hardware/key-pcb/key-c-usbc/README.md) among them), `wiring/` ([Build 1](hardware/wiring/BUILD1.md), [perfboard](hardware/wiring/SOLDERING.md), [breadboard](hardware/wiring/BREADBOARD.md), [on an ESP32](hardware/wiring/ESP32.md)), `bom/` |
 | `docs/` | everything to read ([index](docs/README.md)), and the site GitHub Pages serves: the front page, `app/`, `console/`, `brand/` |
 | `web/` | the app's source; `npm run build` writes `docs/app/` |
 | `emu/` | the console in a browser: MicroPython in WebAssembly and a virtual secure element. `build.mjs` writes the console page (`docs/console/`); `tools/emu` adds an editor and the case in 3D, for development |
 | `test-vectors/` | Safe transactions with known-correct hashes, and the suites CI runs |
-| `tools/` | `quorum` (Safes on a fork and on chain), `fw` (build and push images), `emu`, `usb`, `release`, `releases/`, `brand/`, `keypcb`, `wiring` |
+| `tools/` | `quorum` (Safes on a fork and on chain), `fw` (build and push images), `emu`, `usb`, `release`, `releases/`, `brand/`, `keypcb`, `wiring`, `wiring-esp32` |
 | `contracts/` | PicoQuorum's own contracts, when there are any; today each key owns a Safe through Safe's passkey signer |
 | `buildlog/` | dated notes and photos |
 

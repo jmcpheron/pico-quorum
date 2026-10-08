@@ -25,9 +25,13 @@ TIMEOUT_TLS = 15       # api.safe.global: a full TLS handshake on the Pico each 
 # 0.9 s in 36 KB. So 40 KB. The body is not read into it: a 6.7 KB queue read as pieces then
 # joined needed a 48 KB hole, so it goes into BODY, a buffer of its own kept from boot, and is
 # copied out only once the connection is closed and the reserve taken back.
-RESERVE = 40 * 1024
+# On an ESP32 mbedTLS takes its memory from ESP-IDF's heap, not MicroPython's (rp2's takes it from
+# the GC heap), so a reserve there would only keep that memory from it: none.
+RESERVE = 0 if sys.platform == "esp32" else 40 * 1024
 BODY = 16 * 1024        # a bigger queue: MemoryError, and quorum.fetch_queue asks for 3 transactions
-ON_BOARD = sys.platform == "rp2"     # the emulator's `requests` is the host's curl, which checks certificates itself
+# A board checks certificates itself (vhttp.py); the emulator's `requests` is the host's curl, which
+# checks them itself. MicroPython's own `requests` on a board checks nothing, so never that.
+ON_BOARD = sys.platform in ("rp2", "esp32")
 _early = None
 _body = None
 

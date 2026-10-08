@@ -24,6 +24,7 @@
 # test-vectors/trustm_test.py walks the whole thing on the virtual chip.
 import time
 import hashlib
+import board
 import json
 import os
 import tmcfg
@@ -206,7 +207,7 @@ class Ceremony:
         A full flash costs the record, never the ceremony."""
         ok, checks, msg = out
         e = {"step": step, "ok": ok, "checks": [[l, bool(v)] for l, v in checks], "msg": msg, "sec": self.sec,
-             "time": time.time(), "profile": self.profile}
+             "time": board.unix(), "profile": self.profile}
         if self.extra:
             e.update(self.extra)
         try:
@@ -273,7 +274,7 @@ class Ceremony:
                 objs["%04X" % oid] = "error %s" % e
         snap = {"uid": "".join("%02x" % b for b in self.uid), "serial": self.serial, "metadata": objs,
                 "cert": "".join("%02x" % b for b in der), "issuer": cert["issuer"], "certSerial": cert["serial"],
-                "sec": self.sec, "time": time.time(), "state": state}
+                "sec": self.sec, "time": board.unix(), "state": state}
         with open(snapshot_path(self.serial), "w") as f:
             json.dump(snap, f)
 
@@ -333,7 +334,7 @@ class Ceremony:
             pass
         der, cert = self._cert()
         x, y = self.key
-        rec = tmcfg.record_encode(self.serial, tmcfg.KEY, x, y, self.owner(), time.time(), image.BUILD)
+        rec = tmcfg.record_encode(self.serial, tmcfg.KEY, x, y, self.owner(), board.unix(), image.BUILD)
         bnd = tmcfg.binding_encode(self.binding[0], self.binding[1], der)
         self.chip.set_data(tmcfg.RECORD, rec)
         self.chip.set_data(tmcfg.BINDING, bnd)

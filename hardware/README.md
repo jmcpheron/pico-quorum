@@ -5,7 +5,8 @@ Console and key electronics. The goals are in [`../docs/KICKOFF.md`](../docs/KIC
 - [`DEV-CONSOLE.md`](DEV-CONSOLE.md): the no-solder dev console (Pico 2 W, Waveshare Pico-LCD-1.3,
   an ATECC608 breakout), from picowallet
 - [`wiring/`](wiring/): the key connector pinout and console schematics; Build 1 in
-  [`wiring/BUILD1.md`](wiring/BUILD1.md) (its build order, rules and firmware to do), and on a breadboard in [`wiring/BREADBOARD.md`](wiring/BREADBOARD.md)
+  [`wiring/BUILD1.md`](wiring/BUILD1.md) (its build order, rules and firmware to do), and on a breadboard in [`wiring/BREADBOARD.md`](wiring/BREADBOARD.md);
+  the same parts on an ESP32 DevKit instead of a Pico in [`wiring/ESP32.md`](wiring/ESP32.md)
 - [`bom/`](bom/): the parts list and sourcing notes
 - [`key-pcb/`](key-pcb/): the key's board. Rev A makes the board itself the plug (gold fingers into
   a card-edge socket). It has two KiCad projects, the fab files, and how to order them

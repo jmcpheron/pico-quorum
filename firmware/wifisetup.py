@@ -17,6 +17,7 @@
 import os
 import time
 import network
+import board
 import lcd as L
 import theme as T
 import wificfg
@@ -648,9 +649,8 @@ def run():
 def start():
     """The same on a timer, so the emulator's REPL stays free (tools/emu exec, --key)."""
     global _timer
-    from machine import Timer
     _setup()
-    _timer = Timer(period=40, mode=Timer.PERIODIC, callback=lambda t: step())
+    _timer = board.timer("setup", 40, lambda t: step())
 
 
 def stop():

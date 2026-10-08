@@ -19,6 +19,7 @@
 import socket
 import time
 import json as _json
+import board
 
 CA_FILES = ("ca_amazon_root1.bin", "ca_amazon_root3.bin", "ca_starfield_g2.bin")
 MAX_BODY = 48 * 1024
@@ -40,11 +41,11 @@ def clock(floor=0):
     """Set the clock from NTP unless it already looks right. Raises OSError if it cannot be set:
     without a clock every certificate looks not yet valid. floor: the build's date, so an answer
     from before the firmware was built (an attacker on the network rolling it back) is refused."""
-    if time.gmtime()[0] >= MIN_YEAR and time.time() >= floor:
+    if time.gmtime()[0] >= MIN_YEAR and board.unix() >= floor:
         return
     import ntptime
     ntptime.settime()
-    if time.gmtime()[0] < MIN_YEAR or time.time() < floor:
+    if time.gmtime()[0] < MIN_YEAR or board.unix() < floor:
         raise OSError("clock not set (NTP)")
 
 
