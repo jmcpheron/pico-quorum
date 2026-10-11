@@ -22,6 +22,8 @@ Console and key electronics. The goals are in [`../docs/KICKOFF.md`](../docs/KIC
   pins: the Pico 2 W soldered on the back as a module, a bare 1.54″ panel, seven buttons and pads
   for the key's wires, 51 × 85 mm. Written by a script, routed, self-checked; not yet checked in
   KiCad, not ordered
+- [`devkit-s3/`](devkit-s3/PLAN.md): a plan for a bare-bones ESP32-S3 board, with one key bus for
+  every kind of key, a knob header and every spare pin broken out. Priced, not drawn
 
 The inherited picowallet wiring (Pico + Waveshare LCD + ATECC608 + 18650) is in
 [`wiring/SOLDERING.md`](wiring/SOLDERING.md) and `tools/wiring`.
