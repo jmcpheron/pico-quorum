@@ -53,7 +53,7 @@ Only the connector differs. **One key at a time:** they all share the bus.
      A key shows its 5.1 kΩ on both.
    - The circuit is console-a's ([README](../console-pcb/README.md#the-key-port)), as
      [PROPOSALS.md](../key-pcb/PROPOSALS.md#the-console-end-of-key-c) asks.
-2. **A STEMMA QT socket** (J3, JST SH 4-pin): Adafruit's ATECC608 breakout (4209), the chip the
+2. **A STEMMA QT socket** (J3, JST SH 4-pin): Adafruit's ATECC608 breakout (4314), the chip the
    bench test used, plugs in with its cable.
 3. **A 1×8 key header** in rev A's finger order: GND, SDA, SCL, VKEY, ID, (none), RST, DETECT.
    - It serves a card-edge socket for key-a or key-b, key-d's pogo block, or a cartridge not yet
