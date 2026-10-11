@@ -24,6 +24,8 @@ Console and key electronics. The goals are in [`../docs/KICKOFF.md`](../docs/KIC
   KiCad, not ordered
 - [`devkit-s3/`](devkit-s3/PLAN.md): a plan for a bare-bones ESP32-S3 board, with one key bus for
   every kind of key, a knob header and every spare pin broken out. Priced, not drawn
+- [`BUILDS.md`](BUILDS.md): consoles built from shopping lists instead: a board with a screen and a
+  Qwiic port, the upstream build tidied, ESP32 boards with screens, and a dev board on a carrier PCB
 
 The inherited picowallet wiring (Pico + Waveshare LCD + ATECC608 + 18650) is in
 [`wiring/SOLDERING.md`](wiring/SOLDERING.md) and `tools/wiring`.
