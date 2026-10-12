@@ -15,6 +15,7 @@
 //                            into the board's secrets.py (the old file is kept as secrets.bak).
 //   push console|ceremony    backup, then the plan (copy, delete stale, keep, ask), "yes", then:
 //                            maintenance, copy, check every hash, delete stale, leave maintenance.
+//                            On a board with ROMFS (the Cardputer), the modules go there as one image.
 //   restore DIR [--exact] [--secrets]   a backup back onto the board (secrets.py only with --secrets;
 //                            --exact also deletes files that are not in the backup)
 //   measure tls              runs tools/board/measure_tls.py on the board, in RAM only
@@ -157,6 +158,35 @@ function boardFiles(opts) {
   const out = run(LIST_PY, opts);
   if (!/FILESDONE/.test(out)) die(`the file listing did not finish:\n${out.slice(-600)}`);
   return out.split(/\r?\n/).filter((l) => l.startsWith("FILE:")).map((l) => JSON.parse(l.slice(5))).map(([name, size, sha]) => ({ name, size, sha }));
+}
+
+// ROMFS (the Cardputer's MicroPython, tools/micropython-s3): a read-only partition mounted at /rom
+// that runs modules in place from flash, so their bytecode costs no RAM. On such a board every
+// compiled module of the image lives at rom/<name> and everything else at its own name. A board
+// without the partition keeps them all at their names, as before.
+const ROM = "rom/";
+let romfs = null;
+function hasRomfs() {
+  if (romfs === null) romfs = tagged(run("import vfs\nprint('ROMFS:%d' % (vfs.rom_ioctl(1) if hasattr(vfs, 'rom_ioctl') else 0))"), "ROMFS") > 0;
+  return romfs;
+}
+const place = (n) => (hasRomfs() && n.endsWith(".mpy") ? ROM + n : n);
+
+// The image's modules as one ROMFS image, written over the partition. The modules imported before
+// it (board.py, from the old image) now point at flash that holds something else, so the board is
+// soft-reset before anything else runs, and then every module's hash is checked where it landed.
+function deployRom(b) {
+  const dir = b.dir + "-rom";
+  rmSync(dir, { recursive: true, force: true });
+  mkdirSync(dir, { recursive: true });
+  const mods = b.names.filter((n) => n.endsWith(".mpy"));
+  for (const n of mods) copyFileSync(join(b.dir, n), join(dir, n));
+  const r = mp(["romfs", "--no-mpy", "deploy", dir], { timeout: 240000 });
+  if (r.code !== 0 || !/ROMFS image deployed/.test(r.out)) die(`the ROMFS deploy failed (maint is still on the board):\n${r.out.slice(-600)}`);
+  const now = new Map(boardFiles({ resume: false }).map((f) => [f.name, f.sha]));
+  const bad = mods.filter((n) => now.get(ROM + n) !== sha256(readFileSync(join(b.dir, n))));
+  if (bad.length) die(`these are not in ROMFS as built: ${bad.join(", ")} (the board stays in maintenance; push again)`);
+  paused = null;
 }
 
 function boardId() {
@@ -344,10 +374,10 @@ async function verify({ baseline = false } = {}) {
   console.log(`image: ${image || "none (a development board: main.py is " + (/wallet/.test(mainSrc) ? "the legacy wallet" : "something else") + ")"}${onBoard ? `, version ${onBoard[1] || "none"}, build ${onBoard[2]}, release ${onBoard[3] === "-" ? "none" : short(onBoard[3])}` : ""}`);
   if (image) {
     const b = build(image);          // this checkout, built the same way a push would
-    const want = new Map(b.names.filter((n) => n !== "build.py").map((n) => [n, sha256(readFileSync(join(b.dir, n)))]));
+    const want = new Map(b.names.filter((n) => n !== "build.py").map((n) => [place(n), sha256(readFileSync(join(b.dir, n)))]));
     const differ = [...want].filter(([n, h]) => files.find((f) => f.name === n)?.sha !== h).map(([n]) => n);
     if (differ.length) { ok = false; console.log(`  differs from this checkout: ${differ.join(", ")}`); }
-    else console.log(`  every file of the ${image} image matches this checkout (${want.size}), release ${short(b.release)}`);
+    else console.log(`  every file of the ${image} image matches this checkout (${want.size}${hasRomfs() ? ", modules in ROMFS" : ""}), release ${short(b.release)}`);
     const extra = files.map((f) => f.name).filter((n) => !want.has(n) && n !== "build.py" && !matches(M.preserve, n));
     const keys = extra.filter((n) => matches(M.flag, n)), stale = extra.filter((n) => !matches(M.flag, n));
     if (stale.length) { ok = false; console.log(`  not part of the image: ${stale.join(", ")}`); }
@@ -492,12 +522,18 @@ async function push(image) {
     console.log("note: no QUORUM_EXPECT in the board's secrets.py yet: the console will start on the Not pinned screen (tools/fw pin)");
   const { dir: bdir, files } = backup();
   const board = new Map(files.map((f) => [f.name, f.sha]));
-  const copy = b.names.filter((n) => board.get(n) !== sha256(readFileSync(join(b.dir, n))));
+  const differs = (n) => board.get(place(n)) !== sha256(readFileSync(join(b.dir, n)));
+  const copy = b.names.filter((n) => !place(n).startsWith(ROM) && differs(n));
+  const places = b.names.map(place);
+  // ROMFS is written whole: again when any module differs, or it holds one the image doesn't.
+  const rom = hasRomfs() && (b.names.some((n) => place(n).startsWith(ROM) && differs(n)) ||
+    files.some((f) => f.name.startsWith(ROM) && !places.includes(f.name)));
   const keep = files.map((f) => f.name).filter((n) => matches(M.preserve, n));
   const flagged = files.map((f) => f.name).filter((n) => matches(M.flag, n));
-  const stale = files.map((f) => f.name).filter((n) => !b.names.includes(n) && !matches(M.preserve, n) && !matches(M.flag, n));
+  const stale = files.map((f) => f.name).filter((n) => !n.startsWith(ROM) && !places.includes(n) && !matches(M.preserve, n) && !matches(M.flag, n));
   console.log(`\npush ${image} ${M.version || ""} ${b.id} to ${port()}:`);
   console.log(`  copy (${copy.length}): ${copy.join(" ") || "nothing, it is all there"}`);
+  if (hasRomfs()) console.log(`  ROMFS: ${rom ? `write the image's ${b.names.filter((n) => n.endsWith(".mpy")).length} modules` : "as built already"}`);
   console.log(`  delete, not part of the image (${stale.length}): ${stale.join(" ") || "none"}`);
   console.log(`  keep (${keep.length}): ${keep.join(" ")}`);
   if (flagged.length) console.log(`  a software key is on the board: ${flagged.join(" ")} (kept; delete it by hand once you are sure)`);
@@ -507,7 +543,8 @@ async function push(image) {
   paused = null; // the reset discarded the old app; rediscover state on the fresh board
   copyChecked(copy.map((n) => [join(b.dir, n), n]));
   removeOnBoard(stale);
-  console.log(`copied ${copy.length}, deleted ${stale.length}, every hash checked. Restarting out of maintenance...`);
+  if (rom) deployRom(b);
+  console.log(`copied ${copy.length}${rom ? ", wrote ROMFS" : ""}, deleted ${stale.length}, every hash checked. Restarting out of maintenance...`);
   await leaveMaintenance();
   return verify();
 }
@@ -525,9 +562,10 @@ async function restore(dir) {
   const kept = (n) => matches(M.preserve, n) || matches(M.flag, n);
   const { files: nowFiles } = backup();
   const now = nowFiles.map((f) => f.name);
-  const put = sums.filter(({ n }) => n !== "maint" && (secret(n) ? withSecrets : !kept(n) || !now.includes(n)));
+  // ROMFS is read-only: its modules come back with tools/fw push, not here.
+  const put = sums.filter(({ n }) => n !== "maint" && !n.startsWith(ROM) && (secret(n) ? withSecrets : !kept(n) || !now.includes(n)));
   for (const { h, n } of put) if (sha256(readFileSync(join(dir, n))) !== h) die(`${n} in the backup no longer matches its SHA256SUMS line`);
-  const drop = has("--exact") ? now.filter((n) => n !== "maint" && !sums.some((s) => s.n === n) && !kept(n) && !secret(n)) : [];
+  const drop = has("--exact") ? now.filter((n) => n !== "maint" && !n.startsWith(ROM) && !sums.some((s) => s.n === n) && !kept(n) && !secret(n)) : [];
   console.log(`restore ${dir}:\n  copy ${put.length} files${withSecrets ? " (secrets.py too)" : " (not secrets.py)"}\n  delete ${drop.length}: ${drop.join(" ") || "none"}`);
   if (!(await ask("The board goes into maintenance first."))) die("nothing changed");
   await enterMaintenance();

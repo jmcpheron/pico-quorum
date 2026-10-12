@@ -1,0 +1,7 @@
+# The Cardputer's 8 MiB: MicroPython, then 1 MiB of ROMFS for the console image (about 360 KB today).
+# MicroPython adds "vfs" (the files: secrets.py, logs) from 0x300000 to the end of flash at boot.
+# Name,   Type, SubType, Offset,   Size,     Flags
+nvs,      data, nvs,     0x9000,   0x6000,
+phy_init, data, phy,     0xf000,   0x1000,
+factory,  app,  factory, 0x10000,  0x1F0000,
+romfs,    data, 0x8f,    0x200000, 0x100000,

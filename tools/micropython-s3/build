@@ -1,0 +1,31 @@
+#!/bin/sh
+# Build MicroPython for the Cardputer console (PICOQUORUM_CARDPUTER, README.md).
+#   tools/micropython-s3/build          -> tools/micropython-s3/out/firmware.bin and its SHA-256
+# Needs a MicroPython checkout ($MP_DIR, default ~/esp/micropython) and ESP-IDF ($IDF_PATH, default
+# ~/esp/esp-idf, installed with ./install.sh esp32s3). Each must be at the commit pinned below: the
+# script refuses anything else, so two people building the same commit build the same source.
+set -e
+MP_COMMIT=647c8b96cae7e202c7a020395b7cfe65e5b8ce04     # MicroPython v1.26.1
+IDF_COMMIT=f5c3654a1c2d2a01f7f67def7a0dc48e691f63c0    # ESP-IDF v5.4.2, MicroPython 1.26's recommended one
+BOARD=PICOQUORUM_CARDPUTER
+here="$(cd "$(dirname "$0")" && pwd)"
+MP_DIR="${MP_DIR:-$HOME/esp/micropython}"
+IDF_PATH="${IDF_PATH:-$HOME/esp/esp-idf}"
+
+at() { [ "$(git -C "$1" rev-parse HEAD)" = "$2" ] || { echo "$1 is not at $2 (git -C $1 checkout $2)" >&2; exit 1; }; }
+at "$MP_DIR" "$MP_COMMIT"
+at "$IDF_PATH" "$IDF_COMMIT"
+
+# The board goes in as a copy, so the checkout's own boards stay as upstream has them.
+rm -rf "$MP_DIR/ports/esp32/boards/$BOARD"
+cp -R "$here/$BOARD" "$MP_DIR/ports/esp32/boards/$BOARD"
+
+. "$IDF_PATH/export.sh" >/dev/null
+# mpy-cross runs on this computer; newer clang (Xcode 26) stops on a warning in 1.26.1's static asserts.
+make -C "$MP_DIR/mpy-cross" -j8 CFLAGS_EXTRA=-Wno-gnu-folding-constant >/dev/null
+make -C "$MP_DIR/ports/esp32" BOARD="$BOARD" submodules >/dev/null
+make -C "$MP_DIR/ports/esp32" BOARD="$BOARD" -j8
+
+mkdir -p "$here/out"
+cp "$MP_DIR/ports/esp32/build-$BOARD/firmware.bin" "$here/out/firmware.bin"
+cd "$here/out" && shasum -a 256 firmware.bin

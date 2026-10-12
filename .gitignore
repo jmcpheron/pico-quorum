@@ -45,3 +45,6 @@ hardware/key-pcb/out/
 web/node_modules/
 web/src/config.gen.mjs
 web/.scratch/
+
+# tools/micropython-s3/build: the MicroPython it builds
+tools/micropython-s3/out/
