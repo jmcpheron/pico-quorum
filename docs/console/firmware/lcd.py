@@ -6,6 +6,8 @@
 #              (knob.py) and A/B/X/Y (hardware/wiring/BUILD1.md). The console draws at
 #              full native resolution, using small horizontal strips.
 #   esp32:     build1's screen and knob on an ESP32's VSPI (hardware/wiring/ESP32.md)
+#   cardputer: the Cardputer's 240x135 in 5 bands, and its keyboard sending the knob's events
+#              (Keys: ; . turn, Enter presses, Del is B)
 # W and H are the size the apps draw, in pixels; draw with them rather than with numbers.
 #
 # Bands (board.BANDS > 1, the 320x240 panels): the framebuffer holds one horizontal strip of the
@@ -165,12 +167,37 @@ class Keys:
         self.pins = {k: Pin(p, Pin.IN, Pin.PULL_UP) for k, p in KEYS.items()}
         self.last = {k: 1 for k in KEYS}
         self.knob = None
-        if KNOB:
+        self.down = set()       # the Cardputer's keys down at the last scan, by name
+        if board.KEYBOARD:
+            self.sel = [Pin(p, Pin.OUT, value=0) for p in board.ROW_SEL]
+            self.cols = [Pin(p, Pin.IN, Pin.PULL_UP) for p in board.COL_IN]
+        elif KNOB:
             import knob
             self.knob = knob.Knob()
 
+    def _scan(self):
+        """The Cardputer's keyboard: the named keys down now. Leaves line 1 picked (board.py)."""
+        now = set()
+        for line in range(8):
+            for i, p in enumerate(self.sel):
+                p(line >> i & 1)
+            time.sleep_us(30)
+            for col, p in enumerate(self.cols):
+                if not p.value():
+                    name = board.KEYMAP.get((line, col))
+                    if name:
+                        now.add(name)
+        for i, p in enumerate(self.sel):
+            p(1 >> i & 1)
+        return now
+
     def pressed(self):
         """Names of keys that went down since the last call."""
+        if board.KEYBOARD:
+            now = self._scan()
+            out = [k for k in now if k not in self.down]
+            self.down = now
+            return out
         out = self.knob.pressed() if self.knob else []
         for k, p in self.pins.items():
             v = p.value()
@@ -180,6 +207,8 @@ class Keys:
         return out
 
     def held(self, k):
+        if board.KEYBOARD:
+            return k in self._scan()
         if self.knob and k == "press":
             return self.knob.held()
         return self.pins[k].value() == 0

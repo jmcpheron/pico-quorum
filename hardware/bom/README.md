@@ -38,6 +38,50 @@ Still to buy for the full version (from the Build 1 bench, 2026-09-27):
 | caps: 100 nF | key decoupling, the battery gauge |
 | tact switches | Sign (A, GP15) and Reject (Y, GP21), then B and X |
 
+## Cardputer v1.1 console and its key adapter
+
+An M5Stack Cardputer v1.1 as the console, with the key on its Grove port. Bench-tested on
+2026-10-11 under MicroPython 1.26.1: the screen (240×135) and keyboard work, the console firmware
+doesn't run on it yet, and no key has been connected.
+
+The Grove port gives G2 (SDA), G1 (SCL), GND and **5 V**. The ESP32-S3's pins take 3.3 V at most,
+and an ATECC608 run from 5 V needs a high above 3.5 V on SDA and SCL. So the adapter makes 3.3 V
+from the Grove 5 V, and the key and its pull-ups run from that.
+
+To buy (Amazon search terms; check each listing for the point in *notes*):
+
+| part | ~price | search for | notes |
+|---|---|---|---|
+| Grove to female jumper cable | $8 for 5–10 | "Grove 4 pin to female Dupont jumper cable" | HY2.0-4P on one end; it fits the Cardputer's port |
+| AMS1117-3.3 regulator modules | $7 for 10 | "AMS1117 3.3V power supply module" | Grove 5 V in, 3.3 V out to the key |
+| 1N5817 Schottky diodes | $6 for 100 | "1N5817 Schottky diode" | between the regulator and the key's VBUS, so 5 V pushed into the key's plug can't reach the regulator |
+| resistor kit with 2.2 kΩ | $10 | "1/4W resistor assortment kit" | 2.2 kΩ SDA and SCL pull-ups to the key's 3.3 V (key-c has none of its own) |
+| 100 nF ceramic capacitors | $6 for 100 | "100nF ceramic capacitor 0.1uF" | across the key's 3.3 V and GND, at the plug |
+| USB-C **male** plug breakout, with D+ and D− | $8 for 5 | "USB Type C male plug breakout board 24 pin" | the key-c plugs straight onto it. Many boards bring out only VBUS, GND and CC: check D+ and D− have pads |
+| mini breadboard and jumper wires | $10 | "mini breadboard jumper wire kit" | or a perfboard scrap once it works |
+| Adafruit ATECC608 STEMMA QT breakout | $5 | Adafruit 4314 | the stand-in key until the key-c boards arrive; skip it if you have one from the dev console |
+| STEMMA QT to female jumper cable | $1 | Adafruit 4397 | for the breakout. It has its own pull-ups, so it doesn't need the 2.2 kΩ |
+
+About $60, most of it packs you only use one of. You may have the diodes, resistors and caps from
+Build 1's list already.
+
+How it goes together:
+
+| Grove wire | goes to |
+|---|---|
+| red, 5 V | regulator IN |
+| black, GND | regulator GND, key GND |
+| yellow, G2 | key SDA (key-c: D+), 2.2 kΩ up to the key's 3.3 V |
+| white, G1 | key SCL (key-c: D−), 2.2 kΩ up to the key's 3.3 V |
+
+Regulator OUT goes through the 1N5817 (band toward the key) to the key's VCC (key-c: VBUS). The key
+gets about 3.0 V, inside the ATECC608's 2.0–5.5 V. Put the 100 nF across VCC and GND near the plug.
+
+This is a bench adapter for one key, nothing else in the plug. The v1.1's Grove port has only two
+signal pins, so it can't switch the key's power or read its CC pins, as
+[the console end of key-c](../key-pcb/PROPOSALS.md#the-console-end-of-key-c) asks. Power is on
+whenever the Cardputer is, and the firmware finds a key by looking for `0x60` on I2C. Label the plug.
+
 ## Key PCB, rev A
 
 The order itself is in [key-pcb/ORDERING.md](../key-pcb/ORDERING.md).
