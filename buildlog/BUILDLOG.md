@@ -687,3 +687,15 @@ the bench app paused; counter 0 went from 22 to 27):
 - **U1's 2.3 s, split:** the P-256 verify is 2.8 s alone in this run, the config CRC 10 ms, the OTP
   and slot 8 reads 210 ms. The verify is the cost.
 - **Self-test 0, Random live, locks `00 00 / FE FF`** at the end.
+
+## 2026-10-12 — the console on a Cardputer v1.1: both Safes reached
+
+An M5Stack Cardputer v1.1 (ESP32-S3, no PSRAM) runs the console with an ATECC608 on its Grove port.
+Stock MicroPython ran out of heap, so a custom build runs the modules from flash (ROMFS). Then every
+HTTPS request failed with `OSError 12`: the Python heap had grown into the memory Wi-Fi and TLS
+need. It is now fixed at 212 KB, part of it from two regions Wi-Fi and TLS never use. The watchdog
+is 30 s on the ESP32 (soft timers don't run during a TLS read), and the Cardputer boots with the
+checklist (the animated mark fragmented the heap). Both Base Sepolia Safes `ok, owner`, a queued
+transaction found, 27–69 KB free. Signing on the device is not tried yet.
+
+Notes: [2026-10-12-cardputer.md](2026-10-12-cardputer.md).
