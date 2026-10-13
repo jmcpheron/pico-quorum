@@ -7,3 +7,7 @@ set(SDKCONFIG_DEFAULTS
     boards/sdkconfig.base
     boards/PICOQUORUM_CARDPUTER/sdkconfig.board
 )
+
+set(MICROPY_SOURCE_BOARD
+    ${MICROPY_BOARD_DIR}/heap.c
+)

@@ -6,13 +6,17 @@
 # once the chip is the pinned one: a watchdog on a board that is being repaired over USB would
 # reset it in the middle of a copy.
 # On an ESP32 the feeding timer is a soft one (board.timer; MicroPython has no hard timers there): it
-# runs between bytecodes and while a socket waits, not inside one long C call. Not yet tried there.
+# runs between bytecodes and in sleeps, not inside one C call, and a socket read that waits for
+# Safe's service is one: a 500 ms timer ran 0 times in a 6.7 s TLS read on the Cardputer, and the
+# 8 s watchdog reset it every boot (2026-10-12). Each socket step may wait 15 s (txservice's
+# TIMEOUT_TLS), so the watchdog there waits 30 s.
+import sys
 import time
 import machine
 import micropython
 import board
 
-TIMEOUT_MS = 8000
+TIMEOUT_MS = 30000 if sys.platform == "esp32" else 8000
 _wdt = None
 _timer = None
 _deadline = 0

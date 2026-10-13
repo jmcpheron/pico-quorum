@@ -19,11 +19,16 @@ at "$IDF_PATH" "$IDF_COMMIT"
 # The board goes in as a copy, so the checkout's own boards stay as upstream has them.
 rm -rf "$MP_DIR/ports/esp32/boards/$BOARD"
 cp -R "$here/$BOARD" "$MP_DIR/ports/esp32/boards/$BOARD"
+# patches/ (README.md says what each is for), applied for the build and taken out again after it.
+for p in "$here"/patches/*.patch; do git -C "$MP_DIR" apply "$p"; done
+trap 'for p in "$here"/patches/*.patch; do git -C "$MP_DIR" apply -R "$p"; done' EXIT
 
 . "$IDF_PATH/export.sh" >/dev/null
 # mpy-cross runs on this computer; newer clang (Xcode 26) stops on a warning in 1.26.1's static asserts.
 make -C "$MP_DIR/mpy-cross" -j8 CFLAGS_EXTRA=-Wno-gnu-folding-constant >/dev/null
 make -C "$MP_DIR/ports/esp32" BOARD="$BOARD" submodules >/dev/null
+# ESP-IDF reads the sdkconfig files only into a build without its own sdkconfig: start from them.
+rm -f "$MP_DIR/ports/esp32/build-$BOARD/sdkconfig"
 make -C "$MP_DIR/ports/esp32" BOARD="$BOARD" -j8
 
 mkdir -p "$here/out"

@@ -1,6 +1,7 @@
 # Boot display: a short black lead-in, then the PicoQuorum mark with the real boot status on its
-# last line. secrets.BOOT_ART picks the art: "mark" (the default, bootmark.py: flat vectors, only
-# what changed is sent to the panel, runs on every panel), "still" (the finished mark at once) or
+# last line. secrets.BOOT_ART picks the art: "mark" (the default but on the Cardputer, bootmark.py:
+# flat vectors, only what changed is sent to the panel, runs on every panel), "still" (the finished
+# mark at once) or
 # "orbit" (bootart.py: the full orbit, the whole panel every frame, ~8-10 fps on the Pico; strip-
 # buffered 240-row panels only, others get the mark) or "checklist" (the chip and a row per step,
 # no art). The console calls finish before starting its
@@ -70,12 +71,17 @@ def pause(on=True):
     _paused = on
 
 
+# The Cardputer's default is the checklist: the mark, drawing while the console loads, left its heap
+# in holes too small for the next 1,280 bytes, with 107 KB free (2026-10-12).
+DEFAULT_ART = "checklist" if board.KEYBOARD else "mark"
+
+
 def _choice():
     try:
         import secrets
-        return getattr(secrets, "BOOT_ART", "mark")
+        return getattr(secrets, "BOOT_ART", DEFAULT_ART)
     except ImportError:
-        return "mark"
+        return DEFAULT_ART
 
 
 def begin():

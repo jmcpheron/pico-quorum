@@ -25,12 +25,16 @@ _set = None                 # a candidate font set from tools/fonts/gen.py --try
 
 class Font:
     def __init__(self, path):
-        b = bytearray(os.stat(path)[6])         # framebuf wants a writable buffer
-        with open(path, "rb") as f:
-            f.readinto(b)
-        if b[:3] != b"QF\x01":
+        try:                                    # in ROMFS (tools/micropython-s3): read in place from flash
+            b = memoryview(open("/rom/" + path, "rb"))
+        except OSError:
+            b = bytearray(os.stat(path)[6])     # a FrameBuffer wants a writable buffer
+            with open(path, "rb") as f:
+                f.readinto(b)
+        if bytes(b[:3]) != b"QF\x01":
             raise ValueError(path + " is not a font")
         self.height, self.ascent, self.first, self.count = b[3], b[4], b[5], b[6]
+        self.rom = not isinstance(b, bytearray)
         self.buf = b
         self.data = memoryview(b)[8 + 8 * self.count:]
         self.glyphs = {}
@@ -43,7 +47,9 @@ class Font:
             if not 0 <= i < self.count:
                 i = ord("?") - self.first
             off, w, h, xo, yo, adv = struct.unpack_from("<HBBbbB", self.buf, 8 + 8 * i)
-            fb = framebuf.FrameBuffer(self.data[off:off + h * ((w + 1) // 2)], w, h, framebuf.GS4_HMSB) if w else None
+            px = self.data[off:off + h * ((w + 1) // 2)]
+            # blit takes a read-only source as (buffer, w, h, format): the glyph stays in flash
+            fb = ((px, w, h, framebuf.GS4_HMSB) if self.rom else framebuf.FrameBuffer(px, w, h, framebuf.GS4_HMSB)) if w else None
             g = self.glyphs[c] = (fb, xo, yo, adv)
         return g
 

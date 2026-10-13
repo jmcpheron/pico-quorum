@@ -14,7 +14,7 @@
 #            place of the knob (lcd.Keys). Always this one on an ESP32-S3. The key goes on the
 #            Grove port through a 3.3 V adapter (hardware/bom/README.md). It needs the MicroPython
 #            in tools/micropython-s3, which runs the modules from flash (ROMFS): on stock MicroPython
-#            the console runs out of heap. Console up on the bench (2026-10-12); no key on it yet.
+#            the console runs out of heap. On the bench with a key and two Safes (2026-10-12).
 # W x H is what the apps draw, X_OFF where that sits on the panel (0 when they draw all of it).
 # BANDS: retain full native resolution, but only buffer 30 rows at a time (19,200 bytes at 320 wide,
 # 14,400 at 240). Any panel whose whole frame would be over 45 KB is drawn this way: the 240x240

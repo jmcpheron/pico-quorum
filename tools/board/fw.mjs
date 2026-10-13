@@ -162,24 +162,26 @@ function boardFiles(opts) {
 
 // ROMFS (the Cardputer's MicroPython, tools/micropython-s3): a read-only partition mounted at /rom
 // that runs modules in place from flash, so their bytecode costs no RAM. On such a board every
-// compiled module of the image lives at rom/<name> and everything else at its own name. A board
-// without the partition keeps them all at their names, as before.
+// compiled module and font of the image lives at rom/<name> (fonts.py reads the fonts in place
+// too) and everything else at its own name. A board without the partition keeps them all at their
+// names, as before.
 const ROM = "rom/";
 let romfs = null;
 function hasRomfs() {
   if (romfs === null) romfs = tagged(run("import vfs\nprint('ROMFS:%d' % (vfs.rom_ioctl(1) if hasattr(vfs, 'rom_ioctl') else 0))"), "ROMFS") > 0;
   return romfs;
 }
-const place = (n) => (hasRomfs() && n.endsWith(".mpy") ? ROM + n : n);
+const romOnly = (n) => n.endsWith(".mpy") || /^qf_[^/]*\.bin$/.test(n);
+const place = (n) => (hasRomfs() && romOnly(n) ? ROM + n : n);
 
-// The image's modules as one ROMFS image, written over the partition. The modules imported before
+// The image's modules and fonts as one ROMFS image, written over the partition. The modules imported before
 // it (board.py, from the old image) now point at flash that holds something else, so the board is
 // soft-reset before anything else runs, and then every module's hash is checked where it landed.
 function deployRom(b) {
   const dir = b.dir + "-rom";
   rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir, { recursive: true });
-  const mods = b.names.filter((n) => n.endsWith(".mpy"));
+  const mods = b.names.filter(romOnly);
   for (const n of mods) copyFileSync(join(b.dir, n), join(dir, n));
   const r = mp(["romfs", "--no-mpy", "deploy", dir], { timeout: 240000 });
   if (r.code !== 0 || !/ROMFS image deployed/.test(r.out)) die(`the ROMFS deploy failed (maint is still on the board):\n${r.out.slice(-600)}`);
@@ -533,7 +535,7 @@ async function push(image) {
   const stale = files.map((f) => f.name).filter((n) => !n.startsWith(ROM) && !places.includes(n) && !matches(M.preserve, n) && !matches(M.flag, n));
   console.log(`\npush ${image} ${M.version || ""} ${b.id} to ${port()}:`);
   console.log(`  copy (${copy.length}): ${copy.join(" ") || "nothing, it is all there"}`);
-  if (hasRomfs()) console.log(`  ROMFS: ${rom ? `write the image's ${b.names.filter((n) => n.endsWith(".mpy")).length} modules` : "as built already"}`);
+  if (hasRomfs()) console.log(`  ROMFS: ${rom ? `write the image's ${b.names.filter(romOnly).length} modules and fonts` : "as built already"}`);
   console.log(`  delete, not part of the image (${stale.length}): ${stale.join(" ") || "none"}`);
   console.log(`  keep (${keep.length}): ${keep.join(" ")}`);
   if (flagged.length) console.log(`  a software key is on the board: ${flagged.join(" ")} (kept; delete it by hand once you are sure)`);

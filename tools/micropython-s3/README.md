@@ -15,14 +15,26 @@ What it changes from `ESP32_GENERIC_S3` (`PICOQUORUM_CARDPUTER/`):
   on a DTR/RTS pattern, and macOS made that pattern as mpremote closed and reopened the port: the
   board dropped off USB between `tools/fw`'s sessions.
 - **No UART REPL**: GPIO43 and 44 are not a UART on the Stamp-S3A.
+- **A Python heap that never grows** (`mpconfigboard.h`, `heap.c`): 160 KB from the IDF heap's main
+  region, plus the largest blocks of the two regions Wi-Fi and TLS never use (32 KB and 22 KB), 212 KB
+  in all. Stock MicroPython grows its heap into the IDF heap whenever it fills; the console's grew to
+  239 KB and left the IDF heap no block over 8 KB, so every HTTPS request failed with OSError 12.
+  `patches/` holds the two small changes to MicroPython this needs; `build` applies them for the build
+  and takes them out after.
+- **Fewer Wi-Fi buffers and no mDNS** (`sdkconfig.board`, `mpconfigboard.h`), for more IDF heap.
 - The board name is `PicoQuorum Cardputer`. `board.py` picks its `cardputer` profile from the
   `ESP32S3` in `os.uname().machine`.
 
 Measured on a Cardputer v1.1 (2026-10-12):
-- At boot, 242 KB of heap is free, against 209 KB on stock MicroPython.
-- With the console's modules in ROMFS, the console's whole import chain left 107 KB free. Stock
+- With the console's modules and fonts in ROMFS, the whole import chain takes 109 KB. Stock
   MicroPython ran out with `quorum.py` not yet loaded.
-- Running, with Wi-Fi joined: 139 KB free, up in 5.3 s, no `error.log`.
+- The IDF heap's main region, in maintenance: 84 KB free; Wi-Fi joined, 53 KB; one HTTPS session
+  open, 17 KB.
+- The console with an ATECC608 on the Grove port and two Base Sepolia Safes: both `ok, owner`, a
+  queued transaction found, TLS verified, 27-65 KB of Python heap free, no resets or errors over 4
+  minutes of polling.
+- The animated boot mark, drawing while the console loads, left the heap in holes too small for
+  1,280 bytes with 107 KB free, so the Cardputer boots with the checklist (`splash.py`).
 - `tools/fw push` and `tools/fw verify` ran with the modules in ROMFS, including a push that rewrote it.
 
 ## Build it

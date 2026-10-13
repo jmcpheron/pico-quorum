@@ -215,7 +215,7 @@ try:
         import watch
         del log[:]
         watch.start()
-        check(log == [("Timer", 2, 1000), ("WDT", 8000)], "the watchdog: its feeder on timer 2 first, then the watchdog")
+        check(log == [("Timer", 2, 1000), ("WDT", 30000)], "the watchdog: its feeder on timer 2 first, then the watchdog, 30 s")
 
         import txservice
         check(txservice.ON_BOARD and txservice.RESERVE == 0, "TLS checked on the board; no reserve in MicroPython's heap")

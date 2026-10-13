@@ -1,0 +1,14 @@
+diff --git a/ports/esp32/main.c b/ports/esp32/main.c
+index 1523e07..be87515 100644
+--- a/ports/esp32/main.c
++++ b/ports/esp32/main.c
+@@ -132,6 +132,9 @@ soft_reset:
+     // initialise the stack pointer for the main thread
+     mp_cstack_init_with_top((void *)sp, MICROPY_TASK_STACK_SIZE);
+     gc_init(mp_task_heap, mp_task_heap + MICROPY_GC_INITIAL_HEAP_SIZE);
++    #ifdef MICROPY_BOARD_GC_INIT
++    MICROPY_BOARD_GC_INIT(mp_task_heap);
++    #endif
+     mp_init();
+     mp_obj_list_append(mp_sys_path, MP_OBJ_NEW_QSTR(MP_QSTR__slash_lib));
+     readline_init0();

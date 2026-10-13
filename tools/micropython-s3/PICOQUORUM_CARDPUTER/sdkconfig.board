@@ -3,3 +3,11 @@ CONFIG_ESPTOOLPY_FLASHFREQ_80M=y
 CONFIG_ESPTOOLPY_FLASHSIZE_4MB=
 CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
 CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="boards/PICOQUORUM_CARDPUTER/partitions.csv"
+
+# The IDF heap, for Wi-Fi and TLS beside a 208 KB Python heap (mpconfigboard.h). With these at the
+# defaults the console's Safe requests timed out with the IDF heap's main region at 4 bytes free
+# (2026-10-12). Fewer Wi-Fi buffers: the console reads a few KB at a time, not a stream.
+CONFIG_ESP_WIFI_STATIC_RX_BUFFER_NUM=4
+CONFIG_ESP_WIFI_DYNAMIC_RX_BUFFER_NUM=16
+CONFIG_ESP_WIFI_DYNAMIC_TX_BUFFER_NUM=16
+CONFIG_ESP_WIFI_AMPDU_TX_ENABLED=n

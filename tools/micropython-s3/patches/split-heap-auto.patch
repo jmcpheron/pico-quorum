@@ -1,0 +1,14 @@
+diff --git a/ports/esp32/mpconfigport.h b/ports/esp32/mpconfigport.h
+index e47b333..5c5032b 100644
+--- a/ports/esp32/mpconfigport.h
++++ b/ports/esp32/mpconfigport.h
+@@ -86,7 +86,9 @@
+ #define MICROPY_PY_THREAD_GIL_VM_DIVISOR    (32)
+ 
+ #define MICROPY_GC_SPLIT_HEAP               (1)
++#ifndef MICROPY_GC_SPLIT_HEAP_AUTO
+ #define MICROPY_GC_SPLIT_HEAP_AUTO          (1)
++#endif
+ 
+ // extended modules
+ #ifndef MICROPY_PY_ESPNOW
