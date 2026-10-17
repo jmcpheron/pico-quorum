@@ -713,3 +713,55 @@ Pico's custom build, the EC11 knob and no buttons, `bench1.py` from maintenance 
 - Not tried: Wi-Fi, HTTPS, the console image, the watchdog. Holding the knob for the chip report
   (`chipcheck`, an ATECC report) with a Trust M on the bus seemed to stall the bench once; not
   looked into.
+
+## 2026-10-16 — the console on an ESP32-WROVER, and the first ATECC608C on a key-c
+
+An ESP32 with PSRAM (MicroPython 1.26.1, the `ESP32_GENERIC-SPIRAM` build, board id
+`f42dc976eaf8`) on the breadboards of [ESP32.md](../hardware/wiring/ESP32.md), with the screen and
+the EC11 knob, then two key-c boards (P2, ATECC608C) from the JLCPCB order. Nothing was locked or
+written on either chip.
+
+- **The console image, with `tools/fw`:** the board had an older console image. `tools/fw push
+  console` put 2026.10.10 (`b2187163`, release `a675·bcda`) on it, and `verify` matched all 50
+  files. Over the board's USB-serial bridge a backup takes about 3.5 minutes and a push about 5.
+  The first push stopped on `trustm.mpy` (mpremote: "timeout waiting for first EOF reception"). The
+  board stayed in maintenance, and a second push copied the last 3 files.
+- **The screen was black with the backlight on,** at 24 MHz, at 10 MHz and from an init written from
+  scratch at 1 MHz. A MOSI or CS wire was out of place. Re-seated, it drew.
+- **mpremote's "could not enter raw repl":** its soft reset runs `boot.py` again (the splash, Wi-Fi),
+  which takes longer than mpremote waits. Ctrl-C at the prompt, then `mpremote ... resume`.
+- **The key-c on the bench:** VBUS and GND to the 3.3 V rails, SDA (D+) to IO21, SCL (D−) to IO22.
+  None of the console's end from the key-c page was built: no VBUS switch, no CC sensing, no
+  pull-ups.
+  - The console's probe timed out (13.6 s) on every boot. Both lines idled low: the key-c has no
+    I2C pull-ups (the design puts 2.2 kΩ on the console's side), and on IO21/IO22
+    `atecc.make_i2c` uses SoftI2C, which doesn't turn on the ESP32's own. The Adafruit breakout
+    has its own, so it never showed.
+  - With the ESP32's pull-ups (about 45 kΩ) turned on, `0x60` answered, SDA on IO21.
+- **Chip `0123e063db3354d7ee`, `chipcheck` and a read-only lab script:**
+  - Revision `00006005`. `chipcfg.REVISIONS` and `chipcheck` know only `6002` (608A) and `6003`
+    (608B), so they print "unknown".
+  - Config and data zones unlocked. Config bytes 16–127 are byte for byte the 608A factory dump of
+    2026-09-16 (`0123f3ac…`). Only the serial, the revision and bytes 13–14 differ: `61 69` here,
+    `c1 55` on the 608A.
+  - Random: `ffff0000…`, as on any unlocked chip. Info: KeyValid 0 for slots 0–2, State 0. Mode 3
+    (GPIO) was refused with status `0x03`.
+  - Counters 0 and 1: both 0, after the slot-table probe.
+  - SelfTest passed: all at once, then RNG, ECDSA verify, ECDSA sign, ECDH, AES and SHA one at a
+    time, 260–320 ms each.
+  - The chip's SHA-256 of 0, 3, 21 and 63 bytes equalled `hashlib`'s.
+  - 50 config reads at each of 50, 100, 200 and 400 kHz on the internal pull-ups: no errors. Those
+    are the clocks asked of SoftI2C; the real ones weren't measured. 400 kHz was barely faster than
+    200 (71 against 75 ms a read).
+- **The console with a 608C:** started from RAM with the pull-ups on (`boot.py`, the pins, then
+  `import main`). Its probe took 3.9 s and logged `new chip 0123e063db3354d7ee: chip 2, factory,
+  theme light`, then `pin FAIL ... (secrets.py has no QUORUM_EXPECT)`. The unknown revision didn't
+  stop it. It lasts until the board restarts.
+- **Hot-plug:** with the console paused, a script woke the chip and read its serial every 300 ms,
+  and changed the screen after two reads that agreed. Over 150 s: 11 changes, two chips
+  (`0123e063db3354d7ee` and `0123147ac8c5b889ee`), the plug both ways round. Every insertion read
+  the right serial, and the ESP32 never reset, with key power straight from the 3.3 V rail. The
+  console itself reads the chip only at boot and on Check again.
+- Open: pull-ups for the console on an ESP32 (two resistors, or the internal ones turned on in
+  `atecc.make_i2c`, which is a new release); `00006005` in `chipcfg.REVISIONS` and `chipcheck`; the
+  CC pins (DETECT), not wired here.

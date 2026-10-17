@@ -267,6 +267,14 @@ and A held for 3 s.
   "Never used: 0 signatures" must count the bench's reads, or the bench must not read slot 0.
 - Every write, lock and key command after the seal is refused, GenKey on slot 0 included.
 
+**The first 608C, on a key-c, 2026-10-16** ([buildlog](../buildlog/BUILDLOG.md)), read only, with
+nothing locked:
+- Revision: **`00006005`**. `chipcfg.REVISIONS` and `chipcheck` don't know it yet.
+- Factory table: **config bytes 16–127 are the 608A's, byte for byte.** Only the serial, the
+  revision and bytes 13–14 differ (`61 69` against the 608A's `c1 55`).
+- Counters 0 and 1 are both 0, after the slot-table probe. SelfTest passes on the unlocked chip.
+- The rest of this list needs locks, so it waits for a spare 608C.
+
 ## The chip on every screen
 
 Every step, on the bench and on the user's console, shows the chip under its header, so the wizard

@@ -13,7 +13,7 @@ Build 1's parts on an ESP32 DevKit instead of a Pico 2 W:
 The firmware is the same image as the Pico's. On an ESP32, `firmware/board.py` always picks its
 `"esp32"` profile, so there is nothing to set but the screen size.
 
-**The bench test has run on an ESP32; the console has not.** What has been checked, and how:
+**The bench test has run on a WROOM-32, and the console on a WROVER.** What has been checked, and how:
 
 - Every MicroPython call on the ESP32 path was read against MicroPython 1.26's ESP32 port: pins,
   SPI, I2C, timers, the pulse counter, the clock, TLS.
@@ -27,8 +27,14 @@ with MicroPython 1.26.1, the 2.8″ and the EC11 knob, from maintenance mode. `t
 at 24 MHz as board.py sets it, the knob counted turns and presses, and both chips read on IO21/IO22:
 a Trust M at 0x30 and an ATECC608A at 0x60.
 
+On hardware, 2026-10-16: an ESP32 with PSRAM and MicroPython's SPIRAM build. `tools/fw push console`
+put the console image on it and `tools/fw verify` matched every file. A backup over the serial
+bridge takes about 3.5 minutes and a push about 5; a push that times out leaves the board in
+maintenance, and a second push finishes it. The console started, joined Wi-Fi and ran with a key-c's
+ATECC608C once IO21/IO22 had pull-ups (see [The chip](#the-chip)).
+
 Not yet checked on hardware: which way the knob counts and how many steps per click, the 2.0″ and
-2.4″, the buttons, Wi-Fi, HTTPS, the watchdog, the console image, or `tools/fw`.
+2.4″, the buttons, HTTPS, the watchdog, or the whole console on a WROOM-32.
 
 ## Will the whole console fit?
 
@@ -220,6 +226,10 @@ There is no X on the ESP32: the knob's press does what it does.
 As on the Pico ([BREADBOARD.md](BREADBOARD.md#the-chip)): Adafruit's cable is red VIN, black GND,
 blue SDA and yellow SCL. A cable from a mixed kit may use other colors, so find which wire goes to
 which pad with a meter first. Swapping SDA and SCL does no harm. Swapping VIN and GND does.
+
+**A key-c board** ([its page](../key-pcb/key-c-usbc/README.md)) has no I2C pull-ups, and the
+firmware doesn't turn on the ESP32's own. Add a 2.2–4.7 kΩ resistor from IO21 and from IO22 to the
+bottom red rail, or the console finds no chip. Its D+ is SDA and its D− is SCL.
 
 ## Pin map
 
