@@ -227,9 +227,11 @@ As on the Pico ([BREADBOARD.md](BREADBOARD.md#the-chip)): Adafruit's cable is re
 blue SDA and yellow SCL. A cable from a mixed kit may use other colors, so find which wire goes to
 which pad with a meter first. Swapping SDA and SCL does no harm. Swapping VIN and GND does.
 
-**A key-c board** ([its page](../key-pcb/key-c-usbc/README.md)) has no I2C pull-ups, and the
-firmware doesn't turn on the ESP32's own. Add a 2.2–4.7 kΩ resistor from IO21 and from IO22 to the
-bottom red rail, or the console finds no chip. Its D+ is SDA and its D− is SCL.
+**A key-c board** ([its page](../key-pcb/key-c-usbc/README.md)) has no I2C pull-ups. From 2026.10.11
+the firmware turns on the ESP32's own on IO21/IO22 (about 45 kΩ, enough on the bench up to 400 kHz).
+Older images don't, and the console finds no chip. For margin, add a 4.7 kΩ resistor from IO21 and
+from IO22 to the bottom red rail anyway. Its D+ is SDA and its D− is SCL. Setting up a key-c's chip
+on this board is [KEY-RUNBOOK.md](../../docs/KEY-RUNBOOK.md).
 
 ## Pin map
 
@@ -331,7 +333,7 @@ tools/usb                                     # the prompt; Ctrl-] leaves
 - **ESP32 BENCH**, a small **TL** in the top-left corner, and bars reading **red, green, blue,
   white** from left to right
 - **KNOB** counting up by one each click clockwise, and **PUSH** showing DOWN while you press
-- **BUS 60** and **CHIP 608A** or **608B**, a serial number, and the two locks (`config open data
+- **BUS 60** and **CHIP 608A**, **608B** or **608C**, a serial number, and the two locks (`config open data
   open` on a new chip). A Trust M shows **BUS 30**, **CHIP Trust M** and its lifecycle, a serial, and
   its E0F1 key
 
@@ -367,7 +369,8 @@ as for a Pico ([the owner's guide](../../docs/guide/README.md)), and push the co
 - **Nothing may pull IO12 high at power-up**, a KY-040's pull-ups included: the flash gets the wrong
   voltage and the board doesn't start.
 - **Config lock and data lock on the ATECC608 are permanent.** The bench test only reads.
-  `ALLOW_LOCK` and `ALLOW_GENKEY` stay `False` in `secrets.py`.
+  `ALLOW_LOCK` and `ALLOW_GENKEY` stay `False` in `secrets.py`, except during a chip's setup
+  ([KEY-RUNBOOK.md](../../docs/KEY-RUNBOOK.md)), one chip at a time.
 
 ## What changes in the firmware
 

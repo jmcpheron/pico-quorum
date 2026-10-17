@@ -187,8 +187,9 @@ PrivWrite could put a known key into slot 0 (LOCKING.md).
 
 ### Dry run and what is still uncertain
 
-`node test-vectors/run-ceremony.mjs` runs all of C1-C10 on the emulator's virtual chip (608A and
-608B), with a reboot after every step. It also runs the refusals:
+`node test-vectors/run-ceremony.mjs` runs all of C1-C10 on the emulator's virtual chip (608A, 608B
+and 608C), with a reboot after every step. A 608C (revision `00006005`, the key-c's part) has the
+608A's factory table, so C1 takes it from 2026.10.11; none has been through C1-C10 on silicon yet. It also runs the refusals:
 - a table one bit off
 - no arm
 - no `ALLOW_LOCK`

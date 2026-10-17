@@ -33,6 +33,11 @@
 # "project" is the project Safe (docs/GOVERNANCE.md): the one whose approval of a release the app
 # and the pinned service worker check. "" until it exists.
 #
+# "brandKeys" is the brand key, PicoQuorum key 0000 (docs/BRANDED-KEYS.md), by its id
+# SHA-256(qx || qy)[:16]: {"qx", "qy" (hex), "serial"}. The claim checks a chip's brand against it
+# with no network, and the brand bench signs with the chip whose serial it names. {} until key 0000
+# is made: then no chip passes as branded, and the bench brands only a spare with its test key.
+#
 # "messages" is Safe's SignMessageLib, the one delegatecall besides a batch: the project Safe signs a
 # PicoQuorum release with it (release.py), and decode.py refuses any other message.
 #
@@ -68,6 +73,7 @@ CFG = {
     },
     "delegates": {},
     "project": {"chainId": 1, "address": ""},
+    "brandKeys": {},
     "messages": {
         "*": {"0xd53cd0ab83d845ac265be939c57f53ad838012c9": "SignMessageLib 1.4.1"}
     },

@@ -292,7 +292,7 @@ class ChipSigner:
         import chipcfg
         rev = "".join("%02x" % b for b in self.chip.revision())
         cfg = self.config()
-        rows = [("Part", "Microchip ATECC608%s" % {"00006002": "A", "00006003": "B"}.get(rev, "")), ("Revision", rev),
+        rows = [("Part", "Microchip ATECC608%s" % {"00006002": "A", "00006003": "B", "00006005": "C"}.get(rev, "")), ("Revision", rev),
                 ("Serial", self.serial()), ("Config", "%s, zones %s" % (chipcfg.identify(cfg),
                  "locked" if cfg[86] == 0 and cfg[87] == 0 else "config locked" if cfg[87] == 0 else "open"))]
         if row:
@@ -305,7 +305,7 @@ class ChipSigner:
     def info(self, row=None, counter=None):
         """Short facts for the Signing and Device screens, from the chip itself."""
         rev = "".join("%02x" % b for b in self.chip.revision())
-        out = ["Microchip ATECC608%s" % {"00006002": "A", "00006003": "B"}.get(rev, " rev " + rev)]
+        out = ["Microchip ATECC608%s" % {"00006002": "A", "00006003": "B", "00006005": "C"}.get(rev, " rev " + rev)]
         if row:
             out.append("Slot %d: P-256, %s" % (self.slot, "sealed (slot lock)" if row.get("locked") else "not sealed"))
             if row.get("limitedUse"):

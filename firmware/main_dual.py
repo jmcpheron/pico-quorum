@@ -6,6 +6,8 @@
 #   a fresh chip, or a quorum v1 chip not yet sealed -> the ceremony (provision.py)
 #   a fresh Trust M, or one not yet sealed           -> the ceremony (provision_tm.py)
 #   a sealed Trust M, spares open, ALLOW_LOCK on     -> the ceremony, for T9 (freeze the spares)
+#   a branded chip (quorum v2, locked 00/00) with slot 0 not sealed -> the claim (claim.py): its
+#                                                       owner's key is made here
 #   anything else, or no chip                        -> the console (it says Not pinned / No chip)
 # Once the new chip is sealed, enrolled and pinned, the board goes back to the console image.
 #
@@ -25,7 +27,7 @@ def _maintenance():
 
 
 def which():
-    """("console" | "ceremony", serial, profile) for the chip on the bus, an ATECC608 or a Trust M
+    """("console" | "ceremony" | "claim", serial, profile) for the chip on the bus, an ATECC608 or a Trust M
     (signer.load finds it). The ceremony only for a chip that is not the pinned one and is fresh, or
     half way through its ceremony (quorum v1 with the data zone open; a Trust M not yet sealed), or
     a sealed Trust M whose spares are still open while ALLOW_LOCK asks for T9."""
@@ -49,6 +51,10 @@ def which():
         need = s.needs_ceremony()
         if not need and allow_lock and profile == "quorum-tm1":
             need = bool(s.spares_open())        # sealed before T9: only when asked for, never when pinned
+        if not need and profile == "quorum-v2":
+            cfg = s.config()
+            if cfg[86] == 0x00 and cfg[87] == 0x00 and cfg[88] & 1:        # both zones locked, slot 0 not sealed
+                return "claim", serial, profile
     except Exception:
         return "console", "", ""
     if need:
@@ -68,6 +74,18 @@ def run():
         image.PRODUCTION = False        # the ceremony honours ALLOW_* (and still needs the arm and a hold)
         import lcd
         import chipapp
+        chipapp.start()
+    elif path == "claim":
+        image.PRODUCTION = False        # as the ceremony: ALLOW_*, the arm and a hold
+        import lcd
+        import fonts                    # brand_ui draws in the console's fonts
+        for _f in fonts.FILES:
+            fonts.get(_f)
+        import chipapp
+        import claim
+        import brand_ui
+        chipapp.make_ui = lambda d, keys, sig, theme: brand_ui.UI(d, keys, sig, theme, claim.Ceremony(sig))
+        chipapp.TITLE, chipapp.LABEL = "NEW KEY", "CLAIM (make your key)"
         chipapp.start()
     else:
         image.PRODUCTION = True

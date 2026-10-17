@@ -30,6 +30,10 @@ except ImportError:
 def make_i2c(sda, scl, freq):
     if scl == sda + 1 and sda % 4 in (0, 2):
         return I2C(0 if sda % 4 == 0 else 1, sda=Pin(sda), scl=Pin(scl), freq=freq)
+    if board.ESP32:
+        # A key-c has no pull-ups of its own and SoftI2C turns on none: the ESP32's (about 45 kOhm)
+        # were enough on the bench, up to 400 kHz (buildlog 2026-10-16). SoftI2C keeps the pull.
+        return SoftI2C(sda=Pin(sda, Pin.IN, Pin.PULL_UP), scl=Pin(scl, Pin.IN, Pin.PULL_UP), freq=freq)
     return SoftI2C(sda=Pin(sda), scl=Pin(scl), freq=freq)
 
 ADDR = 0x60
@@ -277,7 +281,7 @@ class ATECC608:
         return c[0:4] + c[8:13]
 
     def revision(self):
-        """4 bytes; 00006002 = 608A, 00006003 = 608B."""
+        """4 bytes; 00006002 = 608A, 00006003 = 608B, 00006005 = 608C."""
         return self.run(OP_INFO, 0x00, 0x0000, resp_len=4, wait_ms=2)
 
     def lock_state(self):

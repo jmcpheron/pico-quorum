@@ -1,6 +1,7 @@
 // The bench half of a branded key (test-vectors/brand_test.py) on MicroPython 1.26 in WebAssembly with
-// the emulator's virtual ATECC608: a fresh 608A and 608B branded with the test key, then a key made
-// after the data lock and sealed, the refusals and the knob. Must pass before a real spare is touched.
+// the emulator's virtual ATECC608: a fresh 608A, 608B and 608C branded with the test key, then a key
+// made after the data lock and sealed, the refusals and the knob; then key 0000 pinned, B5 by a swap
+// of chips, and the claim (U1-U5) with its refusals. Must pass before a real spare is touched.
 //   (cd emu && npm ci) && node test-vectors/run-brand.mjs
 import { readFileSync } from "node:fs";
 import { loadMicroPython } from "../emu/node_modules/@micropython/micropython-webassembly-pyscript/micropython.mjs";

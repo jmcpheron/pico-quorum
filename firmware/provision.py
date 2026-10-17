@@ -137,15 +137,18 @@ class Ceremony:
         self.key = None
         self.counter = None
         if self.config_locked:
-            try:
-                self.key = c.pubkey(0)
-            except atecc.AteccError:
-                self.key = None
+            self.key = self.read_key()
             try:
                 self.counter = c.counter(0)
             except atecc.AteccError:
                 pass
         return self
+
+    def read_key(self):
+        try:
+            return self.chip.pubkey(0)
+        except atecc.AteccError:
+            return None
 
     def step(self):
         if not self.config_locked:

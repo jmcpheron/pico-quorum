@@ -227,7 +227,7 @@ def probe():
         chip = atecc.ATECC608(KEY_SDA, KEY_SCL, addr=addr)
         r["serial"] = hexs(chip.serial())
         rev = bytes(chip.revision())
-        r["rev"] = {b"\x00\x00\x60\x02": "608A", b"\x00\x00\x60\x03": "608B"}.get(rev, hexs(rev))
+        r["rev"] = {b"\x00\x00\x60\x02": "608A", b"\x00\x00\x60\x03": "608B", b"\x00\x00\x60\x05": "608C"}.get(rev, hexs(rev))
         r["locks"] = chip.lock_state()
         print("chip: %s serial %s, config %s, data %s" % (r["rev"], r["serial"],
               "LOCKED" if r["locks"]["configLocked"] else "open", "LOCKED" if r["locks"]["dataLocked"] else "open"))

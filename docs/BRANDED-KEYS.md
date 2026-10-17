@@ -1,11 +1,14 @@
 # Branded keys: the bench brands the chip, the user makes the key
 
-> **A proposal (2026-10-07). The bench half is built for a spare chip only** ([the first
-> build](#the-first-build-a-spare-on-build-1)); claim and key 0000 are not. It answers LAUNCH.md section 6, "decide the
-> brand and quorum record before sealing chip #3", and says what a user does with a branded key.
-> The screens below are mockups in the console's own look (the fonts, colours and drawing kit of
-> `firmware/quorum_ui.py`), drawn on the emulator. No firmware has these steps yet. Locks are permanent
-> ([LOCKING.md](LOCKING.md)), so every new step goes on a spare chip first.
+> **A proposal (2026-10-07), now partly built.** The bench half ran on a spare 608A ([the first
+> build](#the-first-build-a-spare-on-build-1)). B5 by key 0000 and the claim, U1–U5, are built and
+> walk on the emulator ([the second build](#the-second-build-key-0000-and-the-claim)), not yet on
+> silicon. Key 0000 doesn't exist yet. How the five key-c 608Cs go through it on the ESP32 is
+> [KEY-RUNBOOK.md](KEY-RUNBOOK.md). It answers LAUNCH.md section 6, "decide the brand and quorum
+> record before sealing chip #3", and says what a user does with a branded key. The mockups below
+> are in the console's own look (the fonts, colours and drawing kit of `firmware/quorum_ui.py`),
+> drawn on the emulator. Locks are permanent ([LOCKING.md](LOCKING.md)), so every new step goes on
+> a spare chip first.
 
 ## The idea in one paragraph
 
@@ -241,7 +244,8 @@ and A held for 3 s.
 - **Proposed for claim:** keep the arm and the hold, and drop `ALLOW_*`. The state check is the gate:
   claim offers its two writes only on a chip that is branded, locked 00/00 and unsealed. A user
   without a laptop can't edit `secrets.py`.
-- **This loosens a guard, so it is for review, not assumed.**
+- **This loosens a guard, so it is for review, not assumed.** The claim as built (2026-10-16) keeps
+  `ALLOW_*`.
 - **After U5, claim writes the pin** (`QUORUM_EXPECT`) itself, as `tools/fw pin` does from the laptop
   today.
 
@@ -421,6 +425,48 @@ The screens as built, from `node tools/board/shots_bench.mjs` (the emulator's 24
 | <img src="branded-keys/bench/b1.png" width="240" alt="B1 Pre-flight on the built screen: the factory chip, Do it or Back on the knob."> | <img src="branded-keys/bench/b2-done.png" width="240" alt="B2 done: quorum v2 written and read back, the config CRC to compare on the laptop."> | <img src="branded-keys/bench/b3-hold.png" width="240" alt="B3 Lock the config, red card, armed, the hold bar half full in red."> |
 | **B5: the test key signs** | **B7: checked** | **S3: seal the spare's key** |
 | <img src="branded-keys/bench/b5.png" width="240" alt="B5 Sign the brand: the test key signs, slot 8 ringed. The OTP shows T0042."> | <img src="branded-keys/bench/b7-done.png" width="240" alt="B7 Check it, done: record, slot 8 read in the clear, signature, and more in brand-log.txt."> | <img src="branded-keys/bench/s3-hold.png" width="240" alt="S3 Seal slot 0 on a red card, armed, the hold bar half full."> |
+
+## The second build: key 0000 and the claim
+
+Built 2026-10-16 for the key-c 608Cs on the ESP32 ([KEY-RUNBOOK.md](KEY-RUNBOOK.md)). It walks on
+the virtual chip (`node test-vectors/run-brand.mjs`). None of it has run on silicon yet.
+
+- **The 608C.** `chipcfg.REVISIONS` knows `00006005`, so B1 and C1 take it. Its factory table is the
+  608A's, so it reads as `factory`.
+- **Key 0000 is pinned in `quorum_cfg.py` as `"brandKeys"`**, by its key id, with its public key and
+  serial. It is `{}` until key 0000 is made. While it is empty, the bench brands only a spare, with
+  the test key, as before.
+- **B5 by a swap, one chip on the bus at a time.** No second receptacle or I2C bus is needed:
+  - The bench asks for this chip out and key 0000 in.
+  - It waits until key 0000's serial reads twice the same. Any other chip is shown as the wrong
+    one.
+  - Key 0000 signs the brand digest, which the bench works out itself from B4's record.
+  - The bench checks the signature under the pinned key. That needs no public-key read, so it
+    costs key 0000 no use.
+  - It asks for this chip back, checks its serial, then writes slot 8.
+  - Key 0000's counter before and after goes into `brand-log.txt`.
+- **`brand-pending-<serial>.bin`** keeps B4's record, then B5's signature. A restart before B6
+  resumes at B5 with the same record. If the signature was made already, it is written again, so
+  key 0000 never signs twice for one chip. Pushes keep the file.
+- **A real brand stops at B7.** The S steps are for a test-bench spare only. A branded chip ships
+  with no key.
+- **B7 finds slot 0 empty by Info KeyValid, not a public-key read.** After the data lock a public-key
+  read counts as a use, and chip 5's counter read 1 before it had a key. The emulator now counts
+  that read even on an empty slot. With key 0000 pinned, B7 requires counter 0 = 0. On a spare it
+  is a finding.
+- **The claim, U1–U5** (`firmware/claim.py`, on the dual image, drawn by `brand_ui.py`):
+  - The dual image routes a quorum v2 chip that is locked 00/00, with slot 0 not sealed, to it.
+  - U1 is `chipcfg.brand_check` against the pinned brand keys, plus counter 0 = 0 while there is
+    no key.
+  - U2 makes the key in every session until U4. A key already in slot 0 at plug-in (an unfinished
+    claim) is replaced, so only a key made in this session is sealed.
+  - U3 and U4 are the spare's S2 and S3, from one copy of the code.
+  - Every step goes to `claim-log.txt`.
+  - It refuses before any write: a brand that doesn't verify, a test bench, no brand key pinned, a
+    sealed slot 0, or zones that aren't both locked.
+  - `tools/fw ceremony finish` pins the chip afterwards, as for a ceremony.
+- **The brand check moved** from `brand.py` to `chipcfg.py`, so the claim can use it. `brand.py`
+  stays on the brand image only.
 
 ## How these pictures were made
 

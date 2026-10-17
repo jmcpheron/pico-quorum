@@ -74,7 +74,7 @@ assert len(FACTORY) == 128
 
 PROFILES = (("quorum-v1", QUORUM_V1), ("quorum-v2", QUORUM_V2), ("legacy-test", LEGACY), ("factory", FACTORY))
 PROFILE_ID = {"quorum-v1": 1, "quorum-v2": 2}
-REVISIONS = {"00006002": "ATECC608A", "00006003": "ATECC608B"}
+REVISIONS = {"00006002": "ATECC608A", "00006003": "ATECC608B", "00006005": "ATECC608C"}
 
 # The bytes that say what a chip IS: the slot table and header. Not the counters (52-67, they move),
 # not the chip's own bytes (0-15, 84-87) and not SlotLocked (88-89, a slot lock clears a bit).
@@ -219,3 +219,35 @@ def brand_number(rec):
     if rec["bench"] == TEST_BENCH:
         return "T%04d" % rec["seq"]
     return "%04d" % rec["seq"] if rec["bench"] == 0 else "B%d-%04d" % (rec["bench"], rec["seq"])
+
+
+def key_id(qx, qy):
+    """A brand key's id: SHA-256(qx || qy)[:16]."""
+    return hashlib.sha256(int(qx).to_bytes(32, "big") + int(qy).to_bytes(32, "big")).digest()[:16]
+
+
+def brand_keys():
+    """The pinned brand keys, {key id hex: (qx, qy)}, from quorum_cfg's "brandKeys" (key 0000 and
+    any later ones). Empty until key 0000 exists: then no chip passes as branded."""
+    import quorum_cfg
+    return {kid: (int(k["qx"], 16), int(k["qy"], 16)) for kid, k in quorum_cfg.CFG.get("brandKeys", {}).items()}
+
+
+def brand_check(rec, slot8, serial, revision, cfg, keys):
+    """[(check, ok)] for a chip's brand, as a console checks it, with no network. rec: brand_decode
+    of the OTP with "_raw" set; keys: {key id hex: (qx, qy)}, the pinned brand keys. Refuses a test
+    bench, a bench certificate, and any bench but 0, rather than guess."""
+    import p256
+    if rec is None:
+        return [("a v2 brand record in OTP", False)]
+    r = int.from_bytes(slot8[0:32], "big")
+    s = int.from_bytes(slot8[32:64], "big")
+    k = keys.get(rec["keyId"])
+    good = k is not None and s <= p256.N // 2 and p256.verify(k[0], k[1], brand_digest(rec["_raw"]), r, s)
+    return [("signed by a pinned brand key", good),
+            ("serial matches the chip", rec["serial"] == serial),
+            ("revision matches", rec["revision"] == revision),
+            ("config CRC matches", rec["configCrc"] == locked_summary(cfg, QUORUM_V2)),
+            ("locked 00/00", cfg[86] == 0x00 and cfg[87] == 0x00),
+            ("bench 0, no certificate", rec["bench"] == 0 and slot8[64:224] == bytes(160)),
+            ("the rest of slot 8 zeros", slot8[224:] == bytes(len(slot8) - 224))]

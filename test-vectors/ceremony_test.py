@@ -85,6 +85,7 @@ def walk(rev):
 def case_full():
     walk("608a")
     walk("608b")
+    walk("608c")                        # the key-c's part, revision 00006005, same factory table
 
 
 def case_seal_gate():

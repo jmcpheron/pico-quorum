@@ -353,15 +353,19 @@ class Chip:
             raise _Fail(STATUS_PARSE)
         else:
             # public key of the stored key: needs a key and KeyConfig.PubInfo
-            if slot not in self.keys or not self.key_cfg(slot) & 2:
+            if not self.key_cfg(slot) & 2:
                 raise _Fail(STATUS_EXEC)
             if self.data_locked() and self.slot_cfg(slot) & 0x20:
                 # seen on silicon (chip 2, quorum v1): once the data zone is locked, a public-key
-                # read counts as a use of a LimitedUse key; chip 1 (data zone open) never counted it
+                # read counts as a use of a LimitedUse key; chip 1 (data zone open) never counted it.
+                # Counted before the key is looked for: chip 5 (quorum v2) read 1 with an empty slot 0,
+                # most likely the bench's read of it (not yet measured on its own)
                 if self.counters[0] >= COUNTER_MAX:
                     raise _Fail(STATUS_EXEC)
                 self.counters[0] += 1
                 self.save()
+            if slot not in self.keys:
+                raise _Fail(STATUS_EXEC)
         x, y = p256.pubkey(self.keys[slot])
         return self._data(x.to_bytes(32, "big") + y.to_bytes(32, "big"))
 
@@ -411,10 +415,13 @@ def chip():
 # --- knobs for tools/emu chip ... and sketches -------------------------------------------
 def wipe(revision="608a"):
     """Back to a fresh part: the factory table, config unlocked, no keys, factory data and OTP.
-    revision "608b" answers Info with 00006003 (and has it at config bytes 4-7), as a 608B does."""
+    revision "608b" answers Info with 00006003 (and has it at config bytes 4-7), as a 608B does;
+    "608c" with 00006005, and bytes 13-14 61 69, as the first key-c's 608C did (2026-10-16)."""
     c = chip()
     c.cfg = bytearray(FRESH)
-    c.cfg[7] = 0x03 if revision == "608b" else 0x02
+    c.cfg[7] = {"608b": 0x03, "608c": 0x05}.get(revision, 0x02)
+    if revision == "608c":
+        c.cfg[13:15] = b"\x61\x69"
     c.keys = {}
     c.counters = [0, 0]
     c.data = {}

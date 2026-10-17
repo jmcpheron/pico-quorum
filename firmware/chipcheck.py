@@ -30,7 +30,7 @@ def main():
     cfg = chip.read_config_all()
     print("serial:   %s" % "".join("%02x" % b for b in cfg[0:4] + cfg[8:13]))
     rev = chip.revision()
-    print("revision: %s (%s)" % ("".join("%02x" % b for b in rev), {b"\x00\x00\x60\x02": "ATECC608A", b"\x00\x00\x60\x03": "ATECC608B"}.get(bytes(rev), "unknown")))
+    print("revision: %s (%s)" % ("".join("%02x" % b for b in rev), {b"\x00\x00\x60\x02": "ATECC608A", b"\x00\x00\x60\x03": "ATECC608B", b"\x00\x00\x60\x05": "ATECC608C"}.get(bytes(rev), "unknown")))
     print("i2c address byte 16: 0x%02x (7-bit 0x%02x)" % (cfg[16], cfg[16] >> 1))
     print("config zone: %s   data zone: %s   (byte 87 = 0x%02x, byte 86 = 0x%02x; 0x55 = unlocked, 0x00 = locked)"
           % ("LOCKED" if cfg[87] == 0 else "unlocked", "LOCKED" if cfg[86] == 0 else "unlocked", cfg[87], cfg[86]))
