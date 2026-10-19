@@ -194,6 +194,10 @@ To do:
   An ATECC608 has no factory certificate. So membership is the project's own statement, not proof
   of genuine silicon. A contract would be PicoQuorum's first, and the app reading the root is a new
   network call. Review both before building.
+- [ ] Before sealing chip #3, also decide whether each chip gets an attestation key in slot 1, so a
+      key can prove it is in a branded chip (a proposal, with the gas relay and treasury it would
+      support: [ATTESTED-KEYS.md](docs/ATTESTED-KEYS.md)). It changes the table and slot 8, which
+      freeze at the bench's locks.
 - [ ] Extend the registry and `tools/fw attest` to ATECC608 keys. That list is where the leaves come
       from.
 - [ ] key-c bring-up. The P2 boards are due about 2026-10-07

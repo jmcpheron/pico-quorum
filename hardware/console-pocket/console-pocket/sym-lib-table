@@ -1,0 +1,4 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "picoquorum-pocket")(type "KiCad")(uri "${KIPRJMOD}/../lib/picoquorum-pocket.kicad_sym")(options "")(descr "PicoQuorum console parts"))
+)
