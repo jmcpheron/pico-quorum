@@ -25,6 +25,7 @@ troubleshooting.
 - [`EMU-WEB.md`](EMU-WEB.md): the console on GitHub Pages, with your own passkey as the key: the design, and its limits
 - [`GOVERNANCE.md`](GOVERNANCE.md): the project Safe (Ethereum and Base), release approvals, the ENS name, and handing it over
 - [`TRUSTM.md`](TRUSTM.md): the Trust M profile, its ceremony, and TM1 and TM2
+- [`TROPIC01.md`](TROPIC01.md): notes: Tropic Square's open secure element, its pros and cons for the console, and ordering a devboard
 - [`releases/`](releases/README.md): the release fingerprint, and each release's manifest
 - [`BRAND.md`](BRAND.md): the name, the mark and the colours ([`TRADEMARK.md`](../TRADEMARK.md) for what you may do with them)
 - [`upstream/`](upstream/README.md): issues and fixes PicoQuorum sends to other projects (Safe{Wallet})
