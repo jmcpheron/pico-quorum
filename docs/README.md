@@ -16,6 +16,7 @@ troubleshooting.
 - [`PROVISIONING.md`](PROVISIONING.md): the quorum v1 chip config and the fresh-chip ceremony
 - [`LOCKING.md`](LOCKING.md): what each ATECC608 lock does to the multisig
 - [`BRANDED-KEYS.md`](BRANDED-KEYS.md): a proposal: the bench brands each chip, the user's console makes its key
+- [`ATTESTED-KEYS.md`](ATTESTED-KEYS.md): a proposal: an attestation key per chip, so a key can prove it is in a branded chip; the gas relay, its treasury and picoquorum.eth on top
 - [`LADDER.md`](LADDER.md): the test ladder from a simulated Safe to Ethereum mainnet, and the `tools/quorum live` runbook
 - [`firmware-production/`](firmware-production/README.md) and [`quorum-ui/`](quorum-ui/README.md): screenshot walkthroughs
 - [`KICKOFF.md`](KICKOFF.md): what PicoQuorum is, goals, hardware, firmware layers, open decisions

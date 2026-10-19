@@ -139,7 +139,7 @@ Slot 8 holds the brand signature, with room kept for a bench certificate:
 - **Bytes 64–223: the bench certificate, all zeros in version 2.** It is kept for a second bench
   (point 5): that bench's id, its key's public half (qx‖qy), and key 0000's signature over both.
   While it is zeros, the brand key must be key 0000 itself.
-- **Bytes 224–415:** zeros.
+- **Bytes 224–415:** zeros. [ATTESTED-KEYS.md](ATTESTED-KEYS.md) proposes 224–287 for an attestation key.
 
 The console checks four things:
 - the signature, under the pinned brand key
@@ -219,11 +219,13 @@ room for it. Both are written once and frozen, so the room has to be there from 
     could copy a real chip's serial, OTP and slot 8.
   - What limits that: one claim per serial in the registry, and the label number in the user's
     hands.
-  - **A stronger option, not proposed yet:** an attestation key in slot 1. The bench would make it
-    and seal it, and the brand would certify it. At U2, the chip would sign a statement about slot 0's
-    new key with it (GenKey's digest mode, then an internal Sign). That would prove slot 0's key was
-    made in a branded chip. It needs driver commands that don't exist, and the internal message format
-    must be confirmed against the datasheet and a spare chip. It is a later profile.
+  - **A stronger option, now a proposal of its own:** an attestation key in slot 1. The bench would
+    make it and seal it, and the brand would certify it. After the seal, the chip would sign a
+    statement about slot 0's key with it (GenKey's digest mode, then an internal Sign). That would
+    prove slot 0's key was made in a branded chip, which a gas relay needs. It needs driver commands
+    that don't exist, and the internal message format must be confirmed against the datasheet and a
+    spare chip. It changes the table and slot 8, so it must be decided before the first real
+    branded chip: [ATTESTED-KEYS.md](ATTESTED-KEYS.md).
 - **It says nothing about the user's key.** The user's console made that.
 
 **8. The images.**
