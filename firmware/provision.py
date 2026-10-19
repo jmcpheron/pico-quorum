@@ -261,10 +261,11 @@ class Ceremony:
     def c6(self):
         if not self.tested or not self._sign_ok(hashlib.sha256(b"before the seal").digest()):
             return False, [("the key signs and verifies", False)], "not sealed: run C5 again"
-        before = self.chip.pubkey(0)
+        before, was = self.chip.pubkey(0), self.cfg[88]
         msg = self.sig.lock_slot(0)
         cfg = self.chip.read_config_all()
-        checks = [("slot 0 locked (FE FF)", cfg[88] == 0xFE and cfg[89] == 0xFF),
+        # only slot 0's bit clears: FF FF -> FE FF (quorum v3's sealed slot 1: FD FF -> FC FF)
+        checks = [("slot 0 locked (%02X FF)" % (was & 0xFE), cfg[88] == was & 0xFE and cfg[89] == 0xFF),
                   ("same public key", self.chip.pubkey(0) == before),
                   ("signs + verifies", self._sign_ok(hashlib.sha256(b"sealed").digest()))]
         return all(k for _, k in checks), checks, msg

@@ -1,11 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="210" height="20" role="img" aria-label="console 2026.10.11 · release fingerprint 2012cea4d45d4c459951fca41053945709516636848f9ec10d59193d6e570e3a">
-<title>console 2026.10.11 · release fingerprint 2012cea4d45d4c459951fca41053945709516636848f9ec10d59193d6e570e3a</title>
+<svg xmlns="http://www.w3.org/2000/svg" width="210" height="20" role="img" aria-label="console 2026.10.12 · release fingerprint 4ce4fc07347036f6058bc57bc86bdca5aecf0637b7bb9eea65438555977fd895">
+<title>console 2026.10.12 · release fingerprint 4ce4fc07347036f6058bc57bc86bdca5aecf0637b7bb9eea65438555977fd895</title>
 <linearGradient id="s" x2="0" y2="100%"><stop offset="0" stop-color="#bbb" stop-opacity=".1"/><stop offset="1" stop-opacity=".1"/></linearGradient>
 <clipPath id="r"><rect width="210" height="20" rx="3" fill="#fff"/></clipPath>
 <g clip-path="url(#r)"><rect width="71" height="20" fill="#0B0D11"/><rect x="71" width="139" height="20" fill="#627EEA"/><rect width="210" height="20" fill="url(#s)"/></g>
-<g transform="translate(4 3) scale(1.75)" shape-rendering="crispEdges"><path fill="#60264e" d="M0 0h8v8H0z"/><path fill="#759cd1" d="M1 0h1v1h-1zM6 0h1v1h-1zM1 1h1v1h-1zM6 1h1v1h-1zM0 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM5 2h1v1h-1zM7 2h1v1h-1zM1 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1zM6 3h1v1h-1zM0 4h1v1h-1zM1 4h1v1h-1zM6 4h1v1h-1zM7 4h1v1h-1zM0 5h1v1h-1zM1 5h1v1h-1zM2 5h1v1h-1zM3 5h1v1h-1zM4 5h1v1h-1zM5 5h1v1h-1zM6 5h1v1h-1zM7 5h1v1h-1zM0 6h1v1h-1zM1 6h1v1h-1zM6 6h1v1h-1zM7 6h1v1h-1z"/><path fill="#e98c4d" d="M3 0h1v1h-1zM4 0h1v1h-1zM0 3h1v1h-1zM7 3h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1zM3 7h1v1h-1zM4 7h1v1h-1z"/></g>
+<g transform="translate(4 3) scale(1.75)" shape-rendering="crispEdges"><path fill="#1d7454" d="M0 0h8v8H0z"/><path fill="#c7288a" d="M2 0h1v1h-1zM5 0h1v1h-1zM3 1h1v1h-1zM4 1h1v1h-1zM0 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM5 2h1v1h-1zM7 2h1v1h-1zM1 3h1v1h-1zM2 3h1v1h-1zM5 3h1v1h-1zM6 3h1v1h-1zM0 4h1v1h-1zM1 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1zM6 4h1v1h-1zM7 4h1v1h-1zM2 6h1v1h-1zM3 6h1v1h-1zM4 6h1v1h-1zM5 6h1v1h-1zM3 7h1v1h-1zM4 7h1v1h-1z"/><path fill="#17c46e" d="M0 1h1v1h-1zM7 1h1v1h-1zM0 6h1v1h-1zM7 6h1v1h-1z"/></g>
 <g fill="#fff" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="11">
 <text x="22" y="14" textLength="43" lengthAdjust="spacingAndGlyphs">console</text>
-<text x="77" y="14" textLength="127" lengthAdjust="spacingAndGlyphs" font-family="DejaVu Sans Mono,Menlo,Consolas,monospace">2012·cea4…6e57·0e3a</text>
+<text x="77" y="14" textLength="127" lengthAdjust="spacingAndGlyphs" font-family="DejaVu Sans Mono,Menlo,Consolas,monospace">4ce4·fc07…977f·d895</text>
 </g>
 </svg>

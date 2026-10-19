@@ -12,12 +12,15 @@
       the CRC against the wake reply's own.
   quorum-v2 (QUORUM_V2): its fingerprint, that it is quorum-v1 but for byte 36, and slot 8 decoded
       here: readable in the clear, never written, not a key (docs/BRANDED-KEYS.md).
+  quorum-v3 (QUORUM_V3): its fingerprint, that it is quorum-v2 but for slot 1's rows, and slot 1
+      decoded here: the attestation key, internal Sign only, sealed by a slot lock (docs/ATTESTED-KEYS.md).
 
 Exit 0 = safe. Anything else: do not provision a chip until it is 0.
     python3 tools/check_config
     python3 tools/check_config --summary SNAPSHOT.bin   the config CRC a fresh chip must match at C3
                                                         (SNAPSHOT: its 128 factory bytes, from C1)
-    python3 tools/check_config --summary SNAPSHOT.bin --v2   the same for quorum-v2, at B3 (brand.py)
+    python3 tools/check_config --summary SNAPSHOT.bin --v2   the same for quorum-v2
+    python3 tools/check_config --summary SNAPSHOT.bin --v3   the same for quorum-v3, at B3 (brand.py)
 """
 import hashlib, importlib.util, os, sys, types
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -96,20 +99,34 @@ check(v8 & 0xF == 0xF and v8 >> 7 & 1 == 0 and v8 >> 6 & 1 == 0 and v8 >> 5 & 1 
       "slot  8: ReadKey F, IsSecret 0, EncryptRead 0 (clear reads), WriteConfig 1000 (Write never)")
 check(k8 & 1 == 0 and k8 >> 2 & 7 == 7 and k8 >> 5 & 1 == 0 and k8 >> 1 & 1 == 0, "slot  8: KeyConfig data, not a key, not lockable")
 
+# --- quorum-v3: quorum-v2 with slot 1 the attestation key ---------------------------------------
+V3 = chipcfg.QUORUM_V3
+check(hashlib.sha256(V3).hexdigest() == chipcfg.QUORUM_V3_SHA256 == "5997c7e21d9a746d697a9adadd128ade84a5bef11628c106bd9182d3ca40905e",
+      "quorum-v3 fingerprint 5997c7e2...")
+check([i for i in range(128) if V3[i] != V2[i]] == [22, 23, 98], "quorum-v3 differs from quorum-v2 in slot 1's SlotConfig and KeyConfig only")
+T, _v1 = V3, T                      # slot_config / key_config read T
+s1, k1 = slot_config(1), key_config(1)
+check(s1["readKey"] == 0b0010, "slot  1: internal Sign only (ReadKey 0010: no external sign, no ECDH)")
+check(s1["limitedUse"] == 0 and s1["isSecret"] == 1 and s1["encryptRead"] == 0 and s1["noMac"] == 0, "slot  1: IsSecret, no LimitedUse")
+check(s1["writeConfig"] == 0b0010, "slot  1: WriteConfig 0010 = Write never, GenKey allowed (until its slot lock), PrivWrite forbidden")
+check(k1 == key_config(0), "slot  1: KeyConfig slot 0's: P-256 private, PubInfo, Lockable, no ReqAuth")
+check(slot_config(0) == {"readKey": 1, "noMac": 0, "limitedUse": 1, "encryptRead": 0, "isSecret": 1, "writeKey": 15, "writeConfig": 2},
+      "slot  0: as in quorum-v1")
+T = _v1
+
 # --- the driver's decode and CRC ----------------------------------------------------------------
 want = ["clear", "pubinvalid", "never", "never", "encrypted", "encrypted", "encrypted", "encrypted",
         "never", "never", "never", "never", "encrypted", "encrypted", "encrypted", "encrypted"]
 check([atecc.write_policy(w) for w in range(16)] == want, "atecc.write_policy follows the datasheet for all 16 WriteConfig codes")
 check(atecc.crc16(b"\x04\x11") == b"\x33\x43", "crc16(04 11) = 33 43, the wake reply's own CRC")
-check([chipcfg.identify(x) for x in (T, V2, atecc.CONFIG, chipcfg.FACTORY)] == ["quorum-v1", "quorum-v2", "legacy-test", "factory"],
-      "chipcfg.identify tells the four tables apart")
+check([chipcfg.identify(x) for x in (T, V2, V3, atecc.CONFIG, chipcfg.FACTORY)] == ["quorum-v1", "quorum-v2", "quorum-v3", "legacy-test", "factory"],
+      "chipcfg.identify tells the five tables apart")
 
 if "--summary" in sys.argv:
     snap = open(sys.argv[sys.argv.index("--summary") + 1], "rb").read()
     if len(snap) != 128:
         sys.exit("a snapshot is 128 bytes")
-    v2 = "--v2" in sys.argv
+    name = "quorum-v3" if "--v3" in sys.argv else "quorum-v2" if "--v2" in sys.argv else "quorum-v1"
     print("\nchip %s, %s: its config CRC for the %s lock is %04x" % (
-        snap[0:4].hex() + snap[8:13].hex(), chipcfg.identify(snap), "quorum-v2" if v2 else "quorum-v1",
-        chipcfg.config_summary(snap, V2 if v2 else T)))
+        snap[0:4].hex() + snap[8:13].hex(), chipcfg.identify(snap), name, chipcfg.config_summary(snap, chipcfg.TABLES[name])))
 sys.exit(1 if fails else 0)

@@ -1,11 +1,12 @@
 # The user's half of a branded key (docs/BRANDED-KEYS.md): a chip the bench branded and locked,
-# with no key in it, gets its key from this console. On the dual image, which routes a quorum v2
-# chip locked 00/00 with slot 0 unsealed here; on provision.py's screen and gates, in brand_ui.py's
+# with no key in it, gets its key from this console. On the dual image, which routes a quorum v2 or
+# v3 chip locked 00/00 with slot 0 unsealed here; on provision.py's screen and gates, in brand_ui.py's
 # pictures. It can make slot 0's key and seal it, nothing else: the config, OTP and slot 8 are
 # frozen by the bench's locks, and it locks no zone.
 #
 #   U1  check the brand with no network: key 0000's signature, this serial, revision and config,
-#       both zones locked, counter 0 = 0 while there is no key
+#       both zones locked, counter 0 = 0 while there is no key; on quorum v3, slot 1 sealed and its
+#       public key the one the brand signed
 #   U2  GenKey in slot 0, made again in every session until U4 (a key found at plug-in was not made
 #       here, so it is replaced)
 #   U3  two test signatures, verified here, the counter up by exactly 2
@@ -25,6 +26,7 @@ import provision as P
 
 SIG_SLOT = 8
 LOG = "claim-log.txt"
+BRANDED = ("quorum-v2", "quorum-v3")
 
 
 def log(path, step, out):
@@ -94,6 +96,49 @@ def test_sigs(c):
     return c.tested, checks, "LimitedUse counts every signature" if c.tested else "not sealed: fix this first"
 
 
+def attest(c, keys, path=LOG, challenge=None):
+    """The spare's S4 (the claim's U4a, docs/ATTESTED-KEYS.md): slot 1 attests slot 0's sealed key.
+    No key is made and nothing is written. Nonce passes the challenge through; if the chip refuses
+    that, random mode. The bundle (public bytes) goes into the log for tools/check_attest."""
+    rec, slot8 = read_brand(c.chip)
+    sn = bytes(c.chip.serial())
+    if challenge is None:
+        challenge = hashlib.sha256(b"PicoQuorum attest" + sn + int(board.unix()).to_bytes(4, "big")).digest()
+    before = c.chip.counter(0)
+    checks = []
+    try:
+        nonce, pub, sig = c.chip.genkey_attest(0, chipcfg.ATT_SLOT, challenge)
+    except atecc.AteccError as e:
+        checks.append(("passed-through nonce refused (%s): random mode" % e, True))
+        nonce, pub, sig = c.chip.genkey_attest(0, chipcfg.ATT_SLOT, None, hashlib.sha256(challenge).digest()[:20])
+    after = c.chip.counter(0)
+    x, y = c.key
+    bundle = {"serial": c.serial, "otp": rec["_raw"] if rec else bytes(64), "slot8": slot8[:chipcfg.ATT_AT + 64],
+              "pub": pub, "nonce": nonce, "sig": sig}
+    log_bundle(path, bundle)
+    checks += [("nonce: %s" % nonce["mode"], True),
+               ("slot 0's key, worked out again", pub == x.to_bytes(32, "big") + y.to_bytes(32, "big"))]
+    checks += chipcfg.attest_check(bundle, keys)
+    checks.append(("counter 0 %d -> %d" % (before, after), True))
+    ok = all(k for _, k in checks)
+    return ok, checks, "the bundle is in %s: check it with tools/check_attest" % path if ok else \
+        "the bundle is in %s: tools/check_attest says which layout the chip signed" % path
+
+
+def log_bundle(path, bundle):
+    """An attestation bundle into the log as one JSON line, hex for bytes."""
+    import json
+    out = {}
+    for k, v in bundle.items():
+        out[k] = {a: (b.hex() if isinstance(b, (bytes, bytearray)) else b) for a, b in v.items()} if isinstance(v, dict) else \
+            (v.hex() if isinstance(v, (bytes, bytearray)) else v)
+    try:
+        with open(path, "a") as f:
+            f.write("  bundle %s\n" % json.dumps(out))
+    except OSError:
+        pass
+
+
 TITLES = {"U1": "Check the brand", "U2": "Make your key", "U3": "Test signatures", "U4": "Seal your key",
           "U5": "Your key is ready", "other": "Not a key to claim"}
 WHAT = {
@@ -127,7 +172,7 @@ class Ceremony(P.Ceremony):
 
     def read(self):
         P.Ceremony.read(self)
-        if self.data_locked and self.branded is None and self.profile == "quorum-v2":
+        if self.data_locked and self.branded is None and self.profile in BRANDED:
             try:
                 rec, self.signed = read_brand(self.chip)
                 self.branded = rec["_raw"] if rec else None
@@ -142,7 +187,7 @@ class Ceremony(P.Ceremony):
         return int(st[1:]) if st[0] == "U" else 0
 
     def step(self):
-        if self.profile != "quorum-v2" or not (self.config_locked and self.data_locked):
+        if self.profile not in BRANDED or not (self.config_locked and self.data_locked):
             self.why = "Not a branded chip, or its zones aren't both locked. Nothing was written to it."
             return "other"
         if self.slot0["locked"]:
@@ -167,14 +212,21 @@ class Ceremony(P.Ceremony):
         return out
 
     def uother(self):
-        return False, [("table: %s" % self.profile, self.profile == "quorum-v2"),
+        return False, [("table: %s" % self.profile, self.profile in BRANDED),
                        ("locked 00/00", self.config_locked and self.data_locked), ("slot 0 not sealed", not self.slot0["locked"])], self.why
 
     def u1(self):
         rec = chipcfg.brand_decode(self.branded) if self.branded else None
         if rec:
             rec["_raw"] = self.branded
-        checks = chipcfg.brand_check(rec, self.signed or b"", self.serial, self.revision, self.cfg, chipcfg.brand_keys())
+        att = None
+        if self.profile == "quorum-v3":
+            try:            # slot 1 is not LimitedUse: the read counts nothing
+                x, y = self.chip.pubkey(chipcfg.ATT_SLOT)
+                att = x.to_bytes(32, "big") + y.to_bytes(32, "big")
+            except atecc.AteccError:
+                pass
+        checks = chipcfg.brand_check(rec, self.signed or b"", self.serial, self.revision, self.cfg, chipcfg.brand_keys(), att)
         if self.key is None:
             checks.append(("never used: counter 0 = %s" % self.counter, self.counter == 0))
         else:
@@ -197,7 +249,7 @@ class Ceremony(P.Ceremony):
 
     def u5(self):
         x, y = self.key
-        checks = [("quorum v2, locked 00/00", self.profile == "quorum-v2" and self.config_locked and self.data_locked),
+        checks = [("%s, locked 00/00" % self.profile, self.profile in BRANDED and self.config_locked and self.data_locked),
                   ("slot 0 sealed", self.slot0["locked"]), ("counter %s" % self.counter, True)]
         return all(k for _, k in checks), checks, "owner %s. A signer, not a wallet: funds go to your Safe." % self.owner()
 

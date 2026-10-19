@@ -1,6 +1,7 @@
 # The bench half of a branded key (firmware/brand.py) on the virtual ATECC608, with a public test
-# key: a factory-fresh 608A, 608B and 608C branded B1-B7, then a key made after the data lock and
-# sealed (S1-S3), with a reboot after every step. Then what must go wrong: a table one bit off, no
+# key: a factory-fresh 608A, 608B and 608C branded B1-B7 on quorum v3 (the attestation key made and
+# sealed at B4a-B4b), then a key made after the data lock, sealed and attested (S1-S4), with a reboot
+# after every step. The attestation bundle checks, and what must not attest. Then what must go wrong: a table one bit off, no
 # arm, no ALLOW_LOCK, the data lock without the signature, a test-bench brand taken for a real one.
 # The knob alone walks the screen to B3. Then key 0000 pinned: B5 by a swap, one chip on the bus at a
 # time, a restart that doesn't sign twice, and the claim (claim.py, U1-U5) with its refusals and the
@@ -53,7 +54,7 @@ def run(c, step, arm=True):
 
 def carry(c, c2):
     """What a session knows that the chip can't say yet (OTP and slot 8 are unreadable before B6)."""
-    c2.branded, c2.signed, c2.summary, c2.checked, c2.tested = c.branded, c.signed, c.summary, c.checked, c.tested
+    c2.branded, c2.signed, c2.summary, c2.checked, c2.tested, c2.attested = c.branded, c.signed, c.summary, c.checked, c.tested, c.attested
 
 
 def walk(rev):
@@ -61,7 +62,7 @@ def walk(rev):
     fresh_chip(rev)
     c, B = ceremony()
     sim = atecc_sim.chip()
-    for want in ("B1", "B2", "B3", "B4", "B5", "B6", "B7", "S1", "S2", "S3", "S4"):
+    for want in ("B1", "B2", "B3", "B4", "B4a", "B4b", "B5", "B6", "B7", "S1", "S2", "S3", "S4", "S5"):
         got, ok, bad, msg = run(c, want)
         if want == "B7":
             check(sim.counters[0] == 0, "%s B7: counter 0 still 0, the empty slot 0 told by KeyValid, never read" % rev)
@@ -71,13 +72,18 @@ def walk(rev):
         check(c2.step() == c.step(), "%s after %s, a fresh look at the chip resumes at %s" % (rev, want, c2.step()))
     import chipcfg
     cfg = bytes(sim.cfg)
-    check(chipcfg.identify(cfg) == "quorum-v2" and cfg[86] == 0 and cfg[87] == 0 and cfg[88] == 0xFE,
-          "%s: quorum v2, locked 00 00, slot 0 sealed" % rev)
+    check(chipcfg.identify(cfg) == "quorum-v3" and cfg[86] == 0 and cfg[87] == 0 and cfg[88] == 0xFC,
+          "%s: quorum v3, locked 00 00, slots 0 and 1 sealed" % rev)
     c3, _ = ceremony()
     check(c3.branded == bytes(sim.otp), "%s: after a reboot the bench reads the record from the locked OTP (the screen's number)" % rev)
     rec = chipcfg.brand_decode(bytes(sim.otp))
-    check(rec is not None and rec["bench"] == chipcfg.TEST_BENCH and rec["seq"] == 42 and rec["serial"] == c.serial
-          and rec["zeros"], "%s: the OTP holds the test-bench record, number 42, this serial" % rev)
+    check(rec is not None and rec["version"] == 3 and rec["bench"] == chipcfg.TEST_BENCH and rec["seq"] == 42
+          and rec["serial"] == c.serial and rec["zeros"], "%s: the OTP holds a v3 test-bench record, number 42, this serial" % rev)
+    import p256
+    x, y = p256.pubkey(sim.keys[1])
+    slot8 = b"".join(bytes(c.chip.read_data(8, b)) for b in range(13))
+    check(slot8[224:288] == x.to_bytes(32, "big") + y.to_bytes(32, "big") and slot8[288:] == bytes(128) and slot8[64:224] == bytes(160),
+          "%s: slot 8 holds slot 1's public key at 224-287, zeros around it" % rev)
     check(rec is not None and rec["revision"] == {"608a": "00006002", "608b": "00006003", "608c": "00006005"}[rev],
           "%s: the record names this revision" % rev)
     return c
@@ -100,17 +106,72 @@ def case_brand_check():
     slot8 = b"".join(bytes(c.chip.read_data(8, b)) for b in range(13))
     _, qx, qy = B.test_key()
     pinned = {chipcfg.key_id(qx, qy).hex(): (qx, qy)}
-    got = dict(chipcfg.brand_check(rec, slot8, c.serial, c.revision, c.cfg, pinned))
-    check(got["signed by a pinned brand key"] and got["config CRC matches"] and not got["bench 0, no certificate"],
+    att = slot8[224:288]
+    got = dict(chipcfg.brand_check(rec, slot8, c.serial, c.revision, c.cfg, pinned, att))
+    check(got["signed by a pinned brand key"] and got["quorum v3, config CRC matches"] and not got["bench 0, no certificate"]
+          and got["attestation key in slot 8"] and got["slot 1 sealed, its key the one in slot 8"],
           "the test key's signature verifies when pinned; the test bench still fails 'bench 0'")
-    got = dict(chipcfg.brand_check(rec, slot8, c.serial, c.revision, c.cfg, {}))
+    got = dict(chipcfg.brand_check(rec, slot8, c.serial, c.revision, c.cfg, {}, att))
     check(not got["signed by a pinned brand key"], "with no brand key pinned (the console today): the signature is refused")
     bad = bytearray(slot8)
     bad[5] ^= 1
-    got = dict(chipcfg.brand_check(rec, bytes(bad), c.serial, c.revision, c.cfg, pinned))
+    got = dict(chipcfg.brand_check(rec, bytes(bad), c.serial, c.revision, c.cfg, pinned, att))
     check(not got["signed by a pinned brand key"], "one bit off in slot 8: refused")
-    got = dict(chipcfg.brand_check(rec, slot8, "0123ffffffffffffff", c.revision, c.cfg, pinned))
+    bad = bytearray(slot8)
+    bad[230] ^= 1
+    got = dict(chipcfg.brand_check(rec, bytes(bad), c.serial, c.revision, c.cfg, pinned, att))
+    check(not got["signed by a pinned brand key"] and not got["slot 1 sealed, its key the one in slot 8"],
+          "one bit off in slot 8's attestation key: the brand signature fails, and it isn't slot 1's")
+    import p256
+    other = p256.pubkey(p256.rand_scalar())
+    got = dict(chipcfg.brand_check(rec, slot8, c.serial, c.revision, c.cfg, pinned, other[0].to_bytes(32, "big") + other[1].to_bytes(32, "big")))
+    check(got["signed by a pinned brand key"] and not got["slot 1 sealed, its key the one in slot 8"],
+          "a copied brand on a chip whose slot 1 holds another key: refused")
+    got = dict(chipcfg.brand_check(rec, slot8, "0123ffffffffffffff", c.revision, c.cfg, pinned, att))
     check(not got["serial matches the chip"], "a copied record on another serial: refused")
+    v2 = bytearray(otp)
+    v2[2] = 2
+    check(chipcfg.brand_digest(bytes(v2)) != chipcfg.brand_digest(otp, att), "a v3 brand's digest is never a v2 one's")
+
+
+def unhex(raw):
+    """A bundle as claim.log_bundle wrote it, back to bytes."""
+    b = {k: (v if k == "serial" else bytes.fromhex(v)) for k, v in raw.items() if k != "nonce"}
+    b["nonce"] = {k: (v if k == "mode" else bytes.fromhex(v)) for k, v in raw["nonce"].items()}
+    return b
+
+
+def case_attest():
+    """S4's bundle, checked from its public bytes alone as the app or a relay would, and what must not
+    attest: another key, another serial, another brand key, a key not yet sealed."""
+    import json, chipcfg, p256, claim
+    c = walk("608c")
+    B = sys.modules["brand"]
+    lines = [l for l in open(B.LOG).read().split("\n") if l.startswith("  bundle ")]
+    check(len(lines) > 0, "S4 put the bundle in brand-log.txt")
+    bundle = unhex(json.loads(lines[-1][len("  bundle "):]))
+    keys = c.keys()
+    got = chipcfg.attest_check(bundle, keys)
+    check(all(k for _, k in got) and bundle["nonce"]["mode"] == "input", "the bundle checks from its public bytes alone (%s)" % got)
+    x, y = p256.pubkey(p256.rand_scalar())
+    bad = dict(bundle, pub=x.to_bytes(32, "big") + y.to_bytes(32, "big"))
+    check(not dict(chipcfg.attest_check(bad, keys))["slot 0's key attested, sealed, by slot 1"],
+          "a copied brand and attestation with a software key in place of slot 0's: refused")
+    bad = dict(bundle, serial="0123ffffffffffffff")
+    got = dict(chipcfg.attest_check(bad, keys))
+    check(not got["the serial is the record's"] and not got["slot 0's key attested, sealed, by slot 1"], "another serial: refused")
+    check(not dict(chipcfg.attest_check(bundle, {}))["the brand signs the attestation key"], "no brand key to take: refused")
+    nonce, pub, sig = c.chip.genkey_attest(0, 1, None, bytes(range(20)))
+    got = chipcfg.attest_check(dict(bundle, nonce=nonce, pub=pub, sig=sig), keys)
+    check(nonce["mode"] == "random" and all(k for _, k in got), "random-mode Nonce: the bundle checks too")
+    # a key attested before its seal doesn't pass as sealed
+    secrets()
+    fresh_chip("608c")
+    c, B = ceremony()
+    for st in ("B1", "B2", "B3", "B4", "B4a", "B4b", "B5", "B6", "B7", "S1", "S2"):
+        run(c, st)
+    ok, checks, msg = claim.attest(c, c.keys(), B.LOG)
+    check(not ok and not dict(checks)["slot 0's key attested, sealed, by slot 1"], "slot 0 not sealed yet: the attestation refuses it")
 
 
 def case_refusals():
@@ -120,10 +181,14 @@ def case_refusals():
     run(c, "B1")
     run(c, "B2")
     sim = atecc_sim.chip()
-    sim.cfg[36] ^= 0x80                 # slot 8 secret again: quorum v1, not v2
+    sim.cfg[36] ^= 0x80                 # slot 8 secret again: not quorum v3
     got, ok, bad, msg = run(c, "B3")
     check(not ok and sim.cfg[87] == 0x55, "the table one bit off (quorum v1's slot 8): the CRC lock is refused")
     sim.cfg[36] ^= 0x80
+    sim.cfg[22] |= 0x01                 # slot 1 with external Sign: an arbitrary-digest signer
+    got, ok, bad, msg = run(c, "B3")
+    check(not ok and sim.cfg[87] == 0x55, "slot 1 one bit off (external Sign on): the CRC lock is refused")
+    sim.cfg[22] &= 0xFE
     got, ok, bad, msg = run(c, "B3", arm=False)
     check(not ok and "armed" in msg and sim.cfg[87] == 0x55, "B3 without the arm: refused")
     secrets(lock=False)
@@ -135,13 +200,31 @@ def case_refusals():
     run(c, "B3")
     run(c, "B4")
     import chipcfg
-    c.signed = B.slot8_bytes(bytes(64))
+    c.signed = B.slot8_bytes(bytes(64), bytes(64))
     slots = chipcfg.zero_slots(B.TABLE)
-    slots[8] = B.slot8_bytes(b"\x01" * 64)
+    slots[8] = B.slot8_bytes(b"\x01" * 64, bytes(64))
     c.summary = chipcfg.data_summary(B.TABLE, slots, c.branded)
     got, ok, bad, msg = run(c, "B6")
     check(not ok and sim.cfg[86] == 0x55, "the data lock with a CRC for a signature that isn't in slot 8: refused, still open")
     c.signed = None
+    got, ok, bad, msg = run(c, "B5")
+    check(not ok and "nothing signed" in msg, "B5 before the attestation key: nothing signed")
+    got, ok, bad, msg = run(c, "B4a", arm=False)
+    check(got == "B4a" and not ok and 1 not in sim.keys, "B4a without the arm: refused, no key in slot 1")
+    run(c, "B4a")
+    first = sim.keys[1]
+    c2, B = ceremony()
+    check(c2.step() == "B4b", "a restart after B4a: B4b next (brand-pending holds slot 1's key)")
+    sim.keys[1] = atecc_sim.chip().keys[1] + 1          # slot 1 isn't the key B4a made
+    c2, B = ceremony()
+    check(c2.step() == "B4a", "slot 1 not the key brand-pending holds: B4a again, not the seal")
+    got, ok, bad, msg = run(c, "B4b")
+    check(not ok and sim.cfg[88] == 0xFF, "B4b over a key that isn't B4a's: refused, slot 1 not locked")
+    sim.keys[1] = first
+    got, ok, bad, msg = run(c, "B4b", arm=False)
+    check(not ok and sim.cfg[88] == 0xFF, "B4b without the arm: refused")
+    got, ok, bad, msg = run(c, "B4b")
+    check(ok and sim.cfg[88] == 0xFD and sim.keys[1] == first, "B4b: slot 1 sealed, GenKey and external Sign on it refused")
     run(c, "B5")
     got, ok, bad, msg = run(c, "B6", arm=False)
     check(not ok and sim.cfg[86] == 0x55, "B6 without the arm: refused")
@@ -283,7 +366,7 @@ def brand_with_key0000(k0, seq=7, swap=None):
         elif what == "back":
             plug(mine)
     c.say = say
-    for want in ("B1", "B2", "B3", "B4", "B5", "B6", "B7"):
+    for want in ("B1", "B2", "B3", "B4", "B4a", "B4b", "B5", "B6", "B7"):
         got, ok, bad, msg = run(c, want)
         check(got == want and ok, "key 0000 pinned, %s: %s%s" % (want, B.TITLES[want], "" if ok and got == want else " (step %s, %s, %s)" % (got, bad, msg)))
         if not ok:
@@ -328,7 +411,7 @@ def case_key0000():
         mine3 = new_chip()
         c, B = ceremony()
         c.say = lambda what, serial=None: plug(mine3) if what == "back" else None
-        for st in ("B1", "B2", "B3", "B4"):
+        for st in ("B1", "B2", "B3", "B4", "B4a", "B4b"):
             run(c, st)
         got, ok, bad, msg = run(c, "B5")
         check(got == "B5" and not ok and "didn't come" in msg and bytes(mine3.data[8][:64]) == bytes(64) and c.step() == "B5",
@@ -338,7 +421,7 @@ def case_key0000():
         brand.SWAP_S = 5
         plug(mine3)
         c2, B = ceremony()
-        check(c2.step() == "B5" and c2.branded == bytes(c.branded), "a restart after B4: B5 next, the same record (brand-pending)")
+        check(c2.step() == "B5" and c2.branded == bytes(c.branded), "a restart after B4b: B5 next, the same record (brand-pending)")
         c2.say = lambda what, serial=None: (plug(k0) if what == "key0000" else plug(mine3) if what == "back" else None)
         n = k0.counters[0]
         run(c2, "B5")
@@ -372,7 +455,7 @@ def case_claim():
         for want in ("U1", "U2", "U3", "U4", "U5"):
             got, ok, bad, msg = run(cl, want)
             check(got == want and ok, "claim %s: %s%s" % (want, cl.TITLES[want], "" if ok and got == want else " (step %s, %s, %s)" % (got, bad, msg)))
-        check(mine.cfg[88] == 0xFE and 0 in mine.keys, "claimed: a key in slot 0, sealed")
+        check(mine.cfg[88] == 0xFC and 0 in mine.keys, "claimed: a key in slot 0, sealed (and the bench's slot 1)")
         check("owner 0x" in msg, "U5 shows the owner address")
         check(main_dual.which()[0] == "console", "dual: a claimed chip goes to the console")
         check(claim_of().step() == "other", "a chip claimed before: refused, nothing to do")
@@ -417,7 +500,7 @@ def case_claim():
     secrets()
     fresh_chip("608c")
     c, B = ceremony()
-    for st in ("B1", "B2", "B3", "B4", "B5", "B6", "B7"):
+    for st in ("B1", "B2", "B3", "B4", "B4a", "B4b", "B5", "B6", "B7"):
         run(c, st)
     cl = claim_of()
     got, ok, bad, msg = run(cl, "U1")
@@ -426,7 +509,7 @@ def case_claim():
 
 
 def main():
-    for case in (case_full, case_brand_check, case_refusals, case_knob, case_console, case_key0000, case_claim):
+    for case in (case_full, case_brand_check, case_attest, case_refusals, case_knob, case_console, case_key0000, case_claim):
         try:
             case()
         except Exception as e:

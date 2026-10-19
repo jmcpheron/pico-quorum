@@ -1,0 +1,84 @@
+#!/usr/bin/env python3
+"""Check an attestation bundle from a real chip on the laptop (docs/ATTESTED-KEYS.md).
+
+The brand bench's S4 (firmware/brand.py) writes the bundle into brand-log.txt as a "  bundle {...}"
+line: public bytes only. This checks it with firmware/chipcfg.py's attest_check, the same code the
+board ran, against the bench's public test key and any brand key pinned in quorum_cfg.py.
+
+The internal-sign message is the datasheet's as remembered. If the strict layout doesn't verify, this
+tries the layouts near it (TempKey's SourceFlag, the SlotLocked byte, the last bytes, the serial in
+or out, GenKey's mode byte) and prints the one the chip signed, so the layout can be fixed from
+silicon rather than memory.
+
+    python3 tools/check_attest brand-log.txt      the last bundle in the log
+Exit 0: the strict layout verified. 1: it didn't (a near layout may have). 2: no bundle.
+"""
+import hashlib, json, os, sys, types
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.modules["machine"] = types.SimpleNamespace(I2C=object, SoftI2C=object, Pin=object)
+sys.path.insert(0, os.path.join(ROOT, "firmware"))
+import chipcfg, p256, quorum_cfg
+
+TEST_KEY_TEXT = b"PicoQuorum test bench: a public key, never a brand"     # firmware/brand.py's
+
+
+def bundle_of(path):
+    lines = [l for l in open(path).read().split("\n") if l.startswith("  bundle ")]
+    if not lines:
+        sys.exit("no bundle in %s: run S4 on the bench first" % path)
+    raw = json.loads(lines[-1][len("  bundle "):])
+    b = {k: (v if k == "serial" else bytes.fromhex(v)) for k, v in raw.items() if k != "nonce"}
+    b["nonce"] = {k: (v if k == "mode" else bytes.fromhex(v)) for k, v in raw["nonce"].items()}
+    return b
+
+
+def keys():
+    d = int.from_bytes(hashlib.sha256(TEST_KEY_TEXT).digest(), "big") % p256.N
+    qx, qy = p256.pubkey(d)
+    out = {chipcfg.key_id(qx, qy).hex(): (qx, qy)}
+    out.update(chipcfg.brand_keys())
+    return out
+
+
+def near(b):
+    """Every layout near the strict one: (description, digest)."""
+    sn = bytes.fromhex(b["serial"])
+    tk0, source = chipcfg.nonce_tempkey(b["nonce"])
+    for gk_mode in (chipcfg.GENKEY_DIGEST, 0x00, 0x10):
+        msg = tk0 + bytes([0x40, gk_mode, 0, 0, sn[8], sn[0], sn[1]]) + bytes(25) + b["pub"]
+        tk = hashlib.sha256(msg).digest()
+        for src in (source, 1 - source):
+            for sealed in (True, False):
+                for last in (0x01, 0x00):
+                    for full in (True, False):
+                        m = bytearray(chipcfg.internal_message(tk, sn, 0x40 | src << 4, sealed, last=last))
+                        if not full:
+                            m[44:48], m[50:52] = bytes(4), bytes(2)
+                        yield ("GenKey mode %02x in its digest, SourceFlag %d, SlotLocked byte %02x, byte 53 %02x, serial %s"
+                               % (gk_mode, src, 0 if sealed else 1, last, "in" if full else "zeros"), hashlib.sha256(bytes(m)).digest())
+
+
+def main():
+    if len(sys.argv) < 2:
+        print(__doc__)
+        return 2
+    b = bundle_of(sys.argv[1])
+    print("chip %s, nonce %s" % (b["serial"], b["nonce"]["mode"]))
+    got = chipcfg.attest_check(b, keys())
+    for label, ok in got:
+        print(("ok: " if ok else "FAIL: ") + label)
+    if all(ok for _, ok in got):
+        return 0
+    att = b["slot8"][chipcfg.ATT_AT:chipcfg.ATT_AT + 64]
+    ax, ay = int.from_bytes(att[:32], "big"), int.from_bytes(att[32:], "big")
+    r, s = int.from_bytes(b["sig"][:32], "big"), int.from_bytes(b["sig"][32:], "big")
+    hits = [what for what, digest in near(b) if p256.verify(ax, ay, digest, r, s)]
+    print("\nlayouts near the strict one that the chip's signature verifies under:")
+    for what in hits:
+        print("  " + what)
+    if not hits:
+        print("  none: the layout is further off than this searches, or the signature is not slot 1's")
+    return 1
+
+
+sys.exit(main())

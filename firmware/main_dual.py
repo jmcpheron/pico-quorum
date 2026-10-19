@@ -6,7 +6,7 @@
 #   a fresh chip, or a quorum v1 chip not yet sealed -> the ceremony (provision.py)
 #   a fresh Trust M, or one not yet sealed           -> the ceremony (provision_tm.py)
 #   a sealed Trust M, spares open, ALLOW_LOCK on     -> the ceremony, for T9 (freeze the spares)
-#   a branded chip (quorum v2, locked 00/00) with slot 0 not sealed -> the claim (claim.py): its
+#   a branded chip (quorum v2 or v3, locked 00/00) with slot 0 not sealed -> the claim (claim.py): its
 #                                                       owner's key is made here
 #   anything else, or no chip                        -> the console (it says Not pinned / No chip)
 # Once the new chip is sealed, enrolled and pinned, the board goes back to the console image.
@@ -51,7 +51,7 @@ def which():
         need = s.needs_ceremony()
         if not need and allow_lock and profile == "quorum-tm1":
             need = bool(s.spares_open())        # sealed before T9: only when asked for, never when pinned
-        if not need and profile == "quorum-v2":
+        if not need and profile in ("quorum-v2", "quorum-v3"):
             cfg = s.config()
             if cfg[86] == 0x00 and cfg[87] == 0x00 and cfg[88] & 1:        # both zones locked, slot 0 not sealed
                 return "claim", serial, profile

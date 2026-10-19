@@ -30,7 +30,7 @@ try:
         import brand
         import brand_ui
         chipapp.make_ui = lambda d, keys, sig, theme: brand_ui.UI(d, keys, sig, theme, brand.Ceremony(sig))
-        chipapp.TITLE, chipapp.LABEL = "BRAND BENCH", "BRAND (quorum v2, spare)"
+        chipapp.TITLE, chipapp.LABEL = "BRAND BENCH", "BRAND (quorum v3, spare)"
         chipapp.start()
 except Exception as e:
     try:

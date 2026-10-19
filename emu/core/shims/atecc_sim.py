@@ -2,6 +2,8 @@
 # (wake token, 0x03 command packets with CRC-16, count+payload+CRC responses) so firmware/atecc.py
 # runs here unchanged. Models what a wallet touches: the config zone and its locks, the slot table
 # (SlotConfig / KeyConfig), GenKey, Nonce pass-through + Sign, Random, Info, per-slot locks.
+# The attestation (docs/ATTESTED-KEYS.md): Nonce's random mode, GenKey's digest mode and an internal
+# Sign over the message the chip builds, with TempKey's flags (SourceFlag, GenKeyData, keyId).
 # Also answered: Info KeyValid/State, SelfTest (all pass), SHA-256, Counter reads, clear data
 # and OTP writes (32 or 4 bytes; any slot but a private key before the data lock, only WriteConfig
 # Always after it), reads of the OTP and data zones only once the DATA zone is locked, and the
@@ -275,10 +277,17 @@ class Chip:
         if opcode == OP_GENKEY:
             return self.genkey(p1, p2)
         if opcode == OP_NONCE:
-            if p1 & 3 != 3 or len(data) != 32:
-                raise _Fail(STATUS_PARSE)     # only pass-through mode is modeled
-            self.tempkey = bytes(data)
-            return self._status(STATUS_OK)
+            # pass-through (3): TempKey is the 32 bytes, SourceFlag input; random (0): TempKey is
+            # SHA-256(RandOut | NumIn | 16 00 00), SourceFlag random, and RandOut comes back
+            if p1 & 3 == 3 and len(data) == 32:
+                self.tempkey = {"v": bytes(data), "src": 1, "gk": 0, "id": 0}
+                return self._status(STATUS_OK)
+            if p1 & 3 == 0 and len(data) == 20:
+                import hashlib
+                rand = bytes(_emu.random(32))
+                self.tempkey = {"v": hashlib.sha256(rand + bytes(data) + bytes([OP_NONCE, p1, 0])).digest(), "src": 0, "gk": 0, "id": 0}
+                return self._data(rand)
+            raise _Fail(STATUS_PARSE)         # other modes are not modeled
         if opcode == OP_SIGN:
             return self.sign(p1, p2)
         raise _Fail(STATUS_PARSE)
@@ -349,9 +358,10 @@ class Chip:
                 raise _Fail(STATUS_EXEC)
             self.keys[slot] = p256.rand_scalar()
             self.save()
-        elif mode & 0x0F:
+        elif mode & 0x0F and mode != 0x08:
             raise _Fail(STATUS_PARSE)
         else:
+            # 0x00: the public key of the stored key; 0x08 the same, and its digest into TempKey
             # public key of the stored key: needs a key and KeyConfig.PubInfo
             if not self.key_cfg(slot) & 2:
                 raise _Fail(STATUS_EXEC)
@@ -366,20 +376,49 @@ class Chip:
                 self.save()
             if slot not in self.keys:
                 raise _Fail(STATUS_EXEC)
+            if mode == 0x08 and self.tempkey is None:
+                raise _Fail(STATUS_EXEC)      # the digest mode needs a valid TempKey (a Nonce first)
         x, y = p256.pubkey(self.keys[slot])
-        return self._data(x.to_bytes(32, "big") + y.to_bytes(32, "big"))
+        pub = x.to_bytes(32, "big") + y.to_bytes(32, "big")
+        if mode == 0x08:
+            import hashlib
+            sn = self.serial()
+            msg = self.tempkey["v"] + bytes([OP_GENKEY, mode, slot, 0, sn[8], sn[0], sn[1]]) + bytes(25) + pub
+            self.tempkey = {"v": hashlib.sha256(msg).digest(), "src": self.tempkey["src"], "gk": 1, "id": slot}
+        return self._data(pub)
+
+    def serial(self):
+        return bytes(self.cfg[0:4]) + bytes(self.cfg[8:13])
 
     def sign(self, mode, slot):
         import p256
-        if not mode & 0x80:
-            raise _Fail(STATUS_PARSE)         # only external (TempKey) signing is modeled
+        if mode & 0x3F:
+            raise _Fail(STATUS_PARSE)         # external (0x80) or internal (0x00, 0x40 with the serial) only
         if slot > 15 or self.tempkey is None:
             raise _Fail(STATUS_EXEC)
         if not self.config_locked() or not self.is_p256_private(slot) or slot not in self.keys:
             raise _Fail(STATUS_EXEC)
-        if not self.slot_cfg(slot) & 1 or not self.slot_cfg(slot) & 0x80:
-            raise _Fail(STATUS_EXEC)          # ReadKey bit 0: external signatures not permitted; IsSecret required
-        digest, self.tempkey = self.tempkey, None
+        if not self.slot_cfg(slot) & 0x80:
+            raise _Fail(STATUS_EXEC)          # IsSecret required
+        tk, self.tempkey = self.tempkey, None
+        if mode & 0x80:
+            if not self.slot_cfg(slot) & 1:
+                raise _Fail(STATUS_EXEC)      # ReadKey bit 0: external signatures not permitted
+            digest = tk["v"]
+        else:
+            # internal: ReadKey bit 1, and a TempKey that GenKey (or GenDig, not modeled) made; the
+            # message is the chip's own, after the datasheet's table (chipcfg.internal_message)
+            if not self.slot_cfg(slot) & 2 or not tk["gk"]:
+                raise _Fail(STATUS_EXEC)
+            import hashlib
+            sn, k = self.serial(), tk["id"]
+            sc, kc = self.slot_cfg(k), self.key_cfg(k)
+            flags = k | tk["src"] << 4 | 1 << 6 | (sc >> 4 & 1) << 7
+            full = bool(mode & 0x40)
+            msg = (tk["v"] + bytes([OP_SIGN, mode, slot, 0, sc & 0xFF, sc >> 8, kc & 0xFF, kc >> 8, flags, 0, 0, sn[8]])
+                   + (sn[4:8] if full else bytes(4)) + sn[0:2] + (sn[2:4] if full else bytes(2))
+                   + bytes([0x00 if self.slot_locked(k) else 0x01, 0x01, 0x00]))
+            digest = hashlib.sha256(msg).digest()
         if self.slot_cfg(slot) & 0x20:          # LimitedUse: every signature spends one on counter 0, first
             if self.counters[0] >= COUNTER_MAX:
                 raise _Fail(STATUS_EXEC)

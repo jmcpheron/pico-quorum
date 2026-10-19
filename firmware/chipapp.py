@@ -21,7 +21,8 @@ sel = 0             # the knob's choice on the banner: 0 PROVISION, 1 the map
 make_ui = None
 TITLE, LABEL = "CEREMONY IMAGE", "PROVISION (quorum v1)"
 STATE = {"factory": "FRESH: ready for PROVISION", "quorum-v1": "sealed or in progress: quorum v1",
-         "quorum-v2": "branded or in progress: quorum v2", "quorum-tm1": "sealed: Trust M quorum-tm1", "quorum-tm1-open": "in progress: Trust M",
+         "quorum-v2": "branded or in progress: quorum v2", "quorum-v3": "branded or in progress: quorum v3",
+         "quorum-tm1": "sealed: Trust M quorum-tm1", "quorum-tm1-open": "in progress: Trust M",
          "legacy-test": "test table (chip #1 style)", "unknown": "unknown table"}
 
 
