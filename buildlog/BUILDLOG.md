@@ -765,3 +765,30 @@ written on either chip.
 - Open: pull-ups for the console on an ESP32 (two resistors, or the internal ones turned on in
   `atecc.make_i2c`, which is a new release); `00006005` in `chipcfg.REVISIONS` and `chipcheck`; the
   CC pins (DETECT), not wired here.
+
+## 2026-10-20 — the Feather ESP32-S3 Reverse TFT, and the spare 608C's config is locked
+
+A new board: Adafruit's Feather ESP32-S3 Reverse TFT (4 MB flash, 2 MB PSRAM, 240 × 135 ST7789).
+What it is and how to set it up: [FEATHER-S3.md](../hardware/wiring/FEATHER-S3.md).
+
+- **MicroPython 1.26.1** (`ESP32_GENERIC_S3`) over Adafruit's factory demo, with esptool 5.6.0 over
+  the native USB. esptool reset the board into its bootloader itself. `erase-flash` failed while the
+  port came back after the previous command; `write-flash` without it verified. About 2 MB of heap.
+- **The bus:** IO3/IO4 with IO7 high. The MAX17048 battery gauge answered at 0x36.
+- **The key** (key-c through USB-C adapters): at first no 0x60, with D+ and D− either way round, at
+  20, 100 and 400 kHz, after a wake token and after a 1 ms wake pulse. A scan of every pair of the
+  20 header pins found only 0x36. After the key was unplugged and plugged back in, 0x60 answered.
+  What changed in the adapters wasn't recorded.
+- **Chip `0123e063db3354d7ee`, read-only** (`atecc.py` with a stand-in `board.py`, `addr=0x60`):
+  - Revision `00006005` (608C). I2C address byte `c0`, SlotLocked `ffff`.
+  - **Config LOCKED, data open.** The table is `quorum-v3` (`chipcfg.identify`). The 2026-10-16
+    entry had both zones open, and no entry here records the config lock. A locked chip doesn't
+    say which CRC its lock was checked against.
+  - Random: 32 bytes that weren't the test pattern. SHA-256 of `PicoQuorum 1` equalled `hashlib`'s.
+    SelfTest 0 (all passed). Counters 0 and 1: both 0.
+  - No key was read or used.
+- **The screen:** `MADCTL 0x60`, offsets 40 and 53, inversion on: the bench test was read off it.
+  The buttons haven't been checked.
+- **The console image would not start:** `board.py`'s `"esp32"` profile uses GPIO22 and 25, which
+  an S3 lacks, and GPIO19, its USB. And `atecc.py`'s fallback addresses include 0x36, the gauge.
+  Open: a `"feather-s3"` profile and screens for 240 × 135.

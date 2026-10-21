@@ -8,6 +8,10 @@ The same screen, knob and chip on an ESP32 DevKit (WROOM-32) or Freenove's ESP32
 a Pico, on two breadboards: [ESP32.md](ESP32.md), drawn by `tools/wiring-esp32`. The bench test has
 run on a WROOM-32.
 
+Adafruit's Feather ESP32-S3 Reverse TFT, a ready-made board with its own screen and buttons, and a
+key on its I2C pins: [FEATHER-S3.md](FEATHER-S3.md). A read-only bench test runs; the console doesn't
+yet.
+
 Build 1 (Pico 2 W, 2.0″ screen, EC11 knob, 3.5 mm + 2.5 mm TRRS jacks, ATECC608 stand-in key):
 [BUILD1.md](BUILD1.md), drawn by `tools/wiring-build1`.
 
