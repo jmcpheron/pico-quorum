@@ -687,3 +687,108 @@ the bench app paused; counter 0 went from 22 to 27):
 - **U1's 2.3 s, split:** the P-256 verify is 2.8 s alone in this run, the config CRC 10 ms, the OTP
   and slot 8 reads 210 ms. The verify is the cost.
 - **Self-test 0, Random live, locks `00 00 / FE FF`** at the end.
+
+## 2026-10-07 — the ESP32 bench: screen, knob and both chips on a WROOM-32
+
+The first run of [ESP32.md](../hardware/wiring/ESP32.md) on hardware: a DevKit with an
+ESP32-D0WDQ6 (revision v1.0, 4 MB flash, no PSRAM) on two breadboards, the 2.8″ screen from the
+Pico's custom build, the EC11 knob and no buttons, `bench1.py` from maintenance mode.
+
+- **MicroPython:** `ESP32_GENERIC-20250911-v1.26.1.bin` (sha256 `6b5272b6…7edd4e`), erase and write
+  with esptool 5.4.0. `tools/usb push` copied every firmware file. With bench1 running, 108 KB of
+  the heap was still free.
+- **The 2.8″:** right on the first try at 24 MHz, with board.py's `MADCTL = 0x60` and inversion on:
+  TL top-left, the bars red, green, blue and white. The console's own `lcd.py` drew the same.
+  The 2.4″ tried first showed nothing; its wiring was not checked.
+- **The knob:** the press worked from the start. The turn counted nothing (A and B never left 1, 1,
+  polled every millisecond) until the 3-post side was rewired A, C, B to IO32, ground, IO33. It then
+  counted on the pulse counter. Direction and steps per click not yet checked.
+- **The Trust M** (a sacrificial chip, LcsA operational, E0F1 a frozen P-256 key): `scan()` returned
+  `[]`, as on the Pico (docs/TRUSTM.md). A poll of its state register answered. `bench1.probe()` now
+  polls 0x30 when the scan finds nothing, and shows the serial, LcsA and E0F1, read only.
+- **Chip 5** (`0123a431b1490801ee`) on the same wires: 608A at 0x60, both zones locked, slot 0 key
+  `7262a070` sealed `FE FF`, as above. `chipcheck` read slot 0's public key, so counter 0 went up by 1.
+- **This DevKit resets every time its serial port opens.** mpremote's first raw-REPL attempt raced
+  the reset; each new connection also stops bench1.
+- Not tried: Wi-Fi, HTTPS, the console image, the watchdog. Holding the knob for the chip report
+  (`chipcheck`, an ATECC report) with a Trust M on the bus seemed to stall the bench once; not
+  looked into.
+
+## 2026-10-16 — the console on an ESP32-WROVER, and the first ATECC608C on a key-c
+
+An ESP32 with PSRAM (MicroPython 1.26.1, the `ESP32_GENERIC-SPIRAM` build, board id
+`f42dc976eaf8`) on the breadboards of [ESP32.md](../hardware/wiring/ESP32.md), with the screen and
+the EC11 knob, then two key-c boards (P2, ATECC608C) from the JLCPCB order. Nothing was locked or
+written on either chip.
+
+- **The console image, with `tools/fw`:** the board had an older console image. `tools/fw push
+  console` put 2026.10.10 (`b2187163`, release `a675·bcda`) on it, and `verify` matched all 50
+  files. Over the board's USB-serial bridge a backup takes about 3.5 minutes and a push about 5.
+  The first push stopped on `trustm.mpy` (mpremote: "timeout waiting for first EOF reception"). The
+  board stayed in maintenance, and a second push copied the last 3 files.
+- **The screen was black with the backlight on,** at 24 MHz, at 10 MHz and from an init written from
+  scratch at 1 MHz. A MOSI or CS wire was out of place. Re-seated, it drew.
+- **mpremote's "could not enter raw repl":** its soft reset runs `boot.py` again (the splash, Wi-Fi),
+  which takes longer than mpremote waits. Ctrl-C at the prompt, then `mpremote ... resume`.
+- **The key-c on the bench:** VBUS and GND to the 3.3 V rails, SDA (D+) to IO21, SCL (D−) to IO22.
+  None of the console's end from the key-c page was built: no VBUS switch, no CC sensing, no
+  pull-ups.
+  - The console's probe timed out (13.6 s) on every boot. Both lines idled low: the key-c has no
+    I2C pull-ups (the design puts 2.2 kΩ on the console's side), and on IO21/IO22
+    `atecc.make_i2c` uses SoftI2C, which doesn't turn on the ESP32's own. The Adafruit breakout
+    has its own, so it never showed.
+  - With the ESP32's pull-ups (about 45 kΩ) turned on, `0x60` answered, SDA on IO21.
+- **Chip `0123e063db3354d7ee`, `chipcheck` and a read-only lab script:**
+  - Revision `00006005`. `chipcfg.REVISIONS` and `chipcheck` know only `6002` (608A) and `6003`
+    (608B), so they print "unknown".
+  - Config and data zones unlocked. Config bytes 16–127 are byte for byte the 608A factory dump of
+    2026-09-16 (`0123f3ac…`). Only the serial, the revision and bytes 13–14 differ: `61 69` here,
+    `c1 55` on the 608A.
+  - Random: `ffff0000…`, as on any unlocked chip. Info: KeyValid 0 for slots 0–2, State 0. Mode 3
+    (GPIO) was refused with status `0x03`.
+  - Counters 0 and 1: both 0, after the slot-table probe.
+  - SelfTest passed: all at once, then RNG, ECDSA verify, ECDSA sign, ECDH, AES and SHA one at a
+    time, 260–320 ms each.
+  - The chip's SHA-256 of 0, 3, 21 and 63 bytes equalled `hashlib`'s.
+  - 50 config reads at each of 50, 100, 200 and 400 kHz on the internal pull-ups: no errors. Those
+    are the clocks asked of SoftI2C; the real ones weren't measured. 400 kHz was barely faster than
+    200 (71 against 75 ms a read).
+- **The console with a 608C:** started from RAM with the pull-ups on (`boot.py`, the pins, then
+  `import main`). Its probe took 3.9 s and logged `new chip 0123e063db3354d7ee: chip 2, factory,
+  theme light`, then `pin FAIL ... (secrets.py has no QUORUM_EXPECT)`. The unknown revision didn't
+  stop it. It lasts until the board restarts.
+- **Hot-plug:** with the console paused, a script woke the chip and read its serial every 300 ms,
+  and changed the screen after two reads that agreed. Over 150 s: 11 changes, two chips
+  (`0123e063db3354d7ee` and `0123147ac8c5b889ee`), the plug both ways round. Every insertion read
+  the right serial, and the ESP32 never reset, with key power straight from the 3.3 V rail. The
+  console itself reads the chip only at boot and on Check again.
+- Open: pull-ups for the console on an ESP32 (two resistors, or the internal ones turned on in
+  `atecc.make_i2c`, which is a new release); `00006005` in `chipcfg.REVISIONS` and `chipcheck`; the
+  CC pins (DETECT), not wired here.
+
+## 2026-10-20 — the Feather ESP32-S3 Reverse TFT, and the spare 608C's config is locked
+
+A new board: Adafruit's Feather ESP32-S3 Reverse TFT (4 MB flash, 2 MB PSRAM, 240 × 135 ST7789).
+What it is and how to set it up: [FEATHER-S3.md](../hardware/wiring/FEATHER-S3.md).
+
+- **MicroPython 1.26.1** (`ESP32_GENERIC_S3`) over Adafruit's factory demo, with esptool 5.6.0 over
+  the native USB. esptool reset the board into its bootloader itself. `erase-flash` failed while the
+  port came back after the previous command; `write-flash` without it verified. About 2 MB of heap.
+- **The bus:** IO3/IO4 with IO7 high. The MAX17048 battery gauge answered at 0x36.
+- **The key** (key-c through USB-C adapters): at first no 0x60, with D+ and D− either way round, at
+  20, 100 and 400 kHz, after a wake token and after a 1 ms wake pulse. A scan of every pair of the
+  20 header pins found only 0x36. After the key was unplugged and plugged back in, 0x60 answered.
+  What changed in the adapters wasn't recorded.
+- **Chip `0123e063db3354d7ee`, read-only** (`atecc.py` with a stand-in `board.py`, `addr=0x60`):
+  - Revision `00006005` (608C). I2C address byte `c0`, SlotLocked `ffff`.
+  - **Config LOCKED, data open.** The table is `quorum-v3` (`chipcfg.identify`). The 2026-10-16
+    entry had both zones open, and no entry here records the config lock. A locked chip doesn't
+    say which CRC its lock was checked against.
+  - Random: 32 bytes that weren't the test pattern. SHA-256 of `PicoQuorum 1` equalled `hashlib`'s.
+    SelfTest 0 (all passed). Counters 0 and 1: both 0.
+  - No key was read or used.
+- **The screen:** `MADCTL 0x60`, offsets 40 and 53, inversion on: the bench test was read off it.
+  The buttons haven't been checked.
+- **The console image would not start:** `board.py`'s `"esp32"` profile uses GPIO22 and 25, which
+  an S3 lacks, and GPIO19, its USB. And `atecc.py`'s fallback addresses include 0x36, the gauge.
+  Open: a `"feather-s3"` profile and screens for 240 × 135.

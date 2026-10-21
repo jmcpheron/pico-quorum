@@ -1,5 +1,5 @@
 // The quorum v1 ceremony (test-vectors/ceremony_test.py) on MicroPython 1.26 in WebAssembly with
-// the emulator's virtual ATECC608: a factory-fresh 608A and 608B sealed step by step, the refusals,
+// the emulator's virtual ATECC608: a factory-fresh 608A, 608B and 608C sealed step by step, the refusals,
 // and the console signing with the result. Must pass before a real fresh chip is touched.
 //   (cd emu && npm ci) && node test-vectors/run-ceremony.mjs
 import { readFileSync } from "node:fs";

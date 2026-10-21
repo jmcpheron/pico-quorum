@@ -25,7 +25,7 @@ KIND_LABEL = {"?": "-"}
 DESC = {"P256": "P-256 private key", "PUB": "P-256 public key", "AES": "AES-128 key", "DATA": "plain data",
         "?": "untyped by the rules"}
 TRANSIENT = ("busy", "confirm", "confirm_write", "result", "refused", "labres")
-PARTS = {"00006002": "ATECC608A", "00006003": "ATECC608B", "00005000": "ATECC508A"}
+PARTS = {"00006002": "ATECC608A", "00006003": "ATECC608B", "00006005": "ATECC608C", "00005000": "ATECC508A"}
 
 
 def fp(s):

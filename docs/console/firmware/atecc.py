@@ -30,6 +30,10 @@ except ImportError:
 def make_i2c(sda, scl, freq):
     if scl == sda + 1 and sda % 4 in (0, 2):
         return I2C(0 if sda % 4 == 0 else 1, sda=Pin(sda), scl=Pin(scl), freq=freq)
+    if board.ESP32:
+        # A key-c has no pull-ups of its own and SoftI2C turns on none: the ESP32's (about 45 kOhm)
+        # were enough on the bench, up to 400 kHz (buildlog 2026-10-16). SoftI2C keeps the pull.
+        return SoftI2C(sda=Pin(sda, Pin.IN, Pin.PULL_UP), scl=Pin(scl, Pin.IN, Pin.PULL_UP), freq=freq)
     return SoftI2C(sda=Pin(sda), scl=Pin(scl), freq=freq)
 
 ADDR = 0x60
@@ -277,7 +281,7 @@ class ATECC608:
         return c[0:4] + c[8:13]
 
     def revision(self):
-        """4 bytes; 00006002 = 608A, 00006003 = 608B."""
+        """4 bytes; 00006002 = 608A, 00006003 = 608B, 00006005 = 608C."""
         return self.run(OP_INFO, 0x00, 0x0000, resp_len=4, wait_ms=2)
 
     def lock_state(self):
@@ -481,6 +485,26 @@ class ATECC608:
         """Create a NEW random private key in `slot`, replacing whatever was there. Returns (x, y)."""
         pub = self.run(OP_GENKEY, 0x04, slot, resp_len=64, wait_ms=120)
         return int.from_bytes(pub[:32], "big"), int.from_bytes(pub[32:], "big")
+
+    def genkey_attest(self, slot=0, att_slot=1, challenge=None, num_in=None):
+        """The key in `slot` attested by the one in `att_slot` (docs/ATTESTED-KEYS.md, chipcfg's
+        attestation): Nonce, GenKey's digest mode (no new key: the public key worked out again, its
+        digest into TempKey), then an internal Sign, which signs only the message the chip builds.
+        One wake: TempKey dies with a sleep. challenge: 32 bytes passed through; else num_in, 20
+        bytes for random mode. -> (nonce, qx || qy, r || s), nonce as chipcfg.nonce_tempkey takes it."""
+        self.wake()
+        try:
+            if challenge is not None:
+                self.command(OP_NONCE, 0x03, 0x0000, bytes(challenge), resp_len=1, wait_ms=8)
+                nonce = {"mode": "input", "value": bytes(challenge)}
+            else:
+                rand = self.command(OP_NONCE, 0x00, 0x0000, bytes(num_in), resp_len=32, wait_ms=8)
+                nonce = {"mode": "random", "randOut": bytes(rand), "numIn": bytes(num_in)}
+            pub = self.command(OP_GENKEY, 0x08, slot, resp_len=64, wait_ms=120)
+            sig = self.command(OP_SIGN, 0x40, att_slot, resp_len=64, wait_ms=120)
+        finally:
+            self.sleep()
+        return nonce, bytes(pub), bytes(sig)
 
     def status(self, slot=0):
         s = self.lock_state()

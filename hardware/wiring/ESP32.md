@@ -13,7 +13,7 @@ Build 1's parts on an ESP32 DevKit instead of a Pico 2 W:
 The firmware is the same image as the Pico's. On an ESP32, `firmware/board.py` always picks its
 `"esp32"` profile, so there is nothing to set but the screen size.
 
-**Not yet run on an ESP32.** What has been checked, and how:
+**The bench test has run on a WROOM-32, and the console on a WROVER.** What has been checked, and how:
 
 - Every MicroPython call on the ESP32 path was read against MicroPython 1.26's ESP32 port: pins,
   SPI, I2C, timers, the pulse counter, the clock, TLS.
@@ -21,8 +21,20 @@ The firmware is the same image as the Pico's. On an ESP32, `firmware/board.py` a
   source, bench1 included. CI runs it.
 - The Pico's own suites still pass, the console in the emulator among them.
 
-Nothing has been checked on hardware: the screen on long jumpers, which way the knob counts, Wi-Fi,
-HTTPS, the watchdog, or memory. Nor have `tools/usb` and `tools/fw` been run against an ESP32.
+On hardware, 2026-10-07 ([the build log](../../buildlog/BUILDLOG.md)): a WROOM-32 DevKit (no PSRAM)
+with MicroPython 1.26.1, the 2.8″ and the EC11 knob, from maintenance mode. `tools/usb push` with
+`PICO_PORT` copied the firmware, and `bench1` ran with 108 KB of the heap free. The screen was right
+at 24 MHz as board.py sets it, the knob counted turns and presses, and both chips read on IO21/IO22:
+a Trust M at 0x30 and an ATECC608A at 0x60.
+
+On hardware, 2026-10-16: an ESP32 with PSRAM and MicroPython's SPIRAM build. `tools/fw push console`
+put the console image on it and `tools/fw verify` matched every file. A backup over the serial
+bridge takes about 3.5 minutes and a push about 5; a push that times out leaves the board in
+maintenance, and a second push finishes it. The console started, joined Wi-Fi and ran with a key-c's
+ATECC608C once IO21/IO22 had pull-ups (see [The chip](#the-chip)).
+
+Not yet checked on hardware: which way the knob counts and how many steps per click, the 2.0″ and
+2.4″, the buttons, HTTPS, the watchdog, or the whole console on a WROOM-32.
 
 ## Will the whole console fit?
 
@@ -39,6 +51,34 @@ Probably not on a WROOM-32. Plan on the bench test there, and on a board with PS
   nothing here does.
 
 The bench test (`bench1.py`) is small and draws in 30-row bands (19 KB), so it should fit a WROOM-32.
+
+## Freenove's ESP32-WROVER
+
+Freenove's ESP32-WROVER board (USB-C, a camera on a ribbon, an ESP32-WROVER-E module with PSRAM)
+takes the same wires. Every GPIO here is at the same pin number on its headers as on the DevKitC,
+so the wire list and the tables below hold. It differs in four ways:
+
+- **Unplug the camera first.** Its ribbon shares IO4, IO5, IO18, IO19, IO21, IO22, IO23, IO25, IO26
+  and IO27 with the screen, the chip, the knob and the buttons (Espressif's `CAMERA_MODEL_WROVER_KIT`
+  pins, which this board follows). The camera drives some of them.
+- **20 pins a side.** Where the DevKitC has IO16 and IO17, this board has GND: they are the PSRAM.
+  Its flash pins come out as 3.3 V and GND, and the bottom two pins on the left are **5 V**.
+- **MicroPython's `ESP32_GENERIC-SPIRAM` build**, for the PSRAM.
+- An LED marked IO2, which the firmware lights as the status LED.
+
+To free the ribbon, find out how the connector locks before pulling anything. Never push the latch
+down first.
+
+- **A flip lock:** a dark bar along the connector's long edge that hinges. Lift it with a fingernail
+  until it stands up. The ribbon then slides straight out.
+- **A slide lock:** the bar on the ribbon's side slides about 1 mm out, toward the ribbon. Pull it
+  out evenly at both ends. The ribbon then slides straight out.
+
+If the ribbon resists, the connector is still locked. Pulling a locked ribbon can tear it.
+
+![The Freenove ESP32-WROVER on two breadboards, every wire numbered](esp32-wrover-breadboard.svg)
+
+![The Freenove ESP32-WROVER's pins](esp32-wrover-pinmap.svg)
 
 ## The pictures
 
@@ -187,6 +227,12 @@ As on the Pico ([BREADBOARD.md](BREADBOARD.md#the-chip)): Adafruit's cable is re
 blue SDA and yellow SCL. A cable from a mixed kit may use other colors, so find which wire goes to
 which pad with a meter first. Swapping SDA and SCL does no harm. Swapping VIN and GND does.
 
+**A key-c board** ([its page](../key-pcb/key-c-usbc/README.md)) has no I2C pull-ups. From 2026.10.11
+the firmware turns on the ESP32's own on IO21/IO22 (about 45 kΩ, enough on the bench up to 400 kHz).
+Older images don't, and the console finds no chip. For margin, add a 4.7 kΩ resistor from IO21 and
+from IO22 to the bottom red rail anyway. Its D+ is SDA and its D− is SCL. Setting up a key-c's chip
+on this board is [KEY-RUNBOOK.md](../../docs/KEY-RUNBOOK.md).
+
 ## Pin map
 
 The one pin table, in the order of the parts. The header pin is the DevKitC's (J2 down the left, J3
@@ -287,10 +333,12 @@ tools/usb                                     # the prompt; Ctrl-] leaves
 - **ESP32 BENCH**, a small **TL** in the top-left corner, and bars reading **red, green, blue,
   white** from left to right
 - **KNOB** counting up by one each click clockwise, and **PUSH** showing DOWN while you press
-- **BUS 60** and **CHIP 608A** or **608B**, a serial number, and `config open data open`
+- **BUS 60** and **CHIP 608A**, **608B** or **608C**, a serial number, and the two locks (`config open data
+  open` on a new chip). A Trust M shows **BUS 30**, **CHIP Trust M** and its lifecycle, a serial, and
+  its E0F1 key
 
 Pressing the knob reads the chip again. Holding it for 2 seconds prints the full chip report at the
-prompt. `bench1.stop()` ends the test. It draws for the 240 × 320 panels only; on the 1.8″ its
+prompt, for an ATECC608 only. Reading slot 0's public key counts as a use of that key. `bench1.stop()` ends the test. It draws for the 240 × 320 panels only; on the 1.8″ its
 picture comes out wrong, and the console itself drives that one with `SCREEN = "1.8"`. It only reads the chip: locking an ATECC608 is permanent
 ([LOCKING.md](../../docs/LOCKING.md)).
 
@@ -302,10 +350,11 @@ picture comes out wrong, and the console itself drives that one with `SCREEN = "
 | red and blue swapped | add `0x08` to `MADCTL` |
 | colors look like a photo negative | `INVERT = False` |
 | BUS says `nothing` | wires 5 to 8. Swap 7 and 8 to test; that's harmless |
+| PUSH works, KNOB never moves | the 3-post side is A, C, B: the middle post C to ground (wire 17), the outer two to IO32 and IO33 |
 | knob counts down when turned clockwise | swap wires 18 and 19 |
 | knob counts 2 per click, or every other click | `STEPS_PER_CLICK` at the top of `bench1.py` |
 | PUSH never shows DOWN | wires 20 and 21 must be on the 2-leg side |
-| the board resets as the prompt opens | some DevKits reset when the serial port opens. Open it again |
+| the board resets as the prompt opens | some DevKits reset whenever the serial port opens, and the bench stops. Open it, then `import bench1` again |
 | `MemoryError` | on a WROOM-32, start from maintenance (step 2), so nothing else is loaded |
 
 **4. The console**, on a board with PSRAM (see [Will the whole console fit?](#will-the-whole-console-fit)).
@@ -320,7 +369,8 @@ as for a Pico ([the owner's guide](../../docs/guide/README.md)), and push the co
 - **Nothing may pull IO12 high at power-up**, a KY-040's pull-ups included: the flash gets the wrong
   voltage and the board doesn't start.
 - **Config lock and data lock on the ATECC608 are permanent.** The bench test only reads.
-  `ALLOW_LOCK` and `ALLOW_GENKEY` stay `False` in `secrets.py`.
+  `ALLOW_LOCK` and `ALLOW_GENKEY` stay `False` in `secrets.py`, except during a chip's setup
+  ([KEY-RUNBOOK.md](../../docs/KEY-RUNBOOK.md)), one chip at a time.
 
 ## What changes in the firmware
 

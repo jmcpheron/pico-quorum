@@ -304,7 +304,8 @@ function backup() {
     cps.push("cp", ":" + f.name, join(dir, f.name), "+");
   }
   cps.push("exec", "print('COPIED')");
-  const r = mp(cps, { timeout: 240000 });
+  // 10 minutes: an ESP32's USB-serial bridge took 3.5 for a backup (buildlog 2026-10-16)
+  const r = mp(cps, { timeout: 600000 });
   if (r.code !== 0 || !/COPIED/.test(r.out)) die(`the copy did not finish (the USB link can wedge: tools/usb reset, then again):\n${r.out.slice(-600)}`);
   const bad = [], moved = [];
   for (const f of files) {
@@ -467,7 +468,7 @@ function copyChecked(pairs) {
   for (let i = 0; i < pairs.length; i += 30) {
     const args = pairs.slice(i, i + 30).flatMap(([from, to]) => ["cp", from, ":" + to, "+"]);
     args.push("exec", "import os\nif hasattr(os, 'sync'): os.sync()\nprint('SYNCED')");
-    const r = mp(args, { resume: true, timeout: 240000 });
+    const r = mp(args, { resume: true, timeout: 600000 });     // as for a backup: an ESP32's bridge is slow
     if (r.code !== 0 || !/SYNCED/.test(r.out)) die(`the copy failed (maint is still on the board, so it will boot into maintenance):\n${r.out.slice(-600)}`);
   }
   const now = new Map(boardFiles().map((f) => [f.name, f.sha]));

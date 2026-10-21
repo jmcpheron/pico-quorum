@@ -27,6 +27,7 @@ def check(ok, what):
 class Pin:
     IN, OUT, PULL_UP, PULL_DOWN, IRQ_RISING, IRQ_FALLING = 1, 3, 1, 2, 1, 2
     levels = {}
+    pulls = {}
 
     def __init__(self, id, mode=None, pull=None, value=None):
         if not isinstance(id, int) or not 0 <= id <= 39 or id in (20, 24, 28, 29, 30, 31):
@@ -36,6 +37,7 @@ class Pin:
         self.id = id
         if value is not None:
             Pin.levels[id] = value
+        Pin.pulls[id] = pull
         log.append(("Pin", id))
 
     def value(self, v=None):
@@ -208,6 +210,8 @@ try:
         del log[:]
         atecc.make_i2c(atecc.SDA, atecc.SCL, 100_000)
         check((atecc.SDA, atecc.SCL) == (21, 22) and log[-1] == ("SoftI2C", 21, 22), "the chip's bus on 21/22")
+        check(Pin.pulls.get(21) == Pin.PULL_UP and Pin.pulls.get(22) == Pin.PULL_UP,
+              "its own pull-ups on 21/22: a key-c has none (buildlog 2026-10-16)")
 
         import net
         check(net.led.id == 2, "the status LED on GPIO2")

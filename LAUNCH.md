@@ -202,11 +202,11 @@ To do:
       from.
 - [ ] key-c bring-up. The P2 boards are due about 2026-10-07
       ([key-c](hardware/key-pcb/key-c-usbc/README.md)).
-  - [ ] Read a 608C's revision and factory table. C1 accepts only 608A and 608B
-        (`chipcfg.py` `REVISIONS`) and the Adafruit factory table (`provision.py` `c1`), so add the
-        608C before any ceremony.
+  - [x] Read a 608C's revision and factory table: `00006005`, and the 608A's table byte for byte
+        (2026-10-16, buildlog). `chipcfg.REVISIONS` has it from 2026.10.11, so C1 and B1 take it.
   - [ ] Practise C1–C9 on a spare.
-- [ ] Write a batch runbook for chips 3 to N:
+- [ ] Write a batch runbook for chips 3 to N. A first one for the five key-c 608Cs on the ESP32:
+      [KEY-RUNBOOK.md](docs/KEY-RUNBOOK.md).
   - [ ] the dual image, swap the chip, `allow on`, C1–C10, `allow off`;
   - [ ] enroll;
   - [ ] the local inventory (gitignored);

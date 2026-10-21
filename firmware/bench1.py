@@ -16,7 +16,8 @@
 #
 # On the screen and the REPL:
 #   knob      turn: the count moves one per click. Press: scan the chip's bus now.
-#             Hold 2 s: the full read-only chip report (chipcheck.py) on the REPL.
+#             Hold 2 s: the full read-only chip report (chipcheck.py, an ATECC608's) on the REPL.
+#   chip      an ATECC608 by scan(); a Trust M by polling 0x30, which a sleeping one needs (TRUSTM.md).
 #   key       (JACKS only) DETECT (J1 ring 2) low for 200 ms -> key power (GP6) on -> scan -> read the chip.
 #             DETECT high -> key power off at once and the I2C pins let go. Nothing that answers
 #             at a known address within 3 tries -> power off again, "not a key" (a headset, say).
@@ -209,20 +210,43 @@ def probe():
         time.sleep_ms(15)
     r = {"bus": found, "kind": None, "serial": None, "rev": None, "locks": None, "err": None}
     addr = next((a for a in found if a in KEY_ADDRS), None)
+    if addr is None:
+        # A sleeping Trust M NACKs its address, so scan() misses it (docs/TRUSTM.md): poll it.
+        import trustm_q
+        trustm_q.bus(KEY_SDA, KEY_SCL)
+        if trustm_q.present():
+            found, addr = found + [0x30], 0x30
     print("key bus scan:", ["0x%02x" % a for a in found] or "nothing")
+    r["bus"] = found
     if addr is None:
         return r
     r["kind"] = KEY_ADDRS[addr]
     if addr == 0x30:
-        return r        # trustm.py is not wired into the bench yet (hardware/wiring/BUILD1.md, firmware to do 5)
+        return probe_tm(r)
     try:
         chip = atecc.ATECC608(KEY_SDA, KEY_SCL, addr=addr)
         r["serial"] = hexs(chip.serial())
         rev = bytes(chip.revision())
-        r["rev"] = {b"\x00\x00\x60\x02": "608A", b"\x00\x00\x60\x03": "608B"}.get(rev, hexs(rev))
+        r["rev"] = {b"\x00\x00\x60\x02": "608A", b"\x00\x00\x60\x03": "608B", b"\x00\x00\x60\x05": "608C"}.get(rev, hexs(rev))
         r["locks"] = chip.lock_state()
         print("chip: %s serial %s, config %s, data %s" % (r["rev"], r["serial"],
               "LOCKED" if r["locks"]["configLocked"] else "open", "LOCKED" if r["locks"]["dataLocked"] else "open"))
+    except Exception as e:
+        r["err"] = str(e)
+        print("chip read failed:", e)
+    return r
+
+
+def probe_tm(r):
+    """The Trust M's serial, its lifecycle (LcsA) and the Safe key's object (E0F1). Reads only."""
+    import trustm_q, tmcfg
+    try:
+        tm = trustm_q.TrustM()
+        r["serial"] = tm.serial()
+        r["rev"] = "Trust M " + tmcfg.lcs_name(tm.lcsa())[:4]
+        k = tmcfg.key_row(tm.meta(tmcfg.KEY))
+        r["tm_key"] = "E0F1 %s %s%s" % (k["kind"], tmcfg.lcs_name(k["lcso"]), " FROZEN" if k["locked"] else "")
+        print("chip: Trust M serial %s, LcsA %s, %s" % (r["serial"], r["rev"], r["tm_key"]))
     except Exception as e:
         r["err"] = str(e)
         print("chip read failed:", e)
@@ -258,6 +282,8 @@ def draw(scr, st):
             row("CHIP", (p["rev"] or p["kind"])[:13], GREEN)
         if p["serial"]:
             scr.text("serial " + p["serial"], 8, y, WHITE); y += 12
+        if p.get("tm_key"):
+            scr.text(p["tm_key"][:39], 8, y, YELLOW if "FROZEN" in p["tm_key"] else WHITE); y += 12
         if p["locks"]:
             cl, dl = p["locks"]["configLocked"], p["locks"]["dataLocked"]
             scr.text("config %s   data %s" % ("LOCKED" if cl else "open", "LOCKED" if dl else "open"), 8, y, YELLOW if cl else WHITE); y += 12

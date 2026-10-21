@@ -9,7 +9,7 @@
 #               "1.8": 128x160 ST7735S run landscape as 160x128 (proven the same day)
 #   "esp32": build1's screen (SCREEN as above) and knob on an ESP32 DevKit instead of a Pico
 #            (hardware/wiring/ESP32.md). Always this one on an ESP32, whatever secrets.BOARD says:
-#            the Pico's pin numbers are the ESP32's flash. Not yet run on a board.
+#            the Pico's pin numbers are the ESP32's flash. Run on a WROOM-32 and a WROVER.
 # W x H is what the apps draw, X_OFF where that sits on the panel (0 when they draw all of it).
 # BANDS: retain full native resolution, but only buffer 30 rows at a time (19,200 bytes at 320 wide,
 # 14,400 at 240). Any panel whose whole frame would be over 45 KB is drawn this way: the 240x240

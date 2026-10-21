@@ -1,4 +1,4 @@
-# The brand bench's screens (brand.py) in the console's own look: quorum_ui.py's drawing kit, fonts
+# The brand bench's screens (brand.py), and the claim's on a user's console (claim.py), in the console's own look: quorum_ui.py's drawing kit, fonts
 # and colours, as docs/BRANDED-KEYS.md drew them. Every step shows the chip under its header: the
 # package, the OTP zone with the brand, the sixteen slots, a padlock for each zone, and what the
 # step writes ringed, so the wizard reads as the chip filling in.
@@ -62,7 +62,7 @@ def ring(d, x, y, w, h, col, thick=True):
 def chip(d, y, st, number="0042", title="ATECC608C"):
     """The chip as it stands. st: cfg/data "open"|"locked", otp "empty"|"brand"|"bad",
     s8 "empty"|"sig", dead "factory"|"zero", s0 "empty"|"filling"|"key", sealed bool,
-    focus None|"cfg"|"otp"|"s8"|"data"|"s0"."""
+    s1 (quorum v3) "empty"|"filling"|"key", sealed1 bool, focus None|"cfg"|"otp"|"s8"|"data"|"s0"|"s1"."""
     x0, w, h = M, W - 2 * M, 50
     U.rrect(d, x0, y, w, h, 6, "line")
     U.rrect(d, x0 + 1, y + 1, w - 2, h - 2, 5, BODY)
@@ -112,6 +112,19 @@ def chip(d, y, st, number="0042", title="ATECC608C"):
                 d.rect(cx - 1, cy - 1, cw + 2, ch + 2, U.c("text"))
             if st.get("focus") == "s0":
                 ring(d, cx, cy, cw, ch, "bad" if st.get("sealing") else "ok", False)
+        elif n == 1 and st.get("s1"):
+            # quorum v3: the attestation key, made and sealed on the bench
+            if st["s1"] == "key":
+                d.fill_rect(cx, cy, cw, ch, U.c(BRAND))
+            elif st["s1"] == "filling":
+                d.fill_rect(cx, cy, cw // 2, ch, U.c(BRAND))
+                d.rect(cx, cy, cw, ch, U.c(BRAND))
+            else:
+                dashed(d, cx, cy, cw, ch, BRAND)
+            if st.get("sealed1"):
+                d.rect(cx - 1, cy - 1, cw + 2, ch + 2, U.c("text"))
+            if st.get("focus") == "s1":
+                ring(d, cx, cy, cw, ch, "bad" if st.get("sealing") else "stake", False)
         elif n == 8:
             if st.get("s8") == "sig":
                 d.fill_rect(cx, cy, cw, ch, U.c(BRAND))
@@ -178,8 +191,15 @@ def red_card(d, title, bold, sub):
 # The red card's two lines on each permanent step
 RED = {"B3": ("Slot rules fixed for good.", "The chip checks the table's CRC first."),
        "B6": ("The brand and every slot freeze for good.", "Then only the chip's own GenKey can fill slot 0."),
-       "S3": ("This key can never be replaced.", "A spare: its key is for tests only.")}
-FOCUS = {"B2": "cfg", "B3": "cfg", "B4": "otp", "B5": "s8", "B6": "data", "S1": "s0", "S2": "s0", "S3": "s0"}
+       "B4b": ("The attestation key can never be replaced.", "B5 signs its public half into the brand."),
+       "S3": ("This key can never be replaced.", "A spare: its key is for tests only."),
+       "U4": ("Your key can never be changed.", "Lose the chip, and your Safe's other owners swap it out.")}
+FOCUS = {"B2": "cfg", "B3": "cfg", "B4": "otp", "B4a": "s1", "B4b": "s1", "B5": "s8", "B6": "data", "S1": "s0", "S2": "s0",
+         "S3": "s0", "S4": "s1",
+         "U1": "otp", "U2": "s0", "U3": "s0", "U4": "s0"}
+SWAP = {"key0000": ("Unplug this chip", "Then plug in key 0000. It signs this chip's brand, and nothing else."),
+        "back": ("Key 0000 signed", "Unplug key 0000, then plug this chip back in."),
+        "wrong": ("Not that one", "Chip %s isn't the one asked for. Unplug it.")}
 
 
 class _Q:
@@ -195,12 +215,16 @@ def chip_state(c, st):
         out["s8"] = "sig"
     if c.key is not None:
         out["s0"] = "key"
-    elif st == "S1":
+    elif st in ("S1", "U2"):
         out["s0"] = "filling"
     out["sealed"] = bool(c.slot0["locked"])
     if st in FOCUS:
         out["focus"] = FOCUS[st]
-    out["sealing"] = st == "S3"
+    out["sealing"] = st in ("S3", "U4", "B4b")
+    if c.profile == "quorum-v3":
+        s1 = chipcfg.decode_slot(c.cfg, chipcfg.ATT_SLOT)
+        out["s1"] = "key" if s1["locked"] or getattr(c, "att", None) else ("filling" if st == "B4a" else "empty")
+        out["sealed1"] = s1["locked"]
     return out
 
 
@@ -209,12 +233,17 @@ def number(c):
     return chipcfg.brand_number(rec) if rec else "????"
 
 
+BENCH = ("B1", "B2", "B3", "B4", "B4a", "B4b", "B5", "B6", "B7")
+
+
 def place(st):
-    """(header, dot, dots): the bench's seven steps, then the spare's three."""
-    if st[0] == "B":
-        return "Brand · bench", int(st[1:]), 7
-    if st[0] == "S" and st != "S4":
-        return "Spare · tests", int(st[1:]), 3
+    """(header, dot, dots): the bench's nine steps, then the spare's four; the claim's five."""
+    if st[0] == "U":
+        return "Claim · your key", int(st[1:]), 5
+    if st in BENCH:
+        return "Brand · bench", BENCH.index(st) + 1, len(BENCH)
+    if st[0] == "S" and st != "S5":
+        return "Spare · tests", int(st[1:]), 4
     return "Brand · bench", 0, 0
 
 
@@ -222,6 +251,22 @@ class UI(P.UI):
     def __init__(self, d, keys, sig, theme="dark", ceremony=None):
         U.use(theme)
         P.UI.__init__(self, d, keys, sig, theme, ceremony)
+        self.c.say = self._say
+
+    def _say(self, what, serial=None):
+        """B5 on a real bench: what to plug in next, while it polls the bus."""
+        d, c = self.d, self.c
+        title, text = SWAP[what]
+        d.frames(self._paint_say, title, text % serial[-8:] if serial else text, chip_state(c, "B5"), number(c), self._part())
+
+    def _paint_say(self, title, text, state, num, part):
+        d = self.d
+        self._top("B5", state, num, part)
+        U.txt(d, title, M, BODY_Y, "bold18", "bad" if title == SWAP["wrong"][0] else "text")
+        card(d, BODY_Y + 26, 74)
+        U.para(d, text, M + 12, BODY_Y + 31, W - 2 * M - 24, "sans12", "text", "surface", 15, BODY_Y + 98)
+        U.txt_c(d, "Waiting for the chip…", BODY_Y + 112, "sans14", "muted")
+        d.show()
 
     def draw(self):
         if not self.dirty:
@@ -306,8 +351,9 @@ class UI(P.UI):
         room = (180 - y) // 16
         if len(rows) > room:
             more = len(rows) - room + 1
-            rows = rows[:room - 1] + [("+%d more ok (brand-log.txt)" % more if all(k for _, k in rows[room - 1:]) else
-                                       "+%d more (brand-log.txt)" % more, True)]
+            log = getattr(c, "LOG", "brand-log.txt")
+            rows = rows[:room - 1] + [("+%d more ok (%s)" % (more, log) if all(k for _, k in rows[room - 1:]) else
+                                       "+%d more (%s)" % (more, log), True)]
         for label, good in rows:
             U.mark(d, good, M + 7, y + 8, 6)
             U.txt(d, U.fit(label, W - 2 * M - 20, "sans12"), M + 18, y, "sans12", "text" if good else "bad")

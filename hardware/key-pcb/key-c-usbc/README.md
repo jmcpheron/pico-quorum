@@ -76,6 +76,15 @@ The design is in [../PROPOSALS.md](../PROPOSALS.md), and the full order record i
 
 ## Log (newest first)
 
+- **2026-10-16:** **first power-up on the bench**, on an ESP32
+  ([buildlog](../../../buildlog/BUILDLOG.md)). Nothing was locked.
+  - The console's end wasn't built: key power straight from the 3.3 V rail, no CC sensing.
+  - Nothing answered until IO21/IO22 had pull-ups. The ESP32's own (about 45 kΩ) were enough on
+    the bench, up to 400 kHz with no errors.
+  - `0x60` answered. Chip `0123e063db3354d7ee`: an ATECC608C, revision `00006005`, both zones
+    unlocked, the factory table, SelfTest passes.
+  - A second key, `0123147ac8c5b889ee`, also read. Plugged and unplugged 11 times between them,
+    both ways round: each insertion read the right serial, and the ESP32 never reset.
 - **2026-10-04:** **placement confirmed**, and the order is in production.
   - "Yes, please proceed to production."
   - The PCBA is at 13% (Data Finished) and fabrication at 0%.

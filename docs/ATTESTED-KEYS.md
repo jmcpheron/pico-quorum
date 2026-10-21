@@ -1,7 +1,12 @@
 # Attested keys: the brand vouches for the key, and a gas relay trusts the brand
 
-> **A proposal (2026-10-19). Nothing here is built.** It extends [BRANDED-KEYS.md](BRANDED-KEYS.md)
-> so that a key made at claim can prove it lives in a branded chip. That proof is what a gas relay,
+> **A proposal (2026-10-19).** The chip half is built, in release 2026.10.12, and tested on the emulator
+> only. That covers quorum v3, B4a and B4b, the v3 brand, the spare's attestation (S4) and
+> `tools/check_attest`. The claim's U4a, the registry, the relay and the treasury are not built.
+> [KEY-RUNBOOK.md](KEY-RUNBOOK.md) session 1 runs the chip half on a spare 608C.
+>
+> It extends [BRANDED-KEYS.md](BRANDED-KEYS.md) so that a key made at claim can prove it lives in a
+> branded chip. That proof is what a gas relay,
 > paid from a public treasury, would check before it pays for a key's transactions. The chip half
 > is frozen at the bench's locks (B3, B6), so it has to be decided **before the first real branded
 > chip**, not after. Locks are permanent ([LOCKING.md](LOCKING.md)): every new step goes on a spare

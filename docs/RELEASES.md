@@ -93,6 +93,48 @@ The tag says who cut a release. The project Safe says the project stands behind 
 - the console signs it, and it executes;
 - `isValidSignature` holds, and still holds after the console's owner is removed.
 
+## 2026.10.12 (2026-10-18)
+
+**An attestation key on the brand bench** ([ATTESTED-KEYS.md](ATTESTED-KEYS.md)), for the spare
+608C first. The console's behaviour is unchanged. Its driver has one more command,
+`genkey_attest`, which no console file calls (`test-vectors/manifest.mjs`).
+
+- **brand:** quorum v3 (`chipcfg.QUORUM_V3`): quorum v2 with slot 1 an attestation key, internal
+  Sign only.
+  - B4a makes it and B4b seals it.
+  - B5 signs a version 3 record and slot 1's public half; both go into slot 8.
+  - B7 checks slot 1 against slot 8.
+  - On a spare, S4 has slot 1 attest slot 0's sealed key and checks the result, and checks that a
+    host's TempKey can't be signed. It writes the bundle to `brand-log.txt`.
+  - `tools/check_attest` checks the bundle on the laptop. If the strict layout fails, it says which
+    nearby layout the chip signed.
+- **dual:** the claim takes a quorum v3 chip too, and U1 checks slot 1 against slot 8. The claim
+  doesn't attest yet.
+- **all images:** the seal step checks that only slot 0's SlotLocked bit cleared, rather than
+  `FE FF`.
+
+The internal-sign message is the datasheet's as remembered. It has not been checked on silicon.
+The release fingerprints change because the source did.
+
+## 2026.10.11 (2026-10-16)
+
+**For the key-c's ATECC608C, on the ESP32** ([KEY-RUNBOOK.md](KEY-RUNBOOK.md)). The console's
+behaviour is unchanged, except:
+- it names a 608C (revision `00006005`) on the Chip page;
+- on an ESP32 it turns on the board's own I2C pull-ups, since a key-c has none.
+
+The other images change more:
+- **ceremony and dual:** C1 takes a 608C.
+- **dual:** it routes a branded chip (quorum v2, locked 00/00, slot 0 not sealed) to the claim, U1–U5
+  (`claim.py`), where the user's console makes and seals its key.
+- **brand:**
+  - B5 can be signed by key 0000, swapped in on the same bus;
+  - B4's record and B5's signature are kept across a restart;
+  - B7 finds slot 0 empty without a public-key read.
+
+No brand key is pinned yet (`quorum_cfg.py` `"brandKeys"` is `{}`), so no chip passes as branded.
+The release fingerprints change because the source did.
+
 ## 2026.10.10 (2026-10-06)
 
 **No change in behaviour.** The files that came from Austin Griffith's
