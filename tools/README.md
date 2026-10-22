@@ -41,6 +41,10 @@ From picowallet (Austin Griffith, MIT): `emu`, the emulator's command line
 - [`releases/badge.mjs`](releases/badge.mjs): the README's build badges and table, each image's
   release fingerprint as a blockie with its first and last 8 digits; `--check` is CI's
 
+- [`board/shots_feather.mjs`](board/shots_feather.mjs): the console's screens on the Feather
+  ESP32-S3 Reverse TFT (240×135, three buttons), from the emulator, for
+  [`../docs/quorum-ui/feather/`](../docs/quorum-ui/feather/README.md)
+
 - `fw` ([`board/fw.mjs`](board/fw.mjs)): the Pico as a production device, over USB.
   - `build console|ceremony` makes an image from `firmware/manifest.json`.
   - `backup` copies every file on the board, each checked by SHA-256, into `backups/` (gitignored).

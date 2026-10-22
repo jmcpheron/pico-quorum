@@ -6,6 +6,8 @@
 #              (knob.py) and A/B/X/Y (hardware/wiring/BUILD1.md). The console draws at
 #              full native resolution, using small horizontal strips.
 #   esp32:     build1's screen and knob on an ESP32's VSPI (hardware/wiring/ESP32.md)
+#   feather-s3: the Feather ESP32-S3 Reverse TFT's own 240x135 ST7789 and its buttons D0, D1, D2
+#              (hardware/wiring/FEATHER-S3.md)
 # W and H are the size the apps draw, in pixels; draw with them rather than with numbers.
 #
 # Bands (board.BANDS > 1, the 320x240 panels): the framebuffer holds one horizontal strip of the
@@ -16,7 +18,7 @@ from machine import Pin, SPI, PWM
 import framebuf, time
 import board
 
-BOARD, KNOB, W, H, SMALL = board.BOARD, board.KNOB, board.W, board.H, board.SMALL
+BOARD, KNOB, THREE, W, H, SMALL = board.BOARD, board.KNOB, board.THREE, board.W, board.H, board.SMALL
 DC, CS, SCK, MOSI, RST, BL = board.DC, board.CS, board.SCK, board.MOSI, board.RST, board.BL
 KEYS = board.KEYS
 
@@ -65,7 +67,7 @@ class LCD(framebuf.FrameBuffer):
             self.dc(1); self.cs(0); self.spi.write(bytes(data)); self.cs(1)
 
     def _init_panel(self):
-        if KNOB:
+        if board.INIT == "plain":
             self._init_build1()
             return
         self.rst(1); time.sleep_ms(10); self.rst(0); time.sleep_ms(10); self.rst(1); time.sleep_ms(120)
@@ -88,7 +90,7 @@ class LCD(framebuf.FrameBuffer):
         self._cmd(0x29)                # display on
 
     def _init_build1(self):
-        """The bare ST7789 on build1: its own power-on defaults, as bench1.py's Screen."""
+        """A bare ST7789 (build1, the Feather): its own power-on defaults, as bench1.py's Screen."""
         self.rst(1); time.sleep_ms(10); self.rst(0); time.sleep_ms(20); self.rst(1); time.sleep_ms(150)
         self._cmd(0x01)                # software reset
         time.sleep_ms(150)
@@ -116,6 +118,7 @@ class LCD(framebuf.FrameBuffer):
         self.cs(1)
 
     def _window(self, x, y, w, h):
+        x, y = x + board.RAM_X, y + board.RAM_Y      # the Feather's panel starts at (40, 53) in RAM
         self._cmd(0x2A, [x >> 8, x & 0xFF, (x + w - 1) >> 8, (x + w - 1) & 0xFF])
         self._cmd(0x2B, [y >> 8, y & 0xFF, (y + h - 1) >> 8, (y + h - 1) & 0xFF])
         self._cmd(0x2C)
@@ -157,24 +160,41 @@ class LCD(framebuf.FrameBuffer):
             self.big_text(s, x, y, c, scale)
 
 
+LONG_MS, REPEAT_MS = 1000, 500
+
+
 class Keys:
     """Every key on the board by name. On build1 the knob adds "down"/"up" (a detent each way) and
-    "press" (its push), and A/B/X/Y read high until they are wired."""
+    "press" (its push), and A/B/X/Y read high until they are wired. On the Feather (THREE), D1 is
+    two keys: "D1" when it is let go within LONG_MS, "D1L" once it has been held that long, again
+    every REPEAT_MS while it stays down."""
 
     def __init__(self):
-        self.pins = {k: Pin(p, Pin.IN, Pin.PULL_UP) for k, p in KEYS.items()}
-        self.last = {k: 1 for k in KEYS}
+        self.pins = {k: Pin(p, Pin.IN, Pin.PULL_DOWN if p in board.HIGH else Pin.PULL_UP) for k, p in KEYS.items()}
+        self.down = {k: int(p in board.HIGH) for k, p in KEYS.items()}     # the level that means pressed
+        self.last = {k: False for k in KEYS}
+        self.long = "D1" if THREE else None
+        self.since = self.next = 0
         self.knob = None
         if KNOB:
             import knob
             self.knob = knob.Knob()
 
     def pressed(self):
-        """Names of keys that went down since the last call."""
+        """Names of keys that went down since the last call (D1 on the Feather: see the class)."""
         out = self.knob.pressed() if self.knob else []
+        now = time.ticks_ms()
         for k, p in self.pins.items():
-            v = p.value()
-            if v == 0 and self.last[k] == 1:
+            v = p.value() == self.down[k]
+            if k == self.long:
+                if v and not self.last[k]:
+                    self.since, self.next = now, LONG_MS
+                elif v and time.ticks_diff(now, self.since) >= self.next:
+                    out.append(k + "L")
+                    self.next += REPEAT_MS
+                elif not v and self.last[k] and self.next == LONG_MS:
+                    out.append(k)
+            elif v and not self.last[k]:
                 out.append(k)
             self.last[k] = v
         return out
@@ -182,7 +202,7 @@ class Keys:
     def held(self, k):
         if self.knob and k == "press":
             return self.knob.held()
-        return self.pins[k].value() == 0
+        return self.pins[k].value() == self.down[k]
 
 
 class BandLCD(LCD):

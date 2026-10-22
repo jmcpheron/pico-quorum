@@ -49,6 +49,7 @@ jobs:
           python3 test-vectors/boot_maintenance_test.py
           python3 test-vectors/wifisetup_test.py
           python3 test-vectors/esp32_test.py
+          python3 test-vectors/feather_s3_test.py
       # from the repository root, as test-vectors/README.md runs them (the boot art writes emu/shots/)
       - name: MicroPython (WebAssembly 1.26, as on the Pico)
         run: |

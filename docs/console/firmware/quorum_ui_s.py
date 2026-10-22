@@ -7,20 +7,33 @@
 # Every screen: a 16 px header (what this is, and which page of how many), the page, and an 18 px
 # footer. On a review the footer holds the knob's three actions, SIGN, REJECT and BACK, lit only
 # while the knob is on them; SIGN is green only once every page has been seen.
+#
+# The Feather (240x135, lcd.THREE) has no footer and no knob: a strip down the left edge, the rail,
+# names what each of its three buttons does on this screen, level with the button (board.RAIL_Y).
+# On a review: Reject, Next, and Sign, which fills the strip while it is held.
 import time
+import board
 import lcd as L
 import fonts as F
 import blockies
 import quorum_ui as B
-from quorum_ui import c, txt, txt_r, txt_c, fit, para, rrect, pill, mark, warn_sign, logo, ident, short, page_colors
+from quorum_ui import c, txt, txt_r, fit, para, rrect, pill, mark, warn_sign, logo, ident, short, page_colors
 
 W, H = L.W, L.H
-M = 5                           # side margin
-R = W - M
-TW = W - 2 * M
+RAIL = 36 if L.THREE else 0     # the Feather's rail; the screens start right of it
+X0 = RAIL
+M = X0 + 5                      # side margin
+R = W - 5
+TW = R - M
+CX = (X0 + W) // 2              # the middle of what the screens draw on
 HEAD = 16                       # header strip
-FOOT = H - 18                   # footer from here down
+FOOT = H if L.THREE else H - 18     # footer from here down (the Feather has none)
+PER = 4 if L.THREE else 3       # four-character chunks a line, in an address or a hash
 use = B.use
+
+
+def txt_c(d, s, y, font, fg="text", bg="bg", x0=X0, x1=W):
+    return B.txt_c(d, s, y, font, fg, bg, x0, x1)
 
 
 # ----------------------------------------------------------------------------- pages
@@ -46,10 +59,10 @@ def pages_of(e):
 
 
 def addr_lines(a):
-    """40 hex as 3 four-character chunks a line: 0x7099 7970 c518 / 12dc 3a01 0c7d / ..."""
+    """40 hex as PER four-character chunks a line: 0x7099 7970 c518 / 12dc 3a01 0c7d / ..."""
     h = a[2:].lower() if a.startswith("0x") else a.lower()
     ch = [h[i:i + 4] for i in range(0, len(h), 4)]
-    return ["0x" + " ".join(ch[:3])] + ["  " + " ".join(ch[i:i + 3]) for i in range(3, len(ch), 3)]
+    return ["0x" + " ".join(ch[:PER])] + ["  " + " ".join(ch[i:i + PER]) for i in range(PER, len(ch), PER)]
 
 
 def header(d, left, right, fill="surface", ink="text", sub="muted", gap=6):
@@ -65,12 +78,38 @@ def header(d, left, right, fill="surface", ink="text", sub="muted", gap=6):
 
 
 def footer_msg(d, q, bg="bg"):
-    """The last message over the footer, if there is one. True when it drew."""
+    """The last message over the footer (the Feather: along the bottom), if there is one. True
+    when it drew."""
     if not q.msg:
         return False
-    d.fill_rect(0, FOOT, W, H - FOOT, c(bg))
-    txt_c(d, fit(q.msg, TW, "sans12"), FOOT + 1, "sans12", "warn", bg)
+    y = H - 17 if L.THREE else FOOT
+    d.fill_rect(X0, y, W - X0, H - y, c(bg))
+    txt_c(d, fit(q.msg, TW, "sans12"), y + 1, "sans12", "warn", bg)
     return True
+
+
+BACK = ("Back", "raised", "text")
+NEXT = ("Next", "raised", "text")
+OPEN = ("Open", "raised", "text")
+
+
+def rail(d, q, labels=(None, None, None), bg="bg", hold=None):
+    """The Feather: what D0, D1 and D2 do here, each label level with its button, and the last
+    message along the bottom. labels: three (text, fill, ink), or None where a button does nothing.
+    hold: (fraction, red) while Sign is held, the strip filling from the bottom."""
+    footer_msg(d, q, bg)
+    d.fill_rect(0, 0, RAIL, H, c("surface"))
+    if hold:
+        h = int(H * min(1, hold[0]))
+        d.fill_rect(0, H - h, RAIL, h, c("bad_bar" if hold[1] else "ok"))
+    d.vline(RAIL, 0, H, c("raised"))
+    for y, lab in zip(board.RAIL_Y, labels):
+        if lab:
+            s, fill, ink = lab
+            s = fit(s, RAIL - 2, "sans12")
+            top = max(0, min(H - 16, y - 8))
+            rrect(d, 1, top, RAIL - 2, 16, 7, fill)
+            txt(d, s, 1 + (RAIL - 2 - F.width(s, "sans12")) // 2, top, "sans12", ink, fill)
 
 
 def footer_press(d, q, what, bg="bg"):
@@ -83,15 +122,17 @@ def footer_press(d, q, what, bg="bg"):
 
 
 def choices(d, q, items, focus, bg="bg"):
-    """Pills the knob turns onto, right-aligned, the one in focus lit."""
-    if footer_msg(d, q, bg):
-        return
-    B.knob_badge(d, M + 7, FOOT + 9, "raised", "text")
+    """Pills the knob (D1 on the Feather) moves onto, right-aligned, the one in focus lit."""
+    y = H - 18 if L.THREE else FOOT + 1
+    if not L.THREE:
+        if footer_msg(d, q, bg):
+            return
+        B.knob_badge(d, M + 7, FOOT + 9, "raised", "text")
     x = R
     for key, label in reversed(items):
         on = key == focus
         x -= F.width(label, "sans12") + 12
-        pill(d, label, x, FOOT + 1, "sans12", "stake" if on else "surface", "bg" if on else "muted")
+        pill(d, label, x, y, "sans12", "stake" if on else "surface", "bg" if on else "muted")
         x -= 4
 
 
@@ -112,8 +153,8 @@ def draw_home(q):
         txt_r(d, "%d queued" % len(q.queue), R, y + 2, "sans12", "faint")
     y = 38
     if not q.queue:
-        mark(d, ok, 18, y + 22, 10)
-        txt(d, "Nothing to sign" if ok else "No service", 34, y + 10, "bold14")
+        mark(d, ok, M + 13, y + 22, 10)
+        txt(d, "Nothing to sign" if ok else "No service", M + 29, y + 10, "bold14")
         if not ok:
             txt(d, fit(q.net_err, TW, "sans12"), M, y + 36, "sans12", "muted")
     rows = 2 if q.outside else 3
@@ -123,10 +164,10 @@ def draw_home(q):
         lvl = "red" if e["why"] else e["r"]["level"]
         sel = i == q.sel and not q.foot
         fill = "raised" if sel else "surface"
-        rrect(d, 2, y, W - 4, 22, 4, fill)
+        rrect(d, X0 + 2, y, W - X0 - 4, 22, 4, fill)
         if lvl != "ok":
-            d.fill_rect(2, y + 4, 3, 14, c("bad" if lvl == "red" else "warn"))
-        x = txt(d, "#%d" % e["n"], 8, y + 2, "mono13", "warn" if q.conflicts(e) else "faint", fill)
+            d.fill_rect(X0 + 2, y + 4, 3, 14, c("bad" if lvl == "red" else "warn"))
+        x = txt(d, "#%d" % e["n"], X0 + 8, y + 2, "mono13", "warn" if q.conflicts(e) else "faint", fill)
         if q.signed_by_me(e):
             st, sc = "done", "ok"
         elif e["h"] in q.declined:
@@ -142,10 +183,12 @@ def draw_home(q):
         txt(d, fit(what, xs - x - 10, f), x + 5, y + (1 if sel else 3), f, {"red": "bad", "warn": "warn"}.get(lvl, "text"), fill)
         y += 24
     if q.outside:
-        rrect(d, 2, y, W - 4, 22, 4, "warn_bg")
-        warn_sign(d, 12, y + 11, 7)
-        txt(d, fit("key used %d times elsewhere" % q.outside, W - 30, "sans12"), 24, y + 3, "sans12", "warn_text", "warn_bg")
+        rrect(d, X0 + 2, y, W - X0 - 4, 22, 4, "warn_bg")
+        warn_sign(d, X0 + 12, y + 11, 7)
+        txt(d, fit("key used %d times elsewhere" % q.outside, TW - 24, "sans12"), X0 + 24, y + 3, "sans12", "warn_text", "warn_bg")
     choices(d, q, (("owners", "Owners"), ("device", "Device")), q.foot)
+    if L.THREE:
+        rail(d, q, (BACK if q.foot or q.browse else None, NEXT, OPEN if q.queue or q.foot else None))
     d.show()
 
 
@@ -169,6 +212,20 @@ def action_bar(q, bg):
             d.rect(x, FOOT + 1, ws[i], H - FOOT - 2, c("text"))
         txt_c(d, label, FOOT + 1, "sans12", ink_on if focus else ("bad_muted" if i == 1 else "muted"), fill, x, x + ws[i])
         x += ws[i] + 2
+
+
+def review_labels(q):
+    """The Feather's rail on a review: Reject; Next; Sign only once every page has been seen
+    (until then D2 shows the next one unseen), grey when this key can't sign this."""
+    ok, why = q.can_sign(q.cur)
+    left = q.unseen()
+    if not ok:
+        d2 = ("Sign", "surface", "faint")
+    elif left:
+        d2 = ("See %d" % len(left), "raised", "warn")
+    else:
+        d2 = ("Sign", "ok", "on_ok")
+    return (("Reject", "bad_bar", "on_bad"), NEXT, d2)
 
 
 def item_of(q, i):
@@ -265,7 +322,7 @@ def draw_review(q):
         txt(d, "%d bytes of calldata" % it["size"], M, y + 54, "sans12", pc["muted"], bg)
         txt(d, "compare the digest", M, y + 70, "sans12", pc["muted"], bg)
     elif kind == "digest":
-        for line in B.hash_lines(item_of(q, i)["digest"], per=3):
+        for line in B.hash_lines(item_of(q, i)["digest"], per=PER):
             txt(d, line, M, y, "mono13", pc["text"], bg)
             y += 15
     elif kind == "approvals":
@@ -299,16 +356,28 @@ def draw_review(q):
         blockies.draw(d, e["mine"], R - 40, y + 36, 5)
     elif kind == "hash":                # the Safe tx hash, computed here
         y -= 1
-        for line in B.hash_lines(e["mine"], per=3):
+        for line in B.hash_lines(e["mine"], per=PER):
             txt(d, line, M, y, "mono13", "text")
             y += 15
     else:       # refused
         mark(d, False, M + 9, y + 10, 9)
         txt(d, "Refused", M + 24, y - 2, "bold18", "bad_text", bg)
         para(d, e["why"], M, y + 24, TW, "sans12", "bad_text", bg, 15, FOOT - 2)
-    action_bar(q, bg)
-    if q.state == "hold":
-        draw_hold(q)
+    if L.THREE:
+        hold = None
+        if q.state == "hold":
+            need = q.hold_need(q.cur)
+            el = min(need, time.ticks_diff(time.ticks_ms(), q.hold_t0))
+            red = need > q.HOLD_MS
+            hold = (el / need, red)
+            header(d, "Keep holding", "%.1f s" % ((need - el) / 1000), "bad_bar" if red else "ok",
+                   "on_bad" if red else "on_ok", "on_bad" if red else "on_ok")
+        labels = review_labels(q)
+        rail(d, q, (labels[0], None, labels[2]) if hold else labels, bg, hold)     # D1 does nothing while Sign is held
+    else:
+        action_bar(q, bg)
+        if q.state == "hold":
+            draw_hold(q)
     d.show()
 
 
@@ -331,8 +400,8 @@ def draw_hold(q):
 def draw_working(q, title, sub):
     d = q.d
     d.fill(c("bg"))
-    rrect(d, W // 2 - 30, 24, 60, 6, 3, "raised")
-    rrect(d, W // 2 - 30, 24, 36, 6, 3, "stake")
+    rrect(d, CX - 30, 24, 60, 6, 3, "raised")
+    rrect(d, CX - 30, 24, 36, 6, 3, "stake")
     txt_c(d, title, 38, "bold18")
     if q.cur:
         txt_c(d, fit("#%d %s" % (q.cur["n"], q.cur["r"]["summary"]), TW, "sans12"), 66, "sans12", "text")
@@ -345,6 +414,8 @@ def draw_working(q, title, sub):
             y += 13
     else:
         para(d, sub, M, 84, TW, "sans12", "muted", "bg", 14, H)
+    if L.THREE:
+        rail(d, q)
     d.show()
 
 
@@ -361,7 +432,9 @@ def draw_result(q):
                 break
             txt(d, line, M, y, "sans12", ("ok" if ok else "bad") if k == 0 else "text")
             y += 14
-    if not ok and q.unsent:
+    if L.THREE:
+        rail(d, q, (BACK, None, ("Retry", "stake", "bg")) if not ok and q.unsent else (None, None, ("OK", "raised", "text")))
+    elif not ok and q.unsent:
         choices(d, q, (("send", "Send again"), ("back", "Back")), ("send", "back")[q.ract])
     else:
         footer_press(d, q, "OK")
@@ -389,7 +462,10 @@ def draw_owners(q):
     if q.counter is not None:
         k += " \u00b7 use #%d" % q.counter
     txt(d, fit(k, TW, "sans12"), M, FOOT - 16, "sans12", "faint")
-    footer_press(d, q, "Back")
+    if L.THREE:
+        rail(d, q, (BACK, NEXT if pages > 1 else None, None))
+    else:
+        footer_press(d, q, "Back")
     d.show()
 
 
@@ -412,7 +488,10 @@ def draw_device(q):
         txt(d, k, M, y, "sans12", "muted")
         txt_r(d, fit(v, TW - 36, "sans12"), R, y, "sans12", "bad" if v == "FAIL" else "text")
         y += 15
-    if q.KNOB:
+    if L.THREE:
+        choices(d, q, (("chip", "Chip"), ("wifi", "Wi-Fi"), ("back", "Back")), q.dfoot)
+        rail(d, q, (BACK, NEXT, OPEN))
+    elif q.KNOB:
         choices(d, q, (("chip", "Chip"), ("back", "Back")), q.dfoot)
     else:
         footer_press(d, q, "Back")
@@ -439,15 +518,20 @@ def draw_chip(q):
     for k, v in rows:
         if y > FOOT - 14:
             break
-        txt(d, fit(k, 44, "sans12"), M, y, "sans12", "muted")
-        txt(d, fit(str(v), TW - 48, "sans12"), M + 48, y, "sans12", "bad" if str(v).startswith(("FAILED", "MISSING")) else "text")
+        kw = 62 if L.THREE else 44         # the label column: the Feather has the room
+        txt(d, fit(k, kw, "sans12"), M, y, "sans12", "muted")
+        txt(d, fit(str(v), TW - kw - 4, "sans12"), M + kw + 4, y, "sans12", "bad" if str(v).startswith(("FAILED", "MISSING")) else "text")
         y += 13
-    footer_press(d, q, "Back")
+    if L.THREE:
+        rail(d, q, (BACK, NEXT if len(q.chip_pages) > 1 else None, None))
+    else:
+        footer_press(d, q, "Back")
     d.show()
 
 
-def notice(q, ok, title, lines, press=None):
-    """A plain page: a mark, a title and a few lines. The states where the console signs nothing."""
+def notice(q, ok, title, lines, press=None, d2=None):
+    """A plain page: a mark, a title and a few lines. The states where the console signs nothing.
+    press: what the knob's press does; d2: the Feather's label for D2."""
     d = q.d
     d.fill(c("bg"))
     mark(d, ok, M + 11, 13, 10)
@@ -459,14 +543,16 @@ def notice(q, ok, title, lines, press=None):
                 break
             txt(d, line, M, y, "sans12", "text" if k == 0 else "muted")
             y += 14
-    if press:
+    if L.THREE:
+        rail(d, q, (None, None, (d2, "raised", "text") if d2 else None))
+    elif press:
         footer_press(d, q, press)
     d.show()
 
 
 def draw_nochip(q):
     notice(q, False, "No chip", ["No secure element answered on I2C.", "The console only signs with a key inside the chip."],
-           "Check again")
+           "Check again", "Check")
 
 
 def draw_pinfail(q):
@@ -474,7 +560,7 @@ def draw_pinfail(q):
     title = "Not the pinned key" if q.EXPECT else ("Not a pinned chip" if q.EXPECTS else "Not pinned")
     lines = [q.pin_why or "", "here   " + (q.serial[-8:] or "none"), "pinned " + (str(exp.get("serial", ""))[-8:] or "-"),
              "Nothing will be signed." if q.EXPECT else "tools/fw pin adds this chip."]
-    notice(q, False, title, lines, "Check again")
+    notice(q, False, title, lines, "Check again", "Check")
 
 
 def draw_unconfigured(q):
@@ -484,7 +570,8 @@ def draw_unconfigured(q):
 def draw_crashed(q, why=""):
     import image
     notice(q, False, "Stopped", ["Failed %d times in a row; signs nothing now." % q.fails, why[:40],
-                                "build " + image.BUILD, "Hold the knob 3 s to restart."])
+                                "build " + image.BUILD, "Hold D2 3 s to restart." if L.THREE else "Hold the knob 3 s to restart."],
+           None, "Hold")
 
 
 def draw(q):

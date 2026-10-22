@@ -100,8 +100,14 @@ NEXT, PREV = ("down", "right"), ("up", "left")
 # actions come after the last page, and SIGN is held with the knob pressed down. A/B/X/Y, once
 # wired, keep their roles above alongside it.
 KNOB = L.KNOB
+# The Feather's three buttons (board "feather-s3", lcd.THREE), down the screen's left edge: D0
+# rejects on a review and goes back anywhere else, D1 moves on (held, "D1L", it moves back), D2
+# opens, and on a review is Sign, held. three() turns each into what a button or the knob already
+# does in that state, so handle(), knob() and press_sign() keep the rules.
+THREE = L.THREE
 ACTS = ("sign", "reject", "back")
-CRASH_HOLD_MS = 3000    # the knob held this long on the crashed screen restarts the board
+CRASH_HOLD_MS = 3000    # the knob (D2 on the Feather) held this long on the crashed screen restarts the board
+PRESS = "D2" if THREE else "press"
 # A poll blocks the screen for ~1 s (an HTTPS call a request). None starts until the keys have been
 # still this long, one stops between its calls when the knob turns, and the turns that piled up
 # meanwhile move the focus at most BACKLOG places: the person kept turning because nothing moved.
@@ -937,12 +943,10 @@ def wifi_setup():
     # On build1 the knob's press is the maintenance key at power-up: restart only once it is up.
     try:
         import board
-        from machine import Pin
-        key = Pin(board.MAINT, Pin.IN, Pin.PULL_UP)
-        if key.value() == 0:
+        if board.key_down(board.MAINT):
             d.frames(U.draw_working, sys.modules[__name__], "Wi-Fi setup", "Let go of the knob to restart")
             t0 = time.ticks_ms()
-            while key.value() == 0 and time.ticks_diff(time.ticks_ms(), t0) < 20000:
+            while board.key_down(board.MAINT) and time.ticks_diff(time.ticks_ms(), t0) < 20000:
                 watch.extend(1000)
                 time.sleep_ms(20)
             time.sleep_ms(150)          # the switch settles
@@ -1386,6 +1390,57 @@ def knob(k):
         dirty = True
 
 
+def three(k):
+    """One of the Feather's buttons: "D0", "D1", "D1L" (D1 held) or "D2", by state."""
+    global state, dirty, browse, hfoot, foot, page
+    if state == "review":
+        if k == "D0":
+            reject()                    # one press, on any page
+        elif k == "D1":
+            if page == len(pages) - 1:
+                page = 0                # past the last page, round to the first
+                dirty = True
+            else:
+                turn(1)
+        elif k == "D1L":
+            if page == 0:
+                handle(BACK)            # out without rejecting
+            else:
+                turn(-1)
+        elif k == "D2":
+            press_sign("D2")            # the first unseen page while any is left, then the hold
+    elif state == "hold":
+        if k == "D0":
+            reject()
+    elif state in ("nochip", "pinfail"):
+        if k == "D2":
+            handle("A")                 # Check again
+    elif state == "crashed":
+        if k == "D2":
+            knob("press")               # held CRASH_HOLD_MS: restart (tick)
+    elif state == "result":
+        if k == "D2":
+            handle(SIGN)                # send again when unsent, else OK
+        elif k == "D0":
+            handle(BACK)
+    elif state in ("home", "boot"):
+        if k == "D0":
+            if hfoot is not None or foot is not None:
+                hfoot = foot = None
+            elif browse:
+                browse = None
+            dirty = True
+        elif k in ("D1", "D1L", "D2"):
+            knob({"D1": "down", "D1L": "up", "D2": "press"}[k])
+    elif state in ("device", "chip", "owners", "recent"):
+        if k == "D0":
+            handle(BACK)
+        elif k in ("D1", "D1L"):
+            knob("down" if k == "D1" else "up")
+        elif k == "D2" and state == "device":
+            knob("press")
+
+
 def turned(k):
     """A knob turn. When it only moved the focus (U.focus_rows: the same layout before and after),
     only the bands of what moved are drawn: the whole of Build 1's screen is 8 bands, ~350 ms."""
@@ -1407,7 +1462,7 @@ def backlog(pressed):
     """The keys read right after a poll: at most BACKLOG turns of the knob, the rest dropped."""
     out, n = [], 0
     for k in pressed:
-        if k in ("down", "up"):
+        if k in ("down", "up", "D1", "D1L"):
             n += 1
             if n > BACKLOG:
                 continue
@@ -1462,7 +1517,9 @@ def tick(t):
                 pressed = backlog(pressed)
         pressed = saver_tick(time.ticks_ms(), pressed)
         for k in pressed:
-            if KNOB and k in ("down", "up"):
+            if THREE:
+                three(k)
+            elif KNOB and k in ("down", "up"):
                 turned(k)
             elif KNOB and k == "press":
                 knob(k)
@@ -1473,7 +1530,7 @@ def tick(t):
         if state == "hold":
             hold_tick()
         if state == "crashed" and crash_t0 is not None:
-            if not keys.held("press"):
+            if not keys.held(PRESS):
                 crash_t0 = None
             elif time.ticks_diff(time.ticks_ms(), crash_t0) >= CRASH_HOLD_MS:
                 machine.reset()

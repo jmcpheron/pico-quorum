@@ -792,3 +792,24 @@ What it is and how to set it up: [FEATHER-S3.md](../hardware/wiring/FEATHER-S3.m
 - **The console image would not start:** `board.py`'s `"esp32"` profile uses GPIO22 and 25, which
   an S3 lacks, and GPIO19, its USB. And `atecc.py`'s fallback addresses include 0x36, the gauge.
   Open: a `"feather-s3"` profile and screens for 240 × 135.
+
+## 2026-10-21 — the Feather: buttons, LED, HTTPS, and the console's profile from RAM
+
+Everything ran from RAM (`mpremote run`, `mpremote mount`). Nothing was written to the board's
+flash or to the chip.
+
+- **Buttons** (`feather-s3/stage0.py`): at rest D0 reads 1 and D1, D2 read 0, with or without
+  MicroPython's pulls; each reads the other way while pressed. No bounce showed at a 20 ms poll,
+  and every press arrived as the right button.
+- **Where they sit:** against the screen in 15-row bands, D0 is level with band 0 (rows 0–14), D1
+  with band 4 (60–74) and D2 with band 8 (120–134). So `board.RAIL_Y = (7, 67, 127)`.
+- **LED:** GPIO13 blinked 5 times; seen.
+- **Gauge:** about 4.1 V, 99 %, version `0012`. Whether a battery was plugged in wasn't recorded.
+- **HTTPS:** `tools/board/measure_tls.py` after a Wi-Fi join: 10 of 10 calls to `api.safe.global`
+  checked against the console's pinned roots (median 561 ms, worst 811 ms), and badssl.com's
+  `expired`, `wrong.host`, `self-signed` and `untrusted-root` refused. About 1.3 MB of heap stayed
+  free.
+- **The console's `board.py` and `lcd.py`, mounted from the laptop:** they picked `"feather-s3"`
+  and drew a test frame. Whether its border showed on all four sides wasn't checked. The console
+  image hasn't run on the board; its three-button screens run in the emulator
+  ([docs/quorum-ui/feather](../docs/quorum-ui/feather/README.md)).
