@@ -69,9 +69,32 @@ function port() {
 }
 
 // One mpremote session. resume: attach without a soft reset (whatever runs keeps running).
+// The Feather ESP32-S3 can reset itself as mpremote closes the port, after every command has run
+// (buildlog 2026-10-22), and mpremote then fails in its close(). That alone is no failure: wait for
+// the board to come back, and the caller judges the step by what the board printed, as always. An
+// error on the board (a traceback from <stdin>) still fails.
 function mp(args, { resume = true, timeout = 30000 } = {}) {
   const r = spawnSync(MPREMOTE, ["connect", port(), ...(resume ? ["resume"] : []), ...args], { encoding: "utf8", timeout });
-  return { code: r.status, out: (r.stdout || "") + (r.stderr || ""), timedOut: r.error?.code === "ETIMEDOUT" };
+  const out = (r.stdout || "") + (r.stderr || "");
+  let code = r.status;
+  if (code !== 0 && /, in close\r?\n[\s\S]*OSError: \[Errno \d+\]/.test(out) && !out.includes('File "<stdin>"')) {
+    console.log("(the board reset as mpremote closed the port; waiting for it)");
+    waitPort();
+    code = 0;
+  }
+  return { code, out, timedOut: r.error?.code === "ETIMEDOUT" };
+}
+
+// For mp(), which runs synchronously: USB goes away as the board resets, then comes back.
+const nap = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+function waitPort(ms = 30000) {
+  nap(3000);
+  const t0 = Date.now();
+  while (!serialPorts().includes(port())) {
+    if (Date.now() - t0 > ms) die("the board did not come back on USB");
+    nap(500);
+  }
+  nap(2000);
 }
 
 function run(code, opts) {
@@ -138,7 +161,9 @@ function unpause() {
   if (!paused || !paused.length) return (paused = null);
   run(`import sys
 for _n in ${JSON.stringify(paused)}:
-    _m = sys.modules[_n]
+    _m = sys.modules.get(_n)
+    if not _m:
+        continue                # the board restarted (mp): nothing of this run to resume
     if getattr(_m, "svc", None):
         _m.svc.hold()
     _m.start_timer()
