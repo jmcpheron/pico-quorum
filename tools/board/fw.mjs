@@ -69,10 +69,10 @@ function port() {
 }
 
 // One mpremote session. resume: attach without a soft reset (whatever runs keeps running).
-// The Feather ESP32-S3 can reset itself as mpremote closes the port, after every command has run
-// (buildlog 2026-10-22), and mpremote then fails in its close(). That alone is no failure: wait for
-// the board to come back, and the caller judges the step by what the board printed, as always. An
-// error on the board (a traceback from <stdin>) still fails.
+// The Feather ESP32-S3 can reset itself during an mpremote session or as it ends (buildlog
+// 2026-10-22), and mpremote then fails in its close() with the port gone. Wait for the board to come
+// back and let the caller judge the step by what the board printed, as always: a step cut short
+// lacks its marker and still fails. An error on the board (a traceback from <stdin>) fails here.
 function mp(args, { resume = true, timeout = 30000 } = {}) {
   const r = spawnSync(MPREMOTE, ["connect", port(), ...(resume ? ["resume"] : []), ...args], { encoding: "utf8", timeout });
   const out = (r.stdout || "") + (r.stderr || "");

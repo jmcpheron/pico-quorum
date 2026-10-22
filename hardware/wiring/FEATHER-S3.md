@@ -170,9 +170,8 @@ flags and holds as on the Pico.
 ## Writing to it
 
 `tools/fw` drives the board with mpremote. On this board, mpremote 1.29's sessions sometimes reset
-it as they close (a watchdog reset), about one session in three after a restart, so
-`tools/fw push` failed partway. The files it had copied were whole. On 2026-10-22 the push of the
-dual image was finished over plain serial instead ([the build log](../../buildlog/BUILDLOG.md)).
-Since then, when mpremote's only error is the port gone in its `close()`, `tools/fw` waits for the
-board to come back and goes on: every command had run, and each step is still judged by what the
-board printed. An error on the board still stops it.
+it (a watchdog reset), as they close or partway through, about one session in three after a
+restart, so `tools/fw push` fails partway. The files it had copied were whole. On 2026-10-22 the
+push of the dual image was finished over plain serial instead ([the build log](../../buildlog/BUILDLOG.md)).
+When mpremote's only error is the port gone, `tools/fw` now waits for the board to come back and
+judges the step by what the board printed, so a step cut short still stops it. Not fixed yet.
