@@ -249,9 +249,11 @@ ws._key("D0")
 check(ws.view == "qr", "Feather: D0 again goes back to the QR")
 
 
-# ---- the hotspot asks for WPA2 on the ESP32 (there a key alone leaves it open); the Pico is unchanged
-def _ap(esp32):
-    got = {}
+# ---- the hotspot on the ESP32: switched on first (before that its config raises "Wifi Invalid Mode",
+# as MicroPython 1.26.1 did on the Feather, 2026-10-22), then WPA2 (a key alone leaves it open).
+# The Pico's order is unchanged.
+def _ap(esp32, fail=False):
+    got = {"calls": []}
 
     class WLAN:
         SEC_WPA2 = 3
@@ -260,9 +262,13 @@ def _ap(esp32):
             pass
 
         def config(self, *a, **k):
+            got["calls"].append("config")
+            if esp32 and not got.get("active") or fail:
+                raise OSError("Wifi Invalid Mode")
             got.update(k)
 
         def active(self, on):
+            got["calls"].append("on" if on else "off")
             got["active"] = on
 
     class NoSockets:
@@ -278,12 +284,15 @@ def _ap(esp32):
 
 
 got, ws = _ap(True)
-check(got.get("security") == 3 and got.get("key") == ws.ap_pass and got.get("active") is True,
-      "ESP32: the hotspot is WPA2 with its password")
+check(got["calls"] == ["on", "config"] and got.get("security") == 3 and got.get("key") == ws.ap_pass and got["active"],
+      "ESP32: the hotspot is switched on, then made WPA2 with its password")
 check(ws.ap_ssid == "PicoQuorum-CFB0" and "T:WPA;" in W.qr_join(ws.ap_ssid, ws.ap_pass),
       "ESP32: the QR asks for the same WPA network")
+got, ws = _ap(True, fail=True)
+check(got["calls"] == ["on", "config", "off"] and not got["active"], "ESP32: a hotspot that can't be set up is switched off, never left open")
 got, ws = _ap(False)
-check("security" not in got and got.get("key") == ws.ap_pass, "Pico: the hotspot config is unchanged")
+check(got["calls"] == ["config", "on"] and "security" not in got and got.get("key") == ws.ap_pass,
+      "Pico: the hotspot is set up as before")
 
 print("%d FAILED" % failed if failed else "wifisetup: all pass")
 sys.exit(1 if failed else 0)

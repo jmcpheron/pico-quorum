@@ -828,10 +828,12 @@ flash or to the chip.
 - **What it showed:** Wi-Fi setup, since no network is saved: the QR, "Scan me to set up Wi-Fi",
   and "press to type".
 - **The hotspot:** the iPhone read the QR (join `PicoQuorum-CFB0`) and said it was unable to join.
-  MicroPython's ESP32 port sets a hotspot's password but leaves its security as it was, open,
-  unless `security=` is given too (`ports/esp32/network_wlan.c` in 1.26.1). The QR asks for a WPA
-  network. Read in the source; not checked on the board. `wifisetup.py` now asks for WPA2 on the
-  ESP32.
+  There was no such network: once setup was stopped, the board's hotspot was off and still had the
+  default name `ESP_B1CFB1`. Tried in RAM on the board: `ap.config(...)` before `ap.active(True)`
+  raises `OSError('Wifi Invalid Mode')`, and `wifisetup.py` did it in that order, in one `try`, so
+  the hotspot never came on. Switched on first and then given a name and key, it came up open
+  (`security` 0); with `security=WLAN.SEC_WPA2` as well, it read 3. `wifisetup.py` now does that on
+  the ESP32, and switches the hotspot off if that fails. The Pico's order is unchanged.
 - **The buttons:** Wi-Fi setup knew A/B/X/Y and the knob, not D0–D2, so no button did anything.
   Now D0 goes back, D1 walks the list and the keyboard one step at a time (held, back) and D2
   chooses; the QR screen says "D2 to type". Checked in the emulator and `wifisetup_test.py`, not

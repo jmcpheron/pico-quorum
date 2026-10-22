@@ -80,13 +80,18 @@ def _start_ap():
     ap_pass = _rand(8)
     ap = network.WLAN(network.AP_IF)
     try:
-        if board.ESP32:                 # its hotspot stays open unless asked: the key alone is ignored
+        if board.ESP32:                 # it takes settings only once on ("Wifi Invalid Mode"), and stays open unless asked
+            ap.active(True)
             ap.config(ssid=ap_ssid, key=ap_pass, security=network.WLAN.SEC_WPA2)
         else:
             ap.config(ssid=ap_ssid, key=ap_pass)
-        ap.active(True)
+            ap.active(True)
     except Exception as e:
         print("wifisetup: hotspot:", e)
+        try:
+            ap.active(False)            # never an open hotspot with the default name
+        except Exception:
+            pass
     try:
         import socket
         a = socket.getaddrinfo("0.0.0.0", 80)[0][-1]
