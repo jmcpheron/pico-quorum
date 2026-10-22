@@ -1,5 +1,6 @@
 """Wi-Fi setup on the laptop: wifi.json, the checks, the phone's form and page, the captive DNS
-answer, which networks net.py knows, when boot.py opens setup, and the keyboard on both inputs.
+answer, which networks net.py knows, when boot.py opens setup, the keyboard on every input, and
+the hotspot's security on the ESP32.
     python3 test-vectors/wifisetup_test.py"""
 from pathlib import Path
 import os
@@ -165,11 +166,12 @@ check(_boot([("Home", "pw")], files=["wifisetup"], maint_held=True),
 check(not _boot([("Home", "pw")], maint_held=True), "the knob held with no request: maintenance, no setup")
 check(not _boot([("Home", "pw")], files=["wifisetup", "maint"]), "the maint file beats a request")
 
-# ---- the keyboard, on both inputs
-def _kb(knob):
-    L = types.SimpleNamespace(KNOB=knob, SMALL=False, W=240, H=240, color=lambda *a: 0, WHITE=0, BLACK=0)
+# ---- the keyboard, on every input
+def _kb(knob, three=False, esp32=False, network=None):
+    L = types.SimpleNamespace(KNOB=knob, THREE=three, SMALL=False, W=240, H=240, color=lambda *a: 0, WHITE=0, BLACK=0)
     T = types.SimpleNamespace(RGB={"bg": (0, 0, 0), "config": (0, 0, 255), "learn": (255, 200, 0)})
-    with patch.dict(sys.modules, {"network": types.SimpleNamespace(), "lcd": L, "theme": T}):
+    board = types.SimpleNamespace(ESP32=esp32)
+    with patch.dict(sys.modules, {"network": network or types.SimpleNamespace(), "lcd": L, "theme": T, "board": board}):
         sys.modules.pop("wifisetup", None)
         import wifisetup
         sys.modules.pop("wifisetup", None)
@@ -219,6 +221,69 @@ k = ws.Keyboard("t", "ssid", limit=3)
 for _ in range(5):
     k.type()
 check(k.text == "aaa", "the limit holds")
+
+# ---- the Feather's three buttons: D1 walks like the knob, D2 chooses, D0 goes back
+ws = _kb(False, three=True)
+k = ws.Keyboard("t", "pass")
+seen = set()
+for _ in range(45):
+    seen.add((k.r, k.c))
+    k.move("down")
+check(len(seen) == 45 and (k.r, k.c) == (0, 0), "Feather: D1 visits all 45 keys once, then wraps")
+ws.scan = [("Home", -50, True), ("Cafe", -70, False)]
+ws.view = "qr"
+ws._key("D2")
+check(ws.view == "list" and ws.sel == 0, "Feather: D2 on the QR opens the list")
+ws._key("D1")
+check(ws.sel == 1, "Feather: D1 moves down the list")
+ws._key("D1L")
+check(ws.sel == 0, "Feather: D1 held moves back up")
+ws._key("D2")
+check(ws.view == "kbd" and ws.kb.ssid == "Home", "Feather: D2 on a secured network opens the keyboard")
+ws._key("D1")
+ws._key("D2")
+check(ws.kb.text == "b", "Feather: D1 then D2 types the next key")
+ws._key("D0")
+check(ws.view == "list", "Feather: D0 goes back to the list")
+ws._key("D0")
+check(ws.view == "qr", "Feather: D0 again goes back to the QR")
+
+
+# ---- the hotspot asks for WPA2 on the ESP32 (there a key alone leaves it open); the Pico is unchanged
+def _ap(esp32):
+    got = {}
+
+    class WLAN:
+        SEC_WPA2 = 3
+
+        def __init__(self, iface):
+            pass
+
+        def config(self, *a, **k):
+            got.update(k)
+
+        def active(self, on):
+            got["active"] = on
+
+    class NoSockets:
+        def getaddrinfo(self, *a):
+            raise OSError("no sockets in this test")
+
+    net = types.SimpleNamespace(WLAN=WLAN, AP_IF=1)
+    ws = _kb(False, esp32=esp32, network=net)
+    ws.sta = types.SimpleNamespace(config=lambda what: b"\x02emu\xcf\xb0")
+    with patch.dict(sys.modules, {"network": net, "socket": NoSockets()}), patch("builtins.print"):
+        ws._start_ap()
+    return got, ws
+
+
+got, ws = _ap(True)
+check(got.get("security") == 3 and got.get("key") == ws.ap_pass and got.get("active") is True,
+      "ESP32: the hotspot is WPA2 with its password")
+check(ws.ap_ssid == "PicoQuorum-CFB0" and "T:WPA;" in W.qr_join(ws.ap_ssid, ws.ap_pass),
+      "ESP32: the QR asks for the same WPA network")
+got, ws = _ap(False)
+check("security" not in got and got.get("key") == ws.ap_pass, "Pico: the hotspot config is unchanged")
 
 print("%d FAILED" % failed if failed else "wifisetup: all pass")
 sys.exit(1 if failed else 0)

@@ -813,3 +813,26 @@ flash or to the chip.
   and drew a test frame. Whether its border showed on all four sides wasn't checked. The console
   image hasn't run on the board; its three-button screens run in the emulator
   ([docs/quorum-ui/feather](../docs/quorum-ui/feather/README.md)).
+
+## 2026-10-22 — the dual image on the Feather, and its Wi-Fi setup
+
+- **The push:** `tools/fw push dual` (build `bc6e3a19`) copied the files but failed three times,
+  each time because the board dropped off USB: it had reset itself, a watchdog reset
+  (`machine.reset_cause()` 3). With the board idle at its REPL, sessions that close the way
+  mpremote 1.29 does (RTS low, then DTR low) reset it about one time in three after a restart.
+  Closing with about 2 KB of output unread reset it 4 times in 14. Plain pyserial sessions that
+  read everything before closing didn't reset it in these tests, and left alone for 90 s it never
+  reset. So the push was finished over plain serial: the last file copied, the SHA-256 of every file
+  on the board checked against the build (61 of 61), the bench's old files deleted (they are in its
+  backup), `maint` removed and the board restarted. `tools/fw verify` hasn't run.
+- **What it showed:** Wi-Fi setup, since no network is saved: the QR, "Scan me to set up Wi-Fi",
+  and "press to type".
+- **The hotspot:** the iPhone read the QR (join `PicoQuorum-CFB0`) and said it was unable to join.
+  MicroPython's ESP32 port sets a hotspot's password but leaves its security as it was, open,
+  unless `security=` is given too (`ports/esp32/network_wlan.c` in 1.26.1). The QR asks for a WPA
+  network. Read in the source; not checked on the board. `wifisetup.py` now asks for WPA2 on the
+  ESP32.
+- **The buttons:** Wi-Fi setup knew A/B/X/Y and the knob, not D0–D2, so no button did anything.
+  Now D0 goes back, D1 walks the list and the keyboard one step at a time (held, back) and D2
+  chooses; the QR screen says "D2 to type". Checked in the emulator and `wifisetup_test.py`, not
+  yet on the board.

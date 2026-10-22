@@ -50,7 +50,7 @@ HIGH = ()                   # buttons pulled down, pressed high (key_down); the 
 RAM_X = RAM_Y = 0           # where the picture starts in the panel's own RAM (lcd._window)
 NOT_KEYS = ()               # I2C addresses on the key's bus that are never a key (atecc.KEY_ADDRS)
 POWER = None                # a pin that must be high for the screen and the key's bus to have power
-RAIL_Y = None               # THREE: the screen row level with each button, top to bottom (rail.py)
+RAIL_Y = None               # THREE: the screen row level with each button, top to bottom (quorum_ui_s.rail)
 INIT = "plain" if KNOB else "waveshare"     # lcd.py's panel start-up
 if ESP32:
     # tools/wiring-esp32 --check compares these with hardware/wiring/ESP32.md. The screen's clock

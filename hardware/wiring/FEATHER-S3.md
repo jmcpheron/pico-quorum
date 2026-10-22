@@ -166,3 +166,11 @@ Still to come: the status home and the key screens (what a key plugged in is, an
 the battery, noticing a key plugged in or pulled out, then the ceremony and the claim on three
 buttons. The Feather will run the dual image, so a blank key can be set up on it, behind the same
 flags and holds as on the Pico.
+
+## Writing to it
+
+`tools/fw` drives the board with mpremote. On this board, mpremote 1.29's sessions sometimes reset
+it as they close (a watchdog reset), about one session in three after a restart, so
+`tools/fw push` can fail partway. The files it had copied were whole. On 2026-10-22 the push of the
+dual image was finished over plain serial instead ([the build log](../../buildlog/BUILDLOG.md)).
+Not fixed yet.
