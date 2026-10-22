@@ -7,7 +7,8 @@ breadboard: a key plugs into the I2C pins and that's the whole build.
 **The console runs on it in the emulator, not yet on the board.** `firmware/board.py` has its
 `"feather-s3"` profile and the review and Sign work on three buttons ([below](#the-console-on-the-feather),
 screenshots in [docs/quorum-ui/feather](../../docs/quorum-ui/feather/README.md)). The status home,
-the key screens and setup on three buttons are still to come. What runs on the board itself is a
+the key screens and the claim on three buttons are still to come; the ceremony is
+[below](#the-ceremony-on-the-feather). What runs on the board itself is a
 bench test in [`feather-s3/`](feather-s3/): the screen, the buttons and the key's ATECC608,
 read-only. It is not part of the console image.
 
@@ -163,9 +164,28 @@ button does, level with it; while Sign is held the rail fills from the bottom, g
 page and during the hold, the moves, and that every page of a review fits 240 × 135.
 
 Still to come: the status home and the key screens (what a key plugged in is, and where it goes),
-the battery, noticing a key plugged in or pulled out, then the ceremony and the claim on three
-buttons. The Feather will run the dual image, so a blank key can be set up on it, behind the same
-flags and holds as on the Pico.
+the battery, noticing a key plugged in or pulled out, and the claim on three buttons. On the
+Feather the banner offers nothing for a branded chip until then.
+
+## The ceremony on the Feather
+
+The dual image sends a fresh chip to the ceremony, C1–C10 ([PROVISIONING.md](../../docs/PROVISIONING.md)).
+`setup_s.py` draws it on 240 × 135 and reads the three buttons as the Pico's: D0 is Y, D1 is B, D2
+is A. So the steps, checks and gates are `provision.UI`'s own:
+
+| | |
+|---|---|
+| D2 on the banner | opens PROVISION |
+| D0 | back; on a result, OK |
+| D0 + D1 held 3 s | the arm, for 60 s (the Pico's B+Y). D2 is never part of it |
+| D2 | a step; on a permanent or GenKey step (C3, C4, C6, C9), held 3 s once armed. On a result, OK |
+
+`ALLOW_LOCK` and `ALLOW_GENKEY` in the board's `secrets.py` still gate every permanent step
+(`tools/fw allow on`). `node test-vectors/run-ceremony.mjs` walks C1–C10 on a virtual 608C through
+the buttons alone, in a device of its own with `BOARD = "feather-s3"`. It also checks that D2 held
+without the arm does nothing, D1 + D2 is no arm, an arm let go at 2 s is none, ALLOW_LOCK off
+stops C3 even when armed, and every screen fits 240 × 135. Screenshots:
+[docs/quorum-ui/feather-setup](../../docs/quorum-ui/feather-setup/README.md).
 
 ## Writing to it
 

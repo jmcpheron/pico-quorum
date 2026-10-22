@@ -3,7 +3,8 @@
 # ATECC608; provision_tm.py: quorum-tm1 on a fresh Trust M) or X for the chip map (slots.py; on a
 # Trust M, its objects' metadata, read-only). Every permanent action in either still needs
 # ALLOW_LOCK / ALLOW_GENKEY in secrets.py and the arm (signer.py): B+Y, or on build1 a 3 s knob hold.
-# On build1 the knob drives it: turn to choose, press to open. Every screen is drawn through
+# On build1 the knob drives it: turn to choose, press to open. On the Feather (lcd.THREE) D2 opens
+# PROVISION and setup_s.py draws the ceremony on its three buttons. Every screen is drawn through
 # d.frames, so the strip-buffered 320x240 panel gets all of it.
 import time
 import board
@@ -42,12 +43,15 @@ def identify():
 
 def choices():
     """The banner's entries: (label, what). The ATECC's chip map is button-driven, so on the knob
-    only a Trust M's read-only object map is offered next to PROVISION."""
+    and the Feather only a Trust M's read-only object map is offered next to PROVISION. The brand
+    bench and the claim (make_ui, brand_ui.py) aren't on three buttons yet."""
+    if L.THREE and make_ui:
+        return []
     tm = sig is not None and sig.name == "trustm"
     out = [("PROVISION (Trust M)" if tm else LABEL, "prov")]
     if tm:
         out.append(("its objects", "map"))
-    elif not L.KNOB:
+    elif not L.KNOB and not L.THREE:
         out.append(("the chip map", "slots"))
     return out
 
@@ -67,6 +71,8 @@ def _banner(tail):
     import provision
     p = provision.palette(chip["theme"] if chip else "dark")
     d.fill(p["bg"])
+    if L.THREE:
+        return _banner_three(p, tail)
     d.center_text(TITLE, 40, p["accent"], 2)
     y = 70
     for line in ("Not a signing console:", "no Safe, no service."):
@@ -90,15 +96,37 @@ def _banner(tail):
     d.show()
 
 
+def _banner_three(p, tail):
+    """The banner on 240x135: what to press, level with the button it names (board.RAIL_Y)."""
+    d.center_text(TITLE, 6, p["accent"], 2)
+    d.center_text("Not a signing console:", 30, p["fg"])
+    d.center_text("no Safe, no service.", 41, p["fg"])
+    if chip:
+        d.center_text("%s  %s" % (chip["name"].upper(), tail), 58, p["accent"])
+        d.center_text(STATE.get(profile, profile), 70, p["ok"] if profile == "factory" else p["fg"])
+    else:
+        d.center_text("NO CHIP on the bus", 58, p["bad"])
+    c = choices()
+    if not c:
+        d.center_text("not on three buttons yet", 100, p["muted"])
+    for (label, _), key, y in zip(c, ("D2", "D1"), (board.RAIL_Y[2] - 4, 96)):
+        d.text("%s: %s" % (key, label), 4, y, p["fg"])
+    d.show()
+
+
 def open_choice(what):
     global prov, ui
     import provision
     if what == "prov" and chip is not None:
+        ui_cls = provision.UI
+        if L.THREE:
+            import setup_s
+            ui_cls = setup_s.UI
         if sig.name == "trustm":
             import provision_tm
-            prov = provision.UI(d, keys, sig, chip["theme"], provision_tm.Ceremony(sig))
+            prov = ui_cls(d, keys, sig, chip["theme"], provision_tm.Ceremony(sig))
         else:
-            prov = (make_ui or provision.UI)(d, keys, sig, chip["theme"])
+            prov = (make_ui or ui_cls)(d, keys, sig, chip["theme"])
         prov.draw()
     elif what == "map":
         import provision_tm
@@ -132,6 +160,11 @@ def tick(t):
             if ui.tick(pressed, keys) == "home":
                 ui = None
                 banner()
+        elif L.THREE:
+            for (_, what), key in zip(choices(), ("D2", "D1")):
+                if key in pressed:
+                    open_choice(what)
+                    break
         elif "A" in pressed:
             open_choice("prov")
         elif "X" in pressed and choices()[1:]:
