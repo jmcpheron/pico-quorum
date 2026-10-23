@@ -892,3 +892,20 @@ permanent step).
   each open an mpremote session, and on this board those caught the console partway through its
   start: 72 s after a reset it was still in `boot`. Restarted with the port left alone for 45 s:
   home, Wi-Fi up, pin ok, the Safe answered (nonce 12, 3 of 6), this key not an owner yet.
+- **An owner, and #14.** Jason swapped chip 3's owner in for `0x47c0…` (nonce 13), then proposed #14,
+  a Send ETH, and signed it on the Feather. Safe's service refused the confirmation (HTTP 400): the
+  signer proxy isn't deployed on Base Sepolia yet, and the service checks a contract signature onchain.
+
+## 2026-10-23 — blockies on the Feather's reviews, pushed with the console's watchdog running
+
+- **The image:** build `3546826d` (dual `db5e·124b`): a blockie on every address page of a review,
+  beside a token's amount, and for each owner on approvals and Owners.
+- **The push:** `tools/fw push dual` stopped at its first read of the board, before the backup or
+  any copy: the board reset (`Device not configured`). Chip 3 is pinned now, so the console had
+  started its watchdog (`watch.running()` read True a minute later). A session that stops the
+  console stops its feeding, and the board resets 8 s on. That is likely what cut this one.
+- **Done over plain serial instead:** `watch.hold(600000)`, a `maint` file, a restart into
+  maintenance (no console, no watchdog), a backup of all 74 files with each SHA-256 checked (in
+  `backups/`, gitignored), five files copied (`build.py`, `provision`, `quorum`, `quorum_ui_s`,
+  `setup_s`), 62 of 62 hashes matching the build, `maint` removed, restart. `tools/fw verify`
+  hasn't run. The signature the console held for #14 went with the restart.
