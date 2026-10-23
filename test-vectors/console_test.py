@@ -1332,6 +1332,69 @@ def case_three():
     Q.owners, Q.queue = owners, queue
     check("Not an owner yet" in t, "a Safe that doesn't list this key: Not an owner yet")
 
+    # Blockies: each address page draws its address's picture, a token's amount its contract's, and
+    # approvals and Owners one for each owner; every one on the screen and clear of the text
+    import blockies
+    a1, a2, a3 = "0x70997970c51812dc3a010c7d01b50e0d17dc79c8", "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc", \
+        "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+    usdc = "0x036cbd53842c5426634e7929541ec2318f3dcf7e"        # Base Sepolia's, in quorum_cfg's tokens
+
+    def word(v):
+        return "%064x" % (int(v, 16) if isinstance(v, str) else v)
+
+    def packed(to, value, data=""):
+        return "00" + to[2:] + word(value) + word(len(data) // 2) + data
+
+    calls = packed(a1, 10**15) + packed(usdc, 0, "a9059cbb" + word(a2) + word(5 * 10**6))
+    n = len(calls) // 2
+    calls += "00" * (-n % 32)
+    serve(Q, [tx(Q, 0, to=a1, value=3 * 10**15), tx(Q, 1, to=usdc, data="0xa9059cbb" + word(a2) + word(25 * 10**6)),
+              tx(Q, 2, to=SAFE, data="0xe318b52b" + word(1) + word(BOB) + word(a3)),
+              tx(Q, 3, to=MULTISEND, op=1, data="0x8d80ff0a" + word(32) + word(n) + calls)], owners=[Q.me, a1, ALICE, BOB])
+
+    def pictures():
+        """-> (seed, x, y, px) of each blockie one draw makes, and its texts"""
+        out, real = [], blockies.draw
+        blockies.draw = lambda d, seed, x, y, s, *a, **k: (out.append((seed, x, y, 8 * s)), real(d, seed, x, y, s, *a, **k))[1]
+        try:
+            t = drawn()
+        finally:
+            blockies.draw = real
+        return out, t
+
+    def clear(pics, t):
+        bad = [p for p in pics if p[1] < rail or p[1] + p[3] > Q.L.W or p[2] < Q.U.HEAD or p[2] + p[3] > Q.L.H]
+        for s, x, y, f in t:
+            bad += [(s, p) for p in pics if x < p[1] + p[3] and p[1] < x + fonts.width(s, f) and y < p[2] + p[3] and p[2] < y + fonts.height(f)]
+        return bad
+
+    Q.state, Q.msg = "review", ""
+    seen, ok = [], True
+    for e in Q.queue:
+        Q.open_entry(e)
+        for p, (kind, i) in enumerate(Q.pages):
+            Q.page = p
+            pics, t = pictures()
+            it = e["r"]["items"][i] if kind in ("item", "frm", "to") else {}
+            amount = kind == "item" and it.get("amount") and not it.get("text") and it.get("contract")
+            want = it[kind].lower() if kind in ("frm", "to") else (it["contract"] if amount else None)
+            if want:
+                seen.append((e["r"]["items"][i]["title"], kind))
+            bad = clear(pics, t)
+            if want and want not in [s for s, x, y, px in pics] or bad:
+                ok = False
+                print("      #%d page %d %s: %r %r" % (e["n"], p + 1, kind, [s for s, x, y, px in pics], bad[:2]))
+    check(ok and ("SEND USDC", "item") in seen and ("SWAP OWNER", "frm") in seen and ("SWAP OWNER", "to") in seen
+          and seen.count(("SEND ETH", "to")) == 2, "a blockie on every address page (to, replaces, new owner, each call in a "
+          "batch) and beside a token's amount, clear of the text (%d)" % len(seen))
+    Q.page = [k for k, i in Q.pages].index("approvals")
+    pics, t = pictures()
+    want = [a.lower() for a in Q.owners()[:4]]
+    check([s for s, x, y, px in pics] == want and not clear(pics, t), "approvals: each owner's blockie beside it")
+    Q.state, Q.opage = "owners", 0
+    pics, t = pictures()
+    check([s for s, x, y, px in pics] == want and not clear(pics, t), "Owners: each owner's blockie")
+
     Q = fresh(safe=False, extra='BOARD = "feather-s3"')
     t = " ".join(s for s, x, y, f in drawn())
     check(Q.state == "unconfigured" and Q.key_ready() and "Your key is ready" in t and fits("ready"),

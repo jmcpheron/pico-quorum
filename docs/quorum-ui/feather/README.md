@@ -7,6 +7,7 @@ buttons down the left edge (the grey dots: D0, D1, D2). The rail beside them say
 - **D1**: next page or row; held 1 s, the one before. On a review's first page, held: out without rejecting.
 - **D2**: open; on a review, the next page not yet seen, then Sign: held 2 s, 3 s when a page is red.
 
+Every address on a review, and every owner, has its blockie: the picture Safe{Wallet} and Etherscan draw for it.
 Key shows the key's owner address as a QR code (docs/ONBOARDING.md). The status home and the claim on three buttons come next.
 
 ### home
@@ -35,13 +36,13 @@ The send: the amount, big.
 
 ### review to
 
-Who it goes to, and the whole address in four-character chunks.
+Who it goes to, the whole address in four-character chunks, and its blockie.
 
 ![05-review-to](05-review-to.png)
 
 ### review approvals
 
-Who has approved, and what this key's signature would make it.
+Who has approved, each owner's blockie beside it, and what this key's signature would make it.
 
 ![06-review-approvals](06-review-approvals.png)
 
@@ -113,7 +114,7 @@ Signed but not sent: D2 sends it again, D0 goes back.
 
 ### owners
 
-Owners: who can approve. D0 back.
+Owners: who can approve, and each one's blockie. D0 back.
 
 ![18-owners](18-owners.png)
 
@@ -170,3 +171,33 @@ A Safe that doesn't list this key yet: Not an owner yet, and where its code is.
 No Safe set yet, on a console being set up: the key is ready, D2 shows its code.
 
 ![27-ready](27-ready.png)
+
+### token amount
+
+A token: its amount, the token named from the console's own list, and the token contract's blockie.
+
+![28-token-amount](28-token-amount.png)
+
+### token to
+
+Every address page has its blockie beside the short last line: the picture Safe{Wallet} and Etherscan draw for it.
+
+![29-token-to](29-token-to.png)
+
+### swap replaces
+
+Replacing an owner, a red page: the owner going out, and its blockie...
+
+![30-swap-replaces](30-swap-replaces.png)
+
+### swap new owner
+
+...and the one coming in, to compare with the owners list in the Safe app.
+
+![31-swap-new-owner](31-swap-new-owner.png)
+
+### batch to
+
+A batch: each call has its own pages, and each address its own blockie.
+
+![32-batch-to](32-batch-to.png)

@@ -84,9 +84,9 @@ shot("03-review-head", "A review opens on what it does. Rail: Reject (one press,
 py(`page("item")\ndraw()`);
 shot("04-review-item", "The send: the amount, big.");
 py(`page("to")\ndraw()`);
-shot("05-review-to", "Who it goes to, and the whole address in four-character chunks.");
+shot("05-review-to", "Who it goes to, the whole address in four-character chunks, and its blockie.");
 py(`page("approvals")\ndraw()`);
-shot("06-review-approvals", "Who has approved, and what this key's signature would make it.");
+shot("06-review-approvals", "Who has approved, each owner's blockie beside it, and what this key's signature would make it.");
 py(`page("verify")\ndraw()`);
 shot("07-review-verify", "The code to compare with the proposer: the hash's last 8, and its blockie.");
 py(`page("hash")\ndraw()`);
@@ -118,7 +118,7 @@ draw()
 Q.unsent = None`);
 shot("17-result-unsent", "Signed but not sent: D2 sends it again, D0 goes back.");
 py(`Q.state, Q.opage = "owners", 0\ndraw()`);
-shot("18-owners", "Owners: who can approve. D0 back.");
+shot("18-owners", "Owners: who can approve, and each one's blockie. D0 back.");
 py(`Q.state, Q.dfoot = "device", "chip"\ndraw()`);
 shot("19-device", "Device: the chip, its slot and key, the pin, uses, memory. D1 moves along Chip, Wi-Fi, Back; D2 opens.");
 py(`Q.chip_back = "device"\nQ.open_chip()\ndraw()`);
@@ -142,6 +142,33 @@ py(`Q.owners, Q.queue = _owners, _queue
 Q.state = "unconfigured"
 draw()`);
 shot("27-ready", "No Safe set yet, on a console being set up: the key is ready, D2 shows its code.");
+py(`Q = T.fresh(extra='BOARD = "feather-s3"')
+d = Q.d
+d.show = _show
+A1, A2, A3 = "0x70997970c51812dc3a010c7d01b50e0d17dc79c8", "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc", "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+USDC = "0x036cbd53842c5426634e7929541ec2318f3dcf7e"
+def w(v):
+    return "%064x" % (int(v, 16) if isinstance(v, str) else v)
+def packed(to, value, data=""):
+    return "00" + to[2:] + w(value) + w(len(data) // 2) + data
+calls = packed(A1, 10**15) + packed(USDC, 0, "a9059cbb" + w(A2) + w(5 * 10**6))
+n = len(calls) // 2
+calls += "00" * (-n % 32)
+T.serve(Q, [T.tx(Q, 0, to=USDC, data="0xa9059cbb" + w(A2) + w(25 * 10**6)), T.tx(Q, 1, to=T.SAFE, data="0xe318b52b" + w(1) + w(T.BOB) + w(A3)),
+            T.tx(Q, 2, to=T.MULTISEND, op=1, data="0x8d80ff0a" + w(32) + w(n) + calls)], owners=[Q.me, A1, T.ALICE, T.BOB])
+Q.state, Q.msg = "review", ""
+Q.open_entry(Q.queue[0])
+page("item")
+draw()`);
+shot("28-token-amount", "A token: its amount, the token named from the console's own list, and the token contract's blockie.");
+py(`page("to")\ndraw()`);
+shot("29-token-to", "Every address page has its blockie beside the short last line: the picture Safe{Wallet} and Etherscan draw for it.");
+py(`Q.open_entry(Q.queue[1])\npage("frm")\ndraw()`);
+shot("30-swap-replaces", "Replacing an owner, a red page: the owner going out, and its blockie...");
+py(`page("to")\ndraw()`);
+shot("31-swap-new-owner", "...and the one coming in, to compare with the owners list in the Safe app.");
+py(`Q.open_entry(Q.queue[2])\nQ.page = [i for i, (k, j) in enumerate(Q.pages) if k == "to"][1]\nQ.seen.add(Q.page)\ndraw()`);
+shot("32-batch-to", "A batch: each call has its own pages, and each address its own blockie.");
 dev.dispose();
 
 const md = ["# The console on the Feather ESP32-S3 Reverse TFT", "",
@@ -150,6 +177,7 @@ const md = ["# The console on the Feather ESP32-S3 Reverse TFT", "",
   "- **D0**: Reject on a review (one press, any page, even while Sign is held); Back anywhere else.",
   "- **D1**: next page or row; held 1 s, the one before. On a review's first page, held: out without rejecting.",
   "- **D2**: open; on a review, the next page not yet seen, then Sign: held 2 s, 3 s when a page is red.", "",
+  "Every address on a review, and every owner, has its blockie: the picture Safe{Wallet} and Etherscan draw for it.",
   "Key shows the key's owner address as a QR code (docs/ONBOARDING.md). The status home and the claim on three buttons come next.", ""];
 for (const [n, c] of shots) md.push(`### ${n.replace(/^\d+-/, "").replace(/-/g, " ")}`, "", c, "", `![${n}](${n}.png)`, "");
 writeFileSync(join(out, "README.md"), md.join("\n"));

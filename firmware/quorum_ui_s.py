@@ -238,7 +238,8 @@ def item_of(q, i):
 
 
 def who_page(d, q, label, a, pc, bg, y):
-    """label, who the address is, then all of it."""
+    """label, who the address is, then all of it, and beside its short last line its blockie: the
+    picture Safe{Wallet} and Etherscan draw for the same address."""
     name, lg, known = ident(q, a)
     x = txt(d, label, M, y, "sans12", pc["muted"], bg) + 5
     if lg:
@@ -254,6 +255,8 @@ def who_page(d, q, label, a, pc, bg, y):
     for line in addr_lines(a):
         txt(d, line, M, y, "mono13", pc["stake"], bg)
         y += 15
+    s = 5 if L.THREE else 3             # 40 px on the Feather, 24 px on the 1.8"
+    blockies.draw(d, a.lower(), R - 8 * s, min(y - 12, FOOT - 8 * s - 1), s)     # under the line above, over the footer
 
 
 def draw_review(q):
@@ -312,8 +315,9 @@ def draw_review(q):
             para(d, it["text"], M, y, TW, "sans12", pc["text"], bg, 15, FOOT - 2)
         if it.get("amount") and not it.get("text") and it.get("contract") and y < FOOT - 18:
             name, lg, known = ident(q, it["contract"])
-            txt(d, fit(("on " + name) if known else "unknown contract", TW, "sans12"), M, FOOT - 18, "sans12",
-                pc["muted"] if known else "warn", bg)
+            x = txt(d, fit(("on " + name) if known else "unknown contract", TW - 21, "sans12"), M, FOOT - 18, "sans12",
+                    pc["muted"] if known else "warn", bg)
+            blockies.draw(d, it["contract"].lower(), x + 5, FOOT - 17, 2)     # the token contract's picture
     elif kind == "text":
         para(d, item_of(q, i)["text"], M, y, TW, "sans12", pc["text"], bg, 15, FOOT - 2)
     elif kind in ("frm", "to"):
@@ -348,8 +352,10 @@ def draw_review(q):
             done = a in e["conf"]
             nm = "You" if a == q.me else (ident(q, a)[0] or short(a))
             d.ellipse(M + 4, y + 8, 4, 4, c("ok" if done else ("stake" if a == q.me else "faint")), done)
-            txt(d, fit(nm, TW - 14, "sans12"), M + 13, y, "sans12", "text" if done or a == q.me else "muted")
-            y += 16
+            txt(d, fit(nm, TW - 34, "sans12"), M + 13, y, "sans12", "text" if done or a == q.me else "muted")
+            if L.THREE:                 # room for each owner's blockie, as on Owners
+                blockies.draw(d, a.lower(), R - 16, y, 2)
+            y += 18 if L.THREE else 16
         if not ok and y <= FOOT - 16:
             txt(d, fit(why, TW, "sans12"), M, FOOT - 16, "sans12", "bad")
     elif kind == "verify":
@@ -458,10 +464,11 @@ def draw_owners(q):
     y = HEAD + 3
     for a in q.owners()[page * OWNERS_PER_PAGE:(page + 1) * OWNERS_PER_PAGE]:
         nm = ident(q, a)[0]
-        x = txt(d, fit(nm or short(a), TW - 30, "bold14" if nm else "mono13"), M, y, "bold14" if nm else "mono13",
-                "text" if nm else "warn")
+        x = txt(d, fit(nm or short(a), TW - (56 if a == q.me else 22), "bold14" if nm else "mono13"), M, y,
+                "bold14" if nm else "mono13", "text" if nm else "warn")
         if a == q.me:
             pill(d, "you", x + 4, y + 1, "sans12", "stake", "bg")
+        blockies.draw(d, a.lower(), R - 16, y + 1, 2)       # 16 px: the picture the Safe app shows for this owner
         y += 20
     k = "key " + (q.fingerprint() or "none")
     if q.counter is not None:

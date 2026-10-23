@@ -165,6 +165,12 @@ button does, level with it; while Sign is held the rail fills from the bottom, g
 `BOARD = "feather-s3"`: refusals, the unseen pages, the holds to the millisecond, Reject from every
 page and during the hold, the moves, and that every page of a review fits 240 × 135.
 
+Every address page of a review (to, from, the owner replaced and the new one, a spender, a contract,
+and each of these in every call of a batch) draws the address's blockie, 40 px, beside its short last line: the picture
+Safe{Wallet} and Etherscan draw for it. A token's amount page has the token contract's, and
+approvals and Owners one for each owner. `case_three` checks each is drawn, on the screen and clear
+of the text, for a send, a token send, a swapOwner and a MultiSend batch.
+
 **Key**, past Owners and Device on home, shows the key's owner address as a QR code, then in full
 (D1 switches, D0 back). A console with no Safe yet says "Your key is ready" and D2 opens the same
 screen; a Safe that doesn't list the key says "Not an owner yet" ([ONBOARDING.md](../../docs/ONBOARDING.md)).
