@@ -4,13 +4,15 @@ A ready-made board: an ESP32-S3 with a 240 × 135 screen, three buttons, a batte
 STEMMA QT socket, all on one Feather ([Adafruit 5691](https://www.adafruit.com/product/5691)). No
 breadboard: a key plugs into the I2C pins and that's the whole build.
 
-**The console runs on it in the emulator, not yet on the board.** `firmware/board.py` has its
-`"feather-s3"` profile and the review and Sign work on three buttons ([below](#the-console-on-the-feather),
-screenshots in [docs/quorum-ui/feather](../../docs/quorum-ui/feather/README.md)). The status home,
-the key screens and the claim on three buttons are still to come; the ceremony is
-[below](#the-ceremony-on-the-feather). What runs on the board itself is a
-bench test in [`feather-s3/`](feather-s3/): the screen, the buttons and the key's ATECC608,
-read-only. It is not part of the console image.
+**The console runs on it.** On 2026-10-22 the dual image booted it for chip 3: pinned, on Wi-Fi,
+watching a Base Sepolia Safe. `firmware/board.py` has its `"feather-s3"` profile. The review,
+Sign and the key's QR code work on three buttons in the emulator, not yet on the board
+([below](#the-console-on-the-feather), screenshots in
+[docs/quorum-ui/feather](../../docs/quorum-ui/feather/README.md)).
+[The ceremony](#the-ceremony-on-the-feather) works on them too, and chip 3 went through it on the board. The status
+home and the claim on three buttons are still to come. [`feather-s3/`](feather-s3/) holds the
+first bench test (the screen, the buttons and the key's ATECC608, read-only), which is not part of
+any image.
 
 On hardware, 2026-10-20: the screen showed the test, and the spare 608C on a key-c
 (`0123e063db3354d7ee`) answered at 0x60 through USB-C adapters. See
@@ -163,9 +165,12 @@ button does, level with it; while Sign is held the rail fills from the bottom, g
 `BOARD = "feather-s3"`: refusals, the unseen pages, the holds to the millisecond, Reject from every
 page and during the hold, the moves, and that every page of a review fits 240 × 135.
 
-Still to come: the status home and the key screens (what a key plugged in is, and where it goes),
-the battery, noticing a key plugged in or pulled out, and the claim on three buttons. On the
-Feather the banner offers nothing for a branded chip until then.
+**Key**, past Owners and Device on home, shows the key's owner address as a QR code, then in full
+(D1 switches, D0 back). A console with no Safe yet says "Your key is ready" and D2 opens the same
+screen; a Safe that doesn't list the key says "Not an owner yet" ([ONBOARDING.md](../../docs/ONBOARDING.md)).
+
+Still to come: the status home, the battery, noticing a key plugged in or pulled out, and the claim
+on three buttons. On the Feather the banner offers nothing for a branded chip until then.
 
 ## The ceremony on the Feather
 

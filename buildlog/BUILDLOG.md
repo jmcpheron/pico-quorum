@@ -886,3 +886,9 @@ permanent step).
   (`pin FAIL: … owner 0x031b…250e (secrets.py has no QUORUM_EXPECT)` in `log.txt`) and showed
   "No Safe": the board has no `QUORUM_SAFES` yet. Not pinned, no signer proxy, an owner of nothing yet.
   The plan is Safe `0x5617…DC41` on Base Sepolia (3 of 6 today).
+- **Pinned and pointed at the Safe**, later that evening: `tools/quorum live key --qx … --qy …`
+  (the key `live.json` held before was kept aside), `tools/fw pin` (owner the same as the laptop's),
+  `tools/quorum live pico --chain basesep --safe 0x5617…`. `live pico`'s checks after the restart
+  each open an mpremote session, and on this board those caught the console partway through its
+  start: 72 s after a reset it was still in `boot`. Restarted with the port left alone for 45 s:
+  home, Wi-Fi up, pin ok, the Safe answered (nonce 12, 3 of 6), this key not an owner yet.

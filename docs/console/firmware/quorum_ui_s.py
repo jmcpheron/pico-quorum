@@ -153,10 +153,15 @@ def draw_home(q):
         txt_r(d, "%d queued" % len(q.queue), R, y + 2, "sans12", "faint")
     y = 38
     if not q.queue:
-        mark(d, ok, M + 13, y + 22, 10)
-        txt(d, "Nothing to sign" if ok else "No service", M + 29, y + 10, "bold14")
+        known = [w for w in q.WATCH if w["ok"] and q.owners(w)]
+        added = not known or any(q.me in q.owners(w) for w in known)
+        mark(d, ok and added, M + 13, y + 22, 10)
+        txt(d, ("Nothing to sign" if added else "Not an owner yet") if ok else "No service", M + 29, y + 10, "bold14")
         if not ok:
             txt(d, fit(q.net_err, TW, "sans12"), M, y + 36, "sans12", "muted")
+        elif not added:
+            txt(d, fit("Add this key to the Safe: Key, below" if L.THREE else "Add this key to the Safe", TW, "sans12"),
+                M, y + 36, "sans12", "muted")
     rows = 2 if q.outside else 3
     top = max(0, min(q.sel - (rows - 1), len(q.queue) - rows))
     for i in range(top, min(len(q.queue), top + rows)):
@@ -186,7 +191,7 @@ def draw_home(q):
         rrect(d, X0 + 2, y, W - X0 - 4, 22, 4, "warn_bg")
         warn_sign(d, X0 + 12, y + 11, 7)
         txt(d, fit("key used %d times elsewhere" % q.outside, TW - 24, "sans12"), X0 + 24, y + 3, "sans12", "warn_text", "warn_bg")
-    choices(d, q, (("owners", "Owners"), ("device", "Device")), q.foot)
+    choices(d, q, (("owners", "Owners"), ("device", "Device")) + ((("key", "Key"),) if L.THREE else ()), q.foot)
     if L.THREE:
         rail(d, q, (BACK if q.foot or q.browse else None, NEXT, OPEN if q.queue or q.foot else None))
     d.show()
@@ -529,6 +534,82 @@ def draw_chip(q):
     d.show()
 
 
+_qr = (None, 0, None)
+
+
+def qr_of(text):
+    """qrcode.encode, once per text: it scores all eight masks, too slow for every frame."""
+    global _qr
+    if _qr[0] != text:
+        import qrcode
+        _qr = (text,) + qrcode.encode(text)
+    return _qr[1], _qr[2]
+
+
+def draw_qr(d, text, x0, y0, size):
+    """text as a QR code, dark on white with a 2-module margin, its top left at (x0, y0). -> its
+    side in px."""
+    n, rows = qr_of(text)
+    q = 2 * size
+    box = n * size + 2 * q
+    d.fill_rect(x0, y0, box, box, L.WHITE)
+    for r in range(n):
+        bits, x = rows[r], 0
+        while x < n:                    # one rectangle per run of dark modules
+            if bits >> x & 1:
+                e = x
+                while e < n and bits >> e & 1:
+                    e += 1
+                d.fill_rect(x0 + q + x * size, y0 + q + r * size, (e - x) * size, size, L.BLACK)
+                x = e
+            else:
+                x += 1
+    return box
+
+
+def draw_key(q):
+    """The Feather's Key screen: this key's owner address, the address a Safe adds as an owner.
+    Page 0: its QR code (EIP-55, 29 modules at 4 px, 132 px with the margin) beside the short
+    address and its picture. Page 1: the address in full. D1 switches. It is a signer, not a
+    wallet, and the screen says so: a phone that reads the code may offer to send to it."""
+    import txservice
+    d = q.d
+    d.fill(c("bg"))
+    a = txservice.checksum(q.me)
+    if q.kpage == 0:
+        n = qr_of(a)[0]
+        box = n * 4 + 16
+        draw_qr(d, a, W - box, (H - box) // 2, 4)
+        col = W - box - 4 - M
+        txt(d, fit("Your key", col, "bold14"), M, 0, "bold14")
+        txt(d, fit(q.me[:6], col, "mono13"), M, 20, "mono13", "muted")
+        txt(d, fit("\u2026" + q.me[-4:], col, "mono13"), M, 34, "mono13", "muted")
+        blockies.draw(d, q.me, M, 54, 3)
+        y = 84
+        for line in ("A signer,", "not a", "wallet."):
+            txt(d, fit(line, col, "sans12"), M, y, "sans12", "warn")
+            y += 14
+        labels = (BACK, ("Full", "raised", "text"), None)
+    else:
+        header(d, "Your key", q.chip["name"] if q.chip else "")
+        y = HEAD + 3
+        for line in addr_lines(a):
+            txt(d, line, M, y, "mono13")
+            y += 16
+        blockies.draw(d, q.me, R - 24, HEAD + 31, 3)      # beside the short last line
+        k = "key " + (q.fingerprint() or "none")
+        if q.counter is not None:
+            k += " \u00b7 use #%d" % q.counter
+        txt(d, fit(k, TW, "sans12"), M, y + 2, "sans12", "faint")
+        y += 18
+        for line in F.wrap("A signer, not a wallet: never send funds to it.", TW, "sans12"):
+            txt(d, line, M, y, "sans12", "warn")
+            y += 14
+        labels = (BACK, ("Code", "raised", "text"), None)
+    rail(d, q, labels)
+    d.show()
+
+
 def notice(q, ok, title, lines, press=None, d2=None):
     """A plain page: a mark, a title and a few lines. The states where the console signs nothing.
     press: what the knob's press does; d2: the Feather's label for D2."""
@@ -564,7 +645,12 @@ def draw_pinfail(q):
 
 
 def draw_unconfigured(q):
-    notice(q, False, "No Safe", ["secrets.py has no QUORUM_SAFES.", "docs/guide/SETUP.md"])
+    if L.THREE and q.key_ready():
+        notice(q, True, "Your key is ready", ["Next, it is added to a Safe.",
+                                              "D2 shows its code, for the person setting it up.",
+                                              "secrets.py: no QUORUM_SAFES yet"], None, "Code")
+    else:
+        notice(q, False, "No Safe", ["secrets.py has no QUORUM_SAFES.", "docs/guide/SETUP.md"])
 
 
 def draw_crashed(q, why=""):
@@ -594,6 +680,8 @@ def draw(q):
         draw_result(q)
     elif s == "owners":
         draw_owners(q)
+    elif s == "key":
+        draw_key(q)
     elif s == "working":
         draw_working(q, "Working", "")
     else:

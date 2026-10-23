@@ -122,7 +122,7 @@ keys = None
 sig = None          # the signer backend (the chip)
 svc = None          # txservice.Service
 timer = None
-state = "boot"      # boot | home | saver | review | hold | working | result | owners | device | recent | chip | nochip | pinfail | unconfigured | crashed
+state = "boot"      # boot | home | saver | review | hold | working | result | owners | device | recent | chip | key | nochip | pinfail | unconfigured | crashed
 qx = qy = ""
 me = ""             # this key's owner address, lowercase (see my_owner)
 ctx = None          # decode.context of the Safe in view: the pinned names plus "This key"
@@ -136,7 +136,8 @@ seen = set()        # pages of cur the person has looked at
 hold_t0 = 0
 hold_key = SIGN     # the key that started the hold: it has to stay down
 act = None          # knob, on a review: the action in focus (an index into ACTS), None on a page
-foot = None         # knob, on home: "owners" or "device" when the knob has turned past the queue
+foot = None         # knob, on home: one of FEET when the knob has turned past the queue
+FEET = ("owners", "device", "key") if THREE else ("owners", "device")   # the Feather's Key: this key's QR code
 ract = 0            # knob, on a result with an unsent signature: 0 send again, 1 back
 crash_t0 = None     # knob, on the crashed screen: when the hold to restart began
 result = None       # (ok, title, lines) after a signing attempt
@@ -182,6 +183,8 @@ hsel = 0            # the status home: the Safe row in focus (an index into WATC
 hfoot = None        # knob, on the status home: "recent" or "device" when the knob has turned past the Safes
 browse = None       # "list": the queue list opened from the status home (Y) while nothing waits for this key
 chip_back = "device"    # where the Chip pages go back to
+key_back = "home"   # where the Key screen goes back to: home, or the unconfigured screen
+kpage = 0           # the Key screen: 0 its QR code, 1 its address in full
 saver_card = 0      # the screensaver's card in view (an index into saver_cards())
 saver_t0 = 0        # when it came up
 rpage = 0           # the Recent screen's page
@@ -299,6 +302,18 @@ def queued_for(w):
 def home_feet():
     """The knob's choices past the Safe rows on the status home."""
     return (["queue"] if queue else []) + ["recent", "device"]
+
+
+def key_ready():
+    """A key to show on the Key screen: the chip has one, and it is the pinned chip or nothing is
+    pinned yet (a console being set up). Another chip than the pinned one shows nothing."""
+    return bool(me) and (pin_ok or not EXPECTS)
+
+
+def open_key(back):
+    """The Key screen (the Feather): this key's owner address as a QR code, then in full."""
+    global state, key_back, kpage, dirty
+    state, key_back, kpage, dirty = "key", back, 0, True
 
 
 def open_safe(i):
@@ -1213,6 +1228,10 @@ def handle(k):
         elif k in (BACK, REJECT, SIGN, "left", "X"):
             state = "home"
         dirty = True
+    elif state == "key":
+        if k in (BACK, REJECT, SIGN, "left", "X"):
+            state = key_back
+        dirty = True
     elif state == "owners":
         if k in NEXT:
             opage = min(owner_pages() - 1, opage + 1)
@@ -1294,14 +1313,12 @@ def knob(k):
             if foot is None and queue and sel < len(queue) - 1:
                 sel += 1
                 focus_sel()
-            elif foot is None:
-                foot = "owners"
             else:
-                foot = "device"
+                foot = FEET[0] if foot is None else FEET[min(len(FEET) - 1, FEET.index(foot) + 1)]
         elif k == "up":
-            if foot == "device":
-                foot = "owners"
-            elif foot == "owners":
+            if foot in FEET and FEET.index(foot) > 0:
+                foot = FEET[FEET.index(foot) - 1]
+            elif foot is not None:
                 foot = None
             elif sel > 0:
                 sel -= 1
@@ -1309,6 +1326,8 @@ def knob(k):
         elif k == "press":
             if foot == "owners" and browse:
                 browse, foot = None, None   # the list opened from the status home: its first choice goes back
+            elif foot == "key":
+                open_key("home")
             elif foot:
                 state, opage = foot, 0
             elif queue:
@@ -1392,7 +1411,7 @@ def knob(k):
 
 def three(k):
     """One of the Feather's buttons: "D0", "D1", "D1L" (D1 held) or "D2", by state."""
-    global state, dirty, browse, hfoot, foot, page
+    global state, dirty, browse, hfoot, foot, page, kpage
     if state == "review":
         if k == "D0":
             reject()                    # one press, on any page
@@ -1415,6 +1434,14 @@ def three(k):
     elif state in ("nochip", "pinfail"):
         if k == "D2":
             handle("A")                 # Check again
+    elif state == "unconfigured":
+        if k == "D2" and key_ready():
+            open_key("unconfigured")    # a console being set up: its key's code, for the person adding it
+    elif state == "key":
+        if k == "D0":
+            handle(BACK)
+        elif k in ("D1", "D1L"):
+            kpage, dirty = 1 - kpage, True
     elif state == "crashed":
         if k == "D2":
             knob("press")               # held CRASH_HOLD_MS: restart (tick)

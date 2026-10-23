@@ -1,6 +1,6 @@
 {
- "release": "29d436b548ddfb5048ddb9399644469d330862d83657d58d45e58af4692b2005",
- "build": "# written by the emulator; never on a Pico\nIMAGE = \"web\"\nVERSION = \"2026.10.12\"\nBUILD = \"pages\"\nRELEASE = \"29d436b548ddfb5048ddb9399644469d330862d83657d58d45e58af4692b2005\"\n",
+ "release": "f6f6e5fc07fe32b9ed1ccd54af066864813420157221643ad12eefe1fff07c89",
+ "build": "# written by the emulator; never on a Pico\nIMAGE = \"web\"\nVERSION = \"2026.10.12\"\nBUILD = \"pages\"\nRELEASE = \"f6f6e5fc07fe32b9ed1ccd54af066864813420157221643ad12eefe1fff07c89\"\n",
  "firmware": ["atecc.py","blockies.py","board.py","boot.py","bootart.py","bootmark.py","ca_amazon_root1.bin","ca_amazon_root3.bin","ca_starfield_g2.bin","chipcfg.py","chips.py","decode.py","fonts.py","icons.py","image.py","keccak.py","knob.py","lcd.py","main_console.py","net.py","p256.py","policy.py","qf_bold14.bin","qf_bold18.bin","qf_bold26.bin","qf_mono13.bin","qf_monob28.bin","qf_sans12.bin","qf_sans14.bin","qlog.py","qrcode.py","quorum.py","quorum_cfg.py","quorum_ui.py","quorum_ui_s.py","release.py","safe_tx.py","signer.py","splash.py","taglines.py","theme.py","tmcfg.py","trustm.py","trustm_q.py","txservice.py","vhttp.py","watch.py","webauthn.py","wificfg.py","wifisetup.py"],
  "shims": {"_bootstrap":"shims/bootstrap.py","machine":"shims/machine.py","network":"shims/network.py","requests":"shims/requests.py","socket":"shims/socket.py","passkey":"shims/passkey.py"}
 }

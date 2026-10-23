@@ -140,8 +140,8 @@ Chip terms and file names move to the Device screen. Drafts for the Feather:
 | No Wi-Fi saved | Wi-Fi setup, QR | as today (on the Feather, its fixed hotspot isn't checked on the board yet) |
 | No key in | "No chip" | **Plug in your key** · the slot it goes in · D2 Check again |
 | Another key | "Not the pinned key" | **This isn't Sam's key.** This console is set up for key `9ba1…`. · D0 Back |
-| Key ready, no Safe | "No Safe: secrets.py has no QUORUM_SAFES" | **Your key is ready.** Next, it's added to a Safe. · Show this to the person setting it up. · D2 Show the code |
-| A Safe, not an owner yet | the home, empty | **Waiting to be added** to the Family Safe. · D2 Show the code |
+| Key ready, no Safe | **built:** "Your key is ready" · D2 Code | **Your key is ready.** Next, it's added to a Safe. · Show this to the person setting it up. · D2 Show the code |
+| A Safe, not an owner yet | **built:** "Not an owner yet" on home, and Key past Owners and Device | **Waiting to be added** to the Family Safe. · D2 Show the code |
 | Ready | home | **Family Safe** · 2 of 3 · Nothing to sign |
 | Something waiting | home, a count | **1 waiting** · D2 Open |
 | A review | pages, hold | as today, with a first page that asks: **Expecting this?** If nobody told you about it by voice, Reject. |
@@ -199,9 +199,9 @@ Printed by the app from the Safe's live state, so it's right on the day it's pri
 | Pin the key | laptop: `tools/fw pin` | |
 | The Safes it watches | laptop: `tools/quorum live pico`, or `secrets.py` by hand | |
 | The owner address on the console | at C7, and the Pico's This key screen; the Feather has no key screen yet | |
-| A QR of the key | no | `qrcode.py` encodes up to version 6 |
+| A QR of the key | **the Feather's Key screen**: the owner address, EIP-55 (2026-10-22, emulator) | `quorum_ui_s.draw_key` |
 | Deploy the signer | laptop, or the app's deploy link from any wallet | `#/signer/x/y` |
-| Add owner, replace owner | the app, or the Safe app | `web/src/propose.mjs` |
+| Add owner, replace owner | the app (prefilled: `#/safe/<chain>/<Safe>/new/add/<owner>`), or the Safe app | `web/src/propose.mjs` |
 | Execute | the app, or `tools/quorum live exec` | |
 | A use the console didn't make | flagged on home | `quorum.py` |
 | Whose key it is, About, Check, Practice, the card | no | |
@@ -211,7 +211,9 @@ Printed by the app from the Safe's live state, so it's right on the day it's pri
 Each firmware step is a new console release fingerprint. Chip 3 is the test case throughout: it is
 sealed, and it isn't an owner of anything yet.
 1. **The Feather's key screen and its QR**, with the no-Safe and not-an-owner states rewritten
-   around it. First the owner address, since it needs nothing new from the app.
+   around it. First the owner address, since it needs nothing new from the app. **Built
+   2026-10-22**, in the emulator ([shots 23–27](quorum-ui/feather/README.md)); the code decodes
+   (CoreImage) to the address on the screen. Not yet on the board.
 2. **The set-up link** in the app (`#/k/<compressed key>`: compare, deploy, Add owner) and as the
    console's QR code. Then chip 3 joins Safe `0x5617…DC41` that way, from a phone, without a laptop.
 3. **Whose key it is:** a keyholder's name in `secrets.py`, the About screen, and the card page in

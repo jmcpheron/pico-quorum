@@ -127,6 +127,21 @@ py(`Q.state = "nochip"\ndraw()`);
 shot("21-nochip", "No chip on the bus: D2 checks again.");
 py(`Q.state, Q.pin_why, Q.EXPECT, Q.EXPECTS = "pinfail", "secrets.py has no QUORUM_EXPECT", None, []\ndraw()`);
 shot("22-pinfail", "A chip that isn't pinned: nothing will be signed until tools/fw pin adds it. D2 checks again.");
+py(`Q.state, Q.sel, Q.foot = "home", 0, "key"\ndraw()`);
+shot("23-home-key", "Past Owners and Device, D1 reaches Key: this key's QR code.");
+py(`Q.open_key("home")\ndraw()`);
+shot("24-key-code", "Key: the owner address as a QR code, beside its start, end and picture. A signer, not a wallet. D1 shows it in full, D0 goes back.");
+py(`Q.kpage = 1\ndraw()`);
+shot("25-key-full", "The owner address in full, the key's fingerprint and use count.");
+py(`_owners, _queue = Q.owners, Q.queue
+Q.owners = lambda w=None: [T.OTHER]
+Q.queue, Q.state, Q.foot = [], "home", None
+draw()`);
+shot("26-home-not-owner", "A Safe that doesn't list this key yet: Not an owner yet, and where its code is.");
+py(`Q.owners, Q.queue = _owners, _queue
+Q.state = "unconfigured"
+draw()`);
+shot("27-ready", "No Safe set yet, on a console being set up: the key is ready, D2 shows its code.");
 dev.dispose();
 
 const md = ["# The console on the Feather ESP32-S3 Reverse TFT", "",
@@ -135,7 +150,7 @@ const md = ["# The console on the Feather ESP32-S3 Reverse TFT", "",
   "- **D0**: Reject on a review (one press, any page, even while Sign is held); Back anywhere else.",
   "- **D1**: next page or row; held 1 s, the one before. On a review's first page, held: out without rejecting.",
   "- **D2**: open; on a review, the next page not yet seen, then Sign: held 2 s, 3 s when a page is red.", "",
-  "The status home, the key screens, the ceremony and the claim on three buttons come next.", ""];
+  "Key shows the key's owner address as a QR code (docs/ONBOARDING.md). The status home and the claim on three buttons come next.", ""];
 for (const [n, c] of shots) md.push(`### ${n.replace(/^\d+-/, "").replace(/-/g, " ")}`, "", c, "", `![${n}](${n}.png)`, "");
 writeFileSync(join(out, "README.md"), md.join("\n"));
 console.log(`${shots.length} shots in ${out}`);

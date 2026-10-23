@@ -1300,6 +1300,51 @@ def case_three():
     t = [s for s, x, y, f in drawn() if x < rail]
     check(t == ["Check"], "the rail on Not pinned: Check (%r)" % t)
 
+    # The Key screen (docs/ONBOARDING.md): this key's owner address as a QR code, then in full
+    def fits(where):
+        bad = [(s, x, y) for s, x, y, f in drawn() if y + fonts.height(f) > Q.L.H + 3 or x + fonts.width(s, f) > Q.L.W
+               or (x < rail and s not in ("Back", "Full", "Code", "Next", "Open"))]
+        if bad:
+            print("      %s: %r" % (where, bad[:3]))
+        return not bad
+    import txservice
+    Q.state, Q.sel, Q.foot = "home", len(Q.queue) - 1, "device"
+    tick("D1")
+    check(Q.foot == "key", "home: D1 past Device reaches Key")
+    tick("D2")
+    t = drawn()
+    check(Q.state == "key" and Q.kpage == 0 and Q.U._qr[0] == txservice.checksum(Q.me) and Q.U._qr[1] == 29,
+          "D2 on Key: the owner address, EIP-55, as a 29-module QR code")
+    check([s for s, x, y, f in t if x < rail] == ["Back", "Full"] and fits("key code"), "the code page: rail Back, Full; it fits")
+    tick("D1")
+    t = " ".join(s for s, x, y, f in drawn())
+    check(Q.kpage == 1 and Q.me[2:6] in t and "not a wallet" in t and fits("key full"),
+          "D1: the address in full, and that it is a signer, not a wallet")
+    tick("D0")
+    check(Q.state == "home", "D0 on Key: back home")
+    Q.foot = "key"
+    tick("D1L")
+    check(Q.foot == "device", "D1 held on Key: back to Device")
+    owners, queue = Q.owners, Q.queue
+    Q.owners = lambda w=None: [OTHER]
+    Q.queue, Q.foot = [], None
+    t = " ".join(s for s, x, y, f in drawn())
+    Q.owners, Q.queue = owners, queue
+    check("Not an owner yet" in t, "a Safe that doesn't list this key: Not an owner yet")
+
+    Q = fresh(safe=False, extra='BOARD = "feather-s3"')
+    t = " ".join(s for s, x, y, f in drawn())
+    check(Q.state == "unconfigured" and Q.key_ready() and "Your key is ready" in t and fits("ready"),
+          "no Safe yet: Your key is ready")
+    Q.three("D2")
+    check(Q.state == "key", "D2 there: the key's code")
+    Q.three("D0")
+    check(Q.state == "unconfigured", "D0: back to the ready screen")
+    Q = fresh(safe=False, expect={"serial": "0123000000000000ee", "slot": 0, "owner": OTHER, "locked": True}, extra='BOARD = "feather-s3"')
+    Q.three("D2")
+    check(Q.state == "unconfigured" and not Q.key_ready() and "No Safe" in " ".join(s for s, x, y, f in drawn()),
+          "pinned to another chip, no Safe: no code for this one, D2 does nothing")
+
 
 def main_three():
     """case_three, alone in a fresh device: secrets.py names the Feather before board.py is read."""
