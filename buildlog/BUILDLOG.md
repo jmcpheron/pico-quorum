@@ -902,7 +902,7 @@ permanent step).
   beside a token's amount, and for each owner on approvals and Owners.
 - **The push:** `tools/fw push dual` stopped at its first read of the board, before the backup or
   any copy: the board reset (`Device not configured`). Chip 3 is pinned now, so the console had
-  started its watchdog (`watch.running()` read True a minute later). A session that stops the
+  started its watchdog (`watch.running()` read True when I connected afterwards). A session that stops the
   console stops its feeding, and the board resets 8 s on. That is likely what cut this one.
 - **Done over plain serial instead:** `watch.hold(600000)`, a `maint` file, a restart into
   maintenance (no console, no watchdog), a backup of all 74 files with each SHA-256 checked (in
