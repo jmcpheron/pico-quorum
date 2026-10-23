@@ -21,8 +21,8 @@
 #   tools/keypcb gen-console-pocket  rewrites console-pocket (the Pico-on-the-back board) from
 #                                 hardware/console-pocket/gen_console.py: plain Python, no KiCad,
 #                                 and it ends with its own self-check
-#   tools/keypcb gen-feather-wing  rewrites feather-wing/wing-a from hardware/feather-wing/gen_wing.py,
-#                                 the same way: plain Python, its own self-check
+#   tools/keypcb gen-feather-wing a|b  rewrites feather-wing/wing-a (or wing-b) from
+#                                 hardware/feather-wing/gen_wing.py, the same way: plain Python, its own self-check
 #
 # board is one of the key-*, console-* or wing-* folders; without one, every board. A name used in two
 # folders (console-a) is written with its folder: console-pcb/console-a, console-a/console-a.

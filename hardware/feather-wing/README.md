@@ -1,12 +1,18 @@
-# wing-a: the key's port behind a Feather
+# The key wing: the key's port behind a Feather
 
-*Drawn 2026-10-23. Written by a script, routed, self-checked. Not yet checked in KiCad, not ordered.*
+*wing-a and wing-b, drawn 2026-10-23. Written by a script, routed, self-checked. Not yet checked in
+KiCad, not ordered.*
 
 A board the size of a Feather that sits behind Adafruit's
 [Feather ESP32-S3 Reverse TFT](../wiring/FEATHER-S3.md) on its header pins. It carries one thing:
 a USB-C plug that key-c slides onto, with the protection
 [PROPOSALS.md](../key-pcb/PROPOSALS.md#the-console-end-of-key-c) asks for. It replaces the
 soldered wire adapter from the Feather's STEMMA QT socket to a USB-C plug.
+
+There are two, the same circuit with the plug turned two ways:
+- **wing-a**, an upright plug: key-c stands out of the back of the stack.
+- **wing-b**, a right-angle plug at the edge of a tab: key-c lies level with the stack, beside it.
+  [Below](#wing-b-the-plug-at-the-edge) is what that costs.
 
 It is a FeatherWing-compatible board: the Feather's outline, holes and header rows, taken from
 Adafruit's own board file. Adafruit asks that a board it hasn't approved say "FeatherWing-compatible",
@@ -129,9 +135,10 @@ both pairs.
     no room later
   - no via in the plug's courtyard, and no front copper between its rows, where its shell sits
   - every front ground pad gets a via, the plug's four ground pins through its shell pads
-  - it tries the nets in 16 fixed orders and keeps the complete one with the least copper. Today
-    only one of them finishes (310 mm of track, 34 vias), so a moved part may need the placement
-    loosened before it routes again
+  - each ESD array's flow-through pairs (pins 1/6, 3/4) are joined straight across under the chip
+  - it tries the nets in 16 fixed orders and keeps the complete one with the least copper: 304 mm
+    of track and 55 vias. Few orders finish, so a moved part may need the placement loosened
+    before it routes again
 
   Tracks are 0.25 mm, vias 0.6/0.3 mm, clearance 0.2 mm, within JLCPCB's 2-layer limits.
 - **Ground** is a pour on both layers up to x 41, stitched with vias.
@@ -147,17 +154,18 @@ both pairs.
 | `gen_wing.py` | writes everything below from Python, no KiCad needed; its self-checks stand in for ERC and DRC here |
 | `lib/pqwing.kicad_sym`, `lib/pqwing.pretty/` | the symbols and footprints, all written by the script. The plug's, SOT-23-6, SOD-523, 0402 and 0603 pads are KiCad's own, as console-a's board holds them |
 | `lib/picoquorum.pretty/PicoQuorum_Mark.kicad_mod` | the mark, a copy of the key library's |
-| `wing-a/` | the KiCad 9 project: open `wing-a.kicad_pro` |
-| `wing-a/fab/` | what you upload, once `tools/keypcb fab wing-a` has run on a machine with KiCad (not yet) |
+| `wing-a/`, `wing-b/` | the KiCad 9 projects: open `wing-a.kicad_pro` or `wing-b.kicad_pro`. `wing-b.kicad_dru` lets the edge plug's B row sit 0.2 mm from the edge |
+| `wing-*/fab/` | what you upload, once `tools/keypcb fab` has run on a machine with KiCad (not yet) |
 
 `gen_wing.py` reuses console-pocket's footprint and board-text helpers and the key boards'
 schematic helpers. Once the board is edited in KiCad, the KiCad files are the source of truth:
-don't run the generator again, or the edits are lost (`tools/keypcb gen-feather-wing` reruns it).
+don't run the generator again, or the edits are lost (`tools/keypcb gen-feather-wing a`, or `b`,
+reruns it).
 
 ## Checking it
 
-Here, with no KiCad: `python3 hardware/feather-wing/gen_wing.py` writes the project, then checks
-what it wrote, and reports clean. It takes about 2½ minutes, most of it routing.
+Here, with no KiCad: `python3 hardware/feather-wing/gen_wing.py a` (or `b`) writes that project,
+then checks what it wrote. Both report clean. Each takes a few minutes, most of it routing.
 - **The schematic, read back:** every symbol pin's net, worked out from its wires, labels, power
   symbols and no-connect flags, is the net in the script's one table.
 - **The board, read back:**
@@ -168,9 +176,12 @@ what it wrote, and reports clean. It takes about 2½ minutes, most of it routing
   - every net in one piece
   - every pad on the net the schematic gives it
   - silkscreen text off the pads, by a rough box
+  - no two parts' courtyards overlap
   - every header pin and hole where Adafruit's file has it
 
-  These stand in for DRC; they are not DRC. `--check` reruns both checks without writing.
+  These stand in for DRC; they are not DRC. `gen_wing.py a --check` reruns both checks without
+  writing. The courtyard check was added with wing-b; it found five overlaps in wing-a as first
+  pushed (the plug with U3 and U4, the switch with C2, R7 and R8), and those parts have moved.
 
 On a machine with KiCad 9 or 10:
 1. `tools/keypcb fill wing-a`: fills the pours and saves the board. The generator writes the zones
@@ -213,7 +224,7 @@ needs. Only J1 and where it sits change between these:
 | port | key | what changes here |
 |---|---|---|
 | **upright USB-C plug** (wing-a) | key-c | none: the key stands out of the back |
-| **right-angle plug at an edge** | key-c | J1's footprint and place. A long edge has the header rows in the way, the far end has the antenna and the USB end has the charge port; the wing would have to grow past the outline, or lose header pins it doesn't use |
+| **right-angle plug at an edge** (wing-b) | key-c | drawn: [below](#wing-b-the-plug-at-the-edge) |
 | **USB-C socket and a short cable** | key-c | a socket for J1, the CC sensing as PROPOSALS.md has it for a cable (exactly one Rd, an e-marked cable's Ra on the other line), and 2.2k is the most the cable's capacitance allows |
 | **pogo pins and magnets** | key-d | five spring pins on the outer face and two magnets; DETECT on a spare pin instead of CC, no CC parts. The key lies flat on the back of the stack |
 | **card-edge socket** | rev A | a through-hole socket at an end (PBT: hand-soldered); DETECT on a spare pin |
@@ -225,6 +236,84 @@ To change a part or add one (an LED, a second sensor, a battery gauge of its own
 - a part that needs a Feather pin goes in `FEATHER12`/`FEATHER16` and `GPIO`, and
   `check_firmware` checks it against `board.py`
 
+## wing-b: the plug at the edge
+
+The same circuit, with a right-angle plug at the edge so key-c lies level with the stack instead of
+standing out of its back.
+
+```
+  seen from the wing's outer face, not to scale
+
+                    key-c slides on here, about 30 mm more
+                         ┌──────────┐
+                         │  plug    │  12.5 mm past the tab
+                     ┌───┴──────────┴───┐
+   ┌─────────────────┘  tab, 11 × 5 mm  └──────────────────────┐
+   │ USB       12-pin row ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·   │ antenna
+   │                                                           │
+   │           16-pin row ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·   │
+   └───────────────────────────────────────────────────────────┘
+```
+
+**Why a tab.** A right-angle plug needs a board edge, and every edge of the Feather's outline is
+taken:
+- the header rows run along both long edges
+- the stretch of the 12-pin edge with no pins, at the USB end, is where the battery socket's cable
+  leaves the Feather
+- the far end is the antenna, and the USB end the charge port
+
+So wing-b grows a tab out of the 12-pin edge, mid-board, between the battery socket and the antenna:
+11 mm wide and 5 mm deep, with 1 mm corner arcs. A case has to allow for it.
+
+**The plug** is GCT's USB4155-03-C ([drawing](https://gct.co/files/drawings/usb4155.pdf)), a USB-C
+plug for a board edge. Its contacts are all on one face, in two staggered rows at 0.5 mm, with two
+plated slots for its shell's stakes. Its footprint is drawn from GCT's recommended layout. What it
+brings with it:
+- **A 1.0 mm board.** GCT asks for 0.8 to 1.0 mm. wing-b's stackup says 1.0 mm; order it so.
+- **Only the A row is wired.** The A row's pads are 0.2 mm apart, and the B row sits behind them
+  at the edge, so no track can reach the B row without vias in its pads. The A row is all a key
+  needs: key-c joins its socket's two rows, so either way up A4/A9 meet its VBUS, A1/A12 its GND,
+  A6/A7 its SDA/SCL, and A5 one of its two 5.1k Rd. The B row is soldered for strength, on copper
+  that goes nowhere.
+- **One CC line, not two.** With the B row open, only CC1 (on D5) is read: U4's second pair is
+  spare, R4 and R6 are gone, and D6 stays free. A key plugged straight in still shows its 5.1k
+  either way up. The second line was for telling a key from a cable, which a plug at the edge
+  doesn't need.
+- **The B row 0.2 mm from the edge**, where GCT puts it, under the board's 0.3 mm rule.
+  `wing-b.kicad_dru` lets the plug's pads, and only them, sit there.
+- **Not at LCSC.** Digi-Key's product page for it showed $1.66 and about 15,000 in stock on
+  2026-10-23; check before ordering. Solder it by hand (0.5 mm pitch, drag soldering with flux),
+  or have JLCPCB source it. GCT suggests a holding jig for reflow.
+
+**How it's routed.** The plug's 0.5 mm pitch doesn't fit the router's 0.2 mm grid: only a track
+from the very middle of each pad clears its neighbours. So:
+- the tab is placed so the pads sit on a 0.1 mm grid (its centre at x 27.975)
+- each pad gets a straight stub into the board, longer towards the middle of the row, so the outer
+  pins turn away above the inner ones
+- on a 0.1 mm grid, each pin then goes down through a gap in the 12-pin row on the front, or to a
+  via. All five get out, two by vias; with a 4 mm tab, one never did
+- from there the 0.2 mm router does the rest, as on wing-a: 272 mm of track and 51 vias
+
+The ESD arrays sit just below the 12-pin row, about 8 mm from the plug: SDA and SCL to U3 on the
+left, CC1 to U4 on the right, VKEY between them past D1. The switch, the bus links and the test pads
+are where wing-a has them.
+
+**Its pins** are wing-a's less D6:
+
+| Feather pin | ESP32-S3 | wing-b net |
+|---|---|---|
+| SDA, SCL | GPIO3, GPIO4 | the key's bus, through R9/R10 |
+| D5 | GPIO5, ADC1 | CC1, through R5 |
+| D9, D10 | GPIO9, GPIO10 | KEY_EN, KEY_FAULT |
+| D11, D12 | GPIO11, GPIO12 | the key's bus, if R11/R12 are fitted |
+
+As built, it runs today's console image unchanged too.
+
+**Which one?** wing-a is the simpler board: a stocked, machine-placed plug, the Feather's outline,
+1.6 mm. wing-b makes a flatter device with the key beside it, for a tab, a hand-soldered plug, a
+1.0 mm board and one CC line. Both need a case that takes a sideways push on the key off the
+plug's joints; wing-b's stakes go through the board, which helps.
+
 ## Rough cost
 
 Not a quote, built on console-a's and key-c's numbers:
@@ -233,6 +322,7 @@ Not a quote, built on console-a's and key-c's numbers:
 - the parts: about $1.50 a wing
 
 So about $5 a wing for 5, plus shipping, the headers (about $1) and the Feather (about $25).
+wing-b has one extended part fewer at JLCPCB and adds GCT's plug, about $1.66, by hand.
 Trust the quote.
 
 ## Open
@@ -245,3 +335,6 @@ Trust the quote.
       console-a's notes ask.
 - [ ] A firmware change for CC sense, D9 and FAULT, with the key on its own bus (R11/R12): a new
       release.
+- [ ] wing-b: check GCT's footprint against a real USB4155 (the stagger, the slots), and its fit on
+      key-c, before ordering. Check the 1.0 mm board against the headers chosen.
+- [ ] wing-b: the tab in a case, and whether the key beside the stack clears the battery cable.
