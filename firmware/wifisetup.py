@@ -5,7 +5,8 @@
 #     person picks their network and types the password there.
 #   - the console alone: a list of the networks it can see, then an on-screen keyboard. The
 #     Waveshare joystick moves around the keyboard; the build1 knob walks along it one key at a
-#     time, and pressing types.
+#     time, and pressing types. The Feather's D1 walks the same way (held, back), D2 types and D0
+#     goes back.
 # Either way the console joins the network itself before saving it to wifi.json (wificfg.py), so a
 # wrong password is caught here and not at the next boot. Then it restarts.
 #
@@ -79,10 +80,18 @@ def _start_ap():
     ap_pass = _rand(8)
     ap = network.WLAN(network.AP_IF)
     try:
-        ap.config(ssid=ap_ssid, key=ap_pass)
-        ap.active(True)
+        if board.ESP32:                 # it takes settings only once on ("Wifi Invalid Mode"), and stays open unless asked
+            ap.active(True)
+            ap.config(ssid=ap_ssid, key=ap_pass, security=network.WLAN.SEC_WPA2)
+        else:
+            ap.config(ssid=ap_ssid, key=ap_pass)
+            ap.active(True)
     except Exception as e:
         print("wifisetup: hotspot:", e)
+        try:
+            ap.active(False)            # never an open hotspot with the default name
+        except Exception:
+            pass
     try:
         import socket
         a = socket.getaddrinfo("0.0.0.0", 80)[0][-1]
@@ -221,8 +230,9 @@ SPECIAL = 5             # the last row: case, symbols, space, delete, OK, each t
 
 
 class Keyboard:
-    """Text entry for both inputs. Joystick: up/down/left/right move on the grid. Knob: "down"
-    (clockwise) and "up" step through every key in reading order, wrapping at the ends."""
+    """Text entry for both inputs. Joystick: up/down/left/right move on the grid. Knob (and the
+    Feather's D1): "down" (clockwise) and "up" step through every key in reading order, wrapping at
+    the ends."""
 
     def __init__(self, title, what, text="", limit=63):
         self.title, self.what, self.text, self.limit = title, what, text, limit
@@ -234,7 +244,7 @@ class Keyboard:
 
     def move(self, k):
         r, c = self.r, self.c
-        if L.KNOB:
+        if L.KNOB or L.THREE:
             step = 1 if k == "down" else -1
             c += step
             if c >= self.width(r):
@@ -289,6 +299,8 @@ def _list_items():
 
 def _key(k):
     global view, sel, kb, _dirty, qr_mode
+    if L.THREE:                         # the Feather: D0 back, D1 the next (held, the one before), D2 choose
+        k = {"D0": "Y", "D1": "down", "D1L": "up", "D2": "A"}.get(k, k)
     ok = k in ("A", "press")
     back = k == "Y"
     _dirty = True
@@ -471,7 +483,7 @@ def _draw_qr():
         x = _qr(text, 1, 2, size) + 3       # 7 characters of the 8 px font fit beside it
         for i, s in enumerate(["Open", "the page", "on the", "phone"] if url else ["Scan me", "to set", "up", "Wi-Fi"]):
             tx(s, x, 4 + i * 11, "", INK)
-        tx("press", x, H - 26, "", DIM)
+        tx("D2" if L.THREE else "press", x, H - 26, "", DIM)
         tx("to type", x, H - 15, "", DIM)
         return
     msg = st.get("msg")

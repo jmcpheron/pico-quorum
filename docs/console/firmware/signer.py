@@ -691,7 +691,7 @@ def detect():
     try:
         import atecc
         found = atecc.scan()
-        out = [("atecc608", a) for a in atecc.KNOWN_ADDRS if a in found][:1]
+        out = [("atecc608", a) for a in atecc.KEY_ADDRS if a in found][:1]
         if 0x30 in found or _trustm_here(atecc.make_i2c(atecc.SDA, atecc.SCL, 100_000)):
             out.append(("trustm", 0x30))
         return out

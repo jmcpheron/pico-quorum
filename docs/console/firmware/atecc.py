@@ -38,6 +38,9 @@ def make_i2c(sda, scl, freq):
 
 ADDR = 0x60
 KNOWN_ADDRS = (0x60, 0x35, 0x6A, 0x58, 0x36, 0x59)   # Adafruit breakout, Trust&Go/TrustFLEX parts, others seen in the wild
+# The ones that can be the key on this board: the Feather's battery gauge answers at 0x36 (board.NOT_KEYS).
+NOT_KEYS = getattr(board, "NOT_KEYS", ())
+KEY_ADDRS = tuple(a for a in KNOWN_ADDRS if a not in NOT_KEYS)
 WAKE_OK = b"\x04\x11\x33\x43"
 OP_READ, OP_NONCE, OP_GENKEY, OP_SIGN, OP_RANDOM, OP_INFO, OP_WRITE, OP_LOCK = 0x02, 0x16, 0x40, 0x41, 0x1B, 0x30, 0x12, 0x17
 OP_COUNTER, OP_SHA, OP_SELFTEST = 0x24, 0x47, 0x77
@@ -189,8 +192,8 @@ class ATECC608:
         sda, scl = (SDA if sda is None else sda), (SCL if scl is None else scl)
         self.i2c = make_i2c(sda, scl, freq)
         if addr is None:
-            found = scan(sda, scl, freq)
-            addr = ADDR if ADDR in found or not found else next((a for a in KNOWN_ADDRS if a in found), found[0])
+            found = [a for a in scan(sda, scl, freq) if a not in NOT_KEYS]
+            addr = ADDR if ADDR in found or not found else next((a for a in KEY_ADDRS if a in found), found[0])
         self.addr = addr
         self.trace = None       # the last command as sent and answered: op, p1, p2, data, resp, ms
 

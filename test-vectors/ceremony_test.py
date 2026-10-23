@@ -15,14 +15,14 @@ def check(ok, what):
         failed[0] += 1
 
 
-def secrets(lock=True, genkey=True):
+def secrets(lock=True, genkey=True, extra=""):
     with open("secrets.py", "w") as f:
-        f.write('WIFI_SSID = "emulator"\nWIFI_PASS = ""\nHOSTNAME = "emu"\nALLOW_LOCK = %s\nALLOW_GENKEY = %s\n' % (lock, genkey))
+        f.write('WIFI_SSID = "emulator"\nWIFI_PASS = ""\nHOSTNAME = "emu"\nALLOW_LOCK = %s\nALLOW_GENKEY = %s\n' % (lock, genkey) + extra)
     try:
         os.remove("build.py")
     except OSError:
         pass
-    for m in ("secrets", "build", "image", "signer", "atecc", "chipcfg", "provision"):
+    for m in ("secrets", "build", "image", "signer", "atecc", "chipcfg", "provision", "setup_s", "chipapp"):
         sys.modules.pop(m, None)
 
 
@@ -274,8 +274,267 @@ def case_ui():
     check(ok and ui.c.step() == "C10", "the ceremony screen draws every step and its result")
 
 
+class Clock:
+    """time for provision and signer, moved by hand: the holds and the arm to the millisecond."""
+    now = 0
+
+    def ticks_ms(self):
+        return self.now
+
+    def ticks_diff(self, a, b):
+        return a - b
+
+    def ticks_add(self, a, b):
+        return a + b
+
+    def sleep_ms(self, ms):
+        self.now += ms
+
+    def gmtime(self, *a):
+        import time
+        return time.gmtime(*a)
+
+
+def case_arm_left():
+    """A hold starts only with provision.ARM_LEFT of the arm to go. Chip 3, 2026-10-22: C6's hold
+    started with about 4 s left, the arm ran out during its test signature and the lock was refused.
+    With less, A held does nothing and the screen says arm again; on the knob, the hold arms again."""
+    import splash, time
+    secrets()
+    fresh_chip()
+    c, S, P = ceremony()
+    for st in ("C1", "C2"):
+        c.run(st)
+    T = Clock()
+    P.time = S.time = T
+    try:
+        class K:
+            down = set()
+
+            def held(self, k):
+                return k in self.down
+        keys = K()
+        d = splash.begin()
+        drawn = []
+        real = d.text
+
+        def text(s, x, y, col):
+            drawn.append(s)
+            return real(s, x, y, col)
+        d.text = text
+        ui = P.UI(d, keys, c.sig, "dark", c)
+
+        def hold(k, ms):
+            keys.down = {k}
+            for _ in range(ms // 100):
+                T.now += 100
+                ui.tick([])
+            keys.down = set()
+            ui.tick([])
+
+        def said():
+            drawn[:] = []
+            ui.dirty = True
+            ui.draw()
+            return " ".join(drawn)
+        S.arm()
+        T.now += 51000                                  # 9 s left
+        hold("A", 4000)
+        check(c.step() == "C3" and ui.result is None and "arm again" in said(),
+              "9 s of the arm left: A held 4 s locks nothing, and the screen says arm again")
+        S.arm()
+        T.now += 50000                                  # 10 s left
+        hold("A", 3100)
+        check(ui.result and ui.result[:2] == ("C3", True), "10 s left: A held 3 s locks the config")
+        ui.result, ui.knob = None, True
+        S.arm()
+        T.now += 51000
+        hold("press", 3100)
+        check(c.step() == "C4" and ui.result is None and S.armed() == 60,
+              "the knob, 9 s left: the hold arms again for 60 s, and makes no key")
+        hold("press", 3100)
+        check(ui.result and ui.result[:2] == ("C4", True), "the knob, armed again: the next hold makes the key")
+    finally:
+        P.time = S.time = time
+
+
+def case_three():
+    """The ceremony on the Feather's three buttons (board "feather-s3", setup_s.UI), C1-C10 on a
+    608C through tick alone, on a fake clock. D0 is back, D0+D1 held 3 s arms, D2 does a step and,
+    armed, held 3 s does a permanent or GenKey one. D2 never arms, D1+D2 is no arm, an arm let go
+    early is none, and with ALLOW_LOCK off nothing happens. Every screen fits 240x135 right of the
+    rail. Run in a device of its own (main_three): board.py is read once."""
+    import board
+    check(board.THREE and (board.W, board.H) == (240, 135), "the Feather: three buttons, 240x135")
+    secrets(extra='BOARD = "feather-s3"\n')
+    fresh_chip("608c")
+    c, S, P = ceremony()
+    import splash, setup_s, chipapp
+    T = Clock()
+    for m in (P, S, setup_s):
+        m.time = T
+
+    class Keys:
+        down = set()
+        queue = []
+
+        def held(self, k):
+            return k in self.down
+
+        def pressed(self):
+            out, self.queue = self.queue, []
+            return out
+    keys = Keys()
+    d = splash.begin()
+    drawn, bad = [], []
+    real = d.text
+
+    def text(s, x, y, col):
+        drawn.append((s, x, y))
+        return real(s, x, y, col)
+    d.text = text
+
+    def fits(where):
+        for s, x, y in drawn:
+            rail = where != "banner" and x < setup_s.RAIL and len(s) > 4      # the banner has no rail
+            if x + 8 * len(s) > 240 or y + 8 > 135 or x < 0 or y < 0 or rail:
+                bad.append((where, s, x, y))
+        drawn[:] = []
+
+    # the banner: D2 opens PROVISION, in setup_s's screen
+    chipapp.d, chipapp.keys, chipapp.sig = d, keys, c.sig
+    chipapp.identify()
+    chipapp.banner()
+    fits("banner")
+    keys.queue = ["D2"]
+    chipapp.tick(None)
+    check(isinstance(chipapp.prov, setup_s.UI) and [k for k, _ in chipapp.choices()] == ["PROVISION (quorum v1)"],
+          "the banner: D2 opens PROVISION on the three-button screen; no button-driven chip map")
+    ui = setup_s.UI(d, keys, c.sig, "dark", c)
+
+    def tick(*pressed):
+        r = ui.tick(list(pressed))
+        ui.dirty = True
+        ui.draw()
+        fits(c.step())
+        return r
+
+    def down(k):
+        keys.down.add(k)
+        return tick(*([] if k == "D1" else [k]))       # D1 arrives as a press only once let go (lcd.Keys)
+
+    def up(k):
+        keys.down.discard(k)
+        return tick(*(["D1"] if k == "D1" else []))
+
+    def wait(ms):
+        for _ in range(ms // 100):
+            T.now += 100
+            tick(*(["D1L"] if "D1" in keys.down else []))
+
+    def arm(ms=3100):
+        down("D0")
+        down("D1")
+        wait(ms)
+        up("D1")
+        up("D0")
+        return S.armed()
+
+    def hold_d2(ms):
+        st = c.step()
+        down("D2")
+        wait(ms)
+        up("D2")
+        return c.step() != st or ui.result is not None
+
+    def press_d2():
+        st = c.step()
+        down("D2")
+        up("D2")
+        return ui.result is not None and ui.result[0] == st
+
+    def dismiss():
+        down("D2")
+        up("D2")
+        T.now += 61000                                   # the arm runs out between steps
+    order = []
+    for want in ("C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9", "C10"):
+        st = c.step()
+        order.append(st)
+        if st in c.PERMANENT or st in c.GENKEY:
+            check(not hold_d2(3500), "%s: D2 held 3.5 s, not armed: nothing" % st)
+            down("D1")
+            check(not hold_d2(3500) and not S.armed(), "%s: D1+D2 held: no arm, nothing done" % st)
+            up("D1")
+            check(not arm(2000) and c.step() == st, "%s: D0+D1 let go at 2 s: not armed" % st)
+            T.now += 2000
+            tick()
+            if st == "C3":
+                real_flag = S.flag
+                S.flag = lambda name: False
+                try:
+                    check(arm() and not hold_d2(3500) and c.step() == "C3" and not ui.result,
+                          "C3 with ALLOW_LOCK off: armed, D2 held 3.5 s, nothing locked")
+                finally:
+                    S.flag = real_flag
+                S.disarm()
+                down("D0")
+                check(up("D0") == "back", "C3: D0 alone is back")
+            if st == "C6":
+                check(arm() > 50, "C6: armed")
+                T.now += 51000                                   # 9 s left, as chip 3's first try
+                tick()
+                ui.dirty = True
+                ui.draw()
+                said = " ".join(s for s, _, _ in drawn)
+                fits("C6")
+                check("Arm again" in said and not hold_d2(3500) and c.step() == "C6",
+                      "C6 with 9 s of the arm left: says arm again, and D2 held 3.5 s seals nothing")
+            check(arm() > 50, "%s: D0+D1 held 3 s: armed for 60 s" % st)
+            check(not hold_d2(2900) and c.step() == st, "%s: D2 held 2.9 s: not yet" % st)
+            ok = hold_d2(3100) and ui.result and ui.result[0] == st and ui.result[1]
+        else:
+            ok = press_d2() and ui.result[1]
+        check(st == want and ok, "%s %s on three buttons%s" % (want, P.TITLES[want], "" if ok else ": %r" % (ui.result,)))
+        dismiss()
+    sim = atecc_sim.chip()
+    cfg = bytes(sim.cfg)
+    check(order == ["C%d" % i for i in range(1, 11)] and cfg[86] == 0 and cfg[87] == 0 and cfg[88] == 0xFE,
+          "the Feather walks C1-C10: locks 00 00, slot 0 sealed (FE FF)")
+    ui.result = ("C6", False, [], "lock refused: not armed: hold B+Y 3 s")       # signer.gate's words
+    ui.dirty = True
+    ui.draw()
+    said = " ".join(s for s, _, _ in drawn)
+    fits("refusal")
+    check("D0+D1" in said and "B+Y" not in said, "a refusal names D0+D1, not the Pico's B+Y")
+    ui.c.picture = lambda st, result=False: "0x" + "ab" * 20
+    for res in (None, ("C10", True, [("x" * 30, True)] * 9, "owner 0x" + "ab" * 20 + " and some more words")):
+        ui.result = res
+        ui.dirty = True
+        ui.draw()
+        fits("picture")
+    check(not bad, "every screen fits 240x135, and left of the rail only the rail's words" + ("" if not bad else ": %r" % bad[:4]))
+
+
+def main_three():
+    """case_three, alone in a fresh device: secrets.py names the Feather before board.py is read."""
+    with open("secrets.py", "w") as f:
+        f.write('BOARD = "feather-s3"\n')
+    for m in ("board", "lcd", "splash", "bootmark"):
+        sys.modules.pop(m, None)
+    print("-- three")
+    try:
+        case_three()
+    except Exception as e:
+        failed[0] += 1
+        print("FAIL  case_three raised")
+        sys.print_exception(e)
+    print("three: %d failed" % failed[0])
+    return failed[0]
+
+
 def main():
-    for case in (case_full, case_seal_gate, case_refusals, case_console, case_dual, case_ui):
+    for case in (case_full, case_seal_gate, case_refusals, case_console, case_dual, case_ui, case_arm_left):
         print("--", case.__name__[5:])
         try:
             case()

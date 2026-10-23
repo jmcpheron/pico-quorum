@@ -1145,6 +1145,287 @@ def case_knob():
     check(Q.state == "hold" and Q.msg != Q.SIGN_ONLY, "the Sign button on a review: it signs (the hold begins)")
 
 
+def case_three():
+    """The Feather's three buttons (board "feather-s3", 240x135, quorum_ui_s with its rail). D0
+    rejects with one press on any review page, even during the hold, and goes back elsewhere; D1
+    moves on and, held (D1L), moves back; D2 opens, walks the pages not yet seen, and held signs:
+    2 s, 3 s when a page is red. Run in a device of its own (main_three): board.py is read once."""
+    chip()
+    Q = fresh(extra='BOARD = "feather-s3"')
+    check(Q.THREE and (Q.L.W, Q.L.H) == (240, 135) and Q.U.__name__ == "quorum_ui_s" and Q.PRESS == "D2",
+          "the Feather: three buttons, 240x135, the small screens' UI")
+    good, red = tx(Q, 0), tx(Q, 1, to=OTHER, data="0xdeadbeef")
+    refused = [tx(Q, 2, safe=OTHER), tx(Q, 3, tamper=True), tx(Q, 4, op=2), tx(Q, 5, to=OTHER, op=1, data="0x12345678")]
+    serve(Q, [good, red] + refused)
+    by = {e["n"]: e for e in Q.queue}
+
+    def tick(*pressed):
+        Q.keys.pressed = lambda: list(pressed)
+        Q._busy, Q.last_poll, Q.splash_until = False, Q.time.now, 0
+        Q.tick(None)
+
+    def to_hold(e):
+        """Open e and press D2 until the hold starts (each press first shows a page not yet
+        seen). -> the presses it took, or None if it never started."""
+        Q.open_entry(e)
+        for n in range(1, 40):
+            Q.three("D2")
+            if Q.state == "hold":
+                return n
+        return None
+
+    def sign3(e, hold_ms):
+        """D2 to the hold, held hold_ms. -> did a confirmation get posted?"""
+        n = len(SVC.posted)
+        if to_hold(e) is None:
+            return False
+        Q.keys.down.add("D2")
+        Q.time.now += hold_ms
+        Q.hold_tick()
+        Q.keys.down.discard("D2")
+        if Q.state == "hold":
+            Q.hold_tick()
+        return len(SVC.posted) > n
+
+    for n in (2, 3, 4, 5):
+        check(by[n]["why"] and not sign3(by[n], 5000) and Q.state == "review",
+              "#%d refused: D2 never starts a hold, whatever is held" % n)
+    Q.open_entry(by[0])
+    pages = len(Q.pages)
+    took = to_hold(by[0])
+    check(pages > 2 and took == pages, "D2 before every page is seen shows the next unseen one: %d presses, then the hold" % took)
+    Q.state = "review"
+    check(not sign3(by[0], 1999), "held 1.999 s: nothing signed")
+    check(sign3(by[0], 2000) and Q.state == "result", "held 2 s: signed and posted")
+    check(not sign3(by[1], 2999), "red, held 2.999 s: nothing signed")
+    check(sign3(by[1], 3000), "red, held 3 s: signed")
+
+    serve(Q, [tx(Q, 0), tx(Q, 1, to=OTHER, data="0xdeadbeef")])
+    e, r = Q.queue
+    n0 = len(SVC.posted)
+    for p in range(len(Q.pages) if Q.open_entry(e) is None else 0):
+        Q.open_entry(e)
+        while Q.page < p:
+            Q.three("D1")
+        Q.declined.discard(e["h"])
+        Q.three("D0")
+        check(Q.state == "home" and e["h"] in Q.declined and len(SVC.posted) == n0,
+              "D0 on page %d of %d: rejected with one press, nothing posted" % (p + 1, len(Q.pages)))
+    Q.declined.discard(r["h"])
+    Q.open_entry(r)
+    Q.three("D1")
+    Q.three("D0")
+    check(Q.state == "home" and r["h"] in Q.declined, "D0 on a red transaction's page: rejected")
+    Q.declined.discard(e["h"])
+    to_hold(e)
+    Q.keys.down.add("D2")
+    Q.time.now += 1000
+    Q.hold_tick()
+    Q.three("D0")
+    Q.keys.down.discard("D2")
+    check(Q.state == "home" and e["h"] in Q.declined and len(SVC.posted) == n0, "D0 during the hold: rejected, nothing signed")
+
+    Q.declined.discard(e["h"])
+    Q.open_entry(e)
+    Q.three("D1")
+    Q.three("D1")
+    Q.three("D1L")
+    check(Q.state == "review" and Q.page == 1, "D1 twice then D1 held: back one page")
+    Q.three("D1L")
+    Q.three("D1L")
+    check(Q.state == "home" and e["h"] not in Q.declined, "D1 held on the first page: out, not rejected")
+    Q.open_entry(e)
+    while Q.page < len(Q.pages) - 1:
+        Q.three("D1")
+    Q.three("D1")
+    check(Q.state == "review" and Q.page == 0, "D1 on the last page: round to the first")
+
+    Q.state, Q.sel, Q.foot = "home", 0, None
+    tick("D1")
+    check(Q.sel == 1, "home: D1 moves down the list (through tick)")
+    tick("D1")
+    tick("D1")
+    check(Q.foot == "device", "D1 past the list: the Owners and Device choices")
+    tick("D1L")
+    tick("D2")
+    check(Q.state == "owners", "D1 held moves back; D2 opens Owners")
+    tick("D0")
+    check(Q.state == "home", "D0: back home")
+    Q.foot = "device"
+    tick("D2")
+    check(Q.state == "device", "D2 on Device opens it")
+    tick("D2")
+    check(Q.state == "chip", "Device: D2 on Chip opens the chip pages")
+    tick("D0")
+    tick("D0")
+    check(Q.state == "home", "D0, D0: back to Device, then home")
+    Q.foot = "device"
+    tick("D0")
+    check(Q.foot is None and Q.state == "home", "D0 on the choices: back onto the list")
+    Q.open_entry(e)
+    tick("D2")
+    check(Q.state == "review" and 1 in Q.seen, "a review through tick: D2 shows the next page")
+
+    import fonts
+
+    def drawn():
+        out, real = [], fonts.text
+        fonts.text = lambda d, t, x, y, font, *a, **k: (out.append((t, x, y, font)), real(d, t, x, y, font, *a, **k))[1]
+        try:
+            Q.U.draw(Q)
+        finally:
+            fonts.text = real
+        return out
+
+    rail = Q.U.RAIL
+    Q.msg = ""
+    Q.open_entry(e)
+    t = drawn()
+    left = [s for s, x, y, f in t if x < rail]
+    check(left == ["Reject", "Next", "See %d" % len(Q.unseen())], "the rail on a review: Reject, Next, See %d" % len(Q.unseen()))
+    while Q.unseen():
+        Q.three("D1")
+    check([s for s, x, y, f in drawn() if x < rail] == ["Reject", "Next", "Sign"], "every page seen: Sign")
+    ok = True
+    for p in range(len(Q.pages)):
+        Q.page = p
+        for s, x, y, f in drawn():
+            if y + fonts.height(f) > Q.L.H + 3 or (x < rail and s not in ("Reject", "Next", "Sign")):
+                ok = False
+                print("      page %d: %r at (%d, %d) in %s" % (p + 1, s, x, y, f))
+    check(ok, "every page of a review fits 240x135, and only the rail is drawn left of it")
+    Q.state = "home"
+    check([s for s, x, y, f in drawn() if x < rail] == ["Next", "Open"], "the rail on home: Next, Open")
+    Q.state = "pinfail"
+    t = [s for s, x, y, f in drawn() if x < rail]
+    check(t == ["Check"], "the rail on Not pinned: Check (%r)" % t)
+
+    # The Key screen (docs/ONBOARDING.md): this key's owner address as a QR code, then in full
+    def fits(where):
+        bad = [(s, x, y) for s, x, y, f in drawn() if y + fonts.height(f) > Q.L.H + 3 or x + fonts.width(s, f) > Q.L.W
+               or (x < rail and s not in ("Back", "Full", "Code", "Next", "Open"))]
+        if bad:
+            print("      %s: %r" % (where, bad[:3]))
+        return not bad
+    import txservice
+    Q.state, Q.sel, Q.foot = "home", len(Q.queue) - 1, "device"
+    tick("D1")
+    check(Q.foot == "key", "home: D1 past Device reaches Key")
+    tick("D2")
+    t = drawn()
+    check(Q.state == "key" and Q.kpage == 0 and Q.U._qr[0] == txservice.checksum(Q.me) and Q.U._qr[1] == 29,
+          "D2 on Key: the owner address, EIP-55, as a 29-module QR code")
+    check([s for s, x, y, f in t if x < rail] == ["Back", "Full"] and fits("key code"), "the code page: rail Back, Full; it fits")
+    tick("D1")
+    t = " ".join(s for s, x, y, f in drawn())
+    check(Q.kpage == 1 and Q.me[2:6] in t and "not a wallet" in t and fits("key full"),
+          "D1: the address in full, and that it is a signer, not a wallet")
+    tick("D0")
+    check(Q.state == "home", "D0 on Key: back home")
+    Q.foot = "key"
+    tick("D1L")
+    check(Q.foot == "device", "D1 held on Key: back to Device")
+    owners, queue = Q.owners, Q.queue
+    Q.owners = lambda w=None: [OTHER]
+    Q.queue, Q.foot = [], None
+    t = " ".join(s for s, x, y, f in drawn())
+    Q.owners, Q.queue = owners, queue
+    check("Not an owner yet" in t, "a Safe that doesn't list this key: Not an owner yet")
+
+    # Blockies: each address page draws its address's picture, a token's amount its contract's, and
+    # approvals and Owners one for each owner; every one on the screen and clear of the text
+    import blockies
+    a1, a2, a3 = "0x70997970c51812dc3a010c7d01b50e0d17dc79c8", "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc", \
+        "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+    usdc = "0x036cbd53842c5426634e7929541ec2318f3dcf7e"        # Base Sepolia's, in quorum_cfg's tokens
+
+    def word(v):
+        return "%064x" % (int(v, 16) if isinstance(v, str) else v)
+
+    def packed(to, value, data=""):
+        return "00" + to[2:] + word(value) + word(len(data) // 2) + data
+
+    calls = packed(a1, 10**15) + packed(usdc, 0, "a9059cbb" + word(a2) + word(5 * 10**6))
+    n = len(calls) // 2
+    calls += "00" * (-n % 32)
+    serve(Q, [tx(Q, 0, to=a1, value=3 * 10**15), tx(Q, 1, to=usdc, data="0xa9059cbb" + word(a2) + word(25 * 10**6)),
+              tx(Q, 2, to=SAFE, data="0xe318b52b" + word(1) + word(BOB) + word(a3)),
+              tx(Q, 3, to=MULTISEND, op=1, data="0x8d80ff0a" + word(32) + word(n) + calls)], owners=[Q.me, a1, ALICE, BOB])
+
+    def pictures():
+        """-> (seed, x, y, px) of each blockie one draw makes, and its texts"""
+        out, real = [], blockies.draw
+        blockies.draw = lambda d, seed, x, y, s, *a, **k: (out.append((seed, x, y, 8 * s)), real(d, seed, x, y, s, *a, **k))[1]
+        try:
+            t = drawn()
+        finally:
+            blockies.draw = real
+        return out, t
+
+    def clear(pics, t):
+        bad = [p for p in pics if p[1] < rail or p[1] + p[3] > Q.L.W or p[2] < Q.U.HEAD or p[2] + p[3] > Q.L.H]
+        for s, x, y, f in t:
+            bad += [(s, p) for p in pics if x < p[1] + p[3] and p[1] < x + fonts.width(s, f) and y < p[2] + p[3] and p[2] < y + fonts.height(f)]
+        return bad
+
+    Q.state, Q.msg = "review", ""
+    seen, ok = [], True
+    for e in Q.queue:
+        Q.open_entry(e)
+        for p, (kind, i) in enumerate(Q.pages):
+            Q.page = p
+            pics, t = pictures()
+            it = e["r"]["items"][i] if kind in ("item", "frm", "to") else {}
+            amount = kind == "item" and it.get("amount") and not it.get("text") and it.get("contract")
+            want = it[kind].lower() if kind in ("frm", "to") else (it["contract"] if amount else None)
+            if want:
+                seen.append((e["r"]["items"][i]["title"], kind))
+            bad = clear(pics, t)
+            if want and want not in [s for s, x, y, px in pics] or bad:
+                ok = False
+                print("      #%d page %d %s: %r %r" % (e["n"], p + 1, kind, [s for s, x, y, px in pics], bad[:2]))
+    check(ok and ("SEND USDC", "item") in seen and ("SWAP OWNER", "frm") in seen and ("SWAP OWNER", "to") in seen
+          and seen.count(("SEND ETH", "to")) == 2, "a blockie on every address page (to, replaces, new owner, each call in a "
+          "batch) and beside a token's amount, clear of the text (%d)" % len(seen))
+    Q.page = [k for k, i in Q.pages].index("approvals")
+    pics, t = pictures()
+    want = [a.lower() for a in Q.owners()[:4]]
+    check([s for s, x, y, px in pics] == want and not clear(pics, t), "approvals: each owner's blockie beside it")
+    Q.state, Q.opage = "owners", 0
+    pics, t = pictures()
+    check([s for s, x, y, px in pics] == want and not clear(pics, t), "Owners: each owner's blockie")
+
+    Q = fresh(safe=False, extra='BOARD = "feather-s3"')
+    t = " ".join(s for s, x, y, f in drawn())
+    check(Q.state == "unconfigured" and Q.key_ready() and "Your key is ready" in t and fits("ready"),
+          "no Safe yet: Your key is ready")
+    Q.three("D2")
+    check(Q.state == "key", "D2 there: the key's code")
+    Q.three("D0")
+    check(Q.state == "unconfigured", "D0: back to the ready screen")
+    Q = fresh(safe=False, expect={"serial": "0123000000000000ee", "slot": 0, "owner": OTHER, "locked": True}, extra='BOARD = "feather-s3"')
+    Q.three("D2")
+    check(Q.state == "unconfigured" and not Q.key_ready() and "No Safe" in " ".join(s for s, x, y, f in drawn()),
+          "pinned to another chip, no Safe: no code for this one, D2 does nothing")
+
+
+def main_three():
+    """case_three, alone in a fresh device: secrets.py names the Feather before board.py is read."""
+    with open("secrets.py", "w") as f:
+        f.write('BOARD = "feather-s3"\n')
+    for m in ("board", "lcd", "fonts", "quorum_ui", "quorum_ui_s", "splash", "bootmark"):
+        sys.modules.pop(m, None)
+    print("-- three")
+    try:
+        case_three()
+    except Exception as e:
+        failed[0] += 1
+        print("FAIL  case_three raised")
+        sys.print_exception(e)
+    print("%s: %d failed" % ("three", failed[0]))
+    return failed[0]
+
+
 def main():
     for case in (case_pin, case_owners_pages, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_safes, case_watchdog, case_home, case_saver, case_release, case_passkey, case_release_approval, case_knob):
         print("--", case.__name__[5:])

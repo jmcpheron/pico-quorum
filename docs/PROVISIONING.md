@@ -161,11 +161,14 @@ It runs on the ceremony image: `tools/fw push ceremony`.
    chip is on the bus.
 4. After C10, run `tools/fw allow off`.
 
-Permanent steps also need the B+Y arm (held 3 s, lasts 60 s) and A held for 3 s.
+Permanent steps also need the B+Y arm (held 3 s, lasts 60 s) and A held for 3 s, started with at
+least 10 s of the arm left. With less, the hold doesn't start and the screen says to arm again: a
+hold started late can see the arm run out partway, and C6 then spends a test signature for nothing
+(chip 3, 2026-10-22).
 
 | Step | What | Checks | Permanent? |
 |---|---|---|---|
-| C1 | Pre-flight | At 0x60, revision `6002`/`6003` matching bytes 4-7, zones `55 55`, SlotLocked `FF FF`, byte 16 `C0`, Random's unlocked pattern, self-test, the factory table. Saves `snapshot-<serial>.bin` | no |
+| C1 | Pre-flight | At 0x60, revision `6002`/`6003`/`6005` matching bytes 4-7, zones `55 55`, SlotLocked `FF FF`, byte 16 `C0`, Random's unlocked pattern, self-test, the factory table. Saves `snapshot-<serial>.bin` | no |
 | C2 | Write quorum v1 | Readback is quorum v1; shows the config CRC | no, rewritable |
 | C3 | Config lock with CRC | Byte 87 = `00`, still quorum v1, Random live, slot 0 decodes right | **yes** |
 | C4 | GenKey slot 0 | KeyValid, the public key reads back, GenKey on slot 1 refused | replaceable until C6 |

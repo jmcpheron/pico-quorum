@@ -7,7 +7,7 @@ from machine import Pin
 # chose Wi-Fi is also the maintenance key, and it may still be down as the board restarts (it was,
 # 2026-10-01: Build 1 came up in maintenance). The request is taken once; the maint file always wins.
 _ask = "wifisetup" in os.listdir()
-board.MAINTENANCE = "maint" in os.listdir() or (not _ask and Pin(board.MAINT, Pin.IN, Pin.PULL_UP).value() == 0)
+board.MAINTENANCE = "maint" in os.listdir() or (not _ask and board.key_down(board.MAINT))
 
 
 def _asked():
@@ -25,7 +25,7 @@ def _asked():
 
 # Y held at power-up, or Wi-Fi on the Device screen: Wi-Fi setup even with a network saved (a new
 # router, a new password).
-board.WIFI_SETUP = not board.MAINTENANCE and (Pin(board.SETUP, Pin.IN, Pin.PULL_UP).value() == 0 or _asked())
+board.WIFI_SETUP = not board.MAINTENANCE and (board.key_down(board.SETUP) or _asked())
 
 
 def _wifi_setup(net):

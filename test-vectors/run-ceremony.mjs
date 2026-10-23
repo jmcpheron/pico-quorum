@@ -10,15 +10,20 @@ import { readWorkspace, readShims } from "../emu/core/workspace.mjs";
 const quiet = process.argv.includes("--quiet");
 const out = [];
 const t = (f) => readFileSync(new URL(f, import.meta.url), "utf8");
-const dev = await createDevice({
-  loadMicroPython,
-  keys: new Int32Array(16),
-  files: { ...readWorkspace(), "ceremony_test.py": t("ceremony_test.py"), "console_test.py": t("console_test.py") },
-  shims: readShims(),
-  onStdout: (l) => { out.push(l); if (!quiet || /^FAIL/.test(l)) console.log(l); },
-});
-dev.mp.runPython("import ceremony_test\n_failed = ceremony_test.main()");
-const failed = dev.mp.globals.get("_failed");
-dev.dispose();
+async function run(main) {
+  const dev = await createDevice({
+    loadMicroPython,
+    keys: new Int32Array(16),
+    files: { ...readWorkspace(), "ceremony_test.py": t("ceremony_test.py"), "console_test.py": t("console_test.py") },
+    shims: readShims(),
+    onStdout: (l) => { out.push(l); if (!quiet || /^FAIL/.test(l)) console.log(l); },
+  });
+  dev.mp.runPython(`import ceremony_test\n_failed = ceremony_test.${main}()`);
+  const n = dev.mp.globals.get("_failed");
+  dev.dispose();
+  return n;
+}
+// The Feather's three buttons in a device of their own: board.py reads secrets.BOARD once.
+const failed = (await run("main")) + (await run("main_three"));
 if (quiet) console.log(out.filter((l) => /^pass/.test(l)).length + " pass, " + failed + " failed");
 process.exit(failed ? 1 : 0);

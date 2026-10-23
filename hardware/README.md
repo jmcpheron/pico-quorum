@@ -22,6 +22,10 @@ Console and key electronics. The goals are in [`../docs/KICKOFF.md`](../docs/KIC
   pins: the Pico 2 W soldered on the back as a module, a bare 1.54″ panel, seven buttons and pads
   for the key's wires, 51 × 85 mm. Written by a script, routed, self-checked; not yet checked in
   KiCad, not ordered
+- [`feather-wing/`](feather-wing/README.md): not a console but a board for one: a FeatherWing-sized
+  board behind Adafruit's Feather ESP32-S3 Reverse TFT, on its header pins, with console-a's
+  protected USB-C port for key-c. wing-a has an upright plug; wing-b a right-angle plug at the
+  edge of a tab. Written by a script, routed, self-checked; not yet checked in KiCad, not ordered
 
 The inherited picowallet wiring (Pico + Waveshare LCD + ATECC608 + 18650) is in
 [`wiring/SOLDERING.md`](wiring/SOLDERING.md) and `tools/wiring`.

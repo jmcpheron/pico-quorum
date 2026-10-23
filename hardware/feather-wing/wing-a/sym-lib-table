@@ -1,0 +1,4 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "pqwing")(type "KiCad")(uri "${KIPRJMOD}/../lib/pqwing.kicad_sym")(options "")(descr "PicoQuorum key wing parts"))
+)

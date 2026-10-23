@@ -32,9 +32,8 @@ def _plain(title, lines, color=None):
 def _maintenance():
     if "maint" in os.listdir():
         return True
-    from machine import Pin
     import board
-    return getattr(board, "MAINTENANCE", False) or Pin(board.MAINT, Pin.IN, Pin.PULL_UP).value() == 0     # B, or the knob's push on build1
+    return getattr(board, "MAINTENANCE", False) or board.key_down(board.MAINT)     # B, the knob's push on build1, D1 on the Feather
 
 
 try:

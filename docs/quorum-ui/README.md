@@ -16,6 +16,9 @@ diamond) and the plan for type and graphics. See [v2/README.md](v2/README.md).
 **Next: other screen sizes.** A plan for the six screens on order (0.96″ to 3.5″): the same flow
 reflowed per size, the code it needs, and questions for you. See [SCREENS.md](SCREENS.md).
 
+**The Feather ESP32-S3 Reverse TFT:** 240×135 and three buttons, with a rail naming what each does.
+See [feather/README.md](feather/README.md), written by `node tools/board/shots_feather.mjs`.
+
 ## Boot screen options
 
 Four ideas for what the console shows while it starts. Each one is the real firmware drawing code

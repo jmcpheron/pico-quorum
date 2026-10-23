@@ -21,6 +21,9 @@ class Pin:
     def __init__(self, id, mode=-1, pull=-1, value=None, **kw):
         self.id = id
         self._mode = mode
+        # Every pin the page drives reads 1 at rest and 0 pressed, a pulled-up button. One pulled
+        # down (the Feather's D1 and D2, board.HIGH) reads the other way round.
+        self._low = pull == Pin.PULL_DOWN
         if value is not None:
             _emu.pin_write(id, 1 if value else 0)
         elif mode == Pin.OUT and id not in _out:
@@ -33,7 +36,7 @@ class Pin:
 
     def value(self, v=None):
         if v is None:
-            return _emu.pin_read(self.id)
+            return 1 - _emu.pin_read(self.id) if self._low else _emu.pin_read(self.id)
         _emu.pin_write(self.id, 1 if v else 0)
 
     def __call__(self, v=None):

@@ -9,8 +9,8 @@ a Pico, on two breadboards: [ESP32.md](ESP32.md), drawn by `tools/wiring-esp32`.
 run on a WROOM-32.
 
 Adafruit's Feather ESP32-S3 Reverse TFT, a ready-made board with its own screen and buttons, and a
-key on its I2C pins: [FEATHER-S3.md](FEATHER-S3.md). A read-only bench test runs; the console doesn't
-yet.
+key on its I2C pins: [FEATHER-S3.md](FEATHER-S3.md). A read-only bench test runs on it. The console runs
+as the Feather in the emulator, not yet on the board.
 
 Build 1 (Pico 2 W, 2.0″ screen, EC11 knob, 3.5 mm + 2.5 mm TRRS jacks, ATECC608 stand-in key):
 [BUILD1.md](BUILD1.md), drawn by `tools/wiring-build1`.
