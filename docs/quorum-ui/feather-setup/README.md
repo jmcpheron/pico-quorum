@@ -93,6 +93,12 @@ C6, permanent: seal slot 0 so the key can never be replaced.
 
 ![14-c6](14-c6.png)
 
+### c6 arm again
+
+Under 10 s of the arm left: no hold starts, arm again. Chip 3's first C6 ran out partway.
+
+![14-c6-arm-again](14-c6-arm-again.png)
+
 ### c6 result
 
 Slot 0 sealed: FE FF, the same key, it signs and verifies.

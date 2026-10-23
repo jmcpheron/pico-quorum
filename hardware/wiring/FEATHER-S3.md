@@ -178,14 +178,21 @@ is A. So the steps, checks and gates are `provision.UI`'s own:
 | D2 on the banner | opens PROVISION |
 | D0 | back; on a result, OK |
 | D0 + D1 held 3 s | the arm, for 60 s (the Pico's B+Y). D2 is never part of it |
-| D2 | a step; on a permanent or GenKey step (C3, C4, C6, C9), held 3 s once armed. On a result, OK |
+| D2 | a step; on a permanent or GenKey step (C3, C4, C6, C9), held 3 s once armed, started with 10 s or more of the arm left. On a result, OK |
 
 `ALLOW_LOCK` and `ALLOW_GENKEY` in the board's `secrets.py` still gate every permanent step
 (`tools/fw allow on`). `node test-vectors/run-ceremony.mjs` walks C1–C10 on a virtual 608C through
 the buttons alone, in a device of its own with `BOARD = "feather-s3"`. It also checks that D2 held
 without the arm does nothing, D1 + D2 is no arm, an arm let go at 2 s is none, ALLOW_LOCK off
-stops C3 even when armed, and every screen fits 240 × 135. Screenshots:
+stops C3 even when armed, C6 with 9 s of the arm left says arm again and seals nothing, a refusal
+names D0+D1, and every screen fits 240 × 135. Screenshots:
 [docs/quorum-ui/feather-setup](../../docs/quorum-ui/feather-setup/README.md).
+
+On hardware, 2026-10-22: chip `0123147ac8c5b889ee`, a key-c's ATECC608C, went from factory-fresh to
+sealed on the board's buttons, build `2cd9354c`. Owner `0x031B2c6038aB0d15e62eC2D2D21D84878e13250e`,
+checked on the laptop afterwards ([the build log](../../buildlog/BUILDLOG.md)). One C6 attempt was
+refused: its hold started with about 4 s of the arm left and the arm ran out before the lock. The
+10 s rule above came from that.
 
 ## Writing to it
 

@@ -1,8 +1,9 @@
 # The ceremony's screen on the Feather ESP32-S3 (board "feather-s3", 240x135, lcd.THREE): the same
 # steps, checks and gates as provision.UI, on its three buttons. D0 is Y (back), D1 is B and D2 is
 # A, so the arm is D0+D1 held 3 s together (the B+Y arm), and a permanent or GenKey step is D2 held
-# 3 s once armed. D2 is never part of the arm: landing it first could run a step nobody gated (C5's
-# test signatures raise the counter). ALLOW_*, the 60 s arm and the holds are provision.UI's own.
+# 3 s once armed, started with provision.ARM_LEFT of the arm to go. D2 is never part of the arm:
+# landing it first could run a step nobody gated (C5's test signatures raise the counter). ALLOW_*,
+# the 60 s arm and the holds are provision.UI's own.
 # A rail down the left edge names what each button does, level with it (board.RAIL_Y), and fills
 # from the bottom while the arm or a hold runs. framebuf's 8 px font: 25 characters right of it.
 import time
@@ -145,6 +146,9 @@ class UI(provision.UI):
         elif self.armnote:
             labels = ("Back", "Arm", None)
             lines = [("Let go early: not armed", p["bad"])]
+        elif 0 < left < provision.ARM_LEFT and self.hold is None:
+            labels = ("Back", "Arm", None)
+            lines = [("Armed %d s: too little" % left, p["accent"]), ("Arm again: D0+D1 3 s", p["fg"])]
         elif left:
             labels = ("Back", None, "Hold")
             lines = [("Armed %d s" % left, p["ok"]), ("Hold D2 3 s to do it", p["fg"])]
@@ -160,6 +164,7 @@ class UI(provision.UI):
     def _paint_result(self, pic):
         d, c, p = self.d, self.c, self.p
         st, ok, checks, msg = self.result
+        msg = msg.replace("B+Y", "D0+D1")      # a refusal is signer.gate's text, written for the Pico
         self.rail((None, None, "OK"))
         head = st + (" OK" if ok else " STOPPED")
         d.text(head, X0, 2, p["ok"] if ok else p["bad"])

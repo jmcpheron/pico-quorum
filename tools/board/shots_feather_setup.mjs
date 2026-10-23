@@ -113,6 +113,8 @@ py(`ok()\nrun("C5")`);
 shot("13-c5-result", "C5: two test signatures checked here; counter 0 up by 2.");
 py(`ok()`);
 shot("14-c6", "C6, permanent: seal slot 0 so the key can never be replaced.");
+py(`S._armed_until = setup_s.time.ticks_add(setup_s.time.ticks_ms(), 9000)\ndraw()`);
+shot("14-c6-arm-again", "Under 10 s of the arm left: no hold starts, arm again. Chip 3's first C6 ran out partway.");
 py(`run("C6")`);
 shot("15-c6-result", "Slot 0 sealed: FE FF, the same key, it signs and verifies.");
 py(`ok()\nrun("C7")`);

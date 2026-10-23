@@ -838,3 +838,51 @@ flash or to the chip.
   Now D0 goes back, D1 walks the list and the keyboard one step at a time (held, back) and D2
   chooses; the QR screen says "D2 to type". Checked in the emulator and `wifisetup_test.py`, not
   yet on the board.
+
+## 2026-10-22 — chip 3 (`0123147ac8c5b889ee`): the first 608C through C1–C10, on the Feather's three buttons
+
+A key-c's ATECC608C (revision `00006005`), factory-fresh, on the Feather ESP32-S3 Reverse TFT. The
+Feather's own `chips.json` calls it chip 3 (dark). The ceremony is `setup_s.py`, build `2cd9354c`:
+`provision.UI`'s steps, checks and gates, on D0–D2 (D0+D1 held 3 s arms, D2 held 3 s does a
+permanent step).
+
+- **The push:** `tools/fw push dual` failed three times, each when the board reset partway (`OSError:
+  [Errno 6] Device not configured`). The last three files were copied over plain serial, and all 62
+  files' SHA-256 on the board matched the build.
+- **The flags:** `tools/fw allow on` stopped with ENOENT: the Feather had no `secrets.py` (its Wi-Fi
+  is in `wifi.json`). A `secrets.py` with only a comment went on first (every firmware read of
+  `secrets` is a `getattr`), then `allow on` wrote both flags.
+- **C1–C10:** Jason ran them on the buttons, straight through. The plan had stops at C2 (the CRC,
+  on the laptop) and C7 (the owner, on the laptop); both checks came after C10 instead (below).
+  Every step's checks were green on the board.
+- **One C6 attempt refused.** Its D2 hold started with about 4 s of the 60 s arm left. C6 signs and
+  verifies a test digest before it locks, and the arm ran out in between, so `signer.lock_slot`
+  refused before any Lock command. A fresh arm, and C6 passed. Two things it showed:
+  - The refusal said "hold B+Y 3 s": `signer.gate`'s words, which `setup_s.py` didn't translate. It
+    says D0+D1 now.
+  - A hold can start too late to finish. Now a hold starts only with 10 s of the arm left
+    (`provision.ARM_LEFT`); with less the screen says to arm again. That's for every ceremony
+    screen, the Pico's and the knob's too (`case_arm_left`, and the C6 check in `case_three`).
+- **The laptop checks, after C10.** `tools/fw verify --baseline` read the chip. `tools/fw logs` and
+  `backup` were cut by the reset again, so every file came off over plain serial, each checked
+  against a SHA-256 computed on the board (in `backups/`, gitignored).
+  - **Config:** `tools/check_config --summary` on the factory snapshot gives `af3a`, and
+    `chipcfg.locked_summary` on the locked config read back gives `af3a`. Against the snapshot plus
+    quorum v1, the only bytes that differ are counter 0's (52–53), the lock bytes (`00 00`) and
+    SlotLocked (`fe ff`).
+  - **Key:** slot 0, P-256, LimitedUse, sealed; `9ba14c76…`.
+  - **Owner:** `0x031B2c6038aB0d15e62eC2D2D21D84878e13250e`, computed on the laptop. The passkey
+    factory's `getSigner` gives the same on Base Sepolia, Base and Ethereum. No signer proxy is
+    deployed on any of them yet.
+  - **OTP record:** quorum-v1, this serial, slot 0, owner `0x031b…250e`, 2026-10-23 02:20:23 UTC,
+    build `2cd9354c`, counter 5. Its key hash matches the key read off the chip. Chip 2's record
+    read 4 (C5's two signatures and C6's two); the fifth is the refused C6 attempt's test signature.
+  - **Data CRC:** `6724`, worked out on the laptop from zeros in slots 1–15 and the record. The chip
+    accepted the CRC-checked data lock (lock bytes `00 00`).
+  - **Counter 0:** 11 afterwards. `verify --baseline`'s public-key read and a boot's each count,
+    as on chip 2 once its data zone was locked.
+- `tools/fw allow off`, read back as False on the board, restart.
+- **After the restart:** the dual image booted the console for the sealed chip. The console read it
+  (`pin FAIL: … owner 0x031b…250e (secrets.py has no QUORUM_EXPECT)` in `log.txt`) and showed
+  "No Safe": the board has no `QUORUM_SAFES` yet. Not pinned, no signer proxy, an owner of nothing yet.
+  The plan is Safe `0x5617…DC41` on Base Sepolia (3 of 6 today).

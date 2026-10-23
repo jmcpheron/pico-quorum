@@ -15,8 +15,9 @@
 #   C10 final checks and the summary
 #
 # Permanent steps need ALLOW_LOCK (C4 ALLOW_GENKEY) in secrets.py, the B+Y arm (held 3 s) and A
-# held 3 s. Nothing here signs anything but its own test digests. Logic (Ceremony) and screen (UI)
-# are apart so test-vectors/run-ceremony.mjs can walk the whole thing on the virtual chip.
+# held 3 s, started with ARM_LEFT of the arm's 60 s to go. Nothing here signs anything but its own
+# test digests. Logic (Ceremony) and screen (UI) are apart so test-vectors/run-ceremony.mjs can walk
+# the whole thing on the virtual chip.
 import time
 import hashlib
 import board
@@ -28,6 +29,10 @@ import p256
 TABLE = chipcfg.QUORUM_V1
 HOLD_MS = 3000
 ARM_MS = 3000
+# A hold starts only with this many seconds of the arm left: the 3 s hold, then the step's own work
+# before its gated call (C6 signs and verifies a test digest first). With less, the arm can run out
+# in between and the step is refused halfway (chip 3, 2026-10-22: one wasted signature). Arm again.
+ARM_LEFT = 10
 PERMANENT = ("C3", "C6", "C9")
 TITLES = {"C1": "Pre-flight", "C2": "Write quorum v1", "C3": "Lock the config", "C4": "Make the key",
           "C5": "Test signatures", "C6": "Seal slot 0", "C7": "Owner address", "C8": "Record + zero fill",
@@ -351,6 +356,7 @@ class UI:
         self.c = ceremony or Ceremony(sig)
         self.result = None      # (step, ok, checks, message) after a run
         self.hold = None
+        self.rearm = False      # knob: this hold started with too little arm left, so it arms again
         self.armhold = None
         self.armnote = 0        # ticks when B+Y were let go before the arm took: "let go early" for a moment
         self.armdone = False    # the arm bar filled; the 60 s start when both keys are let go
@@ -418,7 +424,7 @@ class UI:
             return None
         hold_ms = HOLD_MS if st in self.c.PERMANENT or st in self.c.GENKEY else 0
         if hold_ms:
-            if self.keys.held("A") and self.released:
+            if self.keys.held("A") and self.released and (self.hold is not None or S.armed() >= ARM_LEFT):
                 if self.hold is None:
                     self.hold = time.ticks_ms()
                 if time.ticks_diff(time.ticks_ms(), self.hold) >= hold_ms:
@@ -470,10 +476,10 @@ class UI:
             return None                     # an ALLOW_* flag is off: nothing to hold for
         if held and self.released:
             if self.hold is None:
-                self.hold = time.ticks_ms()
+                self.hold, self.rearm = time.ticks_ms(), S.armed() < ARM_LEFT
             if time.ticks_diff(time.ticks_ms(), self.hold) >= HOLD_MS:
                 self.hold, self.released = None, False
-                if not S.armed():
+                if self.rearm:
                     S.arm()                 # the first hold arms; let go, then hold again
                 else:
                     self.busy(st)
@@ -582,7 +588,10 @@ class UI:
             if self.hold is not None:
                 frac = min(1, time.ticks_diff(time.ticks_ms(), self.hold) / HOLD_MS)
                 d.fill_rect(4, 208, int(232 * frac), 6, self.p["bad"])
-            d.text("hold A 3 s to do it", 4, 216, self.p["fg"])
+            if self.hold is None and left < ARM_LEFT:
+                d.text("under %d s left: arm again" % ARM_LEFT, 4, 216, self.p["accent"])
+            else:
+                d.text("hold A 3 s to do it", 4, 216, self.p["fg"])
         else:
             d.text("A: do it", 4, 216, self.p["fg"])
         d.text("Y: back   B+Y 3 s: arm", 4, 228, self.p["muted"])
@@ -597,8 +606,10 @@ class UI:
             if why and not why.startswith("not armed"):
                 self.lines(why, 186, self.p["bad"])
             else:
-                d.text("armed %ds: hold 3 s to do it" % left if left else "not armed: hold 3 s to arm", 4, 190,
-                       self.p["ok"] if left else self.p["accent"])
+                doing = left >= ARM_LEFT if self.hold is None else not self.rearm
+                d.text("armed %ds: hold 3 s to do it" % left if doing else
+                       "%ds left: hold 3 s to re-arm" % left if left else "not armed: hold 3 s to arm", 4, 190,
+                       self.p["ok"] if doing else self.p["accent"])
                 if self.hold is not None:
                     frac = min(1, time.ticks_diff(time.ticks_ms(), self.hold) / HOLD_MS)
                     d.fill_rect(4, 202, 232, 6, self.p["dim"])
