@@ -15,6 +15,7 @@ troubleshooting.
 - [`SECURITY.md`](SECURITY.md): how to report a vulnerability, and the console's trust model
 - [`PROVISIONING.md`](PROVISIONING.md): the quorum v1 chip config and the fresh-chip ceremony
 - [`LOCKING.md`](LOCKING.md): what each ATECC608 lock does to the multisig
+- [`ONBOARDING.md`](ONBOARDING.md): a proposal: giving someone a key, what they do, and what the console says to them
 - [`BRANDED-KEYS.md`](BRANDED-KEYS.md): a proposal: the bench brands each chip, the user's console makes its key
 - [`ATTESTED-KEYS.md`](ATTESTED-KEYS.md): a proposal: an attestation key per chip, so a key can prove it is in a branded chip; the gas relay, its treasury and picoquorum.eth on top
 - [`KEY-RUNBOOK.md`](KEY-RUNBOOK.md): the five key-c 608Cs on the ESP32, branded or not, one session at a time
