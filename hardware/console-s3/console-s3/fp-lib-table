@@ -1,0 +1,5 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "pqs3")(type "KiCad")(uri "${KIPRJMOD}/../lib/pqs3.pretty")(options "")(descr "PicoQuorum console-s3 footprints"))
+  (lib (name "picoquorum")(type "KiCad")(uri "${KIPRJMOD}/../lib/picoquorum.pretty")(options "")(descr "The PicoQuorum mark"))
+)
