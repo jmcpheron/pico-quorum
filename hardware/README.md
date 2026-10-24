@@ -26,6 +26,19 @@ Console and key electronics. The goals are in [`../docs/KICKOFF.md`](../docs/KIC
   board behind Adafruit's Feather ESP32-S3 Reverse TFT, on its header pins, with console-a's
   protected USB-C port for key-c. wing-a has an upright plug; wing-b a right-angle plug at the
   edge of a tab. Written by a script, routed, self-checked; not yet checked in KiCad, not ordered
+- [`console-s3/`](console-s3/DESIGN.md): a fourth, the S3 console: an ESP32-S3-WROOM-1 on the back,
+  the Feather's 1.14″ screen in a ZIF, five buttons, the ATECC608C soldered on and a USB-C for power
+  and serial, 64 × 22.86 mm. Economic assembly for everything but the module and the panel, which
+  the workshop fits. Three of its buttons, the screen and the key are on the Feather's pins, so
+  today's image runs on it. Written by a script, placed and self-checked; not routed, not checked in
+  KiCad, not ordered. The idea and costs: [CONCEPT.md](console-s3/CONCEPT.md); what any S3 console
+  must have, in any shape: [SPEC.md](console-s3/SPEC.md)
+- [`console-usb/`](console-usb/README.md): the console-s3 idea with no radio in use: the bare
+  ESP32-S3 chip, no antenna, three buttons on the Feather's pins, and a USB-C whose only data path
+  is a CH340C serial bridge to the S3's UART1, so the computer that relays the queue gets no REPL
+  and can't reset it. JLCPCB places everything but the screen. Written by a script and checked by
+  KiCad 9: the schematic, and a 70 × 28 mm board with every part placed and 3D renders; not routed,
+  not ordered
 
 The inherited picowallet wiring (Pico + Waveshare LCD + ATECC608 + 18650) is in
 [`wiring/SOLDERING.md`](wiring/SOLDERING.md) and `tools/wiring`.

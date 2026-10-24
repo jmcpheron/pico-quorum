@@ -1,0 +1,5 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "pqusb")(type "KiCad")(uri "${KIPRJMOD}/../lib/pqusb.pretty")(options "")(descr "console-usb's own footprints"))
+  (lib (name "picoquorum")(type "KiCad")(uri "${KIPRJMOD}/../../console-pocket/lib/picoquorum.pretty")(options "")(descr "the mark"))
+)

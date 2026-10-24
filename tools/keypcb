@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # The key PCBs in hardware/key-pcb (see its README.md and ORDERING.md), and the console boards in
-# hardware/console-pcb, hardware/console-a and hardware/console-pocket, and the Feather's wing in
-# hardware/feather-wing. Needs KiCad's kicad-cli: 9 for rev A, 10 for the rest.
+# hardware/console-pcb, hardware/console-a, hardware/console-pocket and hardware/console-s3, and the
+# Feather's wing in hardware/feather-wing. Needs KiCad's kicad-cli: 9 for rev A, 10 for the rest.
 #
 #   tools/keypcb check [board]    ERC on the schematic, then DRC with schematic parity on the board
 #   tools/keypcb fab [board]      writes <board>/fab/: the Gerber + drill zip, and the BOM and CPL
@@ -23,6 +23,8 @@
 #                                 and it ends with its own self-check
 #   tools/keypcb gen-feather-wing a|b  rewrites feather-wing/wing-a (or wing-b) from
 #                                 hardware/feather-wing/gen_wing.py, the same way: plain Python, its own self-check
+#   tools/keypcb gen-console-s3   rewrites console-s3 (the S3 module on the back, placed, not yet routed) from
+#                                 hardware/console-s3/gen_console_s3.py, the same way
 #
 # board is one of the key-*, console-* or wing-* folders; without one, every board. A name used in two
 # folders (console-a) is written with its folder: console-pcb/console-a, console-a/console-a.
@@ -36,6 +38,7 @@ CONSOLE = os.path.join(os.path.dirname(ROOT), "console-pcb")
 CONSOLE_A = os.path.join(os.path.dirname(ROOT), "console-a")
 CONSOLE_POCKET = os.path.join(os.path.dirname(ROOT), "console-pocket")
 FEATHER_WING = os.path.join(os.path.dirname(ROOT), "feather-wing")
+CONSOLE_S3 = os.path.join(os.path.dirname(ROOT), "console-s3")
 
 # Gerber layers JLCPCB wants for a 2-layer board. Paste layers are only used for assembly orders,
 # and harmless on a bare-board order.
@@ -47,7 +50,7 @@ def _board_dirs():
     in front: console-pcb/console-a and console-a/console-a."""
     dirs = sorted(d for d in glob.glob(os.path.join(ROOT, "key-*")) + glob.glob(os.path.join(CONSOLE, "console-*"))
                   + glob.glob(os.path.join(CONSOLE_A, "console-*")) + glob.glob(os.path.join(CONSOLE_POCKET, "console-*"))
-                  + glob.glob(os.path.join(FEATHER_WING, "wing-*"))
+                  + glob.glob(os.path.join(FEATHER_WING, "wing-*")) + glob.glob(os.path.join(CONSOLE_S3, "console-*"))
                   if os.path.isdir(d))
     base = [os.path.basename(d) for d in dirs]
     return {(b if base.count(b) == 1 else os.path.basename(os.path.dirname(d)) + "/" + b): d for b, d in zip(base, dirs)}
@@ -225,9 +228,10 @@ def main():
     gens = {"gen-cd": os.path.join(ROOT, "gen_cd.py"), "gen-console": os.path.join(CONSOLE, "gen_console.py"),
             "gen-console-a": os.path.join(CONSOLE_A, "gen.py"),
             "gen-console-pocket": os.path.join(CONSOLE_POCKET, "gen_console.py"),
-            "gen-feather-wing": os.path.join(FEATHER_WING, "gen_wing.py")}
+            "gen-feather-wing": os.path.join(FEATHER_WING, "gen_wing.py"),
+            "gen-console-s3": os.path.join(CONSOLE_S3, "gen_console_s3.py")}
     if len(sys.argv) > 1 and sys.argv[1] in gens:
-        py = KICAD_PY if sys.argv[1] not in ("gen-console-pocket", "gen-feather-wing") else "python3"
+        py = KICAD_PY if sys.argv[1] not in ("gen-console-pocket", "gen-feather-wing", "gen-console-s3") else "python3"
         os.execvp(py, [py, gens[sys.argv[1]], *sys.argv[2:]])
     if len(sys.argv) > 1 and sys.argv[1] == "calc":
         calc = os.path.join(ROOT, "keycalc.py")
