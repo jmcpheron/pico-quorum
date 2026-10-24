@@ -23,7 +23,8 @@ async function run(main) {
   dev.dispose();
   return n;
 }
-// The Feather's three buttons in a device of their own: board.py reads secrets.BOARD once.
-const failed = (await run("main")) + (await run("main_three"));
+// The Feather's three buttons, and PicoQuorumKey's, each in a device of their own: board.py reads
+// secrets.BOARD once.
+const failed = (await run("main")) + (await run("main_three")) + (await run("main_pqk"));
 if (quiet) console.log(out.filter((l) => /^pass/.test(l)).length + " pass, " + failed + " failed");
 process.exit(failed ? 1 : 0);

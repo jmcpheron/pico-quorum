@@ -1,8 +1,8 @@
 """The picoquorum-key board profile, as constants.
 
-This is the hand-off to the console firmware: the values its board profile table needs for a
-`"picoquorum-key"` entry. Adapt the names to the firmware's own profile shape; the numbers are the
-contract (docs/PINS.md). Changing any of them is a new profile and a new release fingerprint.
+The console firmware carries these as the `"picoquorum-key"` profile in PicoQuorum's
+`firmware/board.py`, under its own names; the numbers are the contract (docs/PINS.md). Changing any
+of them is a new profile and a new release fingerprint.
 """
 
 NAME = "picoquorum-key"

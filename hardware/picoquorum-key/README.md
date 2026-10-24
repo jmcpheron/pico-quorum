@@ -13,7 +13,7 @@ its connector, flash the firmware.
 |---|---|
 | [docs/SPEC.md](docs/SPEC.md) | what any board of this kind must have and do |
 | [docs/DESIGN.md](docs/DESIGN.md) | rev A: the shape, the zones, the circuits, and every place it departs from the spec |
-| [docs/PINS.md](docs/PINS.md) | the `picoquorum-key` pin profile the firmware will carry |
+| [docs/PINS.md](docs/PINS.md) | the `picoquorum-key` pin profile the firmware carries |
 | [docs/BOM.md](docs/BOM.md) | every part, where it comes from, and its JLCPCB tier |
 | [docs/ORDERING.md](docs/ORDERING.md) | from KiCad to a JLCPCB order |
 | [docs/BRINGUP.md](docs/BRINGUP.md) | hand assembly, flashing, the smoke test |
@@ -76,11 +76,12 @@ spec as `hardware/console-s3`; the two are ordered side by side to compare. It c
 `tools/keypcb jlc` was run on it once, not wired in: its strict DRC passes but for J2's footprint
 filter check, which this project turns off on purpose.
 
-**It can't run the PicoQuorum console yet.** The console image's only ESP32-S3 profile is the Feather
-console's (`firmware/board.py`), which drives GPIO40–42 as outputs; on this board those are the
-buttons, pulled to ground when pressed. Adding the `picoquorum-key` profile
-([firmware/profile/picoquorum_key.py](firmware/profile/picoquorum_key.py)) is a firmware change and a
-new release fingerprint, not yet made. Until then, run `firmware/smoke/smoke.py` only.
+**The console image has a `picoquorum-key` profile since 2026-10-24** (`firmware/board.py`). It finds
+this board by the pull-ups on GPIO16/17 ([PINS.md](docs/PINS.md#in-the-console-image)). It reaches a
+board with the next release, made with `tools/release`. Until then, run only
+`firmware/smoke/smoke.py`: the released image (2026.10.12 and earlier) knows only the Feather's
+profile, which drives GPIO40–42 as outputs, and on this board those are the buttons, pulled to
+ground when pressed. The profile has run only on the laptop so far, not on a board.
 
 The 3D models aren't committed: LCSC's (from EasyEDA) don't say they may be passed on. Make them
 locally with `tools/fetch_parts.sh` (it downloads from LCSC through `easyeda2kicad`), then
