@@ -1,4 +1,4 @@
 (version 1)
-(rule "Edge plug: its B row 0.2 mm from the edge, as GCT draws it"
+(rule "Straddle plug: its shell pads 0.15 mm from the paddle sides"
 	(condition "A.Parent == 'J1'")
 	(constraint edge_clearance (min 0.15mm)))

@@ -197,6 +197,8 @@ def render(name):
     out = os.path.join(d, "fab")
     os.makedirs(out, exist_ok=True)
     w, h, zoom = ("1600", "700", "2.2") if name.startswith(("console-", "wing-")) else ("900", "1100", "1")   # the console lies flat
+    if name == "wing-b":
+        h, zoom = "950", "1.7"      # its tab and plug stand above the Feather's outline
     for side in ("top", "bottom"):
         png = os.path.join(out, f"{os.path.basename(d)}-{side}.png")
         kicad("pcb", "render", "--side", side, "--quality", "high", "--width", w, "--height", h,

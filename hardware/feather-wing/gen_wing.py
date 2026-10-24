@@ -7,8 +7,8 @@ text:
     python3 hardware/feather-wing/gen_wing.py [a|b] --check  self-check what is written, write nothing
 
 - wing-a: a vertical USB-C plug left of centre, so key-c stands out of the back of the stack
-- wing-b: a right-angle plug at the edge of a tab out of the 12-pin side, so key-c lies level with the
-  stack, beside it. A 1.0 mm board, as that plug needs, and only its A row wired
+- wing-b: a straddle-mount plug on a tab out of the 12-pin side, so key-c lies level with the stack,
+  beside it. A 0.8 mm board, which slides between the plug's two rows of contacts
 
 On both (README.md says why):
 - the Feather's two header rows, 16 and 12 pins, where Adafruit's own board file puts them
@@ -82,14 +82,17 @@ ROW12_AT = (16.51, 21.59)        # pin 1 (BAT)
 # POUR_X, so the wing's ground isn't a reflector a few mm behind the antenna.
 KEEPOUT_X, POUR_X = 45.6, 41.0
 ANTENNA_SIDE_X = 42.6     # and no track or via from here to the keep-out, below the bus links
-# wing-b's tab. A right-angle plug needs a board edge, and the Feather's are all taken: the header
-# rows run along both long edges, the battery socket's cable leaves the 12-pin edge where that row
-# has no pins, the antenna is at the far end and the charge port at the USB end. So wing-b grows a
-# tab out of the 12-pin edge, mid-board, deep enough for the plug's pads and a row of vias between
-# them and the header pins.
-TAB_X, TAB_W, TAB_D, TAB_R = 27.975, 11.0, (5.0 if B else 0.0), 1.0    # TAB_X puts the plug's pads on a 0.1 mm grid
-YMAX = H + TAB_D          # the board's top edge: the tab's, if it has one
-THICK = 1.0 if B else 1.6 # GCT's edge plug wants a 0.8 to 1.0 mm board
+# wing-b's tab. A plug that lies level needs a board edge, and the Feather's are all taken: the
+# header rows run along both long edges, the battery socket's cable leaves the 12-pin edge where
+# that row has no pins, the antenna is at the far end and the charge port at the USB end. So wing-b
+# grows a tab out of the 12-pin edge, mid-board: SHOU HAN's "cable side" paddle for its straddle
+# plug, 7.90 wide, with a 6.10 x 0.90 nose that goes into the plug. 3.5 mm from the tip, past the
+# shell's legs, the tab widens to 11.4 mm, so five gaps in the header row lead out of it, not three.
+TAB_X, TAB_W, TAB_D = 27.95, 7.90, (6.30 if B else 0.0)    # TAB_X puts the plug's pads on a 0.1 mm grid
+NOSE_W, NOSE_D, NOSE_C = 6.10, 0.90, 0.2                   # the nose, and the chamfers at its tip
+BASE_W, BASE_D = 11.4, 2.8                                 # the tab's wide part, at the Feather's edge
+YMAX = H + TAB_D          # the board's top edge: the nose's tip, if it has one
+THICK = 0.8 if B else 1.6 # the straddle plug's drawing: T = 0.80 +- 0.05
 
 EDGE = 0.3               # copper to edge (JLCPCB: 0.3 on a 2-layer board)
 CLEAR = 0.2              # the Default netclass clearance
@@ -105,6 +108,11 @@ FEATHER12 = {"D12": "/ALT_SCL", "D11": "/ALT_SDA", "D10": "/KEY_FAULT", "D9": "/
 # Wi-Fi on; the console image uses none of these pins today.
 GPIO = {"/CC1_SENSE": 5, "/CC2_SENSE": 6, "/KEY_EN": 9, "/KEY_FAULT": 10, "/ALT_SDA": 11, "/ALT_SCL": 12,
         "/FTHR_SDA": 3, "/FTHR_SCL": 4}
+# key-c P3's LED, through SBU. D13 is the console's status LED pin, which blinks while a transaction
+# waits for this key (quorum.led_tick), so the key's LED lights with today's image. A0 is spare, for
+# a later image that drives the key's LED on its own.
+FEATHER12["D13"], GPIO["/LED_D13"] = "/LED_D13", 13
+FEATHER16["A0"], GPIO["/LED_ALT"] = "/LED_ALT", 18
 if B:                     # wing-b reads one CC line (PLUG below), so D6 stays free
     del FEATHER12["D6"], GPIO["/CC2_SENSE"]
 
@@ -114,13 +122,15 @@ def check_firmware():
     b = open(os.path.join(REPO, "firmware", "board.py")).read()
     m = re.search(r"^if THREE:(.*?)\nelif ", b, re.S | re.M)
     prof = m.group(1)
-    sda, scl = map(int, re.search(r"SPI_ID, SDA, SCL, LED = \d+, (\d+), (\d+), (\d+)", prof).groups()[:2])
+    sda, scl, led = map(int, re.search(r"SPI_ID, SDA, SCL, LED = \d+, (\d+), (\d+), (\d+)", prof).groups())
     bad = []
     if (sda, scl) != (GPIO["/FTHR_SDA"], GPIO["/FTHR_SCL"]):
         bad.append(f"board.py's feather-s3 key bus is GPIO{sda}/{scl}, the wing's default link is GPIO{GPIO['/FTHR_SDA']}/{GPIO['/FTHR_SCL']}")
+    if "/LED_D13" in GPIO and led != GPIO["/LED_D13"]:
+        bad.append(f"board.py's feather-s3 status LED is GPIO{led}, the wing's key LED link is GPIO{GPIO['/LED_D13']}")
     used = {int(n) for n in re.findall(r"\b(\d+)\b", " ".join(re.findall(r"^\s+(?:DC|BUTTONS|SPI_ID|NOT_KEYS|MAINT)[^\n]*", prof, re.M)))}
     for net, g in GPIO.items():
-        if net.startswith("/FTHR"):
+        if net.startswith("/FTHR") or net == "/LED_D13":       # shared with the console on purpose
             continue
         if g in used:
             bad.append(f"{net} is GPIO{g}, which board.py's feather-s3 profile already uses")
@@ -148,14 +158,16 @@ PLUG24_NAMES.update(zip([f"B{i}" for i in range(1, 13)],
 PLUG24_NAMES["SH"] = "SHIELD"
 PLUG_NAMES = PLUG16_NAMES
 if B:
-    # GCT's USB4155: 24 contacts in two staggered rows at 0.5 mm. Only the A row, the inner one, can
-    # be routed: its pads are 0.2 mm apart, and the B row sits behind it at the edge. The A row is all
-    # a key needs. key-c joins its socket's two rows, so either way up A4/A9 meet its VBUS, A1/A12 its
-    # GND, A6/A7 its SDA/SCL and A5 one of its two 5.1k Rd. The B row is soldered for strength only.
-    PLUG_NAMES = PLUG24_NAMES
+    # SHOU HAN's straddle plug: the A row's twelve contacts on the front, the B row's ten on the back
+    # (it has no B6/B7, as a USB 2.0 plug has none), at 0.5 mm. One CC line, A5: key-c has a 5.1k Rd
+    # on both of its CC pins, so A5 meets one whichever way up. B5 (VCONN) stays open, which leaves
+    # the back free for KEY_LED's two pins to meet (ESCAPE).
+    PLUG_NAMES = dict(PLUG24_NAMES, B6="NC", B7="NC")
     PLUG = {num: None for num in PLUG_NAMES}
-    PLUG.update({"A1": "GND", "A4": "/VKEY", "A5": "/CC1", "A6": "/KEY_SDA", "A7": "/KEY_SCL", "A9": "/VKEY",
-                 "A12": "GND", "SH": "GND"})
+    PLUG.update({"A1": "GND", "A4": "/VKEY", "A5": "/CC1", "A6": "/KEY_SDA", "A7": "/KEY_SCL", "A9": "/VKEY", "A12": "GND",
+                 "B1": "GND", "B4": "/VKEY", "B9": "/VKEY", "B12": "GND", "SH": "GND"})
+# key-c P3 brings out SBU2 only; joining A8 and B8 here reaches it either way up
+PLUG["A8"] = PLUG["B8"] = "/KEY_LED"
 for num, net in PLUG.items():
     NETS["J1", num] = net or f"unconnected-(J1-{PLUG_NAMES[num]}-Pad{num})"
 NETS.update({
@@ -178,6 +190,9 @@ NETS.update({
     ("R11", "1"): "/KEY_SDA", ("R11", "2"): "/ALT_SDA", ("R12", "1"): "/KEY_SCL", ("R12", "2"): "/ALT_SCL",
     ("TP1", "1"): "/VKEY", ("TP2", "1"): "GND",
 })
+# the key's LED: a TVS at the plug, then 100R to D13 (fitted) or A0 (not)
+NETS.update({("D3", "1"): "/KEY_LED", ("D3", "2"): "GND", ("R13", "1"): "/KEY_LED", ("R13", "2"): "/LED_D13",
+             ("R14", "1"): "/KEY_LED", ("R14", "2"): "/LED_ALT"})
 if B:                     # one CC line: U4's second pair is spare, and there is no R4 or R6
     NETS["U4", "3"], NETS["U4", "4"] = "unconnected-(U4-IO2-Pad3)", "unconnected-(U4-IO2-Pad4)"
     for k in [k for k in NETS if k[0] in ("R4", "R6")]:
@@ -185,10 +200,10 @@ if B:                     # one CC line: U4's second pair is spare, and there is
 
 # --- parts: footprint, value, fields, board position, rotation (all on the front) -----------------
 R0402, C0402, C0603 = "R_0402", "C_0402", "C_0603"
-LCSC_R = {"10k": "C25744", "2.2k": "C25879", "1k": "C11702", "0R": "C17168"}
+LCSC_R = {"10k": "C25744", "2.2k": "C25879", "1k": "C11702", "0R": "C17168", "100": "C25076"}
 DS = dict(plug="https://datasheet.lcsc.com/lcsc/1912111437_Jing-Extension-of-the-Electronic-Co--918-118A2021Y40002_C399939.pdf",
           switch="https://www.diodes.com/assets/Datasheets/AP22652_53_52A_53A.pdf",
-          plug_ra="https://gct.co/files/drawings/usb4155.pdf")
+          plug_st="https://www.lcsc.com/datasheet/C3151751.pdf")
 # JLCPCB's footprint turns, from console-a (hardware/console-pcb/gen_console.py JLC_ROT): tools/keypcb
 # adds them to cpl.csv. The 0402s, 0603s and the SOD-523 need none.
 JLC_ROT = {"C399939": -90, "C2158037": 180, "C7519": -90}
@@ -199,7 +214,7 @@ def R(value, desc, dnp=False):
 
 
 PARTS = {
-    "J1": dict(fp="USB_C_Plug_918-118A2021Y40002_Vertical", value="USB-C plug", rot=90,
+    "J1": dict(fp="USB_C_Plug_918-118A2021Y40002_Vertical", value="USB-C plug", rot=270,
                fields=[("LCSC", "C399939"), ("MPN", "918-118A2021Y40002"), ("Datasheet", DS["plug"]),
                        ("Description", "The key port: key-c slides onto this vertical plug. I2C on the USB 2.0 pair, no USB")]),
     "U2": dict(fp="SOT-23-6", value="AP22653W6-7", rot=0,
@@ -234,13 +249,17 @@ PARTS = {
                fields=[("Description", "The Feather's 12-pin row, through-hole: a socket or a pin header, hand-soldered from the back")]),
 }
 if B:
-    PARTS["J1"] = dict(fp="USB_C_Plug_GCT_USB4155_Horizontal", value="USB-C plug, right angle", rot=0,
-                       fields=[("MPN", "USB4155-03-C"), ("Datasheet", DS["plug_ra"]),
-                               ("Description", "The key port: key-c slides onto this right-angle edge plug. Not at LCSC: "
-                                               "hand-soldered. I2C on the USB 2.0 pair, no USB")])
+    PARTS["J1"] = dict(fp="USB_C_Plug_ShouHan_24P-GTJB_Straddle", value="USB-C plug, straddle mount", rot=0,
+                       fields=[("LCSC", "C3151751"), ("MPN", "TYPE-C 24P-GTJB 040"), ("Datasheet", DS["plug_st"]),
+                               ("Description", "The key port: key-c slides onto this plug, which straddles the tab's 0.8 mm "
+                                               "edge, rows on both faces. I2C on the USB 2.0 pair, no USB")])
     PARTS["U4"]["fields"] = [(k, "ESD on CC1, at the plug; its second pair is spare. Rail on 3V3" if k == "Description" else v)
                              for k, v in PARTS["U4"]["fields"]]
     del PARTS["R4"], PARTS["R6"]
+PARTS["D3"] = dict(fp="D_SOD-523", value="ESD5Z5V0", rot=0,
+                   fields=[("LCSC", "C502546"), ("MPN", "ESD5Z5V0"), ("Description", "TVS on KEY_LED (SBU), near the plug" if B else "TVS on KEY_LED (SBU): below the plug, by R14")])
+PARTS["R13"] = R("100", "KEY_LED from D13 (GPIO13), the console's status LED: fitted. Limits what a wrong plug can push into the pin")
+PARTS["R14"] = R("100", "KEY_LED from A0 (GPIO18), for a later image: not fitted. Fit R13 or R14, never both", dnp=True)
 for ref, label in (("TP1", "VKEY"), ("TP2", "GND")):
     PARTS[ref] = dict(fp="TestPad_1.5mm", value=label, rot=0, in_bom=False,
                       fields=[("Description", f"Test pad, {label}: bare copper for a probe")])
@@ -263,16 +282,22 @@ PLACE = {
     "R9": (44.45, 18.4), "R10": (41.91, 18.4), "R11": (29.21, 18.4), "R12": (26.67, 18.4),
     "J2": (ROW16_AT[0] + 2.54 * 7.5, ROW16_AT[1]), "J3": (ROW12_AT[0] + 2.54 * 5.5, ROW12_AT[1]),
     "TP1": (5.0, 13.4), "TP2": (5.0, 9.4),
+    "D3": (11.6, 5.6), "R13": (24.13, 18.6), "R14": (16.51, 4.4),
 }
-ROT = {"R1": 270, "R2": 90, "R3": 270, "R4": 90, "R7": 180, "U2": 180, "D1": 90,
-       "R9": 270, "R10": 270, "R11": 270, "R12": 270}
+# KiCad's turns (counter-clockwise on the page). Until 2026-10-23 the script turned the other way,
+# so every 90 here was meant as 270: these are the old values swapped, which puts each pad where the
+# placement above was worked out for.
+ROT = {"R1": 90, "R2": 270, "R3": 90, "R4": 270, "R7": 180, "U2": 180, "D1": 270,
+       "R9": 90, "R10": 90, "R11": 90, "R12": 90, "R13": 90, "R14": 270}
 if B:
-    # wing-b: the plug at the tab's edge, pointing out. Its lines come down through the gaps in the
-    # 12-pin row: SDA and SCL to U3 on the left, CC1 to U4 on the right, VKEY between them past D1.
-    # The switch, the links and the test pads stay where wing-a has them.
-    PLACE.update({"J1": (TAB_X, YMAX), "U3": (22.4, 15.6), "R1": (19.3, 13.6), "R2": (19.3, 17.6),
-                  "U4": (33.4, 15.6), "R3": (36.2, 16.4), "R5": (36.4, 13.6), "D1": (27.94, 14.6)})
-    ROT.update({"R1": 0, "R2": 0, "R3": 270, "R5": 90, "D1": 90})
+    # wing-b: the plug at the tab's tip, pointing out. Its lines come down through the gaps in the
+    # 12-pin row (ESCAPE): VKEY on the left to D1, KEY_LED to D3 and R13 under D13, SDA and SCL
+    # straight down into U3 with their pull-ups below it, CC1 across to U4 on the right. The switch,
+    # the links and the test pads stay where wing-a has them.
+    PLACE.update({"J1": (TAB_X, YMAX), "D1": (21.0, 18.0), "D3": (23.6, 16.4), "R13": (24.13, 19.0),
+                  "U3": (29.2, 15.2), "R1": (28.25, 12.0), "R2": (30.15, 12.0),
+                  "U4": (33.4, 15.2), "R3": (36.2, 16.0), "R5": (36.4, 13.2), "R11": (29.21, 19.0)})
+    ROT.update({"D1": 180, "D3": 0, "U3": 270, "R1": 90, "R2": 90, "R3": 90, "R5": 270})
 for ref, p in PARTS.items():
     p["at"] = PLACE[ref]
     p["rot"] = ROT.get(ref, p.get("rot", 0))
@@ -305,11 +330,14 @@ def plug_symbol():
                           "USB-C plug, 16 pins, used as plain wires: VBUS, GND, D+, D-, CC, VCONN", 7.62, 12.7, pins)
 
 
-def plug_ra_symbol():
-    pins = [(f"{row}{i}", PLUG24_NAMES[f"{row}{i}"], "passive", side, 13.97 - 2.54 * (i - 1))
+def plug_st_symbol():
+    names = dict(PLUG24_NAMES, B6="NC", B7="NC")
+    pins = [(f"{row}{i}", names[f"{row}{i}"], "passive", side, 13.97 - 2.54 * (i - 1))
             for row, side in (("A", "R"), ("B", "L")) for i in range(1, 13)] + [("SH", "SHIELD", "passive", "B", 0)]
-    return gen.box_symbol("USB_C_Plug_24P_RA", "J", "USB_C_Plug_24P_RA", f"{L}:USB_C_Plug_GCT_USB4155_Horizontal", DS["plug_ra"],
-                          "USB-C plug, 24 pins, right angle at the board edge, used as plain wires", 7.62, 15.24, pins)
+    return gen.box_symbol("USB_C_Plug_Straddle", "J", "USB_C_Plug_Straddle", f"{L}:USB_C_Plug_ShouHan_24P-GTJB_Straddle",
+                          "https://www.lcsc.com/datasheet/C3151751.pdf",
+                          "USB-C plug, straddle mount: the A row on the front, the B row (no B6/B7) on the back. Used as plain wires",
+                          7.62, 15.24, pins)
 
 
 def switch_symbol():
@@ -336,7 +364,7 @@ def two_pin_symbol(name, ref, desc, fp, names=("1", "2")):
 
 
 def write_symbols():
-    syms = [header_symbol("Feather_1x16", ROW16), header_symbol("Feather_1x12", ROW12), plug_symbol(), plug_ra_symbol(), switch_symbol(),
+    syms = [header_symbol("Feather_1x16", ROW16), header_symbol("Feather_1x12", ROW12), plug_symbol(), plug_st_symbol(), switch_symbol(),
             esd_symbol(), two_pin_symbol("R", "R", "Resistor", R0402), two_pin_symbol("C", "C", "Capacitor", C0402),
             two_pin_symbol("D_TVS", "D", "TVS diode: pin 1 cathode", "D_SOD-523", ("K", "A")),
             gen.box_symbol("TestPad", "TP", "TestPad", f"{L}:TestPad_1.5mm", "", "A bare copper pad for a probe",
@@ -401,7 +429,7 @@ def write_schematic(syms):
     part("J2", "Feather_1x16", 38.1, 76.2, 5.08, 1.27 * 16, hdr(ROW16))
     part("J3", "Feather_1x12", 38.1, 144.78, 5.08, 1.27 * 12, hdr(ROW12))
     sh.text("The Feather's two header rows, Adafruit's order from the USB end.\n"
-            f"3V3 and GND power the wing; {'D5' if B else 'D5, D6'}, D9, D10 are new pins for the key port;\n"
+            "3V3 and GND power the wing; D5, D6, D9, D10 are new pins for the key port;\n"
             "SDA/SCL (GPIO3/4) or D11/D12 carry the key's bus, chosen by R9-R12.", 25.4, 172.72)
     sh.power("GND", 30.48, 30.48)
     sh.wire(30.48, 30.48, 38.1, 30.48)
@@ -411,13 +439,13 @@ def write_schematic(syms):
     sh.power("PWR_FLAG", 38.1, 40.64, rot=180)
 
     if B:
-        part("J1", "USB_C_Plug_24P_RA", 109.22, 73.66, 7.62, 15.24,
+        part("J1", "USB_C_Plug_Straddle", 109.22, 73.66, 7.62, 15.24,
              [(f"{row}{i}", side, 13.97 - 2.54 * (i - 1)) for row, side in (("A", "R"), ("B", "L")) for i in range(1, 13)]
              + [("SH", "B", 0)])
         sh.text("key-c's USB-C socket carries I2C, not USB (hardware/key-pcb/PROPOSALS.md):\n"
                 "SDA on D+ (A6), SCL on D- (A7), power on VBUS, a 5.1k Rd on each CC.\n"
-                "Only this plug's A row can be routed, and it is all a key needs: key-c\n"
-                "joins its two rows. The B row is soldered for strength only.", 88.9, 104.14)
+                "This plug has no B6/B7; key-c joins A6/B6 and A7/B7 itself. Its VCONN\n"
+                "(B5) meets the key's second Rd, so it reads as CC2.", 88.9, 104.14)
     else:
         order = ["A4", "A9", "B4", "B9", "A5", "B5", "A6", "A7", "B6", "B7", "A8", "B8", "A1", "A12", "B1", "B12", "SH"]
         part("J1", "USB_C_Plug_16P", 109.22, 76.2, 7.62, 12.7,
@@ -432,16 +460,15 @@ def write_schematic(syms):
                            ("R1", "R", 241.3, 50.8), ("R2", "R", 251.46, 50.8), ("R3", "R", 241.3, 76.2),
                            ("R4", "R", 251.46, 76.2), ("R5", "R", 241.3, 96.52), ("R6", "R", 251.46, 96.52),
                            ("R9", "R", 160.02, 152.4), ("R10", "R", 172.72, 152.4), ("R11", "R", 195.58, 152.4),
-                           ("R12", "R", 208.28, 152.4)):
+                           ("R12", "R", 208.28, 152.4), ("D3", "D_TVS", 220.98, 66.04), ("R13", "R", 233.68, 152.4),
+                           ("R14", "R", 246.38, 152.4)):
         if ref in PARTS:
             part(ref, sym, x, y, 1.27, 2.54, [("1", "T", 0), ("2", "B", 0)])
     sh.text("The console end of key-c, as console-a has it:\n"
             "- VKEY comes through U2: 80 mA limit, reverse blocking, discharged\n"
             "  when off. Never straight from a GPIO. EN pulled up: on by default.\n"
-            + ("- CC1 read on an ADC1 pin (D5). Plugged straight in, a key shows\n"
-               "  5.1k on it whichever way up. U4's second pair is spare.\n" if B else
-               "- CC1 and CC2 read on their own ADC1 pins (D5, D6). Plugged straight\n"
-               "  in, a key shows 5.1k on both.\n") +
+            + "- CC1 and CC2 read on their own ADC1 pins (D5, D6). Plugged straight\n"
+               "  in, a key shows 5.1k on both.\n" +
             "- 2.2k pull-ups to VKEY, so a key that's off isn't powered through SDA/SCL.\n"
             "- U3/U4 rails on 3V3: the CC pull-ups can't feed VKEY.", 147.32, 106.68)
     for ref, x in (("U3", 175.26), ("U4", 226.06)):
@@ -449,7 +476,9 @@ def write_schematic(syms):
              [("1", "L", 2.54), ("3", "L", -2.54), ("6", "R", 2.54), ("4", "R", -2.54), ("5", "T", 0), ("2", "B", 0)])
     sh.text("Bus links: R9/R10 fitted put the key on the Feather's SDA/SCL, the bus\n"
             "today's console image reads. R11/R12 instead give it a bus of its own on\n"
-            "D11/D12, for a later image. Never fit both pairs.", 152.4, 167.64)
+            "D11/D12, for a later image. Never fit both pairs."
+            + "\nThe key's LED (key-c P3, on SBU): R13 to D13, the console's status LED,\n"
+              "or R14 to A0 for a later image. Never fit both.", 152.4, 167.64)
     for k, ref in enumerate(("TP1", "TP2")):
         part(ref, "TestPad", 101.6 + 12.7 * k, 152.4, 1.27, 1.27, [("1", "B", 0)])
     os.makedirs(OUT, exist_ok=True)
@@ -480,24 +509,27 @@ def fp_plug():
                 descr="Vertical USB-C plug, Shenzhen Jing Tuo Jin 918-118A2021Y40002 (LCSC C399939): KiCad's footprint, pads as console-a's board holds them")
 
 
-def fp_plug_ra():
-    """GCT USB4155 right-angle edge plug, from GCT's drawing (usb4155.pdf, its recommended PCB layout),
-    turned so the plug points to -y: two staggered rows of twelve 0.30 x 0.80 pads at 0.5 mm, the A row
-    1.70-2.50 mm from the edge and the B row 0.20-1.00 mm, and two plated slots for the shell's stakes,
-    3.70 mm either side and 2.30 mm in. The origin is on the board edge, midway between the stakes."""
+def fp_plug_st():
+    """SHOU HAN TYPE-C 24P-GTJB 040 (LCSC C3151751), a plug that straddles the board's edge, from its
+    drawing's "Cable Side PCB Layout", turned so the plug points to -y: twelve 0.30 x 1.50 pads at
+    0.5 mm on each face, 1.20-2.70 mm in from the nose's tip, and the shell's legs on both faces at
+    +-3.60, 1.30-2.70 mm in. The drawing's shell pads run to the paddle's sides; here they stop
+    0.15 mm short (0.55 wide, not 0.70), so the router cuts no copper. The B row lies under the A row
+    turned over: B12 under A1. The origin is the nose's tip, midway."""
     items = []
     for k in range(12):
-        items.append(_pad(f"A{k + 1}", "smd", "roundrect", -2.875 + 0.5 * k, 2.10, 0.30, 0.80))
-        items.append(_pad(f"B{k + 1}", "smd", "roundrect", 2.875 - 0.5 * k, 0.60, 0.30, 0.80))
-    for x in (-3.70, 3.70):
-        items.append(_pad("SH", "thru_hole", "oval", x, 2.30, 1.00, 1.80, ("oval", 0.50, 1.30)))
-    items += [("rect", -4.40, -12.50, 4.40, 0.0, "F.Fab", 0.1, False),       # the plug, past the edge
-              ("rect", -4.45, -12.75, 4.45, 3.45, "F.CrtYd", 0.05, False),
-              ("text", "board edge", 0, 0.5, 0, "F.Fab", 0.6),
-              ("circle", -2.875, 2.9, 0.12, "F.SilkS", 0.12, True)]          # A1
-    return dict(items=items, attr="smd", tags="usb c plug right angle edge",
-                descr="USB-C plug, right angle at the board edge, GCT USB4155-03-C: its drawing's recommended layout, "
-                      "for a 0.8 to 1.0 mm board. The plug points to -y, past the edge")
+        items.append(_pad(f"A{k + 1}", "smd", "roundrect", -2.75 + 0.5 * k, 1.95, 0.30, 1.50))
+        items.append(_pad(f"B{k + 1}", "smd", "roundrect", 2.75 - 0.5 * k, 1.95, 0.30, 1.50, layers=["B.Cu", "B.Mask", "B.Paste"]))
+    for x in (-3.525, 3.525):
+        items.append(_pad("SH", "smd", "rect", x, 2.00, 0.55, 1.40))
+        items.append(_pad("SH", "smd", "rect", x, 2.00, 0.55, 1.40, layers=["B.Cu", "B.Mask", "B.Paste"]))
+    items += [("rect", -4.20, -9.60, 4.20, NOSE_D, "F.Fab", 0.1, False),        # the plug, past the tip
+              ("rect", -4.25, -9.85, 4.25, 3.00, "F.CrtYd", 0.05, False),
+              ("text", "tip", 0, -0.5, 0, "F.Fab", 0.6),
+              ("circle", -2.75, 3.15, 0.12, "F.SilkS", 0.12, True)]           # A1
+    return dict(items=items, attr="smd", tags="usb c plug straddle mount edge",
+                descr="USB-C plug, straddle mount, SHOU HAN TYPE-C 24P-GTJB 040 (C3151751): its drawing's cable side "
+                      "layout, for a 0.8 mm board. A row on the front, B row on the back. The plug points to -y, past the tip")
 
 
 def pad_item_text(it, **kw):
@@ -529,7 +561,7 @@ def fp_header(n):
     items = [_pad(str(i), "thru_hole", "rect" if i == 1 else "circle", 2.54 * (i - 1 - (n - 1) / 2), 0, 1.7, 1.7, 1.0)
              for i in range(1, n + 1)]
     items.append(("rect", -1.27 * n, -1.27, 1.27 * n, 1.27, "F.CrtYd", 0.05, False))
-    return dict(items=items, attr="through_hole exclude_from_pos_files",
+    return dict(items=items, attr="through_hole exclude_from_pos_files exclude_from_bom",
                 descr=f"Feather header row, {n} pins at 2.54 mm, 1.7 mm pads with 1.0 mm holes; pin 1 (square) at the USB end",
                 tags="feather header")
 
@@ -546,7 +578,7 @@ def fp_hole(d):
 
 
 FOOTPRINTS = {
-    "USB_C_Plug_918-118A2021Y40002_Vertical": fp_plug, "USB_C_Plug_GCT_USB4155_Horizontal": fp_plug_ra, "SOT-23-6": fp_sot23_6,
+    "USB_C_Plug_918-118A2021Y40002_Vertical": fp_plug, "USB_C_Plug_ShouHan_24P-GTJB_Straddle": fp_plug_st, "SOT-23-6": fp_sot23_6,
     "D_SOD-523": lambda: fp_two(0.6, 0.7, 0.7, 0.6, 0.4, 1.25, 0.6, "SOD-523, KiCad's land pattern: pads 0.6x0.7 at +-0.7, pin 1 the cathode", "sod-523", mark=True),
     R0402: lambda: fp_two(0.54, 0.64, 0.51, 0.5, 0.25, 0.93, 0.47, "0402 resistor, KiCad's land pattern: pads 0.54x0.64 at +-0.51", "0402"),
     C0402: lambda: fp_two(0.54, 0.64, 0.51, 0.5, 0.25, 0.93, 0.47, "0402 capacitor, KiCad's land pattern: pads 0.54x0.64 at +-0.51", "0402"),
@@ -594,7 +626,8 @@ def all_parts():
 
 def pad_rects():
     """Every pad: ref, num, net, copper layers, rect (page mm), centre, kind. Rotations are multiples
-    of 90, so pads stay axis-aligned."""
+    of 90, so pads stay axis-aligned. hit is where a track end or via joins the pad: the rect, or for
+    a round pad the square inside its circle (KiCad found tracks ending in a header pin's corners)."""
     out = []
     for ref, p in all_parts().items():
         fp = FOOTPRINTS[p["fp"]]()
@@ -602,14 +635,16 @@ def pad_rects():
         for it in fp["items"]:
             if it[0] != "pad":
                 continue
-            _, num, kind, _shape, lx, ly, w, h, drill, layers = it
+            _, num, kind, shape, lx, ly, w, h, drill, layers = it
             dx, dy = rotate(lx, ly, p["rot"])
             cx, cy = px + dx, py + dy
             if round(p["rot"]) % 180:
                 w, h = h, w
             lays = {"F.Cu", "B.Cu"} if kind != "smd" else {l for l in layers if l.endswith(".Cu")}
+            k = 0.5 / math.sqrt(2) if shape == "circle" else 0.5
             out.append(dict(ref=ref, num=num, net=NETS.get((ref, num)) if num else None, layers=lays, kind=kind,
-                            rect=(cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2), centre=(cx, cy), key=(ref, num, len(out))))
+                            rect=(cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2), centre=(cx, cy), key=(ref, num, len(out)),
+                            hit=(cx - k * w, cy - k * h, cx + k * w, cy + k * h)))
     return out
 
 
@@ -638,7 +673,13 @@ def board_rect():
 
 
 def tab_rect():
-    return (OX + TAB_X - TAB_W / 2, OY - YMAX, OX + TAB_X + TAB_W / 2, OY - H)
+    """wing-b's paddle, from the nose to the wide part: the nose carries no copper."""
+    return (OX + TAB_X - TAB_W / 2, OY - YMAX + NOSE_D, OX + TAB_X + TAB_W / 2, OY - H - BASE_D)
+
+
+def base_rect():
+    """wing-b's tab where it is wide, at the Feather's edge."""
+    return (OX + TAB_X - BASE_W / 2, OY - H - BASE_D, OX + TAB_X + BASE_W / 2, OY - H)
 
 
 def keepout_rect():
@@ -659,11 +700,12 @@ def _inside(px, py, rect, r, margin, open_bottom=False):
 
 def edge_ok(rect, margin):
     """The rect stays margin inside the outline, rounded corners included, and on wing-b the tab's.
-    Each corner in the Feather's outline or in the tab is enough: the two join edge to edge."""
+    Each corner in the Feather's outline or in a part of the tab is enough: they join edge to edge."""
     x0, y0, x1, y1 = rect
     for px, py in ((x0, y0), (x1, y0), (x0, y1), (x1, y1)):
         if not (_inside(px, py, board_rect(), CORNER, margin)
-                or (TAB_D and _inside(px, py, tab_rect()[:3] + (OY - H + 2.0,), TAB_R, margin, open_bottom=True))):
+                or (TAB_D and _inside(px, py, tab_rect()[:3] + (tab_rect()[3] + 2.0,), 0.0, margin, open_bottom=True))
+                or (TAB_D and _inside(px, py, base_rect()[:3] + (OY - H + 2.0,), 0.0, margin, open_bottom=True))):
             return False
     return True
 
@@ -703,7 +745,7 @@ class Router:
         for p in pads:
             if p["kind"] == "np_thru_hole" or not p["net"] or p["net"].startswith("unconnected"):
                 continue
-            x0, y0, x1, y1 = p["rect"]
+            x0, y0, x1, y1 = p["hit"]
             cells = set()
             for layer in p["layers"]:
                 for i, j in self.cells_in((x0 + 0.01, y0 + 0.01, x1 - 0.01, y1 - 0.01)):
@@ -822,79 +864,60 @@ class Router:
                     heapq.heappush(heap, (d + VIA_COST, nn))
         return None
 
-    def fanout(self, pads, onto=None, grid=None, nest=False):
-        """The plug's signal pins out, in the order given: the fine pitch leaves no room to do it
-        later, between other nets' tracks. Returns how many got out, and how many of those took a via.
-
-        wing-a: each pin to a via of its own. wing-b: its 0.5 mm pitch only fits a 0.25 mm track from
-        the middle of each pad, so its fan-out runs on a grid of half the step and is handed over to
-        the coarse router, onto (grid: a coarse router to land on without handing anything over).
-        Each pin goes down through a gap in the 12-pin row on the front, or failing that to a via.
-        nest: a pin left of the middle only through a gap on its left, and the same on the right, so
-        the tracks nest instead of crossing."""
-        grid = grid or onto or self
-
-        def on_grid(i, j):
-            x, y = self.xy(i, j)
-            gi, gj = round((x - OX) / grid.step), round((y - OY + YMAX) / grid.step)
-            gx, gy = grid.xy(gi, gj)
-            return (gi, gj) if abs(gx - x) < 1e-6 and abs(gy - y) < 1e-6 else None
-        cx = sum(p["centre"][0] for p in pads) / len(pads)
-        past = OY - (ROW12_AT[1] - 1.4)
-        fanned = vias = 0
-        # wing-b: first a straight stub into the board from the middle of every pad, longer towards
-        # the middle of the row (a V), so each pin keeps its own way out and the outer ones turn
-        # away above the inner ones' ends
-        start, stub = {}, {}
-        if B:
-            dists = sorted({round(abs(p["centre"][0] - cx), 2) for p in pads}, reverse=True)
-            t = TRACK / 2
-            for p in pads:
-                x, y = p["centre"]
-                end = p["rect"][3] + 0.4 + 0.5 * dists.index(round(abs(x - cx), 2))
-                stub[p["key"]] = (p["net"], "F.Cu", TRACK, (x, y), (x, end))
-                self.segments.append(stub[p["key"]])
-                self.add(p["net"], {"F.Cu"}, (x - t, y - t, x + t, end + t))
-                start[p["key"]] = {("F.Cu", round((x - OX) / self.step), round((end - OY + YMAX) / self.step))}
+    def fanout(self, pads):
+        """wing-a's plug: each signal pin, in the order given, straight out to a via of its own. The
+        0.8 mm pitch leaves no room to do it later, between other nets' tracks."""
         for p in pads:
-            net, px = p["net"], p["centre"][0]
-            side = 0 if abs(px - cx) < 0.3 or not nest else (-1 if px < cx else 1)
-            src = start.get(p["key"], self.pad_cells[p["key"]])
-            path, through = None, False
-            if B:
-                def gap(n):
-                    x, y = self.xy(n[1], n[2])
-                    return y >= past and on_grid(n[1], n[2]) is not None and (side == 0 or (x - px) * side >= -0.3)
-                path = self.search(net, src, gap, single_layer=True, limit=8.0 / self.step)
-                through = path is not None
-            if path is None:
-                path = self.search(net, src,
-                                   lambda n: on_grid(n[1], n[2]) is not None and self.node_ok("B.Cu", n[1], n[2], net) and self.via_ok(n[1], n[2], net),
-                                   single_layer=True, limit=(6.0 if B else 3.0) / self.step)
+            net = p["net"]
+            path = self.search(net, self.pad_cells[p["key"]],
+                               lambda n: self.node_ok("B.Cu", n[1], n[2], net) and self.via_ok(n[1], n[2], net),
+                               single_layer=True, limit=3.0 / self.step)
             if path is None:
                 continue
-            fanned += 1
-            vias += not through
-            first = len(self.segments)
             self.commit(net, path)
             l, i, j = path[-1]
-            if not through:
-                self.add_via(net, i, j)
-            if onto is None:
-                self.island[p["key"]] = set(path) | self.pad_cells[p["key"]] | {("F.Cu", i, j), ("B.Cu", i, j)}
-                continue
-            gi, gj = on_grid(i, j)
-            t = TRACK / 2
-            for seg in ([stub[p["key"]]] if p["key"] in stub else []) + self.segments[first:]:
-                _n, layer, _w, (ax, ay), (bx, by) = seg
-                onto.segments.append(seg)
-                onto.add(net, {layer}, (min(ax, bx) - t, min(ay, by) - t, max(ax, bx) + t, max(ay, by) + t))
-            if through:
-                onto.island[p["key"]] = {("F.Cu", gi, gj)}
-            else:
-                onto.add_via(net, gi, gj)
-                onto.island[p["key"]] = {("F.Cu", gi, gj), ("B.Cu", gi, gj)}
-        return fanned, vias
+            self.add_via(net, i, j)
+            self.island[p["key"]] = set(path) | self.pad_cells[p["key"]] | {("F.Cu", i, j), ("B.Cu", i, j)}
+
+    def escape(self):
+        """wing-b's plug, by hand (ESCAPE): its tracks and vias, and each pin's ways out handed to the
+        router as the cells where they end, below the 12-pin row. Paths on one layer that share a
+        point, or paths that meet at a via, are one piece of copper."""
+        by = {p["num"]: p for p in self.pads if p["ref"] == "J1"}
+        x0, y0 = page(*PLACE["J1"])
+        at = lambda u, v: (x0 + u, y0 + 2.7 + v)          # v from the pads' inner ends
+        t, r = TRACK / 2, VIA / 2
+        piece = list(range(len(ESCAPE)))
+
+        def find(k):
+            while piece[k] != k:
+                k = piece[k]
+            return k
+        for k, (pin, layer, pts) in enumerate(ESCAPE):
+            net = by[pin]["net"]
+            xy = [at(u, v) for u, v in pts]
+            for (ax, ay), (bx, by_) in zip(xy, xy[1:]):
+                self.segments.append((net, layer, TRACK, (ax, ay), (bx, by_)))
+                self.add(net, {layer}, (min(ax, bx) - t, min(ay, by_) - t, max(ax, bx) + t, max(ay, by_) + t))
+            for m, (_p, other, qts) in enumerate(ESCAPE[:k]):
+                if set(pts) & set(qts) & (set(ESCAPE_VIAS) if other != layer else set(pts)):
+                    piece[find(k)] = find(m)
+        for u, v in ESCAPE_VIAS:
+            x, y = at(u, v)
+            net = next(by[pin]["net"] for pin, _l, pts in ESCAPE if (u, v) in (pts[0], pts[-1]))
+            self.vias.append((net, x, y))
+            self.add(net, set(LAYERS), (x - r, y - r, x + r, y + r))
+        out = {}
+        for k, (pin, layer, pts) in enumerate(ESCAPE):
+            if pts[-1][1] == ESCAPE_OUT:
+                x, y = at(*pts[-1])
+                i, j = int(round((x - OX) / self.step)), int(round((y - OY + YMAX) / self.step))
+                assert math.hypot(self.xy(i, j)[0] - x, self.xy(i, j)[1] - y) < 1e-6, f"{pin}'s way out is off the grid"
+                out.setdefault(find(k), set()).add((layer, i, j))
+        for k, (pin, _l, pts) in enumerate(ESCAPE):
+            if pts[0][1] < 0:            # it starts at the pin's pad
+                self.island[by[pin]["key"]] = out[find(k)]
+
 
     def bridge(self):
         """Each ESD array's flow-through pair (pins 1/6, 3/4) joined straight across under the chip,
@@ -911,14 +934,6 @@ class Router:
                 self.add(pa["net"], {"F.Cu"}, (min(ax, bx) - t, min(ay, by_) - t, max(ax, bx) + t, max(ay, by_) + t))
                 both = self.pad_cells[pa["key"]] | self.pad_cells[pb["key"]]
                 self.island[pa["key"]] = self.island[pb["key"]] = both
-
-    def take_copper(self, other):
-        """Another router's tracks and vias, as obstacles here."""
-        t, v = TRACK / 2, VIA / 2
-        for net, layer, _w, (ax, ay), (bx, by) in other.segments:
-            self.add(net, {layer}, (min(ax, bx) - t, min(ay, by) - t, max(ax, bx) + t, max(ay, by) + t))
-        for net, x, y in other.vias:
-            self.add(net, set(LAYERS), (x - v, y - v, x + v, y + v))
 
     def route_net(self, net, pads):
         """Join the pads of one net: from what is joined so far to the nearest pad (or its fan-out)
@@ -986,7 +1001,7 @@ class Router:
             cx, cy = p["centre"]
             gnd = self.cells.get("GND", set())
             if p["ref"] == "J1" and p["num"] != "SH":
-                near = min(shell, key=lambda q: abs(q["centre"][0] - cx))
+                near = min((q for q in shell if q["layers"] == p["layers"]), key=lambda q: abs(q["centre"][0] - cx))
                 path = self.search("GND", cells, set(self.pad_cells[near["key"]]), single_layer=True, limit=4.0 / self.step)
                 if path is not None:
                     self.commit("GND", path)
@@ -1011,24 +1026,61 @@ class Router:
         return n
 
     def stitch(self):
-        """Stitching vias on a 4 mm grid, wherever no other net's copper is within 1 mm."""
+        """Stitching vias on a 4 mm grid, wherever no other net's copper is within 1 mm. Where a grid
+        point isn't free, the first spot up to 0.8 mm from it with nothing within 0.6 mm: on wing-a
+        that joins a strip of back pour, fenced in by the bus, that the grid missed."""
         n = 0
-        for x in range(2, int(POUR_X), 4):
-            for y in (4.0, 8.0, 12.0, 16.0, 19.0):
-                i, j = int(round(x / self.step)), int(round((YMAX - y) / self.step))
+        tries = [(0, 0, 1.0)] + [(dx, dy, 0.6) for dx, dy in ((0, 0.8), (0, -0.8), (0.8, 0), (-0.8, 0),
+                                                               (0.8, 0.8), (-0.8, 0.8), (0.8, -0.8), (-0.8, -0.8))]
+        points = [(x, y) for x in range(2, int(POUR_X), 4) for y in (4.0, 8.0, 12.0, 16.0, 19.0)]
+        if B:     # and either side of wing-b's tab: the plug's tracks fence in pour there (KiCad found one island)
+            points += [(TAB_X - 4.05, H + 1.0), (TAB_X + 4.05, H + 1.0)]
+        for x, y in points:
+            for dx, dy, room in (tries if y < H else [(0, 0, 0.6)] + tries[1:]):     # the tab is narrow
+                if x + dx >= POUR_X - 1.0:
+                    continue
+                i, j = int(round((x + dx) / self.step)), int(round((YMAX - y - dy) / self.step))
                 if self.via_ok(i, j, "GND") and self.node_ok("F.Cu", i, j, "GND") and self.node_ok("B.Cu", i, j, "GND"):
-                    # only where both pours are free around it: no other net's copper within 1 mm
+                    # only where both pours are free around it: no other net's copper that near
                     vx, vy = self.xy(i, j)
-                    if self.rect_ok((vx - 1.0, vy - 1.0, vx + 1.0, vy + 1.0), set(LAYERS), "GND"):
+                    if (self.rect_ok((vx - room, vy - room, vx + room, vy + room), set(LAYERS), "GND")
+                            and all(math.hypot(vx - ux, vy - uy) >= VIA + 0.5 for _n, ux, uy in self.vias)):
                         self.add_via("GND", i, j)
                         n += 1
+                        break
         return n
 
 
 # Nets in the order they are routed: the plug's fine-pitch pads first, then the power, and the long,
 # roomy ones last.
-ORDER = [n for n in ["/KEY_SDA", "/KEY_SCL", "/CC1", "/CC2", "/VKEY", "+3V3", "/CC1_SENSE", "/CC2_SENSE", "/KEY_EN",
-                      "/KEY_FAULT", "/FTHR_SDA", "/FTHR_SCL", "/ALT_SDA", "/ALT_SCL"] if n in NETS.values()]
+ORDER = [n for n in ["/KEY_SDA", "/KEY_SCL", "/CC1", "/CC2", "/KEY_LED", "/VKEY", "+3V3", "/CC1_SENSE", "/CC2_SENSE",
+                      "/KEY_EN", "/KEY_FAULT", "/FTHR_SDA", "/FTHR_SCL", "/ALT_SDA", "/ALT_SCL", "/LED_D13", "/LED_ALT"]
+         if n in NETS.values()]
+
+
+# wing-b's plug, routed by hand: (pin, layer, path). A path is in mm from the plug's centre line (u,
+# right) and from its pads' inner ends (v, into the board); the first point is the pad's middle. The
+# outer pins turn first, so nothing crosses, and each way out goes through a gap of its own in the
+# 12-pin row (gaps at u -5.15, -2.55, 0.05, 2.55, 5.05) to a point below it where the router takes
+# over. The A row leaves on the front: VKEY, CC1, SDA, SCL. VKEY's two pins on each side, A4/B9 and
+# A9/B4, lie one over the other and meet at a via (ESCAPE_VIAS): the left pair leaves on the front,
+# the right pair on the back. KEY_LED's A8 drops to the back at a via and meets B8 there: one way out.
+ESCAPE = [
+    ("A4", "F.Cu", [(-1.25, -0.75), (-1.25, 0.6), (-1.85, 0.6)]),
+    ("B9", "B.Cu", [(-1.25, -0.75), (-1.25, 0.6), (-1.85, 0.6)]),
+    ("A4", "F.Cu", [(-1.85, 0.6), (-1.85, 1.5), (-5.15, 1.5), (-5.15, 6.5)]),                 # VKEY, gap 1
+    ("A5", "F.Cu", [(-0.75, -0.75), (-0.75, 2.0), (-2.55, 2.0), (-2.55, 6.5)]),               # CC1, gap 2
+    ("A6", "F.Cu", [(-0.25, -0.75), (-0.25, 3.0), (0.05, 3.0), (0.05, 6.5)]),                 # SDA, gap 3
+    ("A7", "F.Cu", [(0.25, -0.75), (0.25, 2.3), (2.55, 2.3), (2.55, 6.3), (2.45, 6.3), (2.45, 6.5)]),   # SCL, gap 4
+    ("A8", "F.Cu", [(0.75, -0.75), (0.75, 1.6), (1.25, 1.6)]),
+    ("B8", "B.Cu", [(1.25, 1.6), (-0.75, 1.6)]),
+    ("B8", "B.Cu", [(-0.75, -0.75), (-0.75, 1.6), (-2.55, 1.6), (-2.55, 6.5)]),               # KEY_LED, gap 2
+    ("A9", "F.Cu", [(1.25, -0.75), (1.25, 0.6), (1.85, 0.6)]),
+    ("B4", "B.Cu", [(1.25, -0.75), (1.25, 0.6), (1.85, 0.6)]),
+    ("B4", "B.Cu", [(1.85, 0.6), (2.6, 0.6), (2.6, 1.3), (5.05, 1.3), (5.05, 6.5)]),          # VKEY, gap 5
+]
+ESCAPE_VIAS = [(-1.85, 0.6), (1.85, 0.6), (1.25, 1.6)]
+ESCAPE_OUT = 6.5             # v of the ways out, below the 12-pin row
 
 
 def route(pads):
@@ -1042,37 +1094,18 @@ def route(pads):
     assert set(by_net) == set(ORDER), sorted(set(by_net) ^ set(ORDER))
     plug = sorted((p for p in pads if p["ref"] == "J1" and p["net"] in by_net), key=lambda p: p["centre"][0])
     mid = sum(p["centre"][0] for p in plug) / len(plug)
-    if B:
-        # wing-b's fan-out decides the rest: try it in a few orders, with and without nesting, and
-        # keep the one that gets every pin out with the fewest vias
-        trials = []
-        for name, fan in (("outside in", sorted(plug, key=lambda p: -abs(p["centre"][0] - mid))),
-                          ("inside out", sorted(plug, key=lambda p: abs(p["centre"][0] - mid))),
-                          ("left to right", plug), ("right to left", plug[::-1])):
-            for nest in (False, True):
-                r = Router(pads)
-                r.gnd_vias()
-                r.bridge()
-                fine = Router(pads, step=STEP / 2)
-                fine.take_copper(r)
-                got, vias = fine.fanout(fan, grid=r, nest=nest)
-                trials.append((-got, vias, len(trials), name, nest, fan))
-        _g, vias, _k, name, nest, fan = min(trials)
-        print(f"  the plug's fan-out: {name}{', nested' if nest else ''}: {-_g} of {len(plug)} pins out, {vias} through vias")
-    else:
-        fan, nest = sorted(plug, key=lambda p: abs(p["centre"][0] - mid)), False
+    fan = sorted(plug, key=lambda p: abs(p["centre"][0] - mid))
     rng = random.Random(608)
     queue, best = [list(ORDER)], None
     for attempt in range(16):
         order = queue.pop(0) if queue else rng.sample(ORDER, len(ORDER))
         r = Router(pads)
-        r.gnd_vias()        # first, so every ground pad keeps its way down to the back pour
-        r.bridge()
         if B:
-            fine = Router(pads, step=STEP / 2)
-            fine.take_copper(r)
-            fine.fanout(fan, onto=r, nest=nest)
-        else:
+            r.escape()      # first: it is drawn for an empty board
+            r.bridge()      # then: U3 turned puts its ground pin between its two pairs, so its via goes round them
+        r.gnd_vias()        # so every ground pad keeps its way down to the back pour
+        if not B:
+            r.bridge()
             r.fanout(fan)
         failed = []
         for net in order:
@@ -1144,6 +1177,8 @@ def footprint_text(ref, p, nets, path_uuid):
             net = NETS.get((ref, it[1])) if it[1] else None
             if net:
                 t += f' (net {nets[net]} "{net}")'
+                if B and ref == "J1" and net == "GND":
+                    t += " (zone_connect 2)"      # solid to the pour: at the tab's edge a thermal gets one spoke
             t += f' (uuid "{uid()}"))'
         lines.append(t)
     lines += ["\t\t(embedded_fonts no)", "\t)"]
@@ -1173,16 +1208,14 @@ def outline_text():
     x0, y0, x1, y1 = board_rect()
     r, c = CORNER, CORNER * (1 - math.sqrt(0.5))
     E = '(stroke (width 0.1) (type default)) (layer "Edge.Cuts")'
-    if TAB_D:     # the top edge runs round wing-b's tab
-        tx0, ty, tx1, _ = tab_rect()
-        R, C = TAB_R, TAB_R * (1 - math.sqrt(0.5))
-        top = [f'\t(gr_line (start {f(x0 + r)} {f(y0)}) (end {f(tx0)} {f(y0)}) {E} (uuid "{uid()}"))',
-               f'\t(gr_line (start {f(tx0)} {f(y0)}) (end {f(tx0)} {f(ty + R)}) {E} (uuid "{uid()}"))',
-               f'\t(gr_arc (start {f(tx0)} {f(ty + R)}) (mid {f(tx0 + C)} {f(ty + C)}) (end {f(tx0 + R)} {f(ty)}) {E} (uuid "{uid()}"))',
-               f'\t(gr_line (start {f(tx0 + R)} {f(ty)}) (end {f(tx1 - R)} {f(ty)}) {E} (uuid "{uid()}"))',
-               f'\t(gr_arc (start {f(tx1 - R)} {f(ty)}) (mid {f(tx1 - C)} {f(ty + C)}) (end {f(tx1)} {f(ty + R)}) {E} (uuid "{uid()}"))',
-               f'\t(gr_line (start {f(tx1)} {f(ty + R)}) (end {f(tx1)} {f(y0)}) {E} (uuid "{uid()}"))',
-               f'\t(gr_line (start {f(tx1)} {f(y0)}) (end {f(x1 - r)} {f(y0)}) {E} (uuid "{uid()}"))']
+    if TAB_D:     # the top edge runs round wing-b's tab: its wide part, the paddle, the nose chamfered at the tip
+        bx0, bs, bx1, _ = base_rect()
+        tx0, ts, tx1, _ = tab_rect()
+        nx0, nx1, ty, c2 = OX + TAB_X - NOSE_W / 2, OX + TAB_X + NOSE_W / 2, OY - YMAX, NOSE_C
+        pts = [(x0 + r, y0), (bx0, y0), (bx0, bs), (tx0, bs), (tx0, ts), (nx0, ts), (nx0, ty + c2), (nx0 + c2, ty),
+               (nx1 - c2, ty), (nx1, ty + c2), (nx1, ts), (tx1, ts), (tx1, bs), (bx1, bs), (bx1, y0), (x1 - r, y0)]
+        top = [f'\t(gr_line (start {f(ax)} {f(ay)}) (end {f(bx)} {f(by)}) {E} (uuid "{uid()}"))'
+               for (ax, ay), (bx, by) in zip(pts, pts[1:])]
     else:
         top = [f'\t(gr_line (start {f(x0 + r)} {f(y0)}) (end {f(x1 - r)} {f(y0)}) {E} (uuid "{uid()}"))']
     return "\n".join(top + [
@@ -1242,16 +1275,38 @@ def write_board(uids, router):
         x, y = PLACE[ref]
         out.append(gr_text(PARTS[ref]["value"], x, y + 1.6, "F.SilkS", 0.8))
     out.append(gr_text("USB", 1.2, 11.43, "F.SilkS", 0.8, rot=90))
-    out.append(gr_text(f"{NAME} {DATE[:7]}", 20.0, 3.4, "F.SilkS", 0.8))
+    out.append(gr_text(f"{NAME} {DATE[:7]}", 23.0, 3.4, "F.SilkS", 0.8))
     # back: what this side is, and the source
     out.append(gr_text("PicoQuorum key wing", 25.0, 15.4, "B.SilkS", 1.0))
     out.append(gr_text("FeatherWing-compatible", 25.0, 13.6, "B.SilkS", 0.8))
     out.append(gr_text("this side faces the Feather", 25.0, 11.8, "B.SilkS", 0.8))
     out.append(gr_text(SRC, 25.0, 9.6, "B.SilkS", 0.8))
     out.append(gr_text("CERN-OHL-W-2.0", 25.0, 7.8, "B.SilkS", 0.8))
-    for net, layer, width, (ax, ay), (bx, by) in router.segments:
+    def on(x, y, a, b):                     # (x, y) on the segment a-b
+        (ax, ay), (bx, by) = a, b
+        return (abs((bx - ax) * (y - ay) - (by - ay) * (x - ax)) < 1e-6
+                and min(ax, bx) - 1e-6 <= x <= max(ax, bx) + 1e-6 and min(ay, by) - 1e-6 <= y <= max(ay, by) + 1e-6)
+    # A plug pin's escape via whose route went on along the same layer joins nothing: KiCad calls it
+    # dangling. Drop it, then any track end left touching nothing. Ground vias stay: they join the pours.
+    segs = list(router.segments)
+    vias = [v for v in router.vias
+            if v[0] == "GND" or len({l for n, l, _w, a, b in segs if n == v[0] and on(v[1], v[2], a, b)}) == 2]
+    pads = pad_rects()
+
+    def held(net, layer, pt, k):
+        x, y = pt
+        return (any(n == net and l == layer and m != k and on(x, y, a, b) for m, (n, l, _w, a, b) in enumerate(segs))
+                or any(n == net and abs(vx - x) < 1e-6 and abs(vy - y) < 1e-6 for n, vx, vy in vias)
+                or any(p["net"] == net and layer in p["layers"] and p["hit"][0] - 1e-6 <= x <= p["hit"][2] + 1e-6
+                       and p["hit"][1] - 1e-6 <= y <= p["hit"][3] + 1e-6 for p in pads))
+    while True:
+        loose = [k for k, (n, l, _w, a, b) in enumerate(segs) if not (held(n, l, a, k) and held(n, l, b, k))]
+        if not loose:
+            break
+        segs = [sg for k, sg in enumerate(segs) if k not in loose]
+    for net, layer, width, (ax, ay), (bx, by) in segs:
         out.append(f'\t(segment (start {f(ax)} {f(ay)}) (end {f(bx)} {f(by)}) (width {f(width)}) (layer "{layer}") (net {nets[net]}) (uuid "{uid()}"))')
-    for net, x, y in router.vias:
+    for net, x, y in vias:
         out.append(f'\t(via (at {f(x)} {f(y)}) (size {f(VIA)}) (drill {f(DRILL)}) (layers "F.Cu" "B.Cu") (net {nets[net]}) (uuid "{uid()}"))')
     x0, y0, x1, y1 = board_rect()
     pour = [(x0 - 1, OY - YMAX - 1), (OX + POUR_X, OY - YMAX - 1), (OX + POUR_X, y1 + 1), (x0 - 1, y1 + 1)]
@@ -1275,9 +1330,9 @@ def write_project(sheet_uuid):
     with open(os.path.join(OUT, NAME + ".kicad_pro"), "w") as fh:
         json.dump(d, fh, indent=2, sort_keys=True)
         fh.write("\n")
-    if B:     # the edge plug's B row sits 0.2 mm from the edge, where GCT's drawing puts it
+    if B:     # the plug's shell pads sit 0.15 mm from the paddle's sides (SHOU HAN draws them at the edge)
         with open(os.path.join(OUT, NAME + ".kicad_dru"), "w") as fh:
-            fh.write('(version 1)\n(rule "Edge plug: its B row 0.2 mm from the edge, as GCT draws it"\n'
+            fh.write('(version 1)\n(rule "Straddle plug: its shell pads 0.15 mm from the paddle sides"\n'
                      '\t(condition "A.Parent == \'J1\'")\n\t(constraint edge_clearance (min 0.15mm)))\n')
 
 
@@ -1366,7 +1421,9 @@ def check(path):
     def node(n, key):
         k = kids(n, key)
         return k[0] if k else None
-    nets = {int(n[1]): n[2] for n in kids(tree, "net")}
+    # the generator writes (net 3 "GND"); KiCad 10, saving the board, writes (net "GND")
+    nets = {int(n[1]): n[2] for n in kids(tree, "net") if len(n) > 2}
+    netof = lambda n: n[-1] if len(n) == 2 and not n[1].lstrip("-").isdigit() else nets[int(n[1])] if len(n) == 2 else n[2]
     pads, segs, vias = [], [], []
     for fp in kids(tree, "footprint"):
         ref = next(p[2] for p in kids(fp, "property") if p[1] == "Reference")
@@ -1383,17 +1440,19 @@ def check(path):
             if "*.Cu" in lays:
                 lays = {"F.Cu", "B.Cu"}
             netv = node(pad, "net")
-            pads.append(dict(ref=ref, num=pad[1], kind=pad[2], net=netv[2] if netv else None, layers=lays,
-                             rect=(cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2), centre=(cx, cy)))
+            k = 0.5 / math.sqrt(2) if pad[3] == "circle" else 0.5
+            pads.append(dict(ref=ref, num=pad[1], kind=pad[2], net=netof(netv) if netv else None, layers=lays,
+                             rect=(cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2), centre=(cx, cy),
+                             hit=(cx - k * w, cy - k * h, cx + k * w, cy + k * h)))
     for s in kids(tree, "segment"):
         a, b, w = node(s, "start"), node(s, "end"), float(node(s, "width")[1])
         ax, ay, bx, by = float(a[1]), float(a[2]), float(b[1]), float(b[2])
-        segs.append(dict(net=nets[int(node(s, "net")[1])], layer=node(s, "layer")[1], a=(ax, ay), b=(bx, by),
+        segs.append(dict(net=netof(node(s, "net")), layer=node(s, "layer")[1], a=(ax, ay), b=(bx, by),
                          rect=(min(ax, bx) - w / 2, min(ay, by) - w / 2, max(ax, bx) + w / 2, max(ay, by) + w / 2)))
     for v in kids(tree, "via"):
         at = node(v, "at")
         x, y, d = float(at[1]), float(at[2]), float(node(v, "size")[1])
-        vias.append(dict(net=nets[int(node(v, "net")[1])], at=(x, y), rect=(x - d / 2, y - d / 2, x + d / 2, y + d / 2)))
+        vias.append(dict(net=netof(node(v, "net")), at=(x, y), rect=(x - d / 2, y - d / 2, x + d / 2, y + d / 2)))
     problems = []
     # 1. clearance between copper of different nets, and copper to the plain holes
     items = [(p["kind"], p["net"], p["layers"], p["rect"], f'{p["ref"]}.{p["num"] or "-"}') for p in pads]
@@ -1415,7 +1474,7 @@ def check(path):
                 problems.append(f"clearance {g:.3f} mm between {a[4]} and {b[4]} (needs {need})")
     # 2. copper to the edge, and no copper behind the antenna but the header pads
     for kind, net, _l, rect, name in items:
-        edge = 0.15 if B and name.startswith("J1.") else EDGE     # the edge plug's rule: wing-b.kicad_dru
+        edge = 0.15 if B and name.startswith("J1.") else EDGE     # the straddle plug's rule: wing-b.kicad_dru
         if kind != "np_thru_hole" and not edge_ok(rect, edge - 1e-6):
             problems.append(f"{name} within {edge} mm of the edge")
         if _gap(rect, keepout_rect()) < 1e-6 and not (name.startswith("J2.") or name.startswith("J3.") or kind == "np_thru_hole"):
@@ -1446,7 +1505,7 @@ def check(path):
 
     for i, s in enumerate(segs):
         for j, p in enumerate(pads):
-            if s["layer"] in p["layers"] and p["net"] == s["net"] and (inside(s["a"], p["rect"]) or inside(s["b"], p["rect"])):
+            if s["layer"] in p["layers"] and p["net"] == s["net"] and (inside(s["a"], p["hit"]) or inside(s["b"], p["hit"])):
                 parent[find(("s", i))] = find(("p", j))
         for k, t in enumerate(segs):
             if k > i and t["layer"] == s["layer"] and t["net"] == s["net"] and (
@@ -1457,7 +1516,7 @@ def check(path):
                 parent[find(("s", i))] = find(("v", m))
     for m, v in enumerate(vias):
         for j, p in enumerate(pads):
-            if p["kind"] == "thru_hole" and p["net"] == v["net"] and inside(v["at"], p["rect"]):
+            if p["kind"] == "thru_hole" and p["net"] == v["net"] and inside(v["at"], p["hit"]):
                 parent[find(("v", m))] = find(("p", j))
     by_net = {}
     for j, p in enumerate(pads):
@@ -1529,7 +1588,7 @@ def check(path):
     if holes != sorted((round(x, 3), round(y, 3)) for _r, (x, y), _d in HOLES):
         problems.append(f"holes at {holes}")
     gnd_vias = sum(1 for v in vias if v["net"] == "GND")
-    print(f"{NAME}: {len(pads)} pads, {len(segs)} tracks, {len(vias)} vias ({gnd_vias} GND), {len(nets) - 1} nets")
+    print(f"{NAME}: {len(pads)} pads, {len(segs)} tracks, {len(vias)} vias ({gnd_vias} GND), {len({p['net'] for p in pads if p['net']})} nets")
     if problems:
         print(f"  {len(problems)} problem(s):")
         for p in problems[:60]:
