@@ -55,10 +55,10 @@ HOLES = [("H1", (2.2, 2.2)), ("H2", (2.2, H - 2.2))]   # 2.2 mm for M2, at the U
 HOLE_RING = 2.5          # no track and no via this close to a hole's centre, on either side: an M2 washer is 5 mm across
 SILK_H, SILK_W = 1.0, 0.8   # silkscreen text, height and width: JLCPCB reads nothing under 1.0 mm tall or 0.15 mm a stroke
 
-# The module: ESP32-S3-WROOM-1-N4R2, Espressif's datasheet v1.8 (Figure 11-1, the land pattern).
-# On the back, its antenna end flush with the right edge. N4R2 is quad PSRAM: an R8 (octal) takes
+# The module: ESP32-S3-WROOM-1-N8R2, Espressif's datasheet v1.8 (Figure 11-1, the land pattern).
+# On the back, its antenna end flush with the right edge. N8R2 is quad PSRAM: an R8 (octal) takes
 # GPIO35-37, and the screen's MOSI and SCK are 35 and 36 (datasheet Table 3-1, note b).
-MODULE_MPN, MODULE_LCSC = "ESP32-S3-WROOM-1-N4R2", "C2913203"
+MODULE_MPN, MODULE_LCSC = "ESP32-S3-WROOM-1-N8R2", "C2913204"
 MOD_W, MOD_L, MOD_ANT = 18.0, 25.5, 6.0
 MOD_AT = (W - MOD_L / 2, YC)
 KEEPOUT = (W - MOD_ANT - 0.5, 0.0, W, H)   # x0, y0, x1, y1: the antenna area and 0.5 mm, full height, both layers
@@ -170,7 +170,7 @@ for ref, _label, net in TESTPADS:
 PARTS = {
     "U1": dict(fp="ESP32-S3-WROOM-1", value=MODULE_MPN, at=MOD_AT, rot=90, side="B", in_bom=False,
                fields=[("Datasheet", WROOM_DS), ("MPN", MODULE_MPN),
-                       ("Description", f"ESP32-S3 module, 4 MB flash, 2 MB quad PSRAM, on the back; JLCPCB {MODULE_LCSC} is Standard-only: hand-soldered")]),
+                       ("Description", f"ESP32-S3 module, 8 MB flash, 2 MB quad PSRAM, on the back; JLCPCB {MODULE_LCSC} is Standard-only: hand-soldered")]),
     "U2": dict(fp="DFN-8-1EP_3x2mm_P0.5mm", value="ATECC608C", at=(23.5, 16.5), rot=0,
                fields=[("Datasheet", ATECC_DS), ("LCSC", "C23291019"), ("MPN", "ATECC608C-MAHDA-S"),
                        ("Description", "The console's key: ECC P-256 secure element, I2C 0x60, UDFN-8 2x3 mm, the part key-b uses")]),
@@ -413,7 +413,7 @@ def write_schematic(syms):
     part("U1", "ESP32-S3-WROOM-1", mx, my, 15.24, 27.94,
          [(str(n), "", "", "L", 24.13 - 2.54 * (n - 1)) for n in range(1, 21)]
          + [(str(n), "", "", "R", -24.13 + 2.54 * (n - 21)) for n in range(21, 41)] + [("41", "", "", "B", 0)])
-    sh.text("ESP32-S3-WROOM-1-N4R2 on the back, hand-soldered.\n"
+    sh.text("ESP32-S3-WROOM-1-N8R2 on the back, hand-soldered.\n"
             "The Feather ESP32-S3 Reverse TFT's GPIOs (firmware/board.py,\n"
             "\"feather-s3\"), so today's console image runs unchanged.\n"
             "Never an R8 module: octal PSRAM takes GPIO35-37.", mx - 20.32, my + 38.1)
