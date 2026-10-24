@@ -5,7 +5,8 @@ ordered. The idea and the costs are in [CONCEPT.md](CONCEPT.md); this page is th
 
 One board for the console: an ESP32-S3-WROOM-1 on the back, the Feather's 1.14″ 240 × 135 panel in
 a ZIF on the front, five buttons, the ATECC608C soldered on, and USB-C for power and the serial port.
-64 × 22.86 mm, 2 layers, 1.6 mm, lead-free HASL.
+64 × 22.86 mm, 2 layers, 1.6 mm, lead-free HASL. What any S3 console must have, whatever its shape,
+is in [SPEC.md](SPEC.md); this page is one layout that meets it.
 
 | front | back |
 |---|---|

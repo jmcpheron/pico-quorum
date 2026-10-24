@@ -1,8 +1,9 @@
 # The S3 console: one board, the chip on it
 
 *Concept, 2026-10-23. The technical design followed on 2026-10-24: [DESIGN.md](DESIGN.md), a
-generator, a schematic and a placed board. Where the two differ (the module on the back, five
-buttons, the regulator, the backlight switch), DESIGN.md is the board.*
+generator, a schematic and a placed board. Where this page and DESIGN.md differ (the module on the
+back, five buttons, the regulator, the backlight switch), DESIGN.md is the board.
+[SPEC.md](SPEC.md) says what any S3 console must have, whatever its shape.*
 
 <img src="renders/console-s3-3q-top.jpg" width="560" alt="console-s3 as designed: the 1.14-inch panel showing a review page, three buttons left of it by the USB-C, two right of it">
 

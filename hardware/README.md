@@ -31,7 +31,8 @@ Console and key electronics. The goals are in [`../docs/KICKOFF.md`](../docs/KIC
   and serial, 64 × 22.86 mm. Economic assembly for everything but the module and the panel, which
   the workshop fits. Three of its buttons, the screen and the key are on the Feather's pins, so
   today's image runs on it. Written by a script, placed and self-checked; not routed, not checked in
-  KiCad, not ordered. The idea and costs: [CONCEPT.md](console-s3/CONCEPT.md)
+  KiCad, not ordered. The idea and costs: [CONCEPT.md](console-s3/CONCEPT.md); what any S3 console
+  must have, in any shape: [SPEC.md](console-s3/SPEC.md)
 - [`console-usb/`](console-usb/README.md): the console-s3 idea with no radio in use: the bare
   ESP32-S3 chip, no antenna, three buttons on the Feather's pins, and a USB-C whose only data path
   is a CH340C serial bridge to the S3's UART1, so the computer that relays the queue gets no REPL
