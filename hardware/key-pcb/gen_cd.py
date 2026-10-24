@@ -2,7 +2,9 @@
 """PicoQuorum key PCB proposals C and D: the same circuit as rev A, on an off-the-shelf connector
 instead of gold fingers. Writes two KiCad 10 projects next to rev A, and never touches rev A's.
 
-    tools/keypcb gen-cd          (runs this with KiCad's own Python, which has the pcbnew module)
+    tools/keypcb gen-cd [board]  (runs this with KiCad's own Python, which has the pcbnew module)
+                                 with a board named, writes only that one and leaves the shared
+                                 footprints as they are
 
 key-c-usbc  a USB-C receptacle wired as plain pins, no USB chip: any USB-C cable, or a console
             dock with an upright plug. JLCPCB assembles it.
@@ -25,8 +27,8 @@ if os.path.isdir(_SS):
     gen.KISYM, gen.KIFP = _SS + "/symbols", _SS + "/footprints"
 
 HERE, LIB = gen.HERE, gen.LIB
-DATE = "2026-10-02"
-REVS = {"key-c-usbc": "P2", "key-d-pogo": "P1"}   # proposals, not releases
+DATES = {"key-c-usbc": "2026-10-23", "key-d-pogo": "2026-10-02"}
+REVS = {"key-c-usbc": "P3", "key-d-pogo": "P1"}   # proposals, not releases
 
 CHIP = dict(chip="ATECC608C-SSHDA", chip_fp="Package_SO:SOIC-8_3.9x4.9mm_P1.27mm", chip_lcsc="C28975195",
             chip_mpn="ATECC608C-SSHDA-B")
@@ -271,7 +273,7 @@ def write_usbc_schematic(name, b, syms):
               fields=[("Datasheet", USBC["ds"]), ("MPN", USBC["mpn"]), ("LCSC", USBC["lcsc"]),
                       ("Description", "USB-C receptacle used as plain wires, no USB: see hardware/key-pcb/PROPOSALS.md")])
     px = jx + 10.16
-    for off, what in ((7.62, "VCC"), (5.08, "CC1"), (2.54, "CC2"), (0, "SDA"), (-2.54, "SCL"), (-5.08, None), (-7.62, None)):
+    for off, what in ((7.62, "VCC"), (5.08, "CC1"), (2.54, "CC2"), (0, "SDA"), (-2.54, "SCL"), (-5.08, None), (-7.62, "LED")):
         py = jy - off
         if what is None:
             sh.nc(px, py)
@@ -293,6 +295,20 @@ def write_usbc_schematic(name, b, syms):
         sh.label(net, rx, ry - 6.35)
         sh.wire(rx, ry + 3.81, rx, ry + 6.35)
         sh.power("GND", rx, ry + 6.35)
+    # P3: the LED, lit by the console through SBU2 (B8). Its wing joins its plug's A8 and B8, so B8
+    # meets it either way up; SBU1 (A8) stays open. R3 comes first, so it limits whatever SBU carries.
+    sh.lib("Device:LED", gen.stock_symbol("Device", "LED"))
+    lx, ly = 127.0, 109.22
+    sh.symbol("Device:R", "R3", "470", lx, ly, ["1", "2"], fp=b["res_fp"],
+              fields=[("LCSC", "C25117"), ("Description", "The LED's resistor: about 1 mA from a 3.3 V pin")])
+    sh.wire(lx, ly - 3.81, lx, ly - 6.35)
+    sh.label("LED", lx, ly - 6.35)
+    sh.symbol("Device:LED", "D1", "green", lx, ly + 15.24, ["1", "2"], fp="LED_SMD:LED_0603_1608Metric", rot=90,
+              fields=[("LCSC", "C72043"), ("MPN", "Everlight 19-217/GHC-YR1S2/3T"),
+                      ("Description", "Green: lit by the console while a transaction waits for this key")])
+    sh.wire(lx, ly + 3.81, lx, ly + 11.43)
+    sh.wire(lx, ly + 19.05, lx, ly + 21.59)
+    sh.power("GND", lx, ly + 21.59)
     # C2: ST's layout bypasses the USBLC6's VBUS pin right at the part
     c2x, c2y = 124.46, 71.12
     sh.symbol("Device:C", "C2", "100n", c2x, c2y, ["1", "2"], fp=b["cap_fp"],
@@ -322,7 +338,8 @@ def write_usbc_schematic(name, b, syms):
             "CC1/CC2: 5.1k each to GND (USB-C's Rd).\n"
             "The console's GP7 pull-up on CC reads low\n"
             "when a key is attached: that is DETECT.\n"
-            "SBU1/SBU2 unused.", jx - 7.62, jy + 30.48)
+            "SBU2 lights the LED (the console drives it);\n"
+            "SBU1 is open.", jx - 7.62, jy + 30.48)
     _finish(sh, name, b, "USB-C as plain wires: see hardware/key-pcb/PROPOSALS.md")
 
 
@@ -363,10 +380,11 @@ def write_pogo_schematic(name, b, syms):
 
 T, P, G = gen.TRACK, gen.PWR_TRACK, 0.4
 LAYOUT = {
-    "key-c-usbc": dict(parts={"J1": (0, -3.675, 0, "F"), "R1": (-2.4, -10.4, 90, "F"), "R2": (2.15, -10.0, 90, "F"),
+    "key-c-usbc": dict(parts={"J1": (0, -3.675, 0, "F"), "R1": (-2.86, -10.4, 180, "F"), "R2": (2.15, -10.0, 90, "F"),
                               "U2": (0, -12.5, 90, "F"), "C2": (0, -15.5, 90, "F"), "U1": (0, -20.675, 270, "F"),
                               "C1": (3.75, -18.2, 0, "F"), "TP1": (3.81, -18.6, 0, "B"), "TP2": (-3.81, -18.6, 0, "B"),
-                              "TP3": (-1.27, -18.6, 0, "B"), "TP4": (1.27, -18.6, 0, "B")},
+                              "TP3": (-1.27, -18.6, 0, "B"), "TP4": (1.27, -18.6, 0, "B"),
+                              "R3": (-5.0, -11.0, 90, "F"), "D1": (-5.0, -13.6, 270, "F")},
                        # The receptacle's middle pads run B7 A6 A7 B6: SCL SDA SCL SDA. SCL joins on the top
                        # just under the pads; SDA takes two vias and joins on the bottom, then comes up
                        # beside U2, which sits as close to the pads as the join allows (about 4 mm).
@@ -382,10 +400,15 @@ LAYOUT = {
                            # flow-through: pins 1/6 and 3/4 are one line each inside the USBLC6
                            ("/SDA", "F.Cu", T, [("pad", "U2", "1"), ("pad", "U2", "6")]),
                            ("/SCL", "F.Cu", T, [("pad", "U2", "3"), ("pad", "U2", "4")]),
-                           ("/CC1", "F.Cu", T, [("pad", "J1", "A5"), (-1.25, -8.3), (-2.0, -9.05), (-2.4, -9.45), ("pad", "R1", "1")]),
+                           # P3: CC1 runs straight up past SBU2 (B8) and turns left under it to R1. B8 comes out
+                           # between CC1 and VBUS and turns left over VBUS's via to the LED's resistor
+                           ("/CC1", "F.Cu", T, [("pad", "J1", "A5"), (-1.25, -10.0), (-1.65, -10.4), ("pad", "R1", "1")]),
+                           ("/LED", "F.Cu", T, [("pad", "J1", "B8"), (-1.75, -9.6), (-4.6, -9.6), (-5.0, -10.0), ("pad", "R3", "1")]),
+                           ("Net-(D1-A)", "F.Cu", T, [("pad", "R3", "2"), ("pad", "D1", "2")]),
+                           ("GND", "F.Cu", G, [("pad", "D1", "1"), (-5.0, -15.3)]),
                            ("/CC2", "F.Cu", T, [("pad", "J1", "B5"), (1.75, -8.3), (2.15, -8.7), ("pad", "R2", "1")]),
                            # grounds: short and wide, each straight to its own via
-                           ("GND", "F.Cu", G, [("pad", "R1", "2"), (-1.85, -11.5)]),
+                           ("GND", "F.Cu", G, [("pad", "R1", "2"), (-3.8, -11.1)]),
                            ("GND", "F.Cu", G, [("pad", "R2", "2"), (2.15, -11.2)]),
                            ("GND", "F.Cu", G, [("pad", "U2", "2"), (0, -10.35)]),
                            ("GND", "F.Cu", G, [("pad", "C2", "2"), (-0.85, -16.4)]),
@@ -408,9 +431,10 @@ LAYOUT = {
                        ],
                        vias=[("/SDA", -0.05, -9.0), ("/SDA", 1.35, -8.95), ("/SDA", -1.25, -12.5), ("/SDA", -1.6, -16.9),
                              ("/SCL", 1.6, -16.0),
-                             ("GND", -1.85, -11.5), ("GND", 2.15, -11.2), ("GND", 0, -10.35), ("GND", -0.85, -16.4),
+                             ("GND", -3.8, -11.1), ("GND", 2.15, -11.2), ("GND", 0, -10.35), ("GND", -0.85, -16.4),
+                             ("GND", -5.0, -15.3),
                              ("VCC", -2.9, -8.9), ("VCC", 0.85, -15.3), ("VCC", 2.9, -15.3),
-                             ("GND", -6.3, -6.0), ("GND", 6.3, -6.0), ("GND", -6.5, -11.0), ("GND", 6.5, -11.0),
+                             ("GND", -6.3, -6.0), ("GND", 6.3, -6.0), ("GND", -6.5, -12.0), ("GND", 6.5, -11.0),
                              ("GND", -6.5, -19.0), ("GND", 6.5, -19.0), ("GND", -6.5, -27.0), ("GND", 6.5, -27.0),
                              ("GND", -5.0, -33.3), ("GND", 5.0, -33.3)]),
     "key-d-pogo": dict(parts={"J1": (0, PAD_Y, 0, "B"), "U2": (0, -10.0, 90, "F"), "U1": (0, -17.6, 270, "F"),
@@ -452,7 +476,7 @@ def write_board(name, b, netlist, dump=False):
     ds.m_CopperEdgeClearance = pcbnew.FromMM(0.3)
     ds.SetAuxOrigin(gen._mm(-W / 2, 0))
     tb = board.GetTitleBlock()
-    tb.SetTitle(b["title"]); tb.SetDate(DATE); tb.SetRevision(REVS[name]); tb.SetCompany("PicoQuorum")
+    tb.SetTitle(b["title"]); tb.SetDate(DATES[name]); tb.SetRevision(REVS[name]); tb.SetCompany("PicoQuorum")
 
     nets = {}
     for n in sorted({net for comp in netlist.values() for net in comp["pads"].values()}):
@@ -492,7 +516,8 @@ def write_board(name, b, netlist, dump=False):
         fp.Reference().SetVisible(ref != "J1" and not ref.startswith("TP"))
         fp.Reference().SetTextSize(pcbnew.VECTOR2I(pcbnew.FromMM(0.8), pcbnew.FromMM(0.8)))
         fp.Reference().SetTextThickness(pcbnew.FromMM(0.12))
-    gen._place_refs(fps, {"U2": (1, 0), "R1": (-1, 0), "R2": (1, 0), "C1": (0, 0), "C2": (1, 0)} if name == "key-c-usbc"
+    gen._place_refs(fps, {"U2": (1, 0), "R1": (0, 0), "R2": (1, 0), "C1": (0, 0), "C2": (1, 0), "R3": (-1, 0),
+                          "D1": (-1, 0)} if name == "key-c-usbc"
                     else {"U2": (1, 0), "C1": (0, 0), "U1": (-1, 0)})
     if name == "key-c-usbc":
         # the receptacle's ground pads are small and boxed in by VBUS: join them to the pour solid,
@@ -632,7 +657,7 @@ def _silk(board, name, W, L):
     if name == "key-c-usbc":
         gen._text(board, "PICOQUORUM", 0, -26.8, F, 1.0)
         gen._text(board, "PicoQuorum key", 0, -23.9, B, 1.0, mirror=True)
-        gen._text(board, f"key-c {REVS[name]} {DATE[:7]}", 0, -22.5, B, 0.8, mirror=True)
+        gen._text(board, f"key-c {REVS[name]} {DATES[name][:7]}", 0, -22.5, B, 0.8, mirror=True)
         gen._text(board, "I2C on USB-C", 0, -21.3, B, 0.8, mirror=True)
         for ref, net in TPS:
             x, y, _, _ = LAYOUT[name]["parts"][ref]
@@ -640,7 +665,7 @@ def _silk(board, name, W, L):
     else:
         gen._text(board, "PICOQUORUM", 0, -L + 8.5, F, 1.2)
         gen._text(board, "PicoQuorum key", 0, -19.8, B, 1.2, mirror=True)
-        gen._text(board, f"key-d pogo {REVS[name]} {DATE[:7]}", 0, -18.2, B, 0.8, mirror=True)
+        gen._text(board, f"key-d pogo {REVS[name]} {DATES[name][:7]}", 0, -18.2, B, 0.8, mirror=True)
         for n, sig, _ in PADS:
             # pads are numbered as seen from the bottom, so pad n sits at x = (3 - n) * pitch from the top
             gen._text(board, "D" if sig == "DETECT" else sig[:3] if sig != "GND" else "G",
@@ -723,16 +748,19 @@ def read_netlist(name):
 
 def main():
     dump = "--dump" in sys.argv
+    only = [a for a in sys.argv[1:] if a in BOARDS]
+    boards = {name: b for name, b in BOARDS.items() if name in only or not only}
     syms = write_symbol_lib()
-    write_pads_footprint()
-    write_mark_footprint()
-    write_receptacle_footprint()
-    for name, b in BOARDS.items():
+    if not only:              # the footprints get new uuids each time: leave them be for one board
+        write_pads_footprint()
+        write_mark_footprint()
+        write_receptacle_footprint()
+    for name, b in boards.items():
         d = os.path.join(HERE, name)
         os.makedirs(d, exist_ok=True)
         gen.write_lib_tables(d)
         (write_usbc_schematic if name == "key-c-usbc" else write_pogo_schematic)(name, b, syms)
-    for name, b in BOARDS.items():
+    for name, b in boards.items():
         if dump:
             print(f"== {name}")
         write_board(name, b, read_netlist(name), dump=dump)
