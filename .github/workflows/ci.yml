@@ -13,12 +13,17 @@
 #             check, then Chromium against it served like Pages (no COOP/COEP headers), signing for
 #             real against the mock Safe service, and against docs/console/ served alone, as a copy
 #             on your own computer
+#
+# A change only to hardware/, cad/ or buildlog/ skips CI: nothing here builds or tests them. A change
+# that also touches anything else runs all of it.
 name: CI
 
 on:
   pull_request:
+    paths-ignore: ["hardware/**", "cad/**", "buildlog/**"]
   push:
     branches: [main]
+    paths-ignore: ["hardware/**", "cad/**", "buildlog/**"]
   workflow_call:
 
 permissions:
