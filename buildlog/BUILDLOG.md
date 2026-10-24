@@ -909,3 +909,13 @@ permanent step).
   `backups/`, gitignored), five files copied (`build.py`, `provision`, `quorum`, `quorum_ui_s`,
   `setup_s`), 62 of 62 hashes matching the build, `maint` removed, restart. `tools/fw verify`
   hasn't run. The signature the console held for #14 went with the restart.
+
+## 2026-10-24 — console-s3 ordered: the first console board
+
+Five console-s3 rev A boards from JLCPCB, Economic assembly on the front; the module goes on by
+hand. $96.72 with shipping and import, of which the boards are $50.85. The modules and panels are
+bought apart and not in that figure. Production file not confirmed; parts placement is.
+
+Notes: [2026-10-24-console-s3-order.md](2026-10-24-console-s3-order.md). Plan:
+[ORDER-PLAN-2026-10-24.md](../ORDER-PLAN-2026-10-24.md). Design:
+[hardware/console-s3](../hardware/console-s3/DESIGN.md).
