@@ -39,6 +39,11 @@ Console and key electronics. The goals are in [`../docs/KICKOFF.md`](../docs/KIC
   and can't reset it. JLCPCB places everything but the screen. Written by a script and checked by
   KiCad 9: the schematic, and a 70 × 28 mm board with every part placed and 3D renders; not routed,
   not ordered
+- [`picoquorum-key/`](picoquorum-key/README.md): PicoQuorumKey, a second S3 console designed apart
+  from console-s3, to order beside it and compare: the module on the back, the 1.14″ panel in a
+  ZIF, five buttons, the UDFN ATECC608C, 44 × 53 mm. Its own generators, 125 tests and fab files in
+  `hardware/out/rev-a/`. Its buttons aren't on the Feather's pins, so the console image needs a new
+  profile before it runs on it
 
 The inherited picowallet wiring (Pico + Waveshare LCD + ATECC608 + 18650) is in
 [`wiring/SOLDERING.md`](wiring/SOLDERING.md) and `tools/wiring`.

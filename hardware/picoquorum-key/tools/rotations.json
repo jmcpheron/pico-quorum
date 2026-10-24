@@ -1,0 +1,4 @@
+{
+  "_comment": "Rotation offsets (degrees, added to KiCad's rotation) per footprint, keyed by a substring of the footprint name. Start empty; fill in after checking JLCPCB's placement preview the first time. Common findings: SOT-23 family and SOIC often need 180 or -90; USB-C receptacles vary.",
+  "offsets": {}
+}

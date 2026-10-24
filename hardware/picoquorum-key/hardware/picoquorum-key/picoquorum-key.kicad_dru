@@ -1,0 +1,24 @@
+(version 1)
+# JLCPCB's limits for a 2-layer, 1.6 mm, 1 oz board that the project's own rules (Board Setup >
+# Constraints, in picoquorum-key.kicad_pro) don't already enforce, so DRC flags them while you edit.
+# Numbers from tests/jlc_limits.py (https://jlcpcb.com/capabilities/pcb-capabilities, read
+# 2026-10-23); tests/test_jlc_rules.py checks they agree, and that each rule fires.
+# The board's own minimums are stricter for everything else (tracks, clearance, vias, edge, silk).
+
+(rule "JLC: plated hole annular ring"
+	(constraint annular_width (min 0.18mm))
+	(condition "A.Type == 'Pad' && A.Pad_Type == 'Through-hole'"))
+
+(rule "JLC: plated hole to other copper"
+	(constraint hole_clearance (min 0.28mm))
+	(condition "A.Type == 'Pad' && A.Pad_Type == 'Through-hole' && A.Net != B.Net"))
+
+# The two hole_size rules cover separate holes: where two rules match one item KiCad merges them,
+# and reports the result under the later rule's name.
+(rule "JLC: non-plated hole size"
+	(constraint hole_size (min 0.5mm) (max 6.3mm))
+	(condition "A.Type == 'Pad' && A.Pad_Type == 'NPTH, mechanical'"))
+
+(rule "JLC: largest drill"
+	(constraint hole_size (max 6.3mm))
+	(condition "A.Type == 'Via' || (A.Type == 'Pad' && A.Pad_Type != 'NPTH, mechanical')"))
