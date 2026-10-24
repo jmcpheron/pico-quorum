@@ -36,7 +36,7 @@ OUT = os.path.join(HERE, NAME)
 DATE = "2026-10-24"
 TITLE = "PicoQuorum console-s3, rev A: ESP32-S3-WROOM-1 on the back, 1.14in ST7789 in a ZIF, 5 buttons, ATECC608C on board"
 NOTE = "The S3 console on one board: see hardware/console-s3/DESIGN.md"
-SRC = "github.com/jmcpheron/pico-quorum"        # the Source Location, CERN-OHL-W 4.1
+SRC = "PicoQuorum.app"        # the Source Location (CERN-OHL-W v2, section 4.1): the site links to the source
 WROOM_DS = "https://www.espressif.com/sites/default/files/documentation/esp32-s3-wroom-1_wroom-1u_datasheet_en.pdf"
 ATECC_DS = gen.ATECC_DS
 
@@ -49,7 +49,11 @@ EDGE = 0.3               # copper to edge (JLCPCB: 0.3 on a 2-layer board)
 CLEAR = 0.2              # the Default netclass clearance
 HOLE_CLEAR = 0.25        # copper to a plain hole (JLCPCB's minimum)
 TRACK, VIA, DRILL = 0.25, 0.6, 0.3
+MIN_TRACK = 0.127        # JLCPCB's narrowest track on 2 layers: Freerouting necks some below TRACK
+HOLE_GAP = 0.5           # drilled hole to drilled hole, wall to wall (KiCad's board setup; JLCPCB's)
 HOLES = [("H1", (2.2, 2.2)), ("H2", (2.2, H - 2.2))]   # 2.2 mm for M2, at the USB end only: the far end is the antenna's
+HOLE_RING = 2.5          # no track and no via this close to a hole's centre, on either side: an M2 washer is 5 mm across
+SILK_H, SILK_W = 1.0, 0.8   # silkscreen text, height and width: JLCPCB reads nothing under 1.0 mm tall or 0.15 mm a stroke
 
 # The module: ESP32-S3-WROOM-1-N4R2, Espressif's datasheet v1.8 (Figure 11-1, the land pattern).
 # On the back, its antenna end flush with the right edge. N4R2 is quad PSRAM: an R8 (octal) takes
@@ -69,7 +73,8 @@ PANEL = dict(glass=(31.0, 17.0), active=(24.912, 14.864), active_dy=0.0, rows=13
              fold=5.7,           # ribbon used by the fold under the glass
              reversed=False,     # True if the fold puts the ribbon's pin 1 at the ZIF's pin 8
              foam=2.0)           # tape thickness: everything under the glass is lower than this
-GLASS = (17.0, YC - PANEL["glass"][1] / 2, 17.0 + PANEL["glass"][0], YC + PANEL["glass"][1] / 2)
+GLASS_X = 18.5            # the glass's left end: room beside J1's pads for the D column and a channel of tracks
+GLASS = (GLASS_X, YC - PANEL["glass"][1] / 2, GLASS_X + PANEL["glass"][0], YC + PANEL["glass"][1] / 2)
 ROW = PANEL["active"][1] / PANEL["rows"]
 # The ribbon's pins, one seller's order: LEDA, GND, RESET, RS (DC), SDA, SCL, VDD, CS. LEDK is
 # joined to GND inside, so the backlight is switched on the high side.
@@ -84,12 +89,10 @@ _NAMES = {4: "IO4", 5: "IO5", 6: "IO6", 7: "IO7", 8: "IO15", 9: "IO16", 10: "IO1
           23: "IO21", 24: "IO47", 25: "IO48", 26: "IO45", 27: "IO0", 28: "IO35", 29: "IO36", 30: "IO37", 31: "IO38",
           32: "IO39", 33: "IO40", 34: "IO41", 35: "IO42", 36: "RXD0", 37: "TXD0", 38: "IO2", 39: "IO1"}
 GPIO_OF = {n: (44 if s == "RXD0" else 43 if s == "TXD0" else int(s[2:])) for n, s in _NAMES.items()}
-# The nets by GPIO: the Feather's (firmware/board.py, "feather-s3"), USB, and the two new buttons
+# The nets by GPIO: the Feather's (firmware/board.py, "feather-s3") and USB
 BY_GPIO = {40: "/LCD_DC", 42: "/LCD_CS", 36: "/LCD_SCK", 35: "/LCD_MOSI", 41: "/LCD_RST", 45: "/LCD_BL",
            0: "/BTN_D0", 1: "/BTN_D1", 2: "/BTN_D2", 3: "/SDA", 4: "/SCL", 13: "/LED",
-           19: "/USB_DN", 20: "/USB_DP", 43: "/TXD0", 44: "/RXD0",
-           5: "/BTN_PREV", 6: "/BTN_BACK"}
-NEW_BUTTONS = {"PREV": 5, "BACK": 6}       # today's image never reads these; a "console-s3" profile would
+           19: "/S3_DN", 20: "/S3_DP", 43: "/TXD0", 44: "/RXD0"}
 for n, s in _NAMES.items():
     MODULE[n] = (s, _B, BY_GPIO.get(GPIO_OF[n]))
 MODULE[40] = ("GND", "power_in", "GND")
@@ -100,9 +103,10 @@ USBC = {"A1": "GND", "A4": "VBUS", "A5": "/CC1", "A6": "/USB_DP", "A7": "/USB_DN
         "B1": "GND", "B4": "VBUS", "B5": "/CC2", "B6": "/USB_DP", "B7": "/USB_DN", "B8": None, "B9": "VBUS", "B12": "GND",
         "SH": "GND"}
 # The buttons: (ref, label, net, the other side). D0 is the S3's BOOT strap: low when pressed, with
-# a pull-up. D1 and D2 are high when pressed, pulled down, as on the Feather (board.HIGH).
+# a pull-up. D1 and D2 are high when pressed, pulled down, as on the Feather (board.HIGH). BOOT is
+# D0 again, on the far side; RESET pulls EN low, as on Espressif's boards.
 SWITCHES = [("SW1", "D0", "/BTN_D0", "GND"), ("SW2", "D1", "/BTN_D1", "+3V3"), ("SW3", "D2", "/BTN_D2", "+3V3"),
-            ("SW4", "PREV", "/BTN_PREV", "GND"), ("SW5", "BACK", "/BTN_BACK", "GND")]
+            ("SW4", "BOOT", "/BTN_D0", "GND"), ("SW5", "RESET", "/EN", "GND")]
 TESTPADS = [("TP1", "3V3", "+3V3"), ("TP2", "GND", "GND"), ("TP3", "EN", "/EN"), ("TP4", "TX", "/TXD0"), ("TP5", "RX", "/RXD0"),
             ("TP6", "GND", "GND"), ("TP7", "3V3", "+3V3"), ("TP8", "SDA", "/SDA"), ("TP9", "SCL", "/SCL")]
 
@@ -148,7 +152,9 @@ NETS.update({("U2", "1"): "unconnected-(U2-NC-Pad1)", ("U2", "2"): "unconnected-
              ("U2", "7"): "unconnected-(U2-NC-Pad7)", ("U2", "8"): "+3V3", ("U2", "9"): "GND",
              ("U3", "1"): "VBUS", ("U3", "2"): "GND", ("U3", "3"): "VBUS", ("U3", "4"): "unconnected-(U3-NC-Pad4)",
              ("U3", "5"): "+3V3",
-             ("U4", "1"): "/USB_DP", ("U4", "2"): "GND", ("U4", "3"): "/USB_DN", ("U4", "4"): "/USB_DN",
+             # USB runs through U4: J1's side in on pins 6 and 4, the S3's out on 1 and 3. Pins 1 and 6, and 3
+             # and 4, are joined inside it (ST's datasheet, Figures 16 and 18), so no stub can hang off a line
+             ("U4", "1"): "/S3_DP", ("U4", "2"): "GND", ("U4", "3"): "/S3_DN", ("U4", "4"): "/USB_DN",
              ("U4", "5"): "VBUS", ("U4", "6"): "/USB_DP",
              ("Q1", "1"): "/BL_B", ("Q1", "2"): "GND", ("Q1", "3"): "/BL_G",
              ("Q2", "1"): "/BL_G", ("Q2", "2"): "+3V3", ("Q2", "3"): "/BL_D"})
@@ -156,35 +162,40 @@ for ref, _label, net in TESTPADS:
     NETS[ref, "1"] = net
 
 # --- parts: footprint, value, fields, board position, rotation, side --------------------------------
+# Rotations are KiCad's (counter-clockwise on the page). Until 2026-10-23 console-pocket's rotate()
+# turned the other way, so every 90 here was meant as -90: these are the old values swapped, which
+# puts each pad where the placement was worked out for (KiCad read the old board with the module's
+# antenna mid-board and J1's pads off the edge).
 # LCSC numbers and tiers from JLCPCB's part pages, 2026-10-24 (DESIGN.md). Check stock when uploading.
 PARTS = {
-    "U1": dict(fp="ESP32-S3-WROOM-1", value=MODULE_MPN, at=MOD_AT, rot=-90, side="B", in_bom=False,
+    "U1": dict(fp="ESP32-S3-WROOM-1", value=MODULE_MPN, at=MOD_AT, rot=90, side="B", in_bom=False,
                fields=[("Datasheet", WROOM_DS), ("MPN", MODULE_MPN),
                        ("Description", f"ESP32-S3 module, 4 MB flash, 2 MB quad PSRAM, on the back; JLCPCB {MODULE_LCSC} is Standard-only: hand-soldered")]),
-    "U2": dict(fp="DFN-8-1EP_3x2mm_P0.5mm", value="ATECC608C", at=(22.0, 16.5), rot=0,
+    "U2": dict(fp="DFN-8-1EP_3x2mm_P0.5mm", value="ATECC608C", at=(23.5, 16.5), rot=0,
                fields=[("Datasheet", ATECC_DS), ("LCSC", "C23291019"), ("MPN", "ATECC608C-MAHDA-S"),
                        ("Description", "The console's key: ECC P-256 secure element, I2C 0x60, UDFN-8 2x3 mm, the part key-b uses")]),
-    "U3": dict(fp="SOT-23-5", value="ME6211C33", at=(22.0, 6.5), rot=0,
+    "U3": dict(fp="SOT-23-5", value="ME6211C33", at=(23.5, 6.5), rot=0,
                fields=[("LCSC", "C82942"), ("MPN", "ME6211C33M5G-N"), ("Description", "3.3 V LDO, 500 mA, from USB's 5 V; CE tied to VIN")]),
-    "U4": dict(fp="SOT-23-6", value="USBLC6-2SC6", at=(6.0, 19.6), rot=0,
+    "U4": dict(fp="SOT-23-6", value="USBLC6-2SC6", at=(7.5, 2.85), rot=0,     # below J1, clear of H1's ring
                fields=[("LCSC", "C7519"), ("MPN", "USBLC6-2SC6"), ("Description", "ESD on D+ and D-, and its rail clamps VBUS")]),
-    "Q1": dict(fp="SOT-23", value="S8050", at=(37.0, 6.0), rot=0,
+    "Q1": dict(fp="SOT-23", value="S8050", at=(38.5, 6.0), rot=0,
                fields=[("LCSC", "C2150"), ("MPN", "SS8050"), ("Description", "NPN: GPIO45 high pulls Q2's gate low. 1 B, 2 E, 3 C")]),
-    "Q2": dict(fp="SOT-23", value="AO3401A", at=(41.5, 6.0), rot=0,
+    "Q2": dict(fp="SOT-23", value="AO3401A", at=(43.0, 6.0), rot=0,
                fields=[("LCSC", "C15127"), ("MPN", "AO3401A"), ("Description", "P-MOSFET high-side backlight switch. 1 G, 2 S, 3 D")]),
-    "J1": dict(fp="USB_C_Receptacle_HCTL_HC-TYPE-C-16P-01A", value="USB-C", at=(3.675, YC), rot=90,
+    "J1": dict(fp="USB_C_Receptacle_HCTL_HC-TYPE-C-16P-01A", value="USB-C", at=(3.675, YC), rot=-90,
                fields=[("LCSC", "C2894897"), ("MPN", "HC-TYPE-C-16P-01A"),
                        ("Description", "USB-C receptacle, key-c's part: power and the S3's own USB (serial, esptool)")]),
-    "J2": dict(fp="FPC_ZIF_8P_P0.5mm_HDGC_0.5K-HX-8PWB", value="PANEL", rot=-90,
+    "J2": dict(fp="FPC_ZIF_8P_P0.5mm_HDGC_0.5K-HX-8PWB", value="PANEL", rot=90,
                at=(GLASS[2] + 1.0 - (PANEL["tail"] - PANEL["fold"]) + 1.0, YC),
                fields=[("LCSC", "C2919492"), ("MPN", "0.5K-HX-8PWB"),
                        ("Description", "8-pin 0.5 mm FPC ZIF, rear flip, contacts both sides: the panel's ribbon clips in")]),
 }
-_TWO_AT = {"R1": ((41.5, 2.8), 0), "R2": ((37.0, 9.2), 0), "R3": ((37.0, 2.8), 0), "R4": ((41.5, 9.2), 0),
-           "R5": ((18.4, 17.5), 90), "R6": ((18.4, YC), 90), "R7": ((18.4, 5.4), 90), "R8": ((51.5, 9.4), 0),
-           "R9": ((55.0, 11.4), 0), "R10": ((6.0, 4.6), 0), "R11": ((6.0, 2.4), 0), "R12": ((26.5, 17.5), 90),
-           "R13": ((28.5, 17.5), 90), "C1": ((22.0, 3.8), 0), "C2": ((26.0, 6.5), 90), "C3": ((51.5, 13.4), 0),
-           "C4": ((51.5, 11.4), 0), "C5": ((22.0, 19.0), 0), "C6": ((32.5, 16.2), 0), "C7": ((55.0, 9.4), 0),
+# C3 and C4 under RESET, against the bottom edge: over the module's 3V3 and ground pins (2 and 1)
+_TWO_AT = {"R1": ((43.0, 2.8), 0), "R2": ((38.5, 9.2), 0), "R3": ((38.5, 2.8), 0), "R4": ((43.0, 9.2), 0),
+           "R5": ((19.9, 17.5), -90), "R6": ((19.9, YC), -90), "R7": ((19.9, 5.4), -90), "R8": ((52.2, 10.4), -90),
+           "R9": ((55.0, 11.4), 0), "R10": ((6.0, 17.6), 180), "R11": ((6.0, 5.35), 180), "R12": ((28.0, 17.5), -90),
+           "R13": ((30.0, 17.5), -90), "C1": ((23.5, 3.8), 0), "C2": ((27.5, 6.5), -90), "C3": ((52.4, 1.1), 0),
+           "C4": ((55.4, 1.1), 0), "C5": ((23.5, 19.0), 180), "C6": ((34.0, 16.2), 0), "C7": ((55.0, 9.65), 0),
            "D1": ((55.0, 13.4), 0)}
 for ref, (value, fp, _n1, _n2, lcsc, desc) in TWO.items():
     at, rot = _TWO_AT[ref]
@@ -199,7 +210,7 @@ def rail_y():
     return [YC + PANEL["active_dy"] + (mid - r) * ROW for r in rows]
 
 
-SW_X = (12.6, 53.5)      # the D column left of the glass, PREV and BACK right of it
+SW_X = (14.7, 53.5)      # the D column left of the glass, BOOT and RESET right of it; 14.7 leaves a 3 mm channel beside J1's pads
 SW_LCSC, SW_MPN = "C318884", "TS-1187A-B-A-B"
 for p in PARTS.values():
     p.setdefault("side", "F"); p.setdefault("dnp", False); p.setdefault("in_bom", True)
@@ -210,7 +221,8 @@ def place_switches():
     at = {"SW1": (SW_X[0], y0), "SW2": (SW_X[0], y1), "SW3": (SW_X[0], y2), "SW4": (SW_X[1], y0), "SW5": (SW_X[1], y2)}
     for ref, label, net, other in SWITCHES:
         what = {"D0": "Reject (today's image); BOOT when held at reset", "D1": "Next", "D2": "Sign, held; Open",
-                "PREV": "Previous (a later console-s3 profile)", "BACK": "Back (a later console-s3 profile)"}[label]
+                "BOOT": "GPIO0, as D0: held through RESET, the S3 starts its ROM loader",
+                "RESET": "EN to ground: the S3 restarts"}[label]
         PARTS[ref] = dict(fp="SW_TS-1187A", value=label, at=(round(at[ref][0], 3), round(at[ref][1], 3)), rot=0, side="F",
                           dnp=False, in_bom=True,
                           fields=[("LCSC", SW_LCSC), ("MPN", SW_MPN), ("Description", f"{label}: {what}. 5.1x5.1x1.5 mm tact, {net.lstrip('/')} to {other}")])
@@ -264,11 +276,6 @@ def check_firmware():
                 bad.append(f"{label} switches to {other}, board.py reads it {'high' if high else 'low'} when pressed")
     if net_of.get(p["POWER"]) is not None:
         bad.append(f"GPIO{p['POWER']} (board.POWER, driven high at import) carries {net_of[p['POWER']]}; it must drive nothing here")
-    used = set(want) | {p["POWER"]}
-    forbidden = used | set(range(26, 38)) | {0, 3, 19, 20, 43, 44, 45, 46}   # flash/PSRAM, straps, USB, UART0
-    for label, g in NEW_BUTTONS.items():
-        if g in forbidden:
-            bad.append(f"{label} is on GPIO{g}, which is taken or unsafe")
     if "R8" in MODULE_MPN.split("-")[-1]:
         bad.append(f"{MODULE_MPN} has octal PSRAM, which takes GPIO35-37")
     if bad:
@@ -409,7 +416,6 @@ def write_schematic(syms):
     sh.text("ESP32-S3-WROOM-1-N4R2 on the back, hand-soldered.\n"
             "The Feather ESP32-S3 Reverse TFT's GPIOs (firmware/board.py,\n"
             "\"feather-s3\"), so today's console image runs unchanged.\n"
-            "PREV (GPIO5) and BACK (GPIO6) are new: no image reads them yet.\n"
             "Never an R8 module: octal PSRAM takes GPIO35-37.", mx - 20.32, my + 38.1)
     for k, (net, x) in enumerate((("GND", 22.86), ("VBUS", 40.64))):
         sh.power(net, x, 20.32)
@@ -448,7 +454,7 @@ def write_schematic(syms):
         two(ref, 22.86 + 15.24 * k, 144.78)
     sh.text("D0, D1, D2: the Feather's buttons on its GPIOs. D0 is BOOT: low\n"
             "when pressed, R5 up. D1, D2 high when pressed, R6 and R7 down.\n"
-            "PREV and BACK pull low on the S3's internal pull-ups.", 20.32, 185.42)
+            "BOOT is D0 again; RESET pulls EN low.", 20.32, 185.42)
     for ref, x, y in (("R8", 106.68, 147.32), ("C7", 116.84, 147.32), ("C3", 129.54, 147.32), ("C4", 139.7, 147.32),
                       ("R9", 160.02, 147.32), ("D1", 160.02, 167.64)):
         two(ref, x, y)
@@ -474,9 +480,11 @@ def _crtyd(x0, y0, x1, y1):
 def fp_module():
     """Espressif's land pattern (datasheet v1.8, Figure 11-1), antenna up (-y): pads 1.5 x 0.9 at
     1.27 mm, reaching 0.5 mm past the module's edge; pin 1 7.49 mm below the antenna end, the
-    bottom row from 2.015 mm in. The exposed pad is the 3.7 mm block of nine, read as 7.5 mm from
-    the pin-1 side and 10.29 mm from the bottom edge to its near sides; one pad here, bare, no paste
-    (soldering it is optional: section 9)."""
+    bottom row from 2.015 mm in. The exposed pad is the 3.7 mm block of nine, its centre 7.5 mm from
+    the pin-1 side and 10.29 mm from the bottom edge, where KiCad's own RF_Module footprint has it
+    (until 2026-10-23 these were read as distances to its near sides, 1.85 mm off); one pad here,
+    bare, no paste (soldering it is optional: section 9). The silkscreen stops short of the antenna
+    end, which is the board's edge."""
     hw, hl = MOD_W / 2, MOD_L / 2
     y1 = -hl + 7.49
     items = []
@@ -486,11 +494,11 @@ def fp_module():
         items.append(_pad(str(n), "smd", "rect", -hw + 2.015 + 1.27 * (n - 15), hl - 0.25, 0.9, 1.5))
     for n in range(27, 41):
         items.append(_pad(str(n), "smd", "rect", hw - 0.25, hl - 1.5 - 1.27 * (n - 27), 1.5, 0.9))
-    items.append(_pad("41", "smd", "rect", -hw + 7.5 + 1.85, hl - 10.29 - 1.85, 3.7, 3.7, layers=["F.Cu", "F.Mask"]))
+    items.append(_pad("41", "smd", "rect", -hw + 7.5, hl - 10.29, 3.7, 3.7, layers=["F.Cu", "F.Mask"]))
     items += [("rect", -hw, -hl, hw, hl, "F.Fab", 0.1, False), ("rect", -hw, -hl, hw, -hl + MOD_ANT, "F.Fab", 0.1, False),
               ("text", "antenna: no copper", 0, -hl + 3.0, 0, "F.Fab", 0.8), _crtyd(-hw - 0.75, -hl - 0.25, hw + 0.75, hl + 0.75),
-              ("line", -hw, -hl, hw, -hl, "F.SilkS", 0.12), ("line", -hw, -hl, -hw, y1 - 1.0, "F.SilkS", 0.12),
-              ("line", hw, -hl, hw, y1 - 1.0, "F.SilkS", 0.12), ("circle", -hw - 1.0, y1, 0.3, "F.SilkS", 0.12, True)]
+              ("line", -hw, -hl + 0.5, -hw, y1 - 1.0, "F.SilkS", 0.12),
+              ("line", hw, -hl + 0.5, hw, y1 - 1.0, "F.SilkS", 0.12), ("circle", -hw - 1.0, y1, 0.3, "F.SilkS", 0.12, True)]
     return dict(items=items, attr="smd exclude_from_pos_files exclude_from_bom",
                 descr="ESP32-S3-WROOM-1, Espressif's recommended land pattern (datasheet v1.8, Figure 11-1): 40 pads 1.5x0.9 at 1.27 mm, "
                       "the exposed pad as one 3.7 mm pad without paste. Keep the 18x6 mm antenna end free of copper on every layer",
@@ -554,7 +562,8 @@ def fp_usbc():
             ("B12", -3.2, -3.795, 0.6, 1.2)]
     items = [_pad(n, "smd", "roundrect", x, y, w, h) for n, x, y, w, h in pads]
     items += [_pad("", "np_thru_hole", "circle", x, -2.605, 0.65, 0.65, 0.65, layers=["*.Mask"]) for x in (-2.89, 2.89)]
-    items += [_pad("SH", "thru_hole", "oval", x, y, 1.0, h, ("oval", 0.6, h - 0.4)) for x in (-4.32, 4.32)
+    # the shell's slots as key-c's, their pads 0.1 mm bigger than key-c's: a 0.25 mm ring, not JLCPCB's bare 0.2
+    items += [_pad("SH", "thru_hole", "oval", x, y, 1.1, h + 0.1, ("oval", 0.6, h - 0.4)) for x in (-4.32, 4.32)
               for y, h in ((-3.105, 2.1), (1.075, 1.6))]
     items += [("rect", -4.47, -3.675, 4.47, 3.675, "F.Fab", 0.1, False), _crtyd(-5.32, -4.9, 5.32, 4.18),
               ("text", "board edge", 0, 3.4, 0, "F.Fab", 0.6)]
@@ -694,6 +703,87 @@ def edge_ok(rect, margin):
     return True
 
 
+def _pt_seg(p, a, b):
+    """Distance from point p to the segment a-b."""
+    dx, dy = b[0] - a[0], b[1] - a[1]
+    t = 0.0 if dx == dy == 0 else max(0.0, min(1.0, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / (dx * dx + dy * dy)))
+    return math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy)
+
+
+def _seg_seg(a, b, c, d):
+    """Distance between the segments a-b and c-d, 0 where they cross."""
+    side = lambda p, q, r: (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0])
+    if side(a, b, c) * side(a, b, d) < 0 and side(c, d, a) * side(c, d, b) < 0:
+        return 0.0
+    return min(_pt_seg(a, c, d), _pt_seg(b, c, d), _pt_seg(c, a, b), _pt_seg(d, a, b))
+
+
+def capsule(cx, cy, w, h):
+    """A round or oval pad or hole, w x h at (cx, cy), as ("cap", a, b, r): every point within r of
+    the segment a-b. A track is one too, and a via."""
+    r = min(w, h) / 2
+    if w >= h:
+        return ("cap", (cx - w / 2 + r, cy), (cx + w / 2 - r, cy), r)
+    return ("cap", (cx, cy - h / 2 + r), (cx, cy + h / 2 - r), r)
+
+
+def copper_gap(p, q):
+    """Distance between two shapes, each a capsule or ("rect", x0, y0, x1, y1, r): the rect grown by
+    r, a rounded pad's shape (r 0 for a square-cornered one). At most 0 where they meet."""
+    if p[0] == "rect" and q[0] == "rect":
+        return _gap(p[1:5], q[1:5]) - p[5] - q[5]
+    if p[0] == "rect":
+        p, q = q, p
+    _c, a, b, r = p
+    if q[0] == "cap":
+        return _seg_seg(a, b, q[1], q[2]) - r - q[3]
+    x0, y0, x1, y1, rr = q[1:]
+    if any(x0 <= x <= x1 and y0 <= y <= y1 for x, y in (a, b)):
+        return -r - rr
+    sides = (((x0, y0), (x1, y0)), ((x1, y0), (x1, y1)), ((x1, y1), (x0, y1)), ((x0, y1), (x0, y0)))
+    return min(_seg_seg(a, b, c, d) for c, d in sides) - r - rr
+
+
+def j1_body():
+    """J1's shell where it sits on the front, from its mouth at the edge to just short of its pads
+    (page mm): no front track and no via goes under its metal."""
+    return rect_page(0.0, YC - 4.47, 6.5, YC + 4.47)
+
+
+# J1's pads and the chip's bus, routed by hand and locked, so the router (tools/keypcb route) goes on from them: (net,
+# layer, path) in board mm. The ten live pads run GND, VBUS, CC1, D-, D+, D-, D+, CC2, VBUS, GND
+# down a 6.4 mm column, and the two pairs interleave, so a router taking the shortest way closes D+
+# round D-'s middle pad (Freerouting left A6 unrouted). Here each pair is joined beside J1: the D-
+# pads on the front in a loop round A6, which drops to the back inside it and meets B6 there. CC1
+# climbs to R10 and CC2 drops to R11; VBUS's pads drop to the back and join there. D+ goes on down
+# the back and up to U4's pin 6 (Freerouting found no way between CC2, VBUS and D-). The router takes
+# D- and VBUS on from any of this copper. And the chip's SDA and SCL, at 0.5 mm pitch between
+# 3V3 and the pull-ups, each go straight to a via of its own: left to itself, Freerouting walled
+# pin 6 in. C5 joins the chip directly: its 3V3 pad to pin 8, its ground pad to the exposed pad
+# (Freerouting had joined C5 to pin 8 through 35 mm of the 3V3 net).
+ESCAPE = [
+    ("/CC1", "F.Cu", [(7.5, 12.68), (8.5, 12.68), (8.5, 13.18), (9.5, 13.18), (9.5, 17.43), (7.0, 17.43)]),
+    ("/USB_DN", "F.Cu", [(7.5, 12.18), (9.0, 12.18), (9.0, 12.68), (10.75, 12.68), (10.75, 10.93)]),
+    ("/USB_DN", "F.Cu", [(7.5, 11.18), (9.0, 11.18), (9.0, 10.93), (10.75, 10.93)]),
+    ("/USB_DP", "F.Cu", [(7.5, 11.68), (9.75, 11.68)]),
+    ("/USB_DP", "F.Cu", [(7.5, 10.68), (8.5, 10.68), (8.5, 10.18), (10.1, 10.18)]),
+    ("/USB_DP", "B.Cu", [(9.75, 11.68), (10.1, 11.68), (10.1, 10.18), (10.1, 4.6)]),
+    ("/USB_DP", "F.Cu", [(10.1, 4.6), (9.3, 3.8), (8.6375, 3.8)]),
+    ("/CC2", "F.Cu", [(7.5, 9.68), (9.5, 9.68), (9.5, 5.43), (7.0, 5.43)]),
+    ("VBUS", "F.Cu", [(7.5, 13.93), (8.75, 13.93)]),
+    ("VBUS", "F.Cu", [(7.5, 8.93), (8.75, 8.93)]),
+    ("VBUS", "B.Cu", [(8.75, 13.93), (8.75, 8.93)]),
+    ("/SDA", "F.Cu", [(24.95, 15.75), (25.75, 15.75), (25.75, 15.0)]),
+    ("/SCL", "F.Cu", [(24.95, 16.25), (26.5, 16.25)]),
+    ("+3V3", "F.Cu", [(24.275, 19.0), (24.275, 18.2), (24.95, 17.525), (24.95, 17.25)]),
+    ("GND", "F.Cu", [(22.725, 19.0), (22.725, 18.3), (23.5, 17.525), (23.5, 16.5)]),
+    ("GND", "F.Cu", [(22.363, 6.5), (23.5, 6.5)]),       # U3's ground pin, its heat path, to a via under its body
+]
+ESCAPE_VIAS = [("/USB_DP", 9.75, 11.68), ("/USB_DP", 10.1, 10.18), ("/USB_DP", 10.1, 4.6),
+               ("VBUS", 8.75, 13.93), ("VBUS", 8.75, 8.93), ("/SDA", 25.75, 15.0), ("/SCL", 26.5, 16.25),
+               ("GND", 23.5, 6.5)]
+
+
 # =================================================================================================
 # The board file
 # =================================================================================================
@@ -748,40 +838,56 @@ def footprint_text(ref, p, nets, path_uuid):
             net = NETS.get((ref, it[1])) if it[1] else None
             if net:
                 t += f' (net {nets[net]} "{net}")'
+                if ref == "J1" and net == "GND" and it[2] == "smd":
+                    t += " (zone_connect 2)"      # solid to the pour: hemmed in by VBUS and the shell, a thermal gets one spoke
+                if (ref, it[1]) == ("U3", "2"):
+                    t += " (zone_connect 2)"      # solid to the pour: U3's heat leaves by its ground pin
             t += f' (uuid "{uid()}"))'
         lines.append(t)
     lines += ["\t\t(embedded_fonts no)", "\t)"]
     return "\n".join(lines)
 
 
-def mark_text(x, y):
-    """The PicoQuorum mark on the back, as a board-only footprint (console-pocket's way)."""
-    src = open(os.path.join(LIB, "picoquorum.pretty", "PicoQuorum_Mark.kicad_mod")).read()
-    body = src[src.index("\n(fp_poly"):src.rindex("\n(embedded_fonts")]
-    body = re.sub(r"\(xy ([\-\d.]+) ([\-\d.]+)\)", lambda m: f"(xy {m.group(1)} {f(-float(m.group(2)))})", body)
-    body = re.sub(r"\(center ([\-\d.]+) ([\-\d.]+)\) \(end ([\-\d.]+) ([\-\d.]+)\)",
-                  lambda m: f"(center {m.group(1)} {f(-float(m.group(2)))}) (end {m.group(3)} {f(-float(m.group(4)))})", body)
-    body = body.replace('"F.SilkS"', '"B.SilkS"')
-    px, py = page(x, y)
-    return (f'\t(footprint "picoquorum:PicoQuorum_Mark" (layer "B.Cu") (uuid "{uid()}") (at {f(px)} {f(py)})\n'
-            f'\t\t(descr "The PicoQuorum mark, one colour, for silkscreen: docs/BRAND.md")\n\t\t(tags "logo")\n'
-            + _prop("Reference", "LOGO1", 0, -4, "B.SilkS", hide=True, back=True).replace("\t(", "\t\t(", 1) + "\n"
-            + _prop("Value", "PicoQuorum_Mark", 0, 4, "B.Fab", hide=True, back=True).replace("\t(", "\t\t(", 1) + "\n"
-            + "\t\t(attr board_only exclude_from_pos_files exclude_from_bom allow_missing_courtyard)\n"
-            + body.strip("\n").replace("\n(", "\n\t\t(").replace("(fp_", "\t\t(fp_", 1) + "\n\t\t(embedded_fonts no)\n\t)")
+def _logo(name):
+    """A logo's shapes from lib/picoquorum.pretty, as its file holds them"""
+    src = open(os.path.join(LIB, "picoquorum.pretty", name + ".kicad_mod")).read()
+    return src, src[re.search(r"\n\(fp_", src).start():src.rindex("\n(embedded_fonts")]
 
 
-def gr_text(s, x, y, layer, size=1.0, rot=0):
+def logo_items(name, x, y, k, side):
+    """A logo's shapes as board silkscreen, its origin at board (x, y), k times its size: plain shapes,
+    so nothing ties them to the library copy they were scaled from. On the back they are mirrored left
+    to right, so the logo reads the right way up from the back; a ring keeps its 0.15 mm line."""
+    sx, layer = (-1, "B.SilkS") if side == "B" else (1, "F.SilkS")
+    ox, oy = page(x, y)
+
+    def at(lx, ly):
+        return ox + sx * float(lx) * k, oy + float(ly) * k
+    body, out = _logo(name)[1], []
+    for pts in re.findall(r"\(fp_poly \(pts (.*?)\) \(stroke", body):
+        xy = " ".join("(xy {} {})".format(*map(f, at(a, b))) for a, b in re.findall(r"\(xy ([\-\d.]+) ([\-\d.]+)\)", pts))
+        out.append(f'\t(gr_poly (pts {xy}) (stroke (width 0) (type solid)) (fill yes) (layer "{layer}") (uuid "{uid()}"))')
+    for cx, cy, ex, w in re.findall(r"\(fp_circle \(center ([\-\d.]+) ([\-\d.]+)\) \(end ([\-\d.]+) [\-\d.]+\) \(stroke \(width ([\d.]+)\)", body):
+        r, w = abs(float(ex) - float(cx)), float(w)
+        r = r * k if w == 0 else (r + w / 2) * k - w / 2
+        x0, y0 = at(cx, cy)
+        out.append(f'\t(gr_circle (center {f(x0)} {f(y0)}) (end {f(x0 + r)} {f(y0)}) (stroke (width {f(w)}) (type solid)) '
+                   f'(fill {"yes" if w == 0 else "no"}) (layer "{layer}") (uuid "{uid()}"))')
+    return out
+
+
+def gr_text(s, x, y, layer, size=1.0, rot=0, width=None):
+    """size is the height; width, if given, the characters' width (KiCad writes size as height, width)"""
     px, py = page(x, y)
     j = " (justify mirror)" if layer.startswith("B.") else ""
     return (f'\t(gr_text "{s}" (at {f(px)} {f(py)}{" " + f(rot) if rot else ""}) (layer "{layer}") (uuid "{uid()}") '
-            f'(effects (font (size {f(size)} {f(size)}) (thickness {f(0.15 if size >= 1 else 0.12)})){j}))')
+            f'(effects (font (size {f(size)} {f(width or size)}) (thickness {f(0.15 if size >= 1 else 0.12)})){j}))')
 
 
-def gr_rect(x0, y0, x1, y1, layer, width=0.12):
+def gr_rect(x0, y0, x1, y1, layer, width=0.12, fill=False):
     a, b = page(x0, y0), page(x1, y1)
     return (f'\t(gr_rect (start {f(a[0])} {f(a[1])}) (end {f(b[0])} {f(b[1])}) (stroke (width {f(width)}) (type default)) '
-            f'(fill no) (layer "{layer}") (uuid "{uid()}"))')
+            f'(fill {"yes" if fill else "no"}) (layer "{layer}") (uuid "{uid()}"))')
 
 
 def gr_line(x0, y0, x1, y1, layer, width=0.12):
@@ -813,6 +919,49 @@ def zone_text(net_num, net, layer, name, pts):
             f'\t\t(polygon (pts {p}))\n\t)')
 
 
+def shell_keepout_text(pts):
+    """A rule area under J1's shell on the front: no track and no via there, so a router can't put
+    one under its metal; the ground pour and J1's own pads may be."""
+    p = " ".join(f"(xy {f(x)} {f(y)})" for x, y in pts)
+    return (f'\t(zone (net 0) (net_name "") (layers "F.Cu") (uuid "{uid()}") (name "J1 shell: no tracks") (hatch edge 0.5)\n'
+            f'\t\t(connect_pads (clearance 0)) (min_thickness 0.25) (filled_areas_thickness no)\n'
+            f'\t\t(keepout (tracks not_allowed) (vias not_allowed) (pads allowed) (copperpour allowed) (footprints allowed))\n'
+            f'\t\t(placement (enabled no) (sheetname ""))\n'
+            f'\t\t(fill (thermal_gap 0.5) (thermal_bridge_width 0.5))\n'
+            f'\t\t(polygon (pts {p}))\n\t)')
+
+
+def hole_keepout_text(ref, c, n=24):
+    """A ring round a mounting hole on both layers: no track and no via under a screw head or washer
+    (HOLE_RING); the ground pour may. The polygon is drawn outside the circle."""
+    r = HOLE_RING / math.cos(math.pi / n)
+    p = " ".join(f"(xy {f(x)} {f(y)})" for x, y in (page(c[0] + r * math.cos(2 * math.pi * k / n), c[1] + r * math.sin(2 * math.pi * k / n))
+                                                   for k in range(n)))
+    return (f'\t(zone (net 0) (net_name "") (layers "F.Cu" "B.Cu") (uuid "{uid()}") (name "{ref}: no tracks") (hatch edge 0.5)\n'
+            f'\t\t(connect_pads (clearance 0)) (min_thickness 0.25) (filled_areas_thickness no)\n'
+            f'\t\t(keepout (tracks not_allowed) (vias not_allowed) (pads allowed) (copperpour allowed) (footprints allowed))\n'
+            f'\t\t(placement (enabled no) (sheetname ""))\n'
+            f'\t\t(fill (thermal_gap 0.5) (thermal_bridge_width 0.5))\n'
+            f'\t\t(polygon (pts {p}))\n\t)')
+
+
+def art_keepout_text():
+    """No via under the art, on either layer (tracks may: they're under the mask), 0.2 mm round each
+    sprite: one rule area each, so the stitching keeps the vias between them."""
+    out = []
+    for rows, ax, ay in ART:
+        x0, y0 = ax - 0.2, ay - len(rows) * PIXEL - 0.2
+        x1, y1 = ax + len(rows[0]) * PIXEL + 0.2, ay + 0.2
+        p = " ".join(f"(xy {f(x)} {f(y)})" for x, y in (page(x0, y0), page(x1, y0), page(x1, y1), page(x0, y1)))
+        out.append(f'\t(zone (net 0) (net_name "") (layers "F.Cu" "B.Cu") (uuid "{uid()}") (name "Art: no vias") (hatch edge 0.5)\n'
+                   f'\t\t(connect_pads (clearance 0)) (min_thickness 0.25) (filled_areas_thickness no)\n'
+                   f'\t\t(keepout (tracks allowed) (vias not_allowed) (pads allowed) (copperpour allowed) (footprints allowed))\n'
+                   f'\t\t(placement (enabled no) (sheetname ""))\n'
+                   f'\t\t(fill (thermal_gap 0.5) (thermal_bridge_width 0.5))\n'
+                   f'\t\t(polygon (pts {p}))\n\t)')
+    return out
+
+
 def keepout_text(pts):
     p = " ".join(f"(xy {f(x)} {f(y)})" for x, y in pts)
     return (f'\t(zone (net 0) (net_name "") (layers "F.Cu" "B.Cu") (uuid "{uid()}") (name "Antenna: no copper") (hatch edge 0.5)\n'
@@ -823,7 +972,113 @@ def keepout_text(pts):
             f'\t\t(polygon (pts {p}))\n\t)')
 
 
-LABELS = {"SW1": "D0", "SW3": "D2", "SW4": "PREV", "SW5": "BACK"}   # D1 sits between D0 and D2
+LABELS = {"SW1": "D0", "SW3": "D2", "SW4": "BOOT", "SW5": "RESET"}   # D1 sits between D0 and D2
+
+
+def label_y(ref):
+    """A button's label goes outside it, but RESET's above it, between its outline and R8, C7: C3 and
+    C4 are below. render.py draws them here too."""
+    y = PARTS[ref]["at"][1]
+    return y + 3.48 if ref == "SW5" else y + 3.55 if y > YC else y - 3.55
+
+
+# The brand on the silkscreen (docs/BRAND.md). The mark, the right way up, on the front of the antenna
+# end, where nothing else is; the name above the glass, on the button labels' line. On the back the
+# lockup, the mark left of the name in the panel's proportions (at a 26 px name, the ring's radius is
+# 12 px, its centre 13 px in from the left, the name 34 px in), and under it a tagline, the board and
+# its licence, and the Source Location.
+MARK, NAME_FP = "PicoQuorum_Mark", "PicoQuorum_Name"   # the key library's mark, 5.0 mm tall; wordmark.py's name
+CAP_EM = 0.669           # Atkinson Hyperlegible Next: its cap height in em
+FRONT_CAP = 1.3          # the name's cap height, mm: its letters are 0.16 mm apart at the closest (JLCPCB: 0.15)
+BACK_CAP = 2.3
+LOCKUP = (34.5, 14.4)    # the back's mark: its ring's centre, board mm; the lockup reads leftward in board x
+TAGLINE = "Nothing signs unseen"                      # one of docs/BRAND.md's draft taglines
+
+
+def mark_ring():
+    """The mark's ring: its radius and how far its centre is below the middle of the mark, at 5.0 mm"""
+    dots = [(float(y), float(e) - float(x)) for x, y, e in re.findall(
+        r"\(fp_circle \(center ([\-\d.]+) ([\-\d.]+)\) \(end ([\-\d.]+) [\-\d.]+\) \(stroke \(width 0\)", _logo(MARK)[1])]
+    top, low = min(y for y, _ in dots), max(y for y, _ in dots)       # the signed dots: -90 deg, 54 and 126
+    r = (low - top) / (1 + math.sin(math.radians(54)))
+    return r, top + r
+
+
+def silk_logos():
+    """(footprint, board x, y of its origin, scale, side): the origin is the middle of each."""
+    r, dy = mark_ring()
+    em = BACK_CAP / CAP_EM
+    k = 12 / 26 * em / r
+    adv = float(re.search(r"([\d.]+) mm of advance", _logo(NAME_FP)[0]).group(1)) * BACK_CAP
+    mx, my = LOCKUP
+    return [(MARK, (KEEPOUT[0] + W) / 2, YC, 1.0, "F"),
+            (NAME_FP, (GLASS[0] + GLASS[2]) / 2, label_y("SW1"), FRONT_CAP, "F"),
+            (MARK, mx, my + dy * k, k, "B"),
+            (NAME_FP, mx - (34 - 13) / 26 * em - adv / 2, my, BACK_CAP, "B")]
+
+
+def silk_texts():
+    """(text, board x, y, side): the buttons' labels; the lines under the lockup, centred on it; the
+    test pads' names."""
+    em = BACK_CAP / CAP_EM
+    adv = float(re.search(r"([\d.]+) mm of advance", _logo(NAME_FP)[0]).group(1)) * BACK_CAP
+    mx, my = LOCKUP
+    cx = (mx + 13 / 26 * em + mx - (34 - 13) / 26 * em - adv) / 2
+    out = [(label, PARTS[ref]["at"][0], label_y(ref), "F") for ref, label in LABELS.items()]
+    out += [(TAGLINE, cx, my - 3.0, "B"), ("console-s3 rev A · CERN-OHL-W 2.0", cx, my - 4.8, "B"), (SRC, cx, my - 6.6, "B")]
+    for ref, label, _net in TESTPADS:
+        x, y = PARTS[ref]["at"]
+        out.append((label, x, y - 1.75 if y > YC else y + 1.75, "B"))
+    return out
+
+
+# A nod to Adventure (Atari 2600, 1980), hidden under the glass: an 8-bit key just below U2, the key
+# that signs, and a dragon guarding it, drawn here in the game's manner, not copied from it. Rows as
+# they read from the front, top first; a pixel is 0.3 mm, so every gap is twice JLCPCB's 0.15 mm.
+# No via goes under it (art_keepout_text): the ground stitching would put holes through the dragon.
+DRAGON = ("....###.",
+          "#####.#.",
+          "....###.",
+          ".....#..",
+          ".....#..",
+          "....##..",
+          "...###..",
+          "..####..",
+          ".#####..",
+          ".#####..",
+          ".#####..",
+          "..####..",
+          "...###..",
+          "....##..",
+          ".....#..",
+          ".....#..",
+          ".....#..",
+          ".....#..",
+          ".....#.#",
+          ".....###")
+KEY = (".##......",
+       "#..######",
+       "#..#..#.#",
+       ".##......")
+PIXEL = 0.3
+ART = [(KEY, 22.15, 14.6), (DRAGON, 26.5, 15.1)]     # board (x, y) of each one's top left: the key under U2's
+                                                    # pads, the dragon between the vias at (25.75, 15.0) and (29.81, 11.2)
+
+
+def silk_pixels():
+    """The art as filled rectangles (board x0, y0, x1, y1, side): each run of pixels in a row, carried
+    down while the row below has the same run."""
+    out = []
+    for rows, ax, ay in ART:
+        running = {}
+        for r, row in enumerate(rows + ("",)):
+            now = {m.span() for m in re.finditer(r"#+", row)}
+            for c0, c1 in [k for k in running if k not in now]:
+                r0 = running.pop((c0, c1))
+                out.append((ax + c0 * PIXEL, ay - r * PIXEL, ax + c1 * PIXEL, ay - r0 * PIXEL, "F"))
+            for span in now - running.keys():
+                running[span] = r
+    return out
 
 
 def write_board(uids):
@@ -837,27 +1092,32 @@ def write_board(uids):
     out += [f'\t(net {i} "{n}")' for n, i in nets.items()]
     for ref, p in all_parts().items():
         out.append(footprint_text(ref, p, nets, uids.get(ref)))
-    out.append(mark_text(11.5, YC))
+    for name, x, y, k, side in silk_logos():
+        out += logo_items(name, x, y, k, side)
     out.append(outline_text())
     # the glass, on the front silk by its corners, and its ribbon's fold on the fab layer
     gx0, gy0, gx1, gy1 = GLASS
     for x, dx in ((gx0, 2.5), (gx1, -2.5)):
         for y, dy in ((gy0, 2.0), (gy1, -2.0)):
-            out.append(gr_line(x, y, x + dx, y, "F.SilkS"))
-            out.append(gr_line(x, y, x, y + dy, "F.SilkS"))
+            out.append(gr_line(x, y, x + dx, y, "F.SilkS", 0.15))
+            out.append(gr_line(x, y, x, y + dy, "F.SilkS", 0.15))
     out.append(gr_rect(gx0, gy0, gx1, gy1, "F.Fab", 0.1))
     out.append(gr_text("panel glass on tape: the ribbon folds under at the right end", (gx0 + gx1) / 2, gy1 - 1.0, "F.Fab", 0.6))
-    for ref, label in LABELS.items():
-        x, y = PARTS[ref]["at"]
-        out.append(gr_text(label, x, y + 3.55 if y > YC else y - 3.55, "F.SilkS", 0.8))
-    # the back: the mark, the name, the Source Location, the module's side, the test pads' names
-    out.append(gr_text("PicoQuorum console-s3 A", 26.0, 13.6, "B.SilkS", 0.8))
-    out.append(gr_text(SRC, 26.0, 11.43, "B.SilkS", 0.8))
-    out.append(gr_text("CERN-OHL-W 2.0", 26.0, 9.26, "B.SilkS", 0.8))
-    for ref, label, _net in TESTPADS:
-        x, y = PARTS[ref]["at"]
-        out.append(gr_text(label, x, y - 1.75 if y > YC else y + 1.75, "B.SilkS", 0.8))
+    for text, x, y, side in silk_texts():
+        out.append(gr_text(text, x, y, f"{side}.SilkS", SILK_H, width=SILK_W))
+    for x0, y0, x1, y1, side in silk_pixels():
+        out.append(gr_rect(x0, y0, x1, y1, f"{side}.SilkS", 0, fill=True))
     out.append(gr_text("ESP32-S3 here, antenna at the edge", W - MOD_L / 2, YC, "B.Fab", 0.8))
+    # the hand-drawn escapes, locked
+    for net, layer, pts in ESCAPE:
+        for a, b in zip(pts, pts[1:]):
+            (ax, ay), (bx, by) = page(*a), page(*b)
+            out.append(f'\t(segment (start {f(ax)} {f(ay)}) (end {f(bx)} {f(by)}) (width {f(TRACK)}) (layer "{layer}") (locked yes) '
+                       f'(net {nets[net]}) (uuid "{uid()}"))')
+    for net, x, y in ESCAPE_VIAS:
+        px, py = page(x, y)
+        out.append(f'\t(via (at {f(px)} {f(py)}) (size {f(VIA)}) (drill {f(DRILL)}) (layers "F.Cu" "B.Cu") (locked yes) '
+                   f'(net {nets[net]}) (uuid "{uid()}"))')
     # pours, and the antenna's rule area on both layers
     x0, y0, x1, y1 = rect_page(0, 0, KEEPOUT[0], H)
     whole = [(x0 - 1, y0 - 1), (x1, y0 - 1), (x1, y1 + 1), (x0 - 1, y1 + 1)]
@@ -865,6 +1125,11 @@ def write_board(uids):
     out.append(zone_text(nets["GND"], "GND", "B.Cu", "GND bottom", whole))
     kx0, ky0, kx1, ky1 = rect_page(*KEEPOUT)
     out.append(keepout_text([(kx0, ky0 - 1), (kx1 + 1, ky0 - 1), (kx1 + 1, ky1 + 1), (kx0, ky1 + 1)]))
+    sx0, sy0, sx1, sy1 = j1_body()
+    out.append(shell_keepout_text([(sx0 - 1, sy0), (sx1, sy0), (sx1, sy1), (sx0 - 1, sy1)]))
+    for ref, c in HOLES:
+        out.append(hole_keepout_text(ref, c))
+    out += art_keepout_text()
     out += ["\t(embedded_fonts no)", ")"]
     with open(os.path.join(OUT, NAME + ".kicad_pcb"), "w") as fh:
         fh.write("\n".join(out) + "\n")
@@ -874,6 +1139,12 @@ def write_project(sheet_uuid):
     d = json.load(open(os.path.join(REPO, "hardware", "key-pcb", "key-b-udfn", "key-b-udfn.kicad_pro")))
     d["meta"]["filename"] = NAME + ".kicad_pro"
     d["board"]["design_settings"]["rules"].update(gen.JLC_RULES)
+    # the router joins every ground pad with tracks (the check says so), so where the routing leaves
+    # a ground pad's thermal room for one spoke, one will do
+    d["board"]["design_settings"]["rules"]["min_resolved_spokes"] = 1
+    # JLCPCB's silkscreen limits (tools/jlc/limits.py), which the board already meets: KiCad's own DRC
+    # holds it to them too
+    d["board"]["design_settings"]["rules"].update(min_text_height=1.0, min_text_thickness=0.15, min_silk_clearance=0.15)
     for c in d["net_settings"]["classes"]:
         if c["name"] == "Default":
             c.update(clearance=CLEAR, track_width=TRACK, via_diameter=VIA, via_drill=DRILL)
@@ -961,7 +1232,10 @@ def check(path, prof):
     def node(n, k):
         v = kids(n, k)
         return v[0] if v else None
-    pads, sides = [], {}
+    # the generator writes (net 3 "GND"); KiCad 10, saving the board, writes (net "GND")
+    nets = {int(n[1]): n[2] for n in kids(tree, "net") if len(n) > 2}
+    netof = lambda n: n[-1] if len(n) == 2 and not n[1].lstrip("-").isdigit() else nets[int(n[1])] if len(n) == 2 else n[2]
+    pads, sides, segs, vias = [], {}, [], []
     for fp in kids(tree, "footprint"):
         ref = next(p[2] for p in kids(fp, "property") if p[1] == "Reference")
         at = node(fp, "at")
@@ -978,55 +1252,160 @@ def check(path, prof):
             if "*.Cu" in lays:
                 lays = {"F.Cu", "B.Cu"}
             netv = node(pad, "net")
+            k = 0.5 / math.sqrt(2) if pad[3] == "circle" else 0.5
+            dr = node(pad, "drill")
+            dw, dh = (float(dr[2]), float(dr[3])) if dr and dr[1] == "oval" else (float(dr[1]), float(dr[1])) if dr else (0, 0)
+            if round(rot) % 180:
+                dw, dh = dh, dw
             if lays or pad[2] == "np_thru_hole":
-                pads.append(dict(ref=ref, num=pad[1], kind=pad[2], net=netv[2] if netv else None, layers=lays or {"F.Cu", "B.Cu"},
-                                 rect=(cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2), centre=(cx, cy)))
+                rect = (cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2)
+                rr = float(node(pad, "roundrect_rratio")[1]) * min(w, h) if pad[3] == "roundrect" else 0.0
+                pads.append(dict(ref=ref, num=pad[1], kind=pad[2], net=netof(netv) if netv else None, layers=lays or {"F.Cu", "B.Cu"},
+                                 rect=rect, centre=(cx, cy), hit=(cx - k * w, cy - k * h, cx + k * w, cy + k * h),
+                                 shape=capsule(cx, cy, w, h) if pad[3] in ("circle", "oval")
+                                 else ("rect", rect[0] + rr, rect[1] + rr, rect[2] - rr, rect[3] - rr, rr),
+                                 hole=capsule(cx, cy, dw, dh) if pad[2] == "thru_hole" else None))
+    for sg in kids(tree, "segment"):
+        a, b, w = node(sg, "start"), node(sg, "end"), float(node(sg, "width")[1])
+        ax, ay, bx, by = float(a[1]), float(a[2]), float(b[1]), float(b[2])
+        locked = "locked" in sg or (node(sg, "locked") or [0, "no"])[1] == "yes"
+        segs.append(dict(net=netof(node(sg, "net")), layer=node(sg, "layer")[1], a=(ax, ay), b=(bx, by), r=w / 2, locked=locked,
+                         rect=(min(ax, bx) - w / 2, min(ay, by) - w / 2, max(ax, bx) + w / 2, max(ay, by) + w / 2),
+                         shape=("cap", (ax, ay), (bx, by), w / 2)))
+    for v in kids(tree, "via"):
+        at = node(v, "at")
+        x, y, d, dd = float(at[1]), float(at[2]), float(node(v, "size")[1]), float(node(v, "drill")[1])
+        vias.append(dict(net=netof(node(v, "net")), at=(x, y), r=d / 2, rect=(x - d / 2, y - d / 2, x + d / 2, y + d / 2),
+                         shape=("cap", (x, y), (x, y), d / 2), hole=("cap", (x, y), (x, y), dd / 2)))
     problems = []
     # 1. copper of different nets apart, and copper clear of the plain holes
-    for i in range(len(pads)):
-        for j in range(i + 1, len(pads)):
-            a, b = pads[i], pads[j]
-            if not (a["layers"] & b["layers"]):
+    items = [(p["kind"], p["net"], p["layers"], p["rect"], f'{p["ref"]}.{p["num"] or "-"}', p["ref"], p["shape"]) for p in pads]
+    items += [("seg", s["net"], {s["layer"]}, s["rect"], f'track {s["net"]} at {s["a"]}', None, s["shape"]) for s in segs]
+    items += [("via", v["net"], {"F.Cu", "B.Cu"}, v["rect"], f'via {v["net"]} at {v["at"]}', None, v["shape"]) for v in vias]
+    for i in range(len(items)):
+        for j in range(i + 1, len(items)):
+            a, b = items[i], items[j]
+            if not (a[2] & b[2]):
                 continue
-            hole = "np_thru_hole" in (a["kind"], b["kind"])
-            if hole and (a["kind"] == b["kind"] or a["ref"] == b["ref"]):
+            hole = "np_thru_hole" in (a[0], b[0])
+            if hole and (a[0] == b[0] or a[5] is not None and a[5] == b[5]):
                 continue        # a part's own locating holes: the maker's pattern (J1's, as key-c's board has it)
-            if not hole and (a["net"] is not None and a["net"] == b["net"] or a["ref"] == b["ref"] and a["num"] == b["num"] and a["num"]):
+            if not hole and (a[1] is not None and a[1] == b[1] or a[4] == b[4] and a[5] is not None):
                 continue
-            need = HOLE_CLEAR if hole else CLEAR
-            g = _gap(a["rect"], b["rect"])
+            need = (0.5 if "via" in (a[0], b[0]) else HOLE_CLEAR) if hole else CLEAR
+            if _gap(a[3], b[3]) >= need:
+                continue
+            g = max(0.0, copper_gap(a[6], b[6]))
             if g < need - 1e-6:
-                problems.append(f'clearance {g:.3f} mm between {a["ref"]}.{a["num"] or "-"} and {b["ref"]}.{b["num"] or "-"} (needs {need})')
-    # 2. copper to the edge; nothing in the antenna keep-out on either side
+                problems.append(f"clearance {g:.3f} mm between {a[4]} and {b[4]} (needs {need})")
+    # 2. copper to the edge; nothing in the antenna keep-out on either side; no front track or via
+    #    of another net under J1's shell
     keep = rect_page(*KEEPOUT)
-    for p in pads:
-        if p["kind"] != "np_thru_hole" and not edge_ok(p["rect"], EDGE - 1e-6):
-            problems.append(f'{p["ref"]}.{p["num"] or "-"} within {EDGE} mm of the edge')
-        if _gap(p["rect"], keep) < 1e-6:
-            problems.append(f'{p["ref"]}.{p["num"] or "-"} in the antenna keep-out')
+    for kind, net, lays, rect, name, _ref, _shape in items:
+        if kind != "np_thru_hole" and not edge_ok(rect, EDGE - 1e-6):
+            problems.append(f"{name} within {EDGE} mm of the edge")
+        if _gap(rect, keep) < 1e-6:
+            problems.append(f"{name} in the antenna keep-out")
+        if kind in ("seg", "via") and net != "GND" and "F.Cu" in lays and _gap(rect, j1_body()) < 1e-6:
+            problems.append(f"{name} under J1's shell")
+        for ref, c in HOLES:
+            pc = page(*c)
+            if kind in ("seg", "via") and copper_gap(_shape, ("cap", pc, pc, HOLE_RING)) < -1e-6:
+                problems.append(f"{name} inside {ref}'s ring ({HOLE_RING} mm)")
+    # 2b. no track narrower than JLCPCB makes
+    for s_ in segs:
+        if 2 * s_["r"] < MIN_TRACK - 1e-6:
+            problems.append(f'track {s_["net"]} on {s_["layer"]} {2 * s_["r"]:.3f} mm wide (JLCPCB: {MIN_TRACK})')
+    # 3. a track end or a via inside a pad of another net is a short
+    for s_ in segs:
+        for p in pads:
+            if s_["layer"] in p["layers"] and p["net"] != s_["net"] and p["kind"] != "np_thru_hole":
+                for pt in (s_["a"], s_["b"]):
+                    if p["rect"][0] <= pt[0] <= p["rect"][2] and p["rect"][1] <= pt[1] <= p["rect"][3]:
+                        problems.append(f'track {s_["net"]} ends inside {p["ref"]}.{p["num"]}')
+    for v in vias:
+        for p in pads:
+            if p["kind"] == "smd" and copper_gap(v["shape"], p["shape"]) < 1e-6:
+                problems.append(f'via {v["net"]} in pad {p["ref"]}.{p["num"]}')
+    # 3b. a via's hole HOLE_GAP from every other drilled hole, whatever its net
+    holes = [(f'via {v["net"]} at {v["at"]}', v["hole"]) for v in vias]
+    for k, (name, hole) in enumerate(holes):
+        for other, h2 in holes[k + 1:] + [(f'{p["ref"]}.{p["num"]}', p["hole"]) for p in pads if p["hole"]]:
+            if copper_gap(hole, h2) < HOLE_GAP - 1e-6:
+                problems.append(f"{name}'s hole {copper_gap(hole, h2):.3f} mm from {other}'s (needs {HOLE_GAP})")
+    # 4. connectivity, by union-find over pads, tracks and vias, as KiCad joins them: a track at its
+    #    ends, to a pad they lie in or a track or via they touch. Ground too: the pours aren't counted.
+    #    A board not yet routed, whose only tracks are the locked escapes, says how much is left.
+    parent = {}
+
+    def find(a):
+        parent.setdefault(a, a)
+        while parent[a] != a:
+            parent[a] = parent[parent[a]]
+            a = parent[a]
+        return a
+
+    def inside(pt, rect):
+        return rect[0] - 1e-6 <= pt[0] <= rect[2] + 1e-6 and rect[1] - 1e-6 <= pt[1] <= rect[3] + 1e-6
+    for i, s_ in enumerate(segs):
+        for j, p in enumerate(pads):
+            if s_["layer"] in p["layers"] and p["net"] == s_["net"] and (inside(s_["a"], p["hit"]) or inside(s_["b"], p["hit"])):
+                parent[find(("s", i))] = find(("p", j))
+        for k, t in enumerate(segs):
+            if k > i and t["layer"] == s_["layer"] and t["net"] == s_["net"] and (
+                    any(_pt_seg(pt, t["a"], t["b"]) <= t["r"] + 1e-6 for pt in (s_["a"], s_["b"]))
+                    or any(_pt_seg(pt, s_["a"], s_["b"]) <= s_["r"] + 1e-6 for pt in (t["a"], t["b"]))):
+                parent[find(("s", i))] = find(("s", k))
+        for m, v in enumerate(vias):
+            if v["net"] == s_["net"] and _pt_seg(v["at"], s_["a"], s_["b"]) <= s_["r"] + v["r"] + 1e-6 and (
+                    _pt_seg(v["at"], s_["a"], s_["b"]) <= s_["r"] + 1e-6 or min(math.dist(v["at"], s_["a"]), math.dist(v["at"], s_["b"])) <= v["r"] + 1e-6):
+                parent[find(("s", i))] = find(("v", m))
+    for m, v in enumerate(vias):
+        for j, p in enumerate(pads):
+            if p["kind"] == "thru_hole" and p["net"] == v["net"] and inside(v["at"], p["hit"]):
+                parent[find(("v", m))] = find(("p", j))
+    for j, p in enumerate(pads):        # pads of one net that overlap, as J1's paired ground pins do
+        for k in range(j + 1, len(pads)):
+            q = pads[k]
+            if p["net"] and p["net"] == q["net"] and p["layers"] & q["layers"] and copper_gap(p["shape"], q["shape"]) < -1e-6:
+                parent[find(("p", j))] = find(("p", k))
+    by_net = {}
+    for j, p in enumerate(pads):
+        if p["net"] and not p["net"].startswith("unconnected"):
+            by_net.setdefault(p["net"], []).append(j)
+    routed = any(not s_["locked"] for s_ in segs)
+    left = 0
+    for net, idx in sorted(by_net.items()):
+        roots = {find(("p", j)) for j in idx}
+        left += len(roots) - 1
+        if routed and len(roots) > 1:
+            groups = {}
+            for j in idx:
+                groups.setdefault(find(("p", j)), []).append(f'{pads[j]["ref"]}.{pads[j]["num"]}')
+            problems.append(f"net {net} is in {len(roots)} pieces: " + " | ".join(", ".join(g) for g in groups.values()))
     yards = courtyards()
     for ref, side, r in yards:
         if ref != "U1" and min(r[2], keep[2]) - max(r[0], keep[0]) > 1e-6 and min(r[3], keep[3]) - max(r[1], keep[1]) > 1e-6:
             problems.append(f"{ref}'s courtyard reaches into the antenna keep-out")
-    # 3. the net table on the board is the schematic's
+    # 5. the net table on the board is the schematic's
     on_board = {(p["ref"], p["num"]): p["net"] for p in pads if p["num"]}
     for k, net in NETS.items():
         if on_board.get(k) != net:
             problems.append(f"pad {k} carries {on_board.get(k)} on the board, {net} in NETS")
-    # 4. courtyards on the same side don't overlap
+    # 6. courtyards on the same side don't overlap
     for i in range(len(yards)):
         for j in range(i + 1, len(yards)):
             (ra, sa, a), (rb, sb, b) = yards[i], yards[j]
             both = sa == sb or "H" in (ra[0], rb[0])
             if ra != rb and both and min(a[2], b[2]) - max(a[0], b[0]) > 1e-6 and min(a[3], b[3]) - max(a[1], b[1]) > 1e-6:
                 problems.append(f"courtyards of {ra} and {rb} overlap")
-    # 5. one-sided assembly: everything JLCPCB places on the front; the module on the back
+    # 7. one-sided assembly: everything JLCPCB places on the front; the module on the back
     for ref, p in PARTS.items():
         if p["in_bom"] and sides.get(ref) != "F":
             problems.append(f"{ref} is in the BOM but on the back: JLCPCB's Economic assembly is one side")
     if sides.get("U1") != "B":
         problems.append("the module isn't on the back")
-    # 6. under the glass, only parts lower than the tape
+    # 8. under the glass, only parts lower than the tape
     glass = rect_page(*GLASS)
     for ref, side, r in yards:
         p = all_parts()[ref]
@@ -1034,14 +1413,17 @@ def check(path, prof):
             h = HEIGHT.get(p["fp"], 99)
             if h > PANEL["foam"] - 0.3:
                 problems.append(f"{ref} ({h} mm) is under the glass, whose tape is {PANEL['foam']} mm")
-    # 7. silkscreen text off the pads and on the board, by a rough box (gen_wing.py's)
+    # 9. silkscreen text and the logos off the pads and on the board, by a rough box (gen_wing.py's)
     for t in kids(tree, "gr_text"):
         at, layer = node(t, "at"), node(t, "layer")[1]
         if not layer.endswith("SilkS"):
             continue
-        size = float(node(node(node(t, "effects"), "font"), "size")[1])
+        font = node(node(t, "effects"), "font")
+        hgt, wid = float(node(font, "size")[1]), float(node(font, "size")[2])
+        if hgt < 1.0 - 1e-6 or float(node(font, "thickness")[1]) < 0.15 - 1e-6:
+            problems.append(f'silkscreen "{t[1]}" under JLCPCB\'s 1.0 mm tall, 0.15 mm stroke')
         x, y = float(at[1]), float(at[2])
-        hw, hh = len(t[1]) * size * 0.85 / 2, size / 2
+        hw, hh = len(t[1]) * wid * 0.85 / 2, hgt / 2
         box = (x - hw, y - hh, x + hw, y + hh)
         side = "F.Cu" if layer.startswith("F.") else "B.Cu"
         for p in pads:
@@ -1049,13 +1431,33 @@ def check(path, prof):
                 problems.append(f'silkscreen "{t[1]}" over pad {p["ref"]}.{p["num"]}')
         if not edge_ok(box, 0.2):
             problems.append(f'silkscreen "{t[1]}" off the board')
-    # 8. the buttons level with the rails the firmware draws (board.RAIL_Y), D0 at the top
+    for g in kids(tree, "gr_poly") + kids(tree, "gr_circle") + kids(tree, "gr_rect"):   # the logos and the art, by their boxes
+        layer = node(g, "layer")[1]
+        if not layer.endswith("SilkS"):
+            continue
+        if g[0] == "gr_poly":
+            pts = [(float(q[1]), float(q[2])) for q in kids(node(g, "pts"), "xy")]
+        elif g[0] == "gr_rect":
+            pts = [(float(node(g, k)[1]), float(node(g, k)[2])) for k in ("start", "end")]
+        else:
+            (cx, cy), e = (float(v) for v in node(g, "center")[1:3]), node(g, "end")
+            r = math.dist((cx, cy), (float(e[1]), float(e[2]))) + float(node(node(g, "stroke"), "width")[1]) / 2
+            pts = [(cx - r, cy - r), (cx + r, cy + r)]
+        box = (min(x for x, _ in pts), min(y for _, y in pts), max(x for x, _ in pts), max(y for _, y in pts))
+        name = f"silkscreen {g[0][3:]} at board ({box[0] - OX:.1f}, {OY - box[3]:.1f})"
+        side = "F.Cu" if layer.startswith("F.") else "B.Cu"
+        for p in pads:
+            if side in p["layers"] and p["kind"] != "np_thru_hole" and _gap(box, p["rect"]) < 0.15:
+                problems.append(f'{name} over pad {p["ref"]}.{p["num"]}')
+        if not edge_ok(box, 0.2):
+            problems.append(f"{name} off the board")
+    # 10. the buttons level with the rails the firmware draws (board.RAIL_Y), D0 at the top
     for ref, want in zip(("SW1", "SW2", "SW3"), rail_y()):
         got = next(to_board(p["centre"]) for p in pads if p["ref"] == ref and p["num"] == "1")
         centre_y = round(got[1] - 1.875, 3)
         if abs(centre_y - want) > 0.05:
             problems.append(f"{ref} sits at y {centre_y}, its rail at {want:.3f}")
-    # 9. the module: pins where Espressif's drawing puts them, its antenna end at the board's edge
+    # 11. the module: pins where Espressif's drawing puts them, its antenna end at the board's edge
     mod = {p["num"]: to_board(p["centre"]) for p in pads if p["ref"] == "U1"}
     end = W                     # the antenna end, flush with the right edge; pins 1-14 along the bottom edge
     want = {"1": (end - 7.49, YC - 8.75), "14": (end - 7.49 - 16.51, YC - 8.75),
@@ -1065,13 +1467,11 @@ def check(path, prof):
         gx, gy = mod[n]
         if abs(gx - x) > 0.005 or abs(gy - y) > 0.005:
             problems.append(f"module pin {n} at ({gx}, {gy}), Espressif's drawing puts it at ({x:.3f}, {y:.3f})")
-    # what's left to do: the connections a router must make
-    by_net = {}
-    for p in pads:
-        if p["net"] and not p["net"].startswith("unconnected"):
-            by_net.setdefault(p["net"], set()).add((p["ref"], p["num"]))
-    links = sum(len(v) - 1 for v in by_net.values())
-    print(f"{NAME}: {len(pads)} pads, {len(by_net)} nets, {links} connections to route (unrouted)")
+    if routed:
+        length = sum(math.dist(s_["a"], s_["b"]) for s_ in segs)
+        print(f"{NAME}: {len(pads)} pads, {len(by_net)} nets, {len(segs)} tracks ({length:.0f} mm), {len(vias)} vias")
+    else:
+        print(f"{NAME}: {len(pads)} pads, {len(by_net)} nets, {left} connections to route (the escapes drawn, the rest unrouted)")
     print("  module pins 1/14/15/26/27/40 (board mm):", ", ".join(f"{n} at {mod[n]}" for n in ("1", "14", "15", "26", "27", "40")))
     print("  buttons D0/D1/D2 at y", ", ".join(f"{v:.3f}" for v in rail_y()), f"(rails {prof['RAIL_Y']}, {ROW:.4f} mm a row)")
     if problems:
@@ -1079,9 +1479,44 @@ def check(path, prof):
         for p in problems[:60]:
             print("   -", p)
         return False
-    print("  checks clean: clearance, holes, edge, antenna keep-out, net table, courtyards, one-sided assembly, "
-          "under the glass, silkscreen, the rails, the module's pins")
+    print("  checks clean: clearance, track widths, holes, edge, antenna keep-out, J1's shell, the holes' rings, shorts, " + ("connectivity, " if routed else "")
+          + "net table, courtyards, one-sided assembly, under the glass, silkscreen, the rails, the module's pins")
     return True
+
+
+# =================================================================================================
+# What `tools/keypcb jlc` needs to know about this board that the board file doesn't say
+# =================================================================================================
+
+GLASS_T = 1.6             # the panel's glass, mm: a 1.14" module's usual, not measured (DESIGN.md: 3.6 mm proud with the tape)
+RIBBON_W = 5.0            # the 8-pin ribbon's width: 8 x 0.5 mm and its margins, not measured
+FOLD_R = 1.2              # the fold's reach past the glass's right end, a guess until a panel is folded
+
+
+def jlc_spec():
+    """The board's numbers for tools/jlc: the mounting holes' rings, the regulator's heat, the nets
+    whose return path to report, and the 3D fit (datasheet and guessed sizes, z up from the front)."""
+    t = 1.6
+    screw = [{"name": f"{ref} screw head", "cyl": [x, y, 1.9], "z": [0.0, 2.0]} for ref, (x, y) in HOLES]   # DIN 912 M2: 3.8 x 2.0
+    screw += [{"name": f"{ref} nut", "cyl": [x, y, 2.2], "z": [-t - 1.6, -t]} for ref, (x, y) in HOLES]  # M2 nut, 4.4 across corners
+    return {
+        "edge": EDGE,
+        "hole_ring": HOLE_RING,
+        "regulator": {"ref": "U3", "part": "ME6211C33", "vin": 5.0, "vout": 3.3, "amps": [0.15, 0.45], "theta_ja": 250,
+                      "theta_note": "a usual SOT-23-5 figure on its least pad, not the ME6211's own"},
+        "return_nets": ["/S3_DP", "/S3_DN", "/USB_DP", "/USB_DN", "/LCD_SCK", "/LCD_MOSI"],
+        "jlc_allow": [{"type": "footprint_type_mismatch", "ref": "J1",
+                       "why": "marked SMD, as key-c's is, though its shell's tabs go through plated slots: the Gerbers and CPL are right either way"}],
+        "fit": {
+            "heights": HEIGHT, "default_height": 1.0,
+            "back": [{"name": "U1 module", "box": [MOD_AT[0] - MOD_L / 2, MOD_AT[1] - MOD_W / 2, MOD_AT[0] + MOD_L / 2, MOD_AT[1] + MOD_W / 2],
+                      "z": [-t - 3.1, -t], "note": "WROOM-1, 18 x 25.5 x 3.1 (datasheet)"}],
+            "solids": [{"name": "glass", "box": list(GLASS), "z": [PANEL["foam"], PANEL["foam"] + GLASS_T], "note": "on 2.0 mm tape, 1.6 thick: not measured"},
+                       {"name": "ribbon fold", "box": [GLASS[2], YC - RIBBON_W / 2, GLASS[2] + FOLD_R, YC + RIBBON_W / 2],
+                        "z": [0.2, PANEL["foam"] + 0.5], "guess": True, "note": "the fold past the glass's end: a guess"}] + screw,
+            "ribbon_run": [GLASS[2], YC - RIBBON_W / 2, PARTS["J2"]["at"][0], YC + RIBBON_W / 2],
+        },
+    }
 
 
 # =================================================================================================

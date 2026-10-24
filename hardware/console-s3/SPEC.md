@@ -66,8 +66,8 @@ Rules for every other pin:
 - **Never use for anything new:** GPIO26–37 (flash and PSRAM inside the module), 19 and 20 (USB),
   43 and 44 (UART0, the boot log), and the straps 0, 3, 45 and 46 beyond what the table gives them.
 - **PREV and BACK**, if fitted, go on free pins outside that list, to ground when pressed, with the
-  S3's internal pull-ups. Rev A uses GPIO5 and GPIO6. Today's image doesn't read them; a profile
-  that does is a firmware change and a new release.
+  S3's internal pull-ups. Today's image doesn't read them; a profile that does is a firmware change
+  and a new release. Rev A fits BOOT (GPIO0, beside D0) and RESET (EN) there instead.
 
 ## The key
 
