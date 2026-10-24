@@ -113,7 +113,7 @@ Function test.
 | Colour | **Green** | the only colour without two extra days, and the mask limits checked are green's |
 | Surface finish | **LeadFree HASL** | lead-free, cheap. ENIG is flatter for the 0.5 mm ZIF and UDFN but costs more; HASL is what the design says |
 | Outer copper | 1 oz | |
-| Via covering | Tented | the default, and all 74 vias are 0.3 mm, tented in the Gerbers |
+| Via covering | Tented | the default, and all 72 vias are 0.3 mm, tented in the Gerbers |
 | Mark on PCB | **Remove Mark** (or the free 2D barcode) | JLCPCB now adds no order number by default; check the option shows "no mark" |
 | Electrical test | flying probe (free) | |
 | Gold fingers, castellated holes | No | |
