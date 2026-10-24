@@ -49,7 +49,7 @@ when the files go up.
 
 | role | part | JLCPCB | tier | who fits it |
 |---|---|---|---|---|
-| the brain and the radio | ESP32-S3-WROOM-1-N4R2 (4 MB flash, 2 MB PSRAM), ~$3.50–4.70 | C2913203 | Standard only | the workshop |
+| the brain and the radio | ESP32-S3-WROOM-1-N8R2 (8 MB flash, 2 MB PSRAM), ~$3.20–4.70 | C2913204 | Standard only | the workshop |
 | the key | ATECC608C-MAHDA-S, UDFN-8, ~$1.20, with its 100 nF | C23291019 | Extended, Economic | JLCPCB |
 | the screen | 1.14″ 240 × 135 ST7789 panel, 8-pin 0.5 mm FPC, ~$2.50 | not stocked | | the workshop: clips in |
 | its connector | HDGC 0.5K-HX-8PWB, 8P 0.5 mm ZIF | C2919492 | Extended, Economic | JLCPCB |
@@ -172,6 +172,9 @@ board beats it only from about 15 units, and the first five are a learning order
       firmware.
 - [x] WROOM-1-N4R2 or MINI-1-N4R2? **WROOM-1-N4R2**, on the back, where it doesn't compete with the
       panel for room. The antenna end is flush with the board's edge, with no copper under it.
+      On 2026-10-24 it became the **N8R2**, the same footprint and PSRAM: cheaper, ten times the
+      stock, and PicoQuorumKey's module, so both boards share one part
+      ([the order plan](../../ORDER-PLAN-2026-10-24.md#the-module-one-part-for-both-boards)).
 - [ ] A battery later? Then the regulator becomes a low-dropout part and a charger comes back.
       Nothing in this concept blocks it; nothing in it provides for it.
 - [x] Is the AMS1117's 1.1 V dropout fine from USB? Yes from 5 V, but the design uses an ME6211 in

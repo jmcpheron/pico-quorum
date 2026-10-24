@@ -38,7 +38,7 @@ sign that hash and nothing else, after every page is seen and Sign is held (AGEN
 | 3.3 V | a regulator good for **500 mA or more** | Espressif's minimum for the supply (Table 6-2); Wi-Fi bursts reach 355 mA (Table 6-4) |
 | status LED | one LED | the firmware blinks it |
 
-Known-good modules: **ESP32-S3-WROOM-1-N4R2** (rev A's), **WROOM-1-N8R2**, and
+Known-good modules: **ESP32-S3-WROOM-1-N8R2** (rev A's, and PicoQuorumKey's), **WROOM-1-N4R2**, and
 **ESP32-S3-MINI-1-N4R2** (the Feather's). MicroPython **1.26.1**, the `ESP32_GENERIC_S3` build,
 finds the flash and the PSRAM itself ([FEATHER-S3.md](../wiring/FEATHER-S3.md#try-it)).
 

@@ -55,22 +55,26 @@ HOLES = [("H1", (2.2, 2.2)), ("H2", (2.2, H - 2.2))]   # 2.2 mm for M2, at the U
 HOLE_RING = 2.5          # no track and no via this close to a hole's centre, on either side: an M2 washer is 5 mm across
 SILK_H, SILK_W = 1.0, 0.8   # silkscreen text, height and width: JLCPCB reads nothing under 1.0 mm tall or 0.15 mm a stroke
 
-# The module: ESP32-S3-WROOM-1-N4R2, Espressif's datasheet v1.8 (Figure 11-1, the land pattern).
-# On the back, its antenna end flush with the right edge. N4R2 is quad PSRAM: an R8 (octal) takes
+# The module: ESP32-S3-WROOM-1-N8R2, Espressif's datasheet v1.8 (Figure 11-1, the land pattern).
+# On the back, its antenna end flush with the right edge. N8R2 is quad PSRAM: an R8 (octal) takes
 # GPIO35-37, and the screen's MOSI and SCK are 35 and 36 (datasheet Table 3-1, note b).
-MODULE_MPN, MODULE_LCSC = "ESP32-S3-WROOM-1-N4R2", "C2913203"
+MODULE_MPN, MODULE_LCSC = "ESP32-S3-WROOM-1-N8R2", "C2913204"
 MOD_W, MOD_L, MOD_ANT = 18.0, 25.5, 6.0
 MOD_AT = (W - MOD_L / 2, YC)
 KEEPOUT = (W - MOD_ANT - 0.5, 0.0, W, H)   # x0, y0, x1, y1: the antenna area and 0.5 mm, full height, both layers
 
 # The panel: a bare 1.14" 240x135 ST7789, 8-pin 0.5 mm FPC, the size Adafruit's Feather ESP32-S3
-# Reverse TFT carries. No drawing was found. glass and tail are one seller's listing (31 x 17 mm,
-# 54 mm with the ribbon), active is Waveshare's 1.14" figure (24.912 x 14.864 mm). The glass lies
-# on foam tape over the ZIF; the tail leaves the glass's right end, folds under it and comes back
-# into the ZIF. Measure a panel before ordering: DESIGN.md, "The panel".
+# Reverse TFT carries. glass is one seller's listing (31 x 17 mm), active is Waveshare's 1.14"
+# figure (24.912 x 14.864 mm). The glass lies on foam tape over the ZIF; the tail leaves the glass's
+# right end, folds under it and comes back into the ZIF. How far it comes back is EastRising's
+# ER-TFT1.14-2 drawing (datasheet rev 1.0, as PicoQuorumKey reads it): the folded tail ends 21.0 +-
+# 0.5 mm in from the glass's edge. Until 2026-10-24 this was one seller's 23 mm tail less a guessed
+# 5.7 mm fold, which put the end 4.7 mm short of the drawing's. Measure a panel before ordering:
+# DESIGN.md, "The panel".
 PANEL = dict(glass=(31.0, 17.0), active=(24.912, 14.864), active_dy=0.0, rows=135,
-             tail=23.0,          # glass edge to the end of the ribbon
-             fold=5.7,           # ribbon used by the fold under the glass
+             reach=21.0,         # the glass's right edge to the folded ribbon's end
+             reach_tol=0.5,
+             home=1.0,           # a ribbon pushed fully into J2 ends this far past J2's centre
              reversed=False,     # True if the fold puts the ribbon's pin 1 at the ZIF's pin 8
              foam=2.0)           # tape thickness: everything under the glass is lower than this
 GLASS_X = 18.5            # the glass's left end: room beside J1's pads for the D column and a channel of tracks
@@ -112,10 +116,10 @@ TESTPADS = [("TP1", "3V3", "+3V3"), ("TP2", "GND", "GND"), ("TP3", "EN", "/EN"),
 
 # The two-pin parts: ref -> (value, footprint, net 1, net 2, LCSC, what it is for)
 TWO = {
-    "R1": ("10R", "R_0603", "/BL_D", "/LCD_LEDA", "C22859", "Backlight series resistor: set against the panel's LED"),
+    "R1": ("150R", "R_0603", "/BL_D", "/LCD_LEDA", "C22808", "Backlight series resistor, from VBUS: (5 - 3.0) V / 150 R = 13 mA, the panel's maximum 20 mA"),
     "R2": ("1k", "R_0603", "/LCD_BL", "/BL_B", "C21190", "GPIO45 to Q1's base"),
     "R3": ("10k", "R_0603", "/BL_B", "GND", "C25804", "Q1 base pull-down: holds GPIO45, a strap, low at reset (VDD_SPI 3.3 V)"),
-    "R4": ("10k", "R_0603", "+3V3", "/BL_G", "C25804", "Q2 gate pull-up: backlight off until GPIO45 drives Q1"),
+    "R4": ("10k", "R_0603", "VBUS", "/BL_G", "C25804", "Q2 gate pull-up, to its source: backlight off until GPIO45 drives Q1"),
     "R5": ("10k", "R_0603", "+3V3", "/BTN_D0", "C25804", "D0 pull-up: GPIO0 is BOOT, high for a normal start"),
     "R6": ("10k", "R_0603", "/BTN_D1", "GND", "C25804", "D1 pull-down: pressed reads high (board.HIGH)"),
     "R7": ("10k", "R_0603", "/BTN_D2", "GND", "C25804", "D2 pull-down: pressed reads high (board.HIGH)"),
@@ -157,7 +161,7 @@ NETS.update({("U2", "1"): "unconnected-(U2-NC-Pad1)", ("U2", "2"): "unconnected-
              ("U4", "1"): "/S3_DP", ("U4", "2"): "GND", ("U4", "3"): "/S3_DN", ("U4", "4"): "/USB_DN",
              ("U4", "5"): "VBUS", ("U4", "6"): "/USB_DP",
              ("Q1", "1"): "/BL_B", ("Q1", "2"): "GND", ("Q1", "3"): "/BL_G",
-             ("Q2", "1"): "/BL_G", ("Q2", "2"): "+3V3", ("Q2", "3"): "/BL_D"})
+             ("Q2", "1"): "/BL_G", ("Q2", "2"): "VBUS", ("Q2", "3"): "/BL_D"})
 for ref, _label, net in TESTPADS:
     NETS[ref, "1"] = net
 
@@ -170,7 +174,7 @@ for ref, _label, net in TESTPADS:
 PARTS = {
     "U1": dict(fp="ESP32-S3-WROOM-1", value=MODULE_MPN, at=MOD_AT, rot=90, side="B", in_bom=False,
                fields=[("Datasheet", WROOM_DS), ("MPN", MODULE_MPN),
-                       ("Description", f"ESP32-S3 module, 4 MB flash, 2 MB quad PSRAM, on the back; JLCPCB {MODULE_LCSC} is Standard-only: hand-soldered")]),
+                       ("Description", f"ESP32-S3 module, 8 MB flash, 2 MB quad PSRAM, on the back; JLCPCB {MODULE_LCSC} is Standard-only: hand-soldered")]),
     "U2": dict(fp="DFN-8-1EP_3x2mm_P0.5mm", value="ATECC608C", at=(23.5, 16.5), rot=0,
                fields=[("Datasheet", ATECC_DS), ("LCSC", "C23291019"), ("MPN", "ATECC608C-MAHDA-S"),
                        ("Description", "The console's key: ECC P-256 secure element, I2C 0x60, UDFN-8 2x3 mm, the part key-b uses")]),
@@ -181,12 +185,12 @@ PARTS = {
     "Q1": dict(fp="SOT-23", value="S8050", at=(38.5, 6.0), rot=0,
                fields=[("LCSC", "C2150"), ("MPN", "SS8050"), ("Description", "NPN: GPIO45 high pulls Q2's gate low. 1 B, 2 E, 3 C")]),
     "Q2": dict(fp="SOT-23", value="AO3401A", at=(43.0, 6.0), rot=0,
-               fields=[("LCSC", "C15127"), ("MPN", "AO3401A"), ("Description", "P-MOSFET high-side backlight switch. 1 G, 2 S, 3 D")]),
+               fields=[("LCSC", "C15127"), ("MPN", "AO3401A"), ("Description", "P-MOSFET high-side backlight switch, from VBUS. 1 G, 2 S, 3 D")]),
     "J1": dict(fp="USB_C_Receptacle_HCTL_HC-TYPE-C-16P-01A", value="USB-C", at=(3.675, YC), rot=-90,
                fields=[("LCSC", "C2894897"), ("MPN", "HC-TYPE-C-16P-01A"),
                        ("Description", "USB-C receptacle, key-c's part: power and the S3's own USB (serial, esptool)")]),
     "J2": dict(fp="FPC_ZIF_8P_P0.5mm_HDGC_0.5K-HX-8PWB", value="PANEL", rot=90,
-               at=(GLASS[2] + 1.0 - (PANEL["tail"] - PANEL["fold"]) + 1.0, YC),
+               at=(GLASS[2] - (PANEL["reach"] - PANEL["reach_tol"]) + PANEL["home"], YC),   # the shortest ribbon home; the longest bows 1 mm
                fields=[("LCSC", "C2919492"), ("MPN", "0.5K-HX-8PWB"),
                        ("Description", "8-pin 0.5 mm FPC ZIF, rear flip, contacts both sides: the panel's ribbon clips in")]),
 }
@@ -195,7 +199,7 @@ _TWO_AT = {"R1": ((43.0, 2.8), 0), "R2": ((38.5, 9.2), 0), "R3": ((38.5, 2.8), 0
            "R5": ((19.9, 17.5), -90), "R6": ((19.9, YC), -90), "R7": ((19.9, 5.4), -90), "R8": ((52.2, 10.4), -90),
            "R9": ((55.0, 11.4), 0), "R10": ((6.0, 17.6), 180), "R11": ((6.0, 5.35), 180), "R12": ((28.0, 17.5), -90),
            "R13": ((30.0, 17.5), -90), "C1": ((23.5, 3.8), 0), "C2": ((27.5, 6.5), -90), "C3": ((52.4, 1.1), 0),
-           "C4": ((55.4, 1.1), 0), "C5": ((23.5, 19.0), 180), "C6": ((34.0, 16.2), 0), "C7": ((55.0, 9.65), 0),
+           "C4": ((55.4, 1.1), 0), "C5": ((23.5, 19.0), 180), "C6": ((32.4, 16.2), 0), "C7": ((55.0, 9.65), 0),
            "D1": ((55.0, 13.4), 0)}
 for ref, (value, fp, _n1, _n2, lcsc, desc) in TWO.items():
     at, rot = _TWO_AT[ref]
@@ -413,7 +417,7 @@ def write_schematic(syms):
     part("U1", "ESP32-S3-WROOM-1", mx, my, 15.24, 27.94,
          [(str(n), "", "", "L", 24.13 - 2.54 * (n - 1)) for n in range(1, 21)]
          + [(str(n), "", "", "R", -24.13 + 2.54 * (n - 21)) for n in range(21, 41)] + [("41", "", "", "B", 0)])
-    sh.text("ESP32-S3-WROOM-1-N4R2 on the back, hand-soldered.\n"
+    sh.text("ESP32-S3-WROOM-1-N8R2 on the back, hand-soldered.\n"
             "The Feather ESP32-S3 Reverse TFT's GPIOs (firmware/board.py,\n"
             "\"feather-s3\"), so today's console image runs unchanged.\n"
             "Never an R8 module: octal PSRAM takes GPIO35-37.", mx - 20.32, my + 38.1)
@@ -441,7 +445,8 @@ def write_schematic(syms):
     boxed("Q1", "Q_NPN", 213.36, 139.7)
     sh.text("The panel: 1.14in 240x135 ST7789 on an 8-pin 0.5 mm ribbon, one\n"
             "seller's pin order (DESIGN.md). Its LEDK is GND inside, so Q2\n"
-            "switches LEDA on the high side; GPIO45 high is on, as on the\n"
+            "switches LEDA from VBUS on the high side, R1 setting 13 mA;\n"
+            "GPIO45 high is on, as on the\n"
             "Feather. R3 holds GPIO45 (a strap: VDD_SPI) low at reset.", 185.42, 157.48)
 
     # the key, the buttons, the LED, EN
@@ -477,30 +482,36 @@ def _crtyd(x0, y0, x1, y1):
     return ("rect", x0, y0, x1, y1, "F.CrtYd", 0.05, False)
 
 
+PAD_IRON = 1.0           # the module's pads reach this much further out than Espressif's pattern, for an iron
+
+
 def fp_module():
     """Espressif's land pattern (datasheet v1.8, Figure 11-1), antenna up (-y): pads 1.5 x 0.9 at
-    1.27 mm, reaching 0.5 mm past the module's edge; pin 1 7.49 mm below the antenna end, the
+    1.27 mm, reaching 0.5 mm past the module's edge, each made PAD_IRON longer outward so an iron's
+    tip has copper beside every castellation (as PicoQuorumKey's are); pin 1 7.49 mm below the antenna end, the
     bottom row from 2.015 mm in. The exposed pad is the 3.7 mm block of nine, its centre 7.5 mm from
     the pin-1 side and 10.29 mm from the bottom edge, where KiCad's own RF_Module footprint has it
     (until 2026-10-23 these were read as distances to its near sides, 1.85 mm off); one pad here,
     bare, no paste (soldering it is optional: section 9). The silkscreen stops short of the antenna
-    end, which is the board's edge."""
+    end, which is the board's edge. The pin-1 dot sits just past pin 1 toward the antenna, clear of its longer pad."""
     hw, hl = MOD_W / 2, MOD_L / 2
     y1 = -hl + 7.49
     items = []
+    e, L = PAD_IRON / 2, 1.5 + PAD_IRON
     for n in range(1, 15):
-        items.append(_pad(str(n), "smd", "rect", -hw + 0.25, y1 + 1.27 * (n - 1), 1.5, 0.9))
+        items.append(_pad(str(n), "smd", "rect", -hw + 0.25 - e, y1 + 1.27 * (n - 1), L, 0.9))
     for n in range(15, 27):
-        items.append(_pad(str(n), "smd", "rect", -hw + 2.015 + 1.27 * (n - 15), hl - 0.25, 0.9, 1.5))
+        items.append(_pad(str(n), "smd", "rect", -hw + 2.015 + 1.27 * (n - 15), hl - 0.25 + e, 0.9, L))
     for n in range(27, 41):
-        items.append(_pad(str(n), "smd", "rect", hw - 0.25, hl - 1.5 - 1.27 * (n - 27), 1.5, 0.9))
+        items.append(_pad(str(n), "smd", "rect", hw - 0.25 + e, hl - 1.5 - 1.27 * (n - 27), L, 0.9))
     items.append(_pad("41", "smd", "rect", -hw + 7.5, hl - 10.29, 3.7, 3.7, layers=["F.Cu", "F.Mask"]))
     items += [("rect", -hw, -hl, hw, hl, "F.Fab", 0.1, False), ("rect", -hw, -hl, hw, -hl + MOD_ANT, "F.Fab", 0.1, False),
-              ("text", "antenna: no copper", 0, -hl + 3.0, 0, "F.Fab", 0.8), _crtyd(-hw - 0.75, -hl - 0.25, hw + 0.75, hl + 0.75),
+              ("text", "antenna: no copper", 0, -hl + 3.0, 0, "F.Fab", 0.8), _crtyd(-hw - 0.75 - PAD_IRON, -hl - 0.25, hw + 0.75 + PAD_IRON, hl + 0.75 + PAD_IRON),
               ("line", -hw, -hl + 0.5, -hw, y1 - 1.0, "F.SilkS", 0.12),
-              ("line", hw, -hl + 0.5, hw, y1 - 1.0, "F.SilkS", 0.12), ("circle", -hw - 1.0, y1, 0.3, "F.SilkS", 0.12, True)]
+              ("line", hw, -hl + 0.5, hw, y1 - 1.0, "F.SilkS", 0.12), ("circle", -hw - 1.0, y1 - 1.1, 0.3, "F.SilkS", 0.12, True)]
     return dict(items=items, attr="smd exclude_from_pos_files exclude_from_bom",
-                descr="ESP32-S3-WROOM-1, Espressif's recommended land pattern (datasheet v1.8, Figure 11-1): 40 pads 1.5x0.9 at 1.27 mm, "
+                descr="ESP32-S3-WROOM-1, Espressif's recommended land pattern (datasheet v1.8, Figure 11-1), its 40 pads 1.0 mm longer outward "
+                      "for hand soldering (2.5x0.9 at 1.27 mm), "
                       "the exposed pad as one 3.7 mm pad without paste. Keep the 18x6 mm antenna end free of copper on every layer",
                 tags="esp32-s3 wroom module")
 
@@ -1061,8 +1072,8 @@ KEY = (".##......",
        "#..#..#.#",
        ".##......")
 PIXEL = 0.3
-ART = [(KEY, 22.15, 14.6), (DRAGON, 26.5, 15.1)]     # board (x, y) of each one's top left: the key under U2's
-                                                    # pads, the dragon between the vias at (25.75, 15.0) and (29.81, 11.2)
+ART = [(KEY, 21.65, 14.6), (DRAGON, 25.15, 14.3)]    # board (x, y) of each one's top left: the key under U2's
+                                                    # pads, the dragon between it and J2, below the via at (25.75, 15.0)
 
 
 def silk_pixels():
@@ -1460,9 +1471,10 @@ def check(path, prof):
     # 11. the module: pins where Espressif's drawing puts them, its antenna end at the board's edge
     mod = {p["num"]: to_board(p["centre"]) for p in pads if p["ref"] == "U1"}
     end = W                     # the antenna end, flush with the right edge; pins 1-14 along the bottom edge
-    want = {"1": (end - 7.49, YC - 8.75), "14": (end - 7.49 - 16.51, YC - 8.75),
-            "15": (end - MOD_L + 0.25, YC - MOD_W / 2 + 2.015), "26": (end - MOD_L + 0.25, YC + MOD_W / 2 - 2.015),
-            "27": (end - 7.49 - 16.51, YC + 8.75), "40": (end - 7.49, YC + 8.75)}
+    e = PAD_IRON / 2      # each pad's centre moves out by half what it gained for the iron
+    want = {"1": (end - 7.49, YC - 8.75 - e), "14": (end - 7.49 - 16.51, YC - 8.75 - e),
+            "15": (end - MOD_L + 0.25 - e, YC - MOD_W / 2 + 2.015), "26": (end - MOD_L + 0.25 - e, YC + MOD_W / 2 - 2.015),
+            "27": (end - 7.49 - 16.51, YC + 8.75 + e), "40": (end - 7.49, YC + 8.75 + e)}
     for n, (x, y) in want.items():
         gx, gy = mod[n]
         if abs(gx - x) > 0.005 or abs(gy - y) > 0.005:
@@ -1489,8 +1501,10 @@ def check(path, prof):
 # =================================================================================================
 
 GLASS_T = 1.6             # the panel's glass, mm: a 1.14" module's usual, not measured (DESIGN.md: 3.6 mm proud with the tape)
-RIBBON_W = 5.0            # the 8-pin ribbon's width: 8 x 0.5 mm and its margins, not measured
-FOLD_R = 1.2              # the fold's reach past the glass's right end, a guess until a panel is folded
+RIBBON_W = 4.5            # the ribbon's tail, back to J2 (ER-TFT1.14-2's drawing)
+FOLD_W = 9.1              # the ribbon where it bends round the glass's end (the same drawing)
+FOLD_R = 0.5              # the fold stands at most this far past the glass's right end (the same drawing)
+FOLD_Y = (YC + 8.8 - 14.5, YC + 8.8 - 5.4)   # it is 5.4 to 14.5 mm from the top of the drawing's 17.6 mm glass
 
 
 def jlc_spec():
@@ -1512,8 +1526,9 @@ def jlc_spec():
             "back": [{"name": "U1 module", "box": [MOD_AT[0] - MOD_L / 2, MOD_AT[1] - MOD_W / 2, MOD_AT[0] + MOD_L / 2, MOD_AT[1] + MOD_W / 2],
                       "z": [-t - 3.1, -t], "note": "WROOM-1, 18 x 25.5 x 3.1 (datasheet)"}],
             "solids": [{"name": "glass", "box": list(GLASS), "z": [PANEL["foam"], PANEL["foam"] + GLASS_T], "note": "on 2.0 mm tape, 1.6 thick: not measured"},
-                       {"name": "ribbon fold", "box": [GLASS[2], YC - RIBBON_W / 2, GLASS[2] + FOLD_R, YC + RIBBON_W / 2],
-                        "z": [0.2, PANEL["foam"] + 0.5], "guess": True, "note": "the fold past the glass's end: a guess"}] + screw,
+                       {"name": "ribbon fold", "box": [GLASS[2], FOLD_Y[0], GLASS[2] + FOLD_R, FOLD_Y[1]],
+                        "z": [PANEL["foam"], PANEL["foam"] + GLASS_T], "guess": True,
+                        "note": "the fold past the glass's end, from ER-TFT1.14-2's drawing (inside the panel's 1.6 mm \"with FPC folded\"): not measured"}] + screw,
             "ribbon_run": [GLASS[2], YC - RIBBON_W / 2, PARTS["J2"]["at"][0], YC + RIBBON_W / 2],
         },
     }
