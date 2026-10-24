@@ -1,6 +1,13 @@
 # The pocket console PCB, console-pocket
 
-*Rev A, drawn 2026-10-07. Not yet checked in KiCad, not yet ordered.*
+*Rev A, drawn 2026-10-07. Not yet ordered.*
+
+> **Don't order the board in this folder as it is.** KiCad 10.0.6's DRC, run on 2026-10-23, finds
+> 138 violations, 32 of them shorts. `gen_console.py`'s `rotate()` turned parts the other way from
+> KiCad, so every part at 90° or 270° has its pads swapped against its tracks. The self-check used
+> the same `rotate()`, so it couldn't see it. `rotate()` is fixed now. Before this board is
+> regenerated, swap its 90s and 270s (as `feather-wing/gen_wing.py`'s `ROT` was) so each pad
+> lands where the placement expects it; then rerun it and `tools/keypcb check`.
 
 One board for the console, the small one: a Pico 2 W soldered on the back as a module, a bare
 1.54″ ST7789 240×240 panel on the front, seven buttons, and pads for the key's wires. It runs the
