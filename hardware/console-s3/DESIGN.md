@@ -137,7 +137,7 @@ Every other GPIO has no connection. Three of them matter:
   nothing; the screen and the chip are on 3.3 V always. The generator checks it stays unconnected.
 - **GPIO35–37** are free only on a quad-PSRAM module. An R8 module (octal PSRAM) takes them
   (datasheet Table 3-1, note b), and the screen's MOSI and SCK are 35 and 36. So it is
-  WROOM-1-**N4R2**, or N8R2, never R8; the generator stops on an R8 part number.
+  WROOM-1-**N8R2**, or N4R2, never R8; the generator stops on an R8 part number.
 - **The straps** (Table 4-1): GPIO0 is D0 with its pull-up. GPIO45 must read low at reset (VDD_SPI at
   3.3 V); R3 holds Q1's base, and so GPIO45 through R2, at ground. GPIO3 has the I2C pull-up, which
   only matters to an eFuse this board never burns. GPIO46 is left to its internal pull-down.
@@ -278,7 +278,7 @@ reliably, so check stock when you upload.
 
 | ref | part | LCSC | JLCPCB tier | who fits it |
 |---|---|---|---|---|
-| U1 | ESP32-S3-WROOM-1-N4R2 (4 MB flash, 2 MB quad PSRAM) | C2913203 | Extended, Standard assembly only | the workshop, on the back |
+| U1 | ESP32-S3-WROOM-1-N8R2 (8 MB flash, 2 MB quad PSRAM) | C2913204 | Extended, Standard assembly only | the workshop, on the back |
 | U2 | ATECC608C-MAHDA-S, UDFN-8 | C23291019 | Extended | JLCPCB |
 | U3 | ME6211C33M5G-N, 3.3 V 500 mA LDO, SOT-23-5 | C82942 | Extended | JLCPCB |
 | U4 | USBLC6-2SC6, SOT-23-6 | C7519 | Extended | JLCPCB |
