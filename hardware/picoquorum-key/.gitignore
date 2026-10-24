@@ -1,0 +1,21 @@
+# KiCad
+*-backups/
+*.kicad_prl
+*.kicad_sch-bak
+*.kicad_pcb-bak
+*.bak
+*.lck
+_autosave-*
+fp-info-cache
+# generated outputs live under hardware/out/<rev>/ and are committed per tagged release;
+# scratch exports go here
+hardware/out/scratch/
+# python
+__pycache__/
+*.pyc
+.venv/
+# mac
+.DS_Store
+# LCSC/EasyEDA 3D models and the ones cut from them: their licence for redistribution isn't
+# clear, so they stay local. tools/fetch_parts.sh, then tools/gen/fix_models.py, makes them.
+hardware/lib/*.3dshapes/

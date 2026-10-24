@@ -1,6 +1,6 @@
 # Order plan, 2026-10-24
 
-Two boards to order from JLCPCB: console-s3, five of them, and a second board to be decided. Prices
+Two boards to order from JLCPCB, five of each: console-s3, and PicoQuorumKey, designed apart to compare. Prices
 below are from JLCPCB's pages read on 2026-10-23 and 24 ([sources](#sources)). They are estimates, not
 quotes: the quote page fills its prices in by script, so get the real figures by uploading the files.
 
@@ -120,13 +120,54 @@ Write down in DESIGN.md:
 - U3's temperature with the radio busy;
 - whether R8 is clear of the real ribbon fold.
 
-## 2. The second board: to be decided
+## 2. PicoQuorumKey rev A, five boards
 
-- [ ] Which board, and why now:
-- [ ] `tools/keypcb check <board>` and `tools/keypcb jlc <board>` pass
-- [ ] Economic or Standard; which side its parts are on
-- [ ] Its parts' stock on the day
-- [ ] Ordered with console-s3 to share shipping, or not
+The board: [hardware/picoquorum-key](hardware/picoquorum-key/README.md), designed apart from console-s3
+to the same spec, ordered beside it to compare. 44 x 53 mm, the module on the back, the panel in a
+ZIF on the front, five buttons, U2 the same UDFN ATECC608C as console-s3. Its files are in
+`hardware/picoquorum-key/hardware/out/rev-a/`: `picoquorum-key-gerbers.zip`, `bom.csv`, `cpl.csv`,
+and `fit-check-front-1to1.pdf`. Its own step-by-step is
+[its ORDERING.md](hardware/picoquorum-key/docs/ORDERING.md).
+
+### Before ordering
+
+- [ ] Its `tools/test.sh` passes (125 tests; it did on 2026-10-24), after `tools/export.sh rev-a`.
+- [ ] Print `fit-check-front-1to1.pdf` at 100 % and lay a real panel on it: the folded tail reaches J2.
+- [ ] **Know it won't run the console image yet.** Its buttons are on GPIO40–42, which today's ESP32-S3
+      profile drives as outputs. Flash only its `firmware/smoke/smoke.py` until a `picoquorum-key`
+      profile and a new release exist ([its README](hardware/picoquorum-key/README.md#in-picoquorum)).
+- [ ] Check stock the same day (below).
+
+### What to select
+
+The same as console-s3's option A, with three differences:
+
+| | PicoQuorumKey | why |
+|---|---|---|
+| Dimensions | 44 x 53 mm | no side at 30 mm or less: **no small-board fee** |
+| Assembly | Economic, top side | the module goes on by hand, as on console-s3 |
+| Extended part types | J1, J2, the switches, U2, U4: five | about $15 in feeder fees |
+| Stencil | 0.10, 0.12 or 0.15 mm (0.12 is fine) | U2's pads limit it to 0.150 mm |
+| Placement preview | U2's pin 1 (a small dot), U3's tab, U4, Q1, Q2, D1, J1, J2 | there is no `cpl-overlay.png` for this board: hold `cpl.csv`'s rotations |
+
+PCB options otherwise as console-s3's table: FR-4, 2 layers, 1.6 mm, green, LeadFree HASL, 1 oz,
+tented vias, Remove Mark, flying probe.
+
+### Shared with console-s3
+
+- **U2, ATECC608C-MAHDA-S, C23291019:** both boards use it, so ten for two orders of five. On
+  2026-10-24 JLCPCB had 62 and LCSC none: if fewer than 10 show on the day, pre-order them into the
+  JLCPCB parts library first.
+- **The module:** N8R2, C2913204, the design's own part. Seven per its BOM (two spare).
+- **The panel and J2:** the same kind of panel (1.14″ ST7789, 8-pin 0.5 mm ribbon; NFP114H-03AF is
+  printed on the Walfront one both designs name) in the same ZIF, C2919492. Check each board's pin
+  order on its own 1:1 print: they were laid out apart.
+- Order both boards in one JLCPCB cart to share shipping.
+
+### Rough total, five boards
+
+Its BOM.md puts it at about $125–175 with seven modules, seven panels and shipping. With console-s3
+in the same cart, the shipping is paid once.
 
 ## Sources
 
