@@ -7,6 +7,18 @@ One board for the console: an ESP32-S3-WROOM-1 on the back, the Feather's 1.14�
 a ZIF on the front, five buttons, the ATECC608C soldered on, and USB-C for power and the serial port.
 64 × 22.86 mm, 2 layers, 1.6 mm, lead-free HASL.
 
+| front | back |
+|---|---|
+| <img src="renders/console-s3-3q-top.jpg" width="420" alt="console-s3, front: the 1.14-inch panel showing a review page, D0, D1 and D2 left of it by the USB-C, PREV and BACK right of it"> | <img src="renders/console-s3-3q-bottom.jpg" width="420" alt="console-s3, back: the ESP32-S3 module with its antenna at the edge, the test pads, the mark and the Source Location"> |
+| <img src="renders/console-s3-3q-top-bare.jpg" width="420" alt="console-s3, front without the panel: the ZIF, the chip, the regulator and the backlight switch that sit under the glass"> | <img src="renders/console-s3-top.jpg" width="420" alt="console-s3 from straight above, with the panel"> |
+| without the panel: what sits under the glass | from above |
+
+These are mock-ups, not KiCad renders. `render.py` draws them from the generator's own positions,
+turns, sides and pads, so they show the board as placed. The parts are plain blocks at their
+datasheet sizes, not the makers' models. The screen shows the Feather's review page
+([docs/quorum-ui/feather](../../docs/quorum-ui/feather/README.md)). There are no tracks because
+the board isn't routed yet. The ribbon's fold shows at the glass's right end in the view from above.
+
 ```
   front                                                          the antenna end: no copper
   ┌──────────────────────────────────────────────────────────────┬──────┐
@@ -274,6 +286,7 @@ Sign (AGENTS.md rule 1).
 | `lib/pqs3.kicad_sym`, `lib/pqs3.pretty/` | the symbols and footprints, all written by the script. The UDFN, SOT-23s, 0603s, USB-C and switch are KiCad's own or key-c's and console-a's, as their boards hold them; the module's and the ZIF's are from their makers' drawings |
 | `lib/picoquorum.pretty/PicoQuorum_Mark.kicad_mod` | the mark, a copy of the key library's |
 | `console-s3/` | the KiCad 9 project: open `console-s3.kicad_pro`. Placed, not routed |
+| `render.py`, `renders/` | the pictures at the top of this page, drawn from the generator's geometry with numpy and Pillow (numpy 2.5.3, Pillow 12.3.0 here). `python3 hardware/console-s3/render.py` remakes them, the same bytes each time; without numpy or Pillow, `uv run --with numpy --with pillow python3 hardware/console-s3/render.py` |
 
 `gen_console_s3.py` reuses console-pocket's footprint and board-text helpers and the key boards'
 schematic helpers, as the wing does. Once the board is edited in KiCad, the KiCad files are the

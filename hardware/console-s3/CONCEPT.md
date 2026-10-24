@@ -4,6 +4,10 @@
 generator, a schematic and a placed board. Where the two differ (the module on the back, five
 buttons, the regulator, the backlight switch), DESIGN.md is the board.*
 
+<img src="renders/console-s3-3q-top.jpg" width="560" alt="console-s3 as designed: the 1.14-inch panel showing a review page, three buttons left of it by the USB-C, two right of it">
+
+*The board as placed, drawn from the generator ([how](DESIGN.md#files)).*
+
 A small board like a Feather, and only that: an ESP32-S3 module, a 1.14″ screen, three buttons, the
 ATECC608C soldered on, and a USB-C socket for power and the serial port. No battery, no key port,
 no radio of our own. JLCPCB's Economic assembly places everything it can. The module and the panel
