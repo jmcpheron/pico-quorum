@@ -40,8 +40,8 @@ How the families compare against that. Prices and stock are from LCSC's product 
 N8R2 is the cheapest part that fits, has ten times the N4R2's stock, and is already
 PicoQuorumKey's module. It has the same footprint and pins as the N4R2 and the same 2 MB quad
 PSRAM. MicroPython's `ESP32_GENERIC_S3` build finds the larger flash itself, so the console image
-doesn't change. console-s3's design files still name the N4R2. That doesn't touch its Gerbers,
-BOM or CPL, because the module isn't in them.
+doesn't change. console-s3's design files name it too; its Gerbers, BOM and CPL don't change,
+because the module isn't in them.
 
 At JLCPCB every S3 module is "Standard only", so neither choice changes the assembly decision
 below: the workshop fits the module either way.

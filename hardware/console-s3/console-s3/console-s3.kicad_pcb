@@ -5159,7 +5159,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "ESP32-S3-WROOM-1-N4R2"
+		(property "Value" "ESP32-S3-WROOM-1-N8R2"
 			(at 0 -13.7 0)
 			(layer "B.Fab")
 			(hide yes)
@@ -5185,7 +5185,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Description" "ESP32-S3 module, 4 MB flash, 2 MB quad PSRAM, on the back; JLCPCB C2913203 is Standard-only: hand-soldered"
+		(property "Description" "ESP32-S3 module, 8 MB flash, 2 MB quad PSRAM, on the back; JLCPCB C2913204 is Standard-only: hand-soldered"
 			(at 0 0 0)
 			(layer "B.Fab")
 			(hide yes)
@@ -5198,7 +5198,7 @@
 				(justify mirror)
 			)
 		)
-		(property "MPN" "ESP32-S3-WROOM-1-N4R2"
+		(property "MPN" "ESP32-S3-WROOM-1-N8R2"
 			(at 0 0 0)
 			(layer "B.Fab")
 			(hide yes)

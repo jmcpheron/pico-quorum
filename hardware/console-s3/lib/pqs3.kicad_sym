@@ -5,7 +5,7 @@
 (property "Footprint" "pqs3:ESP32-S3-WROOM-1" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
 (property "Datasheet" "https://www.espressif.com/sites/default/files/documentation/esp32-s3-wroom-1_wroom-1u_datasheet_en.pdf" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
 (property "Description" "ESP32-S3-WROOM-1 module: 40 castellations and the exposed pad, numbered as datasheet v1.8 Table 3-1" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
-(property "MPN" "ESP32-S3-WROOM-1-N4R2" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+(property "MPN" "ESP32-S3-WROOM-1-N8R2" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
 (symbol "ESP32-S3-WROOM-1_0_1" (rectangle (start -15.24 27.94) (end 15.24 -27.94) (stroke (width 0.254) (type default)) (fill (type background))))
 (symbol "ESP32-S3-WROOM-1_1_1"
 (pin power_in line (at -17.78 24.13 0) (length 2.54) (name "GND" (effects (font (size 1.27 1.27)))) (number "1" (effects (font (size 1.27 1.27)))))
