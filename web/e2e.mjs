@@ -394,7 +394,7 @@ await step("a passkey's signer, from a deploy link, with a wallet that owns no S
   await page.fill("#signer-key", owner);
   await page.getByRole("button", { name: "Show its signer" }).click();
   check(/can't be deployed from the address alone/.test(await text("[role=alert]")), "#/signer: an owner address alone is explained, not deployed (it's a hash of the key)");
-  await page.fill("#signer-key", `${x} ${y.slice(0, 63)}0`);
+  await page.fill("#signer-key", `${x} ${y.slice(0, 63)}${y.endsWith("0") ? "1" : "0"}`);   // y's last digit changed: off the curve
   await page.getByRole("button", { name: "Show its signer" }).click();
   check(/isn't a P-256 public key|Paste a deploy link/.test(await text("[role=alert]")), "#/signer: a key that isn't on the curve is refused");
   await page.fill("#signer-key", `https://picoquorum.app/app/#/signer/${x}/${y}`);
