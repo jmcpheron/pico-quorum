@@ -40,7 +40,8 @@ reversible connector, and its pins carry rev A's signals:
 | D− (A7 and B7, joined on the key) | SCL | GP5, the same pull-up |
 | CC1 (A5), CC2 (B5) | each 5.1 kΩ to GND (R1, R2) | sensed **separately**, never joined: see [the console end](#the-console-end-of-key-c) |
 | GND, shell | GND | GND |
-| SBU1, SBU2 | not connected | |
+| SBU2 (B8) | P3: the LED, through R3 (470 Ω) to its anode | lit by the console. wing-a joins its plug's A8 and B8 and drives them from D13 through 100 Ω |
+| SBU1 (A8) | not connected | |
 
 **Why it works either way up.**
 - A USB 2.0 cable has one D+/D− pair. Flipped over, it lands on the receptacle's B row instead of
@@ -68,6 +69,11 @@ reversible connector, and its pins carry rev A's signals:
   and U1. They meet on the bottom, where U2 and C2 join them.
 - **Test pads.** Four 1.5 mm pads on the back, labelled GND, SCL, SDA and VCC, for a probe or a
   scope on the bench. They aren't assembled; they're just copper.
+- **P3's LED.** SBU2 (B8) comes out between CC1 and VBUS and turns left over VBUS's via to R3,
+  then D1, a green 0603, beside U2. CC1 runs straight up past it and turns left under it to R1,
+  which moved left of U2. R3 is first in line from the pad, so it limits whatever SBU carries.
+  Only B8 is wired: A8 sits between SDA's two pads, under SDA's via. The console's end joins
+  its plug's A8 and B8, so B8 meets it either way up.
 - **J1's footprint** is a project copy, `USB_C_Receptacle_HCTL_HC-TYPE-C-16P-01A_PQ`. Its four
   outer ground pads are 0.1 mm shorter at the end nearest the part's plastic peg holes:
   - In KiCad's original they reach to 0.18 mm from the holes, under JLCPCB's published 0.20 mm.
@@ -92,6 +98,8 @@ The risks are all at the console's port; see the next section.
 | U2 | USBLC6-2SC6 | C7519 |
 | R1, R2 | 5.1 kΩ 0402 | C25905 |
 | C1, C2 | 100 nF 0402 | C1525 |
+| R3 (P3) | 470 Ω 0402 | C25117 |
+| D1 (P3) | green LED 0603, Everlight 19-217/GHC-YR1S2/3T | C72043 |
 | TP1–TP4 | test pads on the back (copper only, not assembled) | |
 
 ## The console end of key-c
@@ -186,6 +194,7 @@ It is symmetric left to right, so the back side's mirror changes nothing. It's n
    - U1's and U2's pin 1 sit at their silkscreen triangles. On P1, JLCPCB showed both turned 90°;
      expect to rotate them.
    - **J1's opening faces the board edge.**
+   - P3: D1's cathode (pad 1, the silkscreen's bar) faces the lanyard hole, away from J1.
    - Fix any part that's turned, in 90° steps.
 6. **Shipping:** Global Standard if the order is under $59; otherwise express with DDP, so duties
    are paid up front.

@@ -12,8 +12,8 @@
 #                                 pcbnew): a board written as text has its zones unfilled
 #   tools/keypcb calc ...         the numbers behind the design: insert, rise, power, spice
 #                                 (hardware/key-pcb/keycalc.py, run with uv; needs no KiCad)
-#   tools/keypcb gen-cd           rewrites proposals key-c-usbc and key-d-pogo from gen_cd.py (KiCad's own
-#                                 Python, for pcbnew); rev A's boards are never touched
+#   tools/keypcb gen-cd [board]   rewrites proposals key-c-usbc and key-d-pogo from gen_cd.py (KiCad's own
+#                                 Python, for pcbnew), or only the one named; rev A's boards are never touched
 #   tools/keypcb gen-console      rewrites console-pcb/console-a from hardware/console-pcb/gen_console.py,
 #                                 the same way
 #   tools/keypcb gen-console-a    rewrites console-a/console-a (the Waveshare-pin board) from

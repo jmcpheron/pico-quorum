@@ -1,9 +1,59 @@
-# key-c P2: the USB-C key
+# key-c: the USB-C key
 
-> **Status: ordered, in production.** 5 boards, all assembled by JLCPCB. The production file is
-> checked and confirmed, and so is the parts placement (2026-10-04). JLCPCB estimates production
-> will finish 2026-10-07 05:00; then 8–13 business days by Global Standard.
-> JLCPCB order **W…1209** · PCBA **SMT…3772** · $38.96
+> **P3, drawn 2026-10-23: P2 plus a green LED the console lights.** Not ordered. The files in this
+> folder are P3.
+>
+> **P2: built and working.** 5 boards assembled by JLCPCB (order **W…1209** · PCBA **SMT…3772** ·
+> $38.96). They read on the bench from 2026-10-16, and chip 3 is a Safe owner on the Feather. P2's
+> files as ordered are in [`fab/P2/`](fab/P2/) and at commit `ac34fc55`.
+
+## P3: the LED
+
+| parts side |
+|---|
+| ![key-c P3, parts side](fab/key-c-usbc-top.png) |
+
+P3 adds two parts, D1 and R3, and changes nothing else in the circuit:
+- **D1, a green 0603 LED** (Everlight 19-217, C72043), beside U2, where the key shows when it
+  stands in wing-a's plug.
+- **R3, 470 Ω** (C25117), between the receptacle's SBU2 pin (B8) and D1. It comes first, so it
+  limits whatever a plug puts on SBU. D1's cathode goes to ground.
+
+**The console lights it.** wing-a joins its plug's A8 and B8 and drives them from D13 through
+100 Ω ([feather-wing/README.md](../../feather-wing/README.md)). D13 is the console's status LED
+pin: today's image blinks it while a transaction waits for this key and keeps it on while Wi-Fi
+is up (`led_tick` in `firmware/quorum.py`). So the key's LED does the same with no firmware change.
+At 3.3 V that is about 1 mA, which this LED shows plainly; its datasheet rates it at 3.3 V,
+20 mA.
+
+**Only B8 is wired.** A8 sits between SDA's two receptacle pads, under SDA's via. The plug's A8 and
+B8 are joined on the wing, so one of them meets B8 whichever way up the key goes in.
+
+**Plugged in anywhere else, it stays dark.** A USB-C cable to a laptop carries no SBU on a USB 2.0
+cable, and nothing on the key depends on SBU.
+
+**Hot-swap: no change.** P2 already plugs and unplugs safely on wing-a:
+- USB-C's ground and VBUS pins mate first and break last. GCT's connector drawings list them as
+  "first" and the signal pins (CC, SBU, D+/D−) as "second". The HCTL receptacle's and the wing's
+  plug's own drawings weren't checked for this.
+- If a signal pin did touch first, U2's diodes carry what the wing's 2.2k pull-ups push into
+  SDA/SCL on to the key's VCC: at most about 3 mA, set by the pull-ups.
+- The key has 200 nF on VCC, and wing-a's switch limits the key's current to 80 mA.
+- 11 plugs and unplugs on the bench reset nothing (log, 2026-10-16).
+
+The rest of hot-swap is the console's: keep the key off until CC shows one, then turn it on. That
+needs D5/D6 and D9 in the firmware, a new release
+([feather-wing/README.md](../../feather-wing/README.md#open)).
+
+**Checked** (KiCad 10.0.6, `tools/keypcb check key-c-usbc`): ERC 0, DRC 0, 0 unconnected,
+schematic parity clean. `gen_cd.py` was first checked to rebuild P2 exactly: every footprint, pad,
+track and via the same.
+
+**Ordering P3** is as P2 ([PROPOSALS.md](../PROPOSALS.md#ordering-key-c-at-jlcpcb)), plus: in the
+placement preview, D1's cathode (pad 1, the bar in its silkscreen) faces the lanyard hole. D1 and
+R3 are basic parts.
+
+## P2 as ordered
 
 | parts side | back |
 |---|---|
@@ -50,7 +100,7 @@ The design is in [../PROPOSALS.md](../PROPOSALS.md), and the full order record i
 |---|---|
 | Board | 16 × 36 mm, 2 layers, 1.6 mm, blue mask, white silkscreen, LeadFree HASL |
 | Parts | U1 ATECC608C-SSHDA-T, U2 USBLC6-2SC6, J1 HCTL HC-TYPE-C-16P-01A, C1/C2 100 nF, R1/R2 5.1 kΩ |
-| Files as ordered | commit `ac34fc55` on `key-pcb-learn`; Gerber zip SHA-256 `99a6dbb5…`, in `fab/` |
+| Files as ordered | commit `ac34fc55` on `key-pcb-learn`; Gerber zip SHA-256 `99a6dbb5…`, now in `fab/P2/` |
 | Checks | ERC 0 · DRC 0 · unconnected 0 · parity clean (`tools/keypcb check key-c-usbc`) |
 
 ## Next
@@ -76,6 +126,9 @@ The design is in [../PROPOSALS.md](../PROPOSALS.md), and the full order record i
 
 ## Log (newest first)
 
+- **2026-10-23:** **P3 drawn**: P2 plus D1 (green LED) and R3 on SBU2, lit by the Feather's D13
+  through wing-a. R1 moved left of U2 to make room. ERC/DRC clean. P2's fab files moved to
+  `fab/P2/`.
 - **2026-10-16:** **first power-up on the bench**, on an ESP32
   ([buildlog](../../../buildlog/BUILDLOG.md)). Nothing was locked.
   - The console's end wasn't built: key power straight from the 3.3 V rail, no CC sensing.
