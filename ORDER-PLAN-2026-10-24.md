@@ -133,9 +133,10 @@ and `fit-check-front-1to1.pdf`. Its own step-by-step is
 
 - [ ] Its `tools/test.sh` passes (125 tests; it did on 2026-10-24), after `tools/export.sh rev-a`.
 - [ ] Print `fit-check-front-1to1.pdf` at 100 % and lay a real panel on it: the folded tail reaches J2.
-- [ ] **Know it won't run the console image yet.** Its buttons are on GPIO40–42, which today's ESP32-S3
-      profile drives as outputs. Flash only its `firmware/smoke/smoke.py` until a `picoquorum-key`
-      profile and a new release exist ([its README](hardware/picoquorum-key/README.md#in-picoquorum)).
+- [ ] **Know the released console image doesn't run on it.** Its buttons are on GPIO40–42, which
+      2026.10.12's ESP32-S3 profile drives as outputs. The `picoquorum-key` profile is in
+      `firmware/board.py` since 2026-10-24; flash only its `firmware/smoke/smoke.py` until a release
+      has it ([its README](hardware/picoquorum-key/README.md#in-picoquorum)).
 - [ ] Check stock the same day (below).
 
 ### What to select

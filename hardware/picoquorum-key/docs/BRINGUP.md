@@ -88,8 +88,9 @@ the chip's public serial number; it signs nothing and reads no key (rule 3).
 - Peel the tape, press the panel down square to the rail ticks.
 - Write the board's serial (from the test) and the module's lot on the back in pencil, or in the
   project log.
-- The console image, the `picoquorum-key` profile and the ceremony are the firmware project's steps,
-  not this repo's. Hand it [PINS.md](PINS.md).
+- The console image and the ceremony are PicoQuorum's steps (`tools/fw push console`), from a
+  release that has the `picoquorum-key` profile; 2026.10.12 and earlier don't
+  ([PINS.md](PINS.md#in-the-console-image)).
 
 ## Checks worth a minute each
 
