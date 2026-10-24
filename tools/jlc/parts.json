@@ -5,6 +5,7 @@
   "C15849": {"mpn": "CL10A105KB8NNNC", "maker": "Samsung Electro-Mechanics", "package": "0603", "value": "1u", "pads": 2, "pitch": null},
   "C2286": {"mpn": "KT-0603R", "maker": "Hubei KENTO Elec", "package": "0603", "value": "RED", "pads": 2, "pitch": null},
   "C22859": {"mpn": "0603WAF100JT5E", "maker": "UNI-ROYAL", "package": "0603", "value": "10R", "pads": 2, "pitch": null},
+  "C22808": {"mpn": "0603WAF1500T5E", "maker": "UNI-ROYAL", "package": "0603", "value": "150R", "pads": 2, "pitch": null, "read": "2026-10-24"},
   "C23186": {"mpn": "0603WAF5101T5E", "maker": "UNI-ROYAL", "package": "0603", "value": "5.1k", "pads": 2, "pitch": null},
   "C23162": {"mpn": "0603WAF4701T5E", "maker": "UNI-ROYAL", "package": "0603", "value": "4.7k", "pads": 2, "pitch": null},
   "C21190": {"mpn": "0603WAF1001T5E", "maker": "UNI-ROYAL", "package": "0603", "value": "1k", "pads": 2, "pitch": null},

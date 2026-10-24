@@ -12,10 +12,12 @@ and `tools/keypcb jlc` pass on it as of 2026-10-24. Its files are in `hardware/c
 
 ### Before ordering
 
-- [ ] **Measure a panel** (CONCEPT step 1): glass, the tail's length, the pin order, which face its
-      contacts are on after the fold, the LED's forward voltage. Check its ribbon has 8 pins at
-      0.5 mm, for J2 (HDGC 0.5K-HX-8PWB, C2919492). If anything moves, run the generator and
-      `route` again.
+- [ ] **Measure a panel** (CONCEPT step 1): glass, the folded tail's reach, the pin order, which face
+      its contacts are on after the fold, the LED's forward voltage. Check its ribbon has 8 pins at
+      0.5 mm, for J2 (HDGC 0.5K-HX-8PWB, C2919492). J2 is placed for ER-TFT1.14-2's drawing: the
+      folded tail ends 21.0 ± 0.5 mm in from the glass's edge. Fold one on a 1:1 print of the front
+      (`kicad-cli pcb export pdf`) and see where it ends against J2 at x 30.0. If anything moves, run
+      the generator and `route` again.
 - [ ] **Measure a module** against Espressif's Figure 11-1.
 - [ ] **Look the routing over in KiCad** by eye, the tracks under the module most.
 - [ ] `tools/keypcb fab console-s3`, then `tools/keypcb jlc console-s3`: every check passes.
@@ -118,7 +120,8 @@ The workshop's steps, per board (CONCEPT.md):
 
 Write down in DESIGN.md:
 - U3's temperature with the radio busy;
-- whether R8 is clear of the real ribbon fold.
+- whether the real ribbon fold is clear of SW5 and R8;
+- the voltage across R1 (150 Ω) with the backlight full on: about 2 V is 13 mA.
 
 ## 2. PicoQuorumKey rev A, five boards
 
@@ -160,8 +163,10 @@ tented vias, Remove Mark, flying probe.
   JLCPCB parts library first.
 - **The module:** N8R2, C2913204, the design's own part. Seven per its BOM (two spare).
 - **The panel and J2:** the same kind of panel (1.14″ ST7789, 8-pin 0.5 mm ribbon; NFP114H-03AF is
-  printed on the Walfront one both designs name) in the same ZIF, C2919492. Check each board's pin
-  order on its own 1:1 print: they were laid out apart.
+  printed on the Walfront one both designs name) in the same ZIF, C2919492. Since 2026-10-24 both
+  place J2 for ER-TFT1.14-2's folded reach, 21.0 ± 0.5 mm; console-s3's was 4.7 mm shorter before.
+  Buy one kind of panel for both, and check it on each board's own 1:1 print: they were laid out
+  apart.
 - Order both boards in one JLCPCB cart to share shipping.
 
 ### Rough total, five boards
