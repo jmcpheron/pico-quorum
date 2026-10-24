@@ -111,7 +111,7 @@ key. What follows from that:
 - **Two layers, 1.6 mm, lead-free HASL,** 0.25 mm tracks, JLCPCB's limits with margin. Nothing
   here needs four layers.
 - **Silkscreen:** the mark, the Source Location (`github.com/jmcpheron/pico-quorum`, CERN-OHL-W
-  4.1) and the buttons' names.
+  2.0) and the buttons' names.
 
 ## What JLCPCB does, what the workshop does
 
@@ -152,10 +152,13 @@ board beats it only from about 15 units, and the first five are a learning order
 
 1. **Buy one panel and one module** and measure them: the FPC's pin order and which way it folds,
    the module's pad numbers against Espressif's drawing. Nothing goes to fab before this.
-2. **Done 2026-10-24, placed but not routed ([DESIGN.md](DESIGN.md)). Write `gen_console_s3.py`** in the style of console-pocket: the parts, the Feather's pin map
+2. **Write `gen_console_s3.py`** in the style of console-pocket: the parts, the Feather's pin map
    read from `firmware/board.py` (the generator stops if the profile and the table disagree, as the
-   wing's does), the footprints, the schematic, the routed board and its self-check.
+   wing's does), the footprints, the schematic, the placed board and its self-check. Done
+   2026-10-24 ([DESIGN.md](DESIGN.md)); routed with Freerouting since.
 3. **On a machine with KiCad:** fill, ERC and DRC, the 3D view from both sides, then the fab files.
+   Done: ERC, DRC and parity clean in KiCad 10.0.6, and the fab files are in `console-s3/fab/`.
+   Don't upload them before step 1.
 4. **Quote it** at JLCPCB: Economic, one side, qty 5, Confirm Parts Placement. Read the quote
    against the table above and write the real numbers here.
 5. **Order, build one, bring it up** with the Feather's bench scripts, then the console image.
@@ -164,8 +167,9 @@ board beats it only from about 15 units, and the first five are a learning order
 ## Open
 
 - [x] Three buttons like the Feather, or five? **Five** (2026-10-24). D0, D1 and D2 keep the Feather's
-      pins and place, so today's image runs; PREV and BACK are on new pins for a later profile and
-      release.
+      pins and place, so today's image runs. The other two were PREV and BACK, on new pins for a
+      later profile; on 2026-10-23 they became BOOT (GPIO0, as D0) and RESET (EN), which need no
+      firmware.
 - [x] WROOM-1-N4R2 or MINI-1-N4R2? **WROOM-1-N4R2**, on the back, where it doesn't compete with the
       panel for room. The antenna end is flush with the board's edge, with no copper under it.
 - [ ] A battery later? Then the regulator becomes a low-dropout part and a charger comes back.

@@ -63,16 +63,20 @@ def _pads(side):
     return out
 
 
-def _mark(draw, x, y, mm):
-    """The PicoQuorum mark from the key library's footprint, white, centred at (x, y) in texture px."""
-    src = open(os.path.join(HERE, "lib", "picoquorum.pretty", "PicoQuorum_Mark.kicad_mod")).read()
-    poly = src[src.index("(fp_poly"):]
-    poly = poly[:poly.index("(stroke")]
-    pts = [(x + float(a) * mm, y + float(b) * mm) for a, b in re.findall(r"\(xy ([\-\d.]+) ([\-\d.]+)\)", poly)]
-    draw.polygon(pts, fill=SILK)
-    for cx, cy, ex, _ey in re.findall(r"\(fp_circle \(center ([\-\d.]+) ([\-\d.]+)\) \(end ([\-\d.]+) ([\-\d.]+)\)", src):
-        r = abs(float(ex) - float(cx)) * mm
-        draw.ellipse([x + float(cx) * mm - r, y + float(cy) * mm - r, x + float(cx) * mm + r, y + float(cy) * mm + r], fill=SILK)
+def _logo(draw, name, x, y, k):
+    """A logo from lib/picoquorum.pretty, white, its origin at (x, y) in texture px, k texture px a mm
+    of the footprint, as it reads from its own side (the back is mirrored afterwards)."""
+    src = s3._logo(name)[1]
+    for pts in re.findall(r"\(fp_poly \(pts (.*?)\) \(stroke", src):
+        draw.polygon([(x + float(a) * k, y + float(b) * k) for a, b in re.findall(r"\(xy ([\-\d.]+) ([\-\d.]+)\)", pts)], fill=SILK)
+    for cx, cy, ex, w in re.findall(r"\(fp_circle \(center ([\-\d.]+) ([\-\d.]+)\) \(end ([\-\d.]+) [\-\d.]+\) \(stroke \(width ([\d.]+)\)", src):
+        r, w = abs(float(ex) - float(cx)), float(w)
+        cx, cy = x + float(cx) * k, y + float(cy) * k
+        if w == 0:
+            draw.ellipse([cx - r * k, cy - r * k, cx + r * k, cy + r * k], fill=SILK)
+        else:            # a ring keeps its 0.15 mm line at any scale, as on the board
+            out = (r + w / 2) * k
+            draw.ellipse([cx - out, cy - out, cx + out, cy + out], outline=SILK, width=max(1, round(w * PX)))
 
 
 def face_texture(side):
@@ -108,17 +112,15 @@ def face_texture(side):
             for y, dy in ((gy0, 2.0), (gy1, -2.0)):
                 d.line([X(x), Y(y), X(x + dx), Y(y)], fill=SILK, width=int(0.15 * PX))
                 d.line([X(x), Y(y), X(x), Y(y + dy)], fill=SILK, width=int(0.15 * PX))
-        for ref, label in s3.LABELS.items():
-            x, y = s3.PARTS[ref]["at"]
-            text(label, x, y + 3.55 if y > YC else y - 3.55)
-    else:
-        _mark(d, X(11.5), Y(YC), PX * 1.6)
-        text("PicoQuorum console-s3 A", 26.0, 13.6)
-        text(s3.SRC, 26.0, 11.43)
-        text("CERN-OHL-W 2.0", 26.0, 9.26)
-        for ref, label, _net in s3.TESTPADS:
-            x, y = s3.PARTS[ref]["at"]
-            text(label, x, y - 1.75 if y > YC else y + 1.75)
+    for name, x, y, k, on in s3.silk_logos():
+        if (on == "B") == back:
+            _logo(d, name, X(x), Y(y), k * PX)
+    for t, x, y, on in s3.silk_texts():
+        if (on == "B") == back:
+            text(t, x, y, s3.SILK_H)
+    for x0, y0, x1, y1, on in s3.silk_pixels():
+        if (on == "B") == back:
+            d.rectangle([min(X(x0), X(x1)), Y(y1), max(X(x0), X(x1)), Y(y0)], fill=SILK)
     return np.asarray(img.transpose(Image.Transpose.FLIP_LEFT_RIGHT) if back else img)
 
 

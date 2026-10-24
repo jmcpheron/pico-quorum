@@ -586,10 +586,12 @@ def ref_y(fp):
 # =================================================================================================
 
 def rotate(x, y, rot):
-    """KiCad's rotation of a footprint's local point, in page coordinates (y down). Verified
-    against key-c: a footprint at -90 puts local (-2.475, -1.905) at (-1.905, +2.475)."""
+    """KiCad's rotation of a footprint's local point, in page coordinates (y down): counter-clockwise
+    as seen on the page. Checked with pcbnew 10.0.6 on wing-a: an 0402 at -90 puts its pad 1
+    (local -0.51, 0) above its centre, at (0, -0.51). Before 2026-10-23 this turned the other way,
+    and every part at 90 or 270 had its pads swapped against the tracks."""
     r = math.radians(rot)
-    return x * math.cos(r) - y * math.sin(r), x * math.sin(r) + y * math.cos(r)
+    return x * math.cos(r) + y * math.sin(r), -x * math.sin(r) + y * math.cos(r)
 
 
 def world(px, py, rot, back, lx, ly):
