@@ -16,8 +16,8 @@ What the console needs from its chip, and where each need comes from:
   each TLS handshake share ([ESP32.md](hardware/wiring/ESP32.md#will-the-whole-console-fit)). It
   runs in the Feather's 2 MB ([FEATHER-S3.md](hardware/wiring/FEATHER-S3.md)).
 - **Quad PSRAM, not octal.** Octal (an "R8" part) takes GPIO35–37, where the screen is.
-- **An ESP32-S3.** The console image picks the `feather-s3` pin profile on any S3. Another
-  family is a new profile and a new release fingerprint (AGENTS.md rule 2), and MicroPython
+- **An ESP32-S3.** The console image has S3 pin profiles only: `feather-s3`, and
+  `picoquorum-key`, which it picks when GPIO16/17 have pull-ups. Another family is a new profile and a new release fingerprint (AGENTS.md rule 2), and MicroPython
   1.26.1, the version the project pins, has no build for the C5 or C61.
 - **Native USB**, so `tools/fw push` works over the USB-C with no bridge chip.
 
