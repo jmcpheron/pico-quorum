@@ -190,10 +190,10 @@ steps it can't do. Write down what each one shows in [console-s3's DESIGN.md](..
    against `fab/check/cpl-overlay.png`, where the arrow is the CPL's rotation and the blue ring is pin 1. The
    ones to look at hardest: U2 (UDFN-8), U3, U4, Q1, Q2, D1, J1 and J2's ZIF. Fix a wrong one in
    JLCPCB's preview, and write down which, so the next order can be checked against it.
-4. **The order number.** JLCPCB prints one on the silkscreen unless you choose "Remove mark" (a
-   small fee), or the board has `JLCJLCJLCJLC` where it should go. console-s3 has neither yet.
-   Choose "Remove mark", or ask for the text to be added: it changes the silk.
+4. **The order number.** JLCPCB's quote page said on 2026-10-24 that it adds no mark by default.
+   Its "Mark on PCB" option offers Order Number, 2D barcode or Remove Mark: choose Remove Mark, and
+   check the page still says so.
 5. **A 1:1 print.** In KiCad, **File → Print** the front copper, silk and edge at scale 1:1, and
    measure the print's outline: 64 x 22.86 mm. Lay a panel and a module on it.
-6. **Board options:** 2 layers, 1.6 mm, 1 oz, green mask (the mask limits checked are green's: 0.13
-   mm for black or white), HASL lead-free or ENIG.
+6. **Board and assembly options:** [ORDER-PLAN-2026-10-24.md](../../ORDER-PLAN-2026-10-24.md) lists
+   each one, and the choice of Economic (the module by hand) or Standard (JLCPCB fits it too).

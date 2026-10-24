@@ -36,7 +36,7 @@ OUT = os.path.join(HERE, NAME)
 DATE = "2026-10-24"
 TITLE = "PicoQuorum console-s3, rev A: ESP32-S3-WROOM-1 on the back, 1.14in ST7789 in a ZIF, 5 buttons, ATECC608C on board"
 NOTE = "The S3 console on one board: see hardware/console-s3/DESIGN.md"
-SRC = "github.com/jmcpheron/pico-quorum"        # the Source Location: CERN-OHL-W v2, section 4.1
+SRC = "PicoQuorum.app"        # the Source Location (CERN-OHL-W v2, section 4.1): the site links to the source
 WROOM_DS = "https://www.espressif.com/sites/default/files/documentation/esp32-s3-wroom-1_wroom-1u_datasheet_en.pdf"
 ATECC_DS = gen.ATECC_DS
 
@@ -192,7 +192,7 @@ PARTS = {
 }
 # C3 and C4 under RESET, against the bottom edge: over the module's 3V3 and ground pins (2 and 1)
 _TWO_AT = {"R1": ((43.0, 2.8), 0), "R2": ((38.5, 9.2), 0), "R3": ((38.5, 2.8), 0), "R4": ((43.0, 9.2), 0),
-           "R5": ((19.9, 17.5), -90), "R6": ((19.9, YC), -90), "R7": ((19.9, 5.4), -90), "R8": ((51.5, 9.65), 0),
+           "R5": ((19.9, 17.5), -90), "R6": ((19.9, YC), -90), "R7": ((19.9, 5.4), -90), "R8": ((52.2, 10.4), -90),
            "R9": ((55.0, 11.4), 0), "R10": ((6.0, 17.6), 180), "R11": ((6.0, 5.35), 180), "R12": ((28.0, 17.5), -90),
            "R13": ((30.0, 17.5), -90), "C1": ((23.5, 3.8), 0), "C2": ((27.5, 6.5), -90), "C3": ((52.4, 1.1), 0),
            "C4": ((55.4, 1.1), 0), "C5": ((23.5, 19.0), 180), "C6": ((34.0, 16.2), 0), "C7": ((55.0, 9.65), 0),
@@ -562,7 +562,8 @@ def fp_usbc():
             ("B12", -3.2, -3.795, 0.6, 1.2)]
     items = [_pad(n, "smd", "roundrect", x, y, w, h) for n, x, y, w, h in pads]
     items += [_pad("", "np_thru_hole", "circle", x, -2.605, 0.65, 0.65, 0.65, layers=["*.Mask"]) for x in (-2.89, 2.89)]
-    items += [_pad("SH", "thru_hole", "oval", x, y, 1.0, h, ("oval", 0.6, h - 0.4)) for x in (-4.32, 4.32)
+    # the shell's slots as key-c's, their pads 0.1 mm bigger than key-c's: a 0.25 mm ring, not JLCPCB's bare 0.2
+    items += [_pad("SH", "thru_hole", "oval", x, y, 1.1, h + 0.1, ("oval", 0.6, h - 0.4)) for x in (-4.32, 4.32)
               for y, h in ((-3.105, 2.1), (1.075, 1.6))]
     items += [("rect", -4.47, -3.675, 4.47, 3.675, "F.Fab", 0.1, False), _crtyd(-5.32, -4.9, 5.32, 4.18),
               ("text", "board edge", 0, 3.4, 0, "F.Fab", 0.6)]
@@ -776,9 +777,11 @@ ESCAPE = [
     ("/SCL", "F.Cu", [(24.95, 16.25), (26.5, 16.25)]),
     ("+3V3", "F.Cu", [(24.275, 19.0), (24.275, 18.2), (24.95, 17.525), (24.95, 17.25)]),
     ("GND", "F.Cu", [(22.725, 19.0), (22.725, 18.3), (23.5, 17.525), (23.5, 16.5)]),
+    ("GND", "F.Cu", [(22.363, 6.5), (23.5, 6.5)]),       # U3's ground pin, its heat path, to a via under its body
 ]
 ESCAPE_VIAS = [("/USB_DP", 9.75, 11.68), ("/USB_DP", 10.1, 10.18), ("/USB_DP", 10.1, 4.6),
-               ("VBUS", 8.75, 13.93), ("VBUS", 8.75, 8.93), ("/SDA", 25.75, 15.0), ("/SCL", 26.5, 16.25)]
+               ("VBUS", 8.75, 13.93), ("VBUS", 8.75, 8.93), ("/SDA", 25.75, 15.0), ("/SCL", 26.5, 16.25),
+               ("GND", 23.5, 6.5)]
 
 
 # =================================================================================================
@@ -837,6 +840,8 @@ def footprint_text(ref, p, nets, path_uuid):
                 t += f' (net {nets[net]} "{net}")'
                 if ref == "J1" and net == "GND" and it[2] == "smd":
                     t += " (zone_connect 2)"      # solid to the pour: hemmed in by VBUS and the shell, a thermal gets one spoke
+                if (ref, it[1]) == ("U3", "2"):
+                    t += " (zone_connect 2)"      # solid to the pour: U3's heat leaves by its ground pin
             t += f' (uuid "{uid()}"))'
         lines.append(t)
     lines += ["\t\t(embedded_fonts no)", "\t)"]

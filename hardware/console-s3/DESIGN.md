@@ -319,7 +319,7 @@ y up, in mm.
   mark, 5 mm tall, on the antenna end, which takes ink but no copper. On the back: the lockup, the
   mark left of the name in the panel's proportions, and under it "Nothing signs unseen" (one of
   BRAND.md's draft taglines), "console-s3 rev A · CERN-OHL-W 2.0" and
-  `github.com/jmcpheron/pico-quorum`; the test pads' names.
+  `PicoQuorum.app`, the Source Location (its home page links to the source); the test pads' names.
   - The name is Atkinson Hyperlegible Next Bold, as on the panel, 1.3 mm to the cap height on the
     front and 2.3 mm on the back. `wordmark.py` traces it into a footprint, spaced a little wider
     than the face's own spacing: at 1.3 mm its letters are 0.16 mm apart at the closest.
@@ -375,8 +375,16 @@ Freerouting routes it (2.5.0, a Java autorouter; neither it nor Java is part of 
 - **Some signal tracks run on the back under the module**, between its pads. Both faces there are
   solder mask. Look at them when the routing is looked over.
 
-The routed board has 537 tracks, 1066 mm of them, and 70 vias, 19 of them the stitching. Routing
+The routed board has 504 tracks, 1051 mm of them, and 74 vias, 17 of them the stitching. Routing
 again may not give the same tracks.
+
+Routed again on 2026-10-24 after three changes the JLCPCB checks pointed to:
+- **J1's shell pads are 0.1 mm bigger** than key-c's, so the plated slots' rings are 0.25 mm, not
+  JLCPCB's bare 0.20. The slots are the same.
+- **R8 stands upright at (52.2, 10.4)**, 0.7 mm clear of where the panel's ribbon is guessed to fold,
+  instead of under it.
+- **U3's ground pin is solid to the pour**, with a short track to a via under its body into the back
+  pour. Its heat leaves by that pin.
 
 ## The firmware
 
@@ -454,27 +462,27 @@ In KiCad 10.0.6, `tools/keypcb check console-s3` on the routed board, pours fill
 
 `tools/keypcb jlc console-s3` runs the checks before a JLCPCB order ([tools/jlc](../../tools/jlc/README.md)),
 against JLCPCB's limits as their capabilities page gave them on 2026-10-23 (0.10 mm tracks and gaps,
-0.2 mm PTH ring, 0.2 mm copper to edge, 0.10 mm mask dam, 1.0 mm text). On 2026-10-23 every check
-passed. What it found:
+0.2 mm PTH ring, 0.2 mm copper to edge, 0.10 mm mask dam, 1.0 mm text). On the board routed
+2026-10-24 every check passed. What it found:
 - **DRC at JLCPCB's limits**, every check an error: only J1's footprint, marked SMD as key-c's is,
   though its shell's four tabs go through plated slots. That changes nothing in the Gerbers or the
   CPL. It is allowed by name in `jlc_spec()`.
 - **The fab files, read back** by gerbonara: 8 layers, the outline 64.000 x 22.860 mm, copper 0.3 mm
-  from the edge at the least and none past x 57.5; 74 plated hits (70 vias, J1's 4 slots) and 4
+  from the edge at the least and none past x 57.5; 78 plated hits (74 vias, J1's 4 slots) and 4
   plain (J1's pegs, H1, H2), drills 0.3, 0.6, 0.65 and 2.2 mm, each the board's; 155 pads, each on
   its net; every layer, drawn again, the board's to 0.05 mm.
 - **Netlist:** 29 nets in IPC-D-356 and the schematic, the same pads in each. **BOM and CPL:** 33
   parts in both, the module and test pads in neither, 21 BOM lines whose footprints match their
   LCSC parts' pad count, pitch and value.
-- **Tightest spots:** via to other copper 0.202 mm, the narrowest track 0.150 (LCD_LEDA), J1's slot
-  rings 0.200 (exactly JLCPCB's limit), mask webs 0.200 (J1), paste area ratio 0.89 (U2). 70 vias,
+- **Tightest spots:** via to other copper 0.202 mm, the narrowest track 0.150 (RXD0), J1's slot
+  rings 0.250, mask webs 0.200 (J1), paste area ratio 0.89 (U2). 74 vias,
   all tented, none by an SMD pad's opening.
-- **Heat (warning):** U3 has 348 mm² of its nets' copper within 10 mm. At 0.45 A it drops 0.77 W.
+- **Heat (warning):** U3 has 336 mm² of its nets' copper within 10 mm. At 0.45 A it drops 0.77 W.
   At 250 °C/W that is about 190 °C over the air. 250 °C/W is a usual SOT-23-5 figure, not the
   ME6211's own, and a pour this size does much better than that, but the number says to measure
   U3's temperature with the radio busy before trusting it.
-- **3D fit (warning):** no two solids meet but R8 and the ribbon's fold, which is a guess (a 1.2 mm
-  box past the glass's end). Measure the panel's fold, then move R8 if it is real. The glass is
+- **3D fit:** no two solids meet. The nearest part to the ribbon's fold, which is a guess (a 1.2 mm
+  box past the glass's end), is R8, 0.7 mm away. The glass is
   1.00 mm over J2, the tallest part under it; the screw heads 1.3 mm from U4 and R10.
 - **Golden pictures** of each layer are in `console-s3/fab/golden/`, so a later change shows as a
   picture.
@@ -498,7 +506,7 @@ passed. What it found:
       that moves anything.
 - [ ] Look the routing over in KiCad by eye before ordering, the tracks under the module most. It
       passes the checks; it isn't tidy.
-- [ ] Measure the panel's fold, then look at R8 again: `tools/keypcb jlc` finds it under the guessed fold.
+- [ ] Measure the panel's fold and run `tools/keypcb jlc` again: R8 is 0.7 mm from where it is guessed.
 - [ ] Measure U3's temperature with the radio busy on the first board.
 - [ ] The manual pass in [ORDERING.md](../key-pcb/ORDERING.md#9-console-s3-before-the-order).
 - [ ] At upload, check every part's pin 1 and rotation in JLCPCB's placement preview

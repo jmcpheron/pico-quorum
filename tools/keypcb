@@ -581,15 +581,18 @@ def jlc_selftest(name):
                     if kind == "track":
                         expect("1. DRC: a 0.08 mm track", jlc_drc(md, mpcb, spec))
                         expect("0. fab/: a board changed since its fab files", jlc_fab_current(name, md, msch, mpcb, k))
+                        # a change of copper's shape; a via inside its own net's copper on both faces draws no different
+                        os.makedirs(o)
+                        jlc_pcb(mpcb, o, specp, only="")
+                        expect("9. golden: a track thinned (--strict)", jlc_gerbers(os.path.join(k, "fab-now", zname), o, specp,
+                               os.path.join(fabd, "cpl.csv"), os.path.join(fabd, "golden"), "--strict"))
+                        keep(kind, o)
                     elif kind == "ring":
                         expect("6. holes: a via with a 0.025 mm ring", jlc_pcb(mpcb, o, specp, "holes"))
                         draw(kind, md, msch, mpcb, o, k)
                     elif kind == "wick":
                         expect("5. mask: a via in a pad's opening", jlc_pcb(mpcb, o, specp, "mask"))
-                        fab(name, md, msch, mpcb, out=os.path.join(k, "fab"), quiet=True)
-                        expect("9. golden: a via added (--strict)", jlc_gerbers(os.path.join(k, "fab", zname), o, specp,
-                               os.path.join(fabd, "cpl.csv"), os.path.join(fabd, "golden"), "--strict"))
-                        keep(kind, o)
+                        draw(kind, md, msch, mpcb, o, k)
                     elif kind == "island":
                         expect("7. pours: an island", jlc_pcb(mpcb, o, specp, "thermal"))
                         draw(kind, md, msch, mpcb, o, k)

@@ -110,7 +110,7 @@ key. What follows from that:
   rails, so `RAIL_Y` means the same thing it means on the Feather.
 - **Two layers, 1.6 mm, lead-free HASL,** 0.25 mm tracks, JLCPCB's limits with margin. Nothing
   here needs four layers.
-- **Silkscreen:** the mark, the Source Location (`github.com/jmcpheron/pico-quorum`, CERN-OHL-W
+- **Silkscreen:** the mark, the Source Location (`PicoQuorum.app`, whose home page links to the source; CERN-OHL-W
   2.0) and the buttons' names.
 
 ## What JLCPCB does, what the workshop does
