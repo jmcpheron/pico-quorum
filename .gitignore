@@ -45,3 +45,5 @@ hardware/key-pcb/out/
 web/node_modules/
 web/src/config.gen.mjs
 web/.scratch/
+# tools/keypcb jlc's tables and pictures, remade each run (fab/golden/ is kept)
+hardware/**/fab/check/

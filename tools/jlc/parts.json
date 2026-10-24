@@ -1,0 +1,20 @@
+{
+  "_about": "Each LCSC number the boards use: what LCSC's product page says it is, read 2026-10-23 (https://www.lcsc.com/product-detail/<C number>.html). pads: copper pads with a number (not a shell or a mounting tab); pitch: the least distance between pads at different places, mm (a 3-pin SOT-23 has its e1, 1.9), or null where it says nothing. value: what the schematic's Value must be. netlist_check.py holds each BOM line's footprint to these.",
+  "C19702": {"mpn": "CL10A106KP8NNNC", "maker": "Samsung Electro-Mechanics", "package": "0603", "value": "10u", "pads": 2, "pitch": null},
+  "C14663": {"mpn": "CC0603KRX7R9BB104", "maker": "YAGEO", "package": "0603", "value": "100n", "pads": 2, "pitch": null},
+  "C15849": {"mpn": "CL10A105KB8NNNC", "maker": "Samsung Electro-Mechanics", "package": "0603", "value": "1u", "pads": 2, "pitch": null},
+  "C2286": {"mpn": "KT-0603R", "maker": "Hubei KENTO Elec", "package": "0603", "value": "RED", "pads": 2, "pitch": null},
+  "C22859": {"mpn": "0603WAF100JT5E", "maker": "UNI-ROYAL", "package": "0603", "value": "10R", "pads": 2, "pitch": null},
+  "C23186": {"mpn": "0603WAF5101T5E", "maker": "UNI-ROYAL", "package": "0603", "value": "5.1k", "pads": 2, "pitch": null},
+  "C23162": {"mpn": "0603WAF4701T5E", "maker": "UNI-ROYAL", "package": "0603", "value": "4.7k", "pads": 2, "pitch": null},
+  "C21190": {"mpn": "0603WAF1001T5E", "maker": "UNI-ROYAL", "package": "0603", "value": "1k", "pads": 2, "pitch": null},
+  "C25804": {"mpn": "0603WAF1002T5E", "maker": "UNI-ROYAL", "package": "0603", "value": "10k", "pads": 2, "pitch": null},
+  "C2150": {"mpn": "SS8050", "maker": "JSCJ", "package": "SOT-23", "value": "S8050", "pads": 3, "pitch": 1.9},
+  "C15127": {"mpn": "AO3401A", "maker": "AOS", "package": "SOT-23", "value": "AO3401A", "pads": 3, "pitch": 1.9},
+  "C82942": {"mpn": "ME6211C33M5G-N", "maker": "MICRONE", "package": "SOT-23-5", "value": "ME6211C33", "pads": 5, "pitch": 0.95},
+  "C7519": {"mpn": "USBLC6-2SC6", "maker": "ST", "package": "SOT-23-6L", "value": "USBLC6-2SC6", "pads": 6, "pitch": 0.95},
+  "C23291019": {"mpn": "ATECC608C-MAHDA-S", "maker": "Microchip", "package": "UDFN-8(2x3)", "value": "ATECC608C", "pads": 9, "pitch": 0.5, "note": "eight pads and the exposed pad"},
+  "C2894897": {"mpn": "HC-TYPE-C-16P-01A", "maker": "HCTL", "package": "SMD, 16P, right angle", "value": "USB-C", "pads": 16, "pitch": 0.5},
+  "C2919492": {"mpn": "0.5K-HX-8PWB", "maker": "HDGC", "package": "SMD, P=0.5mm, right angle", "value": "PANEL", "pads": 8, "pitch": 0.5},
+  "C318884": {"mpn": "TS-1187A-B-A-B", "maker": "XKB Connection", "package": "SMD-4P, 5.1x5.1mm", "value": null, "pads": 4, "pitch": null}
+}

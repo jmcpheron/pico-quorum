@@ -175,3 +175,25 @@ fingers and small boards weren't checked here.
    ([BUILD1.md](../wiring/BUILD1.md#order-of-work)).
 4. **Practise provisioning on a spare first.** Config and data locks are permanent
    ([LOCKING.md](../../docs/LOCKING.md), [PROVISIONING.md](../../docs/PROVISIONING.md)).
+
+## 9. console-s3: before the order
+
+`tools/keypcb jlc console-s3` does what a script can ([tools/jlc](../../tools/jlc/README.md)). These
+steps it can't do. Write down what each one shows in [console-s3's DESIGN.md](../console-s3/DESIGN.md#checking-it).
+
+1. **Run it first:** `tools/keypcb fab console-s3`, then `tools/keypcb jlc console-s3`. Every
+   check should pass. Read the two warnings (U3's heat, R8 under the ribbon's guessed fold) again
+   once a panel is measured.
+2. **JLCPCB's Gerber viewer and DFM check.** Upload `console-s3-gerbers.zip`. Look at each layer in
+   their viewer, and run their DFM analysis. Note anything it flags, even if it lets the order go.
+3. **The placement preview.** Upload `bom.csv` and `cpl.csv`. Hold each part's pin 1 and rotation
+   against `fab/check/cpl-overlay.png`, where the arrow is the CPL's rotation and the blue ring is pin 1. The
+   ones to look at hardest: U2 (UDFN-8), U3, U4, Q1, Q2, D1, J1 and J2's ZIF. Fix a wrong one in
+   JLCPCB's preview, and write down which, so the next order can be checked against it.
+4. **The order number.** JLCPCB prints one on the silkscreen unless you choose "Remove mark" (a
+   small fee), or the board has `JLCJLCJLCJLC` where it should go. console-s3 has neither yet.
+   Choose "Remove mark", or ask for the text to be added: it changes the silk.
+5. **A 1:1 print.** In KiCad, **File → Print** the front copper, silk and edge at scale 1:1, and
+   measure the print's outline: 64 x 22.86 mm. Lay a panel and a module on it.
+6. **Board options:** 2 layers, 1.6 mm, 1 oz, green mask (the mask limits checked are green's: 0.13
+   mm for black or white), HASL lead-free or ENIG.

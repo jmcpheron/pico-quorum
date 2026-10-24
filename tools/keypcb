@@ -10,6 +10,17 @@
 #                                 if KiCad's 3D models are installed; the pads, fingers and silk always do)
 #   tools/keypcb fill [board]     fills the copper pours and saves the board (KiCad's own Python, for
 #                                 pcbnew): a board written as text has its zones unfilled
+#   tools/keypcb route board      routes a placed board with Freerouting, through KiCad's Specctra
+#                                 files: the pours left out, so it routes ground as a net; then its
+#                                 tracks read back, dangling vias dropped, ground vias stitched in,
+#                                 the pours filled, the board saved. Needs Java and Freerouting 2.5
+#                                 (FREEROUTING_JAR, JAVA), neither installed by this repo
+#   tools/keypcb jlc board        the checks before a JLCPCB order (tools/jlc/README.md): DRC at JLCPCB's
+#                                 limits, the fab files read back, holes, mask and paste, pours, the
+#                                 netlist, BOM and CPL against LCSC's parts, the fit in 3D (FreeCAD),
+#                                 golden pictures; tables and pictures into <board>/fab/check/.
+#                                 --selftest breaks a copy once per check and wants each caught;
+#                                 --write-golden rewrites <board>/fab/golden/; --strict fails on a change
 #   tools/keypcb calc ...         the numbers behind the design: insert, rise, power, spice
 #                                 (hardware/key-pcb/keycalc.py, run with uv; needs no KiCad)
 #   tools/keypcb gen-cd           rewrites proposals key-c-usbc and key-d-pogo from gen_cd.py (KiCad's own
@@ -23,14 +34,15 @@
 #                                 and it ends with its own self-check
 #   tools/keypcb gen-feather-wing a|b  rewrites feather-wing/wing-a (or wing-b) from
 #                                 hardware/feather-wing/gen_wing.py, the same way: plain Python, its own self-check
-#   tools/keypcb gen-console-s3   rewrites console-s3 (the S3 module on the back, placed, not yet routed) from
-#                                 hardware/console-s3/gen_console_s3.py, the same way
+#   tools/keypcb gen-console-s3   rewrites console-s3 (the S3 module on the back, placed, not routed) from
+#                                 hardware/console-s3/gen_console_s3.py, the same way; `route console-s3`
+#                                 routes it
 #
 # board is one of the key-*, console-* or wing-* folders; without one, every board. A name used in two
 # folders (console-a) is written with its folder: console-pcb/console-a, console-a/console-a.
 # check on a board whose folder has a gen.py also runs `gen.py check` (its pin map against the
 # firmware). Run from anywhere.
-import csv, glob, io, os, re, shutil, subprocess, sys, tempfile, zipfile
+import builtins, csv, glob, io, json, os, re, shutil, subprocess, sys, tempfile, zipfile
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "hardware", "key-pcb")
 ROOT = os.path.normpath(ROOT)
@@ -161,10 +173,13 @@ def jlc_cpl(pcb, refs, out):
                             f'{(float(r["Rot"]) + refs[r["Ref"]]) % 360:.0f}'])
 
 
-def fab(name):
-    d, sch, pcb = files(name)
-    out = os.path.join(d, "fab")
+def fab(name, d=None, sch=None, pcb=None, out=None, quiet=False):
+    """The fab files into <board>/fab/, or for `jlc`, any board's files into any folder."""
+    if d is None:
+        d, sch, pcb = files(name)
+    out = out or os.path.join(d, "fab")
     os.makedirs(out, exist_ok=True)
+    print = (lambda *a, **k: None) if quiet else builtins.print
     with tempfile.TemporaryDirectory() as t:
         # every file measures from the board's drill/place origin, its bottom-left corner
         kicad("pcb", "export", "gerbers", "--layers", LAYERS, "--subtract-soldermask", "--use-drill-file-origin",
@@ -224,6 +239,405 @@ def fill(name):
     print(f"{name}: zones filled, {os.path.relpath(pcb)} saved")
 
 
+FREEROUTING = os.environ.get("FREEROUTING_JAR", os.path.expanduser("~/.local/share/freerouting/freerouting-2.5.0.jar"))
+JAVA = os.environ.get("JAVA", "/opt/homebrew/opt/openjdk/bin/java" if os.path.exists("/opt/homebrew/opt/openjdk/bin/java") else "java")
+
+SPECCTRA = """import sys, pcbnew
+b = pcbnew.LoadBoard(sys.argv[2])
+if sys.argv[1] == "export":
+    for z in list(b.Zones()):       # the pours: without them the router joins ground with tracks
+        if not z.GetIsRuleArea():
+            b.Remove(z)
+    sys.exit(0 if pcbnew.ExportSpecctraDSN(b, sys.argv[3]) else 1)
+if not pcbnew.ImportSpecctraSES(b, sys.argv[3]):
+    sys.exit(1)
+# Freerouting leaves some vias joined on one layer only, which KiCad calls dangling: drop them, then
+# any unlocked track with an end that touches nothing of its net, until none is left. Worked out on
+# plain numbers and removed at the end: pcbnew's Python breaks after a few removes in a loop.
+items = [t.Cast() for t in b.GetTracks()]
+via_t = pcbnew.PCB_VIA_T
+geo = [(t.Type() == via_t, t.GetNetCode(), t.GetLayer(), (t.GetStart().x, t.GetStart().y), (t.GetEnd().x, t.GetEnd().y),
+        t.GetWidth(pcbnew.F_Cu) if t.Type() == via_t else t.GetWidth(), t.IsLocked()) for t in items]
+pads = [p for fp in b.GetFootprints() for p in fp.Pads()]
+in_pad = {}
+for k, (via, net, layer, a, z, w, _l) in enumerate(geo):
+    for pt in (a, z):
+        for l in (pcbnew.F_Cu, pcbnew.B_Cu):
+            if (pt, l, net) not in in_pad:
+                in_pad[pt, l, net] = any(p.GetNetCode() == net and p.IsOnLayer(l) and p.HitTest(pcbnew.VECTOR2I(*pt)) for p in pads)
+def seg_dist(pt, a, z):
+    dx, dy = z[0] - a[0], z[1] - a[1]
+    t = 0.0 if dx == dy == 0 else max(0.0, min(1.0, ((pt[0] - a[0]) * dx + (pt[1] - a[1]) * dy) / (dx * dx + dy * dy)))
+    return ((pt[0] - a[0] - t * dx) ** 2 + (pt[1] - a[1] - t * dy) ** 2) ** 0.5
+gone = set()
+while True:
+    drop = set()
+    live = [k for k in range(len(geo)) if k not in gone]
+    for k in live:
+        via, net, layer, a, z, w, locked = geo[k]
+        if locked:
+            continue
+        if via:
+            on = {geo[o][2] for o in live if not geo[o][0] and geo[o][1] == net and min(seg_dist(a, geo[o][3], geo[o][3]), seg_dist(a, geo[o][4], geo[o][4])) <= w / 2}
+            on |= {l for l in (pcbnew.F_Cu, pcbnew.B_Cu) if in_pad[a, l, net]}
+            if len(on) < 2:
+                drop.add(k)
+            continue
+        for pt in (a, z):
+            if in_pad[pt, layer, net]:
+                continue
+            if not any(o != k and geo[o][1] == net and (seg_dist(pt, geo[o][3], geo[o][4]) <= geo[o][5] / 2 if geo[o][0] or geo[o][2] == layer else False)
+                       for o in live):
+                drop.add(k)
+    if not drop:
+        break
+    gone |= drop
+dropped = len(gone)
+# Then ground vias on a 2.5 mm grid, to tie the two pours together: wherever no other net's copper
+# and no pad is within 1 mm, no via within 1.5 mm, the board's edge is 1 mm off and no rule area
+# forbids one. Added before the removes, for the same reason.
+mm, V = pcbnew.FromMM, pcbnew.VECTOR2I
+gnd = b.FindNet("GND")
+stitched = 0
+if gnd:
+    outline = pcbnew.SHAPE_POLY_SET()
+    b.GetBoardPolygonOutlines(outline, True)
+    keep = []
+    for z in b.Zones():
+        if z.GetIsRuleArea() and z.GetDoNotAllowVias():
+            r = z.GetBoundingBox()
+            r.Inflate(mm(0.5))
+            keep.append(r)
+    copper = [g for k, g in enumerate(geo) if k not in gone]
+    vias = [g[3] for g in copper if g[0]]
+    box = b.GetBoardEdgesBoundingBox()
+    around = [(1, 0), (-1, 0), (0, 1), (0, -1), (0.7, 0.7), (0.7, -0.7), (-0.7, 0.7), (-0.7, -0.7)]
+    y = box.GetTop() + mm(1.25)
+    while y < box.GetBottom():
+        x = box.GetLeft() + mm(1.25)
+        while x < box.GetRight():
+            pt = (x, y)
+            ok = (all(outline.Contains(V(int(x + dx * mm(1)), int(y + dy * mm(1)))) for dx, dy in around + [(0, 0)])
+                  and not any(r.Contains(V(x, y)) for r in keep)
+                  and all(((x - vx) ** 2 + (y - vy) ** 2) ** 0.5 >= mm(1.5) for vx, vy in vias)
+                  and all(net == gnd.GetNetCode() or seg_dist(pt, a, z) - w / 2 >= mm(1) for via, net, _l, a, z, w, _k in copper)
+                  and not any(p.GetEffectiveShape(l).Collide(V(x, y), mm(1)) for p in pads for l in (pcbnew.F_Cu, pcbnew.B_Cu) if p.IsOnLayer(l)))
+            if ok:
+                v = pcbnew.PCB_VIA(b)
+                v.SetPosition(V(x, y))
+                v.SetWidth(mm(0.6))
+                v.SetDrill(mm(0.3))
+                v.SetNet(gnd)
+                b.Add(v)
+                vias.append(pt)
+                stitched += 1
+            x += mm(2.5)
+        y += mm(2.5)
+for k in gone:
+    b.Remove(items[k])
+print(f"dropped {dropped} dangling vias and track ends, added {stitched} ground vias")
+pcbnew.ZONE_FILLER(b).Fill(b.Zones())
+pcbnew.SaveBoard(sys.argv[2], b)
+"""
+
+
+def route(name, passes="100"):
+    """Freerouting, headless, its analytics off. The board file changes only if the whole round trip
+    works. The rule areas (an antenna's keep-out, a shell's) go to it as keep-outs."""
+    d, sch, pcb = files(name)
+    if not os.path.exists(FREEROUTING):
+        sys.exit(f"no Freerouting jar at {FREEROUTING}: set FREEROUTING_JAR (https://github.com/freerouting/freerouting/releases)")
+    with tempfile.TemporaryDirectory() as t:
+        dsn, ses = os.path.join(t, f"{name}.dsn"), os.path.join(t, f"{name}.ses")
+        for args in ([KICAD_PY, "-c", SPECCTRA, "export", pcb, dsn],
+                     [JAVA, "-Djava.awt.headless=true", "-jar", FREEROUTING, "--gui.enabled=false",
+                      "--usage_and_diagnostic_data.disable_analytics=true",
+                      "--router.copper_to_edge_clearance_um=300",       # its own default is 250; JLCPCB's and the boards' is 0.3 mm
+                      "-de", dsn, "-do", ses, "-mp", passes],
+                     [KICAD_PY, "-c", SPECCTRA, "import", pcb, ses]):
+            r = subprocess.run(args, capture_output=True, text=True)
+            if r.returncode or (args[0] == JAVA and not os.path.exists(ses)):
+                sys.exit(f"route {name}: {os.path.basename(args[0])} failed:\n{r.stdout[-3000:]}{r.stderr[-3000:]}")
+        said = [l for l in r.stdout.splitlines() if l.startswith("dropped")]
+        print(f"{name}: routed by Freerouting, {said[0] if said else ''}; pours filled, {os.path.relpath(pcb)} saved")
+
+
+# --- jlc: the checks before a JLCPCB order (tools/jlc/README.md) ---------------------------------
+
+JLC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "jlc")
+sys.path.insert(0, JLC)
+FREECAD = os.environ.get("FREECADCMD") or shutil.which("freecadcmd") or next(
+    (p for p in ("/Applications/FreeCAD.app/Contents/Resources/bin/freecadcmd",) if os.path.exists(p)), None)
+
+
+def board_spec(d):
+    """What the board's generator says about it for these checks (its jlc_spec()), or nothing."""
+    for gen in sorted(glob.glob(os.path.join(os.path.dirname(d), "gen*.py"))):
+        if "def jlc_spec(" in open(gen).read():
+            mod = os.path.splitext(os.path.basename(gen))[0]
+            r = subprocess.run([sys.executable, "-c", f"import json, sys; sys.path.insert(0, {os.path.dirname(gen)!r}); "
+                                f"import {mod}; print(json.dumps({mod}.jlc_spec()))"], capture_output=True, text=True)
+            if r.returncode:
+                sys.exit(f"{gen}: jlc_spec() failed:\n{r.stderr}")
+            return json.loads(r.stdout)
+    return {}
+
+
+def mirror(d, t):
+    """A copy of a board's project at t/<its parent>/<board>, the parent's other entries (the
+    libraries) linked beside it, so KiCad finds what the project names. Returns (dir, sch, pcb)."""
+    parent = os.path.dirname(d)
+    root = os.path.join(t, os.path.basename(parent))
+    os.makedirs(root)
+    for e in os.listdir(parent):
+        if os.path.join(parent, e) != d:
+            os.symlink(os.path.join(parent, e), os.path.join(root, e))
+    nd = os.path.join(root, os.path.basename(d))
+    os.makedirs(nd)
+    for e in os.listdir(d):
+        if e.startswith(os.path.basename(d) + ".kicad_") or e.endswith("-lib-table"):
+            shutil.copy2(os.path.join(d, e), nd)
+    b = os.path.basename(d)
+    return nd, os.path.join(nd, b + ".kicad_sch"), os.path.join(nd, b + ".kicad_pcb")
+
+
+def stripped(data):
+    """A fab file without the lines that only carry its date or KiCad's version."""
+    return [l for l in data.decode(errors="replace").splitlines()
+            if not re.search(r"CreationDate|GenerationSoftware|^G04 |^; |^;DRILL", l)]
+
+
+def jlc_fab_current(name, d, sch, pcb, t):
+    """0. The files in fab/ are the board's: written again here and compared, dates aside."""
+    now = os.path.join(t, "fab-now")
+    fab(name, d, sch, pcb, out=now, quiet=True)
+    old = os.path.join(files(name)[0], "fab")
+    zname = f"{os.path.basename(d)}-gerbers.zip"
+    diff = []
+    try:
+        za, zb = zipfile.ZipFile(os.path.join(old, zname)), zipfile.ZipFile(os.path.join(now, zname))
+        if sorted(za.namelist()) != sorted(zb.namelist()):
+            diff.append("the zip's file list")
+        for n in set(za.namelist()) & set(zb.namelist()):
+            if stripped(za.read(n)) != stripped(zb.read(n)):
+                diff.append(n)
+    except FileNotFoundError:
+        diff.append(zname + " (missing)")
+    for n in ("bom.csv", "cpl.csv"):
+        a, b = os.path.join(old, n), os.path.join(now, n)
+        if not os.path.exists(a) or open(a, "rb").read() != open(b, "rb").read():
+            diff.append(n)
+    print("0. fab/ against the board")
+    print(f"  {'FAIL' if diff else 'ok':<4} " + ("the zip, BOM and CPL in fab/ are the board's, dates aside" if not diff else
+          f"fab/ is not the board's: {sorted(diff)}: run `tools/keypcb fab {name}`"))
+    return bool(diff)
+
+
+def jlc_drc(d, pcb, spec):
+    """1. KiCad's DRC with JLCPCB's limits as custom rules, every check an error, on a copy."""
+    from limits import dru_text
+    dru = os.path.splitext(pcb)[0] + ".kicad_dru"
+    mine = open(dru).read() if os.path.exists(dru) else ""
+    rules = dru_text()
+    open(dru, "w").write(mine + "\n" + rules.split("\n", 1)[1] if mine else rules)
+    pro = os.path.splitext(pcb)[0] + ".kicad_pro"      # no check left at "ignore" or "warning"
+    pj = json.load(open(pro))
+    sev = pj.setdefault("board", {}).setdefault("design_settings", {}).setdefault("rule_severities", {})
+    for k in list(sev):
+        sev[k] = "error"
+    json.dump(pj, open(pro, "w"), indent=2)
+    rpt = os.path.join(d, "drc.json")
+    kicad("pcb", "drc", "--severity-all", "--schematic-parity", "--format", "json", "-o", rpt, pcb)
+    r = json.load(open(rpt))
+    allow = spec.get("jlc_allow", [])
+    found, allowed = [], []
+    for v in r.get("violations", []):
+        what = " / ".join(i.get("description", "") for i in v.get("items", []))
+        ok = next((a for a in allow if a["type"] == v["type"] and re.search(rf"\b{re.escape(a['ref'])}\b", what)), None)
+        (allowed if ok else found).append(f"{v['type']}: {what[:90]}" + (f" ({ok['why']})" if ok else ""))
+    loose, parity = len(r.get("unconnected_items", [])), len(r.get("schematic_parity", []))
+    print("1. DRC with JLCPCB's limits (tools/jlc/limits.py), every check an error")
+    bad = bool(found or loose or parity)
+    print(f"  {'FAIL' if bad else 'ok':<4} " + (f"0 violations, 0 unconnected, 0 parity issues" + (f", {len(allowed)} allowed" if allowed else "")
+          if not bad else f"{len(found)} violations, {loose} unconnected, {parity} parity issues: {found[:8]}"))
+    if len(found) > 8:
+        kinds = {}
+        for f in found:
+            kinds[f.split(":")[0]] = kinds.get(f.split(":")[0], 0) + 1
+        print("  info violations by kind: " + ", ".join(f"{k} {n}" for k, n in sorted(kinds.items())))
+    for a in allowed:
+        print(f"  info allowed: {a}")
+    return bad
+
+
+def jlc_run(args, what, env=None):
+    """Run one of tools/jlc's scripts and pass its report lines through. True if it found a fault."""
+    r = subprocess.run(args, capture_output=True, text=True, env={**os.environ, **(env or {})})
+    lines = [l for l in r.stdout.splitlines() if l.startswith("  ") or re.match(r"\d+\. ", l)]
+    print("\n".join(lines))
+    if r.returncode not in (0, 1) or not lines or "Traceback" in r.stderr:     # a crash exits 1 too
+        print(f"  FAIL {what} did not run ({r.returncode}):\n{r.stderr[-2000:]}")
+        return True
+    return r.returncode == 1
+
+
+def jlc_pcb(pcb, out, specp, only="holes,mask,thermal"):
+    return jlc_run([KICAD_PY, os.path.join(JLC, "pcb_checks.py"), pcb, out, specp], "pcb_checks.py", {"JLC_ONLY": only})
+
+
+def jlc_netlist(sch, pcb, bom, cpl, out, t):
+    d356, xml = os.path.join(t, "board.d356"), os.path.join(t, "netlist.xml")
+    kicad("pcb", "export", "ipcd356", "-o", d356, pcb)
+    kicad("sch", "export", "netlist", "--format", "kicadxml", "-o", xml, sch)
+    return jlc_run([sys.executable, os.path.join(JLC, "netlist_check.py"), d356, xml, bom, cpl, os.path.join(out, "facts.json"),
+                    os.path.join(JLC, "parts.json")], "netlist_check.py")
+
+
+def jlc_gerbers(zp, out, specp, cpl, golden, *flags):
+    uv = shutil.which("uv")
+    if not uv:
+        print("  FAIL uv not found: it runs gerb_check.py with its locked gerbonara (https://docs.astral.sh/uv/)")
+        return True
+    return jlc_run([uv, "run", "--quiet", "--locked", "--script", os.path.join(JLC, "gerb_check.py"), zp,
+                    os.path.join(out, "facts.json"), specp, cpl, out, golden, *flags], "gerb_check.py")
+
+
+def jlc_fit(out, specp):
+    if not FREECAD:
+        print("8. the fit in 3D\n  warn FreeCAD's freecadcmd not found (FREECADCMD): skipped")
+        return False
+    flag = os.path.join(out, "fit3d.failed")
+    if os.path.exists(flag):
+        os.remove(flag)
+    jlc_run([FREECAD, os.path.join(JLC, "fit3d.py")], "fit3d.py", {"JLC_FIT": f"{os.path.join(out, 'facts.json')}:{specp}:{out}"})
+    return os.path.exists(flag)
+
+
+def jlc(name, flags):
+    from limits import SOURCE
+    d, sch, pcb = files(name)
+    fabd = os.path.join(d, "fab")
+    out = os.path.join(fabd, "check")
+    if os.path.isdir(out):
+        shutil.rmtree(out)
+    os.makedirs(out)
+    spec = board_spec(d)
+    print(f"{name}: the checks before a JLCPCB order, against {SOURCE}")
+    bad = False
+    with tempfile.TemporaryDirectory() as t:
+        specp = os.path.join(t, "spec.json")
+        json.dump(spec, open(specp, "w"))
+        md, msch, mpcb = mirror(d, os.path.join(t, "copy"))
+        bad |= jlc_fab_current(name, d, sch, pcb, t)
+        bad |= jlc_drc(md, mpcb, spec)
+        bad |= jlc_pcb(pcb, out, specp)
+        bad |= jlc_netlist(sch, pcb, os.path.join(fabd, "bom.csv"), os.path.join(fabd, "cpl.csv"), out, t)
+        bad |= jlc_fit(out, specp)       # before the Gerbers: gerb_check.py draws the fit's pictures
+        bad |= jlc_gerbers(os.path.join(fabd, f"{os.path.basename(d)}-gerbers.zip"), out, specp, os.path.join(fabd, "cpl.csv"),
+                           os.path.join(fabd, "golden"), *[f for f in flags if f in ("--write-golden", "--strict")])
+    print(f"{name}: {'FAIL: see above' if bad else 'every check passed'}; tables and pictures in {os.path.relpath(out)}/")
+    return not bad
+
+
+def jlc_selftest(name):
+    """Each check against a copy broken the way it looks for: each must fail."""
+    d, sch, pcb = files(name)
+    fabd = os.path.join(d, "fab")
+    spec = board_spec(d)
+    zname = f"{os.path.basename(d)}-gerbers.zip"
+    caught, missed = [], []
+    shots = os.path.join(fabd, "check", "selftest")
+    if os.path.isdir(shots):
+        shutil.rmtree(shots)
+    os.makedirs(shots)
+
+    def expect(what, failed):
+        (caught if failed else missed).append(what)
+
+    def keep(kind, o):
+        """The broken copy's pictures, into fab/check/selftest/."""
+        for p in glob.glob(os.path.join(o, "*.png")):
+            if not os.path.basename(p).startswith("cpl-overlay"):
+                shutil.copy(p, os.path.join(shots, f"{kind}-{os.path.basename(p)}"))
+
+    def draw(kind, md, msch, mpcb, o, k):
+        fab(name, md, msch, mpcb, out=os.path.join(k, "fab"), quiet=True)
+        jlc_gerbers(os.path.join(k, "fab", zname), o, specp, os.path.join(fabd, "cpl.csv"), os.path.join(fabd, "golden"))
+        keep(kind, o)
+    with tempfile.TemporaryDirectory() as t:
+        specp = os.path.join(t, "spec.json")
+        json.dump(spec, open(specp, "w"))
+        base = os.path.join(t, "base")
+        os.makedirs(base)
+        with open(os.devnull, "w") as quiet:
+            real, sys.stdout = sys.stdout, quiet
+            try:
+                jlc_pcb(pcb, base, specp, only="")          # facts.json of the real board
+                for kind in ("track", "ring", "wick", "island", "net"):
+                    k = os.path.join(t, kind)
+                    md, msch, mpcb = mirror(d, k)
+                    subprocess.run([KICAD_PY, os.path.join(JLC, "pcb_checks.py"), "--mutate", kind, mpcb], capture_output=True, check=True)
+                    o = os.path.join(k, "out")
+                    if kind == "track":
+                        expect("1. DRC: a 0.08 mm track", jlc_drc(md, mpcb, spec))
+                        expect("0. fab/: a board changed since its fab files", jlc_fab_current(name, md, msch, mpcb, k))
+                    elif kind == "ring":
+                        expect("6. holes: a via with a 0.025 mm ring", jlc_pcb(mpcb, o, specp, "holes"))
+                        draw(kind, md, msch, mpcb, o, k)
+                    elif kind == "wick":
+                        expect("5. mask: a via in a pad's opening", jlc_pcb(mpcb, o, specp, "mask"))
+                        fab(name, md, msch, mpcb, out=os.path.join(k, "fab"), quiet=True)
+                        expect("9. golden: a via added (--strict)", jlc_gerbers(os.path.join(k, "fab", zname), o, specp,
+                               os.path.join(fabd, "cpl.csv"), os.path.join(fabd, "golden"), "--strict"))
+                        keep(kind, o)
+                    elif kind == "island":
+                        expect("7. pours: an island", jlc_pcb(mpcb, o, specp, "thermal"))
+                        draw(kind, md, msch, mpcb, o, k)
+                    else:
+                        os.makedirs(o)
+                        shutil.copy(os.path.join(base, "facts.json"), o)
+                        expect("3. netlist: a pad on the wrong net", jlc_netlist(sch, mpcb, os.path.join(fabd, "bom.csv"),
+                                                                                os.path.join(fabd, "cpl.csv"), o, k))
+                # the uploaded files themselves
+                zk = os.path.join(t, "zip")
+                os.makedirs(zk)
+                with zipfile.ZipFile(os.path.join(fabd, zname)) as za, zipfile.ZipFile(os.path.join(zk, zname), "w") as zb:
+                    for n in za.namelist():
+                        data = za.read(n)
+                        if n.endswith("-PTH.drl"):       # one hole dropped
+                            lines = data.decode().splitlines(True)
+                            i = next(i for i, l in enumerate(lines) if re.match(r"X[-\d.]+Y[-\d.]+\s*$", l))
+                            data = "".join(lines[:i] + lines[i + 1:]).encode()
+                        zb.writestr(n, data)
+                expect("2. Gerbers: a hole missing from the drill file", jlc_gerbers(os.path.join(zk, zname), base, specp,
+                       os.path.join(fabd, "cpl.csv"), os.path.join(t, "golden-unused")))
+                keep("hole", base)
+                for p in glob.glob(os.path.join(base, "*.png")):
+                    os.remove(p)
+                rows = open(os.path.join(fabd, "cpl.csv")).read().splitlines(True)
+                open(os.path.join(t, "cpl.csv"), "w").write("".join(rows[:-1]))
+                expect("4. CPL: a part's row missing", jlc_netlist(sch, pcb, os.path.join(fabd, "bom.csv"), os.path.join(t, "cpl.csv"), base, t))
+                if spec.get("fit"):
+                    tall = json.loads(json.dumps(spec))
+                    tall["fit"]["heights"]["SOT-23"] = 3.0
+                    tp = os.path.join(t, "tall.json")
+                    json.dump(tall, open(tp, "w"))
+                    expect("8. fit: SOT-23s 3 mm tall under the glass", jlc_fit(base, tp))
+                    open(os.path.join(base, "tight.json"), "w").write("[]")
+                    jlc_gerbers(os.path.join(fabd, zname), base, specp, os.path.join(fabd, "cpl.csv"), os.path.join(fabd, "golden"))
+                    for p in glob.glob(os.path.join(base, "fit-*.png")):
+                        shutil.copy(p, os.path.join(shots, "tall-" + os.path.basename(p)))
+            finally:
+                sys.stdout = real
+    for w in caught:
+        print(f"  ok   caught: {w}")
+    for w in missed:
+        print(f"  FAIL missed: {w}")
+    print(f"{name}: self-test {'passed' if not missed else 'FAILED'}: {len(caught)} of {len(caught) + len(missed)} broken copies caught; "
+          f"their pictures in {os.path.relpath(shots)}/")
+    return not missed
+
+
 def main():
     gens = {"gen-cd": os.path.join(ROOT, "gen_cd.py"), "gen-console": os.path.join(CONSOLE, "gen_console.py"),
             "gen-console-a": os.path.join(CONSOLE_A, "gen.py"),
@@ -236,14 +650,21 @@ def main():
     if len(sys.argv) > 1 and sys.argv[1] == "calc":
         calc = os.path.join(ROOT, "keycalc.py")
         os.execvp("uv", ["uv", "run", "--quiet", "--python", "3.12", calc, *sys.argv[2:]])
-    if len(sys.argv) < 2 or sys.argv[1] not in ("check", "fab", "render", "fill"):
+    if len(sys.argv) > 2 and sys.argv[1] == "route":
+        route(sys.argv[2], *sys.argv[3:4])
+        return
+    if len(sys.argv) < 2 or sys.argv[1] not in ("check", "fab", "render", "fill", "jlc"):
         sys.exit(__doc__ or open(__file__).read().split("\nimport")[0])
     if not KICAD_CLI:
         sys.exit("kicad-cli not found: install KiCad 10 (https://www.kicad.org/download/)")
-    cmd, arg = sys.argv[1], (sys.argv[2] if len(sys.argv) > 2 else None)
+    flags = [a for a in sys.argv[2:] if a.startswith("--")]
+    rest = [a for a in sys.argv[2:] if not a.startswith("--")]
+    cmd, arg = sys.argv[1], (rest[0] if rest else None)
     ok = True
     for name in boards(arg):
-        if cmd == "check":
+        if cmd == "jlc":
+            ok &= jlc_selftest(name) if "--selftest" in flags else jlc(name, flags)
+        elif cmd == "check":
             ok &= check(name)
         elif cmd == "fab":
             fab(name)
