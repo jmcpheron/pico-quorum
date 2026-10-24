@@ -1,7 +1,13 @@
 # console-usb: the console with no radio in use
 
-*Design, 2026-10-24. The schematic is written by a script and read back by KiCad 9 (netlist and ERC);
-there is no board layout yet. Not ordered. The firmware it needs is not written.*
+*Design, 2026-10-24. Written by a script and read back by KiCad 9: the schematic (netlist and ERC)
+and a board with every part placed (DRC), not routed. Not ordered. The firmware it needs is not
+written.*
+
+![console-usb, three-quarter view: the 1.14-inch screen showing the console's review page, Send 0.05 ETH, with D0, D1 and D2 down its left edge, the CH340C, the regulator, RESET and the USB-C on the right](renders/console-usb-3q.jpg)
+
+*KiCad's 3D render of the placed board. The screen shows the review page as the emulator draws it
+on the Feather. More views, and what the render leaves out, are [below](#the-board-placed-not-routed).*
 
 [console-s3](../console-s3/CONCEPT.md) put the console and its key on one board with an ESP32-S3
 module and Wi-Fi. This is the same idea with the radio taken out of use. The console talks to the
@@ -52,7 +58,8 @@ the USB-C reaches the S3, or if DTR or RTS connects to anything.
 
 ## The circuit
 
-All on the top side, every symbol and footprint stock KiCad 9. Values for the S3's supplies come
+All on the top side. Every symbol is stock KiCad 9, and every footprint but J2's, which is
+console-s3's. Values for the S3's supplies come
 from Espressif's own MINI-1 schematic (its datasheet v1.7, Figure 8-1), which is this same chip
 with in-package 4 MB flash and 2 MB PSRAM. The rest follows Espressif's
 [schematic checklist](https://docs.espressif.com/projects/esp-hardware-design-guidelines/en/latest/esp32s3/schematic-checklist.html).
@@ -69,7 +76,7 @@ with in-package 4 MB flash and 2 MB PSRAM. The rest follows Espressif's
 | 3.3 V | U3 AMS1117-3.3, C14 10 µ, C15 22 µ | from 5 V. The S3 with no radio draws far less than the regulator's 1 A |
 | the link | U4 CH340C, C16 | runs at 3.3 V: V3 tied to VCC, as WCH's datasheet says for 3.3 V. UD+/UD− directly, no series resistors (also the datasheet). Its own oscillator, no crystal |
 | the key | U5 ATECC608C-MAHDA-S (UDFN-8), C17, R5/R6 4.7k | on GPIO3/4, the Feather's I2C. Soldered on: this console is the key, as console-s3 |
-| the screen | J2 Hirose FH12-8S-0.5SH ZIF, C18/C19 | the Feather's 1.14″ 240 × 135 ST7789, on an 8-pin 0.5 mm FPC. Bottom-contact connector |
+| the screen | J2 HDGC 0.5K-HX-8PWB ZIF (C2919492), C18/C19 | the Feather's 1.14″ 240 × 135 ST7789, on an 8-pin 0.5 mm FPC. console-s3's ZIF and footprint: 1.0 mm tall, so it fits under the glass, with contacts on both faces |
 | backlight | Q1 AO3401A, Q2 SS8050, R7 22 Ω, R8/R9/R10 | the panel's LED cathode is on its GND, so the switch is on the high side. GPIO45 high turns it on, as on the Feather. R10 holds GPIO45 low at reset |
 | buttons | SW1–SW3 TS-1187A, R11–R13 | as the Feather's: D0 to GND with a pull-up (it is also BOOT), D1 and D2 to 3.3 V with pull-downs |
 | LED | D1 red, R14 | GPIO13, as the Feather's |
@@ -83,9 +90,13 @@ three in KiCad's netlist.
 
 **The screen's pin order** is from the seller's listing for the 8-pin 0.5 mm panel: 1 LEDA, 2 GND,
 3 RESET, 4 RS, 5 SDA, 6 SCL, 7 VDD, 8 CS. The listing numbers only pins 1 and 4. Check it on a real
-panel with a meter (the LED's diode between pins 1 and 2) before the layout. The FH12 is a
-bottom-contact connector: check too which way the tail's contacts face once the glass lies on the
-board. Changing either is one line in the generator.
+panel with a meter (the LED's diode between pins 1 and 2) before routing. J2 has contacts on both
+faces, so the ribbon's fold under the glass can't put them on the wrong side; it can put pin 1 at
+J2's other end, which the measured panel will show. Changing the order is one line in the
+generator.
+
+J2 was a Hirose FH12 (C597995) until the board was placed. At about 2 mm tall it didn't fit under the
+glass on its 2 mm tape, so it became console-s3's HDGC part, which is also $0.31 cheaper.
 
 ## The pins
 
@@ -146,7 +157,7 @@ Economic assembly, one side, two layers. JLCPCB places all 50 parts in `fab/bom.
 Not in the BOM: J3 (holes only), the four holes, and the panel, which is bought separately (about
 $2.50, 8-pin 0.5 mm FPC) and clipped into J2 by hand.
 
-**Extended parts, each a $3.07 feeder fee an order:** the S3, the CH340C, the ATECC608C, the FH12,
+**Extended parts, each a $3.07 feeder fee an order:** the S3, the CH340C, the ATECC608C, the ZIF,
 the crystal, the USB-C and the USBLC6. The rest were shown as Basic on jlcpcb.com on 2026-10-24,
 except that the pages for C45783 (22 µF), C318884 (the buttons) and C2150 (SS8050) didn't say. If
 they're Extended, that is $3 each more.
@@ -157,14 +168,14 @@ quote. If the 608C UDFN has none there, the choices are JLCPCB's pre-order, send
 SOIC-8 608C (C28975195, 140 at LCSC; key-a's part), which needs a different footprint.
 
 **Cost,** an estimate, not a quote. Parts at LCSC's prices of 2026-10-24 at 10 pieces: S3 $3.04,
-ATECC608C $2.27, CH340C $0.46, FH12 $0.41, the rest about $1.30. Fees from the table console-s3
+ATECC608C $2.27, CH340C $0.46, the ZIF $0.10, the rest about $1.30. Fees from the table console-s3
 used: $8.18 setup, $1.53 stencil, 7 × $3.07 feeders. Shipping about $20.
 
 | | 5 boards | 25 boards | 50 boards |
 |---|---|---|---|
 | fees, once | ~$31 | ~$31 | ~$31 |
-| bare boards | ~$4 | ~$10 | ~$15 |
-| placed parts, per board | ~$7.50 | ~$7.00 | ~$6.60 |
+| bare boards, 70 × 28 mm | ~$4 | ~$10 | ~$15 |
+| placed parts, per board | ~$7.20 | ~$6.70 | ~$6.30 |
 | the panel, bought | ~$2.50 | ~$2.30 | ~$2.20 |
 | **per console, shipped** | **~$21** | **~$12** | **~$10** |
 
@@ -176,7 +187,7 @@ S3, the 608C and the panel.
 ## What was checked, and how
 
 `python3 hardware/console-usb/gen_console_usb.py` (KiCad 9.0.9) writes the schematic, the project,
-`fab/bom.csv` and `PINS.md`, then:
+the placed board, `fab/bom.csv` and `PINS.md`, then:
 - has KiCad export the netlist, and compares every net, pin by pin, with the table: 37 nets, no
   difference;
 - runs KiCad's ERC with KiCad's default libraries: one finding, the CH340C's V3 pin (a power
@@ -184,36 +195,71 @@ S3, the 608C and the panel.
   library;
 - loads every footprint and checks each symbol pin has a pad and each copper pad a pin;
 - checks the strapping pins, and that the USB-C doesn't reach the S3 and DTR/RTS reach nothing;
-- reads `firmware/board.py` and checks the screen, buttons, I2C and LED against `"feather-s3"`.
+- reads `firmware/board.py` and checks the screen, buttons, I2C and LED against `"feather-s3"`;
+- runs KiCad's DRC on the placed board against JLCPCB's limits: no overlapping parts, nothing too
+  close to the edge or a hole, no drill too small. Left over are the unrouted nets and two
+  expected notes: J3 differs from its library footprint (its outline is taken off), and the USB-C
+  footprint's own silkscreen reaches the edge;
+- checks that every part under the glass is known to be lower than its tape, less 0.3 mm, and
+  that none sits under a foam pad.
 
-Not checked: any layout (there is none), the screen's pin order on a real panel, the crystal's load
+`python3 hardware/console-usb/gen_console_usb.py render` also writes the renders. KiCad's 3D view
+draws them, raytraced.
+
+Not checked: routing (there is none), the screen's pin order on a real panel, the crystal's load
 capacitors, the backlight current, a board on a bench. Nothing here has been reviewed by anyone
 but its author.
 
-## The layout (next)
+## The board: placed, not routed
 
-What it has to respect:
-- **The panel's glass lies on the board face,** over a patch with no parts, held with tape inside
-  silkscreen corners, with J2 at its tail. The glass is about 31 × 17 mm.
-- **The buttons down the screen's left edge,** level with its rows 7, 67 and 127 (`board.RAIL_Y`),
-  about 6.2 mm apart: TS-1187A is 5.1 mm square, so they just fit. RESET away from them, and
-  smaller or recessed.
-- **The crystal** next to XTAL_P/N, its capacitors at its pads, GND under it, nothing else routed
-  under it.
-- **Decoupling at the pins,** VDD3P3's first. The S3's thermal pad stitched to the GND pour.
-- **USB:** J1 → U2 → U4, short and side by side. Full speed only (12 Mbps), so no impedance control
-  needed on two layers.
-- **No antenna keep-out.** The S3 can sit anywhere.
-- **Silkscreen:** the mark, the buttons' names, and the Source Location
-  (`github.com/jmcpheron/pico-quorum`, CERN-OHL-W 4.1).
-- About 60 × 30 mm to start; two layers, 1.6 mm, JLCPCB's limits as the project's rules. QFN-56 at
-  0.4 mm should fan out on two layers; the layout will show it.
+`console-usb/console-usb.kicad_pcb`: 70 × 28 mm, two layers, every part on the top, JLCPCB's limits
+as its rules. The footprints point back to the schematic's symbols, so KiCad's "Update PCB from
+Schematic" keeps them.
+
+| the panel lifted off | the back |
+|---|---|
+| ![The board without the panel: the S3, its crystal and capacitors, the ZIF, the backlight switch and the ATECC608C sit where the glass goes](renders/console-usb-under-glass.jpg) | ![The back: the version, the Source Location, the licence and the PicoQuorum mark](renders/console-usb-bottom.jpg) |
+
+![console-usb from the top](renders/console-usb-top.jpg)
+
+How it is placed:
+- **The panel's glass lies on four 2 mm foam pads** at its corners, inside silkscreen corners.
+  Under it go only parts lower than 1.7 mm: the S3 (0.9 mm), the crystal, the 0402s and 0805s, the
+  SOT-23s, the 608C and the ZIF (1.0 mm). The generator checks each against a table of heights.
+- **The ribbon leaves the glass's right end, folds under it and comes back into J2,** as on
+  console-s3. J2's place comes from the tail: 23 mm, less about 5.7 mm for the fold. Nothing sits in
+  the ribbon's path.
+- **D0, D1 and D2 down the screen's left edge,** level with its rows 7, 67 and 127
+  (`board.RAIL_Y`), 6.6 mm apart, so the screen's rail names the button beside it.
+- **Right of the glass:** the CH340C, the USBLC6 and the USB-C in a short line, the AMS1117 above
+  them, RESET and the LED below.
+- **J3 along the bottom edge,** holes only, each named on the silkscreen.
+- **M2.5 holes at the corners.** No antenna keep-out: there's no antenna.
+
+What the render shows that isn't the real part:
+- **The panel is a box:** glass, a frame, the foam pads and the ribbon, drawn by the generator
+  (`lib/pqusb.3dshapes/`). The picture on it is the emulator's screenshot
+  (`docs/quorum-ui/feather/03-review-head.png`), 240 × 135, in 24 colours.
+- **J2 is a box** from its drawing's outline. KiCad has no model of it.
+- **The buttons and the USB-C are stand-ins.** KiCad 9.0.9's library has footprints for the
+  TS-1187A and the HRO TYPE-C-31-M-12 but no 3D models. The board names the E-Switch TL3342
+  (5.2 mm, four pads) and the GCT USB4105 (its shell's pads within 0.03 mm of the HRO's) instead.
+  Only the pictures use them; the BOM is unchanged.
+
+What routing has to respect:
+- **The crystal:** its capacitors at its pads, GND under it, nothing else routed under it.
+- **Decoupling at the pins,** VDD3P3's first. The S3's centre pad to the GND pour through vias of
+  0.3 mm or more: the stock footprint with thermal vias uses 0.2 mm, under JLCPCB's limit, so the
+  board has the plain one and the vias go in at routing.
+- **USB:** J1 → U2 → U4 is short and straight. Full speed only (12 Mbps), so no impedance control
+  on two layers.
+- **QFN-56 at 0.4 mm** should fan out on two layers; routing will show it.
 
 ## Steps to a board
 
-1. **Buy two panels** and check the pin order and the tail's contact side. Fix the table if needed.
-2. **Lay it out** in KiCad from this schematic (or extend the generator, as console-pocket's), fill,
-   DRC, 3D view, then the fab files.
+1. **Buy two panels** and measure them: the glass, the tail's length, the pin order. Fix `PANEL` and
+   the table in the generator if needed, and run it again: J2 and the buttons move with them.
+2. **Route it** in KiCad from the placed board, fill, DRC, then the fab files.
 3. **Quote it:** Economic, one side, qty 5. Check the 608C's stock and the three unlabelled tiers.
    Write the real numbers here.
 4. **Bring one up:** 3.3 V before anything; esptool over J3 (D0 held, RESET); MicroPython; the

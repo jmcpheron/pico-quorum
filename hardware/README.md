@@ -35,8 +35,9 @@ Console and key electronics. The goals are in [`../docs/KICKOFF.md`](../docs/KIC
 - [`console-usb/`](console-usb/README.md): the console-s3 idea with no radio in use: the bare
   ESP32-S3 chip, no antenna, three buttons on the Feather's pins, and a USB-C whose only data path
   is a CH340C serial bridge to the S3's UART1, so the computer that relays the queue gets no REPL
-  and can't reset it. JLCPCB places everything but the screen. Schematic written by a script and
-  checked by KiCad 9; no layout, not ordered
+  and can't reset it. JLCPCB places everything but the screen. Written by a script and checked by
+  KiCad 9: the schematic, and a 70 × 28 mm board with every part placed and 3D renders; not routed,
+  not ordered
 
 The inherited picowallet wiring (Pico + Waveshare LCD + ATECC608 + 18650) is in
 [`wiring/SOLDERING.md`](wiring/SOLDERING.md) and `tools/wiring`.

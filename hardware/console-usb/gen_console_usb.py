@@ -3,20 +3,25 @@
 antenna), the Feather's 1.14" screen and three buttons, the ATECC608C soldered on, and a USB-C whose
 only data path is a CH340C serial bridge to the S3's UART1. See README.md.
 
-    python3 hardware/console-usb/gen_console_usb.py      (needs KiCad 9: kicad-cli and its stock libraries)
+    python3 hardware/console-usb/gen_console_usb.py [render]
+        (needs KiCad 9: kicad-cli, its pcbnew module, its stock libraries and, to render, its 3D models)
 
 Writes, from the one table below:
   console-usb/console-usb.kicad_sch   the schematic, every part a stock KiCad symbol
+  console-usb/console-usb.kicad_pcb   the board, every part placed, not routed
   console-usb/console-usb.kicad_pro   the project, with JLCPCB's limits as its rules
+  lib/                                J2's footprint (console-s3's), the panel's, and 3D bodies for both
   fab/bom.csv                         JLCPCB's BOM format: Comment, Designator, Footprint, LCSC Part #
   PINS.md                             the S3's pins, as the firmware sees them
+  renders/                            with "render": KiCad's 3D view of the board, the panel on it
 
 Then has KiCad read the schematic back (kicad-cli netlist and ERC) and checks every connection
 against the table, every symbol pin against its footprint's pads, and the S3's pins against
-firmware/board.py's "feather-s3" profile and the S3's strapping rules. It stops on any difference.
+firmware/board.py's "feather-s3" profile and the S3's strapping rules; and runs KiCad's DRC on the
+placed board, and checks what sits under the panel's glass. It stops on any difference.
 
-The schematic only, so far: no board. The layout is the next step (README.md). Once the schematic
-is edited in KiCad, KiCad's file is the source and this script is not run again.
+Routing is the next step (README.md). Once the schematic or the board is edited in KiCad, KiCad's
+files are the source and this script is not run again.
 """
 import csv, json, os, re, shutil, subprocess, sys, tempfile, uuid
 
@@ -62,7 +67,7 @@ PARTS = [
     # when the firmware never starts the radio. The flash and PSRAM are in the package: SPI* and
     # GPIO26 (SPICS1, the PSRAM's select) stay unconnected.
     dict(ref="U1", sym="MCU_Espressif:ESP32-S3", value="ESP32-S3FH4R2", lcsc="C3013940", mpn="ESP32-S3FH4R2",
-         fp="Package_DFN_QFN:QFN-56-1EP_7x7mm_P0.4mm_EP4x4mm_ThermalVias",
+         fp="Package_DFN_QFN:QFN-56-1EP_7x7mm_P0.4mm_EP4x4mm",
          nets={"2": "VDD3P3", "3": "VDD3P3", "4": "CHIP_PU", "20": V33, "29": "VDD_SPI", "46": V33,
                "55": V33, "56": V33, "57": GND, "53": "XTAL_N", "54": "XTAL_P",
                "5": "BTN_D0", "6": "BTN_D1", "7": "BTN_D2", "8": "SDA", "9": "SCL", "18": "LED",
@@ -125,10 +130,12 @@ PARTS = [
     # listing (1 LEDA, 2 GND, 3 RESET, 4 RS, 5 SDA, 6 SCL, 7 VDD, 8 CS); check it on the panel
     # bought before the layout. The backlight's cathode is on GND inside, so it's switched high:
     # Q1 (P-FET) from 3.3 V, turned on by Q2 when GPIO45 is high, as the Feather's is.
-    dict(ref="J2", sym="Connector_Generic_MountingPin:Conn_01x08_MountingPin", value="LCD 1.14in FPC",
-         fp="Connector_FFC-FPC:Hirose_FH12-8S-0.5SH_1x08-1MP_P0.50mm_Horizontal", lcsc="C597995",
-         mpn="FH12-8S-0.5SH(55)", nets={"1": "LCD_LEDA", "2": GND, "3": "LCD_RST", "4": "LCD_DC",
-                                        "5": "LCD_MOSI", "6": "LCD_SCK", "7": V33, "8": "LCD_CS", "MP": GND}),
+    # J2 is console-s3's ZIF (HDGC 0.5K-HX-8PWB): 1.0 mm tall, so it fits under the glass on its
+    # 2 mm tape, and contacts on both faces, so the ribbon's fold can't put them on the wrong side.
+    dict(ref="J2", sym="Connector_Generic:Conn_01x08", value="LCD 1.14in FPC",
+         fp="pqusb:FPC_ZIF_8P_P0.5mm_HDGC_0.5K-HX-8PWB", lcsc="C2919492",
+         mpn="0.5K-HX-8PWB", nets={"1": "LCD_LEDA", "2": GND, "3": "LCD_RST", "4": "LCD_DC",
+                                   "5": "LCD_MOSI", "6": "LCD_SCK", "7": V33, "8": "LCD_CS"}),
     cap("C18", V33, C1U, "the panel's VDD"), cap("C19", V33, C100N),
     dict(ref="Q1", sym="Transistor_FET:AO3401A", value="AO3401A", fp="Package_TO_SOT_SMD:SOT-23", lcsc="C15127",
          nets={"2": V33, "3": "BL_SW", "1": "BL_GATE"}),
@@ -320,6 +327,7 @@ class Sheet:
         self.root = uid()
         self.items = []
         self.cache = {}
+        self.uuids = {}
         self.npwr = 0
 
     def lib(self, lib_id):
@@ -336,9 +344,10 @@ class Sheet:
                  f'(property "Footprint" {q(fp)} (at {x} {y} 0) {font(True)})']
         props += [f'(property {q(k)} {q(v)} (at {x} {y} 0) {font(True)})' for k, v in fields if v]
         yn = lambda b: "yes" if b else "no"
+        u = self.uuids[ref] = uid()      # the board's footprint points back to it
         self.items.append(
             f'(symbol (lib_id {q(lib_id)}) (at {x} {y} {rot}) (unit 1) (exclude_from_sim no) (in_bom {yn(in_bom)}) '
-            f'(on_board yes) (dnp {yn(dnp)}) (uuid "{uid()}")\n' + "\n".join(props) + "\n"
+            f'(on_board yes) (dnp {yn(dnp)}) (uuid "{u}")\n' + "\n".join(props) + "\n"
             + " ".join(f'(pin {q(n)} (uuid "{uid()}"))' for n in pins)
             + f'\n(instances (project "{NAME}" (path "/{self.root}" (reference {q(ref)}) (unit 1)))))')
 
@@ -606,7 +615,7 @@ def check_footprints(bad):
         return
     for p in PARTS:
         lib, name = p["fp"].split(":")
-        fp = pcbnew.FootprintLoad(os.path.join(KIFP, lib + ".pretty"), name)
+        fp = pcbnew.FootprintLoad(fp_lib(lib), name)
         if fp is None:
             bad.append(f"{p['ref']}: no footprint {p['fp']}")
             continue
@@ -618,11 +627,393 @@ def check_footprints(bad):
             bad.append(f"{p['ref']}: pads {sorted(pads - pins)} of {p['fp']} have no pin")
 
 
+# =================================================================================================
+# The board: every part placed, not routed. Board coordinates in mm from the top-left corner, y
+# down; the page puts that corner at (OX, OY).
+# =================================================================================================
+W, H = 70.0, 28.0
+OX, OY = 100.0, 100.0
+CORNER = 2.0
+LIB = os.path.join(HERE, "lib")
+SHAPES = os.path.join(LIB, "pqusb.3dshapes")
+MARK = os.path.join(REPO, "hardware", "console-pocket", "lib", "picoquorum.pretty")
+
+# The panel, console-s3's numbers (its DESIGN.md, "The panel"): glass 31 x 17 mm and a 23 mm tail
+# from one seller's listing, the active area from Waveshare's 1.14" module, 1.6 mm thick from the
+# listing. The glass lies on 2 mm foam pads at its corners; the tail leaves its right end, folds
+# under it and comes back into J2, using about 5.7 mm in the fold. Measure a panel before ordering.
+PANEL = dict(glass=(31.0, 17.0), active=(24.912, 14.864), rows=135, cols=240, thick=1.6, foam=2.0,
+             pad=2.0, tail=23.0, fold=5.7, ribbon=4.5)
+GX0, GY0 = 14.5, 5.5                     # the glass's top-left corner on the board
+GX1, GY1 = GX0 + PANEL["glass"][0], GY0 + PANEL["glass"][1]
+YC = (GY0 + GY1) / 2
+ROW = PANEL["active"][1] / PANEL["rows"]
+ZIF_IN = GX1 + 1.0 - (PANEL["tail"] - PANEL["fold"]) + 1.0   # where the ribbon's end reaches, as console-s3
+# The picture on the glass in the renders: the review page as the emulator draws it on the Feather
+# (docs/quorum-ui/feather, 3x, with a 22 px strip of button dots on the left).
+SCREEN = os.path.join(REPO, "docs", "quorum-ui", "feather", "03-review-head.png")
+
+# Heights (mm) of what sits under the glass, which has PANEL["foam"] of room
+UNDER = {"QFN-56": 0.9, "Crystal_SMD_3225": 0.8, "_0402_": 0.5, "_0603_": 0.8, "_0805_": 1.25, "SOT-23": 1.15,
+         "DFN-8": 0.6, "HDGC": 1.0, "PinHeader": 0.0}
+
+
+def rail(i):
+    """y of button i: level with row RAIL_Y[i] of the active area, centred on the glass."""
+    r = (7, 67, 127)[i]
+    return round(YC + (r - (PANEL["rows"] - 1) / 2) * ROW, 3)
+
+
+def g_(gx, gy):
+    """A point given from the glass's top-left corner."""
+    return round(GX0 + gx, 3), round(GY0 + gy, 3)
+
+
+# ref -> (x, y, rotation in degrees). Under the glass: only parts lower than the tape, none in the
+# foam pads' corners, none in the ribbon's path (y 11.75-16.25 right of J2).
+AT = {
+    "SW1": (9.8, rail(0), 0), "SW2": (9.8, rail(1), 0), "SW3": (9.8, rail(2), 0),
+    "H1": (3.0, 3.0, 0), "H2": (3.0, H - 3.0, 0), "H3": (W - 3.0, 3.0, 0), "H4": (W - 3.0, H - 3.0, 0),
+    # under the glass: the S3, its crystal and supplies
+    "U1": (*g_(7.0, 7.5), 0), "Y1": (*g_(7.0, 13.6), 0),
+    "C12": (*g_(3.6, 13.6), 90), "C13": (*g_(10.4, 13.6), 90), "R2": (*g_(2.0, 12.0), 90),
+    "R1": (*g_(1.0, 4.5), 90), "C11": (*g_(1.0, 6.5), 90),
+    "R11": (*g_(1.0, 8.5), 90), "R12": (*g_(1.0, 10.5), 90), "R13": (*g_(1.0, 12.5), 90),
+    "C1": (*g_(3.0, 1.1), 90), "C2": (*g_(4.6, 1.1), 90), "C3": (*g_(6.1, 1.1), 90), "L1": (*g_(7.6, 1.1), 90),
+    "C4": (*g_(9.1, 1.1), 90), "C5": (*g_(10.6, 1.1), 90), "C6": (*g_(12.1, 1.1), 90), "C7": (*g_(13.6, 1.1), 90),
+    "C8": (*g_(15.1, 1.1), 90), "C9": (*g_(16.6, 1.1), 90), "C10": (*g_(18.1, 1.1), 90), "R10": (*g_(19.6, 1.1), 90),
+    # the screen's connector, its decoupling and the backlight switch
+    "J2": (round(ZIF_IN - 1.9, 3), YC, 90), "C18": (*g_(17.5, 4.0), 0), "C19": (*g_(17.5, 13.0), 0),
+    "R8": (*g_(19.0, 3.9), 90), "Q1": (*g_(21.6, 3.9), 0), "R7": (*g_(24.1, 3.9), 90),
+    "Q2": (*g_(26.7, 3.9), 0), "R9": (*g_(29.2, 3.9), 90),
+    # the key
+    "U5": (*g_(23.0, 13.6), 0), "C17": (*g_(25.9, 13.6), 90), "R5": (*g_(19.5, 13.6), 90), "R6": (*g_(27.5, 13.6), 90),
+    # the bench header along the bottom edge, and U0TXD's resistor
+    "J3": (17.0, 25.0, 90), "R15": (37.5, 25.0, 0),
+    # right of the glass: the link, power in, RESET and the LED
+    "U4": (50.5, 13.5, 0), "C16": (50.5, 6.8, 0),
+    "J1": (66.4, YC, 90), "U2": (58.0, YC, 0), "R3": (58.0, 10.6, 0), "R4": (58.0, 17.4, 0),
+    "U3": (57.5, 4.4, 0), "C14": (51.9, 3.2, 90), "C15": (62.6, 22.2, 90),
+    "SW4": (50.5, 23.6, 0), "R14": (56.5, 21.6, 0), "D1": (56.5, 24.6, 180),
+}
+# Stock footprints whose 3D model KiCad 9.0.9's library doesn't ship: a part of the same size and
+# pads stands in, in the board and so in the renders (README.md says which).
+STANDIN = {
+    "SW_Push_1P1T_XKB_TS-1187A": "${KICAD9_3DMODEL_DIR}/Button_Switch_SMD.3dshapes/SW_SPST_TL3342.step",
+    "USB_C_Receptacle_HRO_TYPE-C-31-M-12":
+        "${KICAD9_3DMODEL_DIR}/Connector_USB.3dshapes/USB_C_Receptacle_GCT_USB4105-xx-A_16P_TopMnt_Horizontal.step",
+}
+ROUTE_NOTE = "Placed, not routed: the next step is routing in KiCad (README.md)."
+
+
+def fp_lib(lib):
+    return os.path.join(LIB, "pqusb.pretty") if lib == "pqusb" else MARK if lib == "picoquorum" else os.path.join(KIFP, lib + ".pretty")
+
+
+# --- 3D bodies for what KiCad has no model of: the panel (with its picture), its ZIF ---------------
+def _wrl_shape(quads, rgb, emissive=0.0):
+    """One VRML shape: quads are 4 (x, y, z) mm points each, anticlockwise seen from outside. VRML
+    units in KiCad are 0.1 inch."""
+    pts, idx = [], []
+    for qd in quads:
+        idx.append(" ".join(str(len(pts) + i) for i in range(4)) + " -1")
+        pts += [" ".join(f"{v / 2.54:.4f}" for v in p) for p in qd]
+    e = " ".join(f"{c * emissive:.3f}" for c in rgb)
+    return (f"Shape {{ appearance Appearance {{ material Material {{ diffuseColor {' '.join(f'{c:.3f}' for c in rgb)} "
+            f"emissiveColor {e} specularColor 0.1 0.1 0.1 shininess 0.3 }} }}\n"
+            f"geometry IndexedFaceSet {{ solid FALSE coord Coordinate {{ point [ {', '.join(pts)} ] }}\n"
+            f"coordIndex [ {', '.join(idx)} ] }} }}\n")
+
+
+def _box(x0, y0, z0, x1, y1, z1):
+    """A box's six faces, in VRML's axes (y north)."""
+    return [[(x0, y0, z1), (x1, y0, z1), (x1, y1, z1), (x0, y1, z1)], [(x0, y1, z0), (x1, y1, z0), (x1, y0, z0), (x0, y0, z0)],
+            [(x0, y0, z0), (x1, y0, z0), (x1, y0, z1), (x0, y0, z1)], [(x1, y1, z0), (x0, y1, z0), (x0, y1, z1), (x1, y1, z1)],
+            [(x0, y1, z0), (x0, y0, z0), (x0, y0, z1), (x0, y1, z1)], [(x1, y0, z0), (x1, y1, z0), (x1, y1, z1), (x1, y0, z1)]]
+
+
+def screen_quads(z):
+    """The review page, one quad per run of one colour, merged down the rows: 240 x 135 pixels on
+    the active area, centred on the glass."""
+    from PIL import Image
+    im = Image.open(SCREEN).convert("RGB")
+    im = im.crop((im.width - 3 * PANEL["cols"], 0, im.width, 3 * PANEL["rows"])).resize((PANEL["cols"], PANEL["rows"]), Image.BOX)
+    im = im.quantize(colors=24, method=Image.Quantize.MEDIANCUT)
+    pal = im.getpalette()
+    px = im.load()
+    aw, ah = PANEL["active"]
+    sx, sy = aw / PANEL["cols"], ah / PANEL["rows"]
+    runs = {}                                   # (c, x0, x1) -> [y0, y1] of the open run
+    shapes = {}
+    for y in range(PANEL["rows"]):
+        row, x = [], 0
+        while x < PANEL["cols"]:
+            c, x0 = px[x, y], x
+            while x < PANEL["cols"] and px[x, y] == c:
+                x += 1
+            row.append((c, x0, x))
+        keep = {}
+        for k in row:
+            keep[k] = [runs[k][0], y + 1] if k in runs and runs[k][1] == y else [y, y + 1]
+        for k, (y0, y1) in runs.items():
+            if k not in keep or keep[k][0] != y0:
+                shapes.setdefault(k[0], []).append((k[1], y0, k[2], y1))
+        runs = keep
+    for k, (y0, y1) in runs.items():
+        shapes.setdefault(k[0], []).append((k[1], y0, k[2], y1))
+    out = []
+    for c, rects in shapes.items():
+        rgb = [v / 255 for v in pal[3 * c:3 * c + 3]]
+        quads = [[(-aw / 2 + x0 * sx, ah / 2 - y1 * sy, z), (-aw / 2 + x1 * sx, ah / 2 - y1 * sy, z),
+                  (-aw / 2 + x1 * sx, ah / 2 - y0 * sy, z), (-aw / 2 + x0 * sx, ah / 2 - y0 * sy, z)] for x0, y0, x1, y1 in rects]
+        out.append(_wrl_shape(quads, rgb, emissive=0.85))
+    return out, sum(len(r) for r in shapes.values())
+
+
+def write_models():
+    """The panel as it sits: foam pads, glass, the picture, and the ribbon folding under into J2.
+    Its origin is the glass's centre (LCD1's footprint)."""
+    os.makedirs(SHAPES, exist_ok=True)
+    gw, gh = PANEL["glass"]
+    f, t, p = PANEL["foam"], PANEL["thick"], PANEL["pad"]
+    hw, hh, rw = gw / 2, gh / 2, PANEL["ribbon"] / 2
+    shapes = []
+    pads = [_box(sx * hw - (p if sx > 0 else 0), sy * hh - (p if sy > 0 else 0), 0, sx * hw + (0 if sx > 0 else p), sy * hh + (0 if sy > 0 else p), f)
+            for sx in (-1, 1) for sy in (-1, 1)]
+    shapes.append(_wrl_shape(sum(pads, []), (0.92, 0.92, 0.88)))
+    shapes.append(_wrl_shape(_box(-hw, -hh, f, hw, hh, f + t - 0.3), (0.75, 0.76, 0.78)))     # backlight frame
+    shapes.append(_wrl_shape(_box(-hw, -hh, f + t - 0.3, hw, hh, f + t), (0.02, 0.02, 0.03)))  # glass
+    aw, ah = PANEL["active"]
+    shapes.append(_wrl_shape(_box(-aw / 2, -ah / 2, f + t, aw / 2, ah / 2, f + t + 0.01), (0.04, 0.05, 0.06)))
+    pic, n = screen_quads(f + t + 0.02)
+    shapes += pic
+    zin = ZIF_IN - (GX0 + hw)                    # the ribbon's end, from the glass's centre
+    rib = _box(hw, -rw, f, hw + 1.2, rw, f + 0.1) + _box(hw + 1.1, -rw, 0.45, hw + 1.2, rw, f + 0.1) \
+        + _box(zin - 1.4, -rw, 0.45, hw + 1.2, rw, 0.55)
+    shapes.append(_wrl_shape(rib, (0.85, 0.45, 0.08)))
+    with open(os.path.join(SHAPES, "LCD_1.14in_240x135_on_tape.wrl"), "w") as fh:
+        fh.write("#VRML V2.0 utf8\n# The 1.14in panel on its tape, with the console's review page. Written by gen_console_usb.py\n")
+        fh.writelines(shapes)
+    # J2: body, and the flip actuator along its back (the pads' side, local -y, VRML +y)
+    zif = [_wrl_shape(_box(-3.0, -1.6, 0, 3.0, 1.65, 0.75), (0.93, 0.88, 0.75)),
+           _wrl_shape(_box(-3.0, 0.9, 0.75, 3.0, 1.65, 1.0), (0.08, 0.08, 0.08))]
+    with open(os.path.join(SHAPES, "FPC_ZIF_8P_HDGC_0.5K-HX-8PWB.wrl"), "w") as fh:
+        fh.write("#VRML V2.0 utf8\n# HDGC 0.5K-HX-8PWB, a box from its drawing's outline. Written by gen_console_usb.py\n")
+        fh.writelines(zif)
+    return n
+
+
+def write_footprints():
+    """pqusb.pretty: console-s3's ZIF footprint with a 3D body, and the panel as a board-only part."""
+    os.makedirs(os.path.join(LIB, "pqusb.pretty"), exist_ok=True)
+    src = os.path.join(REPO, "hardware", "console-s3", "lib", "pqs3.pretty", "FPC_ZIF_8P_P0.5mm_HDGC_0.5K-HX-8PWB.kicad_mod")
+    zif = open(src).read().replace(
+        "\t(embedded_fonts no)",
+        '\t(model "${KIPRJMOD}/../lib/pqusb.3dshapes/FPC_ZIF_8P_HDGC_0.5K-HX-8PWB.wrl" (offset (xyz 0 0 0)) (scale (xyz 1 1 1)) (rotate (xyz 0 0 0)))\n'
+        "\t(embedded_fonts no)")
+    with open(os.path.join(LIB, "pqusb.pretty", "FPC_ZIF_8P_P0.5mm_HDGC_0.5K-HX-8PWB.kicad_mod"), "w") as fh:
+        fh.write(zif)
+    gw, gh = PANEL["glass"]
+    hw, hh, p = gw / 2, gh / 2, PANEL["pad"]
+    lines = []
+    for sx in (-1, 1):                         # silkscreen corners just outside the glass
+        for sy in (-1, 1):
+            x, y = sx * (hw + 0.3), sy * (hh + 0.3)
+            lines.append(f'\t(fp_line (start {x} {y}) (end {x - sx * 2} {y}) (stroke (width 0.15) (type solid)) (layer "F.SilkS") (uuid "{uid()}"))')
+            lines.append(f'\t(fp_line (start {x} {y}) (end {x} {y - sy * 2}) (stroke (width 0.15) (type solid)) (layer "F.SilkS") (uuid "{uid()}"))')
+            fx, fy = sx * hw - (p if sx > 0 else 0), sy * hh - (p if sy > 0 else 0)
+            lines.append(f'\t(fp_rect (start {fx} {fy}) (end {fx + p} {fy + p}) (stroke (width 0.1) (type solid)) (fill no) (layer "F.Fab") (uuid "{uid()}"))')
+    lines.append(f'\t(fp_rect (start {-hw} {-hh}) (end {hw} {hh}) (stroke (width 0.1) (type solid)) (fill no) (layer "F.Fab") (uuid "{uid()}"))')
+    with open(os.path.join(LIB, "pqusb.pretty", "LCD_1.14in_240x135_on_tape.kicad_mod"), "w") as fh:
+        fh.write(f"""(footprint "LCD_1.14in_240x135_on_tape" (version 20241229) (generator "picoquorum_gen") (generator_version "9.0") (layer "F.Cu")
+\t(descr "The 1.14in 240x135 ST7789 panel's glass ({gw} x {gh} mm) on {PANEL['foam']} mm foam pads at its corners (F.Fab). No pads: the ribbon goes to J2. Board only")
+\t(property "Reference" "LCD1" (at 0 {-hh - 1.2} 0) (layer "F.Fab") (uuid "{uid()}") (effects (font (size 0.8 0.8) (thickness 0.12))))
+\t(property "Value" "1.14in 240x135" (at 0 0 0) (layer "F.Fab") (uuid "{uid()}") (effects (font (size 1 1) (thickness 0.15))))
+\t(attr board_only exclude_from_pos_files exclude_from_bom)
+{chr(10).join(lines)}
+\t(model "${{KIPRJMOD}}/../lib/pqusb.3dshapes/LCD_1.14in_240x135_on_tape.wrl" (offset (xyz 0 0 0)) (scale (xyz 1 1 1)) (rotate (xyz 0 0 0)))
+\t(embedded_fonts no)
+)
+""")
+    with open(os.path.join(OUT, "fp-lib-table"), "w") as fh:
+        fh.write('(fp_lib_table\n  (version 7)\n'
+                 '  (lib (name "pqusb")(type "KiCad")(uri "${KIPRJMOD}/../lib/pqusb.pretty")(options "")(descr "console-usb\'s own footprints"))\n'
+                 '  (lib (name "picoquorum")(type "KiCad")(uri "${KIPRJMOD}/../../console-pocket/lib/picoquorum.pretty")(options "")(descr "the mark"))\n)\n')
+
+
+def write_board(sh, nets):
+    import pcbnew
+    mm = lambda x, y: pcbnew.VECTOR2I_MM(OX + x, OY + y)
+    b = pcbnew.BOARD()
+    pad_net = {}
+    for name, nodes in nets.items():
+        if name.startswith("unconnected-"):
+            continue
+        ni = pcbnew.NETINFO_ITEM(b, name)
+        b.Add(ni)
+        for node in nodes:
+            pad_net[node] = name
+
+    def place(fp, ref, x, y, rot):
+        fp.SetReference(ref)
+        if fp.Reference().GetLayer() == pcbnew.F_SilkS:
+            fp.Reference().SetLayer(pcbnew.F_Fab)     # 0402s too close for names: the silkscreen keeps labels only
+        fp.SetPosition(mm(x, y))
+        fp.SetOrientationDegrees(rot)
+        b.Add(fp)
+        return fp
+
+    for p in PARTS:
+        lib, name = p["fp"].split(":")
+        fp = pcbnew.FootprintLoad(fp_lib(lib), name)
+        fp.SetFPID(pcbnew.LIB_ID(lib, name))
+        fp.SetValue(p["value"])
+        fp.SetPath(pcbnew.KIID_PATH("/" + sh.uuids[p["ref"]]))
+        fp.SetSheetname("/")
+        fp.SetSheetfile(NAME + ".kicad_sch")
+        for k in ("LCSC", "MPN"):
+            if p.get(k.lower()):
+                fp.SetField(k, p[k.lower()])
+                fp.GetFieldByName(k).SetVisible(False)
+        models = list(fp.Models())           # copies: change them, then put them back
+        for m in models:
+            if name in STANDIN and not os.path.exists(m.m_Filename.replace("${KICAD9_3DMODEL_DIR}", "/usr/share/kicad/3dmodels")):
+                m.m_Filename = STANDIN[name]
+        fp.Models().clear()
+        for m in models:
+            fp.Models().append(m)
+        if p.get("dnp"):
+            fp.SetDNP(True)
+            fp.Models().clear()            # J3: holes only, no header in the picture, and no outline
+            for it in [i for i in fp.GraphicalItems() if i.GetLayer() == pcbnew.F_SilkS]:
+                fp.Remove(it)
+        x, y, rot = AT[p["ref"]]
+        place(fp, p["ref"], x, y, rot)
+        for pad in fp.Pads():
+            n = pad_net.get((p["ref"], pad.GetNumber()))
+            if n:
+                pad.SetNet(b.FindNet(n))
+    place(pcbnew.FootprintLoad(fp_lib("pqusb"), "LCD_1.14in_240x135_on_tape"), "LCD1", (GX0 + GX1) / 2, YC, 0)
+    logo = pcbnew.FootprintLoad(MARK, "PicoQuorum_Mark")
+    logo.SetFPID(pcbnew.LIB_ID("picoquorum", "PicoQuorum_Mark"))
+    place(logo, "LOGO1", 24.0, 12.0, 0)
+    logo.Flip(logo.GetPosition(), pcbnew.FLIP_DIRECTION_LEFT_RIGHT)
+
+    def seg(a, c):
+        s = pcbnew.PCB_SHAPE(b, pcbnew.SHAPE_T_SEGMENT)
+        s.SetStart(mm(*a)); s.SetEnd(mm(*c)); s.SetLayer(pcbnew.Edge_Cuts); s.SetWidth(pcbnew.FromMM(0.05))
+        b.Add(s)
+
+    def arc(a, m, c):
+        s = pcbnew.PCB_SHAPE(b, pcbnew.SHAPE_T_ARC)
+        s.SetArcGeometry(mm(*a), mm(*m), mm(*c)); s.SetLayer(pcbnew.Edge_Cuts); s.SetWidth(pcbnew.FromMM(0.05))
+        b.Add(s)
+    r, k = CORNER, CORNER * (1 - 0.5 ** 0.5)
+    seg((r, 0), (W - r, 0)); seg((W, r), (W, H - r)); seg((W - r, H), (r, H)); seg((0, H - r), (0, r))
+    arc((W - r, 0), (W - k, k), (W, r)); arc((W, H - r), (W - k, H - k), (W - r, H))
+    arc((r, H), (k, H - k), (0, H - r)); arc((0, r), (k, k), (r, 0))
+
+    def text(s, x, y, size, layer=pcbnew.F_SilkS, back=False, rot=0):
+        t = pcbnew.PCB_TEXT(b)
+        t.SetText(s); t.SetPosition(mm(x, y)); t.SetLayer(layer)
+        t.SetTextSize(pcbnew.VECTOR2I_MM(size, size)); t.SetTextThickness(pcbnew.FromMM(size * 0.15))
+        t.SetTextAngleDegrees(rot)
+        if back:
+            t.SetMirrored(True)
+        b.Add(t)
+    for i, lab in enumerate(("D0", "D1", "D2")):
+        text(lab, 5.6, AT[f"SW{i + 1}"][1], 0.9, rot=90)
+    text("RESET", 50.5, 20.3, 0.8)
+    text("PicoQuorum console-usb", (GX0 + GX1) / 2, 2.6, 1.0)
+    x3, y3, _ = AT["J3"]
+    text("BENCH", x3 - 2.0, y3, 0.8, rot=90)
+    for i, lab in enumerate(("GND", "3V3", "TX", "RX", "D-", "D+", "SDA", "SCL")):     # J3's pins, as the schematic
+        text(lab, x3 + 2.54 * i, y3 + (1.75 if i % 2 == 0 else -1.75), 0.8)     # staggered: 2.54 mm is narrow
+    text("no radio: USB serial only", 46.0, 12.5, 0.9, pcbnew.B_SilkS, back=True)
+    text("console-usb rev A " + DATE, 46.0, 6.0, 1.0, pcbnew.B_SilkS, back=True)
+    text("github.com/jmcpheron/pico-quorum", 46.0, 8.5, 0.9, pcbnew.B_SilkS, back=True)
+    text("CERN-OHL-W v2, Source Location as 4.1", 46.0, 10.5, 0.8, pcbnew.B_SilkS, back=True)
+    text("ribbon folds under the glass into J2", (ZIF_IN + GX1) / 2 + 1.0, YC + 3.0, 0.8, pcbnew.F_Fab)
+    text(ROUTE_NOTE, W / 2, H + 2.0, 1.0, pcbnew.Cmts_User)
+    pcbnew.SaveBoard(os.path.join(OUT, NAME + ".kicad_pcb"), b)
+
+
+def check_placement(bad):
+    """KiCad's DRC on the placed board. Unrouted nets are expected; anything else is a problem
+    (overlapping courtyards, copper on copper, parts at the edge or on a hole)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        out = os.path.join(tmp, "drc.json")
+        subprocess.run(["kicad-cli", "pcb", "drc", "--format", "json", "--severity-all", "-o", out,
+                        os.path.join(OUT, NAME + ".kicad_pcb")], capture_output=True, env=kicad_env(tmp))
+        rep = json.load(open(out))
+    seen = {}
+    ok = ("unconnected_items", "lib_footprint_issues", "lib_footprint_mismatch", "silk_over_copper", "silk_overlap",
+          "silk_edge_clearance", "text_height", "text_thickness")
+    for v in rep.get("violations", []):
+        seen[v["type"]] = seen.get(v["type"], 0) + 1
+        if v["type"] not in ok:
+            bad.append(f"DRC {v['type']}: " + "; ".join(i.get("description", "") for i in v.get("items", [])))
+    # the glass: everything under it lower than the tape, nothing in the foam's corners
+    for p in PARTS:
+        x, y, _ = AT[p["ref"]]
+        if GX0 <= x <= GX1 and GY0 <= y <= GY1:
+            h = next((v for k, v in UNDER.items() if k in p["fp"]), None)
+            if h is None or h > PANEL["foam"] - 0.3:
+                bad.append(f"{p['ref']} ({p['fp']}) is under the glass, and isn't known to be under {PANEL['foam'] - 0.3} mm")
+            gx, gy = x - GX0, y - GY0
+            if (gx < PANEL["pad"] or gx > PANEL["glass"][0] - PANEL["pad"]) and (gy < PANEL["pad"] or gy > PANEL["glass"][1] - PANEL["pad"]):
+                bad.append(f"{p['ref']} is under a foam pad")
+    return seen
+
+
+def kicad_env(tmp):
+    cfg = os.path.join(tmp, "9.0")
+    os.makedirs(cfg, exist_ok=True)
+    for t in ("sym-lib-table", "fp-lib-table"):
+        shutil.copy(os.path.join("/usr/share/kicad/template", t), cfg)
+    return dict(os.environ, KICAD_CONFIG_HOME=tmp, KICAD9_SYMBOL_DIR=KISYM, KICAD9_FOOTPRINT_DIR=KIFP,
+                KICAD9_3DMODEL_DIR="/usr/share/kicad/3dmodels")
+
+
+RENDERS = [  # name, kicad-cli pcb render options
+    ("top", ["--side", "top", "--zoom", "1.6", "--width", "1600", "--height", "720"]),
+    ("3q", ["--side", "top", "--rotate", "-38,0,-24", "--perspective", "--zoom", "1.45", "--width", "1600", "--height", "900"]),
+    ("bottom", ["--side", "bottom", "--zoom", "1.6", "--width", "1600", "--height", "720"]),
+    ("under-glass", ["--side", "top", "--rotate", "-38,0,-24", "--perspective", "--zoom", "1.45", "--width", "1600", "--height", "900"]),
+]
+
+
+def render():
+    """The renders in renders/, from KiCad's own 3D view (raytraced): stock models for every part,
+    ours for the panel and J2."""
+    os.makedirs(os.path.join(HERE, "renders"), exist_ok=True)
+    import pcbnew
+    with tempfile.TemporaryDirectory() as tmp:
+        bare = os.path.join(OUT, f"_{NAME}-under-glass.kicad_pcb")      # the panel lifted off: what's under it
+        brd = pcbnew.LoadBoard(os.path.join(OUT, NAME + ".kicad_pcb"))
+        brd.Remove(brd.FindFootprintByReference("LCD1"))
+        pcbnew.SaveBoard(bare, brd)
+        for name, opts in RENDERS:
+            png = os.path.join(tmp, name + ".png")
+            src = bare if name == "under-glass" else os.path.join(OUT, NAME + ".kicad_pcb")
+            subprocess.run(["kicad-cli", "pcb", "render", "--quality", "high", "--background", "opaque", "--floor",
+                            *opts, "-o", png, src], check=True, capture_output=True, env=kicad_env(tmp))
+            from PIL import Image
+            jpg = os.path.join(HERE, "renders", f"{NAME}-{name}.jpg")
+            Image.open(png).convert("RGB").save(jpg, quality=88, optimize=True)
+            print(f"  {os.path.relpath(jpg, REPO)}")
+        for ext in (".kicad_pcb", ".kicad_pro", ".kicad_prl"):
+            if os.path.exists(bare[:-10] + ext):
+                os.remove(bare[:-10] + ext)
+
+
 def main():
     bad = []
     check_firmware(bad)
     sh = write_schematic()
     write_project(sh.root)
+    write_footprints()
+    quads = write_models()
     write_bom()
     write_pins()
     print(f"wrote {os.path.relpath(OUT, REPO)}/{NAME}.kicad_sch, .kicad_pro, fab/bom.csv, PINS.md")
@@ -631,6 +1022,13 @@ def main():
     check_straps(bad, nets)
     found = check_erc(bad)
     check_footprints(bad)
+    write_board(sh, nets)
+    write_project(sh.root)       # after SaveBoard, so the project is ours
+    drc = check_placement(bad)
+    print(f"  the board: {NAME}.kicad_pcb, {W:g} x {H:g} mm, placed, not routed; DRC: "
+          + ", ".join(f"{k} {v}" for k, v in sorted(drc.items())) + f"; the screen's picture in {quads} quads")
+    if "render" in sys.argv[1:] and not bad:
+        render()
     n_parts = sum(1 for p in PARTS if p.get("bom", True))
     print(f"  {len(PARTS)} parts ({n_parts} placed by JLCPCB), {len([n for n in nets if not n.startswith('unconnected-')])} nets, "
           f"ERC: {len(found)} findings, all expected" if not bad else "")
