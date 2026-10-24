@@ -2,8 +2,34 @@
 
 Console and key electronics. The goals are in [`../docs/KICKOFF.md`](../docs/KICKOFF.md).
 
+## Every configuration
+
+Two kinds: **builds**, put together from bought boards, and **boards** we design. The firmware
+column is the console image's `BOARD` profile (`firmware/board.py`); a build's own test and demo
+screens are bench scripts, never part of the image ([builds/](builds/README.md#firmware)).
+
+| name | kind | the key | firmware | where it stands |
+|---|---|---|---|---|
+| [dev console](DEV-CONSOLE.md) | build | ATECC608 breakout, STEMMA QT | `waveshare` | the no-solder build |
+| [Build 1](wiring/BUILD1.md), [on a breadboard](wiring/BREADBOARD.md) | build | ATECC608 on TRRS jacks | `build1` | — |
+| [ESP32 DevKit](wiring/ESP32.md) | build | ATECC608 breakout | `esp32` | the console ran on a WROVER |
+| [Feather + adapters](wiring/FEATHER-S3.md) | build | key-c, STEMMA QT to USB-C adapters | `feather-s3`; bench in [wiring/feather-s3/](wiring/feather-s3/) | runs; chip 3 through the ceremony, 2026-10-22 |
+| [Feather pigtail](builds/feather-pigtail/README.md) | build | key-c, a USB-C cable soldered to the pins | `feather-s3`; bench `swap.py`; a case | written up, not wired |
+| [key-c and the other keys](key-pcb/README.md) | board | — | — | key-c P2 built and working; P3 drawn |
+| [console-a (console-pcb)](console-pcb/README.md) | board | key-c, USB-C | `build1` | designed |
+| [console-a](console-a/README.md) | board | pads | `waveshare` | designed, not ordered |
+| [console-pocket](console-pocket/README.md) | board | pads | `waveshare` | not checked in KiCad, not ordered |
+| [feather-wing a, b](feather-wing/README.md) | board | key-c, USB-C | `feather-s3` | not ordered |
+| [console-s3](console-s3/DESIGN.md) | board | ATECC608C on the board | `feather-s3` | to order ([plan](../ORDER-PLAN-2026-10-24.md)) |
+| [console-usb](console-usb/README.md) | board | ATECC608C on the board | `feather-s3`, plus firmware not written | not routed |
+| [picoquorum-key](picoquorum-key/README.md) | board | UDFN ATECC608C on the board | needs a profile | to order ([plan](../ORDER-PLAN-2026-10-24.md)) |
+
+The parts of each are below.
+
 - [`DEV-CONSOLE.md`](DEV-CONSOLE.md): the no-solder dev console (Pico 2 W, Waveshare Pico-LCD-1.3,
   an ATECC608 breakout), from picowallet
+- [`builds/`](builds/README.md): rigs put together from bought boards, one folder each (README,
+  `bench/`, `case/`); the first is the [Feather pigtail](builds/feather-pigtail/README.md)
 - [`wiring/`](wiring/): the key connector pinout and console schematics; Build 1 in
   [`wiring/BUILD1.md`](wiring/BUILD1.md) (its build order, rules and firmware to do), and on a breadboard in [`wiring/BREADBOARD.md`](wiring/BREADBOARD.md);
   the same parts on an ESP32 DevKit instead of a Pico in [`wiring/ESP32.md`](wiring/ESP32.md)

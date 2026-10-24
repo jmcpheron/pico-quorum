@@ -75,6 +75,10 @@ SDA and SCL, so the key needs none, but they are powered from IO7.
 A board that gives key-c a port of its own behind the Feather, on the header pins, is drawn in
 [hardware/feather-wing](../feather-wing/README.md) (wing-a, not ordered).
 
+The same Feather with a USB-C cable soldered straight to SDA, SCL, 3V and GND, no adapters, a
+screen that reads whichever key is plugged in, and a case:
+[builds/feather-pigtail](../builds/feather-pigtail/README.md).
+
 What it took on 2026-10-20: through the USB-C adapters the chip first never answered, with D+ and
 D− either way round, at 20, 100 or 400 kHz, or after a 1 ms wake pulse. A scan of every pair of the
 20 header pins found only the gauge. The key was then unplugged, and once it was back in, 0x60
