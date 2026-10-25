@@ -654,7 +654,7 @@ def draw_pinfail(q):
 def draw_unconfigured(q):
     if L.THREE and q.key_ready():
         notice(q, True, "Your key is ready", ["Next, it is added to a Safe.",
-                                              "D2 shows its code, for the person setting it up.",
+                                              board.NAMES["D2"] + " shows its code, for the person setting it up.",
                                               "secrets.py: no QUORUM_SAFES yet"], None, "Code")
     else:
         notice(q, False, "No Safe", ["secrets.py has no QUORUM_SAFES.", "docs/guide/SETUP.md"])
@@ -663,7 +663,7 @@ def draw_unconfigured(q):
 def draw_crashed(q, why=""):
     import image
     notice(q, False, "Stopped", ["Failed %d times in a row; signs nothing now." % q.fails, why[:40],
-                                "build " + image.BUILD, "Hold D2 3 s to restart." if L.THREE else "Hold the knob 3 s to restart."],
+                                "build " + image.BUILD, "Hold %s 3 s to restart." % board.NAMES["D2"] if L.THREE else "Hold the knob 3 s to restart."],
            None, "Hold")
 
 

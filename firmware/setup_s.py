@@ -6,6 +6,9 @@
 # the 60 s arm and the holds are provision.UI's own.
 # A rail down the left edge names what each button does, level with it (board.RAIL_Y), and fills
 # from the bottom while the arm or a hold runs. framebuf's 8 px font: 25 characters right of it.
+# On the knob Feather (board.DIAL) Boot is D0, the push D2 and a detent D1, and a turn can't be held:
+# so Boot held 3 s alone is the arm (it reads as B and Y together), a detent anticlockwise is back
+# (Y), and the push does the step (A). The push is still never part of the arm.
 import time
 import board
 import lcd as L
@@ -14,6 +17,11 @@ import signer as S
 
 PRESSED = {"D0": "Y", "D1": "B", "D1L": "B", "D2": "A"}
 HELD = {"A": "D2", "B": "D1", "Y": "D0"}
+ARM, DO = "D0+D1", "D2"
+if board.DIAL:
+    PRESSED = {"D1L": "Y", "D2": "A"}
+    HELD = {"A": "D2", "B": "D0", "Y": "D0"}
+    ARM, DO = "Boot", "push"
 RAIL = 36
 X0 = RAIL + 3
 COLS = (board.W - X0) // 8
@@ -61,6 +69,8 @@ class UI(provision.UI):
     def rail(self, labels, fill=None):
         """labels: a word or None for D0, D1, D2; fill: (fraction, colour) up from the bottom."""
         d, p = self.d, self.p
+        if board.DIAL:                  # Boot arms, the turn (D1's row) goes back
+            labels = ("Arm" if "Arm" in labels[:2] else None, "Back" if labels[0] == "Back" else None, labels[2])
         d.fill_rect(0, 0, RAIL, H, p["dim"])
         if fill:
             h = int(H * min(1, max(0, fill[0])))
@@ -133,28 +143,28 @@ class UI(provision.UI):
         left = S.armed()
         if not gated:
             labels = ("Back", None, "Do")
-            lines = [("D2: check" if st in c.FINAL else "D2: do it", p["fg"])]
+            lines = [(DO + (": check" if st in c.FINAL else ": do it"), p["fg"])]
         elif why and not why.startswith("not armed"):
             labels = ("Back", None, None)
             lines = [(s, p["bad"]) for s in wrap(why, COLS)[:2]]       # an ALLOW_* flag is off
         elif self.armdone:
             labels = (None, None, None)
-            lines = [("Armed: let go of D0+D1", p["ok"])]
+            lines = [("Armed: let go of " + ARM, p["ok"])]
         elif self.armhold is not None:
             labels = ("Arm", "Arm", None)
-            lines = [("Arming: keep holding", p["accent"]), ("D0+D1 for 3 s", p["muted"])]
+            lines = [("Arming: keep holding", p["accent"]), (ARM + " for 3 s", p["muted"])]
         elif self.armnote:
             labels = ("Back", "Arm", None)
             lines = [("Let go early: not armed", p["bad"])]
         elif 0 < left < provision.ARM_LEFT and self.hold is None:
             labels = ("Back", "Arm", None)
-            lines = [("Armed %d s: too little" % left, p["accent"]), ("Arm again: D0+D1 3 s", p["fg"])]
+            lines = [("Armed %d s: too little" % left, p["accent"]), ("Arm again: %s 3 s" % ARM, p["fg"])]
         elif left:
             labels = ("Back", None, "Hold")
-            lines = [("Armed %d s" % left, p["ok"]), ("Hold D2 3 s to do it", p["fg"])]
+            lines = [("Armed %d s" % left, p["ok"]), ("Hold %s 3 s to do it" % DO, p["fg"])]
         else:
             labels = ("Back", "Arm", None)
-            lines = [("Not armed", p["accent"]), ("Arm: hold D0+D1 3 s", p["fg"])]
+            lines = [("Not armed", p["accent"]), ("Arm: hold %s 3 s" % ARM, p["fg"])]
         self.rail(labels, fill)
         y = 124 - 11 * (len(lines) - 1)
         for s, col in lines:
@@ -164,7 +174,7 @@ class UI(provision.UI):
     def _paint_result(self, pic):
         d, c, p = self.d, self.c, self.p
         st, ok, checks, msg = self.result
-        msg = msg.replace("B+Y", "D0+D1")      # a refusal is signer.gate's text, written for the Pico
+        msg = msg.replace("B+Y", ARM)      # a refusal is signer.gate's text, written for the Pico
         self.rail((None, None, "OK"))
         head = st + (" OK" if ok else " STOPPED")
         d.text(head, X0, 2, p["ok"] if ok else p["bad"])

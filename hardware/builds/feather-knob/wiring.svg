@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="660" height="740" viewBox="0 0 660 740" font-family="Helvetica, Arial, sans-serif" font-size="11">
+<rect width="660" height="740" fill="#ffffff"/>
+<text x="20" y="28" font-size="16" font-weight="bold">The knob Feather: ESP32-S3 TFT Feather (5483), EC11 knob, key-c</text>
+<text x="20" y="46" fill="#555">Seen from the screen side, USB-C on the left. Go by the silkscreen labels.</text>
+<rect x="70" y="250" width="457.2" height="205.7" rx="22.9" fill="#1d1d1d"/>
+<rect x="187.0" y="281.5" width="225.0" height="139.5" fill="#3a6ea5"/>
+<text x="299.5" y="356.2" fill="#ffffff" text-anchor="middle">1.14" screen</text>
+<rect x="59.2" y="316.6" width="67.5" height="72.0" fill="#9a9a9a"/>
+<text x="93.4" y="356.2" text-anchor="middle" fill="#000" font-size="9">USB-C</text>
+<text x="434.5" y="356.2" fill="#bbb" font-size="9">Boot  Reset</text>
+<circle cx="127.2" cy="444.3" r="7" fill="#000" stroke="#d4a017" stroke-width="2"/>
+<text x="127.2" y="464.3" text-anchor="middle" fill="#777" font-weight="normal" font-size="9">RST</text>
+<circle cx="150.0" cy="444.3" r="7" fill="#d4a017" stroke="#d4a017" stroke-width="2"/>
+<text x="150.0" y="464.3" text-anchor="middle" fill="#000" font-weight="bold" font-size="11">3V</text>
+<circle cx="172.9" cy="444.3" r="7" fill="#000" stroke="#d4a017" stroke-width="2"/>
+<text x="172.9" y="464.3" text-anchor="middle" fill="#777" font-weight="normal" font-size="11">NC</text>
+<circle cx="195.7" cy="444.3" r="7" fill="#d4a017" stroke="#d4a017" stroke-width="2"/>
+<text x="195.7" y="464.3" text-anchor="middle" fill="#000" font-weight="bold" font-size="9">GND</text>
+<circle cx="218.6" cy="444.3" r="7" fill="#000" stroke="#d4a017" stroke-width="2"/>
+<text x="218.6" y="464.3" text-anchor="middle" fill="#777" font-weight="normal" font-size="11">A0</text>
+<text x="218.6" y="475.3" text-anchor="middle" fill="#999" font-size="8">18</text>
+<circle cx="241.4" cy="444.3" r="7" fill="#d4a017" stroke="#d4a017" stroke-width="2"/>
+<text x="241.4" y="464.3" text-anchor="middle" fill="#000" font-weight="bold" font-size="11">A1</text>
+<text x="241.4" y="475.3" text-anchor="middle" fill="#999" font-size="8">17</text>
+<circle cx="264.3" cy="444.3" r="7" fill="#d4a017" stroke="#d4a017" stroke-width="2"/>
+<text x="264.3" y="464.3" text-anchor="middle" fill="#000" font-weight="bold" font-size="11">A2</text>
+<text x="264.3" y="475.3" text-anchor="middle" fill="#999" font-size="8">16</text>
+<circle cx="287.2" cy="444.3" r="7" fill="#d4a017" stroke="#d4a017" stroke-width="2"/>
+<text x="287.2" y="464.3" text-anchor="middle" fill="#000" font-weight="bold" font-size="11">A3</text>
+<text x="287.2" y="475.3" text-anchor="middle" fill="#999" font-size="8">15</text>
+<circle cx="310.0" cy="444.3" r="7" fill="#000" stroke="#d4a017" stroke-width="2"/>
+<text x="310.0" y="464.3" text-anchor="middle" fill="#777" font-weight="normal" font-size="11">A4</text>
+<text x="310.0" y="475.3" text-anchor="middle" fill="#999" font-size="8">14</text>
+<circle cx="332.9" cy="444.3" r="7" fill="#000" stroke="#d4a017" stroke-width="2"/>
+<text x="332.9" y="464.3" text-anchor="middle" fill="#777" font-weight="normal" font-size="11">A5</text>
+<text x="332.9" y="475.3" text-anchor="middle" fill="#999" font-size="8">8</text>
+<circle cx="355.8" cy="444.3" r="7" fill="#000" stroke="#d4a017" stroke-width="2"/>
+<text x="355.8" y="464.3" text-anchor="middle" fill="#777" font-weight="normal" font-size="9">SCK</text>
+<text x="355.8" y="475.3" text-anchor="middle" fill="#999" font-size="8">36</text>
+<circle cx="378.6" cy="444.3" r="7" fill="#000" stroke="#d4a017" stroke-width="2"/>
+<text x="378.6" y="464.3" text-anchor="middle" fill="#777" font-weight="normal" font-size="11">MO</text>
+<text x="378.6" y="475.3" text-anchor="middle" fill="#999" font-size="8">35</text>
+<circle cx="401.5" cy="444.3" r="7" fill="#000" stroke="#d4a017" stroke-width="2"/>
+<text x="401.5" y="464.3" text-anchor="middle" fill="#777" font-weight="normal" font-size="11">MI</text>
+<text x="401.5" y="475.3" text-anchor="middle" fill="#999" font-size="8">37</text>
+<circle cx="424.3" cy="444.3" r="7" fill="#000" stroke="#d4a017" stroke-width="2"/>
+<text x="424.3" y="464.3" text-anchor="middle" fill="#777" font-weight="normal" font-size="11">RX</text>
+<text x="424.3" y="475.3" text-anchor="middle" fill="#999" font-size="8">2</text>
+<circle cx="447.2" cy="444.3" r="7" fill="#000" stroke="#d4a017" stroke-width="2"/>
+<text x="447.2" y="464.3" text-anchor="middle" fill="#777" font-weight="normal" font-size="11">TX</text>
+<text x="447.2" y="475.3" text-anchor="middle" fill="#999" font-size="8">1</text>
+<circle cx="470.1" cy="444.3" r="7" fill="#000" stroke="#d4a017" stroke-width="2"/>
+<text x="470.1" y="464.3" text-anchor="middle" fill="#777" font-weight="normal" font-size="11">DB</text>
+<circle cx="218.6" cy="261.4" r="7" fill="#000" stroke="#d4a017" stroke-width="2"/>
+<text x="218.6" y="248.4" text-anchor="middle" fill="#777" font-weight="normal" font-size="9">BAT</text>
+<circle cx="241.5" cy="261.4" r="7" fill="#000" stroke="#d4a017" stroke-width="2"/>
+<text x="241.5" y="248.4" text-anchor="middle" fill="#777" font-weight="normal" font-size="11">EN</text>
+<circle cx="264.3" cy="261.4" r="7" fill="#000" stroke="#d4a017" stroke-width="2"/>
+<text x="264.3" y="248.4" text-anchor="middle" fill="#777" font-weight="normal" font-size="9">USB</text>
+<circle cx="287.2" cy="261.4" r="7" fill="#000" stroke="#d4a017" stroke-width="2"/>
+<text x="287.2" y="248.4" text-anchor="middle" fill="#777" font-weight="normal" font-size="11">13</text>
+<text x="287.2" y="237.4" text-anchor="middle" fill="#999" font-size="8">13</text>
+<circle cx="310.0" cy="261.4" r="7" fill="#000" stroke="#d4a017" stroke-width="2"/>
+<text x="310.0" y="248.4" text-anchor="middle" fill="#777" font-weight="normal" font-size="11">12</text>
+<text x="310.0" y="237.4" text-anchor="middle" fill="#999" font-size="8">12</text>
+<circle cx="332.9" cy="261.4" r="7" fill="#000" stroke="#d4a017" stroke-width="2"/>
+<text x="332.9" y="248.4" text-anchor="middle" fill="#777" font-weight="normal" font-size="11">11</text>
+<text x="332.9" y="237.4" text-anchor="middle" fill="#999" font-size="8">11</text>
+<circle cx="355.8" cy="261.4" r="7" fill="#000" stroke="#d4a017" stroke-width="2"/>
+<text x="355.8" y="248.4" text-anchor="middle" fill="#777" font-weight="normal" font-size="11">10</text>
+<text x="355.8" y="237.4" text-anchor="middle" fill="#999" font-size="8">10</text>
+<circle cx="378.6" cy="261.4" r="7" fill="#000" stroke="#d4a017" stroke-width="2"/>
+<text x="378.6" y="248.4" text-anchor="middle" fill="#777" font-weight="normal" font-size="11">9</text>
+<text x="378.6" y="237.4" text-anchor="middle" fill="#999" font-size="8">9</text>
+<circle cx="401.5" cy="261.4" r="7" fill="#000" stroke="#d4a017" stroke-width="2"/>
+<text x="401.5" y="248.4" text-anchor="middle" fill="#777" font-weight="normal" font-size="11">6</text>
+<text x="401.5" y="237.4" text-anchor="middle" fill="#999" font-size="8">6</text>
+<circle cx="424.3" cy="261.4" r="7" fill="#000" stroke="#d4a017" stroke-width="2"/>
+<text x="424.3" y="248.4" text-anchor="middle" fill="#777" font-weight="normal" font-size="11">5</text>
+<text x="424.3" y="237.4" text-anchor="middle" fill="#999" font-size="8">5</text>
+<circle cx="447.2" cy="261.4" r="7" fill="#d4a017" stroke="#d4a017" stroke-width="2"/>
+<text x="447.2" y="248.4" text-anchor="middle" fill="#000" font-weight="bold" font-size="9">SCL</text>
+<text x="447.2" y="237.4" text-anchor="middle" fill="#999" font-size="8">41</text>
+<circle cx="470.1" cy="261.4" r="7" fill="#d4a017" stroke="#d4a017" stroke-width="2"/>
+<text x="470.1" y="248.4" text-anchor="middle" fill="#000" font-weight="bold" font-size="9">SDA</text>
+<text x="470.1" y="237.4" text-anchor="middle" fill="#999" font-size="8">42</text>
+<rect x="430" y="64" width="190" height="64" rx="6" fill="#f2f2f2" stroke="#888"/>
+<text x="438" y="80" font-weight="bold">USB-C adapter for key-c</text>
+<text x="438" y="93" fill="#555" font-size="9">key-c: D+ is SDA, D- is SCL</text>
+<circle cx="452" cy="128" r="5" fill="#d0312d"/>
+<text x="452" y="116" text-anchor="middle">VBUS</text>
+<polyline points="452,128 452,154 549.2,154 549.2,575.0 150.0,575.0 150.0,451.3" fill="none" stroke="#d0312d" stroke-width="2.5" stroke-linejoin="round"/>
+<circle cx="498" cy="128" r="5" fill="#222222"/>
+<text x="498" y="116" text-anchor="middle">GND</text>
+<polyline points="498,128 498,162 559.2,162 559.2,584.0 195.7,584.0 195.7,451.3" fill="none" stroke="#222222" stroke-width="2.5" stroke-linejoin="round"/>
+<circle cx="544" cy="128" r="5" fill="#2a9d3a"/>
+<text x="544" y="116" text-anchor="middle">D+</text>
+<polyline points="544.0,128.0 544.0,170.0 470.1,170.0 470.1,254.4" fill="none" stroke="#2a9d3a" stroke-width="2.5" stroke-linejoin="round"/>
+<circle cx="590" cy="128" r="5" fill="#7a5cc7"/>
+<text x="590" y="116" text-anchor="middle">D-</text>
+<polyline points="590.0,128.0 590.0,178.0 447.2,178.0 447.2,254.4" fill="none" stroke="#7a5cc7" stroke-width="2.5" stroke-linejoin="round"/>
+<rect x="150" y="610" width="150" height="90" rx="8" fill="#f2f2f2" stroke="#888"/>
+<circle cx="225" cy="655" r="22" fill="#cfcfcf" stroke="#888"/>
+<text x="340" y="650" font-weight="bold">EC11 knob, 20 detents</text>
+<text x="340" y="664" fill="#555" font-size="9">A C B on one side (C in the middle),</text>
+<text x="340" y="676" fill="#555" font-size="9">the push D E on the other</text>
+<circle cx="200" cy="610" r="5" fill="#2e7dd7"/>
+<text x="200" y="626" text-anchor="middle">A</text>
+<polyline points="200.0,610.0 200.0,520.0 241.4,520.0 241.4,451.3" fill="none" stroke="#2e7dd7" stroke-width="2.5" stroke-linejoin="round"/>
+<circle cx="225" cy="610" r="5" fill="#222222"/>
+<text x="225" y="626" text-anchor="middle">C</text>
+<polyline points="225.0,610.0 225.0,530.0 195.7,530.0 195.7,451.3" fill="none" stroke="#222222" stroke-width="2.5" stroke-linejoin="round"/>
+<circle cx="250" cy="610" r="5" fill="#1f9e6f"/>
+<text x="250" y="626" text-anchor="middle">B</text>
+<polyline points="250.0,610.0 250.0,540.0 264.3,540.0 264.3,451.3" fill="none" stroke="#1f9e6f" stroke-width="2.5" stroke-linejoin="round"/>
+<circle cx="212" cy="700" r="5" fill="#d7832e"/>
+<text x="212" y="692" text-anchor="middle">D</text>
+<polyline points="212,700 212,716 320,716 320,552 287.2,552 287.2,451.3" fill="none" stroke="#d7832e" stroke-width="2.5" stroke-linejoin="round"/>
+<circle cx="238" cy="700" r="5" fill="#222222"/>
+<text x="238" y="692" text-anchor="middle">E</text>
+<polyline points="238,700 238,716 130,716 130,562 195.7,562 195.7,451.3" fill="none" stroke="#222222" stroke-width="2.5" stroke-linejoin="round"/>
+<text x="20" y="78" fill="#333" font-size="10.5">Knob: A to A1 (GPIO17), B to A2 (GPIO16),</text>
+<text x="20" y="93" fill="#333" font-size="10.5">the push's D to A3 (GPIO15); C and E to GND.</text>
+<text x="20" y="108" fill="#333" font-size="10.5">Key adapter: VBUS to 3V, never USB or BAT;</text>
+<text x="20" y="123" fill="#333" font-size="10.5">GND to GND, D+ to SDA (42), D- to SCL (41).</text>
+<text x="20" y="138" fill="#333" font-size="10.5">One GND pin for three wires: join C and E</text>
+<text x="20" y="153" fill="#333" font-size="10.5">at the knob, then splice in the adapter's GND.</text>
+</svg>

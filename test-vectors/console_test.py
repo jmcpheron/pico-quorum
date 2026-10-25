@@ -1150,9 +1150,14 @@ def case_three():
     rejects with one press on any review page, even during the hold, and goes back elsewhere; D1
     moves on and, held (D1L), moves back; D2 opens, walks the pages not yet seen, and held signs:
     2 s, 3 s when a page is red. Run in a device of its own (main_three): board.py is read once.
-    The same for PicoQuorumKey (main_pqk): the Feather's buttons and screen on other pins."""
+    The same for PicoQuorumKey (main_pqk): the Feather's buttons and screen on other pins. And for
+    the knob Feather (main_knob), where Boot is D0 and the knob's detents and push are D1, D1L, D2."""
     chip()
     Q = fresh(extra='BOARD = "%s"' % THREE_BOARD[0])
+    if THREE_BOARD[0] == "feather-knob":
+        import board
+        check(board.DIAL and board.NAMES["D2"] == "push" and (board.SDA, board.SCL) == (42, 41),
+              "the knob Feather: Boot and the knob as D0-D2, the key on 42/41")
     check(Q.L.BOARD == THREE_BOARD[0] and Q.THREE and (Q.L.W, Q.L.H) == (240, 135) and Q.U.__name__ == "quorum_ui_s" and Q.PRESS == "D2",
           THREE_BOARD[0] + ": three buttons, 240x135, the small screens' UI")
     good, red = tx(Q, 0), tx(Q, 1, to=OTHER, data="0xdeadbeef")
@@ -1433,6 +1438,10 @@ def main_three(board="feather-s3"):
 
 def main_pqk():
     return main_three("picoquorum-key")
+
+
+def main_knob():
+    return main_three("feather-knob")
 
 
 def main():

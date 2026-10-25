@@ -483,7 +483,7 @@ def _draw_qr():
         x = _qr(text, 1, 2, size) + 3       # 7 characters of the 8 px font fit beside it
         for i, s in enumerate(["Open", "the page", "on the", "phone"] if url else ["Scan me", "to set", "up", "Wi-Fi"]):
             tx(s, x, 4 + i * 11, "", INK)
-        tx("D2" if L.THREE else "press", x, H - 26, "", DIM)
+        tx(board.NAMES["D2"] if L.THREE else "press", x, H - 26, "", DIM)
         tx("to type", x, H - 15, "", DIM)
         return
     msg = st.get("msg")
