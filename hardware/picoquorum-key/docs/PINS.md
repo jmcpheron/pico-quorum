@@ -1,8 +1,9 @@
 # The `picoquorum-key` pin profile
 
 *2026-10-23. The GPIO table rev A is built on, as wired in `tools/gen/circuit.py` and the generated
-schematic. It is a new profile under spec rule 2: the console firmware gains a `picoquorum-key` entry
-and a new release fingerprint. The firmware-side stub is
+schematic. It is a new profile under spec rule 2. The console firmware has carried it since
+2026-10-24, as `picoquorum-key` in PicoQuorum's `firmware/board.py`; it reaches a board with the
+next release. The constants are also in
 [../firmware/profile/picoquorum_key.py](../firmware/profile/picoquorum_key.py).*
 
 ## Why a new profile
@@ -76,7 +77,6 @@ spi  = SPI(1, baudrate=40_000_000, sck=Pin(12), mosi=Pin(11))   # SPI(1) == FSPI
 cs, dc, rst = Pin(10, Pin.OUT, value=1), Pin(9, Pin.OUT), Pin(14, Pin.OUT, value=1)
 bl   = PWM(Pin(21), freq=1000, duty_u16=0)                        # off until the image is drawn
 d0, d1, d2 = (Pin(n, Pin.IN, Pin.PULL_UP) for n in (42, 41, 40))  # pressed == 0
-prev, back = (Pin(n, Pin.IN, Pin.PULL_UP) for n in (39, 38))
 i2c  = I2C(0, scl=Pin(17), sda=Pin(16), freq=100_000)             # ATECC608C at 0x60
 led  = Pin(48, Pin.OUT)
 ```
@@ -84,9 +84,20 @@ led  = Pin(48, Pin.OUT)
 Screen geometry is unchanged from the spec: 240 × 135 landscape, column offset 40, row offset 53,
 `MADCTL = 0x60`, inversion on, rail rows 7, 67 and 127.
 
-## What the firmware change is
+## In the console image
 
-One new profile entry: the pins above, `BUTTON_ACTIVE_LOW = True` for all three buttons,
-`POWER = None` (nothing to switch on at start), `NOT_KEYS = ()` (nothing else on the bus). The
-screen driver, the key driver and the UI don't change. The release fingerprint changes because the
+`firmware/board.py` has a `picoquorum-key` profile: the pins above, every button pulled up and
+pressed low (`HIGH = ()`), `POWER = None` (nothing to switch on at start), `NOT_KEYS = ()` (nothing
+else on the bus). It keeps the Feather's three-button UI (`THREE`), screen geometry and rail. The
+screen driver, the key driver and the UI don't change. The release fingerprint changed, because the
 profile is part of the image.
+
+The image has one build for every S3, so it tells this board from the Feather by looking. At start
+it reads GPIO16 and 17 as inputs with only the S3's internal pull-downs (about 45k) on them. Here
+R6 and R7 (4.7k) pull both high, so it picks `picoquorum-key`. The Feather, console-s3 and the
+wings leave both free, so they read low and stay `feather-s3`. **Keep pull-ups on 16 and 17**: a
+later revision without them would get the Feather's profile, which drives GPIO40–42 as outputs.
+
+Checked on the laptop, not yet on a board: PicoQuorum's `test-vectors/feather_s3_test.py` runs the
+profile on a stand-in S3 with 16/17 pulled up, and `test-vectors/run-console.mjs` runs the
+three-button console on it in the emulator.

@@ -11,12 +11,17 @@
 #            (hardware/wiring/ESP32.md). Always this one on an ESP32, whatever secrets.BOARD says:
 #            the Pico's pin numbers are the ESP32's flash. Run on a WROOM-32 and a WROVER.
 #   "feather-s3": Adafruit's Feather ESP32-S3 Reverse TFT (hardware/wiring/FEATHER-S3.md): its own
-#            240x135 ST7789 and three buttons, D0 D1 D2, down the screen's left edge (THREE). Always
-#            this one on an ESP32-S3; the emulator picks it with secrets.BOARD.
+#            240x135 ST7789 and three buttons, D0 D1 D2, down the screen's left edge (THREE). On an
+#            ESP32-S3 always this one or one of the next two; the emulator picks it with secrets.BOARD.
+#   "picoquorum-key": PicoQuorumKey (hardware/picoquorum-key/docs/PINS.md), an S3 board of our own
+#            with the Feather's screen and three buttons (THREE) on other pins, all pressed low. An S3
+#            is this one when GPIO16 and 17, its key's bus, read high against the S3's own pull-downs:
+#            only it has pull-ups there (4.7k). The Feather, console-s3 and the wings leave them free.
 #   "feather-knob": Adafruit's ESP32-S3 TFT Feather (5483) with an EC11 knob on its header pins
 #            (hardware/builds/feather-knob/README.md): the same screen on other pins, and Boot as its
 #            only button. The Feather's three keys come from Boot and the knob (DIAL), so the console
-#            and the ceremony run as on feather-s3. Only when secrets.BOARD names it.
+#            and the ceremony run as on feather-s3. Only when secrets.BOARD names it, which comes
+#            before the look at GPIO16/17: they are its knob's A2 and A1.
 # W x H is what the apps draw, X_OFF where that sits on the panel (0 when they draw all of it).
 # BANDS: retain full native resolution, but only buffer 30 rows at a time (19,200 bytes at 320 wide,
 # 14,400 at 240). Any panel whose whole frame would be over 45 KB is drawn this way: the 240x240
@@ -39,15 +44,30 @@ try:
     SCREEN = getattr(_s, "SCREEN", "2.8")
 except ImportError:
     BOARD, SCREEN = "waveshare", "2.8"
+
+
+def _pulled_up(*pins):
+    """Whether every pin reads high with only the S3's internal pull-down on it (about 45k), so
+    something on the board pulls it up harder. Inputs only, left with no pull after."""
+    from machine import Pin
+    ps = [Pin(n, Pin.IN, Pin.PULL_DOWN) for n in pins]
+    time.sleep_us(100)
+    up = all(p.value() for p in ps)
+    for n in pins:
+        Pin(n, Pin.IN, None)
+    return up
+
+
 if ESP32:
-    BOARD = ("feather-knob" if BOARD == "feather-knob" else "feather-s3") if S3 else "esp32"
-elif BOARD not in ("waveshare", "build1", "feather-s3", "feather-knob"):
+    BOARD = ("feather-knob" if BOARD == "feather-knob" else "picoquorum-key" if _pulled_up(16, 17) else "feather-s3") \
+        if S3 else "esp32"
+elif BOARD not in ("waveshare", "build1", "feather-s3", "picoquorum-key", "feather-knob"):
     print("board: unknown BOARD %r, using waveshare" % BOARD)
     BOARD = "waveshare"
 
 KNOB = BOARD in ("build1", "esp32")
 DIAL = BOARD == "feather-knob"
-THREE = BOARD == "feather-s3" or DIAL
+THREE = BOARD in ("feather-s3", "picoquorum-key") or DIAL
 DC, CS, SCK, MOSI, RST, BL = 8, 9, 10, 11, 12, 13
 BUTTONS = {"A": 15, "B": 17, "X": 19, "Y": 21}
 SPI_ID, SDA, SCL, LED = 1, 4, 5, "LED"      # SDA, SCL: the key's I2C (atecc.py); LED: the status LED
@@ -99,6 +119,17 @@ elif KNOB:
     MADCTL = 0x60           # MX|MV: landscape with the header on the left, as Build 1's case holds it
                             # (2026-10-02); 0xA0 was the bench's way up, the header on the right
     SPI_BAUD = 24_000_000   # jumper wires: clean at 24 MHz on the 1.8"
+if BOARD == "picoquorum-key":
+    # The Feather's screen, buttons and rail on PicoQuorumKey's pins (PINS.md): the screen on the S3's
+    # own SPI(1) pins, D0 D1 D2 on 42 41 40 to ground with the S3's pull-ups (HIGH empty), the key on
+    # 16/17 with 4.7k pull-ups and nothing else on its bus, the LED on 48. Nothing to power up.
+    DC, CS, SCK, MOSI, RST, BL = 9, 10, 12, 11, 14, 21
+    BUTTONS = {"D0": 42, "D1": 41, "D2": 40}
+    HIGH = ()
+    SPI_ID, SDA, SCL, LED = 1, 16, 17, 48
+    NOT_KEYS, POWER = (), None
+    KEYS = dict(BUTTONS)
+    MAINT, SETUP = BUTTONS["D1"], BUTTONS["D2"]
 if KNOB:
     # A on GP2 and B on GP3 as wired (BREADBOARD.md); read the other way round, because this knob
     # counted clockwise as anticlockwise (2026-09-27). Swapping the two wires does the same.

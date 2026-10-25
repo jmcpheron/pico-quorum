@@ -1,6 +1,7 @@
-"""Case for the Feather pigtail (hardware/builds/feather-pigtail/README.md): a tray that holds an
-Adafruit Feather ESP32-S3 Reverse TFT screen up, and a bezel that clicks onto it. A key-c cable comes
-in through the tray's side wall, below the board, and a cable tie through the floor holds it.
+"""Case for the Feather pigtail (hardware/builds/feather-pigtail/README.md), v2: a tray that holds an
+Adafruit Feather ESP32-S3 Reverse TFT screen up, and a bezel that clicks onto it. The pigtail's USB-C
+plug lies in a pocket in the tray's floor, under the board, and its metal shell comes out through
+the top edge (the D0 edge), where a key-c plugs onto it.
 
 Run: uv run --python 3.11 --with cadquery python hardware/builds/feather-pigtail/case/case.py
 
@@ -8,6 +9,13 @@ The tray is cad/key/tray.py's, grown to the Feather: the board sits on four boss
 each up through a mounting hole, and the bezel's skirt clicks over four bumps on the long walls. The
 bezel's opening leaves the screen and the four front buttons (D0, D1, D2, Reset) bare. Rings under
 the bezel stop 0.2 mm above the board around each peg, so it can't lift off them.
+
+The plug's pocket: two keepers in front of its overmold, beside the shell, take the pull when a key
+comes off; a back stop behind it takes the push when one goes on, with a notch for the wires; a
+small lip along each side snaps over its top. The pocket's slot runs up through the top wall, so
+the plug drops in from above, and a tongue under the bezel fills the slot. The keepers stand only
+at the shell's mid-height, and a recess round them takes the key-c's board, so a bare key-c goes
+all the way on.
 
 The board's numbers are from Adafruit's "Adafruit ESP32-S3 Reverse TFT Feather.brd"
 (https://github.com/adafruit/Adafruit-ESP32-S3-Reverse-TFT-Feather-PCB), not calipers. The part
@@ -40,20 +48,32 @@ PINS = {"3V": (8.89, 1.27), "GND": (13.97, 1.27), "SCL": (41.91, 21.59), "SDA": 
 PAD_D = 1.8            # a header pad and its fillet, wire trimmed flush
 FILLET_H = 0.6         # how far the fillet stands on the front
 
-# --- the cable ---------------------------------------------------------------------------------
-CABLE_D = 4.0          # the jacket: measure the cable you cut and change this before printing
-CABLE_CLEAR = 0.3      # on the diameter
-CABLE_BX = 20.0        # where it comes in, along the 16-pin side, in the board frame: clear of the
-                       # back's parts, between the 3V/GND and the SDA/SCL ends
-TIE_W, TIE_T = 2.8, 1.6  # each tie slot through the floor: for a tie up to 2.5 mm wide
-TIE_IN = 3.5           # slots' centre line, in from the inside of the wall
-TIE_GROOVE = 0.8       # under the floor, between the slots, so the tie's band lies below the bottom
+# --- the plug (calipers, 2026-10-24) and the key-c ------------------------------------------------
+PLUG_W, PLUG_H, PLUG_L = 12.4, 5.5, 17.1   # the overmold: across, thick, long (shell end to wires)
+SHELL_W, SHELL_H = 8.25, 2.40              # USB-C plug shell, from the spec, not measured
+SHELL_L = 6.5          # how far the shell stands out of the overmold: about this in the photos
+PLUG_X = 0.0           # its centre line, case frame: the middle of the top edge
+POCKET_CLEAR = 0.15    # each side of the overmold, and above it at the keepers' slot
+POCKET_BACK = 0.3      # behind it, to the back stop
+CRADLE_T = 1.2         # the pocket's side walls
+LIP_PROUD, LIP_H, LIP_LEN = 0.35, 0.6, 6.0  # the snap along each side: reach, ramp height, length
+LIP_LIFT = 0.05        # its underside above the overmold's top
+BACKSTOP_T = 1.5
+WIRE_NOTCH_W = 7.0     # the back stop's notch, for the wires and the braid
+WIRE_NOTCH_UP = 0.8    # its bottom above the floor
+KEEPER_T = 1.2         # the keepers: thick (along the plug), and tall about the plug's centre line
+KEEPER_H = 2.4
+KEEPER_GAP = 9.7       # between them: the key-c's receptacle shell is 8.94
+KEY_W, KEY_T = 16.0, 1.6                   # key-c's board (README)
+RCPT_W, RCPT_H, RCPT_L = 8.94, 3.26, 7.8   # its receptacle's shell, on the board, flush with its end
+KEY_CLEAR = 0.4        # the recess round the keepers, for the key's board
+TONGUE_CLEAR = 0.15    # the bezel's tongue in the slot, each side
 
 # --- tray --------------------------------------------------------------------------------------
 CLEAR = 0.5            # board edge to wall
 WALL = 1.8
 FLOOR = 1.6
-STANDOFF = 7.0         # floor top to board underside: the battery socket, the module, the wires
+STANDOFF = 8.8         # floor top to board underside: the plug and its pocket, under the module
 WALL_ABOVE = 1.0       # wall top, and the bezel's underside, above the board top
 BOSS_D = {2.5: 4.0, 2.2: 3.4}    # the far end's bosses stay off the module's outline
 PEG_D = {2.5: 2.40, 2.2: 2.10}   # 2.40 in 2.5 won cad/key's fit check; 2.10 in 2.2 is the same fit
@@ -88,7 +108,16 @@ SNAP_Z = HEIGHT - SNAP_BELOW_TOP
 SNAP_AXIS_Y = OUTER_Y / 2 + SNAP_PROUD - SNAP_R
 SKIRT_IN_X, SKIRT_IN_Y, SKIRT_IN_R = OUTER_X + 2 * LID_CLEAR, OUTER_Y + 2 * LID_CLEAR, OUTER_R + LID_CLEAR
 TOP = HEIGHT + PLATE_T
-CABLE_Z = FLOOR + CABLE_D / 2
+# the plug: its overmold's front face, where the shell comes out, is KEEPER_T inside the top edge
+PLUG_FRONT = OUTER_Y / 2 - KEEPER_T
+PLUG_BACK = PLUG_FRONT - PLUG_L
+PLUG_Z0, PLUG_TOP = FLOOR, FLOOR + PLUG_H
+PLUG_ZC = FLOOR + PLUG_H / 2
+POCKET_HALF = PLUG_W / 2 + POCKET_CLEAR
+CRADLE_TOP = PLUG_TOP + LIP_LIFT + LIP_H
+STOP_Y = PLUG_BACK - POCKET_BACK               # the back stop's front face
+RECESS_HALF_W = KEY_W / 2 + KEY_CLEAR
+RECESS_HALF_H = RCPT_H / 2 + KEY_T + KEY_CLEAR   # the key's board, either way up
 
 
 def c(x, y):
@@ -102,15 +131,16 @@ def rect(x0, x1, y0, y1):
     return ((ax + bx) / 2, (ay + by) / 2), (abs(bx - ax), abs(by - ay))
 
 
-CABLE_X = c(CABLE_BX, 0)[0]
-TIE_Y = INNER_Y / 2 - TIE_IN
-
 assert STANDOFF >= max(h for *_r, h in BACK) + 0.5, "the board's back parts reach the floor"
 assert WALL_ABOVE >= FILLET_H + 0.3, "the bezel sits on the pin rows' solder"
-assert CABLE_Z + CABLE_D / 2 < BOARD_BOT - 1.0, "the cable reaches the board"
 assert HEIGHT - SKIRT_H < SNAP_Z - SNAP_R - LEAD_IN, "skirt too short to reach past the bump"
 assert all(abs(x) + SNAP_LEN / 2 < OUTER_X / 2 - OUTER_R for x in SNAP_XS), "bump runs off the flat wall"
-assert abs(CABLE_X) + CABLE_D < OUTER_X / 2 - OUTER_R, "the cable hole is in the corner"
+assert KEEPER_GAP > max(SHELL_W, RCPT_W) + 0.3 and KEEPER_GAP < PLUG_W - 1.0, "keepers miss the shell or the overmold"
+assert KEEPER_H / 2 < RCPT_H / 2 - 0.3, "keepers reach the key-c's board"
+assert PLUG_ZC - RECESS_HALF_H > 0.5, "the key's recess runs through the bottom"
+assert PLUG_ZC + RECESS_HALF_H < HEIGHT - SKIRT_H, "the key's recess reaches the bezel's skirt"
+assert STOP_Y - BACKSTOP_T > -INNER_Y / 2 + 3.0, "no room behind the back stop for the wires"
+assert abs(PLUG_X) + RECESS_HALF_W < OUTER_X / 2 - OUTER_R, "the plug's slot is in the corner"
 
 
 def rounded_box(x, y, h, r):
@@ -138,8 +168,46 @@ def usb_cut(extra=0.0):
     return box((x0 + x1) / 2, y, x1 - x0, USB_W + 2 * extra, z0, TOP - z0 + 5)
 
 
+def cradle():
+    """The pocket's side walls and its back stop, standing on the floor."""
+    out = POCKET_HALF + CRADLE_T
+    y1 = INNER_Y / 2 + 0.01
+    h = CRADLE_TOP - FLOOR
+    part = box(PLUG_X, (STOP_Y - BACKSTOP_T + y1) / 2, 2 * out, y1 - STOP_Y + BACKSTOP_T, FLOOR - 0.01, h)
+    part = part.cut(box(PLUG_X, (STOP_Y + y1) / 2 + 0.5, 2 * POCKET_HALF, y1 - STOP_Y + 1, FLOOR, h + 1))
+    return part.cut(box(PLUG_X, STOP_Y - BACKSTOP_T / 2, WIRE_NOTCH_W, BACKSTOP_T + 1, FLOOR + WIRE_NOTCH_UP, h))
+
+
+def pocket_cut():
+    """The slot through the top wall, floor to wall top, and the key's recess in its outer face."""
+    slot = box(PLUG_X, OUTER_Y / 2 - WALL / 2, 2 * POCKET_HALF, WALL + 2, FLOOR, TOP)
+    recess = box(PLUG_X, PLUG_FRONT + KEEPER_T / 2 + 1, 2 * RECESS_HALF_W, KEEPER_T + 2,
+                 PLUG_ZC - RECESS_HALF_H, 2 * RECESS_HALF_H)
+    return slot.union(recess)
+
+
+def keepers():
+    """In front of the overmold, either side of the shell, at its mid-height; back into the wall."""
+    w = RECESS_HALF_W - KEEPER_GAP / 2 + 0.01
+    return cq.Workplane("XY").add([box(PLUG_X + sx * (KEEPER_GAP / 2 + w / 2), PLUG_FRONT + KEEPER_T / 2, w, KEEPER_T,
+                                       PLUG_ZC - KEEPER_H / 2, KEEPER_H).val() for sx in (-1, 1)]).combine()
+
+
+def lips():
+    """A ramp on each side wall's top: the overmold pushes past, and the flat underside holds it."""
+    y = (PLUG_FRONT + PLUG_BACK) / 2
+    z0 = PLUG_TOP + LIP_LIFT
+    solids = []
+    for sx in (-1, 1):
+        x0 = PLUG_X + sx * (POCKET_HALF + 0.01)
+        x1 = PLUG_X + sx * (POCKET_HALF - LIP_PROUD)
+        tri = cq.Workplane("XZ").polyline([(x0, z0), (x1, z0), (x0, z0 + LIP_H)]).close().extrude(LIP_LEN / 2, both=True)
+        solids.append(tri.translate((0, y, 0)).val())
+    return cq.Workplane("XY").add(solids).combine()
+
+
 def tray():
-    """Floor down, open top. Prints as is, no supports (the cable hole's top is a short bridge)."""
+    """Floor down, open top. Prints as is, no supports (the lips' undersides are 0.35 mm ledges)."""
     part = rounded_box(OUTER_X, OUTER_Y, HEIGHT, OUTER_R)
     part = part.cut(rounded_box(INNER_X, INNER_Y, HEIGHT, INNER_R).translate((0, 0, FLOOR)))
     for bx, by, drill in HOLES:
@@ -152,17 +220,10 @@ def tray():
         for sy in (-1, 1):
             part = part.union(x_rod(SNAP_R, SNAP_LEN, sy * SNAP_AXIS_Y, SNAP_Z, x))
     part = part.cut(usb_cut())
-    # the cable's hole through the 16-pin side wall: thread the cut end in from outside, then solder
-    hole = cq.Workplane("XZ").circle((CABLE_D + CABLE_CLEAR) / 2).extrude(-WALL * 3).translate((CABLE_X, INNER_Y / 2 - WALL, CABLE_Z))
-    part = part.cut(hole)
-    # the tie: two slots through the floor beside the cable, a groove between them underneath
-    off = CABLE_D / 2 + CABLE_CLEAR + TIE_T / 2 + 0.6
-    for sx in (-1, 1):
-        part = part.cut(box(CABLE_X + sx * off, TIE_Y, TIE_T, TIE_W, -1, FLOOR + 2))
-    part = part.cut(box(CABLE_X, TIE_Y, 2 * off + TIE_T, TIE_W, -1, 1 + TIE_GROOVE))
+    part = part.union(cradle()).cut(pocket_cut()).union(keepers()).union(lips())
     # underneath, mirrored so it reads with the tray turned over: the name and the Source Location
-    for text, y, size in (("PicoQuorum feather-pigtail", -1.5, 2.6), ("github.com/jmcpheron/pico-quorum", -6.0, 2.2),
-                          ("cable %.1f" % CABLE_D, -10.0, 2.2)):
+    for text, y, size in (("PicoQuorum feather-pigtail v2", -1.5, 2.6), ("github.com/jmcpheron/pico-quorum", -6.0, 2.2),
+                          ("plug %.1f x %.1f x %.1f" % (PLUG_W, PLUG_H, PLUG_L), -10.0, 2.2)):
         t = (cq.Workplane("XY").text(text, size, 0.4, kind="bold", halign="center", valign="center")
              .mirror("YZ").translate((0, y, -0.01)))
         part = part.cut(t)
@@ -190,6 +251,10 @@ def bezel():
         ring = (cq.Workplane("XY").circle(BOSS_D[drill] / 2).circle((PEG_D[drill] + RING_IN) / 2)
                 .extrude(HEIGHT - BOARD_TOP - RING_GAP + 0.01).translate((x, y, BOARD_TOP + RING_GAP)))
         part = part.union(ring)
+    # the tongue: fills the plug's slot in the top wall, from the key's recess up
+    z0 = PLUG_ZC + RECESS_HALF_H + 0.1
+    w = 2 * (POCKET_HALF - TONGUE_CLEAR)
+    part = part.union(box(PLUG_X, OUTER_Y / 2 - WALL / 2, w, WALL, z0, HEIGHT - z0 + 0.01))
     return part
 
 
@@ -217,16 +282,29 @@ def board():
     return b, parts
 
 
-def cable():
-    """The jacket from outside the wall to past the tie."""
-    length = WALL + 2 + TIE_IN + 3
-    return cq.Workplane("XZ").circle(CABLE_D / 2).extrude(-length).translate((CABLE_X, OUTER_Y / 2 + 2 - length, CABLE_Z))
+def plug():
+    """The overmold as a plain box (the real one's edges are rounded) and the shell out of its front."""
+    om = box(PLUG_X, (PLUG_FRONT + PLUG_BACK) / 2, PLUG_W, PLUG_L, PLUG_Z0, PLUG_H)
+    shell = (cq.Workplane("XZ").center(PLUG_X, PLUG_ZC).slot2D(SHELL_W, SHELL_H).extrude(-SHELL_L)
+             .translate((0, PLUG_FRONT, 0)))
+    return om.union(shell)
 
 
-def export(shape, name):
+def key(flip):
+    """A bare key-c, all the way on: receptacle face on the overmold, its board below the receptacle
+    (flip -1) or above it (flip 1). Only its outside, so it overlaps the plug's shell by design."""
+    y0 = PLUG_FRONT
+    r = box(PLUG_X, y0 + RCPT_L / 2, RCPT_W, RCPT_L, PLUG_ZC - RCPT_H / 2, RCPT_H)
+    zb = PLUG_ZC + RCPT_H / 2 if flip > 0 else PLUG_ZC - RCPT_H / 2 - KEY_T
+    return r.union(box(PLUG_X, y0 + 18, KEY_W, 36, zb, KEY_T))
+
+
+def export(shape, name, step=True):
     cq.exporters.export(shape, os.path.join(OUT, name + ".stl"), tolerance=0.05, angularTolerance=0.3)
+    if step:
+        cq.exporters.export(shape, os.path.join(OUT, name + ".step"))
     bb = shape.val().BoundingBox()
-    print(f"{name}.stl  {bb.xlen:.2f} x {bb.ylen:.2f} x {bb.zlen:.2f} mm")
+    print(f"{name}  {bb.xlen:.2f} x {bb.ylen:.2f} x {bb.zlen:.2f} mm")
 
 
 def preview(views, path):
@@ -251,8 +329,8 @@ def preview(views, path):
                 pts.append([(q.x, q.y, q.z) for q in (p0, p1, p2)])
                 cols.append(tuple(min(1, ch * k) for ch in to_rgb(color)))
         ax.add_collection3d(Poly3DCollection(pts, facecolors=cols, edgecolor="none"))
-        ax.set_xlim(-29, 29), ax.set_ylim(-29, 29), ax.set_zlim(-14, 22)
-        ax.set_box_aspect((58, 58, 36))
+        ax.set_xlim(-34, 34), ax.set_ylim(-18, 50), ax.set_zlim(-14, 22)
+        ax.set_box_aspect((68, 68, 36))
         ax.view_init(elev, azim)
         ax.set_axis_off()
         ax.set_title(title)
@@ -263,18 +341,35 @@ def preview(views, path):
 
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
-    print("tray %.2f x %.2f x %.2f, board underside at z %.2f, top at %.2f; closed case %.2f tall; cable %.1f mm" % (
-        OUTER_X, OUTER_Y, HEIGHT, BOARD_BOT, BOARD_TOP, TOP, CABLE_D))
+    print("tray %.2f x %.2f x %.2f, board underside at z %.2f, top at %.2f; closed case %.2f tall" % (
+        OUTER_X, OUTER_Y, HEIGHT, BOARD_BOT, BOARD_TOP, TOP))
+    print("plug %.1f x %.1f x %.1f, its front %.2f inside the top edge, shell centre %.2f above the bottom" % (
+        PLUG_W, PLUG_H, PLUG_L, KEEPER_T, PLUG_ZC))
+    print("keepers over the overmold's face %.2f each side; lips over its top %.2f each side, %.2f above it" % (
+        PLUG_W / 2 - KEEPER_GAP / 2, LIP_PROUD - POCKET_CLEAR, LIP_LIFT))
     t, bz = tray(), bezel()
-    export(t, "pigtail_tray_v1")
-    export(bezel_for_print(), "pigtail_bezel_v1")
-    export(t.union(bezel_for_print().translate((0, OUTER_Y + 8, 0))), "pigtail_case_v1")
-    # the closed case: tray, bezel, board, its parts and the cable must not overlap
+    export(t, "pigtail_tray_v2")
+    export(bezel_for_print(), "pigtail_bezel_v2")
+    export(t.union(bezel_for_print().translate((0, OUTER_Y + 8, 0))), "pigtail_case_v2", step=False)
     b, parts = board()
-    checks = [("tray/bezel", t, bz), ("tray/board", t, b), ("bezel/board", bz, b), ("tray/cable", t, cable()),
-              ("board/cable", b, cable())]
+    assy = (cq.Assembly(name="pigtail_case_v2")
+            .add(t, name="tray", color=cq.Color(0.60, 0.64, 0.69))
+            .add(bz, name="bezel", color=cq.Color(0.29, 0.33, 0.39))
+            .add(b, name="feather", color=cq.Color(0.12, 0.44, 0.26))
+            .add(cq.Workplane("XY").add([p.val() for p in parts.values()]).combine(), name="feather parts",
+                 color=cq.Color(0.79, 0.79, 0.79))
+            .add(plug(), name="usb-c plug", color=cq.Color(0.95, 0.95, 0.93)))
+    assy.export(os.path.join(OUT, "pigtail_case_v2_assembly.step"))
+    print("pigtail_case_v2_assembly.step  tray, bezel, Feather, plug, closed")
+    # the closed case: tray, bezel, board, its parts, the plug and a key-c on it must not overlap
+    pl = plug()
+    checks = [("tray/bezel", t, bz), ("tray/board", t, b), ("bezel/board", bz, b),
+              ("tray/plug", t, pl), ("bezel/plug", bz, pl), ("board/plug", b, pl)]
     checks += [("tray/" + n, t, p) for n, p in parts.items()] + [("bezel/" + n, bz, p) for n, p in parts.items()]
-    checks += [("cable/" + n, cable(), p) for n, p in parts.items()]
+    checks += [("plug/" + n, pl, p) for n, p in parts.items()]
+    for flip in (-1, 1):
+        k = key(flip)
+        checks += [("tray/key %+d" % flip, t, k), ("bezel/key %+d" % flip, bz, k)]
     bad = []
     for name, a, s in checks:
         v = a.intersect(s).val().Volume()
@@ -290,11 +385,11 @@ if __name__ == "__main__":
         print("open   %-8s %s" % (name, "bare" if inside else "COVERED"))
         bad += [] if inside else [name]
     try:
-        inside = [(b, "#1f6f43"), (cable(), "#333333")] + [(p, "#c9c9c9") for p in parts.values()]
-        preview([("the tray: bosses, cable hole, tie slots", 40, -125, [(t, "#9aa4b1"), (cable(), "#333333")]),
-                 ("the Feather in it", 40, -125, [(t, "#9aa4b1")] + inside),
-                 ("closed", 40, -125, [(t, "#9aa4b1"), (bz, "#4a5363")] + inside)],
-                os.path.join(OUT, "pigtail_case_v1_preview.png"))
+        inside = [(b, "#1f6f43")] + [(p, "#c9c9c9") for p in parts.values()]
+        preview([("the tray: the plug's pocket", 35, 70, [(t, "#9aa4b1")]),
+                 ("the plug in it", 35, 70, [(t, "#9aa4b1"), (pl, "#eeeeea")]),
+                 ("closed, a key-c on", 30, 60, [(t, "#9aa4b1"), (bz, "#4a5363"), (pl, "#eeeeea"), (key(-1), "#2b4fa8")] + inside)],
+                os.path.join(OUT, "pigtail_case_v2_preview.png"))
     except ImportError:
         print("preview: no matplotlib (add --with matplotlib)")
     assert not bad, bad

@@ -5,7 +5,7 @@
 | board | Adafruit Feather ESP32-S3 Reverse TFT ([FEATHER-S3.md](../../wiring/FEATHER-S3.md)) |
 | key | a key-c, on a USB-C cable whose other end is soldered to the Feather's pins |
 | runs | the console image as `BOARD = "feather-s3"`, unchanged; [`bench/swap.py`](bench/swap.py) |
-| case | [`case/`](case/case.py): a tray and a snap-on bezel; a cable tie holds the cable |
+| case | [`case/`](case/case.py): a tray and a snap-on bezel; the plug sits in a pocket under the board, its shell out of the top edge |
 | status | written up 2026-10-24; not wired, not printed |
 
 The same Feather as the adapter build in [FEATHER-S3.md](../../wiring/FEATHER-S3.md), without
@@ -14,8 +14,8 @@ into the Feather's header holes. Its plug, outside the case, takes a key-c.
 
 ## The cable
 
-A USB-C to USB-C cable, one end cut off. The plug that's left takes a key-c, which has the
-receptacle. The key uses only VBUS, GND, D+ and D− ([key-c](../../key-pcb/key-c-usbc/README.md):
+A USB-C to USB-C cable, cut short behind one plug. That plug takes a key-c, which has the
+receptacle. The case (v2) holds it under the board, so leave the wires about 40 mm long. The key uses only VBUS, GND, D+ and D− ([key-c](../../key-pcb/key-c-usbc/README.md):
 D+ carries SDA, D− carries SCL, VBUS is key power).
 
 A C-to-C cable has a CC wire, and some have more: SBU, the SuperSpeed pairs, VCONN on an e-marked
@@ -24,7 +24,7 @@ cable. Trim each of these back and insulate its end on its own. None goes to a F
 ## The wiring
 
 No headers. Each wire goes into its hole from the back (the side with the USB-C socket and the
-module) and is soldered on the front, trimmed flush. The case's clamp holds the cable, so the
+module) and is soldered on the front, trimmed flush. The case's pocket holds the plug, so the
 joints carry no strain.
 
 | cable wire (the usual colour) | Feather pin | where |
@@ -101,39 +101,85 @@ text fits and the scan never calls a command that writes.
 tray:
 
 ```sh
-uv run --python 3.11 --with cadquery python hardware/builds/feather-pigtail/case/case.py
+uv run --python 3.11 --with cadquery --with matplotlib python hardware/builds/feather-pigtail/case/case.py
 ```
 
-It writes `case/out/`: `pigtail_tray_v1.stl`, `pigtail_bezel_v1.stl` (top face down, as it
-prints), both on one plate in `pigtail_case_v1.stl`, and `pigtail_case_v1_preview.png`.
+It writes `case/out/`:
 
-![the case](case/out/pigtail_case_v1_preview.png)
+| file | what |
+|---|---|
+| `pigtail_tray_v2.stl`, `.step` | the tray, floor down, as it prints |
+| `pigtail_bezel_v2.stl`, `.step` | the bezel, top face down, as it prints |
+| `pigtail_case_v2.stl` | both on one plate |
+| `pigtail_case_v2_assembly.step` | closed: tray, bezel, the Feather (boxes for its parts) and the plug, for CAD |
+| `pigtail_case_v2_preview.png` | the pictures below |
 
-- **The tray** holds the Feather screen up, on four bosses with a peg through each mounting hole
-  (2.40 mm in the 2.5 mm holes, as the key tray's fit check found; 2.10 mm in the 2.2 mm holes at
-  the antenna end). The board's underside is 7 mm above the floor: room for the battery socket,
-  the module and the wires.
-- **The Feather's USB-C** is open at the USB end, 13 mm wide, for a cable's overmold.
-- **The cable** comes in through a hole in the wall on the 16-pin side, below the board. Thread
-  the cut end in from outside before soldering. Inside, it lies on the floor, and a small cable
-  tie (up to 2.5 mm wide) goes down one slot in the floor and up the other, around it; a groove
-  under the floor keeps the tie's band below the bottom. `CABLE_D` is the cable's diameter. It
-  starts at 4.0 mm. Measure yours, change it, and run the script again before printing.
-- **The bezel** clicks onto the tray's walls with the key tray's bumps and groove. Its opening
-  leaves the screen and all four front buttons (D0, D1, D2 and Reset) bare. It covers the two pin
-  rows, 1 mm above the board, clear of the solder. Rings around the pegs stop 0.2 mm above the
-  board, so it can't lift off them.
-- The closed case is 58.1 × 30.2 × 12.4 mm. Underneath: the name, the Source Location and the
-  cable size it was made for.
+![the case](case/out/pigtail_case_v2_preview.png)
 
-**What the script checks.** That the tray, the bezel, the board, a box for each part on the board
-(front and back, at its datasheet height), the four solder joints and the cable don't overlap
-anywhere: 47 pairs. And that the bezel's opening leaves each front part bare. The preview is drawn
-by matplotlib and its shading is rough.
+### v2 (2026-10-24): the plug in a pocket
 
-**Print:** the tray floor down, the bezel top face down, no supports. If the click is too stiff
-or too soft, change `SNAP_PROUD` (0.35), as for the key tray.
+The plug, measured with calipers: the overmold is 12.4 mm across, 5.5 mm thick and 17.1 mm long.
+Its shell is a standard USB-C plug's, 8.25 × 2.40 mm. It stands about 6.5 mm out of the
+overmold, read off the photos, not measured.
 
-The board's numbers come from Adafruit's board file, not from calipers. The heights of the parts
-(the screen, the buttons, the USB-C socket, the battery socket) are from their usual datasheets,
-not measured. Not printed yet.
+- **The plug lies flat on the floor, under the board,** in the middle of the top edge: the D0
+  edge, which is the top with the USB on the left. Its shell comes out through that wall, and a key-c
+  plugs onto it from above.
+- **Two keepers** stand in front of the overmold, one each side of the shell. Each covers 1.35 mm
+  of the overmold's face. They take the pull when a key comes off, so the plug stays put. They
+  are 2.4 mm tall about the shell's centre line, below where the key-c's board comes, and 9.7 mm
+  apart, which leaves room for its receptacle (8.94 mm). A 1.2 mm recess round them takes the
+  key-c's board, either way up. So a bare key-c goes all the way on, as it does on a loose plug.
+- **A back stop** behind the overmold takes the push when a key goes on. A 7 mm notch in it lets
+  the wires out.
+- **The side walls** hold it 0.15 mm each side. Along each top edge, a small ramped lip
+  reaches 0.35 mm in, so it clicks over the overmold's top when you press the plug down.
+- **The slot** for the plug runs up through the top wall, so the plug goes in from above. A
+  tongue under the bezel fills the slot down to the key's recess.
+- **The board** sits on the same four corner posts as v1, now 8.8 mm above the floor (7.0 in v1).
+  That leaves 0.3 mm between the overmold and the STEMMA QT socket, and 0.25 mm between the side
+  walls and the module.
+- **The wires** come out of the back stop's notch toward the bottom edge. SDA and SCL go right,
+  under the module. 3V and GND go left round the pocket, along the floor, under the battery
+  socket.
+- The closed case is 58.1 × 30.2 × 14.2 mm.
+
+**To put it together:**
+1. Solder the wires first.
+2. Press the plug into its pocket until the lips click. The shell goes between the keepers and
+   the wires through the notch.
+3. Lay the Feather on its pegs, screen up.
+4. Click the bezel on.
+
+**What the script checks:** that none of these overlap anywhere (52 pairs):
+- the tray, the bezel and the board
+- a box for each part on the board, front and back, at its datasheet height
+- the four solder joints
+- the plug
+- a bare key-c pushed all the way on, either way up
+
+It also checks that the bezel's opening leaves each front part bare. Its asserts check:
+- the keepers miss the shell, the receptacle and the key's board
+- the key's recess stays clear of the bottom and of the bezel's skirt
+
+The preview is drawn by matplotlib, and its shading is rough. The STEP files were read back as
+one valid solid each, and the STLs are closed (every edge shared by two triangles).
+
+**Print:** the tray floor down and the bezel top face down, with no supports. Two places to look
+at after the first print:
+- The keepers' undersides are short flat overhangs, 1.2 mm deep.
+- The lips' undersides are 0.35 mm ledges.
+
+If the plug is loose or won't go in, change `POCKET_CLEAR` (0.15) or `LIP_PROUD` (0.35). If
+your overmold measures differently, change `PLUG_W`, `PLUG_H` and `PLUG_L`. Then run the script
+again. The click of the bezel is `SNAP_PROUD`, as in v1.
+
+The board's numbers come from Adafruit's board file, not from calipers. The heights of its parts
+and the key-c's receptacle are from their datasheets, not measured. Not printed yet.
+
+### v1: the cable through the side wall
+
+`out/pigtail_tray_v1.stl`, `pigtail_bezel_v1.stl`, `pigtail_case_v1.stl` and
+`pigtail_case_v1_preview.png` are the first case, from commit `d690d32`. In it, a long cable came
+in through the 16-pin side wall and a cable tie held it, and the plug was outside the case. It was
+not printed. The script now builds only v2.

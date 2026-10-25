@@ -1,9 +1,10 @@
 """The Feather ESP32-S3 Reverse TFT's paths on the laptop: board.py's "feather-s3" profile, its screen
 at (40, 53) in the panel's RAM, its three buttons (D0 pulled up, D1 and D2 pulled down; D1 held is
 "D1L"), and the battery gauge at 0x36 never taken for the key. MicroPython is a stand-in, as in
-esp32_test.py, with the S3's pins (0-21, 26-48) and os.uname() naming the S3. Not a board:
-hardware/wiring/FEATHER-S3.md says what has run on one. Then the ESP32-S3 TFT Feather with a knob,
-"feather-knob" (hardware/builds/feather-knob): its pins, Boot and the knob as the three keys.
+esp32_test.py, with the S3's pins (0-21, 26-48) and os.uname() naming the S3. Then the same for
+PicoQuorumKey ("picoquorum-key"), the S3 with pull-ups on GPIO16/17, and for the ESP32-S3 TFT
+Feather with a knob ("feather-knob", hardware/builds/feather-knob): Boot and the knob as the three
+keys. Not a board: hardware/wiring/FEATHER-S3.md says what has run on one.
     python3 test-vectors/feather_s3_test.py"""
 from pathlib import Path
 import os
@@ -222,12 +223,65 @@ finally:
     sys.path.remove(str(FW))
     sys.modules.pop("image", None)
 
+# PicoQuorumKey: the same S3 with 4.7k pull-ups on GPIO16/17, its key's bus. The Feather's screen,
+# buttons and rail on its own pins, every button pulled up and pressed low, nothing to power up.
+del log[:]
+Pin.levels.clear()
+Pin.pulls.clear()
+Pin.levels.update({16: 1, 17: 1})
+sys.path.insert(0, str(FW))
+os.chdir(FW)
+sys.platform = "esp32"
+try:
+    with patch.dict(sys.modules, mods), \
+         patch("os.uname", lambda: types.SimpleNamespace(machine="Generic ESP32S3 module with ESP32S3")):
+        import board
+        check(board.BOARD == "picoquorum-key" and board.THREE and not board.KNOB,
+              "an S3 with 16/17 pulled up is PicoQuorumKey: three buttons, no knob")
+        check(Pin.pulls[16] is None and Pin.pulls[17] is None, "16/17 left with no pull after the look")
+        check((board.DC, board.CS, board.SCK, board.MOSI, board.RST, board.BL) == (9, 10, 12, 11, 14, 21),
+              "the screen's pins")
+        check((board.SPI_ID, board.SPI_BAUD, board.SDA, board.SCL, board.LED) == (1, 40_000_000, 16, 17, 48),
+              "SPI(1) at 40 MHz, the key's bus on 16/17, the LED on 48")
+        check((board.W, board.H, board.BANDS, board.MADCTL, board.RAM_X, board.RAM_Y, board.RAIL_Y)
+              == (240, 135, 1, 0x60, 40, 53, (7, 67, 127)), "the Feather's panel, picture and rail")
+        check(board.BUTTONS == board.KEYS == {"D0": 42, "D1": 41, "D2": 40} and board.HIGH == (),
+              "D0, D1, D2 on 42, 41, 40, all pressed low")
+        check((board.MAINT, board.SETUP, board.POWER, board.NOT_KEYS) == (41, 40, None, ()),
+              "maintenance on D1, Wi-Fi setup on D2; no power pin, nothing else on the key's bus")
+        check(7 not in Pin.levels, "GPIO7 left alone")
+
+        import lcd
+        del log[:]
+        lcd.LCD()
+        check(("SPI", 1, 40_000_000, 12, 11) in log and ("PWM", 21) in log, "the screen on SPI(1), the backlight on 21")
+        Pin.levels.clear()
+        keys = lcd.Keys()
+        check(all(Pin.pulls[n] == Pin.PULL_UP for n in (42, 41, 40)), "D0, D1, D2 pulled up")
+        check(keys.pressed() == [], "at rest: nothing pressed")
+        for k, n in (("D0", 42), ("D2", 40)):
+            Pin.levels[n] = 0
+            check(keys.pressed() == [k] and keys.held(k), k + " reads low pressed")
+            Pin.levels[n] = 1
+            check(keys.pressed() == [] and not keys.held(k), k + " let go")
+        check(not board.key_down(41) and Pin.pulls[41] == Pin.PULL_UP, "key_down: D1 at rest, read with its pull-up")
+        Pin.levels[41] = 0
+        check(board.key_down(41), "key_down: D1 held")
+
+        import atecc
+        check((atecc.SDA, atecc.SCL) == (16, 17) and 0x36 in atecc.KEY_ADDRS, "the key's bus on 16/17; 0x36 may be a key here")
+finally:
+    sys.platform = platform
+    os.chdir(cwd)
+    sys.path.remove(str(FW))
+
 # The ESP32-S3 TFT Feather with a knob (hardware/builds/feather-knob): only when secrets.BOARD
 # names it. Its own pins, Boot as D0 and the knob as D1, D1L and D2.
 for name in ("board", "lcd", "knob", "atecc", "signer"):
     sys.modules.pop(name, None)
 Pin.levels.clear()
 Pin.pulls.clear()
+Pin.levels.update({16: 1, 17: 1})           # its knob's B and A at rest, pulled up: not PicoQuorumKey's bus
 del log[:]
 sys.path.insert(0, str(FW))
 os.chdir(FW)
@@ -238,6 +292,8 @@ try:
         import board
         check(board.BOARD == "feather-knob" and board.THREE and board.DIAL and not board.KNOB,
               "knob: secrets.BOARD picks it on an S3; the Feather's screens, no big-screen knob")
+        check(16 not in Pin.pulls and 17 not in Pin.pulls,
+              "knob: the secret comes first, so 16/17 (its knob) are never probed for PicoQuorumKey")
         check((board.DC, board.CS, board.SCK, board.MOSI, board.RST, board.BL) == (39, 7, 36, 35, 40, 45),
               "knob: the 5483's screen pins")
         check((board.SDA, board.SCL, board.LED, board.POWER) == (42, 41, 13, 21),
@@ -294,5 +350,5 @@ finally:
 raw = [f"{p.name}:{i + 1}" for p in sorted(FW.glob("*.py")) for i, line in enumerate(p.read_text().splitlines())
        if re.search(r"Pin\(board\.(MAINT|SETUP)\b", line)]
 check(not raw, "no Pin(board.MAINT/SETUP) left in firmware/: key_down reads them" + (" (%s)" % ", ".join(raw) if raw else ""))
-print("feather-s3, feather-knob: all pass" if not failed else "feather-s3, feather-knob: %d failed" % failed)
+print("feather-s3, picoquorum-key, feather-knob: all pass" if not failed else "feather-s3, picoquorum-key, feather-knob: %d failed" % failed)
 sys.exit(1 if failed else 0)

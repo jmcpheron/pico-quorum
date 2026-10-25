@@ -1145,20 +1145,21 @@ def case_knob():
     check(Q.state == "hold" and Q.msg != Q.SIGN_ONLY, "the Sign button on a review: it signs (the hold begins)")
 
 
-def case_three(name="feather-s3"):
+def case_three():
     """The Feather's three buttons (board "feather-s3", 240x135, quorum_ui_s with its rail). D0
     rejects with one press on any review page, even during the hold, and goes back elsewhere; D1
     moves on and, held (D1L), moves back; D2 opens, walks the pages not yet seen, and held signs:
     2 s, 3 s when a page is red. Run in a device of its own (main_three): board.py is read once.
-    Again as "feather-knob", where Boot is D0 and the knob's detents and push are D1, D1L and D2."""
+    The same for PicoQuorumKey (main_pqk): the Feather's buttons and screen on other pins. And for
+    the knob Feather (main_knob), where Boot is D0 and the knob's detents and push are D1, D1L, D2."""
     chip()
-    Q = fresh(extra='BOARD = "%s"' % name)
-    if name == "feather-knob":
+    Q = fresh(extra='BOARD = "%s"' % THREE_BOARD[0])
+    if THREE_BOARD[0] == "feather-knob":
         import board
         check(board.DIAL and board.NAMES["D2"] == "push" and (board.SDA, board.SCL) == (42, 41),
               "the knob Feather: Boot and the knob as D0-D2, the key on 42/41")
-    check(Q.THREE and (Q.L.W, Q.L.H) == (240, 135) and Q.U.__name__ == "quorum_ui_s" and Q.PRESS == "D2",
-          "the Feather: three buttons, 240x135, the small screens' UI")
+    check(Q.L.BOARD == THREE_BOARD[0] and Q.THREE and (Q.L.W, Q.L.H) == (240, 135) and Q.U.__name__ == "quorum_ui_s" and Q.PRESS == "D2",
+          THREE_BOARD[0] + ": three buttons, 240x135, the small screens' UI")
     good, red = tx(Q, 0), tx(Q, 1, to=OTHER, data="0xdeadbeef")
     refused = [tx(Q, 2, safe=OTHER), tx(Q, 3, tamper=True), tx(Q, 4, op=2), tx(Q, 5, to=OTHER, op=1, data="0x12345678")]
     serve(Q, [good, red] + refused)
@@ -1400,7 +1401,7 @@ def case_three(name="feather-s3"):
     pics, t = pictures()
     check([s for s, x, y, px in pics] == want and not clear(pics, t), "Owners: each owner's blockie")
 
-    Q = fresh(safe=False, extra='BOARD = "%s"' % name)
+    Q = fresh(safe=False, extra='BOARD = "%s"' % THREE_BOARD[0])
     t = " ".join(s for s, x, y, f in drawn())
     check(Q.state == "unconfigured" and Q.key_ready() and "Your key is ready" in t and fits("ready"),
           "no Safe yet: Your key is ready")
@@ -1408,27 +1409,35 @@ def case_three(name="feather-s3"):
     check(Q.state == "key", "D2 there: the key's code")
     Q.three("D0")
     check(Q.state == "unconfigured", "D0: back to the ready screen")
-    Q = fresh(safe=False, expect={"serial": "0123000000000000ee", "slot": 0, "owner": OTHER, "locked": True}, extra='BOARD = "%s"' % name)
+    Q = fresh(safe=False, expect={"serial": "0123000000000000ee", "slot": 0, "owner": OTHER, "locked": True}, extra='BOARD = "%s"' % THREE_BOARD[0])
     Q.three("D2")
     check(Q.state == "unconfigured" and not Q.key_ready() and "No Safe" in " ".join(s for s, x, y, f in drawn()),
           "pinned to another chip, no Safe: no code for this one, D2 does nothing")
 
 
-def main_three(name="feather-s3"):
-    """case_three, alone in a fresh device: secrets.py names the Feather before board.py is read."""
+THREE_BOARD = ["feather-s3"]
+
+
+def main_three(board="feather-s3"):
+    """case_three, alone in a fresh device: secrets.py names the board before board.py is read."""
+    THREE_BOARD[0] = board
     with open("secrets.py", "w") as f:
-        f.write('BOARD = "%s"\n' % name)
+        f.write('BOARD = "%s"\n' % board)
     for m in ("board", "lcd", "fonts", "quorum_ui", "quorum_ui_s", "splash", "bootmark"):
         sys.modules.pop(m, None)
-    print("-- three, " + name)
+    print("-- three, " + board)
     try:
-        case_three(name)
+        case_three()
     except Exception as e:
         failed[0] += 1
         print("FAIL  case_three raised")
         sys.print_exception(e)
-    print("%s: %d failed" % (name, failed[0]))
+    print("%s: %d failed" % (board, failed[0]))
     return failed[0]
+
+
+def main_pqk():
+    return main_three("picoquorum-key")
 
 
 def main_knob():

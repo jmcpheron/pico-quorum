@@ -23,7 +23,7 @@ screens are bench scripts, never part of the image ([builds/](builds/README.md#f
 | [feather-wing a, b](feather-wing/README.md) | board | key-c, USB-C | `feather-s3` | not ordered |
 | [console-s3](console-s3/DESIGN.md) | board | ATECC608C on the board | `feather-s3` | to order ([plan](../ORDER-PLAN-2026-10-24.md)) |
 | [console-usb](console-usb/README.md) | board | ATECC608C on the board | `feather-s3`, plus firmware not written | not routed |
-| [picoquorum-key](picoquorum-key/README.md) | board | UDFN ATECC608C on the board | needs a profile | to order ([plan](../ORDER-PLAN-2026-10-24.md)) |
+| [picoquorum-key](picoquorum-key/README.md) | board | UDFN ATECC608C on the board | `picoquorum-key`, picked by its key bus's pull-ups | to order ([plan](../ORDER-PLAN-2026-10-24.md)) |
 
 The parts of each are below.
 
@@ -69,8 +69,9 @@ The parts of each are below.
 - [`picoquorum-key/`](picoquorum-key/README.md): PicoQuorumKey, a second S3 console designed apart
   from console-s3, to order beside it and compare: the module on the back, the 1.14″ panel in a
   ZIF, five buttons, the UDFN ATECC608C, 44 × 53 mm. Its own generators, 125 tests and fab files in
-  `hardware/out/rev-a/`. Its buttons aren't on the Feather's pins, so the console image needs a new
-  profile before it runs on it
+  `hardware/out/rev-a/`. Its buttons aren't on the Feather's pins, so it has its own firmware
+  profile, `picoquorum-key`, which the image picks by looking at the board; in a release from
+  after 2026.10.12
 
 The inherited picowallet wiring (Pico + Waveshare LCD + ATECC608 + 18650) is in
 [`wiring/SOLDERING.md`](wiring/SOLDERING.md) and `tools/wiring`.
