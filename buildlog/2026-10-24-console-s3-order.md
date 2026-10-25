@@ -21,7 +21,7 @@ receipts for the parts bought elsewhere (modules, panels).
 | Board | 2 layers, 64 × 22.86 mm, 1.6 mm FR-4 TG135, 1 oz, LeadFree HASL, green mask, white ink-jet silkscreen, tented vias, 0.3 mm via holes (0.4/0.45 mm pads), "Remove Mark", ±0.2 mm outline, IPC Class 2, flying-probe test of every board |
 | Delivery | single PCBs, not a panel |
 | Edges | not deburred ("Deburring/Edge rounding: No") |
-| Approvals | Production file: **No**. Parts placement: **yes** ($0.45), pending |
+| Approvals | Production file: **No**. Parts placement: **yes** ($0.45); JLCPCB's review checked 2026-10-25 ([below](#jlcpcbs-parts-placement-review-2026-10-25)) |
 | Shortage | "Require Full Quantity": all 5 or nothing |
 | Build time | PCB 24 hours (PCBA only); assembly 1–2 days |
 | Weight | PCB 0.14 kg, PCBA 0.18 kg |
@@ -106,6 +106,43 @@ LCSC number.
 - **Spares:** two each of J2, U3 and U4 (seven bought for five boards). Everything else is exact.
 - **Not on the page:** U1, the module. It isn't in `bom.csv`, as option A means.
 
+## JLCPCB's parts-placement review (2026-10-25)
+
+JLCPCB's engineer adjusted the placement and asked: "Can we proceed PCBA with the corrected parts
+placement?" The page lists 33 designators, all assembled, none left out, all top side, SMT. Each
+row's maker, part and LCSC number matches the BOM page above. The page doesn't say which parts the
+engineer moved.
+
+![JLCPCB's parts-placement review for console-s3](images/2026-10-25-console-s3-jlc-placement-review.png)
+
+`tools/keypcb jlc` wasn't run for this (no KiCad here), so there was no `cpl-overlay.png`. Instead
+each part's pad 1 was read from `console-s3.kicad_pcb` and turned into the CPL's coordinates (origin
+the bottom-left corner, y up), then found in the preview. The pink dot is the pin JLCPCB's model
+calls pin 1.
+
+- **U2 (ATECC608C):** dot and the body's dimple at the top-left pad, our pad 1 at (22.05, 17.25). ✅
+- **U3 (ME6211):** dot and dimple at the top-left pad, pad 1 at (22.36, 7.45). Three pins left, two
+  right, as the footprint. ✅
+- **U4 (USBLC6-2SC6):** dot at the top-left pad, pad 1 at (6.36, 3.8). ✅
+- **Q1, Q2 (SOT-23):** dot at the bottom-left pad, pad 1 at (37.55, 4.9) and (42.05, 4.9); the single
+  lead at the top, as the footprint. ✅
+- **D1 (red LED):** JLCPCB marks the left end − (with the part's green cathode mark) and the right
+  end +. Our pad 1, on the left at (54.22, 13.4), is GND, the cathode; pad 2 is LED_A. ✅
+- **J1 (USB-C):** the opening faces the left edge and the pin row lands on the pad row. The dots are
+  the model's reference points. ✅
+- **J2 (panel ZIF):** the leads sit on the eight pads at x 28.75 and the body and its two tabs are to
+  the right, so the slot faces right, where the ribbon comes in from (DESIGN.md). ✅
+  JLCPCB's pin-1 triangle is at the **top** of the row; our pad 1 (LCD_LEDA) is at the **bottom**,
+  y 9.68, and the top one is pad 8 (LCD_CS). That is only the model's numbering: the eight contacts
+  are the same, so each pad still meets the same ribbon conductor. Nothing to change.
+- **SW1–SW5:** each sits on its four pads with the same dot, at rotation 0 as in the CPL. The preview
+  can't show which legs are joined inside, so a switch turned 90° would look the same. **On the
+  bench, before anything else:** meter pad 1 to pad 2 of each switch, open until pressed. Turned 90°,
+  D0 or BOOT would read as always pressed.
+- **R1–R13, C1–C7:** not polarized. Each sits on its pads.
+
+Nothing found that needs "No, modification needed."
+
 ## The files
 
 The design files in the repository at `2c76e25` (2026-10-24), the last commit to touch `fab/`:
@@ -132,6 +169,8 @@ Gerbers if JLCPCB offers them, and compare hashes as for key-c.
 - [ ] The PCBA settings (paste, packaging, photo confirmation, customs category)
 - [ ] The receipts for the parts bought elsewhere: modules, panels
 - [ ] The uploaded files' hashes, against the table above
-- [ ] JLCPCB's parts-placement review: pin 1 against `fab/check/cpl-overlay.png` for U2, U3, U4, Q1,
-      Q2, D1, J1, J2. The overlay isn't committed: `tools/keypcb jlc console-s3` writes it
+- [x] JLCPCB's parts-placement review (2026-10-25): checked, as above
+- [ ] Placement confirmed in Order History ("Yes, please proceed to production"), and the production
+      progress after
+- [ ] On the bench: each switch open until pressed (the preview can't show it)
 - [ ] Tracking, arrival, and the bench steps in the plan's "When they arrive"
