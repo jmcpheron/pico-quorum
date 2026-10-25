@@ -7,8 +7,10 @@ behaves wrongly here the way it would on the bench.
 
 Modelled: buttons (pull-up, pressed to ground), the ST7789 panel behind the 8-pin connector (init
 commands and RAM writes), the backlight and LED drive chains (topology only; the analog is in
-test_spice), and an ATECC608 on I2C (asleep until woken). Time is virtual: sleeps advance a clock,
-and a KeyboardInterrupt ends smoke.py's endless loop.
+test_spice), and an ATECC608 on I2C (asleep until woken). Rev B's key port: a key-c on the plug
+pulls CC low through R18, gets power only through U5 with KEY_EN driven high, and answers on the
+plug's bus only with its pull-ups on VKEY. Time is virtual: sleeps advance a clock, and a
+KeyboardInterrupt ends smoke.py's endless loop.
 """
 import sys
 import types
@@ -21,8 +23,10 @@ PANEL_PINS = ("LEDA", "GND", "RESET", "RS", "SDA", "SCL", "VDD", "CS")   # panel
 class Atecc:
     SERIAL_CONFIG = bytes.fromhex("0123 1234 00006003 56789abc EE 00 C0 00".replace(" ", ""))   # 16 config bytes
 
-    def __init__(self, acks_scan_while_asleep=False):
+    def __init__(self, acks_scan_while_asleep=False, serial_config=None):
         self.awake = False
+        if serial_config:
+            self.SERIAL_CONFIG = serial_config
         self.response = b""
         self.acks_scan_while_asleep = acks_scan_while_asleep
 
@@ -106,8 +110,11 @@ class Panel:
                     self.cursor[0], self.cursor[1] = x0, self.cursor[1] + 1 if self.cursor[1] < y1 else y0
 
 
+KEY_C_CONFIG = bytes.fromhex("0123 7777 00006005 2468ace0 EE 00 C0 00".replace(" ", ""))   # a key-c's, not U2's
+
+
 class World:
-    def __init__(self, pad_nets, acks_scan_while_asleep=False):
+    def __init__(self, pad_nets, acks_scan_while_asleep=False, key_in=True):
         self.nets = pad_nets
         self.t_ms = 0
         self.events = []                  # (t_ms, callable) sorted on use
@@ -115,6 +122,8 @@ class World:
         self.pins = []
         self.panel = Panel()
         self.atecc = Atecc(acks_scan_while_asleep)
+        self.key = Atecc(serial_config=KEY_C_CONFIG) if key_in else None     # a key-c on the key port
+        self.key_led_events = []
         self.pwm_events = []              # (t_ms, net, duty, lit)
         self.led_events = []
         self.first_light_ram = None
@@ -154,9 +163,25 @@ class World:
     def panel_ready(self):
         return self.panel_net("VDD") == "+3V3" and self.panel_net("GND") == "GND"
 
-    def has_pullup(self, net):
-        return any(ref.startswith("R") and n == net and self.net(ref, "2" if pad == "1" else "1") == "+3V3"
+    def has_pullup(self, net, rail="+3V3"):
+        return any(ref.startswith("R") and n == net and self.net(ref, "2" if pad == "1" else "1") == rail
                    for (ref, pad), n in self.nets.items())
+
+    def key_pulls_low(self, net):
+        """A key-c's 5.1k Rd on the plug's A5, seen through a resistor (R18) on this net."""
+        return bool(self.key) and self.has_pullup(net, self.net("J3", "A5")) and self.has_pullup(net, "+3V3")
+
+    def key_powered(self):
+        """U5 from 3V3 to the plug's VBUS, its EN driven high."""
+        n = self.net
+        return (n("U5", 1) == "+3V3" and n("U5", 2) == "GND" and n("U5", 6) == n("J3", "A4") != ""
+                and self.level(n("U5", 3)) == 1)
+
+    def key_led_lit(self):
+        """The port's LED runs off the key's power: U5's output -> R22 -> D4 -> GND."""
+        n = self.net
+        return (self.key_powered() and n("R22", 1) == n("U5", 6) and n("R22", 2) == n("D4", 2)
+                and n("D4", 1) == "GND")
 
     def backlight_chain_ok(self, gpio_net):
         """GPIO -> R9 -> Q2 base; Q2 collector -> Q1 gate; Q1 drain -> R11 -> panel LEDA; Q2 emitter, panel GND on ground."""
@@ -200,6 +225,8 @@ class Pin:
         self.val = int(bool(v))
         if self.net and self.world.led_chain_ok(self.net):
             self.world.led_events.append((self.world.t_ms, self.val))
+        if self.net:
+            self.world.key_led_events.append((self.world.t_ms, int(self.world.key_led_lit())))
 
     def value(self, v=None):
         if v is not None:
@@ -207,9 +234,9 @@ class Pin:
             return None
         if self.mode == Pin.OUT:
             return self.val
-        if self.world.pulled_low_by_switch(self.net):
+        if self.world.pulled_low_by_switch(self.net) or self.world.key_pulls_low(self.net):
             return 0
-        return 1 if self.pull == Pin.PULL_UP else 0
+        return 1 if self.pull == Pin.PULL_UP or self.world.has_pullup(self.net) else 0
 
 
 class PWM:
@@ -251,30 +278,43 @@ class I2C:
     def __init__(self, bus, scl=None, sda=None, freq=400_000):
         self.scl, self.sda, self.world = scl, sda, scl.world
 
-    def present(self):
+    def device(self):
+        """The chip at 0x60 on these two pins: U2, the key-c on the port, or None."""
         w = self.world
-        return (self.sda.net == w.net("U2", 5) and self.scl.net == w.net("U2", 6)
+        if (self.sda.net == w.net("U2", 5) and self.scl.net == w.net("U2", 6)
                 and w.net("U2", 8) == "+3V3" and w.net("U2", 4) == "GND"
-                and w.has_pullup(self.sda.net) and w.has_pullup(self.scl.net))
+                and w.has_pullup(self.sda.net) and w.has_pullup(self.scl.net)):
+            return w.atecc
+        vkey = w.net("J3", "A4")
+        if (w.key and self.sda.net == w.net("J3", "A6") and self.scl.net == w.net("J3", "A7") and w.key_powered()
+                and w.has_pullup(self.sda.net, vkey) and w.has_pullup(self.scl.net, vkey)):
+            return w.key
+        return None
+
+    def present(self):
+        return self.device() is not None
 
     def scan(self):
-        if self.present() and (self.world.atecc.awake or self.world.atecc.acks_scan_while_asleep):
+        d = self.device()
+        if d and (d.awake or d.acks_scan_while_asleep):
             return [0x60]
         return []
 
     def writeto(self, addr, buf):
+        d = self.device()
         if addr == 0x00:                                    # wake: SDA low long enough
-            if self.present():
-                self.world.atecc.wake()
+            if d:
+                d.wake()
             raise OSError(19)                               # nothing ACKs address 0
-        if addr != 0x60 or not self.present():
+        if addr != 0x60 or not d:
             raise OSError(19)
-        self.world.atecc.write(bytes(buf))
+        d.write(bytes(buf))
 
     def readfrom(self, addr, n):
-        if addr != 0x60 or not self.present():
+        d = self.device()
+        if addr != 0x60 or not d:
             raise OSError(19)
-        return self.world.atecc.read(n)
+        return d.read(n)
 
 
 def install(world):

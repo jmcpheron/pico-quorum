@@ -1,9 +1,10 @@
-"""picoquorum-key rev A smoke test. MicroPython 1.26.x, ESP32_GENERIC_S3.
+"""picoquorum-key rev B smoke test. MicroPython 1.26.x, ESP32_GENERIC_S3.
 
 Run with:  mpremote run firmware/smoke/smoke.py
 
 Exercises every part on the board once: backlight switch, ST7789 panel, the three rail buttons,
-the status LED, the I2C bus and the ATECC608C's public serial number.
+the status LED, the I2C bus and the ATECC608C's public serial number, and the key port: its CC
+line, the key's power and LED, its own bus and a key-c's serial.
 It signs nothing and reads no key (spec rule 3). No driver libraries needed.
 """
 import time
@@ -14,6 +15,8 @@ SCK, MOSI, CS, DC, RST, BL = 12, 11, 10, 9, 14, 21
 BUTTONS = (("D0 Reject", 42), ("D1 Next", 41), ("D2 Sign", 40))
 SDA, SCL, LED = 16, 17, 48
 KEY_ADDR = 0x60
+# the key port (rev B): its own bus, I2C(1)
+KEY2_SDA, KEY2_SCL, KEY_CC, KEY_EN = 38, 39, 1, 2
 # screen geometry (docs/SPEC.md): 240 x 135 landscape, offsets 40/53, MADCTL 0x60, inverted
 W, H, XOFF, YOFF, MADCTL = 240, 135, 40, 53, 0x60
 RAIL_Y = (7, 67, 127)
@@ -130,6 +133,31 @@ def atecc_serial(i2c):
     return w0 + w2 + w3[:1]                 # SN[0:4] + SN[8:13]
 
 
+# --- the key port -----------------------------------------------------------------------------
+def key_port():
+    """CC, then power, the LED and the second bus. Returns the EN pin, or None with no key in."""
+    cc = Pin(KEY_CC, Pin.IN)            # R17 pulls it up; the S3's own pull-up would lift a key's low to ~0.7 V
+    en = Pin(KEY_EN, Pin.OUT, value=0)
+    log("key port: CC reads", cc(), "(1: no key, or a board without the port; 0: a key-c in)")
+    if cc():
+        return None
+    en(1)
+    time.sleep_ms(20)
+    log("key port: VKEY on; the port's LED (D4) and a key-c P3's own should be lit")
+    i2c1 = I2C(1, scl=Pin(KEY2_SCL), sda=Pin(KEY2_SDA), freq=100_000)
+    try:
+        atecc_wake(i2c1)
+    except OSError:
+        pass
+    log("key port i2c(1) scan:", [hex(a) for a in i2c1.scan()], "(expect ['0x60'] only)")
+    try:
+        sn = atecc_serial(i2c1)
+        log("key-c serial:", " ".join("%02X" % b for b in sn), "(not the soldered chip's)")
+    except OSError as e:
+        log("key-c FAILED:", e)
+    return en
+
+
 # --- the test ---------------------------------------------------------------------------------
 def main():
     led = Pin(LED, Pin.OUT, value=0)
@@ -169,6 +197,17 @@ def main():
             "(expect 9 bytes, starts 01 23, ends EE)")
     except OSError as e:
         log("ATECC608 FAILED:", e)
+
+    key_port()
+    try:
+        atecc_wake(i2c)                     # U2 went idle after its serial; wake it to see it again
+    except OSError:
+        pass
+    log("i2c(0) scan again:", [hex(a) for a in i2c.scan()], "(still ['0x60'] only: the buses are apart)")
+    try:
+        i2c.writeto(KEY_ADDR, b"\x02")      # idle
+    except OSError:
+        pass
 
     buttons = [(name, Pin(n, Pin.IN, Pin.PULL_UP)) for name, n in BUTTONS]
     log("press each button; Ctrl-C to stop. LED blinks at 2 Hz.")

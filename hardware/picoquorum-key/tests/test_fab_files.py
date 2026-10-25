@@ -1,17 +1,17 @@
 """The fab files, read back: what JLCPCB receives must be the board as designed.
 
-Reads hardware/out/rev-a/picoquorum-key-gerbers.zip (tools/export.sh writes it) with tests/gerber.py,
+Reads hardware/out/<rev>/picoquorum-key-gerbers.zip (rev-b; CONSOLE_REV picks another) (tools/export.sh writes it) with tests/gerber.py,
 which shares no code with KiCad's plotter, and compares it with the board (pcb_facts.py):
 
 - the zip has exactly the layers export.sh promises, each one labelled as what it is;
-- the outline is closed and 44 x 53; every file is in one coordinate frame;
+- the outline is closed and 50 x 53; every file is in one coordinate frame;
 - every drill hit and slot is a via, a pad hole or a mounting hole on the board, and the other way
   round, at the same position and size;
 - every copper, mask and paste flash is a pad (or via) on the board, and the other way round;
 - annular rings measured from the Gerber pads around the Excellon holes meet JLCPCB's minimums;
 - no via has a mask opening (they're tented); no paste lands anywhere but a front SMD pad.
 
-A failure here after a board edit usually means the zip is stale: run tools/export.sh rev-a.
+A failure here after a board edit usually means the zip is stale: run tools/export.sh rev-b.
 It also writes gerbers-top.svg / gerbers-bottom.svg to hardware/out/scratch/test/fab/, a picture
 drawn from the Gerbers alone, for a look with your own eyes.
 """
@@ -24,7 +24,7 @@ import common
 import gerber
 import jlc_limits as jlc
 
-ZIP = os.environ.get("CONSOLE_FAB_ZIP", os.path.join(common.ROOT, "hardware", "out", "rev-a", "picoquorum-key-gerbers.zip"))
+ZIP = os.environ.get("CONSOLE_FAB_ZIP", os.path.join(common.OUT, "picoquorum-key-gerbers.zip"))
 POS_TOL = 0.01          # mm; plotter rounding is far below this
 EXPECTED = {            # Gerber file function -> what export.sh asks for
     "Copper,L1,Top": "F.Cu", "Copper,L2,Bot": "B.Cu", "Paste,Top": "F.Paste",
@@ -54,7 +54,7 @@ def match(expected, found, tol=POS_TOL):
     return missing, left
 
 
-@unittest.skipUnless(os.path.exists(ZIP), "no fab zip: run tools/export.sh rev-a")
+@unittest.skipUnless(os.path.exists(ZIP), "no fab zip: run tools/export.sh " + common.REV)
 class FabFiles(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -94,7 +94,7 @@ class FabFiles(unittest.TestCase):
         job = json.loads(next(t for n, t in self.files.items() if n.endswith(".gbrjob")))
         spec = job["GeneralSpecs"]
         self.assertEqual(spec["LayerNumber"], 2)
-        self.assertAlmostEqual(spec["BoardThickness"], 1.6)
+        self.assertAlmostEqual(spec["BoardThickness"], 0.8)
         # KiCad's job size includes the outline's stroke
         self.assertAlmostEqual(spec["Size"]["X"], self.W, delta=0.2)
         self.assertAlmostEqual(spec["Size"]["Y"], self.H, delta=0.2)

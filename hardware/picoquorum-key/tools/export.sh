@@ -42,11 +42,11 @@ echo "== Position file (front, mm)"
 
 echo "== BOM"
 "$KICAD_CLI" sch export bom -o "$OUT/picoquorum-key-kicad-bom.csv" \
-  --fields "Reference,Value,Footprint,LCSC,MPN,\${QUANTITY},\${DNP}" \
-  --labels "Reference,Value,Footprint,LCSC,MPN,Qty,DNP" \
-  --group-by "Value,Footprint,LCSC" --exclude-dnp "$SCH"
+  --fields "Reference,Value,Footprint,LCSC,MPN,Fit,\${QUANTITY},\${DNP}" \
+  --labels "Reference,Value,Footprint,LCSC,MPN,Fit,Qty,DNP" \
+  --group-by "Value,Footprint,LCSC,Fit" --exclude-dnp "$SCH"
 
-echo "== JLCPCB BOM + CPL"
+echo "== JLCPCB BOM + CPL, one pair per fit: bom.csv/cpl.csv (base), bom-port.csv/cpl-port.csv (with the key port)"
 python3 "$HERE/tools/jlc_bom_cpl.py" \
   --bom "$OUT/picoquorum-key-kicad-bom.csv" --pos "$OUT/picoquorum-key-pos.csv" \
   --rotations "$HERE/tools/rotations.json" --out "$OUT"

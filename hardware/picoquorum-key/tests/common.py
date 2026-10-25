@@ -14,6 +14,9 @@ PRJ = os.path.join(ROOT, "hardware", "picoquorum-key")
 SCH = os.environ.get("CONSOLE_SCH", os.path.join(PRJ, "picoquorum-key.kicad_sch"))
 PCB = os.environ.get("CONSOLE_PCB", os.path.join(PRJ, "picoquorum-key.kicad_pcb"))
 SCRATCH = os.path.join(ROOT, "hardware", "out", "scratch", "test")
+# the exported revision the fab and assembly tests read (hardware/out/<rev>/); rev-a is as ordered
+REV = os.environ.get("CONSOLE_REV", "rev-b")
+OUT = os.path.join(ROOT, "hardware", "out", REV)
 KICAD_SYMBOLS = "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols"
 KICAD_PYTHON = os.environ.get(
     "KICAD_PYTHON", "/Applications/KiCad/KiCad.app/Contents/Frameworks/Python.framework/Versions/3.9/bin/python3")

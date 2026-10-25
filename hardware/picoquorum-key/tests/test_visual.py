@@ -29,11 +29,11 @@ import pngio
 import raster
 
 GOLDEN = os.path.join(common.ROOT, "tests", "golden")
-ZIP = os.environ.get("CONSOLE_FAB_ZIP", os.path.join(common.ROOT, "hardware", "out", "rev-a", "picoquorum-key-gerbers.zip"))
+ZIP = os.environ.get("CONSOLE_FAB_ZIP", os.path.join(common.OUT, "picoquorum-key-gerbers.zip"))
 BLESS = os.environ.get("CONSOLE_BLESS") == "1"
 SCALE = 16                       # px per mm for the fab layers
 MARGIN = 1.0                     # mm round the board outline
-RENDER_SIZE = (880, 1060)
+RENDER_SIZE = (1000, 1060)
 BLOCK = 12                       # px (0.75 mm on the fab layers): changes closer than this are one group
 CHANNEL_TOL = 8                  # a render pixel differing by less than this in every channel is the same
 LAYERS = [  # (name, Gerber FileFunction or "drill", colour)
@@ -216,7 +216,7 @@ class Visual(unittest.TestCase):
                       % (name, len(groups), os.path.join(self.out, name + "-diff.png"), self.describe(name, groups)))
 
     def test_fab_layers_match_the_approved_copies(self):
-        self.assertTrue(os.path.exists(ZIP), "no Gerber zip: run tools/export.sh rev-a")
+        self.assertTrue(os.path.exists(ZIP), "no Gerber zip: run tools/export.sh " + common.REV)
         for name, path in self.fab_pictures().items():
             with self.subTest(layer=name):
                 self.check(name, path)

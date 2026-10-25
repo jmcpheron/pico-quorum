@@ -62,7 +62,20 @@ class Silk(unittest.TestCase):
         """The name itself is drawn (filled shapes from silk_art.py's logos); the text says where it lives."""
         self.label("PicoQuorum.app", "F.Silkscreen")
         self.label("PicoQuorum.app", "B.Silkscreen")
-        self.label("KEY, REV A", "B.Silkscreen")
+        self.label("KEY, REV B", "B.Silkscreen")
+        self.label("KEY PORT", "F.Silkscreen")
+
+    def test_key_port_label_sits_beside_the_plug(self):
+        """KEY PORT is by the plug's slot, at the top-left, not across the board."""
+        cx, cy = centre(self.label("KEY PORT", "F.Silkscreen"))
+        px, py = self.facts["footprints"]["J3"]["pos"]
+        self.assertLess(abs(cx - px), 15.0)
+        self.assertLess(cy - py, 8.0)
+
+    def test_back_legend_says_one_owner_not_one_key(self):
+        """With the key port a board can hold two keys: the back no longer says ONE KEY."""
+        self.label("ONE OWNER", "B.Silkscreen")
+        self.assertEqual([t for t in self.texts if t["text"] == "ONE KEY"], [])
         for side in ("F.Silkscreen", "B.Silkscreen"):
             self.assertGreater(len([s for s in self.shapes if s["layer"] == side and s["filled"]]), 10, side)
 
@@ -82,13 +95,15 @@ class Silk(unittest.TestCase):
             self.assertEqual(nearest, ref, "%s reads as %s's label" % (text, nearest))
 
     def test_every_test_pad_is_named_for_its_net(self):
-        """The back-side text under TP1-TP12 equals that pad's net, and is the text nearest that pad."""
+        """The back-side text under TP1-TP14 is that pad's net, shortened as silk_art.pad_label does
+        (UART_TX -> TX, KEY_CC -> KCC, KEY2_SDA -> KSDA), and is the text nearest that pad."""
         pads = {r: f for r, f in self.facts["footprints"].items() if r.startswith("TP")}
-        self.assertEqual(len(pads), 12)
+        self.assertEqual(len(pads), 14)
         back = [t for t in self.texts if t["layer"] == "B.Silkscreen"]
         for ref, fp in pads.items():
             with self.subTest(pad=ref):
-                net = fp["pads"][0]["net"].lstrip("/").replace("UART_", "").replace("I2C_", "")
+                net = (fp["pads"][0]["net"].lstrip("/").replace("UART_", "").replace("I2C_", "")
+                       .replace("KEY2_", "K").replace("KEY_", "K"))
                 px, py = fp["pos"]
                 near = min(back, key=lambda t: (centre(t)[0] - px) ** 2 + (centre(t)[1] - (py + 1.9)) ** 2)
                 self.assertEqual(near["text"], net)

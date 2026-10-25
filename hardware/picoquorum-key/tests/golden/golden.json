@@ -1,7 +1,7 @@
 {
- "kicad": "10.0.6",
- "board_sha256": "1c599517a1396059",
- "zip": "hardware/out/rev-a/picoquorum-key-gerbers.zip",
+ "kicad": "10.0.7",
+ "board_sha256": "4747f7dba77ed08c",
+ "zip": "hardware/out/rev-b/picoquorum-key-gerbers.zip",
  "pictures": [
   "B_Cu",
   "B_Mask",

@@ -136,9 +136,11 @@ class I2cRise(unittest.TestCase):
     PIN_C = 10e-12          # two device pins plus pads
     TRACE_PF_PER_CM = 1.0   # conservative for a 2-layer board over a ground pour
 
+    KEY_C = 30e-12          # the key port: the plug, a key-c's board and its chip, a guess with room in it
+
     def rise(self, nl, ref, cb):
         net = nl.n(ref, 2)
-        lines = ["* i2c rise " + ref, "V3 P3V3 0 DC 3.3", nl.two_pin(ref), "CB %s 0 %g" % (net, cb),
+        lines = ["* i2c rise " + ref, "VS %s 0 DC 3.3" % nl.n(ref, 1), nl.two_pin(ref), "CB %s 0 %g" % (net, cb),
                  "S1 %s 0 ctl 0 SWM" % net, "VCTL ctl 0 PULSE(1 0 10u 1n 1n 1 2)", ".model SWM SW(VT=0.5 VH=0.1 RON=50 ROFF=1G)",
                  ".control", "tran 2n 30u",
                  "meas tran trise TRIG v(%s) VAL=0.99 RISE=1 TARG v(%s) VAL=2.31 RISE=1" % (net, net), ".endc", ".end"]
@@ -156,10 +158,52 @@ class I2cRise(unittest.TestCase):
             with self.subTest(net=net, margin="x2"):
                 self.assertLess(self.rise(nl, ref, 2 * cb), self.LIMIT)
 
+    def test_key_port_bus_rise_time(self):
+        """The port's own bus: 2.2k to VKEY, the routed track, and a key-c on the plug."""
+        facts = common.board_facts()
+        nl = sl.Netlist()
+        for ref, net in (("R19", "KEY2_SDA"), ("R20", "KEY2_SCL")):
+            self.assertEqual(nl.n(ref, 1), "VKEY", "%s pulls up to VKEY, not 3V3" % ref)
+            length_cm = sum(t["len"] for t in facts["tracks"] if t["net"] == net) / 10
+            cb = self.PIN_C + self.KEY_C + self.TRACE_PF_PER_CM * length_cm * 1e-12
+            NOTES.append("%s: %.1f cm routed, ~%.0f pF with a key-c, rise %.0f ns"
+                         % (net, length_cm, cb * 1e12, self.rise(nl, ref, cb) * 1e9))
+            with self.subTest(net=net, margin="x2"):
+                self.assertLess(self.rise(nl, ref, 2 * cb), self.LIMIT)
+
     def test_sim_agrees_with_rc_formula(self):
         nl = sl.Netlist()
         r, cb = sl.value("4.7k"), 100e-12
         self.assertAlmostEqual(self.rise(nl, "R6", cb), 0.8473 * r * cb, delta=0.05 * 0.8473 * r * cb)
+
+
+class KeyPortCc(unittest.TestCase):
+    """GPIO1 reads the key port's CC line: R17 47k to 3V3, R18 1k to the plug's A5, a key-c's 5.1k Rd
+    to ground. It must read a clean low with a key and a clean high without, as a plain GPIO."""
+    VIL, VIH = 0.25 * 3.3, 0.75 * 3.3       # ESP32-S3 input thresholds, 0.25 and 0.75 x VDD
+    RD = 5.1e3                               # key-c's Rd on each CC pin (key-pcb)
+
+    def cc(self, rd=None, pull_up=None, tag=""):
+        nl = sl.Netlist()
+        lines = ["* key port CC " + tag, "V3 P3V3 0 DC 3.3", nl.two_pin("R17"), nl.two_pin("R18"),
+                 "RD %s 0 %g" % (nl.n("R18", 2), rd if rd else 1e12)]
+        if pull_up:
+            lines.append("RPU P3V3 %s %g" % (nl.n("R17", 2), pull_up))
+        lines += [".control", "op", "print v(%s)" % nl.n("R17", 2), ".endc", ".end"]
+        return sl.run_ngspice("\n".join(lines), "cc_" + tag)["v(%s)" % nl.n("R17", 2).lower()]
+
+    def test_a_key_reads_low_and_none_reads_high(self):
+        low, high = self.cc(self.RD, tag="key"), self.cc(None, tag="none")
+        NOTES.append("key port CC: %.2f V with a key-c, %.2f V with none (VIL %.2f V, VIH %.2f V)" % (low, high, self.VIL, self.VIH))
+        self.assertLess(low, self.VIL)
+        self.assertGreater(high, self.VIH)
+        self.assertAlmostEqual(low, 3.3 * 6.1 / 53.1, delta=0.01)     # 1k + 5.1k under 47k
+
+    def test_the_internal_pull_up_would_eat_the_margin(self):
+        """Reported, not required: firmware reads CC with no internal pull-up, since R17 is on every board."""
+        v = self.cc(self.RD, pull_up=45e3, tag="key_pu")
+        NOTES.append("key port CC with the S3's ~45k pull-up on as well: %.2f V, %.2f V under VIL: leave it off" % (v, self.VIL - v))
+        self.assertLess(v, self.VIL)
 
 
 def tearDownModule():

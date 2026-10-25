@@ -1,10 +1,13 @@
 # The `picoquorum-key` pin profile
 
-*2026-10-23. The GPIO table rev A is built on, as wired in `tools/gen/circuit.py` and the generated
+*2026-10-25. The GPIO table rev B is built on, as wired in `tools/gen/circuit.py` and the generated
 schematic. It is a new profile under spec rule 2. The console firmware has carried it since
 2026-10-24, as `picoquorum-key` in PicoQuorum's `firmware/board.py`; it reaches a board with the
 next release. The constants are also in
 [../firmware/profile/picoquorum_key.py](../firmware/profile/picoquorum_key.py).*
+
+*Rev B adds the key port's four pins (GPIO1, 2, 38, 39), all from pins rev A left free, and
+changes none of rev A's. The console image doesn't know them yet ("In the console image", below).*
 
 ## Why a new profile
 
@@ -52,8 +55,11 @@ KiCad 10's `RF_Module:ESP32-S3-WROOM-1` symbol.
 | UART0 TX | 43 | 37 | UART_TX | debug pad TP4 only |
 | UART0 RX | 44 | 36 | UART_RX | debug pad TP5 only |
 | EN | – | 3 | EN | 10k to 3.3 V, 1 µF to GND, RESET tact to GND, pad TP3 |
-| spare | 1, 2 | 39, 38 | IO1, IO2 | to pads TP9, TP10 only; both are ADC1 inputs |
-| unconnected | 4–8, 13, 15, 18, 38, 39, 47 | 4–7, 12, 21, 8, 11, 31, 32, 24 | | free GPIOs, no copper; 38 and 39 were PREV and BACK |
+| key port CC | 1 | 39 | KEY_CC | R17 47k to 3.3 V (every board), R18 1k to the plug's A5; low with a key-c in; ADC1_CH0; pad TP9 |
+| key port enable | 2 | 38 | KEY_EN | R15 100k to GND; high powers the key (U5); pad TP10 |
+| key port SDA | 38 | 31 | KEY2_SDA | R19 2.2k to VKEY; `I2C(1)`; pad TP13 |
+| key port SCL | 39 | 32 | KEY2_SCL | R20 2.2k to VKEY; `I2C(1)`; pad TP14 |
+| unconnected | 4–8, 13, 15, 18, 47 | 4–7, 12, 21, 8, 11, 24 | | free GPIOs, no copper |
 | unconnected strap | 3, 45, 46 | 15, 26, 16 | | left floating on purpose |
 | unconnected | 35–37 | 28–30 | | reserved for R8 modules' PSRAM |
 | 3V3 | – | 2 | +3V3 | 22 µF + 100 nF beside the module |
@@ -79,6 +85,11 @@ bl   = PWM(Pin(21), freq=1000, duty_u16=0)                        # off until th
 d0, d1, d2 = (Pin(n, Pin.IN, Pin.PULL_UP) for n in (42, 41, 40))  # pressed == 0
 i2c  = I2C(0, scl=Pin(17), sda=Pin(16), freq=100_000)             # ATECC608C at 0x60
 led  = Pin(48, Pin.OUT)
+
+# the key port (rev B)
+key_cc   = Pin(1, Pin.IN)                     # R17 pulls it up: 0 = a key-c in. No internal pull-up
+key_en   = Pin(2, Pin.OUT, value=0)           # 1 powers the key and lights D4; wait ~10 ms before talking to it
+key_i2c  = I2C(1, scl=Pin(39), sda=Pin(38), freq=100_000)        # a key-c at 0x60, only while key_en is 1
 ```
 
 Screen geometry is unchanged from the spec: 240 × 135 landscape, column offset 40, row offset 53,
@@ -101,3 +112,24 @@ later revision without them would get the Feather's profile, which drives GPIO40
 Checked on the laptop, not yet on a board: PicoQuorum's `test-vectors/feather_s3_test.py` runs the
 profile on a stand-in S3 with 16/17 pulled up, and `test-vectors/run-console.mjs` runs the
 three-button console on it in the emulator.
+
+**The key port is not in the console image yet.** The image drives none of GPIO1, 2, 38 or 39, so R15 holds KEY_EN low and a key-c on the plug gets no power: a rev B board runs the console
+exactly as rev A does, with the soldered chip. What the image needs, as a later change and a new
+release fingerprint:
+
+- the four pins in the `picoquorum-key` profile, other profiles `None`;
+- `signer.detect()` learns the second bus: when KEY_CC reads low, drive KEY_EN high, wait about
+  10 ms (the key's 200 nF and U5's soft start), scan I2C(1); when it reads high, drive KEY_EN low
+  and drop that signer. The soldered chip is read as today;
+- `same_chip()` already re-reads the serial just before a signature, on whichever chip is about to
+  sign, so a key swapped mid-approval is caught. That stays the hot-swap check;
+- **which key signs when both are in** is a product decision still open: the plan's proposal is the
+  plugged key when CC shows one and `QUORUM_EXPECT` pins it, else the soldered chip, named on the
+  splash and the Sign page;
+- the port's LED (D4) and a key-c P3's own (through R21 on SBU) run off VKEY: they are on while
+  the key is powered, and no pin drives them. U5's FAULT is left open, so an overload looks to the
+  image like a key that doesn't answer. Both were GPIOs in the plan (13 and 47); rev A's routing
+  closes in module pins 21 and 24, so rev B leaves them open (DESIGN.md, "The key port").
+
+`firmware/smoke/smoke.py` already drives the port (BRINGUP.md), and `tests/test_twin.py` runs it
+against the board's nets with a modelled key-c.

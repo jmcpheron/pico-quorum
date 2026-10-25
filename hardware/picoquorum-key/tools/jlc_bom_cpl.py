@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
-"""Turn kicad-cli's BOM and position CSVs into JLCPCB's BOM and CPL.
+"""Turn kicad-cli's BOM and position CSVs into JLCPCB's BOM and CPL, one pair per fit.
 
   python3 tools/jlc_bom_cpl.py --bom kicad-bom.csv --pos pos.csv --rotations rotations.json --out dir
 
-BOM in  (kicad-cli sch export bom, grouped): Reference,Value,Footprint,LCSC,MPN,Qty,DNP
+BOM in  (kicad-cli sch export bom, grouped): Reference,Value,Footprint,LCSC,MPN,Fit,Qty,DNP
 The JLCPCB "Comment" is the MPN where one is set, else the value.
 POS in  (kicad-cli pcb export pos --format csv): Ref,Val,Package,PosX,PosY,Rot,Side
 BOM out: Comment,Designator,Footprint,LCSC Part #
 CPL out: Designator,Mid X,Mid Y,Layer,Rotation
+
+Every board is the same copper; the Fit field says which boards get a part assembled. bom.csv and
+cpl.csv are the base board (Fit "base"); bom-port.csv and cpl-port.csv add the key port's parts
+(Fit "port"). One Gerber zip serves both.
 
 Rows without an LCSC number, and DNP rows, are dropped from both files and listed on stderr.
 Rotation offsets from rotations.json (substring match on the footprint name) are added to KiCad's
@@ -50,7 +54,20 @@ def main():
 
     bom_rows = read_csv(a.bom)
     pos_rows = {r["Ref"]: r for r in read_csv(a.pos)}
+    fits = sorted({(r.get("Fit") or "base").strip() for r in bom_rows}, key=lambda f: f != "base")
+    out = pathlib.Path(a.out)
+    out.mkdir(parents=True, exist_ok=True)
+    bad = False
+    for fit in fits:
+        rows = [r for r in bom_rows if (r.get("Fit") or "base").strip() in ("base", fit)]
+        suffix = "" if fit == "base" else "-" + fit
+        print(f"-- fit {fit}:", file=sys.stderr)
+        bad |= write_pair(rows, pos_rows, offsets, out / f"bom{suffix}.csv", out / f"cpl{suffix}.csv")
+    if bad:
+        sys.exit(2)
 
+
+def write_pair(bom_rows, pos_rows, offsets, bom_path, cpl_path):
     placed, skipped = {}, []
     out_bom = []
     for r in bom_rows:
@@ -88,23 +105,22 @@ def main():
                         "Layer": "Top" if p["Side"].lower().startswith("t") or p["Side"].lower() == "front" else "Bottom",
                         "Rotation": f"{rot:.1f}"})
 
-    out = pathlib.Path(a.out)
-    out.mkdir(parents=True, exist_ok=True)
-    with open(out / "bom.csv", "w", newline="") as f:
+    with open(bom_path, "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=["Comment", "Designator", "Footprint", "LCSC Part #"])
         w.writeheader(); w.writerows(out_bom)
-    with open(out / "cpl.csv", "w", newline="") as f:
+    with open(cpl_path, "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=["Designator", "Mid X", "Mid Y", "Layer", "Rotation"])
         w.writeheader(); w.writerows(out_cpl)
 
-    print(f"bom.csv: {len(out_bom)} lines, cpl.csv: {len(out_cpl)} parts", file=sys.stderr)
+    print(f"{bom_path.name}: {len(out_bom)} lines, {cpl_path.name}: {len(out_cpl)} parts", file=sys.stderr)
     if skipped:
         print("not in the assembly files:", file=sys.stderr)
         for refs, val, why in skipped:
             print(f"  {refs:24} {val:24} {why}", file=sys.stderr)
     if missing_pos:
         print("in BOM but not in the front position file (back side? THT?):", ", ".join(missing_pos), file=sys.stderr)
-        sys.exit(2)
+        return True
+    return False
 
 
 if __name__ == "__main__":

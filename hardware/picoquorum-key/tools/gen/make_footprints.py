@@ -10,6 +10,8 @@
   console:FPC_0.5mm_8P_C2919492         LCSC footprint; the two hold-down tabs numbered MP
   console:USB_C_Receptacle_HRO_TYPE-C-31-M-12_Edge   bundled footprint, silk off the board edge,
                                         GND contacts solid, the shell slots' rings 0.25 mm
+  console:USB_C_Plug_ShouHan_24P-GTJB_Straddle   wing-b's footprint (hardware/feather-wing), drawn
+                                        from the plug's drawing; the key port's plug (rev B)
 """
 import os
 import sys
@@ -97,10 +99,15 @@ for x in fp:
             size[1:] = [round(x1 - x0, 4), round(y1 - y0, 4)]
     keep.append(x)
 fp[:] = keep
+# KiCad's footprint carries a keep-out 15 mm either side of the module's antenna end (48 x 21 mm,
+# no copper, pads or parts). Rev B keeps out the antenna area and 0.5 mm instead, as console-s3
+# does, so the key port can use the top band's far end: gen_pcb.py draws that rule area on the board.
+fp[:] = [x for x in fp if not (isinstance(x, list) and x and x[0] == "zone" and find(x, "keepout"))]
 trim_silk(fp, ymin=-12.4)            # the antenna end sits on the board edge
 save(fp, "ESP32-S3-WROOM-1_HandSolder",
      "ESP32-S3-WROOM-1 for hand soldering: castellation pads +1.0 mm outward, no thermal vias under "
-     "pad 41 (leave it unsoldered, datasheet section 9). Based on KiCad's RF_Module:ESP32-S3-WROOM-1.")
+     "pad 41 (leave it unsoldered, datasheet section 9), no antenna keep-out of its own (the board "
+     "draws the antenna area and 0.5 mm). Based on KiCad's RF_Module:ESP32-S3-WROOM-1.")
 
 # --- tactile switch -----------------------------------------------------------------------------
 fp = load(os.path.join(JLC, "SW-SMD_4P-L4.5-W4.5-P3.00-LS6.8.kicad_mod"))
@@ -147,3 +154,24 @@ for m in find_all(fp, "model"):
 save(fp, "USB_C_Receptacle_HRO_TYPE-C-31-M-12_Edge",
      "HRO TYPE-C-31-M-12 (LCSC C165948), face flush with the board edge; silk trimmed back from the edge. "
      "Based on KiCad's Connector_USB footprint.")
+
+# --- the key port's plug: wing-b's straddle footprint -----------------------------------------------
+# One drawing of the plug in the repo: a fix to it in hardware/feather-wing comes here on the next run.
+# Two changes: wing-b's shell pads stop 0.15 mm short of the paddle's sides (x +-3.95); JLCPCB's
+# least copper to a routed edge is 0.20, so here they are 0.50 wide, not 0.55, and stop 0.20 short.
+# And no paste: the plug is soldered by hand, like the module, so the stencil leaves its pads alone.
+WING = os.path.join(ROOT, "..", "feather-wing", "lib", "pqwing.pretty")
+fp = load(os.path.join(WING, "USB_C_Plug_ShouHan_24P-GTJB_Straddle.kicad_mod"))
+for x in fp:
+    if isinstance(x, list) and x and x[0] == "pad":
+        layers = find(x, "layers")
+        layers[1:] = [l for l in layers[1:] if not str(l).endswith(".Paste")]
+        if pad_number(x) == "SH":
+            at, size = find(x, "at"), find(x, "size")
+            side = 1 if float(at[1]) > 0 else -1
+            size[1] = 0.5
+            at[1] = round(side * (3.95 - 0.20 - 0.25), 3)
+save(fp, "USB_C_Plug_ShouHan_24P-GTJB_Straddle",
+     "USB-C plug, straddle mount, SHOU HAN TYPE-C 24P-GTJB 040 (C3151751), for a 0.8 mm board: A row on "
+     "the front, B row on the back, the plug pointing to -y past the tip (y = 0). From hardware/feather-wing; "
+     "shell pads 0.20 mm from the paddle's sides.")

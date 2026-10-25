@@ -1,17 +1,19 @@
-"""Load symbols from KiCad's bundled libraries, flattening `extends`."""
+"""Load symbols from KiCad's bundled libraries, and the project's own `console` library, flattening `extends`."""
 import copy
 import os
 from sexp import parse, QStr, find, find_all
 
 KICAD_SYMBOLS = os.environ.get(
     "KICAD_SYMBOL_DIR", "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols")
+# the parts KiCad has no symbol for (the key port's plug and power switch), from hardware/feather-wing
+PROJECT_LIBS = {"console": os.path.join(os.path.dirname(__file__), "..", "..", "hardware", "lib", "console.kicad_sym")}
 
 _cache = {}
 
 
 def _lib(lib):
     if lib not in _cache:
-        path = os.path.join(KICAD_SYMBOLS, lib + ".kicad_sym")
+        path = PROJECT_LIBS.get(lib) or os.path.join(KICAD_SYMBOLS, lib + ".kicad_sym")
         tree = parse(open(path).read())
         _cache[lib] = {s[1]: s for s in find_all(tree, "symbol")}
     return _cache[lib]

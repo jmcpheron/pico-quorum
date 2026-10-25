@@ -10,9 +10,11 @@ draws everything again and saves. Silkscreen only: no copper changes.
 
 Fab limits kept everywhere: strokes >= 0.15 mm, text >= 1.0 mm high with a 0.15 mm stroke
 (JLCPCB's legibility minimums). Back-side text is mirrored, so it reads correctly with the board
-turned over left to right. The front panel hides silk under the glass (X 9-40, Y 8.5-26.1), so the
+turned over left to right. The front panel hides silk under the glass (X 15-46, Y 8.5-26.1), so the
 front art lives in the antenna band above it and in the strips around the glass. Filled shapes (the
 logos, the 8-bit art) have no line: their narrowest part is what JLCPCB's 0.15 mm applies to.
+
+Rev B's frame: the board grew 6 mm on the left for the key port, so every rev A X here is X + 6.
 """
 import math
 import os
@@ -22,8 +24,8 @@ import sys
 import pcbnew
 
 OX, OY = 100.0, 60.0
-W, H = 44.0, 53.0
-LINE = 0.2                      # default art stroke
+W, H = 50.0, 53.0
+LINE = 0.2                     # default art stroke
 MIN_LINE, MIN_TEXT = 0.15, 1.0  # JLCPCB legibility minimums (tests/test_silk.py checks these)
 
 F, B = pcbnew.F_SilkS, pcbnew.B_SilkS
@@ -197,7 +199,7 @@ DRAGON = ("....###.", "#####.#.", "....###.", ".....#..", ".....#..", "....##.."
           ".....#..", ".....#..", ".....#.#", ".....###")
 KEY = (".##......", "#..######", "#..#..#.#", ".##......")
 PIXEL = 0.3
-ART = [(KEY, 36.0, 33.0), (DRAGON, 40.7, 32.1)]   # each one's top left corner
+ART = [(KEY, 42.0, 33.0), (DRAGON, 46.7, 32.1)]   # each one's top left corner
 
 
 def pixels(board, rows, x0, y0):
@@ -212,19 +214,25 @@ def pixels(board, rows, x0, y0):
 
 # --- front art ------------------------------------------------------------------------------
 def wordmark(board):
-    """The mark and the name in the antenna band, over a rule that carries PicoQuorum.app."""
-    lockup(board, F, 22.0, 2.9, 2.4)
+    """The mark and the name over the module's antenna end, over a rule that carries PicoQuorum.app
+    (silk is not copper: it costs the antenna nothing), and KEY PORT pointing at the plug. Rev A had
+    the lockup across the whole band at a 2.4 mm cap; rev B's key port parts sit in the band's left
+    half, so it is 1.7 mm, 18.8 mm wide."""
+    cx = 39.5
+    lockup(board, F, cx, 2.6, 1.7)
     y = 6.1
-    box = text(board, F, SITE, 22.0, y, size=1.0)
-    seg(board, F, 3.0, y, box[0] - 0.9, y)
-    seg(board, F, box[2] + 0.9, y, 41.0, y)
-    for x in (3.0, 41.0):
+    box = text(board, F, SITE, cx, y, size=1.0)
+    seg(board, F, 30.6, y, box[0] - 0.9, y)
+    seg(board, F, box[2] + 0.9, y, 48.4, y)
+    for x in (30.6, 48.4):
         circle(board, F, x, y, 0.45, 0.15, filled=True)
+    text(board, F, "KEY PORT", 20.2, 1.5)
+    triangle(board, F, 15.4, 1.5, 0.7, "left")
 
 
 def panel_marks(board):
-    """Corner ticks 0.4 mm outside the glass (X 9-40, Y 8.5-26.1): where to set the panel."""
-    x0, y0, x1, y1 = 9.0, 8.5, 40.0, 26.1
+    """Corner ticks 0.4 mm outside the glass (X 15-46, Y 8.5-26.1): where to set the panel."""
+    x0, y0, x1, y1 = 15.0, 8.5, 46.0, 26.1
     g = 0.4
     for (cx, cy, sx, sy) in ((x0 - g, y0 - g, 1, 1), (x0 - g, y1 + g, 1, -1)):
         poly(board, F, [(cx + sx * 2.0, cy), (cx, cy), (cx, cy + sy * 2.0)], 0.15)
@@ -235,11 +243,11 @@ def panel_marks(board):
 def button_labels(board):
     """BOOT and RESET, each under its switch (SW6 at Y 39, SW7 at Y 46) and with a small glyph."""
     # BOOT: a lightning bolt (download mode)
-    box = text(board, F, "BOOT", 38.1, 42.5, align="right")
+    box = text(board, F, "BOOT", 44.1, 42.5, align="right")
     bx, by = box[0] - 0.9, 42.5
     poly(board, F, [(bx + 0.25, by - 0.5), (bx - 0.2, by + 0.05), (bx + 0.2, by + 0.05), (bx - 0.25, by + 0.5)], 0.18)
     # RESET: a circular arrow
-    box = text(board, F, "RESET", 38.1, 49.7, align="right")
+    box = text(board, F, "RESET", 44.1, 49.7, align="right")
     rx, ry, r = box[0] - 1.15, 49.7, 0.42
     arc3(board, F, (rx + r * math.cos(math.radians(-60)), ry + r * math.sin(math.radians(-60))),
          (rx - r, ry), (rx + r * math.cos(math.radians(60)), ry + r * math.sin(math.radians(60))), 0.16)
@@ -248,13 +256,13 @@ def button_labels(board):
 
 def usb_label(board):
     """'USB-C 5V' with an arrow pointing at the connector."""
-    text(board, F, "USB-C 5V", 14.4, H - 2.0, align="right")
-    triangle(board, F, 15.3, H - 2.0, 0.7, "right")
+    text(board, F, "USB-C 5V", 20.4, H - 2.0, align="right")
+    triangle(board, F, 21.3, H - 2.0, 0.7, "right")
 
 
 def hole_rings(board):
     """A silk ring round each M2 hole marks the screw-head keep-out."""
-    for x, y in ((3.0, 29.5), (41.0, 29.5), (3.0, H - 3.0), (41.0, H - 3.0)):
+    for x, y in ((3.0, 29.5), (47.0, 29.5), (3.0, H - 3.0), (47.0, H - 3.0)):
         circle(board, F, x, y, 2.0, 0.2)
 
 
@@ -268,14 +276,15 @@ def key_and_dragon(board):
 def title_block(board):
     """The mark, the name, the revision and a short legend on the empty left half of the back
     (mirrored)."""
-    x0, x1 = 6.0, 20.5          # clear of the module (X >= 22) and of the left mounting hole ring.
+    x0, x1 = 12.0, 26.5         # clear of the module (X >= 28), the plug's back row (X <= 12)
+                                # and the left mounting hole ring.
                                 # Seen from the back, x1 is the left edge: text is anchored there.
     cx = (x0 + x1) / 2
     r, dy = mark_ring()
     logo(board, B, "PicoQuorum_Mark", cx, 4.6 - dy * 0.9, 0.9)
     logo(board, B, "PicoQuorum_Name", cx, 9.6, 1.45)
     seg(board, B, x0, 12.0, x1, 12.0, 0.2)
-    text(board, B, "KEY, REV A", x1, 14.0, align="left")
+    text(board, B, "KEY, REV B", x1, 14.0, align="left")
     text(board, B, SITE, x1, 16.0, align="left")
     seg(board, B, x0, 18.0, x1, 18.0, 0.15)
     text(board, B, "R12+R13 = USB DATA", x1, 20.0, align="left")
@@ -284,15 +293,21 @@ def title_block(board):
 
 
 def back_key(board):
-    """A big key outline under the module, with its caption beside the tip (seen from the back)."""
-    kx, ky = 36.5, 29.3                       # bow centre (the bow is on the left when the board is turned over)
+    """A big key outline under the module, with its caption beside the tip (seen from the back).
+    Rev A said ONE OWNER / ONE KEY; with the key port a board can hold two keys, so it says ONE OWNER."""
+    kx, ky = 42.5, 29.3                       # bow centre (the bow is on the left when the board is turned over)
     for r in (1.9, 0.9):
         circle(board, B, kx, ky, r, 0.25)
     seg(board, B, kx - 1.9, ky, kx - 13.0, ky, 0.25)           # shaft
     for tx, tl in ((kx - 10.5, 1.7), (kx - 12.5, 2.4)):         # teeth
         seg(board, B, tx, ky, tx, ky + tl, 0.25)
-    text(board, B, "ONE OWNER", 14.5, ky - 0.6)
-    text(board, B, "ONE KEY", 14.5, ky + 1.2)
+    text(board, B, "ONE OWNER", 20.5, ky + 0.3)
+
+
+def pad_label(net):
+    """A test pad's label: its net, short enough for the 5.2 mm pitch (UART_TX -> TX, I2C_SDA -> SDA,
+    KEY_CC -> KCC, KEY2_SDA -> KSDA). tests/test_silk.py holds the labels to the same rule."""
+    return net.lstrip("/").replace("UART_", "").replace("I2C_", "").replace("KEY2_", "K").replace("KEY_", "K")
 
 
 def test_pads(board):
@@ -302,17 +317,17 @@ def test_pads(board):
     for fp in board.GetFootprints():
         ref = fp.GetReference()
         if ref.startswith("TP") and ref[2:].isdigit():
-            name = list(fp.Pads())[0].GetNetname().lstrip("/").replace("UART_", "").replace("I2C_", "")
+            name = pad_label(list(fp.Pads())[0].GetNetname())
             pos = fp.GetPosition()
             out.append((name, pcbnew.ToMM(pos.x) - OX, pcbnew.ToMM(pos.y) - OY))
     return out
 
 
 def test_pad_labels(board, tps):
-    """Net names under the twelve back test pads, mirrored."""
+    """Net names under the fourteen back test pads, mirrored."""
     for name, x, y in tps:
         text(board, B, name, x, y + 1.9)
-    text(board, B, "TEST PADS", 22.0, 43.0, align="center")
+    text(board, B, "TEST PADS", 33.2, 43.0, align="center")
 
 
 # --- entry points ---------------------------------------------------------------------------

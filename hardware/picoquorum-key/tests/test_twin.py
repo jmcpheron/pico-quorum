@@ -25,8 +25,8 @@ class Run:
     pass
 
 
-def run_smoke(pad_nets):
-    world = bm.World(pad_nets)
+def run_smoke(pad_nets, key_in=True):
+    world = bm.World(pad_nets, key_in=key_in)
     run = Run()
     run.world, run.probes = world, {}
 
@@ -99,6 +99,15 @@ def problems(run):
     edges = [v for _, v in w.led_events]
     if len(edges) < 10 or set(edges) != {0, 1}:
         bad.append("status LED not toggling through R8/D1 (%d edges)" % len(edges))
+    # rev B's key port, with a key-c plugged in
+    if not any("key port: CC reads 0" in l for l in run.log):
+        bad.append("key port: CC did not read a key (GPIO1 -> R18 -> J3 A5)")
+    if not any("key-c serial: 01 23 77 77" in l for l in run.log):
+        bad.append("key-c serial not read on the port's own bus (KEY_EN -> U5 -> VKEY, I2C(1) on J3 A6/A7)")
+    if not any("i2c(0) scan again: ['0x60']" in l for l in run.log):
+        bad.append("the soldered chip's bus changed with a key on the port")
+    if 1 not in [v for _, v in w.key_led_events]:
+        bad.append("key port LED never lit (KEY_EN -> U5 -> VKEY -> R22 -> D4)")
     return bad
 
 
@@ -114,7 +123,10 @@ MISWIRES = {
     "BTN_SIGN and BTN_NEXT exchanged": (33, 34),
     "I2C_SDA and I2C_SCL exchanged": (9, 10),
     "LCD_BL and LED exchanged": (23, 25),
-    "BTN_REJECT moved to unused pin 31": (35, 31),
+    "BTN_REJECT moved to unused pin 4": (35, 4),
+    "KEY2_SDA and KEY2_SCL exchanged": (31, 32),
+    "KEY_CC and KEY_EN exchanged": (39, 38),
+    "KEY_EN moved to unused pin 21": (38, 21),
 }
 
 
@@ -132,6 +144,14 @@ class Twin(unittest.TestCase):
             with self.subTest(miswire=name):
                 found = problems(run_smoke(swapped(self.nets, a, b)))
                 self.assertTrue(found, "the twin did not notice: " + name)
+
+    def test_no_key_leaves_the_port_unpowered(self):
+        """With nothing on the plug, CC reads high and smoke.py never drives KEY_EN."""
+        run = run_smoke(self.nets, key_in=False)
+        self.assertTrue(any("key port: CC reads 1" in l for l in run.log), "\n".join(run.log[-12:]))
+        self.assertFalse(any("VKEY on" in l for l in run.log))
+        en = run.world.gpio_net(2)
+        self.assertNotEqual(run.world.level(en), 1)
 
     def test_i2c_scan_finds_only_the_key(self):
         # The ATECC ignores the bus while asleep, so smoke.py must wake it before it scans.

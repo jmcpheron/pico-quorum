@@ -29,6 +29,7 @@ RULES = {
     "JLC: plated hole to other copper": ("hole_clearance", "min", "PTH_TO_TRACK_MIN", "PTH pad"),
     "JLC: non-plated hole size": ("hole_size", "min", "NPTH_DRILL_MIN", "NPTH pad"),
     "JLC: largest drill": ("hole_size", "max", "DRILL_MAX", "Via"),
+    "JLC: key port plug pads to the paddle sides": ("edge_clearance", "min", "COPPER_TO_OUTLINE_MIN", "Pad"),
 }
 # every limit in jlc_limits.py -> where it is enforced
 COVERAGE = {
@@ -89,12 +90,14 @@ def drc_json(pcb, tag):
 
 
 def jlc_hits(violations):
-    """[(rule name, first item's description)] for violations raised by a JLC rule."""
+    """[(rule name, first item's description)] for violations raised by a JLC rule. The board edge
+    is never the item: an edge clearance names the edge first."""
     hits = []
     for v in violations:
         mm = re.search(r"rule '(JLC:[^']*)'", v["description"])
         if mm:
-            hits.append((mm.group(1), v["items"][0]["description"]))
+            items = [i["description"] for i in v["items"]]
+            hits.append((mm.group(1), next((d for d in items if "Edge.Cuts" not in d), items[0])))
     return hits
 
 
@@ -146,7 +149,8 @@ class JlcRules(unittest.TestCase):
         tight = {"annular_width (min 0.18mm)": "annular_width (min 0.5mm)",
                  "hole_clearance (min 0.28mm)": "hole_clearance (min 2.0mm)",
                  "hole_size (min 0.5mm) (max 6.3mm)": "hole_size (min 3.0mm) (max 6.3mm)",
-                 "hole_size (max 6.3mm))": "hole_size (max 0.35mm))"}
+                 "hole_size (max 6.3mm))": "hole_size (max 0.35mm))",
+                 "edge_clearance (min 0.2mm)": "edge_clearance (min 1.5mm)"}
         for a, b in tight.items():
             self.assertIn(a, text)
             text = text.replace(a, b)

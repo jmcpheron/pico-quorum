@@ -31,7 +31,7 @@ RIBBON_T = 0.30        # ribbon with stiffener (datasheet)
 RIBBON_W = 4.5         # tail width (datasheet)
 FOLD_PROUD = 0.5       # the fold stands up to 0.5 mm proud of the glass edge (datasheet)
 TAPE_W = 2.0           # each foam strip, measured in from the glass's short edge
-BOARD_T = 1.6
+BOARD_T = 0.8           # rev B: the straddle plug's 0.80 mm
 M2_HEAD = (2.0, 1.6)   # ISO 7045 M2 pan head: radius (dk 4.0 / 2), height k
 M2_NUT = (2.2, 1.6)    # ISO 4032 M2 nut: across corners 4.32 / 2, height m
 HEIGHTS = {            # DESIGN.md "Height on the front", and the module's datasheet (3.1 mm)
@@ -129,7 +129,7 @@ class Fit3D(unittest.TestCase):
         missing = [r for r in self.r["no_model"] if not r.startswith(("TP", "H"))]
         self.assertEqual(missing, [], "placed parts with no 3D model in the STEP")
         self.assertEqual(self.r["unmatched_solids"], [], "solids in the STEP away from any footprint origin")
-        # KiCad seats models on the pad copper: the two faces sit about 0.04 mm outside the 1.6 mm board
+        # KiCad seats models on the pad copper: the two faces sit about 0.04 mm outside the board
         self.assertAlmostEqual(self.r["thickness"], BOARD_T, delta=0.1)
 
     def test_no_model_sinks_into_the_board(self):

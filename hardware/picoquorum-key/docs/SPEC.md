@@ -1,7 +1,7 @@
 # The console: what it has
 
-*Spec, 2026-10-23. What any console board must have and do, whatever its shape or size. The
-layout that meets it is [DESIGN.md](DESIGN.md) (rev A).*
+*Spec, 2026-10-23; the key port, 2026-10-25. What any console board must have and do, whatever its
+shape or size. The layout that meets it is [DESIGN.md](DESIGN.md) (rev B).*
 
 This page names no board size and no part positions. It says what each part is for, what the
 firmware expects of it, and the rules a layout must keep. "Must" is something the console image or
@@ -67,6 +67,7 @@ different table; a board that uses it needs no firmware change.)
 | D2: Sign, Open | 40 | to ground when pressed, internal pull-up |
 | PREV, BACK | 39, 38 | to ground when pressed, internal pull-up; today's image doesn't read them |
 | the key's I2C SDA, SCL | 16, 17 | 4.7k pull-ups to 3.3 V |
+| the key port (if fitted): SDA, SCL; CC; power enable | 38, 39; 1; 2 | its own I2C(1), 2.2k to the key's switched rail; CC 47k to 3.3 V; enable pulled down. Its LEDs run off the key's power; no pin. Rev B's ([PINS.md](PINS.md)) |
 | status LED | 48 | high is on |
 | USB D−, D+ | 19, 20 | the S3's own USB-Serial-JTAG |
 | BOOT | 0 | tact to ground, 10k pull-up; recovery only, never a UI button |
@@ -80,7 +81,7 @@ Rules for every other pin:
 
 ## The key
 
-- ATECC608C at I2C address **0x60**, on 3.3 V, with 100 nF at its VCC.
+- ATECC608C at I2C address **0x60**, on 3.3 V, with 100 nF at its VCC, **alone on its bus**.
 - **Pull-ups** of 2.2k to 4.7k on SDA and SCL, unless something else on the bus provides them.
 - **Nothing else on the bus at an address the firmware tries as a key**: 0x60, 0x35, 0x6A, 0x58,
   0x36 or 0x59. A part that must sit at one of them goes in the profile's `NOT_KEYS`.
@@ -89,6 +90,15 @@ Rules for every other pin:
   come out to pads**, so a key on wires can stand in for a soldered chip.
 - The ceremony runs on the board's own buttons. Nothing on the board may read a private key out or
   sign a digest it was handed (rule 3).
+
+**A key port beside a soldered chip.** A key-c is an ATECC608C at 0x60 too, so a port on a board
+that also has a soldered chip **must be on a bus of its own**: two chips at one address on one bus
+both answer and neither reads. The port's bus must have its pull-ups on the key's switched supply,
+ESD at the plug with its rail on 3.3 V (never the key's supply), and CC sensing so the firmware
+knows a key is in. The key's supply **must be off at reset** and stay off under an image that doesn't
+know the port: a current-limited switch with reverse blocking, its enable pulled down. A plugged key
+signs the same hash through the same code as the soldered chip (rule 1); the port adds no way to
+sign (rule 3). Rev B is such a board ([DESIGN.md](DESIGN.md#the-key-port-rev-b)).
 
 ## The screen
 
@@ -155,6 +165,7 @@ Bare pads, not fitted with anything:
 - **EN**, to reset by hand
 - **TX and RX** (UART0, GPIO43 and GPIO44), to read the boot log
 - **SDA, SCL, 3V3, GND**, the key's bus, for a key on wires
+- with a key port: its bus, CC and enable
 
 ## Making it
 
@@ -173,8 +184,8 @@ Bare pads, not fitted with anything:
 - [ ] Every button to ground when pressed with a pull-up (on `picoquorum-key`); no UI button on a strap.
 - [ ] D0, D1 and D2 level with rows 7, 67 and 127 of the screen.
 - [ ] The screen upright with the buttons on its left; backlight off at reset.
-- [ ] The ATECC608C alone at 0x60, with pull-ups, and nothing at the other key addresses unless
-      `NOT_KEYS` lists it.
+- [ ] The ATECC608C alone on its bus at 0x60, with pull-ups, and nothing at the other key addresses
+      unless `NOT_KEYS` lists it. A key port has a bus of its own and its key's power off at reset.
 - [ ] GPIO45 low and GPIO0 high at reset; GPIO46 unconnected.
 - [ ] 3.3 V good for 500 mA; EN's 10k and 1 µF.
 - [ ] USB-C with 5.1k on each CC, ESD on D+ and D−.
