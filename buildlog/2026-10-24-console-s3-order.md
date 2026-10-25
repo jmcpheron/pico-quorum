@@ -21,7 +21,7 @@ purchases (below).
 | Board | 2 layers, 64 × 22.86 mm, 1.6 mm FR-4 TG135, 1 oz, LeadFree HASL, green mask, white ink-jet silkscreen, tented vias, 0.3 mm via holes (0.4/0.45 mm pads), "Remove Mark", ±0.2 mm outline, IPC Class 2, flying-probe test of every board |
 | Delivery | single PCBs, not a panel |
 | Edges | not deburred ("Deburring/Edge rounding: No") |
-| Approvals | Production file: **No**. Parts placement: **yes** ($0.45); JLCPCB's review checked 2026-10-25 ([below](#jlcpcbs-parts-placement-review-2026-10-25)) |
+| Approvals | Production file: **No**. Parts placement: **yes** ($0.45); JLCPCB's review checked and **confirmed** 2026-10-25 ([below](#jlcpcbs-parts-placement-review-2026-10-25)) |
 | Shortage | "Require Full Quantity": all 5 or nothing |
 | Build time | PCB 24 hours (PCBA only); assembly 1–2 days |
 | Weight | PCB 0.14 kg, PCBA 0.18 kg |
@@ -179,7 +179,8 @@ calls pin 1.
   D0 or BOOT would read as always pressed.
 - **R1–R13, C1–C7:** not polarized. Each sits on its pads.
 
-Nothing found that needs "No, modification needed."
+Nothing found that needs "No, modification needed." **Confirmed** in Order History on 2026-10-25:
+"Yes, please proceed to production."
 
 ## The files
 
@@ -210,7 +211,7 @@ Gerbers if JLCPCB offers them, and compare hashes as for key-c.
 - [ ] The panel flex's pin count and pitch against J2
 - [ ] The uploaded files' hashes, against the table above
 - [x] JLCPCB's parts-placement review (2026-10-25): checked, as above
-- [ ] Placement confirmed in Order History ("Yes, please proceed to production"), and the production
-      progress after
+- [x] Placement confirmed in Order History (2026-10-25)
+- [ ] The production progress after it
 - [ ] On the bench: each switch open until pressed (the preview can't show it)
 - [ ] Tracking, arrival, and the bench steps in the plan's "When they arrive"
