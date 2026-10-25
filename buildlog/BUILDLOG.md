@@ -913,8 +913,8 @@ permanent step).
 ## 2026-10-24 — console-s3 ordered: the first console board
 
 Five console-s3 rev A boards from JLCPCB, Economic assembly on the front; the module goes on by
-hand. $96.72 with shipping and import, of which the boards are $50.85. The modules and panels are
-bought apart and not in that figure. Production file not confirmed; parts placement is.
+hand. $96.72 with shipping and import, of which the boards are $50.85. The modules ($43.10, LCSC) and
+panels ($15.11 as listed, Amazon) are bought apart and not in that figure. Production file not confirmed; parts placement is.
 
 Notes: [2026-10-24-console-s3-order.md](2026-10-24-console-s3-order.md). Plan:
 [ORDER-PLAN-2026-10-24.md](../ORDER-PLAN-2026-10-24.md). Design:

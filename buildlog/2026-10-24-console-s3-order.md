@@ -6,8 +6,8 @@ and assembled by JLCPCB, the module still to go on by hand. This is option A fro
 isn't in this order.
 
 What this page is from: the PCB and PCBA lines of the order, the PCBA's price breakdown (a
-screenshot), the order's BOM page, JLCPCB's invoice and its sales contract. Not yet seen: the
-receipts for the parts bought elsewhere (modules, panels).
+screenshot), the order's BOM page, JLCPCB's invoice and its sales contract, and the module and panel
+purchases (below). Not yet seen: the panels' receipt.
 
 ## The order
 
@@ -106,6 +106,38 @@ LCSC number.
 - **Spares:** two each of J2, U3 and U4 (seven bought for five boards). Everything else is exact.
 - **Not on the page:** U1, the module. It isn't in `bom.csv`, as option A means.
 
+## Parts bought elsewhere
+
+The modules and panels, from two phone screenshots. Name, address and phone left out.
+
+**Modules, LCSC.** Shipped Global Direct Standard Line. The page shows the order as paid.
+
+| | |
+|---|---|
+| Part | ESP32-S3-WROOM-1-N8R2, Espressif, LCSC **C2913204** |
+| Quantity | 10, at $4.0347 |
+| Merchandise | $40.35 |
+| Shipping | $8.75, less a $6.00 shipping discount |
+| **Total** | **$43.10**, paid $43.10 |
+
+That is $4.31 a module, and ten cover five boards twice over. The N8R2 is the variant U1 names.
+
+**Panels, Amazon.** From the product page, not an order or receipt.
+
+| | |
+|---|---|
+| Listing | Walfront, "ST7789V LCD Display Module 1.14 Inch SPI Color 135 X 240 HD Resolution Inline Type 2Pcs" |
+| Price shown | $15.11 for the pack of two |
+| History | "Purchased 1 time", last on 2026-10-23 |
+
+- **$15.11 is the price on the page.** What was paid, with tax, isn't seen. Check the order.
+- **Not checked against J2.** J2 is an 8-pin, 0.5 mm ZIF. The page doesn't give the panel's flex pin
+  count or pitch; the flex's print reads something like "NFP114H-03AF" in the photo (not certain). Check it against
+  `hardware/console-s3/DESIGN.md` before the boards arrive.
+
+Counting these as shown, the three purchases are about $155: $96.72 (JLCPCB), $43.10 (LCSC) and
+$15.11 (Amazon), against the plan's $75–90.
+
 ## The files
 
 The design files in the repository at `2c76e25` (2026-10-24), the last commit to touch `fab/`:
@@ -130,7 +162,8 @@ Gerbers if JLCPCB offers them, and compare hashes as for key-c.
 - [x] The BOM page as JLCPCB matched it (above): $17.93, U2 in stock
 - [ ] The $0.91 the breakdown doesn't show
 - [ ] The PCBA settings (paste, packaging, photo confirmation, customs category)
-- [ ] The receipts for the parts bought elsewhere: modules, panels
+- [x] The modules' receipt (above): $43.10 at LCSC
+- [ ] The panels' order total, and the flex's pin count and pitch against J2
 - [ ] The uploaded files' hashes, against the table above
 - [ ] JLCPCB's parts-placement review: pin 1 against `fab/check/cpl-overlay.png` for U2, U3, U4, Q1,
       Q2, D1, J1, J2. The overlay isn't committed: `tools/keypcb jlc console-s3` writes it
