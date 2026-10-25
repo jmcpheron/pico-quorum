@@ -1,0 +1,238 @@
+(footprint "USB_C_Plug_HRO_TYPE-C-31-G-03_Edge"
+	(descr "HRO TYPE-C-31-G-03 (LCSC C840338): USB-C plug, 12 contacts, right angle, its body past the board edge (y < 0). Pads from the datasheet's layout, 0.10 mm further in so copper keeps 0.30 from the edge.")
+	(version 20241229)
+	(generator "make_footprints.py")
+	(layer "F.Cu")
+	(property "Reference" "REF**"
+		(at 0 4 0)
+		(layer "F.Fab")
+		(effects
+			(font
+				(size 0.8 0.8)
+				(thickness 0.12)
+			)
+		)
+	)
+	(property "Value" "USB-C plug"
+		(at 0 -6 0)
+		(layer "F.Fab")
+		(effects
+			(font
+				(size 0.8 0.8)
+				(thickness 0.12)
+			)
+		)
+	)
+	(attr smd)
+	(pad "A1" smd rect
+		(at -2.75 1.8)
+		(size 0.3 1)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+	)
+	(pad "A2" smd rect
+		(at -2.25 1.8)
+		(size 0.3 1)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+	)
+	(pad "A3" smd rect
+		(at -1.75 1.8)
+		(size 0.3 1)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+	)
+	(pad "A4" smd rect
+		(at -1.25 1.8)
+		(size 0.3 1)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+	)
+	(pad "B12" smd rect
+		(at -0.75 1.8)
+		(size 0.3 1)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+	)
+	(pad "B11" smd rect
+		(at -0.25 1.8)
+		(size 0.3 1)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+	)
+	(pad "B10" smd rect
+		(at 0.25 1.8)
+		(size 0.3 1)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+	)
+	(pad "B9" smd rect
+		(at 0.75 1.8)
+		(size 0.3 1)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+	)
+	(pad "A5" smd rect
+		(at 1.25 1.8)
+		(size 0.3 1)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+	)
+	(pad "A6" smd rect
+		(at 1.75 1.8)
+		(size 0.3 1)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+	)
+	(pad "A7" smd rect
+		(at 2.25 1.8)
+		(size 0.3 1)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+	)
+	(pad "A12" smd rect
+		(at 2.75 1.8)
+		(size 0.3 1)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+	)
+	(pad "SH" smd rect
+		(at -3.575 0.9)
+		(size 0.5 1.2)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+		(zone_connect 2)
+	)
+	(pad "SH" smd rect
+		(at 3.575 0.9)
+		(size 0.5 1.2)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+		(zone_connect 2)
+	)
+	(pad "SH" smd rect
+		(at -4.7 1.35)
+		(size 1.3 2.1)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+		(zone_connect 2)
+	)
+	(pad "SH" smd rect
+		(at 4.7 1.35)
+		(size 1.3 2.1)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+		(zone_connect 2)
+	)
+	(fp_line
+		(start -4.175 -11.25)
+		(end 4.175 -11.25)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+	)
+	(fp_line
+		(start 4.175 -11.25)
+		(end 4.175 -1.9)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+	)
+	(fp_line
+		(start -4.175 -1.9)
+		(end -4.175 -11.25)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+	)
+	(fp_line
+		(start -5.05 -1.9)
+		(end 5.05 -1.9)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+	)
+	(fp_line
+		(start 5.05 -1.9)
+		(end 5.05 0)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+	)
+	(fp_line
+		(start -5.05 0)
+		(end -5.05 -1.9)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+	)
+	(fp_line
+		(start -5.6 0)
+		(end 5.6 0)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+	)
+	(fp_line
+		(start -5.6 -11.5)
+		(end 5.6 -11.5)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+	)
+	(fp_line
+		(start 5.6 -11.5)
+		(end 5.6 2.65)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+	)
+	(fp_line
+		(start 5.6 2.65)
+		(end -5.6 2.65)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+	)
+	(fp_line
+		(start -5.6 2.65)
+		(end -5.6 -11.5)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+	)
+	(fp_line
+		(start -5.6 2.9)
+		(end -5.6 1)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.SilkS")
+	)
+	(fp_line
+		(start 5.6 2.9)
+		(end 5.6 1)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.SilkS")
+	)
+	(fp_circle
+		(center -2.75 3)
+		(end -2.65 3)
+		(stroke
+			(width 0.2)
+			(type solid)
+		)
+		(fill yes)
+		(layer "F.SilkS")
+	)
+)

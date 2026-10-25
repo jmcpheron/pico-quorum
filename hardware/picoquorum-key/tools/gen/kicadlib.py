@@ -6,12 +6,15 @@ from sexp import parse, QStr, find, find_all
 KICAD_SYMBOLS = os.environ.get(
     "KICAD_SYMBOL_DIR", "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols")
 
+# the project's own symbols (tools/gen/make_symbols.py), for parts KiCad's libraries lack
+PROJECT_LIBS = {"console": os.path.join(os.path.dirname(__file__), "..", "..", "hardware/lib/console.kicad_sym")}
+
 _cache = {}
 
 
 def _lib(lib):
     if lib not in _cache:
-        path = os.path.join(KICAD_SYMBOLS, lib + ".kicad_sym")
+        path = PROJECT_LIBS.get(lib, os.path.join(KICAD_SYMBOLS, lib + ".kicad_sym"))
         tree = parse(open(path).read())
         _cache[lib] = {s[1]: s for s in find_all(tree, "symbol")}
     return _cache[lib]

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Regenerate picoquorum-key from tools/gen/circuit.py and the placement in tools/gen/gen_pcb.py:
-#   project footprints -> schematic -> ERC -> netlist -> netlist check -> placed board -> DRC
+#   project symbols and footprints -> schematic -> ERC -> netlist -> netlist check -> placed board -> DRC
 #
 #   tools/build_board.sh            stops if the schematic or board was edited by hand / has tracks
 #   tools/build_board.sh --force    rebuilds both from scratch (hand edits and routing are lost)
@@ -15,6 +15,7 @@ FORCE="${1:-}"
 mkdir -p "$WORK"
 quiet() { grep -v -E "Fontconfig|stdpbase|memory leak|^Plotted|^Done" || true; }
 
+echo "== symbols";     python3 "$HERE/tools/gen/make_symbols.py"
 echo "== footprints";  python3 "$HERE/tools/gen/make_footprints.py"
 echo "== schematic";   python3 "$HERE/tools/gen/gen_sch.py" $FORCE
 echo "== ERC"

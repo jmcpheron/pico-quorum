@@ -266,33 +266,28 @@ def key_and_dragon(board):
 
 # --- back art -------------------------------------------------------------------------------
 def title_block(board):
-    """The mark, the name, the revision and a short legend on the empty left half of the back
-    (mirrored)."""
-    x0, x1 = 6.0, 20.5          # clear of the module (X >= 22) and of the left mounting hole ring.
-                                # Seen from the back, x1 is the left edge: text is anchored there.
-    cx = (x0 + x1) / 2
-    r, dy = mark_ring()
-    logo(board, B, "PicoQuorum_Mark", cx, 4.6 - dy * 0.9, 0.9)
-    logo(board, B, "PicoQuorum_Name", cx, 9.6, 1.45)
-    seg(board, B, x0, 12.0, x1, 12.0, 0.2)
-    text(board, B, "KEY, REV A", x1, 14.0, align="left")
-    text(board, B, SITE, x1, 16.0, align="left")
-    seg(board, B, x0, 18.0, x1, 18.0, 0.15)
-    text(board, B, "R12+R13 = USB DATA", x1, 20.0, align="left")
-    text(board, B, "remove: power-only", x1, 21.8, align="left")
-    text(board, B, "BOOT+RESET = FLASH", x1, 24.0, align="left")
+    """The mark and the name in the antenna band with PicoQuorum.app under them, as on the front;
+    the revision and a short legend under the key port's parts, left of the key (mirrored)."""
+    lockup(board, B, 11.8, 2.7, 1.7)       # X 2.4-21.2: clear of the module (X >= 22.4)
+    text(board, B, SITE, 11.8, 5.9)
+    x1 = 22.0                               # seen from the back, the left edge: text anchored there
+    text(board, B, "KEY, REV A", x1, 27.0, align="left")
+    text(board, B, "R12+R13 = USB DATA", x1, 28.8, align="left")
+    text(board, B, "remove: power-only", x1, 30.4, align="left")
+    text(board, B, "BOOT+RESET = FLASH", x1, 32.2, align="left")
 
 
 def back_key(board):
-    """A big key outline under the module, with its caption beside the tip (seen from the back)."""
+    """A big key outline under the module, with its caption on one line under it (seen from the
+    back). Left of the key is the key port's parts."""
     kx, ky = 36.5, 29.3                       # bow centre (the bow is on the left when the board is turned over)
     for r in (1.9, 0.9):
         circle(board, B, kx, ky, r, 0.25)
     seg(board, B, kx - 1.9, ky, kx - 13.0, ky, 0.25)           # shaft
     for tx, tl in ((kx - 10.5, 1.7), (kx - 12.5, 2.4)):         # teeth
         seg(board, B, tx, ky, tx, ky + tl, 0.25)
-    text(board, B, "ONE OWNER", 14.5, ky - 0.6)
-    text(board, B, "ONE KEY", 14.5, ky + 1.2)
+    text(board, B, "ONE OWNER", 35.0, ky + 3.6)              # mirrored: reads first, from the back
+    text(board, B, "ONE KEY", 26.0, ky + 3.6)
 
 
 def test_pads(board):

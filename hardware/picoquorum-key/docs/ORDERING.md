@@ -9,6 +9,11 @@ there). No plugins are required; everything is `kicad-cli` plus one Python scrip
       otherwise).
 - [ ] Every placed symbol has an `LCSC` field with its C-number ([BOM.md](BOM.md)).
 - [ ] U1 (module) is marked **DNP** so it leaves the assembly BOM but stays on the board. Test points and mounting holes are **excluded from BOM**.
+- [ ] The key port's parts (J3, U5, U6, D2, R15–R19, C9, C10) are **DNP** too: none is in `bom.csv` or
+      `cpl.csv`. For boards that get a port, buy them from LCSC with the modules
+      ([BOM.md](BOM.md#the-key-port-fitted-by-hand-optional)).
+- [ ] One real TYPE-C-31-G-03 plug checked against a 1:1 print of the back: its twelve tails on their
+      pads with its body against the left edge ([DESIGN.md](DESIGN.md#the-key-port-optional)).
 - [ ] One real ER-TFT1.14-2 checked on a 1:1 print: folded tail reaches J2, pin 1 at the bottom.
       See [DESIGN.md](DESIGN.md), "The panel and its ribbon".
 - [ ] `hardware/out/rev-a/fit-check-front-1to1.pdf` printed at 100% ("actual size") and checked

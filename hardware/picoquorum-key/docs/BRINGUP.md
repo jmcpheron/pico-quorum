@@ -92,6 +92,33 @@ the chip's public serial number; it signs nothing and reads no key (rule 3).
   release that has the `picoquorum-key` profile; 2026.10.12 and earlier don't
   ([PINS.md](PINS.md#in-the-console-image)).
 
+## 7. The key port (optional)
+
+Only for a board that gets the port ([DESIGN.md](DESIGN.md#the-key-port-optional), parts in
+[BOM.md](BOM.md#the-key-port-fitted-by-hand-optional)). Do it after the smoke test passes, so a fault
+here isn't mistaken for one elsewhere. Everything is on the back, beside the module.
+
+- Solder the small parts first: U5, U6 (pin 1 at the silkscreen dot), D2 (its band, the cathode,
+  toward VKEY), then R15–R19, C9 and C10.
+- Then the plug, J3: its body past the left edge, its back pressed against the edge, its twelve
+  tails on their pads. Tack the two outer shell pads, check the tails line up, flux, and drag-solder
+  the row (0.5 mm pitch). Solder all four shell pads well: they hold it.
+- Meter, unplugged: VKEY (J3's A4 or the top of C10) to GND not a short; IO1 (TP9) to 3V3 about
+  23 kΩ; IO2 (TP10) to 3V3 about 10 kΩ.
+- Plug in USB, no key: TP9 at 3.3 V, VKEY about 3.3 V.
+- Put key-c on: TP9 falls to about 0.6 V. Take it off: back to 3.3 V.
+- In the REPL, with key-c on:
+
+```python
+from machine import Pin, I2C
+Pin(1, Pin.IN).value()                         # 0: a key is in; 1: none
+I2C(1, scl=Pin(38), sda=Pin(39)).scan()        # [96]: the plugged key at 0x60
+I2C(0, scl=Pin(17), sda=Pin(16)).scan()        # [96]: U2, alone on its own bus
+```
+
+This reads nothing from either chip but its address. The console image doesn't use the port yet
+([PINS.md](PINS.md#the-key-ports-pins)).
+
 ## Checks worth a minute each
 
 - 3V3 under Wi-Fi: with the console image scanning, 3V3 stays above 3.2 V at the pad.

@@ -34,12 +34,12 @@ def P(*a, **k):
     PARTS.append(Part(*a, **k))
 
 
-def R(ref, value, lcsc, pos, n1, n2, note=""):
-    P(ref, "Device:R", value, R0603, lcsc, pos, {"1": n1, "2": n2}, note=note)
+def R(ref, value, lcsc, pos, n1, n2, note="", dnp=False):
+    P(ref, "Device:R", value, R0603, lcsc, pos, {"1": n1, "2": n2}, note=note, dnp=dnp)
 
 
-def C(ref, value, lcsc, pos, n1, n2, fp=C0603, note=""):
-    P(ref, "Device:C", value, fp, lcsc, pos, {"1": n1, "2": n2}, note=note)
+def C(ref, value, lcsc, pos, n1, n2, fp=C0603, note="", dnp=False):
+    P(ref, "Device:C", value, fp, lcsc, pos, {"1": n1, "2": n2}, note=note, dnp=dnp)
 
 
 def SW(ref, value, pos, net):
@@ -84,7 +84,7 @@ P("U1", "RF_Module:ESP32-S3-WROOM-1", "ESP32-S3-WROOM-1-N8R2", "console:ESP32-S3
   "C2913204", (233.68, 104.14), {
       "1": "GND", "40": "GND", "41": "GND", "2": "+3V3", "3": "EN",
       "27": "BOOT",                      # IO0, strap: BOOT button only
-      "39": "IO1", "38": "IO2",          # spares to pads
+      "39": "IO1", "38": "IO2",          # to pads; the key port's detect and power enable (section 7)
       "15": NC,                          # IO3 strap (JTAG source), unconnected
       "4": NC, "5": NC, "6": NC, "7": NC, "12": NC, "8": NC, "11": NC, "21": NC, "24": NC,
       "17": "LCD_DC", "18": "LCD_CS", "19": "LCD_MOSI", "20": "LCD_SCK", "22": "LCD_RST",
@@ -94,7 +94,7 @@ P("U1", "RF_Module:ESP32-S3-WROOM-1", "ESP32-S3-WROOM-1-N8R2", "console:ESP32-S3
       "13": "USB_DN_MCU", "14": "USB_DP_MCU",
       "28": NC, "29": NC, "30": NC,      # IO35-37: octal PSRAM on R8 modules
       "35": "BTN_REJECT", "34": "BTN_NEXT", "33": "BTN_SIGN",
-      "32": NC, "31": NC,                # IO39, IO38: free (PREV/BACK were dropped after rev A's first layout)
+      "32": "KEY_SDA", "31": "KEY_SCL",  # IO39, IO38: the key port's own bus (section 7); PREV/BACK were dropped
       "26": NC, "16": NC,                # IO45, IO46 straps, unconnected
       "25": "LED"},
   dnp=True, mpn="ESP32-S3-WROOM-1-N8R2", note="hand-soldered on the back")
@@ -160,6 +160,34 @@ for i in range(4):
       (317.5 + i * 15.24, 248.92), {}, in_bom=False)
 
 # ---------------------------------------------------------------------------------------------
+# 7. The key port: a USB-C plug at the left edge, on the back, for key-c. Optional: every part is
+# DNP, off JLCPCB's BOM and CPL, and fitted by hand. Unfitted, the board is rev A as it was: U2
+# keeps its bus, and IO1, IO2, IO38 and IO39 lead only to empty pads. Fitted, the plugged key is on
+# a bus of its own (IO39/IO38), since it and U2 both answer at 0x60.
+# ---------------------------------------------------------------------------------------------
+P("J3", "console:USB_C_Plug_12P", "USB-C plug", "console:USB_C_Plug_HRO_TYPE-C-31-G-03_Edge", "C840338",
+  (40.64, 264.16), {
+      "A1": "GND", "A12": "GND", "B12": "GND", "SH": "GND",
+      "A4": "VKEY", "B9": "VKEY", "A5": "KEY_CC", "A6": "KEY_SDA", "A7": "KEY_SCL",
+      "A2": NC, "A3": NC, "B10": NC, "B11": NC},
+  dnp=True, mpn="HRO TYPE-C-31-G-03", note="key-c plugs on: SDA on D+, SCL on D-, power on VBUS, a 5.1k Rd on each CC")
+P("U5", "console:AP22653", "AP22653W6-7", "Package_TO_SOT_SMD:SOT-23-6", "C2158037", (111.76, 259.08),
+  {"1": "+3V3", "2": "GND", "3": "IO2", "4": NC, "5": "GND", "6": "VKEY"},
+  dnp=True, mpn="AP22653W6-7", note="key power: 80 mA limit (ILIM to GND), reverse blocking, output discharge")
+R("R19", "10k", "C25804", (88.9, 271.78), "+3V3", "IO2", note="U5 on unless IO2 drives low", dnp=True)
+C("C9", "100n", "C14663", (139.7, 271.78), "+3V3", "GND", note="U5 input", dnp=True)
+C("C10", "10u", "C15850", (149.86, 271.78), "VKEY", "GND", C0805, note="U5 output; no bigger, U5 discharges it", dnp=True)
+P("D2", "Diode:ESD5Zxx", "ESD5Z5V0", "Diode_SMD:D_SOD-523", "C502546", (170.18, 271.78),
+  {"1": "VKEY", "2": "GND"}, dnp=True, mpn="ESD5Z5V0", note="TVS on VKEY: a 5 V source on the plug stops at U5")
+P("U6", "Power_Protection:SRV05-4", "SRV05-4", "Package_TO_SOT_SMD:SOT-23-6", "C13612", (200.66, 264.16),
+  {"6": "KEY_SDA", "4": "KEY_SCL", "1": "KEY_CC", "3": NC, "5": "+3V3", "2": "GND"},   # its four lines are alike: SDA, SCL on the plug's side
+  dnp=True, mpn="SRV05-4.TCT", note="ESD on the plug's SDA, SCL and CC; rail on 3V3, never VKEY")
+R("R15", "2.2k", "C4190", (233.68, 254.0), "VKEY", "KEY_SDA", note="pull-up to VKEY: a key that is off isn't fed through SDA", dnp=True)
+R("R16", "2.2k", "C4190", (243.84, 254.0), "VKEY", "KEY_SCL", note="pull-up to VKEY", dnp=True)
+R("R17", "22k", "C31850", (259.08, 254.0), "+3V3", "KEY_CC", note="CC pull-up: 0.62 V with a key's 5.1k Rd (a logic low), 3.3 V empty", dnp=True)
+R("R18", "1k", "C21190", (269.24, 254.0), "KEY_CC", "IO1", note="CC into IO1 (ADC1_CH0), limits what the plug can push in", dnp=True)
+
+# ---------------------------------------------------------------------------------------------
 # Section notes drawn on the sheet
 # ---------------------------------------------------------------------------------------------
 NOTES = [
@@ -175,4 +203,7 @@ NOTES = [
     ((165.1, 165.1), "5  THE KEY: ATECC608C-MAHDA at 0x60\nNothing else on the bus. Placed by JLCPCB.\n"
                      "Bus also on pads TP6/TP7 for a key on wires."),
     ((292.1, 165.1), "6  DEBUG PADS (back face) AND MOUNTING HOLES\nTP: 3V3 GND EN TX RX SDA SCL BOOT IO1 IO2 5V GND"),
+    ((25.4, 233.68), "7  KEY PORT (optional: back face, every part DNP, fitted by hand)\n"
+                     "USB-C plug for key-c at the left edge. Its own bus, IO39/IO38: U2 is at 0x60 too.\n"
+                     "IO1 reads CC: low = key in, high = none. IO2 high (R19) = key powered."),
 ]

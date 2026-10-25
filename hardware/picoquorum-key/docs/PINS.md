@@ -52,12 +52,33 @@ KiCad 10's `RF_Module:ESP32-S3-WROOM-1` symbol.
 | UART0 TX | 43 | 37 | UART_TX | debug pad TP4 only |
 | UART0 RX | 44 | 36 | UART_RX | debug pad TP5 only |
 | EN | – | 3 | EN | 10k to 3.3 V, 1 µF to GND, RESET tact to GND, pad TP3 |
-| spare | 1, 2 | 39, 38 | IO1, IO2 | to pads TP9, TP10 only; both are ADC1 inputs |
-| unconnected | 4–8, 13, 15, 18, 38, 39, 47 | 4–7, 12, 21, 8, 11, 31, 32, 24 | | free GPIOs, no copper; 38 and 39 were PREV and BACK |
+| key port detect | 1 | 39 | IO1 | pad TP9; through R18 1k from the plug's CC: low with a key in (0.62 V), high with none. ADC1_CH0 too. Unfitted port: a spare pad |
+| key port power | 2 | 38 | IO2 | pad TP10; U5's EN, R19 10k pull-up: high (or floating) = the plugged key powered. Unfitted port: a spare pad |
+| key port SDA | 39 | 32 | KEY_SDA | the plug's own bus, 2.2k to VKEY; only with the port fitted. Was PREV's |
+| key port SCL | 38 | 31 | KEY_SCL | the same. Was BACK's |
+| unconnected | 4–8, 13, 15, 18, 47 | 4–7, 12, 21, 8, 11, 24 | | free GPIOs, no copper |
 | unconnected strap | 3, 45, 46 | 15, 26, 16 | | left floating on purpose |
 | unconnected | 35–37 | 28–30 | | reserved for R8 modules' PSRAM |
 | 3V3 | – | 2 | +3V3 | 22 µF + 100 nF beside the module |
 | GND | – | 1, 40, 41 | GND | 41 is the exposed pad; needn't be soldered |
+
+## The key port's pins
+
+The key port (DESIGN.md, ["The key port"](DESIGN.md#the-key-port-optional)) is optional and its
+parts are fitted by hand. Its plug's key gets a bus of its own, GPIO39 (SDA) and GPIO38 (SCL),
+because it and U2 both answer at 0x60; on U2's bus the two would answer together. Detect and power
+use IO1 and IO2, which were spare pads already.
+
+GPIO39 and 38 are module pins 32 and 31. They were PREV and BACK in the spec's table, which rev A
+never fitted, and the image never reads them. They face the port across the back. GPIO47 and 13,
+the first choice, sit in the module's bottom row between the screen's tracks, and the router
+couldn't bring the bus out from there. A later board that fits PREV and BACK puts them, or this
+bus, on 13 and 47: a profile change either way.
+
+**The console image doesn't use these pins yet.** The `picoquorum-key` profile in
+`firmware/board.py` names only U2's bus, so a fitted port does nothing until a firmware change adds
+it: a new profile entry and a new release fingerprint. With the port unfitted, nothing on these
+four pins is driven or pulled, and the board is rev A as before.
 
 ## Straps at reset (datasheet Table 4-1)
 

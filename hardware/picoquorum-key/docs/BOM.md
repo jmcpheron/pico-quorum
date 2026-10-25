@@ -46,6 +46,28 @@ is no polyfuse: JLCPCB has no Basic-tier PPTC, and a USB port limits current its
 | panel (alt) | – | Walfront "ST7789V 1.14 Inch … Inline Type 2Pcs": the same generic panel, ribbon marked **NFP114H-03AF**, 8-pin 0.5 mm plug-in, pin 1 LEDA, pin 4 RS, 31 × 17 × 1.6 mm, 54 mm long with the ribbon | Amazon ASIN B0BNLLZQNK (checked 2026-10-23 from the listing photos; no datasheet) | ≈ $7.50 each (2-pack) | fits J2 with no change. Fast to get, so useful for the 1:1 fit check before ordering. On arrival check the "1"/"8" marks on the ribbon |
 | tape | – | 1.5 mm double-sided foam tape | any | | panel to board, at the glass ends; clears the 1.0 mm ZIF under the glass |
 
+## The key port: fitted by hand, optional
+
+Every part of the key port ([DESIGN.md](DESIGN.md#the-key-port-optional)) is DNP, so none of it is
+in `bom.csv` or `cpl.csv` and JLCPCB's order doesn't change. Buy these per board that gets a port,
+from LCSC, and solder them on the back after the module. Checked at JLCPCB's parts search on
+2026-10-25.
+
+| ref | qty per board | part | package | LCSC | stock | note |
+|---|---|---|---|---|---|---|
+| J3 | 1 | USB-C plug, right angle at the board edge, 12 contacts, HRO TYPE-C-31-G-03 | SMD, 0.5 mm pitch | C840338 | 1,761 | key-c slides on. Its body goes past the left edge |
+| U5 | 1 | AP22653W6-7, current-limited high-side switch | SOT-23-6 | C2158037 | 12,937 | the key's power, 80 mA; console-a's and the wings' part |
+| U6 | 1 | SRV05-4, 4-line ESD array (Semtech SRV05-4.TCT) | SOT-23-6 | C13612 | 101,994 | SDA, SCL, CC |
+| D2 | 1 | ESD5Z5V0 TVS | SOD-523 | C502546 | 108,678 | on VKEY |
+| R15, R16 | 2 | 2.2 kΩ 1% | 0603 | C4190 | basic | the key's SDA and SCL pull-ups, to VKEY |
+| R17 | 1 | 22 kΩ 1% | 0603 | C31850 | basic | CC pull-up |
+| R18 | 1 | 1 kΩ 1% | 0603 | C21190 | basic | CC into IO1 |
+| R19 | 1 | 10 kΩ 1% | 0603 | C25804 | basic | U5's EN pull-up |
+| C9 | 1 | 100 nF X7R | 0603 | C14663 | basic | U5's input |
+| C10 | 1 | 10 µF X5R | 0805 | C15850 | basic | VKEY |
+
+Prices weren't read. Leave them all off and the board is rev A as it was.
+
 ## Cost, five boards (estimate, confirm at quote)
 
 | item | est. |

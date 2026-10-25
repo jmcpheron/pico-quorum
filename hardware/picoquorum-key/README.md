@@ -32,10 +32,12 @@ tools/gen/             the generators: circuit.py is the source of the schematic
 tools/                 build, autoroute, export and BOM/CPL conversion scripts
 ```
 
-Status (2026-10-24): rev A is designed, routed and exported. ERC, DRC and schematic parity are
-clean, and `hardware/out/rev-a/` holds the JLCPCB Gerber zip, BOM and placement file. Before
-ordering: review the routing in KiCad, fit-check one real ER-TFT1.14-2 panel on a 1:1 print, and
-check part rotations in JLCPCB's preview ([docs/ORDERING.md](docs/ORDERING.md)).
+Status (2026-10-25): rev A is designed, routed and exported, now with pads for the optional key
+port. ERC, DRC and schematic parity are clean, and `hardware/out/rev-a/` holds the JLCPCB Gerber
+zip, BOM and placement file; the BOM and placement file are unchanged by the key port, whose parts
+are all DNP. Before ordering: review the routing in KiCad (the key port's area most), fit-check one
+real ER-TFT1.14-2 panel and one TYPE-C-31-G-03 plug on a 1:1 print, and check part rotations in
+JLCPCB's preview ([docs/ORDERING.md](docs/ORDERING.md)).
 
 ![rev A with its panel fitted (mock screen)](docs/img/rev-a-device-iso.png)
 
@@ -55,6 +57,10 @@ Renders of the finished device, with the panel showing a mock transaction screen
   fingerprint, chosen on purpose.
 - Backlight switched on the high side from the 5 V rail, so the LED current is set by a resistor
   and does not load the 3.3 V regulator.
+- An **optional key port** (2026-10-25): pads on the back for a right-angle USB-C plug at the left
+  edge, beside the module, that key-c slides onto, with its own power switch, ESD and a detect
+  line, on a bus of its own. Every part is DNP and fitted by hand; without them the board is as it
+  was ([docs/DESIGN.md](docs/DESIGN.md#the-key-port-optional)).
 
 ## In PicoQuorum
 

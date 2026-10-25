@@ -147,3 +147,55 @@ for m in find_all(fp, "model"):
 save(fp, "USB_C_Receptacle_HRO_TYPE-C-31-M-12_Edge",
      "HRO TYPE-C-31-M-12 (LCSC C165948), face flush with the board edge; silk trimmed back from the edge. "
      "Based on KiCad's Connector_USB footprint.")
+
+# --- the key port's USB-C plug, right angle at a board edge ----------------------------------------
+# HRO TYPE-C-31-G-03 (LCSC C840338), drawn from its datasheet's "recommended PCB layout (top view)".
+# Local frame: the board edge on y = 0, the board at +y, the plug's body beyond the edge at -y.
+# The drawing puts the pads' outer ends 0.20 from the edge; here they are 0.30, the board's own
+# copper-to-edge minimum, so the tails land 0.1 mm further along pads 1.0-2.1 mm long. The body
+# hangs 0.95 mm below the pads' plane, beside the board's edge, so it needs no cut-out.
+EDGE = 0.30
+ROW = ["A1", "A2", "A3", "A4", "B12", "B11", "B10", "B9", "A5", "A6", "A7", "A12"]   # left to right
+
+
+def smd(num, x, y0, w, h):
+    return ["pad", QStr(num), "smd", "rect", ["at", round(x, 4), round(y0 + h / 2, 4)], ["size", w, h],
+            ["layers", QStr("F.Cu"), QStr("F.Paste"), QStr("F.Mask")]]
+
+
+def line(layer, x0, y0, x1, y1, width):
+    return ["fp_line", ["start", x0, y0], ["end", x1, y1],
+            ["stroke", ["width", width], ["type", "solid"]], ["layer", QStr(layer)]]
+
+
+fp = ["footprint", QStr("USB_C_Plug_HRO_TYPE-C-31-G-03_Edge"), ["version", 20241229],
+      ["generator", QStr("make_footprints.py")], ["layer", QStr("F.Cu")],
+      ["property", QStr("Reference"), QStr("REF**"), ["at", 0, 4.0, 0], ["layer", QStr("F.Fab")],
+       ["effects", ["font", ["size", 0.8, 0.8], ["thickness", 0.12]]]],
+      ["property", QStr("Value"), QStr("USB-C plug"), ["at", 0, -6.0, 0], ["layer", QStr("F.Fab")],
+       ["effects", ["font", ["size", 0.8, 0.8], ["thickness", 0.12]]]],
+      ["attr", "smd"]]
+for i, num in enumerate(ROW):                                     # 0.30 x 1.00, 0.50 pitch
+    fp.append(smd(num, -2.75 + 0.5 * i, EDGE + 1.0, 0.30, 1.00))
+for x in (-3.575, 3.575):                                         # the shell's inner GND tails
+    fp.append(smd("SH", x, EDGE, 0.50, 1.20) + [["zone_connect", "2"]])
+for x in (-4.70, 4.70):                                           # the shell's wings
+    fp.append(smd("SH", x, EDGE, 1.30, 2.10) + [["zone_connect", "2"]])
+# the shell pads join the pour solid: at the edge a thermal relief finds room for one spoke, and
+# they hold the plug
+# the body beyond the edge (8.35 x 11.25, the shell's flanges 10.10 wide at the rear), on the fab layer
+for a in [(-4.175, -11.25, 4.175, -11.25), (4.175, -11.25, 4.175, -1.9), (-4.175, -1.9, -4.175, -11.25),
+          (-5.05, -1.9, 5.05, -1.9), (5.05, -1.9, 5.05, 0), (-5.05, 0, -5.05, -1.9)]:
+    fp.append(line("F.Fab", *a, 0.1))
+fp.append(line("F.Fab", -5.6, 0, 5.6, 0, 0.1))                    # where the board's edge must be
+# courtyard: the pads on the board, and the body and a mating key's mouth past the edge
+for a in [(-5.6, -11.5, 5.6, -11.5), (5.6, -11.5, 5.6, 2.65), (5.6, 2.65, -5.6, 2.65), (-5.6, 2.65, -5.6, -11.5)]:
+    fp.append(line("F.CrtYd", *a, 0.05))
+# silk on the board only: a bar each side, clear of the pads, and a dot by A1
+fp.append(line("F.SilkS", -5.6, 2.9, -5.6, 1.0, 0.15))
+fp.append(line("F.SilkS", 5.6, 2.9, 5.6, 1.0, 0.15))
+fp.append(["fp_circle", ["center", -2.75, 3.0], ["end", -2.65, 3.0],
+           ["stroke", ["width", 0.2], ["type", "solid"]], ["fill", "yes"], ["layer", QStr("F.SilkS")]])
+save(fp, "USB_C_Plug_HRO_TYPE-C-31-G-03_Edge",
+     "HRO TYPE-C-31-G-03 (LCSC C840338): USB-C plug, 12 contacts, right angle, its body past the board "
+     "edge (y < 0). Pads from the datasheet's layout, 0.10 mm further in so copper keeps 0.30 from the edge.")

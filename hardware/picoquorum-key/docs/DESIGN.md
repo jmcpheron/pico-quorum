@@ -13,7 +13,9 @@ antenna at the top edge. Everything else JLCPCB places on the **front**: the 1.1
 connector (under the glass), five tactile switches, the 3.3 V regulator, USB-C at the bottom edge
 with ESD, the backlight switch, the ATECC608C key chip, a status LED and the passives. The panel sits landscape on foam tape. Its ribbon folds under the
 glass into the ZIF. Reject, Next and Sign sit in a column on its left, level with the three rail
-rows. Debug pads are on the back.
+rows. Debug pads are on the back. So is an optional key port: pads for a right-angle USB-C plug at
+the left edge, beside the module, and its parts, all fitted by hand
+([below](#the-key-port-optional)). Without them the board is the same as before.
 
 ## Decisions and departures from the spec
 
@@ -30,6 +32,7 @@ rows. Debug pads are on the back.
 | panel ribbon | folds under the glass into a ZIF under the panel | keeps the board 44 mm wide; the ZIF is 1.0 mm tall and fits under the glass on foam tape |
 | debug pads | 12 pads on the back | keeps the front for the screen and buttons; a pogo jig can reach them |
 | regulator | AMS1117-3.3 in SOT-223, 1 A | the margin the spec asks for; a JLCPCB basic part |
+| key port | optional: a right-angle USB-C plug (J3) on the back at the left edge, for key-c, with its own power switch, ESD, pull-ups and a detect line. Every part DNP, fitted by hand | a second key that plugs in and out, while U2 stays the board's own; the spec allows a key "soldered on, or on a port" |
 
 Nothing here adds a way to sign or to read a key (rule 3). The 0 Ω links only close an existing path.
 
@@ -54,7 +57,8 @@ board's top-left at (100, 60); the drill/place origin is the bottom-left, (100, 
      │  C1 C8 C2    R1     R2         [RESET]   │  Y 41–46
      │(o)              ┌──USB-C──┐          (o) │  H3, H4 at Y 50
   53 ╰─────────────────┴─────────┴──────────────╯
- back: WROOM-1 at X 24–42, Y 0–25.5, antenna end on the top edge; test pads X 9–35, Y 35 and 39
+ back: WROOM-1 at X 24–42, Y 0–25.5, antenna end on the top edge; test pads X 9–35, Y 35 and 39;
+       optional key port: USB-C plug at the left edge, Y 14.7–25.3, its parts between it and the module
 ```
 
 | item | position / size | note |
@@ -77,6 +81,8 @@ board's top-left at (100, 60); the drill/place origin is the bottom-left, (100, 
 | USB | J1 centred X 22, mouth flush with Y 53; U4 at (22, 39.5); R12 (20.1, 35.5), R13 (25, 35.5), R12 nudged right to clear R9; R1, R2 at Y 41 | ESD array between the connector and the links |
 | M2 holes | (3, 29.5), (41, 29.5), (3, 50), (41, 50) | none in the top 29 mm |
 | test pads (back) | TP1–TP12, 1.5 mm square, X 9 + 5.2·i, Y 35 and 39 | +3V3, GND, EN, TX, RX, SDA / SCL, BOOT, IO1, IO2, +5V, GND |
+| key port J3 (back) | the left edge, centred Y 20; pads X 0.3–2.4, Y 14.7–25.3 | its body past the edge, X −11.25 to 0; key-c on it reaches about 36 mm further |
+| key port parts (back) | between the plug and the module, X 5–19, Y 11–25: U6 and D2 by the plug, R15–R18 below them, C10, U5, C9 and R19 in a row above | where the back's title block was; a few rev A tracks there were re-routed (see Routing) |
 
 Height on the front: tacts 3.8 mm, ZIF 1.0 mm (actuator closed), USB-C 3.2 mm, glass 1.6 mm.
 Reference designators are on `F.Fab` only; the silkscreen carries what a person needs, all drawn by
@@ -89,7 +95,7 @@ JLCPCB's legibility minimums):
 | front, around the glass | corner ticks 0.4 mm outside the glass (X 9–40, Y 8.5–26.1) for placing the panel; the glass hides anything under it, and the screen labels the rail three |
 | front, buttons | BOOT and RESET, each under its switch with a small glyph (bolt, circular arrow) |
 | front, elsewhere | an 8-bit key right of U2 and a dragon guarding it, above BOOT (a nod to Atari's Adventure, as on console-s3; 0.3 mm squares of silk); `USB-C 5V` and an arrow beside J1; a ring round each M2 hole for the screw head |
-| back | title block (the mark, the name, `KEY, REV A`, `PicoQuorum.app`), the legend `R12+R13 = USB DATA / remove: power-only` and `BOOT+RESET = FLASH`, a key outline with `ONE OWNER / ONE KEY` beside its tip, the twelve test pads each named for its net, `TEST PADS` under them |
+| back | the mark and the name side by side in the antenna band, `PicoQuorum.app` under them, as on the front; `KEY, REV A` and the legend `R12+R13 = USB DATA / remove: power-only` and `BOOT+RESET = FLASH` under the key port's parts; a key outline with `ONE OWNER  ONE KEY` on one line under it; the twelve test pads each named for its net, `TEST PADS` under them. (Until the key port, the title block filled the left of the back and the key's caption sat beside its tip.) |
 
 Back text is mirrored so it reads with the board turned over. `tests/test_silk.py` checks the size
 limits, that each button label sits under its own switch, and that every test-pad label, and the R12/R13
@@ -189,6 +195,75 @@ just below the chip. C7 100 nF at pin 8. R6
 and R7 4.7k pull SDA and SCL to 3V3. SDA, SCL, 3V3 and GND are on test pads TP6, TP7, TP1 and TP2,
 so a key on wires can stand in for the soldered chip.
 
+### The key port (optional)
+
+A USB-C plug for key-c at the board's left edge, on the back, beside the module. key-c slides on
+and lies level with the board, past its left edge. Every part here is DNP: off JLCPCB's BOM and
+CPL, fitted by hand like the module. **Unfitted, the board is what it was:** U2 alone at 0x60 on
+GPIO16/17, IO1 and IO2 on their pads, IO38 and IO39 leading to empty pads, nothing driven or
+pulled. The console image runs on it unchanged either way; a fitted port does nothing until a
+firmware change uses it ([PINS.md](PINS.md#the-key-ports-pins)).
+
+```
++3V3 ── U5 AP22653 ── VKEY ── J3 A4, B9 (VBUS)      C9 100 nF at U5's input; C10 10 µF and D2 ESD5Z5V0 on VKEY
+        EN  = IO2, R19 10k to 3V3: on unless IO2 drives low
+        ILIM to GND: 80 mA;  FAULT unconnected
+VKEY ── R15 2.2k ── KEY_SDA ── J3 A6 (D+) ── IO39
+VKEY ── R16 2.2k ── KEY_SCL ── J3 A7 (D−) ── IO38
++3V3 ── R17 22k  ── KEY_CC  ── J3 A5 (CC);  KEY_CC ── R18 1k ── IO1
+U6 SRV05-4: ESD on KEY_SDA, KEY_SCL and KEY_CC, its rail on +3V3
+J3 A1, A12, B12 and the shell to GND; A2, A3, B10, B11 (SuperSpeed) open
+```
+
+It is the circuit console-a and the feather wings use for key-c
+([feather-wing/README.md](../../feather-wing/README.md#the-circuit)), with these differences:
+
+- **Its own bus.** The plugged key and U2 both answer at 0x60, so they can't share GPIO16/17.
+  The port's bus is IO39 (SDA) and IO38 (SCL), the pins PREV and BACK would have had, with 2.2k
+  pull-ups to VKEY ([PINS.md](PINS.md#the-key-ports-pins) says why).
+- **Detect is a logic level.** key-c has a 5.1k Rd on each CC pin, and the plug has one CC
+  contact (A5), so it meets an Rd whichever way up the key goes on. R17 is 22k, not the wings'
+  10k: with a key in, KEY_CC is 3.3 × 5.1 / 27.1 = 0.62 V, under the S3's 0.825 V low threshold;
+  with none, 3.3 V. So IO1 can take a pin interrupt on every insertion and removal, and still reads
+  on ADC1. The wings' 10k gives 1.1 V, which only an ADC can read.
+- **A swap shows as two edges.** Taking one key off and putting another on is high, then low, on
+  IO1. Which key it is, is for firmware: the new key's serial number (the console's key driver
+  already reads it).
+- **No FAULT line**, to save a pin: U5 limits the current itself, and its flag is open-drain.
+- **No key LED.** This plug has no SBU contacts, so key-c P3's LED stays dark here.
+- **One ESD part for the three signals** (SRV05-4), rail on +3V3, never VKEY, so the pull-ups to
+  3V3 can't feed a key that is switched off. Its four channels are alike: SDA and SCL take the two
+  corners nearest the plug, CC the far one, so the escape needs no crossing. D2 on VKEY clamps a
+  5 V source pushed onto the plug; U5 blocks it.
+
+**Hot-swap.** As on the wings ([key-c's README](../../key-pcb/key-c-usbc/README.md#p3-the-led)):
+USB-C's ground and VBUS contacts mate first on the parts whose drawings were read (HRO's plug
+drawing doesn't say); U5 limits the key's current to 80 mA (40–120 mA, ILIM to ground) and
+discharges VKEY when switched off; and the pull-ups go to VKEY, so a key that is off isn't powered
+through SDA and SCL. IO2 is pulled high, so a key
+is powered as soon as it's in; a firmware that wants "off until CC shows a key" drives IO2 low at
+start, then high after IO1 goes low.
+
+**The plug** is HRO's TYPE-C-31-G-03 (LCSC C840338, 1,761 in stock at JLCPCB on 2026-10-25, an
+extended part), a 12-contact USB-C plug whose body lies past the board's edge. Its footprint
+(`console:USB_C_Plug_HRO_TYPE-C-31-G-03_Edge`) is drawn from the datasheet's recommended layout:
+12 pads 0.30 × 1.00 mm at 0.50 mm, two 0.50 × 1.20 and two 1.30 × 2.10 shell pads, 9.40 mm apart.
+- The body, 8.35 × 2.40 × 11.25 mm, hangs 0.95 mm below the pads' plane, so it sits beside the
+  board's edge, not over it. The board needs no cut-out.
+- The drawing puts the pads' outer ends 0.20 mm from the edge. Here they are 0.30, the board's
+  copper-to-edge minimum, so the tails land 0.1 mm further along pads 1.0–2.1 mm long. **Check
+  with a real plug before ordering**: the tails on their pads with the body against the edge.
+- Mounted on the back, it is mirrored as KiCad mirrors any back part. A USB-C plug goes in either
+  way up and key-c joins its two D+ and two D− pins, so that changes nothing.
+- Its four shell pads are all that hold it. A key on it is a 36 mm lever, so a case should hold the
+  key at its sides, as the wings' READMEs say for theirs.
+
+**Why the left edge.** The nearest place to the module that keeps the spec's antenna rules. The
+top edge is the antenna's band (no copper, no metal near it), and a key there would sit beside
+the antenna. The right edge has 2 mm beside the module. The front's left edge is the three
+buttons. So the plug is on the back at the left edge, at the module's height, and the key lies
+past the edge beside D0–D2, a little below the front's plane.
+
 ### USB
 
 Connector D+ and D− → U4 USBLC6-2SC6 (its VBUS pin on +5V) → R12, R13 0 Ω → module pins 14 (IO20,
@@ -197,14 +272,34 @@ not needed.
 
 ## Routing
 
-Rev A was autorouted with Freerouting 2.5.0 (2026-10-23) and tidied by script. Every connection is
-routed, and DRC with schematic parity reports nothing at any severity.
+Rev A was autorouted with Freerouting 2.5.0 (2026-10-23) and tidied by script. It was routed
+again on 2026-10-25 for the key port, on KiCad 10.0.7 (Linux). Every connection is routed, and DRC
+with schematic parity reports nothing at any severity.
 
 | item | count |
 |---|---|
-| track segments | ~610 |
-| vias placed by the router | 81 |
-| GND stitching vias | 51, on a 3 mm grid wherever both pours are solid and no pad is near |
+| track segments | ~930 |
+| vias (all nets) | 152 |
+| of them GND | 59, most of them stitching on a 3 mm grid wherever both pours are solid and no pad is near |
+
+**The key port's route, 2026-10-25.** The plug's pads are 0.5 mm apart, too close for the router
+to leave, so `gen_pcb.py` draws their escape and locks it (`ESCAPE`): A1 and A12 to the shell's
+pads, B12 to a GND via, A4 and B9 (VBUS) joined, SDA and SCL straight into U6's two near corners,
+CC over U6 to a far one. Then:
+
+1. Freerouting routed the whole board from scratch, as for rev A. Everything connected, but D+ came
+   out 14 mm longer than D− (it looped round J1's shell slot), which `test_usb_pair_skew` fails.
+2. Rev A's USB_DP and USB_DN tracks (J1 to U4 to the links) went back in place of the new ones.
+   They crossed four nets of the new route (+5V, EN, IO1, I2C_SCL); those tracks came out.
+3. Freerouting routed those four again with every other track locked, and `post_route.py` and
+   `drc_prune.py` tidied as usual. One link of EN was left; it was drawn by a short scripted path
+   and checked by DRC.
+
+D+ is now 56.9 mm and D− 48.2 mm. Next to rev A (1,082 mm of track and 71 vias, GND aside) the
+board has 1,165 mm and 93; the key port's four new nets (VKEY, KEY_CC, KEY_SDA, KEY_SCL) account
+for 143 mm and 11 vias. The port's
+bus is long for its distance, SDA 40 mm with 6 vias and SCL 54 mm with 5, from U6 round to module
+pins 31 and 32. At I2C's 100 kHz that doesn't matter, but it is the first thing to tidy by hand.
 
 Rules in the project (Board Setup, plus `hardware/picoquorum-key/picoquorum-key.kicad_dru` for the JLCPCB limits
 the board minimums don't already cover: plated-hole ring 0.18 mm, plated hole to other copper 0.28 mm,
@@ -253,6 +348,7 @@ module pin 2 and C3/C5. `tools/build_board.sh` refuses to overwrite a routed boa
 
 ```
 tools/gen/circuit.py        every part: symbol, footprint, value, LCSC, MPN, nets  (the source)
+tools/gen/make_symbols.py   project symbols KiCad lacks (AP22653, the 12-pin plug) → hardware/lib/console.kicad_sym
 tools/gen/make_footprints.py  project footprint copies → hardware/lib/console.pretty
 tools/gen/gen_sch.py        circuit.py → picoquorum-key.kicad_sch (global labels, no wires)
 tools/gen/check_netlist.py  exported netlist == circuit.py
@@ -285,9 +381,14 @@ generators refuse to overwrite a hand-edited schematic or a routed board unless 
 | R, C | `Device:R`, `Device:C` | `R_0603_1608Metric`, `C_0603_1608Metric` / `C_0805_2012Metric` |
 | TP | `Connector:TestPoint` | `TestPoint:TestPoint_Pad_1.5x1.5mm` |
 | H1–4 | `Mechanical:MountingHole` | `MountingHole:MountingHole_2.2mm_M2` |
+| J3 key port plug | `console:USB_C_Plug_12P` | `console:USB_C_Plug_HRO_TYPE-C-31-G-03_Edge` (from the datasheet's layout; no 3D model) |
+| U5 key power | `console:AP22653` | `Package_TO_SOT_SMD:SOT-23-6` |
+| U6 key port ESD | `Power_Protection:SRV05-4` | `Package_TO_SOT_SMD:SOT-23-6` |
+| D2 VKEY TVS | `Diode:ESD5Zxx` (value ESD5Z5V0) | `Diode_SMD:D_SOD-523` |
 
 Every symbol carries `LCSC`, `MPN` and `Description` fields. U1, the module, is DNP: off the
-assembly BOM and CPL, still on the board. Test pads and holes are excluded from the BOM and position file.
+assembly BOM and CPL, still on the board. So is every part of the key port (J3, U5, U6, D2, R15–R19,
+C9, C10). Test pads and holes are excluded from the BOM and position file.
 LCSC footprints and 3D models are fetched by `tools/fetch_parts.sh` into `hardware/lib/jlc.*`.
 Two of those models aren't fit for a mechanical check, so `tools/gen/fix_models.py` (run once with
 FreeCAD's `freecadcmd`) writes corrected copies to `hardware/lib/console.3dshapes`, and the footprints

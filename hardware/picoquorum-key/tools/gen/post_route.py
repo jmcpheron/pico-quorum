@@ -66,13 +66,22 @@ def near_pad(x, y):
     return any(l <= px <= r and t <= py <= b for l, t, r, b in keep_clear)
 
 
+# vias already on the board, so a second run adds no via on top of one from the first
+vias = [(to_mm(t.GetPosition().x) - OX, to_mm(t.GetPosition().y) - OY)
+        for t in board.GetTracks() if t.GetClass() == "PCB_VIA"]
+
+
+def near_via(x, y):
+    return any((vx - x) ** 2 + (vy - y) ** 2 < (VIA_D + 0.5) ** 2 for vx, vy in vias)
+
+
 added = 0
 y = Y_MIN
 while y <= H - EDGE:
     x = EDGE
     while x <= W - EDGE:
         r = VIA_D / 2 + 0.25
-        if not near_pad(x, y) and solid(pcbnew.F_Cu, x, y, r) and solid(pcbnew.B_Cu, x, y, r):
+        if not near_pad(x, y) and not near_via(x, y) and solid(pcbnew.F_Cu, x, y, r) and solid(pcbnew.B_Cu, x, y, r):
             v = pcbnew.PCB_VIA(board)
             v.SetPosition(pcbnew.VECTOR2I(mm(OX + x), mm(OY + y)))
             v.SetWidth(mm(VIA_D)); v.SetDrill(mm(VIA_DRILL))

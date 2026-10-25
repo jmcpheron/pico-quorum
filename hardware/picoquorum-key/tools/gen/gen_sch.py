@@ -147,7 +147,7 @@ def main():
            ["title_block", ["title", QStr("picoquorum-key: one owner of a Safe multisig")],
             ["date", QStr("2026-10-23")], ["rev", QStr("A")],
             ["comment", 1, QStr("Pins: docs/PINS.md (profile picoquorum-key). Circuits: docs/DESIGN.md.")],
-            ["comment", 2, QStr("U1 and U2 are DNP for assembly: hand-fitted. " + MARK + ".")]],
+            ["comment", 2, QStr("U1 and the key port (section 7) are DNP for assembly: hand-fitted. " + MARK + ".")]],
            ["lib_symbols"] + [lib_syms[l] for l in lib_ids]] + items + [
            ["sheet_instances", ["path", QStr("/"), ["page", QStr("1")]]],
            ["embedded_fonts", "no"]]

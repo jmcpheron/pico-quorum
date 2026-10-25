@@ -22,7 +22,7 @@ screens are bench scripts, never part of the image ([builds/](builds/README.md#f
 | [feather-wing a, b](feather-wing/README.md) | board | key-c, USB-C | `feather-s3` | not ordered |
 | [console-s3](console-s3/DESIGN.md) | board | ATECC608C on the board | `feather-s3` | to order ([plan](../ORDER-PLAN-2026-10-24.md)) |
 | [console-usb](console-usb/README.md) | board | ATECC608C on the board | `feather-s3`, plus firmware not written | not routed |
-| [picoquorum-key](picoquorum-key/README.md) | board | UDFN ATECC608C on the board | needs a profile | to order ([plan](../ORDER-PLAN-2026-10-24.md)) |
+| [picoquorum-key](picoquorum-key/README.md) | board | UDFN ATECC608C on the board; pads for an optional USB-C plug for key-c | needs a profile | to order ([plan](../ORDER-PLAN-2026-10-24.md)) |
 
 The parts of each are below.
 

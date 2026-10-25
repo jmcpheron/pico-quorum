@@ -4,9 +4,9 @@
   <KiCad python> tools/gen/gen_pcb.py <net> [--force]
 
 Places every footprint (front unless noted), assigns nets, draws the outline, the antenna keep-out,
-the ground pours and the mechanical reference drawings (glass, active area, ribbon path). It does
-not route. Refuses to overwrite a board that has tracks unless --force is given, because routing
-is done after this script and must not be thrown away.
+the ground pours and the mechanical reference drawings (glass, active area, ribbon path). It routes
+only the key port plug's escape (ESCAPE, locked). Refuses to overwrite a board that has other tracks
+unless --force is given, because routing is done after this script and must not be thrown away.
 
 Coordinates are board millimetres from the top-left corner, X right, Y down (docs/DESIGN.md).
 """
@@ -71,9 +71,30 @@ PLACE = {
     "U4": (22.0, 39.5, 0, "F"),
     "R12": (20.1, 35.5, 90, "F"), "R13": (25.0, 35.5, 90, "F"),    # R12 at X 20.1 clears R9 above it
     "R1": (16.0, 41.0, 90, "F"), "R2": (28.0, 41.0, 90, "F"),
+    # the key port, on the back, all DNP (fitted by hand): the plug at the left edge, its body past
+    # the edge, beside the module; its parts between it and the module
+    "J3": (0.0, 20.0, 270, "B"),
+    "U6": (7.8, 22.75, 0, "B"), "D2": (6.0, 16.6, 90, "B"),
+    "R15": (12.5, 21.0, 0, "B"), "R16": (12.5, 22.6, 0, "B"), "R17": (12.5, 24.2, 0, "B"), "R18": (15.5, 24.2, 0, "B"),
+    "C10": (10.3, 12.0, 90, "B"), "U5": (13.5, 12.0, 0, "B"), "C9": (16.7, 12.0, 90, "B"), "R19": (18.5, 12.0, 90, "B"),
     # mounting holes, none near the antenna
     "H1": (3.0, 29.5, 0, "F"), "H2": (41.0, 29.5, 0, "F"), "H3": (3.0, H - 3.0, 0, "F"), "H4": (41.0, H - 3.0, 0, "F"),
 }
+# The key port plug's escape, drawn here because its pads are 0.5 mm apart and the router can't
+# leave them: (net, width, points) on the back, and (net, x, y) vias. Locked, so the router keeps
+# them. A1 and A12 go to the shell's GND pads, B12 to a GND via, A4 and B9 (VBUS) join, SDA and SCL
+# fan out into U6's near corners, and CC goes over U6 to its far corner.
+ESCAPE = [
+    ("GND", 0.2, [(1.8, 17.25), (0.9, 16.42)]),
+    ("GND", 0.2, [(1.8, 22.75), (0.9, 23.58)]),
+    ("GND", 0.2, [(1.8, 19.25), (3.4, 19.25), (3.4, 19.6)]),
+    ("VKEY", 0.25, [(1.8, 18.75), (4.2, 18.75), (4.2, 20.75), (1.8, 20.75)]),
+    ("KEY_CC", 0.2, [(1.8, 21.25), (4.6, 21.25), (5.3, 20.55), (8.4, 20.55), (8.94, 21.09), (8.94, 21.8)]),
+    ("KEY_SDA", 0.2, [(1.8, 21.75), (4.2, 21.75), (4.7, 22.25), (5.2, 22.25), (5.65, 21.8), (6.66, 21.8)]),
+    ("KEY_SCL", 0.2, [(1.8, 22.25), (3.6, 22.25), (4.6, 23.25), (5.2, 23.25), (5.65, 23.7), (6.66, 23.7)]),
+]
+ESCAPE_VIAS = [("GND", 3.4, 19.6)]
+
 # debug pads on the back, two rows below the module
 for i in range(12):
     PLACE["TP%d" % (i + 1)] = (9.0 + (i % 6) * 5.2, 35.0 + (i // 6) * 4.0, 0, "B")
@@ -212,7 +233,7 @@ def main():
         tree0[:] = [tree0[0]] + [x for x in tree0[1:] if isinstance(x, list) and x and x[0] in keep]
         open(PCB, "w").write(dumps(tree0) + "\n")
     board = pcbnew.LoadBoard(PCB)
-    if len(board.GetTracks()) and not force:
+    if any(not t.IsLocked() for t in board.GetTracks()) and not force:
         sys.exit("the board has tracks; pass --force to rebuild it from scratch (routing will be lost)")
     for item in list(board.GetDrawings()) + list(board.GetFootprints()) + list(board.Zones()) + list(board.GetTracks()):
         board.Remove(item)
@@ -245,6 +266,19 @@ def main():
             ni = pin_net.get((ref, pad.GetNumber()))
             if ni is not None:
                 pad.SetNet(ni)
+    # the key port's escape (ESCAPE above), locked
+    for name, width, pts in ESCAPE:
+        for (xa, ya), (xb, yb) in zip(pts, pts[1:]):
+            tr = pcbnew.PCB_TRACK(board)
+            tr.SetStart(pt(xa, ya)); tr.SetEnd(pt(xb, yb))
+            tr.SetWidth(mm(width)); tr.SetLayer(pcbnew.B_Cu); tr.SetNet(netinfo[name]); tr.SetLocked(True)
+            board.Add(tr)
+    for name, x, y in ESCAPE_VIAS:
+        v = pcbnew.PCB_VIA(board)
+        v.SetPosition(pt(x, y)); v.SetWidth(mm(0.6)); v.SetDrill(mm(0.3))
+        v.SetNet(netinfo[name]); v.SetLocked(True)
+        board.Add(v)
+
     # outline with rounded corners
     E = pcbnew.Edge_Cuts
     c = CORNER
