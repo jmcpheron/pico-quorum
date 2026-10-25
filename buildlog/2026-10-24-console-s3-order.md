@@ -7,7 +7,7 @@ isn't in this order.
 
 What this page is from: the PCB and PCBA lines of the order, the PCBA's price breakdown (a
 screenshot), the order's BOM page, JLCPCB's invoice and its sales contract, and the module and panel
-purchases (below). Not yet seen: the panels' receipt.
+purchases (below).
 
 ## The order
 
@@ -122,21 +122,27 @@ The modules and panels, from two phone screenshots. Name, address and phone left
 
 That is $4.31 a module, and ten cover five boards twice over. The N8R2 is the variant U1 names.
 
-**Panels, Amazon.** From the product page, not an order or receipt.
+**Panels, Amazon.** From the order page. The order number and card are left out.
 
 | | |
 |---|---|
-| Listing | Walfront, "ST7789V LCD Display Module 1.14 Inch SPI Color 135 X 240 HD Resolution Inline Type 2Pcs" |
-| Price shown | $15.11 for the pack of two |
-| History | "Purchased 1 time", last on 2026-10-23 |
+| Item | "ST7789V LCD Display Module 1.14 I…", the 2-pack ($15.11); the listing's brand was Walfront |
+| Sold by | numuqia-US, shipped with Amazon |
+| Placed | 2026-10-23 |
+| Subtotal | $15.11 |
+| Shipping | $0.00 |
+| Estimated tax | $1.17 |
+| **Total** | **$16.28** |
+| Status | Shipped, "arriving tomorrow" (2026-10-26) when read; not yet out for delivery |
 
-- **$15.11 is the price on the page.** What was paid, with tax, isn't seen. Check the order.
-- **Not checked against J2.** J2 is an 8-pin, 0.5 mm ZIF. The page doesn't give the panel's flex pin
-  count or pitch; the flex's print reads something like "NFP114H-03AF" in the photo (not certain). Check it against
-  `hardware/console-s3/DESIGN.md` before the boards arrive.
+- **The seller differs from the listing's.** The listing named Walfront; the order says numuqia-US.
+  Same title and photo. Check the panels on arrival.
+- **Not checked against J2.** J2 is an 8-pin, 0.5 mm ZIF. The pages don't give the panel's flex pin
+  count or pitch; the flex's print reads something like "NFP114H-03AF" in the listing photo (not
+  certain). Check it against `hardware/console-s3/DESIGN.md` before the boards arrive.
 
-Counting these as shown, the three purchases are about $155: $96.72 (JLCPCB), $43.10 (LCSC) and
-$15.11 (Amazon), against the plan's $75–90.
+The three purchases come to $156.10: $96.72 (JLCPCB), $43.10 (LCSC) and $16.28 (Amazon), against the
+plan's $75-90.
 
 ## The files
 
@@ -163,7 +169,8 @@ Gerbers if JLCPCB offers them, and compare hashes as for key-c.
 - [ ] The $0.91 the breakdown doesn't show
 - [ ] The PCBA settings (paste, packaging, photo confirmation, customs category)
 - [x] The modules' receipt (above): $43.10 at LCSC
-- [ ] The panels' order total, and the flex's pin count and pitch against J2
+- [x] The panels' order (above): $16.28 at Amazon
+- [ ] The panel flex's pin count and pitch against J2
 - [ ] The uploaded files' hashes, against the table above
 - [ ] JLCPCB's parts-placement review: pin 1 against `fab/check/cpl-overlay.png` for U2, U3, U4, Q1,
       Q2, D1, J1, J2. The overlay isn't committed: `tools/keypcb jlc console-s3` writes it
