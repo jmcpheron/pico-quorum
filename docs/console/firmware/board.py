@@ -13,6 +13,10 @@
 #   "feather-s3": Adafruit's Feather ESP32-S3 Reverse TFT (hardware/wiring/FEATHER-S3.md): its own
 #            240x135 ST7789 and three buttons, D0 D1 D2, down the screen's left edge (THREE). Always
 #            this one on an ESP32-S3; the emulator picks it with secrets.BOARD.
+#   "feather-knob": Adafruit's ESP32-S3 TFT Feather (5483) with an EC11 knob on its header pins
+#            (hardware/builds/feather-knob/README.md): the same screen on other pins, and Boot as its
+#            only button. The Feather's three keys come from Boot and the knob (DIAL), so the console
+#            and the ceremony run as on feather-s3. Only when secrets.BOARD names it.
 # W x H is what the apps draw, X_OFF where that sits on the panel (0 when they draw all of it).
 # BANDS: retain full native resolution, but only buffer 30 rows at a time (19,200 bytes at 320 wide,
 # 14,400 at 240). Any panel whose whole frame would be over 45 KB is drawn this way: the 240x240
@@ -36,13 +40,14 @@ try:
 except ImportError:
     BOARD, SCREEN = "waveshare", "2.8"
 if ESP32:
-    BOARD = "feather-s3" if S3 else "esp32"
-elif BOARD not in ("waveshare", "build1", "feather-s3"):
+    BOARD = ("feather-knob" if BOARD == "feather-knob" else "feather-s3") if S3 else "esp32"
+elif BOARD not in ("waveshare", "build1", "feather-s3", "feather-knob"):
     print("board: unknown BOARD %r, using waveshare" % BOARD)
     BOARD = "waveshare"
 
 KNOB = BOARD in ("build1", "esp32")
-THREE = BOARD == "feather-s3"
+DIAL = BOARD == "feather-knob"
+THREE = BOARD == "feather-s3" or DIAL
 DC, CS, SCK, MOSI, RST, BL = 8, 9, 10, 11, 12, 13
 BUTTONS = {"A": 15, "B": 17, "X": 19, "Y": 21}
 SPI_ID, SDA, SCL, LED = 1, 4, 5, "LED"      # SDA, SCL: the key's I2C (atecc.py); LED: the status LED
@@ -51,6 +56,7 @@ RAM_X = RAM_Y = 0           # where the picture starts in the panel's own RAM (l
 NOT_KEYS = ()               # I2C addresses on the key's bus that are never a key (atecc.KEY_ADDRS)
 POWER = None                # a pin that must be high for the screen and the key's bus to have power
 RAIL_Y = None               # THREE: the screen row level with each button, top to bottom (quorum_ui_s.rail)
+NAMES = {"D0": "D0", "D1": "D1", "D2": "D2"}    # THREE: what the screens call each key
 INIT = "plain" if KNOB else "waveshare"     # lcd.py's panel start-up
 if ESP32:
     # tools/wiring-esp32 --check compares these with hardware/wiring/ESP32.md. The screen's clock
@@ -108,6 +114,22 @@ elif not THREE:
     MAINT = BUTTONS["B"]
 if not THREE:
     SETUP = BUTTONS["Y"]    # held at power-up: Wi-Fi setup (boot.py, wifisetup.py)
+if DIAL:
+    # The ESP32-S3 TFT Feather, from Adafruit's schematic (Adafruit-ESP32-S3-TFT-Feather-PCB): the
+    # screen's CS, DC and RST on 7, 39, 40, the key's bus on the SDA/SCL pins (42, 41), and GPIO21
+    # powering the screen and the I2C pull-ups. Screen set up as feather-s3's, as CircuitPython sets
+    # up both. Boot (GPIO0) is D0. The knob on the 16-pin row: A on A1, B on A2, its push on A3,
+    # C and the push's other leg to GND. lcd.Keys hands its detents and push on as D1, D1L and D2.
+    DC, CS, RST = 39, 7, 40
+    BUTTONS = {"D0": 0}
+    HIGH = ()
+    SDA, SCL, POWER = 42, 41, 21
+    ENC_A, ENC_B, ENC_SW = 17, 16, 15
+    KEYS = dict(BUTTONS)
+    # Boot can't be held at power-up (the ROM bootloader), so the push is maintenance. Wi-Fi setup
+    # comes from the Device screen, or by itself when no network is saved.
+    MAINT = SETUP = ENC_SW
+    NAMES = {"D0": "Boot", "D1": "turn", "D2": "push"}
 # The Feather keeps its whole 64.8 KB frame: the S3's 2 MB of PSRAM has room, and 135 rows don't
 # split into equal bands.
 BANDS = 8 if W * H * 2 > 45_000 and not THREE else 1

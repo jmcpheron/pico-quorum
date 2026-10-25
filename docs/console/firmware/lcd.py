@@ -8,6 +8,8 @@
 #   esp32:     build1's screen and knob on an ESP32's VSPI (hardware/wiring/ESP32.md)
 #   feather-s3: the Feather ESP32-S3 Reverse TFT's own 240x135 ST7789 and its buttons D0, D1, D2
 #              (hardware/wiring/FEATHER-S3.md)
+#   feather-knob: the ESP32-S3 TFT Feather's, with Boot as D0 and a knob as D1 and D2 (board.DIAL)
+#              (hardware/builds/feather-knob/README.md)
 # W and H are the size the apps draw, in pixels; draw with them rather than with numbers.
 #
 # Bands (board.BANDS > 1, the 320x240 panels): the framebuffer holds one horizontal strip of the
@@ -161,13 +163,15 @@ class LCD(framebuf.FrameBuffer):
 
 
 LONG_MS, REPEAT_MS = 1000, 500
+DIAL = {"down": "D1", "up": "D1L", "press": "D2"}     # the knob as the Feather's keys (board.DIAL)
 
 
 class Keys:
     """Every key on the board by name. On build1 the knob adds "down"/"up" (a detent each way) and
     "press" (its push), and A/B/X/Y read high until they are wired. On the Feather (THREE), D1 is
     two keys: "D1" when it is let go within LONG_MS, "D1L" once it has been held that long, again
-    every REPEAT_MS while it stays down."""
+    every REPEAT_MS while it stays down. On the knob Feather (board.DIAL) Boot is D0 and the knob
+    stands in for the other two: a detent clockwise is "D1", anticlockwise "D1L", the push "D2"."""
 
     def __init__(self):
         self.pins = {k: Pin(p, Pin.IN, Pin.PULL_DOWN if p in board.HIGH else Pin.PULL_UP) for k, p in KEYS.items()}
@@ -176,13 +180,15 @@ class Keys:
         self.long = "D1" if THREE else None
         self.since = self.next = 0
         self.knob = None
-        if KNOB:
+        if KNOB or board.DIAL:
             import knob
             self.knob = knob.Knob()
 
     def pressed(self):
         """Names of keys that went down since the last call (D1 on the Feather: see the class)."""
         out = self.knob.pressed() if self.knob else []
+        if board.DIAL:
+            out = [DIAL[k] for k in out]
         now = time.ticks_ms()
         for k, p in self.pins.items():
             v = p.value() == self.down[k]
@@ -200,7 +206,7 @@ class Keys:
         return out
 
     def held(self, k):
-        if self.knob and k == "press":
+        if self.knob and k == ("D2" if board.DIAL else "press"):
             return self.knob.held()
         return self.pins[k].value() == self.down[k]
 

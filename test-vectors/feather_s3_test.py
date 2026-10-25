@@ -2,7 +2,8 @@
 at (40, 53) in the panel's RAM, its three buttons (D0 pulled up, D1 and D2 pulled down; D1 held is
 "D1L"), and the battery gauge at 0x36 never taken for the key. MicroPython is a stand-in, as in
 esp32_test.py, with the S3's pins (0-21, 26-48) and os.uname() naming the S3. Not a board:
-hardware/wiring/FEATHER-S3.md says what has run on one.
+hardware/wiring/FEATHER-S3.md says what has run on one. Then the ESP32-S3 TFT Feather with a knob,
+"feather-knob" (hardware/builds/feather-knob): its pins, Boot and the knob as the three keys.
     python3 test-vectors/feather_s3_test.py"""
 from pathlib import Path
 import os
@@ -87,12 +88,25 @@ class SoftI2C:
         return list(SoftI2C.answers)
 
 
+class Encoder:      # the S3's pulse counter, as esp32_test.py has it
+    def __init__(self, unit_id, phase_a, phase_b, *, phases=1, filter_ns=0):
+        log.append(("Encoder", unit_id, phase_a.id, phase_b.id, phases))
+        self.count = 0
+
+    def value(self, value=None):
+        r = self.count
+        if value is not None:
+            self.count = value
+        return r
+
+
 class FrameBuffer:
     def __init__(self, buf, w, h, fmt):
         self.size = (len(buf), w, h)
 
 
-machine = types.SimpleNamespace(Pin=Pin, SPI=SPI, PWM=PWM, SoftI2C=SoftI2C, I2C=SoftI2C)
+machine = types.SimpleNamespace(Pin=Pin, SPI=SPI, PWM=PWM, SoftI2C=SoftI2C, I2C=SoftI2C, Encoder=Encoder,
+                                disable_irq=lambda: 0, enable_irq=lambda s: None)
 mptime = types.SimpleNamespace(
     time=lambda: 0, gmtime=lambda t=None: (2000, 1, 1, 0, 0, 0, 5, 1),
     ticks_ms=lambda: clock[0], ticks_diff=lambda a, b: a - b, ticks_add=lambda a, b: a + b,
@@ -120,8 +134,9 @@ try:
     with patch.dict(sys.modules, mods), \
          patch("os.uname", lambda: types.SimpleNamespace(machine="Generic ESP32S3 module with ESP32S3")):
         import board
-        check(board.S3 and board.BOARD == "feather-s3" and board.THREE and not board.KNOB,
+        check(board.S3 and board.BOARD == "feather-s3" and board.THREE and not board.KNOB and not board.DIAL,
               "an ESP32-S3 is the Feather: three buttons, no knob")
+        check(board.NAMES == {"D0": "D0", "D1": "D1", "D2": "D2"}, "the screens name D0, D1, D2")
         check((board.DC, board.CS, board.SCK, board.MOSI, board.RST, board.BL) == (40, 42, 36, 35, 41, 45),
               "the screen's pins")
         check((board.SPI_ID, board.SPI_BAUD, board.SDA, board.SCL, board.LED) == (1, 40_000_000, 3, 4, 13),
@@ -207,9 +222,77 @@ finally:
     sys.path.remove(str(FW))
     sys.modules.pop("image", None)
 
+# The ESP32-S3 TFT Feather with a knob (hardware/builds/feather-knob): only when secrets.BOARD
+# names it. Its own pins, Boot as D0 and the knob as D1, D1L and D2.
+for name in ("board", "lcd", "knob", "atecc", "signer"):
+    sys.modules.pop(name, None)
+Pin.levels.clear()
+Pin.pulls.clear()
+del log[:]
+sys.path.insert(0, str(FW))
+os.chdir(FW)
+sys.platform = "esp32"
+try:
+    with patch.dict(sys.modules, dict(mods, secrets=types.SimpleNamespace(BOARD="feather-knob"))), \
+         patch("os.uname", lambda: types.SimpleNamespace(machine="Generic ESP32S3 module with ESP32S3")):
+        import board
+        check(board.BOARD == "feather-knob" and board.THREE and board.DIAL and not board.KNOB,
+              "knob: secrets.BOARD picks it on an S3; the Feather's screens, no big-screen knob")
+        check((board.DC, board.CS, board.SCK, board.MOSI, board.RST, board.BL) == (39, 7, 36, 35, 40, 45),
+              "knob: the 5483's screen pins")
+        check((board.SDA, board.SCL, board.LED, board.POWER) == (42, 41, 13, 21),
+              "knob: the key's bus on SDA/SCL (42/41), the LED on 13, power on 21")
+        check(Pin.levels.get(21) == 1 and 7 not in Pin.levels, "knob: GPIO21 high on import, GPIO7 (its screen's CS) left alone")
+        check((board.W, board.H, board.BANDS, board.SMALL, board.MADCTL, board.RAM_X, board.RAM_Y) == (240, 135, 1, True, 0x60, 40, 53),
+              "knob: the same 240x135 screen, drawn whole")
+        check(board.BUTTONS == {"D0": 0} and board.HIGH == () and board.KEYS == {"D0": 0}, "knob: Boot is D0, the only button")
+        check((board.ENC_A, board.ENC_B, board.ENC_SW) == (17, 16, 15), "knob: A on A1, B on A2, the push on A3")
+        check(board.MAINT == board.SETUP == 15, "knob: the push held at power-up is maintenance, never Boot")
+        check(board.NAMES == {"D0": "Boot", "D1": "turn", "D2": "push"}, "knob: the screens say Boot, turn, push")
+        used = [board.DC, board.CS, board.SCK, board.MOSI, board.RST, board.BL, board.SDA, board.SCL, board.POWER,
+                board.LED, board.ENC_A, board.ENC_B, board.ENC_SW, 0]
+        check(len(set(used)) == len(used), "knob: no pin used twice")
+
+        import lcd
+        del log[:]
+        lcd.LCD()
+        check(("SPI", 1, 40_000_000, 36, 35) in log and sent(0x36) == [bytes([0x60])], "knob: the screen starts as feather-s3's")
+        del log[:]
+        keys = lcd.Keys()
+        check(("Encoder", 0, 17, 16, 4) in log and keys.knob is not None, "knob: on the pulse counter, A 17, B 16")
+        check(Pin.pulls[0] == Pin.PULL_UP and Pin.pulls[15] == Pin.PULL_UP, "knob: Boot and the push pulled up")
+        check(keys.pressed() == [], "knob: at rest, nothing")
+        keys.knob.enc.count = 4
+        check(keys.pressed() == ["D1"], "knob: a detent clockwise is D1")
+        keys.knob.enc.count = -8
+        check(keys.pressed() == ["D1L", "D1L"], "knob: two detents back are D1L twice")
+        Pin.levels[15] = 0
+        keys.knob.since -= 1000
+        check(keys.pressed() == ["D2"] and keys.held("D2"), "knob: the push is D2, held while down")
+        Pin.levels[15] = 1
+        keys.knob.since -= 1000
+        check(keys.pressed() == [] and not keys.held("D2"), "knob: the push let go")
+        Pin.levels[0] = 0
+        check(keys.pressed() == ["D0"] and keys.held("D0"), "knob: Boot is D0, low when pressed")
+        Pin.levels[0] = 1
+        check(keys.pressed() == [], "knob: Boot let go")
+
+        import atecc
+        SoftI2C.answers = [0x36, 0x60]
+        check(atecc.SDA == 42 and atecc.SCL == 41 and atecc.ATECC608().addr == 0x60, "knob: the key at 0x60 on 42/41")
+        import setup_s
+        check(setup_s.PRESSED == {"D1L": "Y", "D2": "A"} and setup_s.HELD == {"A": "D2", "B": "D0", "Y": "D0"},
+              "knob ceremony: Boot held is the arm (B and Y), back a detent back, the push the step, never the arm")
+        check("D2" not in (setup_s.HELD["B"], setup_s.HELD["Y"]), "knob ceremony: the push is never part of the arm")
+finally:
+    sys.platform = platform
+    os.chdir(cwd)
+    sys.path.remove(str(FW))
+    sys.modules.pop("image", None)
+
 # Every button read at power-up goes through board.key_down, which knows each button's pull.
 raw = [f"{p.name}:{i + 1}" for p in sorted(FW.glob("*.py")) for i, line in enumerate(p.read_text().splitlines())
        if re.search(r"Pin\(board\.(MAINT|SETUP)\b", line)]
 check(not raw, "no Pin(board.MAINT/SETUP) left in firmware/: key_down reads them" + (" (%s)" % ", ".join(raw) if raw else ""))
-print("feather-s3: all pass" if not failed else "feather-s3: %d failed" % failed)
+print("feather-s3, feather-knob: all pass" if not failed else "feather-s3, feather-knob: %d failed" % failed)
 sys.exit(1 if failed else 0)

@@ -19,8 +19,8 @@ Older builds aren't here yet. They are listed with every other configuration in
 ## Firmware
 
 **The console image knows boards, not builds.** `firmware/board.py` has one profile per board
-(`waveshare`, `build1`, `esp32`, `feather-s3`). A build whose pins match a profile runs the console
-image with it, unchanged. A build gets a profile of its own only when the console must behave
+(`waveshare`, `build1`, `esp32`, `feather-s3`, `feather-knob`). A build whose pins match a profile
+runs the console image with it, unchanged. A build gets a profile of its own only when the console must behave
 differently on it. That is a firmware change, so it is a new release fingerprint (AGENTS.md).
 
 **Demo and test screens for one build live in its `bench/`.** As in
@@ -35,3 +35,4 @@ differently on it. That is a firmware change, so it is a new release fingerprint
 | build | board | key | runs |
 |---|---|---|---|
 | [feather-pigtail](feather-pigtail/README.md) | Feather ESP32-S3 Reverse TFT | a USB-C cable soldered to its pins | `feather-s3`; `bench/swap.py` |
+| [feather-knob](feather-knob/README.md) | ESP32-S3 TFT Feather (5483) and an EC11 knob | a USB-C adapter on its header pins | `feather-knob`; `bench/dial.py` |

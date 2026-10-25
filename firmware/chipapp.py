@@ -110,7 +110,7 @@ def _banner_three(p, tail):
     if not c:
         d.center_text("not on three buttons yet", 100, p["muted"])
     for (label, _), key, y in zip(c, ("D2", "D1"), (board.RAIL_Y[2] - 4, 96)):
-        d.text("%s: %s" % (key, label), 4, y, p["fg"])
+        d.text("%s: %s" % (board.NAMES[key], label), 4, y, p["fg"])
     d.show()
 
 
