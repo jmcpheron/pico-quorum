@@ -6,8 +6,8 @@ and assembled by JLCPCB, the module still to go on by hand. This is option A fro
 isn't in this order.
 
 What this page is from: the PCB and PCBA lines of the order, the PCBA's price breakdown (a
-screenshot), the order's BOM page, JLCPCB's invoice and its sales contract. Not yet seen: the
-receipts for the parts bought elsewhere (modules, panels).
+screenshot), the order's BOM page, JLCPCB's invoice and its sales contract, and the module and panel
+purchases (below).
 
 ## The order
 
@@ -106,6 +106,44 @@ LCSC number.
 - **Spares:** two each of J2, U3 and U4 (seven bought for five boards). Everything else is exact.
 - **Not on the page:** U1, the module. It isn't in `bom.csv`, as option A means.
 
+## Parts bought elsewhere
+
+The modules and panels, from two phone screenshots. Name, address and phone left out.
+
+**Modules, LCSC.** Shipped Global Direct Standard Line. The page shows the order as paid.
+
+| | |
+|---|---|
+| Part | ESP32-S3-WROOM-1-N8R2, Espressif, LCSC **C2913204** |
+| Quantity | 10, at $4.0347 |
+| Merchandise | $40.35 |
+| Shipping | $8.75, less a $6.00 shipping discount |
+| **Total** | **$43.10**, paid $43.10 |
+
+That is $4.31 a module, and ten cover five boards twice over. The N8R2 is the variant U1 names.
+
+**Panels, Amazon.** From the order page. The order number and card are left out.
+
+| | |
+|---|---|
+| Item | "ST7789V LCD Display Module 1.14 I…", the 2-pack ($15.11); the listing's brand was Walfront |
+| Sold by | numuqia-US, shipped with Amazon |
+| Placed | 2026-10-23 |
+| Subtotal | $15.11 |
+| Shipping | $0.00 |
+| Estimated tax | $1.17 |
+| **Total** | **$16.28** |
+| Status | Shipped, "arriving tomorrow" (2026-10-26) when read; not yet out for delivery |
+
+- **The seller differs from the listing's.** The listing named Walfront; the order says numuqia-US.
+  Same title and photo. Check the panels on arrival.
+- **Not checked against J2.** J2 is an 8-pin, 0.5 mm ZIF. The pages don't give the panel's flex pin
+  count or pitch; the flex's print reads something like "NFP114H-03AF" in the listing photo (not
+  certain). Check it against `hardware/console-s3/DESIGN.md` before the boards arrive.
+
+The three purchases come to $156.10: $96.72 (JLCPCB), $43.10 (LCSC) and $16.28 (Amazon), against the
+plan's $75-90.
+
 ## JLCPCB's parts-placement review (2026-10-25)
 
 JLCPCB's engineer adjusted the placement and asked: "Can we proceed PCBA with the corrected parts
@@ -167,7 +205,9 @@ Gerbers if JLCPCB offers them, and compare hashes as for key-c.
 - [x] The BOM page as JLCPCB matched it (above): $17.93, U2 in stock
 - [ ] The $0.91 the breakdown doesn't show
 - [ ] The PCBA settings (paste, packaging, photo confirmation, customs category)
-- [ ] The receipts for the parts bought elsewhere: modules, panels
+- [x] The modules' receipt (above): $43.10 at LCSC
+- [x] The panels' order (above): $16.28 at Amazon
+- [ ] The panel flex's pin count and pitch against J2
 - [ ] The uploaded files' hashes, against the table above
 - [x] JLCPCB's parts-placement review (2026-10-25): checked, as above
 - [ ] Placement confirmed in Order History ("Yes, please proceed to production"), and the production
