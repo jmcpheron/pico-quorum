@@ -16427,7 +16427,7 @@
 				(hide yes)
 			)
 		)
-		(property "Description" "ESD on CC and the LED line (SBU), at the plug; its rail on 3V3"
+		(property "Description" "ESD on CC, at the plug; its rail on 3V3. Not on SBU: R21 would feed 5 V on VBUS into 3V3"
 			(at 152.4 345.44 0)
 			(effects
 				(font
@@ -16534,49 +16534,13 @@
 			)
 		)
 	)
-	(global_label "KEY_SBU"
-		(shape passive)
-		(at 147.32 347.98 180)
-		(fields_autoplaced yes)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right)
-		)
-		(uuid "3a177c03-c259-5d10-b1e6-f891190eecbb")
-		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 147.32 347.98 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-				(hide yes)
-			)
-		)
+	(no_connect
+		(at 147.32 347.98)
+		(uuid "77b9046f-1aba-524e-babd-41508ed091aa")
 	)
-	(global_label "KEY_SBU"
-		(shape passive)
-		(at 157.48 347.98 0)
-		(fields_autoplaced yes)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left)
-		)
-		(uuid "db7824de-7425-5713-9f9c-87af5cf55ee9")
-		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 157.48 347.98 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-				(hide yes)
-			)
-		)
+	(no_connect
+		(at 157.48 347.98)
+		(uuid "d5bffa0b-e65a-512c-bba7-6ae4b4cb1f1c")
 	)
 	(global_label "+3V3"
 		(shape passive)
@@ -16694,7 +16658,7 @@
 		)
 		(uuid "d70edb44-8793-5201-80b8-93c697e79d36")
 	)
-	(text "7  THE KEY PORT (rev B): a key-c on its own bus, I2C(1)\nFit 'port' only, but R17 (every board). Power off at reset: R15 holds U5's EN low.\nSDA on D+ (A6), SCL on D- (A7), VKEY on VBUS, one CC line (A5), SBU (A8+B8) from VKEY.\nESD rails on 3V3, never VKEY. J3 hand-fitted; 0.8 mm board."
+	(text "7  THE KEY PORT (rev B): a key-c on its own bus, I2C(1)\nFit 'port' only, but R17 (every board). Power off at reset: R15 holds U5's EN low.\nSDA on D+ (A6), SCL on D- (A7), VKEY on VBUS, one CC line (A5), SBU (A8+B8) from VKEY.\nESD rails on 3V3, never VKEY; none on SBU (R21, D3 cover it). J3 hand-fitted; 0.8 mm board."
 		(exclude_from_sim no)
 		(at 25.4 266.7 0)
 		(effects
