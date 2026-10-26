@@ -15880,7 +15880,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "1k"
+		(property "Value" "470"
 			(at 165.1 298.45 0)
 			(effects
 				(font
@@ -15916,7 +15916,7 @@
 				(hide yes)
 			)
 		)
-		(property "LCSC" "C21190"
+		(property "LCSC" "C23179"
 			(at 162.56 297.18 0)
 			(effects
 				(font
@@ -15925,7 +15925,7 @@
 				(hide yes)
 			)
 		)
-		(property "MPN" "1k"
+		(property "MPN" "470"
 			(at 162.56 297.18 0)
 			(effects
 				(font

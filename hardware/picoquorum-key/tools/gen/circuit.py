@@ -197,7 +197,7 @@ R("R18", "1k", "C21190", (111.76, 297.18), "KEY_CC", "KEY_CC_PLUG", note="limits
 R("R19", "2.2k", "C4190", (127.0, 297.18), "VKEY", "KEY2_SDA", note="to VKEY: a key that is off isn't fed through its bus", fit="port")
 R("R20", "2.2k", "C4190", (137.16, 297.18), "VKEY", "KEY2_SCL", fit="port")
 R("R21", "100", "C22775", (152.4, 297.18), "VKEY", "KEY_SBU", note="lights a key-c P3's LED (its own 470R) while the key is powered", fit="port")
-R("R22", "1k", "C21190", (162.56, 297.18), "VKEY", "KEY_LED_A", fit="port")
+R("R22", "470", "C23179", (162.56, 297.18), "VKEY", "KEY_LED_A", fit="port")
 P("D4", "Device:LED", "green", "LED_SMD:LED_0603_1608Metric", "C12624", (177.8, 297.18),
   {"2": "KEY_LED_A", "1": "GND"}, mpn="KT-0603G", fit="port", note="the port's LED, beside the plug: on while the key is powered")
 P("U6", "Power_Protection:USBLC6-2SC6", "USBLC6-2SC6", "Package_TO_SOT_SMD:SOT-23-6", "C7519",

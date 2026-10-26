@@ -54,7 +54,8 @@ is no polyfuse: JLCPCB has no Basic-tier PPTC, and a USB port limits current its
 | D3 | 1 | ESD5Z5V0 TVS | SOD-523 | C502546 | not checked | VKEY, at the plug |
 | D4 | 1 | LED 0603, green, KT-0603G | 0603 | C12624 | not checked | the port's LED, on while the key is powered (the plan's green C72043 was out of stock on 2026-10-26) |
 | R15 | 1 | 100 kΩ 1% | 0603 | C25803 | basic | KEY_EN pull-down: the key off at reset |
-| R18, R22 | 2 | 1 kΩ 1% | 0603 | C21190 | basic | CC series; the LED's resistor |
+| R18 | 1 | 1 kΩ 1% | 0603 | C21190 | basic | CC series |
+| R22 | 1 | 470 Ω 1% | 0603 | C23179 | basic (expected; confirm) | D4's resistor |
 | R19, R20 | 2 | 2.2 kΩ 1% | 0603 | C4190 | basic (expected; confirm) | the port bus's pull-ups to VKEY |
 | R21 | 1 | 100 Ω 1% | 0603 | C22775 | basic (expected; confirm) | VKEY to a key-c P3's LED on SBU |
 | C9 | 1 | 100 nF 50 V X7R | 0603 | C14663 | basic | at U5's input |

@@ -4999,7 +4999,7 @@
 				)
 			)
 		)
-		(property "Value" "1k"
+		(property "Value" "470"
 			(at 0 1.43 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -5045,7 +5045,7 @@
 				)
 			)
 		)
-		(property "LCSC" "C21190"
+		(property "LCSC" "C23179"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -5057,7 +5057,7 @@
 				)
 			)
 		)
-		(property "MPN" "1k"
+		(property "MPN" "470"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
