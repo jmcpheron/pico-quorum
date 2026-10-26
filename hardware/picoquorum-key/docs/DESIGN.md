@@ -45,7 +45,7 @@ the boards ordered with it (`bom-port.csv`), and the plug is soldered by hand.
 | thickness (rev B) | **0.8 mm** | the straddle plug's drawing: T = 0.80 ± 0.05. Thinner than rev A's 1.6: the board flexes more under the buttons and the glass, so the case should back it |
 | board size (rev B) | 50 × 53, 6 mm added on the left | the plug needs the top-left corner, and a key-c on it (16 mm wide) lies over X 0–16; the strip carries the port's lines down and holds D3. Everything of rev A's keeps its place against the glass (X + 6). A case made for rev A doesn't fit |
 | antenna keep-out (rev B) | the module's antenna end, X 29.5 to the right edge, Y 0–7, not the full width | so copper can reach the plug at the other end of the top edge; the rest of Y 0–7 still has no pour |
-| port ESD | U6 on SDA/SCL, U7 on CC and SBU, D3 on VKEY | the plan also had a TVS on the LED line; U7's second channel already covers SBU, so it was dropped |
+| port ESD | U6 on SDA/SCL, U7 on CC, D3 on VKEY; U7's second channel open | the plan also had a TVS on the LED line. Until 2026-10-26 U7's second channel was on SBU: 5 V on the plug's VBUS then reached 3V3 through R21 (100 Ω) and U7's diode, around U5. SBU is now R21 from VKEY and nothing else, so D3 clamps it through 100 Ω |
 | port LED, FAULT (rev B) | the LEDs run off VKEY; FAULT is left open. No GPIO for either | the plan gave them GPIO13 and 47 (module pins 21 and 24). Rev A's locked routing closes those pins in on both faces, and opening it up broke the USB and screen runs, so rev B leaves them unconnected. D4 then shows the key is powered, with no blinking, and an overload looks like a key that doesn't answer |
 
 Nothing here adds a way to sign or to read a key (rule 3). The 0 Ω links only close an existing
@@ -184,7 +184,15 @@ USB-C VBUS ─────────────┬─ U3 AMS1117-3.3 ─┬�
   shell ─ GND           └─ +5V: U4's VBUS pin and the backlight switch only
 ```
 
-- The AMS1117 wants ≥ 10 µF on its output for stability: C2 at U3, plus C3 at the module.
+- **The output capacitors are not the datasheet's.** The AMS1117 datasheet (Advanced Monolithic
+  Systems, C6186's maker) says 22 µF of solid tantalum on the output "will ensure stability for all
+  operating conditions", and that without a capacitor on ADJ (the fixed 3.3 V part has none)
+  "smaller capacitors can be used with equally good results". It says nothing about ceramics or
+  ESR. Here the output is all ceramic: C2 10 µF at U3, C3 22 µF + C5 100 nF at the module. Many
+  boards run an AMS1117 so, but the datasheet doesn't cover it: scope 3V3 on the first boards
+  (BRINGUP.md). If it rings, C2 becomes a 22 µF tantalum, or U3 a regulator specified for ceramics.
+- Heat: θJA 90 °C/W (SOT-223, datasheet). 5 V to 3.3 V at 300 mA is 0.51 W, about 46 °C over
+  ambient; the module averages less than that, with Wi-Fi bursts to 355 mA.
 - Dropout 1.1 V: a sagged 4.5 V USB rail still gives 3.3 V with margin.
 - EN: R3 10k to 3V3, C4 1 µF to GND, RESET tact to GND, pad TP3.
 
@@ -241,8 +249,8 @@ on a bus of its own and with the key's power off by default.
        │
  KEY2_SDA (GPIO38) ── R19 2.2k ── VKEY    J3 A6 (D+)  ┐ U6 USBLC6-2SC6 at the plug, its rail on +3V3,
  KEY2_SCL (GPIO39) ── R20 2.2k ── VKEY    J3 A7 (D−)  ┘ never on VKEY
- VKEY ── R21 100 Ω ── J3 A8 + B8 (SBU)               ┐ U7 USBLC6-2SC6 on CC and SBU, rail on +3V3
- VKEY ── R22 470 Ω ── D4 green ── GND, beside the plug ┘
+ VKEY ── R21 100 Ω ── J3 A8 + B8 (SBU)                 U7 USBLC6-2SC6 on CC only, rail on +3V3
+ VKEY ── R22 470 Ω ── D4 green ── GND, beside the plug
  J3 A1, A12, B1, B12, shell ── GND;  B5, B6, B7 and the SuperSpeed pins open
 ```
 
@@ -251,8 +259,8 @@ on a bus of its own and with the key's power off by default.
   pull-ups going away when VKEY is off) stays off U2's lines. Re-addressing U2 at the ceremony was
   the other way, and was not taken: the chips would still share a bus.
 - **U5, the power switch** (C2158037, extended): 80 mA limit, reverse blocking, output discharge, from
-  3V3. The key needs under 20 mA. Reverse blocking stops a charger on an A-to-C cable putting 5 V
-  onto 3V3. EN is pulled **down**: a key on a board running an image that doesn't know the port, or
+  3V3. The key needs under 20 mA. Reverse blocking stops 5 V on the plug's VBUS reaching 3V3
+  through U5 (the other ways round it: below, "5 V on the plug's VBUS"). EN is pulled **down**: a key on a board running an image that doesn't know the port, or
   on a board at reset, gets no power. C10 stays at 10 µF, since U5 has to discharge it.
 - **CC, one line.** A key-c shows a 5.1k Rd on both its CC pins, so A5 meets one either way up;
   B5 (VCONN) stays open. R17 47k (to 3V3) over R18 1k plus the key's 5.1k reads 0.38 V with a key and
@@ -263,8 +271,15 @@ on a bus of its own and with the key's power off by default.
 - **Pull-ups to VKEY, 2.2k.** The key has none. On VKEY, a key that is off isn't powered through its
   I2C pins. 2.2k for the plug's and the key's capacitance; `test_spice` puts the rise at about 0.1 µs
   with a guessed 30 pF for the key.
-- **ESD at the plug.** U6 on SDA/SCL and U7 on CC and SBU, both with their rail on 3V3,
-  never VKEY, so nothing feeds the key through them; D3 on VKEY.
+- **ESD at the plug.** U6 on SDA/SCL and U7 on CC, both with their rail on 3V3, never VKEY, so
+  nothing feeds the key through them; D3 on VKEY. SBU has no array: it meets only R21, so a strike
+  there goes through 100 Ω to D3.
+- **5 V on the plug's VBUS** (a wrong cable or adapter; key-c never does this). U5 blocks it from
+  3V3. What else reaches 3V3 from VKEY is the pull-ups: R19 and R20 into U6's diodes and GPIO38/39's
+  clamps, (5 − 3.3 − 0.6) / 2.2k ≈ 0.5 mA a line with the board on, a little more with it off. Not
+  enough to run the board, and well under what its load takes. Until 2026-10-26 U7 was on SBU too,
+  and R21 (100 Ω) made that path about 11 mA, or enough to half-power an unplugged board.
+  `test_key_port` holds the board to this; it hasn't been measured (BRINGUP.md 5a).
 - **The LEDs.** VKEY lights D4 beside the plug through 470 Ω, and the plug's SBU pins through 100 Ω
   for a key-c P3's own LED: both are on while the key is powered. A8 and B8 are joined, so one
   meets the key's either way up. A P2 key has nothing on SBU. The plan drove them from GPIO13 so

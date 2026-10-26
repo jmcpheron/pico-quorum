@@ -68,8 +68,28 @@ class Circuit(unittest.TestCase):
         self.assertEqual(members(self.nets, "VKEY") - {"J3"}, {"U5", "C10", "D3", "R19", "R20", "R21", "R22"})
 
     def test_esd_on_every_plug_line(self):
+        """SBU has no array of its own: it is R21 from VKEY, so D3 clamps it through 100 ohms."""
         protected = {self.net(r, p) for r in ("U6", "U7") for p in (1, 3)} | {self.net("D3", 1)}
-        self.assertEqual(protected, {"KEY2_SDA", "KEY2_SCL", "KEY_CC_PLUG", "KEY_SBU", "VKEY"})
+        protected -= {n for n in protected if common.is_nc(n)}
+        self.assertEqual(protected, {"KEY2_SDA", "KEY2_SCL", "KEY_CC_PLUG", "VKEY"})
+        self.assertEqual(members(self.nets, "KEY_SBU"), {"J3", "R21"})
+
+    def test_5v_on_vbus_reaches_3v3_only_through_the_pull_ups(self):
+        """U5 blocks 5 V put on the plug's VBUS. Every other way from VKEY to 3V3 is a resistor into a
+        line that has a diode to 3V3 (an ESD array's I/O, or a GPIO's clamp). Only R19 and R20 may do
+        that, at 2.2k: (5 - 3.3 - 0.6) / 2.2k is 0.5 mA a line. R21 into U7 was 100 ohms."""
+        esd_io = {self.net(r, p) for r in ("U4", "U6", "U7") for p in (1, 3, 4, 6)}
+        gpio = {n for (r, _), n in self.nets.items() if r == "U1"}
+        clamped = {n for n in esd_io | gpio if not common.is_nc(n)} - {"GND", "+3V3"}
+        into = set()
+        for p in circuit.PARTS:
+            if not p.ref.startswith("R"):
+                continue
+            ends = {self.net(p.ref, 1), self.net(p.ref, 2)}
+            if "VKEY" in ends and ends & clamped:
+                into.add(p.ref)
+                self.assertGreaterEqual(float(p.value.rstrip("k")) * (1000 if p.value.endswith("k") else 1), 2200, p.ref)
+        self.assertEqual(into, {"R19", "R20"})
 
     def test_the_two_buses_are_apart(self):
         """The soldered chip and a key-c both answer at 0x60: no part touches both buses."""

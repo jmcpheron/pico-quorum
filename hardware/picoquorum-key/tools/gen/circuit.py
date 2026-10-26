@@ -204,8 +204,8 @@ P("U6", "Power_Protection:USBLC6-2SC6", "USBLC6-2SC6", "Package_TO_SOT_SMD:SOT-2
   (111.76, 345.44), {"1": "KEY2_SDA", "6": "KEY2_SDA", "3": "KEY2_SCL", "4": "KEY2_SCL", "5": "+3V3", "2": "GND"},
   fit="port", note="ESD on the key's SDA and SCL, at the plug; its rail on 3V3, never VKEY")
 P("U7", "Power_Protection:USBLC6-2SC6", "USBLC6-2SC6", "Package_TO_SOT_SMD:SOT-23-6", "C7519",
-  (152.4, 345.44), {"1": "KEY_CC_PLUG", "6": "KEY_CC_PLUG", "3": "KEY_SBU", "4": "KEY_SBU", "5": "+3V3", "2": "GND"},
-  fit="port", note="ESD on CC and the LED line (SBU), at the plug; its rail on 3V3")
+  (152.4, 345.44), {"1": "KEY_CC_PLUG", "6": "KEY_CC_PLUG", "3": NC, "4": NC, "5": "+3V3", "2": "GND"},
+  fit="port", note="ESD on CC, at the plug; its rail on 3V3. Not on SBU: R21 would feed 5 V on VBUS into 3V3")
 
 # ---------------------------------------------------------------------------------------------
 # Section notes drawn on the sheet
@@ -227,5 +227,5 @@ NOTES = [
     ((25.4, 266.7), "7  THE KEY PORT (rev B): a key-c on its own bus, I2C(1)\n"
                     "Fit 'port' only, but R17 (every board). Power off at reset: R15 holds U5's EN low.\n"
                     "SDA on D+ (A6), SCL on D- (A7), VKEY on VBUS, one CC line (A5), SBU (A8+B8) from VKEY.\n"
-                    "ESD rails on 3V3, never VKEY. J3 hand-fitted; 0.8 mm board."),
+                    "ESD rails on 3V3, never VKEY; none on SBU (R21, D3 cover it). J3 hand-fitted; 0.8 mm board."),
 ]

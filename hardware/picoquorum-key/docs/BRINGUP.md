@@ -107,6 +107,9 @@ Then with the smoke test (`mpremote run firmware/smoke/smoke.py`):
   on a board without the port's parts. Write them in DESIGN.md. A key-c is a 16 × 36 mm board with a
   ground pour standing beside the antenna; this is the measurement the layout can't make.
 - A key-c P3: its own LED is lit with D4, while the key is powered.
+- **5 V on VBUS, once, with a bench supply** (current limit 50 mA) on J3's VBUS and GND, no key,
+  KEN low. Write down 3V3 at TP1 and the supply's current, with the board off and on. DESIGN.md
+  expects a few mA at most, through R19 and R20; tens of mA is a path it doesn't know.
 
 The console image doesn't use the port yet ([PINS.md](PINS.md#in-the-console-image)): under it the
 key on the plug stays unpowered.
@@ -122,7 +125,10 @@ key on the plug stays unpowered.
 
 ## Checks worth a minute each
 
-- 3V3 under Wi-Fi: with the console image scanning, 3V3 stays above 3.2 V at the pad.
+- 3V3 under Wi-Fi: with the console image scanning, 3V3 stays above 3.2 V at the pad. On a scope
+  (AC, 20 MHz limit, at C2): no ringing that outlasts a Wi-Fi burst, and the same with a key-c
+  plugged in while it runs. U3's output capacitors are all ceramic, which its datasheet doesn't
+  cover (DESIGN.md, Power). Feel U3 after ten minutes of Wi-Fi: warm, not too hot to hold.
 - Straps at reset: TP8 (BOOT, GPIO0) high with a meter while holding RESET. 45 and 46 have no
   pads; their defaults show as a normal boot.
 - esptool reaches the bootloader both ways: BOOT+RESET by hand, and with no buttons.
