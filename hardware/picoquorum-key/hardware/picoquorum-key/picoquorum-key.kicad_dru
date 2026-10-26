@@ -22,3 +22,9 @@
 (rule "JLC: largest drill"
 	(constraint hole_size (max 6.3mm))
 	(condition "A.Type == 'Via' || (A.Type == 'Pad' && A.Pad_Type != 'NPTH, mechanical')"))
+
+# The key port's straddle plug (rev B): its shell pads run out to the paddle's sides, as its
+# drawing asks. They stop JLCPCB's least copper-to-edge short, inside the board's own 0.3 mm.
+(rule "JLC: key port plug pads to the paddle sides"
+	(constraint edge_clearance (min 0.2mm))
+	(condition "A.Parent == 'J3'"))

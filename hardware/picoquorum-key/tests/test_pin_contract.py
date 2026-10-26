@@ -24,11 +24,14 @@ PROFILE_NETS = {
     "I2C_SDA": "I2C_SDA", "I2C_SCL": "I2C_SCL", "LED": "LED",
     "BOOT": "BOOT", "UART0_TX": "UART_TX", "UART0_RX": "UART_RX", "USB_DM": "USB_DN_MCU",
     "USB_DP": "USB_DP_MCU",
+    "KEY2_SDA": "KEY2_SDA", "KEY2_SCL": "KEY2_SCL", "KEY_CC": "KEY_CC", "KEY_EN": "KEY_EN",
 }
+PORT = ("KEY2_SDA", "KEY2_SCL", "KEY_CC", "KEY_EN")   # same names in both files
 SMOKE_NETS = {
     "SCK": "LCD_SCK", "MOSI": "LCD_MOSI", "CS": "LCD_CS", "DC": "LCD_DC", "RST": "LCD_RST",
     "BL": "LCD_BL", "SDA": "I2C_SDA", "SCL": "I2C_SCL", "LED": "LED",
 }
+SMOKE_NETS.update({k: k for k in PORT})
 SMOKE_BUTTON_NETS = {"D0 Reject": "BTN_REJECT", "D1 Next": "BTN_NEXT", "D2 Sign": "BTN_SIGN"}
 
 
@@ -175,6 +178,7 @@ class PinContract(unittest.TestCase):
                  "BL": "LCD_BL", "SDA": "I2C_SDA", "SCL": "I2C_SCL", "LED": "LED",
                  "KEY_ADDR": "KEY_ADDR", "W": "LCD_W", "H": "LCD_H", "XOFF": "LCD_XOFF",
                  "YOFF": "LCD_YOFF", "MADCTL": "LCD_MADCTL", "RAIL_Y": "RAIL_Y"}
+        pairs.update({k: k for k in PORT})
         for s, p in pairs.items():
             with self.subTest(const=s):
                 self.assertEqual(self.smoke[s], self.profile[p])
@@ -187,9 +191,21 @@ class PinContract(unittest.TestCase):
 
     # --- straps ------------------------------------------------------------------------------
     def test_no_button_or_ui_pin_on_a_strap(self):
-        for name in ("D0", "D1", "D2", "LED", "LCD_BL", "LCD_CS", "LCD_DC", "LCD_RST"):
+        for name in ("D0", "D1", "D2", "LED", "LCD_BL", "LCD_CS", "LCD_DC", "LCD_RST") + PORT:
             with self.subTest(const=name):
                 self.assertNotIn(self.profile[name], STRAPS)
+
+    def test_key_port_keeps_off_the_octal_psram_and_the_board_id(self):
+        """Not on GPIO35-37 (R8 modules' PSRAM), nor 16/17: their pull-ups are how the image knows this board."""
+        for name in PORT:
+            with self.subTest(const=name):
+                self.assertNotIn(self.profile[name], (16, 17, 35, 36, 37))
+        self.assertEqual((self.profile["I2C_SDA"], self.profile["I2C_SCL"]), (16, 17))
+        self.assertNotEqual(self.profile["KEY2_I2C_ID"], self.profile["I2C_ID"])
+
+    def test_key_port_cc_is_an_adc1_pin(self):
+        """A later image may read a key ID resistor on CC: ADC1 is GPIO1-10, and works with Wi-Fi on."""
+        self.assertIn(self.profile["KEY_CC"], range(1, 11))
 
     def test_strap_pins_as_documented(self):
         # GPIO0: BOOT net only, which must hold exactly the module, R4 pull-up, SW6 and TP8.

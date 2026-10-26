@@ -79,9 +79,37 @@ The test, in order, and what passing looks like:
 | LED | blinks at 2 Hz throughout |
 | key bus | `i2c scan: ['0x60']` and nothing else |
 | key | `ATECC608 serial: 01 23 ... EE` (9 bytes, first `01 23`, last `EE`), and the chip answers at 0x60 after wake |
+| key port, no key | `key port: CC reads 1`, and nothing more from the port: it stays unpowered |
+| key port, a key-c in | `CC reads 0`, `VKEY on` with D4 (beside the plug) lit, `i2c(1) scan: ['0x60']`, a `key-c serial` that isn't U2's; then `i2c(0) scan again: ['0x60']` (the buses are apart) |
 
 Anything else is a hardware fault to find before the console image goes on. The test reads only
 the chip's public serial number; it signs nothing and reads no key (rule 3).
+
+## 5a. The key port (rev B boards with the port's parts)
+
+Before the plug, and before any key:
+
+- Meter VKEY (C10, or D3's cathode) to GND: not a short. TP9 (KCC) reads 3.3 V, TP10 (KEN) 0 V.
+- The plug's A6 and A7 pads are open to TP6 and TP7 (U2's SDA and SCL): the two buses are apart.
+- Short J3's A5 pad to GND through 5.1k: TP9 reads about 0.4 V.
+
+**Solder the plug (J3).** Hold a real plug against the paddle first: A1, the dot on the silkscreen,
+must be the pin that lands on the front's left pad with the plug pointing up out of the top edge
+(DESIGN.md). Slide the 0.8 mm paddle into the plug, flux, solder the front row, then the back row
+and the shell legs. Check every pad for bridges at 0.5 mm.
+
+Then with the smoke test (`mpremote run firmware/smoke/smoke.py`):
+
+- No key: the port lines above. Plug a key-c in and run it again: the second set.
+- Plug and unplug a key-c 20 times with the board powered and the smoke test's loop running: no
+  reset, and the soldered chip still answers (`i2c(0)` scan) after each.
+- **Wi-Fi, three numbers**, the same spot and time: RSSI with no key, with a key-c on the plug, and
+  on a board without the port's parts. Write them in DESIGN.md. A key-c is a 16 × 36 mm board with a
+  ground pour standing beside the antenna; this is the measurement the layout can't make.
+- A key-c P3: its own LED is lit with D4, while the key is powered.
+
+The console image doesn't use the port yet ([PINS.md](PINS.md#in-the-console-image)): under it the
+key on the plug stays unpowered.
 
 ## 6. Finish
 

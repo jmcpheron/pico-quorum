@@ -39,8 +39,8 @@ for o in doc.Objects:                                        # one App::Part per
 pcb = [o for o in doc.Objects if o.TypeId == "Part::Feature" and o.Label.endswith("_PCB")]
 if len(pcb) != 1:
     raise RuntimeError("expected one *_PCB body in the STEP, found %s" % [o.Label for o in pcb])
-# KiCad's board body is the core only (1.51 of 1.6 mm), and it seats each model on its pads' copper,
-# so the faces used here are where the front and back parts' origins sit (1.6 mm + about 0.04 a side).
+# KiCad's board body is the core only (1.51 of 1.6 mm on rev A), and it seats each model on its pads' copper,
+# so the faces used here are where the front and back parts' origins sit (the board + about 0.04 a side).
 zs = sorted(round(b.z, 4) for _, b, _ in solids)
 TOP, BOTTOM = zs[-1], zs[0]
 THICK = TOP - BOTTOM

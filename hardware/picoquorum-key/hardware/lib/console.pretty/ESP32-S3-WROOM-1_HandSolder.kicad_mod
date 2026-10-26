@@ -3,7 +3,7 @@
 	(generator "pcbnew")
 	(generator_version "10.0")
 	(layer "F.Cu")
-	(descr "ESP32-S3-WROOM-1 for hand soldering: castellation pads +1.0 mm outward, no thermal vias under pad 41 (leave it unsoldered, datasheet section 9). Based on KiCad's RF_Module:ESP32-S3-WROOM-1.")
+	(descr "ESP32-S3-WROOM-1 for hand soldering: castellation pads +1.0 mm outward, no thermal vias under pad 41 (leave it unsoldered, datasheet section 9), no antenna keep-out of its own (the board draws the antenna area and 0.5 mm). Based on KiCad's RF_Module:ESP32-S3-WROOM-1.")
 	(tags "2.4 GHz Wi-Fi and Bluetooth module")
 	(property "Reference" "REF**"
 		(at -10.5 11.4 90)
@@ -597,39 +597,6 @@
 		(layers "F.Cu" "F.Mask")
 		(zone_connect 2)
 		(uuid "a039598d-b4bf-41c9-bb5d-5731a11b0e9a")
-	)
-	(zone
-		(layers "F.Cu" "B.Cu" "In1.Cu" "In2.Cu" "In3.Cu" "In4.Cu" "In5.Cu" "In6.Cu" "In7.Cu" "In8.Cu" "In9.Cu" "In10.Cu" "In11.Cu" "In12.Cu" "In13.Cu" "In14.Cu" "In15.Cu" "In16.Cu" "In17.Cu" "In18.Cu" "In19.Cu" "In20.Cu" "In21.Cu" "In22.Cu" "In23.Cu" "In24.Cu" "In25.Cu" "In26.Cu" "In27.Cu" "In28.Cu" "In29.Cu" "In30.Cu")
-		(uuid "18bbecf2-2977-41e2-b949-929efe1bdbf7")
-		(hatch full 0.508)
-		(connect_pads
-			(clearance 0)
-		)
-		(min_thickness 0.254)
-		(keepout
-			(tracks not_allowed)
-			(vias not_allowed)
-			(pads not_allowed)
-			(copperpour not_allowed)
-			(footprints not_allowed)
-		)
-		(placement
-			(enabled no)
-			(sheetname "")
-		)
-		(fill
-			(thermal_gap 0.508)
-			(thermal_bridge_width 0.508)
-			(island_removal_mode 0)
-		)
-		(polygon
-			(pts
-				(xy -24 -6.75)
-				(xy 24 -6.75)
-				(xy 24 -27.75)
-				(xy -24 -27.75)
-			)
-		)
 	)
 	(embedded_fonts no)
 	(model "${KICAD10_3DMODEL_DIR}/RF_Module.3dshapes/ESP32-S3-WROOM-1.step"

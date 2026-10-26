@@ -5,37 +5,45 @@ own Wi-Fi, shows what it does on a 1.14" screen, rebuilds the Safe transaction h
 fields on its screen, and has an ATECC608C sign that hash and nothing else, after every page is
 seen and Sign is held.
 
-Rev A is designed to be made by JLCPCB: 2-layer PCB, Economic SMT assembly of the front face, and
-three things done by hand per board: solder the ESP32-S3 module on the back, clip the panel into
-its connector, flash the firmware.
+Rev B is designed to be made by JLCPCB: 2-layer 0.8 mm PCB, Economic SMT assembly of the front
+face, and three things done by hand per board: solder the ESP32-S3 module on the back, clip the
+panel into its connector, flash the firmware. Rev B adds a **key port**: a USB-C plug at the
+top-left corner for a key-c, on an I2C bus of its own, its power off until firmware turns it on.
+Every board has the port's copper; the boards ordered with `bom-port.csv` get its parts, and their
+plug is soldered by hand. Rev A, without the port, is ordered as planned from `hardware/out/rev-a/`;
+its source is commit `143276a`.
 
 | doc | what it answers |
 |---|---|
 | [docs/SPEC.md](docs/SPEC.md) | what any board of this kind must have and do |
-| [docs/DESIGN.md](docs/DESIGN.md) | rev A: the shape, the zones, the circuits, and every place it departs from the spec |
-| [docs/PINS.md](docs/PINS.md) | the `picoquorum-key` pin profile the firmware carries |
+| [docs/DESIGN.md](docs/DESIGN.md) | rev B: the shape, the zones, the circuits (the key port's too), and every place it departs from the spec |
+| [docs/PINS.md](docs/PINS.md) | the `picoquorum-key` pin profile the firmware carries, and the key port's pins it doesn't yet |
 | [docs/BOM.md](docs/BOM.md) | every part, where it comes from, and its JLCPCB tier |
 | [docs/ORDERING.md](docs/ORDERING.md) | from KiCad to a JLCPCB order |
-| [docs/BRINGUP.md](docs/BRINGUP.md) | hand assembly, flashing, the smoke test |
+| [docs/BRINGUP.md](docs/BRINGUP.md) | hand assembly, flashing, the smoke test, the key port |
+| [docs/TESTING.md](docs/TESTING.md) | what `tools/test.sh` checks |
 
 Layout of the repo:
 
 ```
 docs/                  the documents above
 hardware/picoquorum-key/   KiCad 10 project (schematic, board)
-hardware/lib/          footprints pulled from LCSC, project footprint copies, PicoQuorum's logos
+hardware/lib/          footprints pulled from LCSC, project footprint copies and symbols, PicoQuorum's logos
                        (the 3D models are not committed: see below)
 hardware/out/<rev>/    Gerbers, BOM and CPL as uploaded, per tagged release
-firmware/smoke/        MicroPython smoke test: screen, buttons, LED, key bus
+firmware/smoke/        MicroPython smoke test: screen, buttons, LED, key bus, the key port
 firmware/profile/      the pin profile, in the shape the console firmware expects
 tools/gen/             the generators: circuit.py is the source of the schematic and board
 tools/                 build, autoroute, export and BOM/CPL conversion scripts
 ```
 
-Status (2026-10-24): rev A is designed, routed and exported. ERC, DRC and schematic parity are
-clean, and `hardware/out/rev-a/` holds the JLCPCB Gerber zip, BOM and placement file. Before
-ordering: review the routing in KiCad, fit-check one real ER-TFT1.14-2 panel on a 1:1 print, and
-check part rotations in JLCPCB's preview ([docs/ORDERING.md](docs/ORDERING.md)).
+Status (2026-10-25): rev B is designed, routed and exported. ERC, DRC and schematic parity are
+clean, and `hardware/out/rev-b/` holds the Gerber zip and two BOM/CPL pairs, without and with the
+key port. Not done yet for rev B: the FreeCAD fit checks (`test_3d`), the device renders and the
+mockup, which need FreeCAD; a 1:1 fit-check print. Rev A (`hardware/out/rev-a/`, 2026-10-24) is
+unchanged. Before ordering either: review the routing in KiCad, fit-check one real ER-TFT1.14-2
+panel on a 1:1 print, and check part rotations in JLCPCB's preview
+([docs/ORDERING.md](docs/ORDERING.md)).
 
 ![rev A with its panel fitted (mock screen)](docs/img/rev-a-device-iso.png)
 

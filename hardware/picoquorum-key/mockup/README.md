@@ -14,3 +14,9 @@ Glue or tape it.
 
 A layer of 0.1 to 0.12 mm keeps the smallest parts (0.55 mm resistors) more than a smear. Run
 `tools/mockup/mockup.py picoquorum-key` again after the board changes.
+
+**These STLs are rev A's** (44 × 53 mm, 1.6 mm). Rev B is 50 × 53 mm and 0.8 mm thick, with the key
+port's notch and plug at the top-left corner, so a case made from them doesn't fit it. They haven't
+been made again: `mockup.py` needs FreeCAD, which the machine that drew rev B didn't have. A rev B
+mockup also wants a key-c on the plug, standing 36 mm out of the top edge, to try the case's slot
+for it.

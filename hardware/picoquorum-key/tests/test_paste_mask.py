@@ -23,8 +23,10 @@ import common
 import gerber
 import jlc_limits as jlc
 
-ZIP = os.environ.get("CONSOLE_FAB_ZIP", os.path.join(common.ROOT, "hardware", "out", "rev-a", "picoquorum-key-gerbers.zip"))
-CPL = os.environ.get("CONSOLE_CPL_CSV", os.path.join(common.ROOT, "hardware", "out", "rev-a", "cpl.csv"))
+ZIP = os.environ.get("CONSOLE_FAB_ZIP", os.path.join(common.OUT, "picoquorum-key-gerbers.zip"))
+# the port board's CPL: one stencil serves both, and only the port board places a part on every
+# pasted pad (on a base board the port's pads get paste and no part, DESIGN.md)
+CPL = os.environ.get("CONSOLE_CPL_CSV", os.path.join(common.OUT, "cpl-port.csv"))
 STENCIL_T = 0.12          # mm: JLCPCB's standard stencils are 0.10-0.20 mm and its engineers pick one per
 STENCIL_CHOICES = (0.10, 0.12, 0.15, 0.18, 0.20)   # design unless told; 0.12 is the usual for 0603 and 0.5 mm pitch
 AREA_RATIO_MIN = 0.66     # IPC-7525: below this, paste sticks in the aperture instead of printing
@@ -77,7 +79,7 @@ def seg_to_opening(a, b, x, y, ap):
     return best
 
 
-@unittest.skipUnless(os.path.exists(ZIP), "no Gerber zip: run tools/export.sh rev-a")
+@unittest.skipUnless(os.path.exists(ZIP), "no Gerber zip: run tools/export.sh " + common.REV)
 class PasteMask(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

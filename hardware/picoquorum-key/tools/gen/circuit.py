@@ -1,7 +1,11 @@
-"""picoquorum-key rev A: every part, its fields, its schematic position and the net on each pin.
+"""picoquorum-key rev B: every part, its fields, its schematic position and the net on each pin.
 
 This file is the single source for the generated schematic (gen_sch.py). The board generator
 (gen_pcb.py) reads the schematic's own netlist, not this file, so the schematic stays the truth.
+
+Every part is on every board. `fit` says which boards get it assembled: "base" on all of them,
+"port" only on those ordered with the key port (section 7). The schematic carries it as each
+symbol's Fit field, and tools/jlc_bom_cpl.py writes one BOM and CPL per fit from it.
 
 Pin profile: docs/PINS.md. Circuits: docs/DESIGN.md.
 """
@@ -16,16 +20,18 @@ def g(v):
 
 class Part:
     def __init__(self, ref, lib_id, value, footprint, lcsc="", pos=(0, 0), nets=None,
-                 dnp=False, in_bom=True, on_board=True, mpn="", note=""):
+                 dnp=False, in_bom=True, on_board=True, mpn="", note="", fit="base"):
         self.ref, self.lib_id, self.value, self.footprint = ref, lib_id, value, footprint
         self.lcsc, self.pos, self.nets = lcsc, (g(pos[0]), g(pos[1])), nets or {}
         self.dnp, self.in_bom, self.on_board, self.mpn, self.note = dnp, in_bom, on_board, mpn, note
+        self.fit = fit
 
 
 R0603 = "Resistor_SMD:R_0603_1608Metric"
 C0603 = "Capacitor_SMD:C_0603_1608Metric"
 C0805 = "Capacitor_SMD:C_0805_2012Metric"
 NC = None
+FITS = ("base", "port")
 
 PARTS = []
 
@@ -34,12 +40,12 @@ def P(*a, **k):
     PARTS.append(Part(*a, **k))
 
 
-def R(ref, value, lcsc, pos, n1, n2, note=""):
-    P(ref, "Device:R", value, R0603, lcsc, pos, {"1": n1, "2": n2}, note=note)
+def R(ref, value, lcsc, pos, n1, n2, note="", fit="base"):
+    P(ref, "Device:R", value, R0603, lcsc, pos, {"1": n1, "2": n2}, note=note, fit=fit)
 
 
-def C(ref, value, lcsc, pos, n1, n2, fp=C0603, note=""):
-    P(ref, "Device:C", value, fp, lcsc, pos, {"1": n1, "2": n2}, note=note)
+def C(ref, value, lcsc, pos, n1, n2, fp=C0603, note="", fit="base"):
+    P(ref, "Device:C", value, fp, lcsc, pos, {"1": n1, "2": n2}, note=note, fit=fit)
 
 
 def SW(ref, value, pos, net):
@@ -84,7 +90,7 @@ P("U1", "RF_Module:ESP32-S3-WROOM-1", "ESP32-S3-WROOM-1-N8R2", "console:ESP32-S3
   "C2913204", (233.68, 104.14), {
       "1": "GND", "40": "GND", "41": "GND", "2": "+3V3", "3": "EN",
       "27": "BOOT",                      # IO0, strap: BOOT button only
-      "39": "IO1", "38": "IO2",          # spares to pads
+      "39": "KEY_CC", "38": "KEY_EN",    # IO1, IO2: the key port (section 7), on pads TP9, TP10
       "15": NC,                          # IO3 strap (JTAG source), unconnected
       "4": NC, "5": NC, "6": NC, "7": NC, "12": NC, "8": NC, "11": NC, "21": NC, "24": NC,
       "17": "LCD_DC", "18": "LCD_CS", "19": "LCD_MOSI", "20": "LCD_SCK", "22": "LCD_RST",
@@ -94,7 +100,7 @@ P("U1", "RF_Module:ESP32-S3-WROOM-1", "ESP32-S3-WROOM-1-N8R2", "console:ESP32-S3
       "13": "USB_DN_MCU", "14": "USB_DP_MCU",
       "28": NC, "29": NC, "30": NC,      # IO35-37: octal PSRAM on R8 modules
       "35": "BTN_REJECT", "34": "BTN_NEXT", "33": "BTN_SIGN",
-      "32": NC, "31": NC,                # IO39, IO38: free (PREV/BACK were dropped after rev A's first layout)
+      "31": "KEY2_SDA", "32": "KEY2_SCL",  # IO38, IO39: the key port's own bus, I2C(1)
       "26": NC, "16": NC,                # IO45, IO46 straps, unconnected
       "25": "LED"},
   dnp=True, mpn="ESP32-S3-WROOM-1-N8R2", note="hand-soldered on the back")
@@ -153,11 +159,53 @@ R("R7", "4.7k", "C23162", (251.46, 198.12), "+3V3", "I2C_SCL")
 # 6. Debug pads (back face) and mounting holes
 # ---------------------------------------------------------------------------------------------
 for i, net in enumerate(["+3V3", "GND", "EN", "UART_TX", "UART_RX", "I2C_SDA",
-                         "I2C_SCL", "BOOT", "IO1", "IO2", "+5V", "GND"]):
+                         "I2C_SCL", "BOOT", "KEY_CC", "KEY_EN", "+5V", "GND",
+                         "KEY2_SDA", "KEY2_SCL"]):
     TP("TP%d" % (i + 1), (309.88 + (i % 6) * 15.24, 190.5 + (i // 6) * 20.32), net)
 for i in range(4):
     P("H%d" % (i + 1), "Mechanical:MountingHole", "M2", "MountingHole:MountingHole_2.2mm_M2", "",
       (317.5 + i * 15.24, 248.92), {}, in_bom=False)
+
+# ---------------------------------------------------------------------------------------------
+# 7. The key port (rev B): a USB-C plug at the top-left corner for a key-c, on a bus of its own.
+# key-c's socket carries I2C, not USB: SDA on D+ (A6), SCL on D- (A7), power on VBUS, a 5.1k Rd
+# on each CC. Fitted only on boards ordered with the port, but for R17: on every board it makes
+# KEY_CC read "no key" rather than float. U5 is off until firmware drives KEY_EN high. Its LEDs (D4,
+# and a key-c P3's on SBU) run from VKEY: lit while the key is powered. U5's FAULT is left unused.
+# ---------------------------------------------------------------------------------------------
+P("J3", "console:USB_C_Plug_Straddle", "USB-C plug, straddle", "console:USB_C_Plug_ShouHan_24P-GTJB_Straddle",
+  "C3151751", (63.5, 330.2), {
+      "A4": "VKEY", "A9": "VKEY", "B4": "VKEY", "B9": "VKEY",
+      "A5": "KEY_CC_PLUG", "B5": NC,                 # one CC line: key-c's Rd is on both of its CC pins
+      "A6": "KEY2_SDA", "A7": "KEY2_SCL", "B6": NC, "B7": NC,   # key-c joins A6/B6 and A7/B7 itself
+      "A8": "KEY_SBU", "B8": "KEY_SBU",              # joined, so the key's LED meets one either way up
+      "A2": NC, "A3": NC, "A10": NC, "A11": NC, "B2": NC, "B3": NC, "B10": NC, "B11": NC,
+      "A1": "GND", "A12": "GND", "B1": "GND", "B12": "GND", "SH": "GND"},
+  dnp=True, mpn="TYPE-C 24P-GTJB 040", fit="port",
+  note="the key port; pads on both faces, so fitted by hand like U1. Needs the 0.8 mm board")
+P("U5", "console:AP22653", "AP22653W6-7", "Package_TO_SOT_SMD:SOT-23-6", "C2158037", (190.5, 307.34),
+  {"1": "+3V3", "2": "GND", "3": "KEY_EN", "4": NC, "5": "GND", "6": "VKEY"},     # FAULT unused: DESIGN.md
+  mpn="AP22653W6-7", fit="port", note="the key's power: 80 mA limit (ILIM to GND), reverse blocking, output discharge")
+C("C9", "100n", "C14663", (167.64, 330.2), "+3V3", "GND", note="at U5's IN", fit="port")
+C("C10", "10u", "C15850", (213.36, 330.2), "VKEY", "GND", C0805, note="at U5's OUT; no bigger: U5 discharges it", fit="port")
+R("R15", "100k", "C25803", (177.8, 330.2), "KEY_EN", "GND", note="U5 off until firmware drives KEY_EN", fit="port")
+P("D3", "Diode:ESD5Zxx", "ESD5Z5V0", "Diode_SMD:D_SOD-523", "C502546", (228.6, 330.2),
+  {"1": "VKEY", "2": "GND"}, mpn="ESD5Z5V0", fit="port", note="TVS on VKEY, at the plug")
+R("R17", "47k", "C25819", (101.6, 297.18), "+3V3", "KEY_CC",
+  note="on every board: a key-c's 5.1k reads 0.32 V, none reads 3.3 V")
+R("R18", "1k", "C21190", (111.76, 297.18), "KEY_CC", "KEY_CC_PLUG", note="limits what a wrong plug pushes into GPIO1", fit="port")
+R("R19", "2.2k", "C4190", (127.0, 297.18), "VKEY", "KEY2_SDA", note="to VKEY: a key that is off isn't fed through its bus", fit="port")
+R("R20", "2.2k", "C4190", (137.16, 297.18), "VKEY", "KEY2_SCL", fit="port")
+R("R21", "100", "C22775", (152.4, 297.18), "VKEY", "KEY_SBU", note="lights a key-c P3's LED (its own 470R) while the key is powered", fit="port")
+R("R22", "470", "C23179", (162.56, 297.18), "VKEY", "KEY_LED_A", fit="port")
+P("D4", "Device:LED", "green", "LED_SMD:LED_0603_1608Metric", "C12624", (177.8, 297.18),
+  {"2": "KEY_LED_A", "1": "GND"}, mpn="KT-0603G", fit="port", note="the port's LED, beside the plug: on while the key is powered")
+P("U6", "Power_Protection:USBLC6-2SC6", "USBLC6-2SC6", "Package_TO_SOT_SMD:SOT-23-6", "C7519",
+  (111.76, 345.44), {"1": "KEY2_SDA", "6": "KEY2_SDA", "3": "KEY2_SCL", "4": "KEY2_SCL", "5": "+3V3", "2": "GND"},
+  fit="port", note="ESD on the key's SDA and SCL, at the plug; its rail on 3V3, never VKEY")
+P("U7", "Power_Protection:USBLC6-2SC6", "USBLC6-2SC6", "Package_TO_SOT_SMD:SOT-23-6", "C7519",
+  (152.4, 345.44), {"1": "KEY_CC_PLUG", "6": "KEY_CC_PLUG", "3": "KEY_SBU", "4": "KEY_SBU", "5": "+3V3", "2": "GND"},
+  fit="port", note="ESD on CC and the LED line (SBU), at the plug; its rail on 3V3")
 
 # ---------------------------------------------------------------------------------------------
 # Section notes drawn on the sheet
@@ -174,5 +222,10 @@ NOTES = [
                     "D0/D1/D2 sit level with screen rows 7/67/127."),
     ((165.1, 165.1), "5  THE KEY: ATECC608C-MAHDA at 0x60\nNothing else on the bus. Placed by JLCPCB.\n"
                      "Bus also on pads TP6/TP7 for a key on wires."),
-    ((292.1, 165.1), "6  DEBUG PADS (back face) AND MOUNTING HOLES\nTP: 3V3 GND EN TX RX SDA SCL BOOT IO1 IO2 5V GND"),
+    ((292.1, 165.1), "6  DEBUG PADS (back face) AND MOUNTING HOLES\n"
+                     "TP: 3V3 GND EN TX RX SDA SCL BOOT KCC KEN 5V GND KSDA KSCL"),
+    ((25.4, 266.7), "7  THE KEY PORT (rev B): a key-c on its own bus, I2C(1)\n"
+                    "Fit 'port' only, but R17 (every board). Power off at reset: R15 holds U5's EN low.\n"
+                    "SDA on D+ (A6), SCL on D- (A7), VKEY on VBUS, one CC line (A5), SBU (A8+B8) from VKEY.\n"
+                    "ESD rails on 3V3, never VKEY. J3 hand-fitted; 0.8 mm board."),
 ]

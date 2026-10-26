@@ -143,8 +143,8 @@ def move_footprint_onto(ref, other):
 def track_into_antenna_band(net):
     def mutate(tree):
         seg = net_items(tree, net, ("segment",))[0]
-        for end in ("start", "end"):
-            find(seg, end)[2] = str(ORIGIN[1] + 3.5)   # 3.5 mm below the top edge: inside the antenna band
+        for end, x in (("start", 34.0), ("end", 38.0)):  # over the module's antenna (rev B: X 29.5 on)
+            find(seg, end)[1:3] = [str(ORIGIN[0] + x), str(ORIGIN[1] + 3.5)]   # 3.5 mm below the top edge
         find(seg, "layer")[1] = QStr("F.Cu")
     mutate.__doc__ = "route a %s track through the antenna band" % net
     return mutate

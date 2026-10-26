@@ -28,8 +28,10 @@ cp "$PCB" "$WORK/after-autoroute.kicad_pcb"
 # tidy: re-drill thin-ring vias, widen neck-downs, add GND stitching vias, then drop any that DRC
 # objects to (tools/gen/post_route.py, tools/gen/drc_prune.py)
 "$KP" "$HERE/tools/gen/post_route.py" "$PCB"
-kicad-cli pcb drc --severity-all --format json -o "$WORK/drc.json" "$PCB" >/dev/null || true
-"$KP" "$HERE/tools/gen/drc_prune.py" "$PCB" "$WORK/drc.json"
+for pass in 1 2 3; do        # removing a stray GND piece can leave the next one dangling
+  kicad-cli pcb drc --severity-all --format json -o "$WORK/drc.json" "$PCB" >/dev/null || true
+  "$KP" "$HERE/tools/gen/drc_prune.py" "$PCB" "$WORK/drc.json"
+done
 kicad-cli pcb drc --schematic-parity --severity-all --format report -o "$WORK/drc.txt" "$PCB" || true
 grep -E "Found" "$WORK/drc.txt"
 echo "board saved; the pre-route copy is $WORK/before-autoroute.kicad_pcb"

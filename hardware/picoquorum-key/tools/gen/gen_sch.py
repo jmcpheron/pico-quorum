@@ -96,6 +96,7 @@ def main():
         if not is_power:
             props.append(prop("LCSC", part.lcsc, X, Y, hide=True))
             props.append(prop("MPN", part.mpn or part.value, X, Y, hide=True))
+            props.append(prop("Fit", part.fit, X, Y, hide=True))
 
         node = ["symbol", ["lib_id", QStr(part.lib_id)], ["at", r(X), r(Y), 0], ["unit", 1],
                 ["exclude_from_sim", "no"], ["in_bom", "yes" if part.in_bom else "no"],
@@ -142,12 +143,15 @@ def main():
         print("\n".join(errors))
         sys.exit(1)
 
+    bad_fit = [p.ref for p in circuit.PARTS if p.fit not in circuit.FITS]
+    if bad_fit:
+        sys.exit("fit must be one of %s: %s" % (circuit.FITS, ", ".join(bad_fit)))
     sch = ["kicad_sch", ["version", 20250114], ["generator", QStr("eeschema")],
-           ["generator_version", QStr("9.0")], ["uuid", root_uuid], ["paper", QStr("A3")],
+           ["generator_version", QStr("9.0")], ["uuid", root_uuid], ["paper", QStr("A2")],
            ["title_block", ["title", QStr("picoquorum-key: one owner of a Safe multisig")],
-            ["date", QStr("2026-10-23")], ["rev", QStr("A")],
+            ["date", QStr("2026-10-25")], ["rev", QStr("B")],
             ["comment", 1, QStr("Pins: docs/PINS.md (profile picoquorum-key). Circuits: docs/DESIGN.md.")],
-            ["comment", 2, QStr("U1 and U2 are DNP for assembly: hand-fitted. " + MARK + ".")]],
+            ["comment", 2, QStr("U1 and J3 are DNP for assembly: hand-fitted. Fit field: base or port. " + MARK + ".")]],
            ["lib_symbols"] + [lib_syms[l] for l in lib_ids]] + items + [
            ["sheet_instances", ["path", QStr("/"), ["page", QStr("1")]]],
            ["embedded_fonts", "no"]]

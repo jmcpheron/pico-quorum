@@ -89,6 +89,8 @@ for z in board.Zones():
                  "spoke_width": mm(z.GetThermalReliefSpokeWidth()), "thermal_gap": mm(z.GetThermalReliefGap())}
         zb = z.GetBoundingBox()
         entry["outline"] = [pt((zb.GetX(), zb.GetY())), pt((zb.GetRight(), zb.GetBottom()))]
+        ol = z.Outline().Outline(0)
+        entry["points"] = [pt(ol.CPoint(i)) for i in range(ol.PointCount())]
         if not z.GetIsRuleArea() and z.HasFilledPolysForLayer(lid):
             fb = z.GetFilledPolysList(lid).BBox()
             entry["filled"] = [pt((fb.GetX(), fb.GetY())), pt((fb.GetRight(), fb.GetBottom()))]

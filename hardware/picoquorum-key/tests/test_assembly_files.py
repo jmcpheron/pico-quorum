@@ -1,4 +1,5 @@
-"""The assembly files (bom.csv, cpl.csv in hardware/out/rev-a), read back against the board.
+"""The assembly files (bom.csv, cpl.csv and the key port's bom-port.csv, cpl-port.csv in
+hardware/out/<rev>), read back against the board.
 
 JLCPCB assembles from two files: the BOM says which LCSC part goes where, the CPL (placement)
 file says where each part's centre goes and how far to turn it. What can go wrong there doesn't
@@ -27,9 +28,10 @@ import common
 import circuit
 from sexp import find, find_all, parse
 
-OUT = os.path.join(common.ROOT, "hardware", "out", "rev-a")
+OUT = common.OUT
 BOM = os.environ.get("CONSOLE_BOM_CSV", os.path.join(OUT, "bom.csv"))
 CPL = os.environ.get("CONSOLE_CPL_CSV", os.path.join(OUT, "cpl.csv"))
+BOM_PORT, CPL_PORT = os.path.join(OUT, "bom-port.csv"), os.path.join(OUT, "cpl-port.csv")
 ROTATIONS = os.path.join(common.ROOT, "tools", "rotations.json")
 JLC_LIB = os.path.join(common.ROOT, "hardware", "lib", "jlc.pretty")
 # LCSC number -> JLCPCB's own footprint (fetched by tools/fetch_parts.sh)
@@ -78,14 +80,17 @@ def place(x, y, deg, ox, oy):
     return ox + x * math.cos(a) + y * math.sin(a), oy - x * math.sin(a) + y * math.cos(a)
 
 
-@unittest.skipUnless(os.path.exists(BOM) and os.path.exists(CPL), "no bom.csv/cpl.csv: run tools/export.sh rev-a")
+@unittest.skipUnless(os.path.exists(BOM) and os.path.exists(CPL), "no bom.csv/cpl.csv: run tools/export.sh " + common.REV)
 class AssemblyFiles(unittest.TestCase):
+    """The base board: every part whose Fit is 'base'."""
+    BOM, CPL, FITS, SVG = BOM, CPL, ("base",), "placement-top.svg"
+
     @classmethod
     def setUpClass(cls):
         cls.f = common.board_facts()
         cls.H = cls.f["board"]["h"]
-        cls.bom = read_csv(BOM)
-        cls.cpl = {r["Designator"]: r for r in read_csv(CPL)}
+        cls.bom = read_csv(cls.BOM)
+        cls.cpl = {r["Designator"]: r for r in read_csv(cls.CPL)}
         cls.lcsc_of = {}
         for row in cls.bom:
             for ref in row["Designator"].split(","):
@@ -93,7 +98,7 @@ class AssemblyFiles(unittest.TestCase):
         cls.parts = {p.ref: p for p in circuit.PARTS}
         with open(ROTATIONS) as f:
             cls.offsets = json.load(f).get("offsets", {})
-        write_svg(cls, os.path.dirname(common.scratch("assembly", "placement-top.svg")))
+        write_svg(cls, os.path.dirname(common.scratch("assembly", cls.SVG)), cls.SVG)
 
     @classmethod
     def tearDownClass(cls):
@@ -101,10 +106,11 @@ class AssemblyFiles(unittest.TestCase):
             print("\nassembly file notes:\n  " + "\n  ".join(NOTES))
 
     def placed(self):
-        """Footprints JLCPCB should place: front, has copper pads, not DNP, not excluded."""
+        """Footprints JLCPCB should place: front, has copper pads, not DNP, not excluded, of this fit."""
         return {r for r, fp in self.f["footprints"].items()
                 if fp["layer"] == "F.Cu" and not fp["dnp"] and not fp["exclude_pos"]
-                and any(p["copper"] and p["attr"] != "NPTH" for p in fp["pads"])}
+                and any(p["copper"] and p["attr"] != "NPTH" for p in fp["pads"])
+                and self.parts[r].fit in self.FITS}
 
     # --- the two files agree with each other and with the board ------------------------------
     def test_bom_and_cpl_name_the_same_parts(self):
@@ -205,7 +211,21 @@ def compass(dx, dy):
     return (" ".join(s for s in (v, h) if s)) or "at the centre"
 
 
-def write_svg(cls, out_dir):
+@unittest.skipUnless(os.path.exists(BOM_PORT) and os.path.exists(CPL_PORT), "no bom-port.csv/cpl-port.csv: run tools/export.sh " + common.REV)
+class PortAssemblyFiles(AssemblyFiles):
+    """The board with the key port: the base parts and the port's, from the same Gerbers."""
+    BOM, CPL, FITS, SVG = BOM_PORT, CPL_PORT, ("base", "port"), "placement-top-port.svg"
+
+    def test_port_files_are_the_base_files_plus_the_port_parts(self):
+        base = {r["Designator"] for r in read_csv(CPL)}
+        port = {p.ref for p in circuit.PARTS if p.fit == "port" and not p.dnp}
+        self.assertEqual(set(self.cpl), base | port)
+        self.assertEqual(base & port, set())
+        self.assertIn("R17", base, "R17 is on every board: it holds GPIO1 high with no port")
+        self.assertNotIn("J3", self.cpl, "J3 is fitted by hand")
+
+
+def write_svg(cls, out_dir, name="placement-top.svg"):
     W, H = cls.f["board"]["w"], cls.H
     body = ['<rect x="0" y="0" width="%s" height="%s" fill="#1d3b2a" rx="1.5"/>' % (W, H)]
     for ref, row in sorted(cls.cpl.items()):
@@ -235,7 +255,7 @@ def write_svg(cls, out_dir):
                 'grey: board pads, red: pin 1, blue: JLCPCB footprint placed by cpl.csv, yellow: CPL centre and 0-degree axis</text>' % (H + 1.5))
     svg = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 %s %s" width="%smm" height="%smm">\n%s\n</svg>\n'
            % (W + 2, H + 4, (W + 2) * 4, (H + 4) * 4, "\n".join(body)))
-    with open(os.path.join(out_dir, "placement-top.svg"), "w") as f:
+    with open(os.path.join(out_dir, name), "w") as f:
         f.write(svg)
 
 
