@@ -107,9 +107,19 @@ Then with the smoke test (`mpremote run firmware/smoke/smoke.py`):
   on a board without the port's parts. Write them in DESIGN.md. A key-c is a 16 × 36 mm board with a
   ground pour standing beside the antenna; this is the measurement the layout can't make.
 - A key-c P3: its own LED is lit with D4, while the key is powered.
-- **5 V on VBUS, once, with a bench supply** (current limit 50 mA) on J3's VBUS and GND, no key,
-  KEN low. Write down 3V3 at TP1 and the supply's current, with the board off and on. DESIGN.md
-  expects a few mA at most, through R19 and R20; tens of mA is a path it doesn't know.
+- **5 V on VBUS with KEN low, once**, from a bench supply at 5.0 V, current limit 30 mA, on J3's
+  VBUS and GND, no key. KEN must stay low throughout: no smoke test or image that drives GPIO2.
+  With KEN high U5 doesn't block (DESIGN.md), and this would put 5 V on 3V3.
+  - The supply's current counts more than back-feed. Expected, with the board off or on: D4 lit,
+    about (5 − 2.7) / 470 ≈ 5 mA; U5's discharge, 600 Ω, about 8 mA while it lasts (the datasheet
+    calls it "for limited time"); R19 and R20, about 1 mA together. So up to about 15 mA, falling
+    to about 6 mA if the discharge lets go. Over 20 mA is a path DESIGN.md doesn't know.
+  - The board **off** (USB out): measure 3V3 at TP1 with a meter. Pass: under 1.0 V (half the key chip's 2.0 V minimum), D1 dark, the
+    panel dark, nothing appears on the laptop's USB. Then plug USB in with the 5 V still on: the
+    board starts as usual and 3V3 reads 3.3 V ± 0.1 V.
+  - The board **on**: 3V3 at TP1 stays 3.3 V ± 0.1 V, and the smoke test runs as before.
+  - Take the 5 V off and unplug and replug USB: the board starts as usual.
+  Write the numbers in DESIGN.md beside the 0.5 mA estimate.
 
 The console image doesn't use the port yet ([PINS.md](PINS.md#in-the-console-image)): under it the
 key on the plug stays unpowered.

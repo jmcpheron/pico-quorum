@@ -185,7 +185,7 @@ P("J3", "console:USB_C_Plug_Straddle", "USB-C plug, straddle", "console:USB_C_Pl
   note="the key port; pads on both faces, so fitted by hand like U1. Needs the 0.8 mm board")
 P("U5", "console:AP22653", "AP22653W6-7", "Package_TO_SOT_SMD:SOT-23-6", "C2158037", (190.5, 307.34),
   {"1": "+3V3", "2": "GND", "3": "KEY_EN", "4": NC, "5": "GND", "6": "VKEY"},     # FAULT unused: DESIGN.md
-  mpn="AP22653W6-7", fit="port", note="the key's power: 80 mA limit (ILIM to GND), reverse blocking, output discharge")
+  mpn="AP22653W6-7", fit="port", note="the key's power: 80 mA limit (ILIM to GND), output discharge; blocks reverse current only while off")
 C("C9", "100n", "C14663", (167.64, 330.2), "+3V3", "GND", note="at U5's IN", fit="port")
 C("C10", "10u", "C15850", (213.36, 330.2), "VKEY", "GND", C0805, note="at U5's OUT; no bigger: U5 discharges it", fit="port")
 R("R15", "100k", "C25803", (177.8, 330.2), "KEY_EN", "GND", note="U5 off until firmware drives KEY_EN", fit="port")

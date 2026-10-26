@@ -258,9 +258,10 @@ on a bus of its own and with the key's power off by default.
   reads. GPIO38/39 are I2C(1); everything at the plug (hot-plug bounce, ESD, a shorted key, the
   pull-ups going away when VKEY is off) stays off U2's lines. Re-addressing U2 at the ceremony was
   the other way, and was not taken: the chips would still share a bus.
-- **U5, the power switch** (C2158037, extended): 80 mA limit, reverse blocking, output discharge, from
-  3V3. The key needs under 20 mA. Reverse blocking stops 5 V on the plug's VBUS reaching 3V3
-  through U5 (the other ways round it: below, "5 V on the plug's VBUS"). EN is pulled **down**: a key on a board running an image that doesn't know the port, or
+- **U5, the power switch** (C2158037, extended): 80 mA limit, output discharge, from 3V3, and
+  reverse blocking **only while off**. The key needs under 20 mA. Off, it holds 5 V on the plug's
+  VBUS away from 3V3 (1 µA at most); on, it only limits the reverse current, to 0.32 A
+  (below, "5 V on the plug's VBUS"). EN is pulled **down**: a key on a board running an image that doesn't know the port, or
   on a board at reset, gets no power. C10 stays at 10 µF, since U5 has to discharge it.
 - **CC, one line.** A key-c shows a 5.1k Rd on both its CC pins, so A5 meets one either way up;
   B5 (VCONN) stays open. R17 47k (to 3V3) over R18 1k plus the key's 5.1k reads 0.38 V with a key and
@@ -274,12 +275,24 @@ on a bus of its own and with the key's power off by default.
 - **ESD at the plug.** U6 on SDA/SCL and U7 on CC, both with their rail on 3V3, never VKEY, so
   nothing feeds the key through them; D3 on VKEY. SBU has no array: it meets only R21, so a strike
   there goes through 100 Ω to D3.
-- **5 V on the plug's VBUS** (a wrong cable or adapter; key-c never does this). U5 blocks it from
-  3V3. What else reaches 3V3 from VKEY is the pull-ups: R19 and R20 into U6's diodes and GPIO38/39's
-  clamps, (5 − 3.3 − 0.6) / 2.2k ≈ 0.5 mA a line with the board on, a little more with it off. Not
-  enough to run the board, and well under what its load takes. Until 2026-10-26 U7 was on SBU too,
-  and R21 (100 Ω) made that path about 11 mA, or enough to half-power an unplugged board.
-  `test_key_port` holds the board to this; it hasn't been measured (BRINGUP.md 5a).
+- **5 V on the plug's VBUS** (a wrong cable or adapter; key-c never does this). What happens
+  depends on KEY_EN. From the AP22653 datasheet (Diodes DS41186 rev 5-2, pages 5, 6 and 10):
+  - **KEY_EN low** (at reset, under an image that doesn't know the port, and whenever no key is
+    in): U5 blocks, 1 µA at most. What reaches 3V3 is the pull-ups: R19 and R20 into U6's diodes
+    and GPIO38/39's clamps, (5 − 3.3 − 0.6) / 2.2k ≈ 0.5 mA a line with the board on, more with it
+    off; how high that lifts an unpowered 3V3 is not known until measured (BRINGUP.md 5a). Until
+    2026-10-26 U7 was on SBU too, and R21 (100 Ω) made that path about 11 mA. `test_key_port`
+    holds the board to the pull-ups being the only way.
+  - **KEY_EN high**: **not protected.** With VOUT above VIN, the AP22653 limits reverse current
+    to 0.32 A typical; it doesn't block. That is more than the board draws outside Wi-Fi bursts, so 5 V
+    would push 3V3 above the S3's 3.6 V maximum. The latch-off AP22653A doesn't close it: it turns off 2–20 ms
+    after the reverse voltage, and 0.32 A charges C2, C3 and C5 by about a volt in 0.1 ms. FAULT
+    would show it, but it is left open.
+  - How it could arise: firmware drives KEY_EN high only when CC reads a key's Rd; a source with Rp
+    on CC reads as no key. It takes a source that also pulls CC low, or a key swapped for a source
+    faster than firmware drops KEY_EN. Firmware can refuse to enable while VKEY is already driven
+    (PINS.md), which doesn't catch a source arriving after. Closing it in hardware means a switch
+    that blocks reverse current while on, a new part and re-route around U5; not done.
 - **The LEDs.** VKEY lights D4 beside the plug through 470 Ω, and the plug's SBU pins through 100 Ω
   for a key-c P3's own LED: both are on while the key is powered. A8 and B8 are joined, so one
   meets the key's either way up. A P2 key has nothing on SBU. The plan drove them from GPIO13 so

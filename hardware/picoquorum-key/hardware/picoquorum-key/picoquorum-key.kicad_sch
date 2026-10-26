@@ -14425,7 +14425,7 @@
 				(hide yes)
 			)
 		)
-		(property "Description" "the key's power: 80 mA limit (ILIM to GND), reverse blocking, output discharge"
+		(property "Description" "the key's power: 80 mA limit (ILIM to GND), output discharge; blocks reverse current only while off"
 			(at 190.5 307.34 0)
 			(effects
 				(font

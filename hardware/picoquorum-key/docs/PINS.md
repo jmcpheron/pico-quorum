@@ -121,6 +121,11 @@ release fingerprint:
 - `signer.detect()` learns the second bus: when KEY_CC reads low, drive KEY_EN high, wait about
   10 ms (the key's 200 nF and U5's soft start), scan I2C(1); when it reads high, drive KEY_EN low
   and drop that signer. The soldered chip is read as today;
+- before driving KEY_EN high, read GPIO38 and 39 as plain inputs (no pull-ups): with U5 off,
+  R19/R20 pull them to VKEY, which is near 0 V unless something outside drives it. Either one high
+  means VKEY is already powered from the plug: leave KEY_EN low and say so on screen. U5 doesn't
+  block reverse current while on (DESIGN.md, "5 V on the plug's VBUS"), so this check is what stops
+  firmware switching 5 V onto 3V3. It can't catch a source that arrives after;
 - `same_chip()` already re-reads the serial just before a signature, on whichever chip is about to
   sign, so a key swapped mid-approval is caught. That stays the hot-swap check;
 - **which key signs when both are in** is a product decision still open: the plan's proposal is the
