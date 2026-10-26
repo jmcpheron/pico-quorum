@@ -242,7 +242,7 @@ on a bus of its own and with the key's power off by default.
  KEY2_SDA (GPIO38) ── R19 2.2k ── VKEY    J3 A6 (D+)  ┐ U6 USBLC6-2SC6 at the plug, its rail on +3V3,
  KEY2_SCL (GPIO39) ── R20 2.2k ── VKEY    J3 A7 (D−)  ┘ never on VKEY
  VKEY ── R21 100 Ω ── J3 A8 + B8 (SBU)               ┐ U7 USBLC6-2SC6 on CC and SBU, rail on +3V3
- VKEY ── R22 1k ── D4 red ── GND, beside the plug      ┘
+ VKEY ── R22 1k ── D4 green ── GND, beside the plug    ┘
  J3 A1, A12, B1, B12, shell ── GND;  B5, B6, B7 and the SuperSpeed pins open
 ```
 
@@ -269,9 +269,9 @@ on a bus of its own and with the key's power off by default.
   for a key-c P3's own LED: both are on while the key is powered. A8 and B8 are joined, so one
   meets the key's either way up. A P2 key has nothing on SBU. The plan drove them from GPIO13 so
   the firmware could blink them; module pin 21 is closed in by rev A's routing (above), so rev B
-  has no LED pin. D4 is D1's red LED (Vf about 1.9 V): at 3.3 V through 1k it gets about 1.4 mA,
-  as D1 does. The plan's green C72043 was out of stock (2026-10-26), and a green InGaN LED at 3.3 V
-  through 1k would get under 1 mA.
+  has no LED pin. D4 is a green KT-0603G (C12624; the plan's C72043 was out of stock on
+  2026-10-26). A green LED of this kind drops about 2.7 V or more even at 1 mA, so at 3.3 V
+  through 1k it gets under 1 mA: dim but visible. BRINGUP.md checks it.
 - **FAULT** is left open, and so is GPIO47, the plan's pin for it (module pin 24, closed in like
   21). An overload shows as a key that doesn't answer on I2C(1).
 - **Pads.** KEY_CC and KEY_EN are on TP9 and TP10 (rev A's IO1 and IO2), the port's bus on TP13 and

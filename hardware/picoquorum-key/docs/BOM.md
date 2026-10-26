@@ -52,7 +52,7 @@ is no polyfuse: JLCPCB has no Basic-tier PPTC, and a USB port limits current its
 | U5 | 1 | AP22653W6-7, current-limited power switch, 80 mA with ILIM to GND, reverse blocking, output discharge | SOT-23-6 | C2158037 | extended (wing-a's note) | the key's power, VKEY |
 | U6, U7 | 2 | USBLC6-2SC6 ESD array | SOT-23-6 | C7519 | extended | the same line as U4: no extra feeder fee |
 | D3 | 1 | ESD5Z5V0 TVS | SOD-523 | C502546 | not checked | VKEY, at the plug |
-| D4 | 1 | LED 0603, red, KT-0603R | 0603 | C2286 | basic | the port's LED, on while the key is powered; D1's part (the plan's green C72043 was out of stock on 2026-10-26) |
+| D4 | 1 | LED 0603, green, KT-0603G | 0603 | C12624 | not checked | the port's LED, on while the key is powered (the plan's green C72043 was out of stock on 2026-10-26) |
 | R15 | 1 | 100 kΩ 1% | 0603 | C25803 | basic | KEY_EN pull-down: the key off at reset |
 | R18, R22 | 2 | 1 kΩ 1% | 0603 | C21190 | basic | CC series; the LED's resistor |
 | R19, R20 | 2 | 2.2 kΩ 1% | 0603 | C4190 | basic (expected; confirm) | the port bus's pull-ups to VKEY |

@@ -16020,7 +16020,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "red"
+		(property "Value" "green"
 			(at 173.99 292.1 0)
 			(effects
 				(font
@@ -16056,7 +16056,7 @@
 				(hide yes)
 			)
 		)
-		(property "LCSC" "C2286"
+		(property "LCSC" "C12624"
 			(at 177.8 297.18 0)
 			(effects
 				(font
@@ -16065,7 +16065,7 @@
 				(hide yes)
 			)
 		)
-		(property "MPN" "KT-0603R"
+		(property "MPN" "KT-0603G"
 			(at 177.8 297.18 0)
 			(effects
 				(font
