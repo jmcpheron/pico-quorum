@@ -57,8 +57,8 @@ KiCad 10's `RF_Module:ESP32-S3-WROOM-1` symbol.
 | EN | – | 3 | EN | 10k to 3.3 V, 1 µF to GND, RESET tact to GND, pad TP3 |
 | key port CC | 1 | 39 | KEY_CC | R17 47k to 3.3 V (every board), R18 1k to the plug's A5; low with a key-c in; ADC1_CH0; pad TP9 |
 | key port enable | 2 | 38 | KEY_EN | R15 100k to GND; high powers the key (U5); pad TP10 |
-| key port SDA | 38 | 31 | KEY2_SDA | R19 2.2k to VKEY; `I2C(1)`; pad TP13 |
-| key port SCL | 39 | 32 | KEY2_SCL | R20 2.2k to VKEY; `I2C(1)`; pad TP14 |
+| key port SDA | 38 | 31 | KEY2_SDA | R19 2.2k to VKEY_SW (U5's output); `I2C(1)`; pad TP13 |
+| key port SCL | 39 | 32 | KEY2_SCL | R20 2.2k to VKEY_SW (U5's output); `I2C(1)`; pad TP14 |
 | unconnected | 4–8, 13, 15, 18, 47 | 4–7, 12, 21, 8, 11, 24 | | free GPIOs, no copper |
 | unconnected strap | 3, 45, 46 | 15, 26, 16 | | left floating on purpose |
 | unconnected | 35–37 | 28–30 | | reserved for R8 modules' PSRAM |

@@ -11,7 +11,7 @@ import common
 import circuit
 from test_geometry import read_consts
 
-PORT_PARTS = {"J3", "U5", "U6", "U7", "D3", "D4", "C9", "C10", "R15", "R18", "R19", "R20", "R21", "R22"}
+PORT_PARTS = {"J3", "U5", "U6", "U7", "D3", "D4", "D5", "C9", "C10", "R15", "R18", "R19", "R20", "R21", "R22", "R23"}
 PLUG_TO_ANTENNA_MIN = 15.0      # mm, the plug's body to the antenna rule area: Espressif's ~15 mm from metal
 TOL = 0.05
 
@@ -53,19 +53,21 @@ class Circuit(unittest.TestCase):
         self.assertEqual(self.net("U5", 3), "KEY_EN")
         self.assertEqual({self.net("R15", 1), self.net("R15", 2)}, {"KEY_EN", "GND"})
         self.assertEqual(members(self.nets, "KEY_EN"), {"U1", "U5", "R15", "TP10"})
-        self.assertEqual((self.net("U5", 1), self.net("U5", 6)), ("+3V3", "VKEY"))
+        self.assertEqual((self.net("U5", 1), self.net("U5", 6)), ("+3V3", "VKEY_SW"))
+        self.assertEqual((self.net("D5", 2), self.net("D5", 1)), ("VKEY_SW", "VKEY"), "D5: anode on U5, cathode on the plug")
         self.assertEqual(self.net("U5", 5), "GND", "ILIM to GND: the 80 mA limit")
 
-    def test_pull_ups_on_vkey_and_esd_rails_on_3v3(self):
-        """The bus pull-ups go to the switched rail, so a key that is off isn't fed through its bus;
-        the ESD arrays' rails go to 3V3, never VKEY, so nothing feeds VKEY through them."""
+    def test_pull_ups_on_the_switched_rail_and_esd_rails_on_3v3(self):
+        """The bus pull-ups go to U5's output, so a key that is off isn't fed through its bus; the ESD
+        arrays' rails go to 3V3, never VKEY, so nothing feeds VKEY through them."""
         for ref, net in (("R19", "KEY2_SDA"), ("R20", "KEY2_SCL")):
             with self.subTest(ref=ref):
-                self.assertEqual({self.net(ref, 1), self.net(ref, 2)}, {"VKEY", net})
+                self.assertEqual({self.net(ref, 1), self.net(ref, 2)}, {"VKEY_SW", net})
         for ref in ("U6", "U7"):
             with self.subTest(ref=ref):
                 self.assertEqual(self.net(ref, 5), "+3V3")
-        self.assertEqual(members(self.nets, "VKEY") - {"J3"}, {"U5", "C10", "D3", "R19", "R20", "R21", "R22"})
+        self.assertEqual(members(self.nets, "VKEY") - {"J3"}, {"D5", "D3", "R21", "R22", "R23"})
+        self.assertEqual(members(self.nets, "VKEY_SW"), {"U5", "D5", "C10", "R19", "R20"})
 
     def test_esd_on_every_plug_line(self):
         """SBU has no array of its own: it is R21 from VKEY, so D3 clamps it through 100 ohms."""
@@ -74,22 +76,19 @@ class Circuit(unittest.TestCase):
         self.assertEqual(protected, {"KEY2_SDA", "KEY2_SCL", "KEY_CC_PLUG", "VKEY"})
         self.assertEqual(members(self.nets, "KEY_SBU"), {"J3", "R21"})
 
-    def test_5v_on_vbus_reaches_3v3_only_through_the_pull_ups(self):
-        """U5 blocks 5 V put on the plug's VBUS. Every other way from VKEY to 3V3 is a resistor into a
-        line that has a diode to 3V3 (an ESD array's I/O, or a GPIO's clamp). Only R19 and R20 may do
-        that, at 2.2k: (5 - 3.3 - 0.6) / 2.2k is 0.5 mA a line. R21 into U7 was 100 ohms."""
+    def test_5v_on_vbus_has_no_way_to_3v3(self):
+        """5 V put on the plug's VBUS (VKEY) meets D5 reverse-biased, whether U5 is on or off (U5
+        itself blocks only while off). Nothing else on VKEY leads to 3V3: no resistor from VKEY into a
+        line with a diode to 3V3 (an ESD array's I/O, or a GPIO's clamp), and no part on VKEY but D5
+        touches 3V3's side. Until 2026-10-26 R21 fed U7's diode (100 ohms), then R19/R20 (2.2k)."""
         esd_io = {self.net(r, p) for r in ("U4", "U6", "U7") for p in (1, 3, 4, 6)}
         gpio = {n for (r, _), n in self.nets.items() if r == "U1"}
         clamped = {n for n in esd_io | gpio if not common.is_nc(n)} - {"GND", "+3V3"}
-        into = set()
-        for p in circuit.PARTS:
-            if not p.ref.startswith("R"):
-                continue
-            ends = {self.net(p.ref, 1), self.net(p.ref, 2)}
-            if "VKEY" in ends and ends & clamped:
-                into.add(p.ref)
-                self.assertGreaterEqual(float(p.value.rstrip("k")) * (1000 if p.value.endswith("k") else 1), 2200, p.ref)
-        self.assertEqual(into, {"R19", "R20"})
+        for ref in sorted(members(self.nets, "VKEY") - {"J3", "D5"}):
+            on = {n for (r, _), n in self.nets.items() if r == ref}
+            with self.subTest(ref=ref):
+                self.assertFalse(on & (clamped | {"+3V3", "VKEY_SW"}), "%s joins VKEY to %s" % (ref, on))
+        self.assertEqual(self.parts["D5"].lib_id, "Device:D_Schottky")
 
     def test_the_two_buses_are_apart(self):
         """The soldered chip and a key-c both answer at 0x60: no part touches both buses."""

@@ -1387,6 +1387,181 @@
 			)
 			(embedded_fonts no)
 		)
+		(symbol "Device:D_Schottky"
+			(pin_numbers
+				(hide yes)
+			)
+			(pin_names
+				(offset 1.016)
+				(hide yes)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(in_pos_files yes)
+			(duplicate_pin_numbers_are_jumpers no)
+			(property "Reference" "D"
+				(at 0 2.54 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "D_Schottky"
+				(at 0 -2.54 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" ""
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Datasheet" ""
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Description" "Schottky diode"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_keywords" "diode Schottky"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_fp_filters" "TO-???* *_Diode_* *SingleDiode* D_*"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(symbol "D_Schottky_0_1"
+				(polyline
+					(pts
+						(xy -1.905 0.635)
+						(xy -1.905 1.27)
+						(xy -1.27 1.27)
+						(xy -1.27 -1.27)
+						(xy -0.635 -1.27)
+						(xy -0.635 -0.635)
+					)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 1.27 1.27)
+						(xy 1.27 -1.27)
+						(xy -1.27 0)
+						(xy 1.27 1.27)
+					)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 1.27 0)
+						(xy -1.27 0)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+			)
+			(symbol "D_Schottky_1_1"
+				(pin passive line
+					(at -3.81 0 0)
+					(length 2.54)
+					(name "K"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 3.81 0 180)
+					(length 2.54)
+					(name "A"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
 		(symbol "Device:LED"
 			(pin_numbers
 				(hide yes)
@@ -14425,7 +14600,7 @@
 				(hide yes)
 			)
 		)
-		(property "Description" "the key's power: 80 mA limit (ILIM to GND), reverse blocking, output discharge"
+		(property "Description" "the key's power: 80 mA limit (ILIM to GND), output discharge; blocks reverse current only while off"
 			(at 190.5 307.34 0)
 			(effects
 				(font
@@ -14532,7 +14707,7 @@
 			)
 		)
 	)
-	(global_label "VKEY"
+	(global_label "VKEY_SW"
 		(shape passive)
 		(at 200.66 304.8 0)
 		(fields_autoplaced yes)
@@ -14593,6 +14768,286 @@
 		(uuid "1ef26b96-a958-5532-8cbe-f130e0947941")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
 			(at 193.04 314.96 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+				(hide yes)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:D_Schottky")
+		(at 243.84 307.34 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "96375ae5-8f2d-593f-96af-494687ff3e32")
+		(property "Reference" "D5"
+			(at 240.03 299.72 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "1N5819WS"
+			(at 240.03 302.26 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Diode_SMD:D_SOD-323"
+			(at 243.84 307.34 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 243.84 307.34 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "blocks 5 V on the plug's VBUS from VKEY_SW and 3V3 whether U5 is on or off; ~0.2 V at the key's 10 mA"
+			(at 243.84 307.34 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "LCSC" "C191023"
+			(at 243.84 307.34 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "MPN" "1N5819WS"
+			(at 243.84 307.34 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Fit" "port"
+			(at 243.84 307.34 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "03d9063f-317a-5e0b-840a-479d20399772")
+		)
+		(pin "2"
+			(uuid "d977fe58-2742-53f1-9fb6-886cbcef5c9f")
+		)
+		(instances
+			(project "picoquorum-key"
+				(path "/b64d3a71-8e9d-5743-8331-16e79fb2aa48"
+					(reference "D5")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(global_label "VKEY"
+		(shape passive)
+		(at 240.03 307.34 180)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "caebb1c4-e5c2-57fd-b73e-622689400ed8")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 240.03 307.34 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+				(hide yes)
+			)
+		)
+	)
+	(global_label "VKEY_SW"
+		(shape passive)
+		(at 247.65 307.34 0)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "b0f3c89e-5d12-52f0-8e96-1805eebedac4")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 247.65 307.34 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+				(hide yes)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:R")
+		(at 259.08 307.34 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "3338efc1-cbae-5ba4-bc9b-3c23a89851ce")
+		(property "Reference" "R23"
+			(at 261.62 306.07 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "10k"
+			(at 261.62 308.61 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
+			(at 259.08 307.34 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 259.08 307.34 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "drains VKEY when U5 is off: D5 stops U5 doing it"
+			(at 259.08 307.34 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "LCSC" "C25804"
+			(at 259.08 307.34 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "MPN" "10k"
+			(at 259.08 307.34 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Fit" "port"
+			(at 259.08 307.34 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "3cc310e0-3874-5a84-876f-74e9c900903d")
+		)
+		(pin "2"
+			(uuid "c8cecfd5-ed3b-5e9d-baa4-374dffd8f90d")
+		)
+		(instances
+			(project "picoquorum-key"
+				(path "/b64d3a71-8e9d-5743-8331-16e79fb2aa48"
+					(reference "R23")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(global_label "VKEY"
+		(shape passive)
+		(at 259.08 303.53 90)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "3ccd9d7c-477c-54a4-a5c3-fb5eb410cb29")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 259.08 303.53 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+				(hide yes)
+			)
+		)
+	)
+	(global_label "GND"
+		(shape passive)
+		(at 259.08 311.15 270)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "007c3375-f9bd-5496-95a8-545d65d01dbc")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 259.08 311.15 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -14838,7 +15293,7 @@
 			)
 		)
 	)
-	(global_label "VKEY"
+	(global_label "VKEY_SW"
 		(shape passive)
 		(at 213.36 326.39 90)
 		(fields_autoplaced yes)
@@ -15487,7 +15942,7 @@
 				(hide yes)
 			)
 		)
-		(property "Description" "to VKEY: a key that is off isn't fed through its bus"
+		(property "Description" "to U5's output: a key that is off isn't fed through its bus, and 5 V on the plug can't reach it"
 			(at 127 297.18 0)
 			(effects
 				(font
@@ -15538,7 +15993,7 @@
 			)
 		)
 	)
-	(global_label "VKEY"
+	(global_label "VKEY_SW"
 		(shape passive)
 		(at 127 293.37 90)
 		(fields_autoplaced yes)
@@ -15678,7 +16133,7 @@
 			)
 		)
 	)
-	(global_label "VKEY"
+	(global_label "VKEY_SW"
 		(shape passive)
 		(at 137.16 293.37 90)
 		(fields_autoplaced yes)
@@ -16658,7 +17113,7 @@
 		)
 		(uuid "d70edb44-8793-5201-80b8-93c697e79d36")
 	)
-	(text "7  THE KEY PORT (rev B): a key-c on its own bus, I2C(1)\nFit 'port' only, but R17 (every board). Power off at reset: R15 holds U5's EN low.\nSDA on D+ (A6), SCL on D- (A7), VKEY on VBUS, one CC line (A5), SBU (A8+B8) from VKEY.\nESD rails on 3V3, never VKEY; none on SBU (R21, D3 cover it). J3 hand-fitted; 0.8 mm board."
+	(text "7  THE KEY PORT (rev B): a key-c on its own bus, I2C(1)\nFit 'port' only, but R17 (every board). Power off at reset: R15 holds U5's EN low.\nD5 from U5's output to VKEY: 5 V on the plug stops there, U5 on or off. R23 drains VKEY.\nSDA on D+ (A6), SCL on D- (A7), VKEY on VBUS, one CC line (A5), SBU (A8+B8) from VKEY.\nESD rails on 3V3, never VKEY; none on SBU (R21, D3 cover it). J3 hand-fitted; 0.8 mm board."
 		(exclude_from_sim no)
 		(at 25.4 266.7 0)
 		(effects

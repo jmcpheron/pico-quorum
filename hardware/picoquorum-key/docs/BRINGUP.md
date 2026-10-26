@@ -89,7 +89,9 @@ the chip's public serial number; it signs nothing and reads no key (rule 3).
 
 Before the plug, and before any key:
 
-- Meter VKEY (C10, or D3's cathode) to GND: not a short. TP9 (KCC) reads 3.3 V, TP10 (KEN) 0 V.
+- Meter VKEY (D3's cathode) and VKEY_SW (C10) to GND: neither a short; VKEY reads about 10k
+  (R23). TP9 (KCC) reads 3.3 V, TP10 (KEN) 0 V. D5 in diode mode: about 0.2 V from C10 to D3's
+  cathode, open the other way.
 - The plug's A6 and A7 pads are open to TP6 and TP7 (U2's SDA and SCL): the two buses are apart.
 - Short J3's A5 pad to GND through 5.1k: TP9 reads about 0.4 V.
 
@@ -107,9 +109,21 @@ Then with the smoke test (`mpremote run firmware/smoke/smoke.py`):
   on a board without the port's parts. Write them in DESIGN.md. A key-c is a 16 × 36 mm board with a
   ground pour standing beside the antenna; this is the measurement the layout can't make.
 - A key-c P3: its own LED is lit with D4, while the key is powered.
-- **5 V on VBUS, once, with a bench supply** (current limit 50 mA) on J3's VBUS and GND, no key,
-  KEN low. Write down 3V3 at TP1 and the supply's current, with the board off and on. DESIGN.md
-  expects a few mA at most, through R19 and R20; tens of mA is a path it doesn't know.
+- **5 V on VBUS**, from a bench supply at 5.0 V, current limit 30 mA, on J3's VBUS and GND, no
+  key. D5 should stop it with KEY_EN low or high (DESIGN.md, "5 V on the plug's VBUS").
+  - The supply's current is VKEY's own loads: D4 about (5 − 2.7) / 470 ≈ 5 mA, R23 0.5 mA, D5's
+    leakage microamps. About 6 mA; over 10 mA is a path DESIGN.md doesn't know.
+  - The board **off** (USB out): 3V3 at TP1 reads under 0.1 V; D1 and the panel stay dark;
+    nothing appears on the laptop's USB. Then plug USB in with the 5 V still on: the board starts as
+    usual and 3V3 reads 3.3 V ± 0.1 V.
+  - The board **on**, smoke test running, with KEY_EN low and then high (the smoke test's key-port
+    step, or `Pin(2, Pin.OUT, value=1)` at the REPL): 3V3 at TP1 stays 3.3 V ± 0.1 V throughout,
+    VKEY_SW (C10) reads 3.3 V with KEY_EN high, and the supply's current doesn't change when
+    KEY_EN does.
+  - Take the 5 V off and unplug and replug USB: the board starts as usual.
+  Write the numbers in DESIGN.md.
+- With a key-c in and powered: VKEY (D3) about 3.1 V, VKEY_SW (C10) 3.3 V. After KEY_EN goes
+  low, VKEY falls under 0.5 V within 20 ms (R23).
 
 The console image doesn't use the port yet ([PINS.md](PINS.md#in-the-console-image)): under it the
 key on the plug stays unpowered.

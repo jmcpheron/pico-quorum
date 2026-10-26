@@ -69,7 +69,7 @@ board's top-left at (100, 60); the drill/place origin is the bottom-left, (100, 
      │R22    [D0]  ┌──────────────────────────┐ C3 C5      │ ← rows 7 / 67 / 127 at Y 10.70 / 17.30 / 23.90
      │D4                                                   │
      │             │ glass 31.0 × 17.6     ┌──┐╮ R3 C4     │
-     │       [D1]  │                      │J2│ )fold       │   ribbon exits at X 46, folds back to J2
+     │R23 D5 [D1]  │                      │J2│ )fold       │   ribbon exits at X 46, folds back to J2
      │             │                      └──┘╯            │
      │       [D2]  └──────────────────────────┘ R6 R7      │
   26 ├─────────────────────────────────────────────────────┤
@@ -98,6 +98,7 @@ board's top-left at (100, 60); the drill/place origin is the bottom-left, (100, 
 | port pull-ups | R19 (6.4, 43.4), R20 (6.4, 45.2), front | anywhere on the bus works for a pull-up; in the band they blocked the lines' way through, so they went by U5, near VKEY |
 | D3 | (2.2, 5.6), front | VKEY's TVS beside the plug's left VBUS pins, in the strip left of D0–D2 |
 | key power | U5 (4, 38), C9 (4, 35.4), C10 (4, 40.8), R15 (7.6, 37) | along the left edge between H1 and H3, by the regulator that feeds it; VKEY runs up the strip to the plug |
+| D5, R23 | D5 (4, 19.5), R23 (2.2, 19.5), front, both upright, D5's cathode up | in VKEY's run up the strip, left of D1: the track was cut and D5 put in it (2026-10-26). Four of the strip's ground stitching vias made room; R23's ground pad has a via of its own |
 | why there | two layouts were tried first, both with every port part in the 6 mm strip left of D0–D2 | the router never finished either: the lines go from the plug to the module on the right, so with their parts on the left they doubled back past each other under the plug, and a SOT-23-6 0.6 mm from the edge leaves room for one 0.25 mm track and no via. The strip now holds D3 and the lines' way down |
 | port LEDs | R21 (2.2, 7.4), R22 (2.2, 9.2), D4 (2.2, 11.0), front | in the strip below D3, on VKEY: D4 lights beside the plug while the key is powered |
 | J2 ZIF | centre (26.5, 17.3), rotation 90 | under the glass; entry side faces +X, toward the fold |
@@ -240,15 +241,15 @@ The circuit is the one console-a's key port and wing-a use ([feather-wing](../..
 on a bus of its own and with the key's power off by default.
 
 ```
-+3V3 ──┬── U5 AP22653W6-7 ──┬── VKEY ── J3 A4, A9, B4, B9 (VBUS)
-       │   EN ── KEY_EN (GPIO2) ── R15 100k ── GND        off until firmware drives it high
-       │   ILIM ── GND (80 mA)   FAULT open
-       │   C9 100n at IN, C10 10 µF at OUT, D3 ESD5Z5V0 VKEY to GND at the plug
++3V3 ──┬── U5 AP22653W6-7 ── VKEY_SW ── D5 1N5819WS ──┬── VKEY ── J3 A4, A9, B4, B9 (VBUS)
+       │   EN ── KEY_EN (GPIO2) ── R15 100k ── GND     │    R23 10k VKEY to GND
+       │   ILIM ── GND (80 mA)   FAULT open             │    D3 ESD5Z5V0 VKEY to GND at the plug
+       │   C9 100n at IN, C10 10 µF at OUT (VKEY_SW)    └── R19, R20 (below)
        │
        ├── R17 47k ── KEY_CC (GPIO1) ── R18 1k ── J3 A5 (CC)     a key-c's 5.1k reads 0.38 V; none, 3.3 V
        │
- KEY2_SDA (GPIO38) ── R19 2.2k ── VKEY    J3 A6 (D+)  ┐ U6 USBLC6-2SC6 at the plug, its rail on +3V3,
- KEY2_SCL (GPIO39) ── R20 2.2k ── VKEY    J3 A7 (D−)  ┘ never on VKEY
+ KEY2_SDA (GPIO38) ── R19 2.2k ── VKEY_SW    J3 A6 (D+)  ┐ U6 USBLC6-2SC6 at the plug, its rail on +3V3,
+ KEY2_SCL (GPIO39) ── R20 2.2k ── VKEY_SW    J3 A7 (D−)  ┘ never on VKEY
  VKEY ── R21 100 Ω ── J3 A8 + B8 (SBU)                 U7 USBLC6-2SC6 on CC only, rail on +3V3
  VKEY ── R22 470 Ω ── D4 green ── GND, beside the plug
  J3 A1, A12, B1, B12, shell ── GND;  B5, B6, B7 and the SuperSpeed pins open
@@ -258,28 +259,44 @@ on a bus of its own and with the key's power off by default.
   reads. GPIO38/39 are I2C(1); everything at the plug (hot-plug bounce, ESD, a shorted key, the
   pull-ups going away when VKEY is off) stays off U2's lines. Re-addressing U2 at the ceremony was
   the other way, and was not taken: the chips would still share a bus.
-- **U5, the power switch** (C2158037, extended): 80 mA limit, reverse blocking, output discharge, from
-  3V3. The key needs under 20 mA. Reverse blocking stops 5 V on the plug's VBUS reaching 3V3
-  through U5 (the other ways round it: below, "5 V on the plug's VBUS"). EN is pulled **down**: a key on a board running an image that doesn't know the port, or
-  on a board at reset, gets no power. C10 stays at 10 µF, since U5 has to discharge it.
+- **U5, the power switch** (C2158037, extended): 80 mA limit, output discharge, from 3V3, and
+  reverse blocking **only while off**: on, it only limits reverse current, to 0.32 A. D5 does the
+  blocking (below). The key needs under 20 mA. EN is pulled **down**: a key on a board running an
+  image that doesn't know the port, or on a board at reset, gets no power. C10, at U5's output,
+  stays at 10 µF, since U5 has to discharge it.
+- **D5, between U5 and the plug** (1N5819WS, C191023, basic; Hottech's datasheet): a Schottky,
+  anode on U5's output (VKEY_SW), cathode on the plug's VBUS (VKEY). It blocks 5 V on the plug
+  whether U5 is on or off: about 7 µA back at 5 V and 25 °C, 0.15 mA at 100 °C (its typical
+  curves). The cost is its drop, about 0.2 V at 10 mA and 0.3 V at U5's 80 mA limit, so the key
+  sees about 3.1 V; the ATECC608C runs from 2.0 V. U5's discharge can't reach VKEY through D5,
+  so **R23** (10k) drains it: the key's 200 nF in about 2 ms, 0.3 mA while on.
 - **CC, one line.** A key-c shows a 5.1k Rd on both its CC pins, so A5 meets one either way up;
   B5 (VCONN) stays open. R17 47k (to 3V3) over R18 1k plus the key's 5.1k reads 0.38 V with a key and
   3.3 V without: a plain GPIO with an interrupt, no ADC needed. Leave the S3's own pull-up off: with
   it (about 45k beside R17) a key reads about 0.7 V, close to the 0.83 V input-low limit
   (`test_spice`). GPIO1 is ADC1_CH0, so a later image can read a key ID resistor. **R17 is fitted on
   every board**: on a board without the port it is what makes GPIO1 read "no key" rather than float.
-- **Pull-ups to VKEY, 2.2k.** The key has none. On VKEY, a key that is off isn't powered through its
-  I2C pins. 2.2k for the plug's and the key's capacitance; `test_spice` puts the rise at about 0.1 µs
+- **Pull-ups to U5's output (VKEY_SW), 2.2k.** The key has none. On the switched rail, a key that
+  is off isn't powered through its I2C pins; before D5, 5 V on the plug can't reach them. The bus
+  idles at 3.3 V while the key runs at about 3.1 V: SDA and SCL sit about 0.2 V above the key's
+  supply. The ATECC608C's absolute maximum for a pin wasn't found in its own datasheet (2026-10-26);
+  check it before ordering. If it is VCC + 0.3 V or less, the pull-ups move after D5, and 5 V on
+  the plug reaches GPIO38/39's clamps through them again, 0.5 mA a line. 2.2k for the plug's and the key's capacitance; `test_spice` puts the rise at about 0.1 µs
   with a guessed 30 pF for the key.
 - **ESD at the plug.** U6 on SDA/SCL and U7 on CC, both with their rail on 3V3, never VKEY, so
   nothing feeds the key through them; D3 on VKEY. SBU has no array: it meets only R21, so a strike
   there goes through 100 Ω to D3.
-- **5 V on the plug's VBUS** (a wrong cable or adapter; key-c never does this). U5 blocks it from
-  3V3. What else reaches 3V3 from VKEY is the pull-ups: R19 and R20 into U6's diodes and GPIO38/39's
-  clamps, (5 − 3.3 − 0.6) / 2.2k ≈ 0.5 mA a line with the board on, a little more with it off. Not
-  enough to run the board, and well under what its load takes. Until 2026-10-26 U7 was on SBU too,
-  and R21 (100 Ω) made that path about 11 mA, or enough to half-power an unplugged board.
-  `test_key_port` holds the board to this; it hasn't been measured (BRINGUP.md 5a).
+- **5 V on the plug's VBUS** (a wrong cable or adapter; key-c never does this). It meets D5
+  reverse-biased, with KEY_EN low or high, and stops there. What it can still light is on VKEY's
+  side: D4 through R22, a key-c P3's LED through R21, R23, D3 (5 V is its standoff), all to ground.
+  Nothing on VKEY leads to 3V3; `test_key_port` holds the board to that.
+  How we got here (2026-10-26): U7's second channel on SBU let 5 V reach 3V3 through R21 (100 Ω),
+  about 11 mA; then the pull-ups on VKEY, about 0.5 mA a line. Both are gone. And U5 alone was no
+  answer: from the AP22653 datasheet (Diodes DS41186 rev 5-2, pages 5, 6 and 10), it blocks
+  reverse current only while off (1 µA at most); on, it limits it to 0.32 A typical, which would
+  push 3V3 past the S3's 3.6 V. The latch-off AP22653A takes 2–20 ms to turn off, too slow. The
+  TPS22917's "always-on" blocking needs 0.5 A of reverse current before it acts. A Schottky blocks
+  by being one.
 - **The LEDs.** VKEY lights D4 beside the plug through 470 Ω, and the plug's SBU pins through 100 Ω
   for a key-c P3's own LED: both are on while the key is powered. A8 and B8 are joined, so one
   meets the key's either way up. A P2 key has nothing on SBU. The plan drove them from GPIO13 so
@@ -426,6 +443,7 @@ That is cosmetic; if JLCPCB asks, the answer is "DNP, intended".
 | J1 USB-C | `Connector:USB_C_Receptacle_USB2.0_16P` | `console:USB_C_Receptacle_HRO_TYPE-C-31-M-12_Edge` (silk kept off the edge) |
 | J3 key port | `console:USB_C_Plug_Straddle` | `console:USB_C_Plug_ShouHan_24P-GTJB_Straddle` (wing-b's, its shell pads narrowed to stop 0.20 mm from the paddle's sides) |
 | D3 | `Diode:ESD5Zxx` (value ESD5Z5V0) | `Diode_SMD:D_SOD-523` |
+| D5 | `Device:D_Schottky` (value 1N5819WS) | `Diode_SMD:D_SOD-323` (pad 1 the cathode) |
 | J2 ZIF | `Connector_Generic_MountingPin:Conn_01x08_MountingPin` | `console:FPC_0.5mm_8P_C2919492` (LCSC footprint, hold-downs as MP) |
 | SW1–7 | `Switch:SW_Push` | `console:SW_Tact_4.5x4.5_C2897501` (LCSC footprint, diagonal pads numbered) |
 | Q1 | `Transistor_FET:AO3401A` | `Package_TO_SOT_SMD:SOT-23` |

@@ -172,15 +172,15 @@ class World:
         return bool(self.key) and self.has_pullup(net, self.net("J3", "A5")) and self.has_pullup(net, "+3V3")
 
     def key_powered(self):
-        """U5 from 3V3 to the plug's VBUS, its EN driven high."""
+        """U5 from 3V3, through D5 (anode on U5's output, cathode on the plug's VBUS), its EN driven high."""
         n = self.net
-        return (n("U5", 1) == "+3V3" and n("U5", 2) == "GND" and n("U5", 6) == n("J3", "A4") != ""
-                and self.level(n("U5", 3)) == 1)
+        return (n("U5", 1) == "+3V3" and n("U5", 2) == "GND" and n("D5", 2) == n("U5", 6) != ""
+                and n("D5", 1) == n("J3", "A4") != "" and self.level(n("U5", 3)) == 1)
 
     def key_led_lit(self):
-        """The port's LED runs off the key's power: U5's output -> R22 -> D4 -> GND."""
+        """The port's LED runs off the key's power: the plug's VBUS -> R22 -> D4 -> GND."""
         n = self.net
-        return (self.key_powered() and n("R22", 1) == n("U5", 6) and n("R22", 2) == n("D4", 2)
+        return (self.key_powered() and n("R22", 1) == n("J3", "A4") and n("R22", 2) == n("D4", 2)
                 and n("D4", 1) == "GND")
 
     def backlight_chain_ok(self, gpio_net):
@@ -285,9 +285,9 @@ class I2C:
                 and w.net("U2", 8) == "+3V3" and w.net("U2", 4) == "GND"
                 and w.has_pullup(self.sda.net) and w.has_pullup(self.scl.net)):
             return w.atecc
-        vkey = w.net("J3", "A4")
+        switched = w.net("U5", 6)          # the pull-ups are on U5's output, before D5
         if (w.key and self.sda.net == w.net("J3", "A6") and self.scl.net == w.net("J3", "A7") and w.key_powered()
-                and w.has_pullup(self.sda.net, vkey) and w.has_pullup(self.scl.net, vkey)):
+                and w.has_pullup(self.sda.net, switched) and w.has_pullup(self.scl.net, switched)):
             return w.key
         return None
 

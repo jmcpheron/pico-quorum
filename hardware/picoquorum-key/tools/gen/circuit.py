@@ -170,8 +170,10 @@ for i in range(4):
 # 7. The key port (rev B): a USB-C plug at the top-left corner for a key-c, on a bus of its own.
 # key-c's socket carries I2C, not USB: SDA on D+ (A6), SCL on D- (A7), power on VBUS, a 5.1k Rd
 # on each CC. Fitted only on boards ordered with the port, but for R17: on every board it makes
-# KEY_CC read "no key" rather than float. U5 is off until firmware drives KEY_EN high. Its LEDs (D4,
-# and a key-c P3's on SBU) run from VKEY: lit while the key is powered. U5's FAULT is left unused.
+# KEY_CC read "no key" rather than float. U5 is off until firmware drives KEY_EN high. D5 between
+# U5's output (VKEY_SW) and the plug (VKEY): U5 blocks reverse current only while off, D5 always.
+# Its LEDs (D4, and a key-c P3's on SBU) run from VKEY: lit while the key is powered. U5's FAULT
+# is left unused.
 # ---------------------------------------------------------------------------------------------
 P("J3", "console:USB_C_Plug_Straddle", "USB-C plug, straddle", "console:USB_C_Plug_ShouHan_24P-GTJB_Straddle",
   "C3151751", (63.5, 330.2), {
@@ -184,18 +186,22 @@ P("J3", "console:USB_C_Plug_Straddle", "USB-C plug, straddle", "console:USB_C_Pl
   dnp=True, mpn="TYPE-C 24P-GTJB 040", fit="port",
   note="the key port; pads on both faces, so fitted by hand like U1. Needs the 0.8 mm board")
 P("U5", "console:AP22653", "AP22653W6-7", "Package_TO_SOT_SMD:SOT-23-6", "C2158037", (190.5, 307.34),
-  {"1": "+3V3", "2": "GND", "3": "KEY_EN", "4": NC, "5": "GND", "6": "VKEY"},     # FAULT unused: DESIGN.md
-  mpn="AP22653W6-7", fit="port", note="the key's power: 80 mA limit (ILIM to GND), reverse blocking, output discharge")
+  {"1": "+3V3", "2": "GND", "3": "KEY_EN", "4": NC, "5": "GND", "6": "VKEY_SW"},  # FAULT unused: DESIGN.md
+  mpn="AP22653W6-7", fit="port", note="the key's power: 80 mA limit (ILIM to GND), output discharge; blocks reverse current only while off")
+P("D5", "Device:D_Schottky", "1N5819WS", "Diode_SMD:D_SOD-323", "C191023", (243.84, 307.34),
+  {"1": "VKEY", "2": "VKEY_SW"}, mpn="1N5819WS", fit="port",
+  note="blocks 5 V on the plug's VBUS from VKEY_SW and 3V3 whether U5 is on or off; ~0.2 V at the key's 10 mA")
+R("R23", "10k", "C25804", (259.08, 307.34), "VKEY", "GND", note="drains VKEY when U5 is off: D5 stops U5 doing it", fit="port")
 C("C9", "100n", "C14663", (167.64, 330.2), "+3V3", "GND", note="at U5's IN", fit="port")
-C("C10", "10u", "C15850", (213.36, 330.2), "VKEY", "GND", C0805, note="at U5's OUT; no bigger: U5 discharges it", fit="port")
+C("C10", "10u", "C15850", (213.36, 330.2), "VKEY_SW", "GND", C0805, note="at U5's OUT; no bigger: U5 discharges it", fit="port")
 R("R15", "100k", "C25803", (177.8, 330.2), "KEY_EN", "GND", note="U5 off until firmware drives KEY_EN", fit="port")
 P("D3", "Diode:ESD5Zxx", "ESD5Z5V0", "Diode_SMD:D_SOD-523", "C502546", (228.6, 330.2),
   {"1": "VKEY", "2": "GND"}, mpn="ESD5Z5V0", fit="port", note="TVS on VKEY, at the plug")
 R("R17", "47k", "C25819", (101.6, 297.18), "+3V3", "KEY_CC",
   note="on every board: a key-c's 5.1k reads 0.32 V, none reads 3.3 V")
 R("R18", "1k", "C21190", (111.76, 297.18), "KEY_CC", "KEY_CC_PLUG", note="limits what a wrong plug pushes into GPIO1", fit="port")
-R("R19", "2.2k", "C4190", (127.0, 297.18), "VKEY", "KEY2_SDA", note="to VKEY: a key that is off isn't fed through its bus", fit="port")
-R("R20", "2.2k", "C4190", (137.16, 297.18), "VKEY", "KEY2_SCL", fit="port")
+R("R19", "2.2k", "C4190", (127.0, 297.18), "VKEY_SW", "KEY2_SDA", note="to U5's output: a key that is off isn't fed through its bus, and 5 V on the plug can't reach it", fit="port")
+R("R20", "2.2k", "C4190", (137.16, 297.18), "VKEY_SW", "KEY2_SCL", fit="port")
 R("R21", "100", "C22775", (152.4, 297.18), "VKEY", "KEY_SBU", note="lights a key-c P3's LED (its own 470R) while the key is powered", fit="port")
 R("R22", "470", "C23179", (162.56, 297.18), "VKEY", "KEY_LED_A", fit="port")
 P("D4", "Device:LED", "green", "LED_SMD:LED_0603_1608Metric", "C12624", (177.8, 297.18),
@@ -226,6 +232,7 @@ NOTES = [
                      "TP: 3V3 GND EN TX RX SDA SCL BOOT KCC KEN 5V GND KSDA KSCL"),
     ((25.4, 266.7), "7  THE KEY PORT (rev B): a key-c on its own bus, I2C(1)\n"
                     "Fit 'port' only, but R17 (every board). Power off at reset: R15 holds U5's EN low.\n"
+                    "D5 from U5's output to VKEY: 5 V on the plug stops there, U5 on or off. R23 drains VKEY.\n"
                     "SDA on D+ (A6), SCL on D- (A7), VKEY on VBUS, one CC line (A5), SBU (A8+B8) from VKEY.\n"
                     "ESD rails on 3V3, never VKEY; none on SBU (R21, D3 cover it). J3 hand-fitted; 0.8 mm board."),
 ]
