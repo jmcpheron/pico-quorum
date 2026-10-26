@@ -57,8 +57,8 @@ KiCad 10's `RF_Module:ESP32-S3-WROOM-1` symbol.
 | EN | – | 3 | EN | 10k to 3.3 V, 1 µF to GND, RESET tact to GND, pad TP3 |
 | key port CC | 1 | 39 | KEY_CC | R17 47k to 3.3 V (every board), R18 1k to the plug's A5; low with a key-c in; ADC1_CH0; pad TP9 |
 | key port enable | 2 | 38 | KEY_EN | R15 100k to GND; high powers the key (U5); pad TP10 |
-| key port SDA | 38 | 31 | KEY2_SDA | R19 2.2k to VKEY; `I2C(1)`; pad TP13 |
-| key port SCL | 39 | 32 | KEY2_SCL | R20 2.2k to VKEY; `I2C(1)`; pad TP14 |
+| key port SDA | 38 | 31 | KEY2_SDA | R19 2.2k to VKEY_SW (U5's output); `I2C(1)`; pad TP13 |
+| key port SCL | 39 | 32 | KEY2_SCL | R20 2.2k to VKEY_SW (U5's output); `I2C(1)`; pad TP14 |
 | unconnected | 4–8, 13, 15, 18, 47 | 4–7, 12, 21, 8, 11, 24 | | free GPIOs, no copper |
 | unconnected strap | 3, 45, 46 | 15, 26, 16 | | left floating on purpose |
 | unconnected | 35–37 | 28–30 | | reserved for R8 modules' PSRAM |
@@ -121,11 +121,6 @@ release fingerprint:
 - `signer.detect()` learns the second bus: when KEY_CC reads low, drive KEY_EN high, wait about
   10 ms (the key's 200 nF and U5's soft start), scan I2C(1); when it reads high, drive KEY_EN low
   and drop that signer. The soldered chip is read as today;
-- before driving KEY_EN high, read GPIO38 and 39 as plain inputs (no pull-ups): with U5 off,
-  R19/R20 pull them to VKEY, which is near 0 V unless something outside drives it. Either one high
-  means VKEY is already powered from the plug: leave KEY_EN low and say so on screen. U5 doesn't
-  block reverse current while on (DESIGN.md, "5 V on the plug's VBUS"), so this check is what stops
-  firmware switching 5 V onto 3V3. It can't catch a source that arrives after;
 - `same_chip()` already re-reads the serial just before a signature, on whichever chip is about to
   sign, so a key swapped mid-approval is caught. That stays the hot-swap check;
 - **which key signs when both are in** is a product decision still open: the plan's proposal is the

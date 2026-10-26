@@ -49,14 +49,16 @@ is no polyfuse: JLCPCB has no Basic-tier PPTC, and a USB port limits current its
 
 | ref | qty | part | package | LCSC | tier | note |
 |---|---|---|---|---|---|---|
-| U5 | 1 | AP22653W6-7, current-limited power switch, 80 mA with ILIM to GND, reverse blocking, output discharge | SOT-23-6 | C2158037 | extended (wing-a's note) | the key's power, VKEY |
+| U5 | 1 | AP22653W6-7, current-limited power switch, 80 mA with ILIM to GND, reverse blocking while off, output discharge | SOT-23-6 | C2158037 | extended (wing-a's note) | the key's power, VKEY_SW |
+| D5 | 1 | 1N5819WS Schottky, 40 V 1 A (Hottech) | SOD-323 | C191023 | basic (JLCPCB's page, 2026-10-26) | U5's output to VKEY: blocks 5 V on the plug, U5 on or off |
 | U6, U7 | 2 | USBLC6-2SC6 ESD array | SOT-23-6 | C7519 | extended | the same line as U4: no extra feeder fee |
 | D3 | 1 | ESD5Z5V0 TVS | SOD-523 | C502546 | not checked | VKEY, at the plug |
 | D4 | 1 | LED 0603, green, KT-0603G | 0603 | C12624 | not checked | the port's LED, on while the key is powered (the plan's green C72043 was out of stock on 2026-10-26) |
 | R15 | 1 | 100 kΩ 1% | 0603 | C25803 | basic | KEY_EN pull-down: the key off at reset |
 | R18 | 1 | 1 kΩ 1% | 0603 | C21190 | basic | CC series |
 | R22 | 1 | 470 Ω 1% | 0603 | C23179 | basic (expected; confirm) | D4's resistor |
-| R19, R20 | 2 | 2.2 kΩ 1% | 0603 | C4190 | basic (expected; confirm) | the port bus's pull-ups to VKEY |
+| R19, R20 | 2 | 2.2 kΩ 1% | 0603 | C4190 | basic (expected; confirm) | the port bus's pull-ups to VKEY_SW |
+| R23 | 1 | 10 kΩ 1% | 0603 | C25804 | basic | drains VKEY when U5 is off |
 | R21 | 1 | 100 Ω 1% | 0603 | C22775 | basic (expected; confirm) | VKEY to a key-c P3's LED on SBU |
 | C9 | 1 | 100 nF 50 V X7R | 0603 | C14663 | basic | at U5's input |
 | C10 | 1 | 10 µF X5R | 0805 | C15850 | basic | at U5's output; no bigger, U5 discharges it |

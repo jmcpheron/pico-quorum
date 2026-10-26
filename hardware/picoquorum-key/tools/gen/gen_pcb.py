@@ -102,6 +102,7 @@ PLACE = {
                                                                           # the band's last copper, X 25.9: 3.6 mm from the keep-out
     "R19": (6.4, 43.4, 0, "F"), "R20": (6.4, 45.2, 0, "F"),             # the bus's pull-ups, by U5 (VKEY) and TP13/TP14
     "C9": (4.0, 35.4, 0, "F"), "U5": (4.0, 38.0, 0, "F"), "C10": (4.0, 40.8, 0, "F"),
+    "D5": (4.0, 19.5, -90, "F"), "R23": (2.2, 19.5, -90, "F"),         # in VKEY's run up the strip, cathode up; R23 drains VKEY
     "R15": (7.6, 37.0, 90, "F"),                                          # EN pull-down
 }
 # debug pads on the back, two rows below the module; the port's bus below them, where rev A's

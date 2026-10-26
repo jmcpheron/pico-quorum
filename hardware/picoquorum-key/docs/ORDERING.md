@@ -65,7 +65,7 @@ had to apply into the JSON, and they apply from then on.
 3. Upload `bom.csv` and `cpl.csv`, or for boards with the key port `bom-port.csv` and `cpl-port.csv`:
    the same Gerbers either way; a mixed batch is two orders, or one order of each kind. On the parts page every line should match its C-number; anything
    "not found" is a stock or tier change: fix the C-number in the schematic, re-export.
-4. **Placement preview**: check each part's rotation and polarity — U3's tab, U4 (and U5–U7) pin 1, D3 and D4, Q1/Q2
+4. **Placement preview**: check each part's rotation and polarity — U3's tab, U4 (and U5–U7) pin 1, D3, D4 and D5 (D5's cathode band toward the plug, up), Q1/Q2
    orientation, D1 polarity, U2's pin 1 (a UDFN's dot is small: hold it against `cpl.csv`'s rotation), J1 and J2 orientation. J2's hold-down tabs and entry slot face the
    board's right edge; its contact tails face left. Fix offsets in `tools/rotations.json`,
    re-export, re-upload if anything is off.

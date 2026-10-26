@@ -159,11 +159,11 @@ class I2cRise(unittest.TestCase):
                 self.assertLess(self.rise(nl, ref, 2 * cb), self.LIMIT)
 
     def test_key_port_bus_rise_time(self):
-        """The port's own bus: 2.2k to VKEY, the routed track, and a key-c on the plug."""
+        """The port's own bus: 2.2k to U5's output (VKEY_SW), the routed track, and a key-c on the plug."""
         facts = common.board_facts()
         nl = sl.Netlist()
         for ref, net in (("R19", "KEY2_SDA"), ("R20", "KEY2_SCL")):
-            self.assertEqual(nl.n(ref, 1), "VKEY", "%s pulls up to VKEY, not 3V3" % ref)
+            self.assertEqual(nl.n(ref, 1), "VKEY_SW", "%s pulls up to U5's output, not 3V3" % ref)
             length_cm = sum(t["len"] for t in facts["tracks"] if t["net"] == net) / 10
             cb = self.PIN_C + self.KEY_C + self.TRACE_PF_PER_CM * length_cm * 1e-12
             NOTES.append("%s: %.1f cm routed, ~%.0f pF with a key-c, rise %.0f ns"
