@@ -107,8 +107,6 @@ Then with the smoke test (`mpremote run firmware/smoke/smoke.py`):
   on a board without the port's parts. Write them in DESIGN.md. A key-c is a 16 × 36 mm board with a
   ground pour standing beside the antenna; this is the measurement the layout can't make.
 - A key-c P3: its own LED is lit with D4, while the key is powered.
-- D4 runs at under 1 mA (DESIGN.md, "The LEDs"). If it is too dim to see in a lit room, R22 can
-  drop to 470 Ω.
 
 The console image doesn't use the port yet ([PINS.md](PINS.md#in-the-console-image)): under it the
 key on the plug stays unpowered.

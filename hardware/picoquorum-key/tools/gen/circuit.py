@@ -198,8 +198,8 @@ R("R19", "2.2k", "C4190", (127.0, 297.18), "VKEY", "KEY2_SDA", note="to VKEY: a 
 R("R20", "2.2k", "C4190", (137.16, 297.18), "VKEY", "KEY2_SCL", fit="port")
 R("R21", "100", "C22775", (152.4, 297.18), "VKEY", "KEY_SBU", note="lights a key-c P3's LED (its own 470R) while the key is powered", fit="port")
 R("R22", "1k", "C21190", (162.56, 297.18), "VKEY", "KEY_LED_A", fit="port")
-P("D4", "Device:LED", "green", "LED_SMD:LED_0603_1608Metric", "C72043", (177.8, 297.18),
-  {"2": "KEY_LED_A", "1": "GND"}, mpn="19-217/GHC-YR1S2/3T", fit="port", note="the port's LED, beside the plug: on while the key is powered")
+P("D4", "Device:LED", "red", "LED_SMD:LED_0603_1608Metric", "C2286", (177.8, 297.18),
+  {"2": "KEY_LED_A", "1": "GND"}, mpn="KT-0603R", fit="port", note="the port's LED, beside the plug: on while the key is powered")
 P("U6", "Power_Protection:USBLC6-2SC6", "USBLC6-2SC6", "Package_TO_SOT_SMD:SOT-23-6", "C7519",
   (111.76, 345.44), {"1": "KEY2_SDA", "6": "KEY2_SDA", "3": "KEY2_SCL", "4": "KEY2_SCL", "5": "+3V3", "2": "GND"},
   fit="port", note="ESD on the key's SDA and SCL, at the plug; its rail on 3V3, never VKEY")

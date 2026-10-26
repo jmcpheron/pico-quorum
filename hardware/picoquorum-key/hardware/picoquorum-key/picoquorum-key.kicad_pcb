@@ -6601,7 +6601,7 @@
 				)
 			)
 		)
-		(property "Value" "green"
+		(property "Value" "red"
 			(at 0 1.43 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -6647,7 +6647,7 @@
 				)
 			)
 		)
-		(property "LCSC" "C72043"
+		(property "LCSC" "C2286"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -6659,7 +6659,7 @@
 				)
 			)
 		)
-		(property "MPN" "19-217/GHC-YR1S2/3T"
+		(property "MPN" "KT-0603R"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
