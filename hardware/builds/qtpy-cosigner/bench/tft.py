@@ -38,6 +38,9 @@ def rgb(r, g, b):                     # big-endian RGB565, as the panel wants
     return (v & 0xFF) << 8 | v >> 8
 
 
+color = rgb                           # lcd.color's name: blockies.draw imports it from lcd
+
+
 BLACK, WHITE, GREY = rgb(0, 0, 0), rgb(255, 255, 255), rgb(110, 110, 110)
 RED, GREEN, YELLOW, BLUE = rgb(255, 80, 60), rgb(80, 230, 80), rgb(250, 230, 60), rgb(80, 140, 255)
 

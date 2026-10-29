@@ -256,19 +256,27 @@ It started with 2 MB of heap free, and the STEMMA QT bus (`I2C(1)` on 22/19) ans
 
 **2. The bench check,** [`bench/check.py`](bench/check.py): the screen, the three buttons and the
 key, read-only. It draws each button's box, lit while held, the bus and the key's serial, config and
-locks, and four colour bars. D2 reads the key again.
+locks, and four colour bars. D2 reads the key again. D1 shows slot 0's owner address, worked out as
+the console does (`webauthn.owner_address`, from the public key and the factory in `quorum_cfg.py`),
+with its blockie and a QR code, and whether it is the address on record for that serial.
 
 ```sh
 B=hardware/builds/qtpy-cosigner/bench
 mpremote connect $PICO_PORT fs mkdir :bench + \
   fs cp $B/board.py :bench/board.py + fs cp $B/tft.py :bench/tft.py + \
   fs cp firmware/atecc.py :bench/atecc.py + fs cp firmware/chipcfg.py :bench/chipcfg.py + \
+  fs cp firmware/blockies.py :bench/blockies.py + fs cp firmware/qrcode.py :bench/qrcode.py + \
+  fs cp firmware/webauthn.py :bench/webauthn.py + fs cp firmware/keccak.py :bench/keccak.py + \
+  fs cp firmware/quorum_cfg.py :bench/quorum_cfg.py + \
   fs cp $B/check.py :bench/check.py + fs cp $B/main.py :main.py + reset
 ```
 
 What it showed: the 1.8″ right way up, its colours and all four edges; D0, D1 and D2 each read
 pressed and released, D1 and D2 together too, over the serial log; the key at 0x60 on every D2,
-an ATECC608A, serial `0123f3acfd2a826bee`, `legacy-test`, config locked, data open.
+an ATECC608A, serial `0123f3acfd2a826bee`, `legacy-test`, config locked, data open. That is
+chip #1 ([docs/LOCKING.md](../../../docs/LOCKING.md)): slot 0's owner address came out as
+`0x2843705391b7E2cf06b0b964b532Ad9891535E53` in 1.6 s, the one in
+[docs/STATUS.md](../../../docs/STATUS.md), whose signer proxy is deployed on Base Sepolia and Base.
 
 ## What was checked
 
