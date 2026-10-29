@@ -230,7 +230,10 @@ def holes(bd, cu, spec, out):
                f"{len(near)} vias closer than {jlc('gap')} mm to other-net copper, at {near[:4]}")
     say("info", f"vias: {len(rows) - len(untented)} tented, {len(untented)} open" + (f" at {untented[:4]}" if untented else ""))
 
-    plated, npth, small, slots = [], [], [], []
+    # a footprint's thermal vias (plated holes in its exposed pad) are vias to the fab: the board's spec
+    # names the pad, and its holes are held to the vias' ring, not a component hole's
+    thermal = {a["pad"]: a["why"] for a in spec.get("thermal_vias", [])}
+    plated, npth, small, slots, vialike = [], [], [], [], {}
     for fp in b.GetFootprints():
         for p in fp.Pads():
             if p.GetAttribute() not in (pcbnew.PAD_ATTRIB_PTH, pcbnew.PAD_ATTRIB_NPTH):
@@ -252,10 +255,13 @@ def holes(bd, cu, spec, out):
                 plated.append(name)
                 rows.append(["pth", p.GetNetname(), *bd.xy(at), f"{dx:.3f}x{dy:.3f}", f"{pcbnew.ToMM(s.x):.3f}x{pcbnew.ToMM(s.y):.3f}",
                              f"{ring:.3f}", "", f"{ed:.3f}", ""])
-                if ring < jlc("pth_ring") - 1e-6:
+                lim = jlc("via_ring_preferred") if name in thermal else jlc("pth_ring")
+                if name in thermal:
+                    vialike[name] = min(ring, vialike.get(name, ring))
+                if ring < lim - 1e-6:
                     small.append(f"{name} ring {ring:.3f}")
                 if not any(t["what"].startswith("plated hole") for t in TIGHT):
-                    tight(f"plated hole {name}: ring", "F", bd.xy(at), ring, jlc("pth_ring"))
+                    tight(f"plated hole {name}: ring", "F", bd.xy(at), ring, lim)
                 if dx != dy and min(dx, dy) < jlc("slot") - 1e-6:
                     small.append(f"{name} slot {min(dx, dy):.3f}")
                 if dx != dy:
@@ -263,6 +269,8 @@ def holes(bd, cu, spec, out):
     bad |= say("FAIL" if small else "ok", f"plated holes: {len(plated)} ({len(slots)} slots), plain holes: {len(npth)}; "
                + (f"under JLCPCB's limits: {small}" if small else
                   f"rings at least {jlc('pth_ring')}, slots at least {jlc('slot')}, plain holes at least {jlc('npth')} mm"))
+    for name, ring in vialike.items():
+        say("info", f"{name}'s holes held to the vias' {jlc('via_ring_preferred')} mm ring, the least {ring:.3f} ({thermal[name]})")
 
     # mounting holes: no track, via or pad under a screw head or washer, on either side; a pour may
     # run under one, behind the mask
@@ -369,20 +377,27 @@ def mask_paste(bd, cu, spec):
     for w, n, sd, at in webs[:3]:
         tight(f"mask web {n}", sd, at, w, jlc("mask_dam"))
 
-    # vias in or by an SMD pad's opening: solder runs down them
-    wick = []
+    # vias in or by an SMD pad's opening: solder runs down them. The board's spec may name a pad that
+    # can't be reached otherwise (an exposed pad boxed in by its pins), and why
+    wick, wick_ok = [], []
+    pad_ok = {a["pad"]: a["why"] for a in spec.get("via_in_pad", [])}
     for v in [t for t in b.GetTracks() if t.GetClass() == "PCB_VIA"]:
         r = pcbnew.ToMM(v.GetWidth(F)) / 2
         for p, s, ps in ops:
             if p.GetAttribute() != pcbnew.PAD_ATTRIB_SMD:
                 continue
             dd = dist_point(ps, v.GetPosition())
-            if dd < r + 0.1:
-                wick.append(f"{p.GetParentFootprint().GetReference()}.{p.GetNumber()} at {bd.xy(v.GetPosition())}")
+            name = f"{p.GetParentFootprint().GetReference()}.{p.GetNumber()}"
+            if dd < r + 0.1 and name in pad_ok:
+                wick_ok.append(f"{name} at {bd.xy(v.GetPosition())} ({pad_ok[name]})")
+            elif dd < r + 0.1:
+                wick.append(f"{name} at {bd.xy(v.GetPosition())}")
                 tight(f"via by {p.GetParentFootprint().GetReference()}.{p.GetNumber()}'s opening", "F" if s == F else "B",
                       bd.xy(v.GetPosition()), max(0.0, dd - r), 0.1)
     bad |= say("FAIL" if wick else "ok", "no via in or within 0.1 mm of an SMD pad's mask opening" if not wick else
                f"vias in or within 0.1 mm of an SMD pad's opening: {wick[:6]}")
+    if wick_ok:
+        say("info", f"vias in a pad the board's spec allows: {'; '.join(wick_ok)}")
 
     # mask-defined pads (opening smaller than the copper) and paste release
     defined = [f"{p.GetParentFootprint().GetReference()}.{p.GetNumber()}" for p, s, ps in ops
@@ -463,7 +478,7 @@ def thermal(bd, cu, spec):
             f"{reg['ref']} ({reg['part']}): {area:.0f} mm² of its nets' copper within 10 mm; at the datasheet's "
             f"{reg['theta_ja']} °C/W (its least pad, so high): " + "; ".join(lines))
 
-    # islands: pour pieces with no pad or via of their net in them
+    # islands: pour pieces that no pad, via or track of their net touches
     isl = []
     for z in b.Zones():
         if z.GetIsRuleArea() or z.GetNetCode() <= 0:
@@ -473,18 +488,17 @@ def thermal(bd, cu, spec):
             if not (z.IsOnLayer(l) and z.HasFilledPolysForLayer(l)):
                 continue
             ps = z.GetFilledPolysList(l)
-            pts = [v.GetPosition() for v in b.GetTracks() if v.GetClass() == "PCB_VIA" and v.GetNetCode() == net]
-            pts += [t.GetStart() for t in b.GetTracks() if t.GetClass() == "PCB_TRACK" and t.GetNetCode() == net and t.IsOnLayer(l)]
-            pts += [p.GetPosition() for fp in b.GetFootprints() for p in fp.Pads() if p.GetNetCode() == net and p.IsOnLayer(l)]
+            shapes = [t.GetEffectiveShape(l) for t in b.GetTracks() if t.GetNetCode() == net and t.IsOnLayer(l)]
+            shapes += [p.GetEffectiveShape(l) for fp in b.GetFootprints() for p in fp.Pads() if p.GetNetCode() == net and p.IsOnLayer(l)]
             for i in range(ps.OutlineCount()):
                 one = pcbnew.SHAPE_POLY_SET()
                 one.AddOutline(ps.Outline(i))
-                if not any(one.Contains(pt) for pt in pts):
+                if not any(one.Collide(s) for s in shapes):
                     isl.append(f"{b.GetLayerName(l)} at {bd.xy(ps.Outline(i).CPoint(0))}, {one.Area() / 1e12:.2f} mm²")
                     c = one.BBox().Centre()
                     tight(f"pour island, {one.Area() / 1e12:.2f} mm²", "F" if l == F else "B", bd.xy(c), 0.0, 0.0)
-    bad |= say("FAIL" if isl else "ok", "pours: every piece holds a pad, via or track of its net" if not isl else
-               f"pour islands (no pad, via or track of their net): {isl[:6]}")
+    bad |= say("FAIL" if isl else "ok", "pours: a pad, via or track of its net touches every piece" if not isl else
+               f"pour islands (no pad, via or track of their net touches them): {isl[:6]}")
 
     # return path: how much of each listed signal runs over ground on the other layer
     gnd = b.FindNet("GND")

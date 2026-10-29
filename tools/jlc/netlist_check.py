@@ -104,6 +104,8 @@ def bom_cpl(bomp, cplp, facts, parts):
             mism.append(f"{lcsc} ({line['Designator']}) is not in parts.json")
             continue
         mine = [q for q in pads.get(ref, []) if q["num"] and q["kind"] in ("smd", "pth", "conn") and q["num"] not in ("SH",)]
+        smd = {q["num"] for q in mine if q["kind"] == "smd"}
+        mine = [q for q in mine if not (q["kind"] == "pth" and q["num"] in smd)]      # thermal vias in a pad are that pad
         if len(mine) != p["pads"]:
             mism.append(f"{line['Designator']} {line['Footprint']}: {len(mine)} pads, {lcsc} has {p['pads']}")
         if p["pitch"]:

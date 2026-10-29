@@ -23,7 +23,7 @@ screens are bench scripts, never part of the image ([builds/](builds/README.md#f
 | [feather-wing a, b](feather-wing/README.md) | board | key-c, USB-C | `feather-s3` | not ordered |
 | [console-s3](console-s3/DESIGN.md) | board | ATECC608C on the board | `feather-s3` | to order ([plan](../ORDER-PLAN-2026-10-24.md)) |
 | [console-usb](console-usb/README.md) | board | ATECC608C on the board | `feather-s3`, plus firmware not written | not routed |
-| [console-rp](console-rp/README.md) | board | ATECC608C on the board | a `console-rp` profile and the link, not written | a sketch: no KiCad files yet |
+| [console-rp](console-rp/README.md) | board | ATECC608C (SOIC-8) on the board | a `console-rp` profile, not written | routed, fab files pass `tools/keypcb jlc`; not ordered |
 | [picoquorum-key](picoquorum-key/README.md) | board | UDFN ATECC608C on the board; rev B adds a key port for key-c | `picoquorum-key`, picked by its key bus's pull-ups; the port needs a later image | rev A to order ([plan](../ORDER-PLAN-2026-10-24.md)); rev B designed, not ordered |
 
 The parts of each are below.
@@ -67,10 +67,12 @@ The parts of each are below.
   and can't reset it. JLCPCB places everything but the screen. Written by a script and checked by
   KiCad 9: the schematic, and a 70 × 28 mm board with every part placed and 3D renders; not routed,
   not ordered
-- [`console-rp/`](console-rp/README.md): console-usb on an RP2350, the Pico 2 W's chip without
-  its Wi-Fi chip, so no radio at all: a W25Q32 flash, a 12 MHz crystal, the RP2350's core regulator
-  as Raspberry Pi lay it out, and console-usb's CH340C link, ATECC608C, screen and buttons. A sketch
-  to take into KiCad by copying console-usb's project and swapping the chip; no files yet
+- [`console-rp/`](console-rp/README.md): console-usb on an RP2350A, which has no radio at all:
+  Raspberry Pi's minimal circuit and 16 MB flash, the 1.14″ screen with D0 D1 D2 in a row under
+  it, the SOIC-8 ATECC608C, and a USB-C whose only data path is a CH343P (CDC-ACM) serial bridge
+  to UART1. JLCPCB places everything but the screen. Written by a script and checked by KiCad 10:
+  the schematic, and a 72 × 36 mm board routed round Raspberry Pi's own layout, with 3D renders and
+  fab files that pass `tools/keypcb jlc`; not ordered
 - [`picoquorum-key/`](picoquorum-key/README.md): PicoQuorumKey, a second S3 console designed apart
   from console-s3, to order beside it and compare: the module on the back, the 1.14″ panel in a
   ZIF, five buttons, the UDFN ATECC608C, 44 × 53 mm. Its own generators, tests and fab files in

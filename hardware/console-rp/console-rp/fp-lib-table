@@ -1,0 +1,5 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "pqrp")(type "KiCad")(uri "${KIPRJMOD}/../lib/pqrp.pretty")(options "")(descr "console-rp's own footprints"))
+  (lib (name "picoquorum")(type "KiCad")(uri "${KIPRJMOD}/../lib/picoquorum.pretty")(options "")(descr "the mark"))
+)
