@@ -286,7 +286,7 @@ free, the watchdog on.
 
 **4. A signature,** 2026-10-28. A transaction proposed on the 3-of-6 from a browser wallet came into
 the queue; the QT Py showed its pages, and Sign held on D2 posted chip #1's confirmation. TM1, the
-Trust M key, confirmed the same transaction from its own console.
+Trust M key, confirmed the same transaction.
 
 ## What was checked
 
