@@ -10,6 +10,8 @@
 #              (hardware/wiring/FEATHER-S3.md)
 #   feather-knob: the ESP32-S3 TFT Feather's, with Boot as D0 and a knob as D1 and D2 (board.DIAL)
 #              (hardware/builds/feather-knob/README.md)
+#   qtpy:      the 1.8" ST7735S as 160x128 on the QT Py ESP32 Pico, and its buttons D0, D1, D2
+#              (hardware/builds/qtpy-cosigner/README.md)
 # W and H are the size the apps draw, in pixels; draw with them rather than with numbers.
 #
 # Bands (board.BANDS > 1, the 320x240 panels): the framebuffer holds one horizontal strip of the

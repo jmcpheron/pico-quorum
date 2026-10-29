@@ -4,9 +4,9 @@
 |---|---|
 | board | Adafruit QT Py ESP32-S3 with 2 MB PSRAM ([5700](https://www.adafruit.com/product/5700)); the QT Py ESP32 Pico ([5395](https://www.adafruit.com/product/5395)) has the same pads |
 | key | Adafruit's ATECC608 breakout ([4314](https://www.adafruit.com/product/4314)) on a STEMMA QT cable |
-| runs | nothing yet: the console image needs a `qtpy` profile and the USB link, [not written](#the-firmware-it-needs-not-written) |
+| runs | MicroPython 1.26.1 and [`bench/check.py`](bench/check.py). The console's `qtpy` profile runs in the emulator, [not yet on the board](#the-firmware-it-needs) |
 | case | none yet |
-| status | written up 2026-10-29 from a handoff; not wired, not run on the board |
+| status | wired on a breadboard and checked 2026-10-28: a QT Py ESP32 Pico, the 1.8″ ST7735S, three buttons, an ATECC608A ([on the bench](#on-the-bench-2026-10-28)) |
 
 The smallest console we can buy the parts for: a QT Py, a small SPI screen, an ATECC608 breakout
 and two buttons, with a phone on its USB-C. The phone fetches the Safe's queue and posts the
@@ -48,8 +48,9 @@ phone as the host. The parts and the wiring are as it says. Four things are not:
   transactions (`test-vectors/`). The console image already runs on an ESP32-S3. A QT Py needs a
   board profile, not a rewrite in C++.
 - **Three buttons, not one.** The console needs Reject, one easy press, apart from Sign, held. So
-  Boot is D0 (Reject and Back), and two tactile switches are D1 (Next) and D2 (Sign). These are
-  the Feather's `feather-s3` rules ([FEATHER-S3.md](../../wiring/FEATHER-S3.md)).
+  three tactile switches: D0 (Reject and Back) on SDA, D1 (Next) on TX, D2 (Sign) on SCL. These
+  are the Feather's `feather-s3` rules ([FEATHER-S3.md](../../wiring/FEATHER-S3.md)). Boot was D0
+  at first, but it is small and on the board itself, so Reject got a switch of its own.
 - **Later, not the QT Py's own USB.** On the S3 the USB-C is MicroPython's REPL, and the computer
   on the other end can restart the chip into its ROM flasher. On the ESP32 Pico the CH9102 is wired
   to UART0, the REPL, with Adafruit's auto-reset. Either way the phone could run any code on the
@@ -87,14 +88,14 @@ the same map.
 | **MO** | 35 | 13 | screen MOSI |
 | **TX** | 5 | 32 | D1, Next: a button to GND |
 | **SCL** | 6 | 33 | D2, Sign: a button to GND |
-| **SDA** | 7 | 4 | the link, later: UART1 TX to the bridge's RXD |
+| **SDA** | 7 | 4 | D0, Reject: a button to GND. Later the link's UART1 TX, and D0 moves to A3 |
 | **RX** | 16 | 7 | the link, later: UART1 RX from the bridge's TXD |
 
 And off the pads:
 
 | | S3 GPIO | Pico GPIO | |
 |---|---|---|---|
-| Boot | 0 | 0 | D0: Reject and Back. Held at reset it starts the ROM flasher, so never a power-up key |
+| Boot | 0 | 0 | not read. Held at reset it starts the ROM flasher |
 | STEMMA QT SDA1, SCL1 | 41, 40 | 22, 19 | the key's bus: `I2C(1)` in MicroPython, `Wire1` in Arduino |
 | NeoPixel, its power | 39, 38 | 5, 8 | unused |
 
@@ -107,8 +108,10 @@ And off the pads:
 
 ## The screen
 
-The handoff's screen has 8 pins: BL, RST, DC, SCL, MOSI, CS, 3V3 and GND, likely an ST7789 or an
-ST7735. Its driver and size aren't known yet.
+The screen on the bench is Lonely Binary's 1.8″ 128 × 160 ST7735S, with 8 pins: BL, RST, DC, SCL,
+MOSI, CS, 3V3 and GND. It runs as 160 × 128, as Build 1's 1.8″ does: MADCTL 0xA0, inversion on, no
+RAM offset, SPI at 24 MHz. A 240 × 320 ST7789 set-up on it filled half the screen and left the rest
+as noise, which is how to tell the two apart.
 
 | screen | QT Py |
 |---|---|
@@ -123,9 +126,8 @@ ST7735. Its driver and size aren't known yet.
 
 - Modules put these 8 pins in different orders. The diagram draws them in the order that wires
   cleanly; go by the labels printed on yours.
-- The console's three-button screens are drawn for 240 × 135, the Feather's 1.14″ ST7789. That
-  panel is the one to buy. The console also drives 160 × 128 ST7735S and 320 × 240 ST7789 panels
-  (`firmware/board.py`), but not yet with three buttons.
+- The `qtpy` profile draws the console's small screens at 160 × 128, with the three buttons named
+  in a footer, left to right ([the screens](../../../docs/quorum-ui/qtpy/README.md)).
 - On jumper wires keep SPI at 24 MHz, as Build 1 does, until the picture is clean.
 
 ## The key
@@ -143,15 +145,18 @@ A STEMMA QT cable from the QT Py's port, on the back, to the breakout. No other 
 
 | | QT Py | on a review | anywhere else |
 |---|---|---|---|
-| D0 | **Boot** | Reject: one press, on any page, even while Sign is held | Back |
+| D0 | a tactile switch, **SDA** to **GND** | Reject: one press, on any page, even while Sign is held | Back |
 | D1 | a tactile switch, **TX** to **GND** | the next page; held 1 s, the one before | the next row or choice |
 | D2 | a tactile switch, **SCL** to **GND** | the next page not yet seen; once every page is seen, Sign, held 2 s (3 s when a page is red) | Open |
 
-- All three are read with the chip's own pull-ups and pressed low. No resistors.
-- **One GND pad.** The screen and both buttons need it. Join the buttons' ground legs, then splice
+- All three are read with the chip's own pull-ups and pressed low. No resistors. None is a strap
+  pin, so a press at power-up does nothing; held at power-up, D1 is maintenance and D2 Wi-Fi
+  setup, as on the Feather.
+- **One GND pad.** The screen and all three buttons need it. Join the buttons' ground legs, then splice
   that wire and the screen's GND to the pad, on a breadboard row or with a short Y-lead. Every
   ground symbol in the diagrams is that pad.
-- A guarded Sign button and a separate Reject button are later.
+- Lay them out D0, D1, D2 from left to right under the screen: the footer names them in that order.
+- A guarded Sign button is later.
 
 ## Later: the link on a serial bridge
 
@@ -172,6 +177,8 @@ A STEMMA QT cable from the QT Py's port, on the back, to the breakout. No other 
   start its flasher: MicroPython never puts its REPL on UART1, and DTR and RTS go nowhere.
 - The QT Py's own USB-C stays empty. Flashing is a person with the board: a cable there and Boot
   held, as today.
+- The link takes the SDA pad. D0 moves to A3 (GPIO15 on the Pico, a strap that only silences the
+  ROM's boot log), and the screen's BL is tied to 3V, always on.
 - On the ESP32 Pico, the CH9102 is still on the board, on UART0; with nothing in its USB-C it
   carries nothing.
 
@@ -182,14 +189,15 @@ for. The check that it shows you the right queue is yours: the verify code again
 and the Safe's other owners. [console-usb](../../console-usb/README.md#the-link-what-the-computer-can-and-cant-do)
 says the same at more length.
 
-## The firmware it needs (not written)
+## The firmware it needs
 
-- **A `qtpy` profile in `firmware/board.py`:** the pins above, `THREE`, D0 D1 D2 pressed low
-  (`HIGH` empty), the key on `I2C(1)` at 41/40, nothing to power up. On an S3 the image now picks
-  `feather-s3`, or `picoquorum-key` when GPIO16 and 17 read high. The link holds GPIO16 (RX) high,
-  so `qtpy` must come from `secrets.BOARD`, before that look, as `feather-knob` does. On a plain
-  ESP32 the image always picks `esp32`, the DevKit's pins, so the ESP32 Pico needs that changed
-  too, and its own map; or the build is the S3 only.
+- **The `qtpy` profile in `firmware/board.py`: written, for the ESP32 Pico.** `BOARD = "qtpy"` in
+  `secrets.py` picks it on a plain ESP32; any other plain ESP32 is still `esp32`. The pins above,
+  `THREE` with D0 D1 D2 pressed low, the 1.8″ as 160 × 128, the key on 22/19, nothing to power up.
+  `quorum_ui_s.py` names the buttons in a footer, since there is no rail beside the screen.
+  `test-vectors/run-console.mjs` runs the three-button suite on it (`main_qtpy`), and
+  `node tools/board/shots_qtpy.mjs` draws its screens. Not yet run on the board. An S3 QT Py would
+  need its own pins, and `qtpy` read before the look at GPIO16/17, since the link holds RX high.
 - **The link,** shared with console-usb: the console's requests to Safe's service on UART1 in
   place of HTTPS, and a relay on the phone. The handoff's first choice for the phone is a page in
   Chrome on Android over Web Serial or WebUSB; neither has been tried here with this board.
@@ -200,10 +208,10 @@ Each is a firmware change, so a new release fingerprint ([AGENTS.md](../../../AG
 
 ## Steps
 
-1. Wire the screen; the bench script draws on it.
-2. The key answers at 0x60; its serial and public key on the screen.
+1. Wire the screen; the bench script draws on it. Done, 2026-10-28.
+2. The key answers at 0x60; its serial on the screen. Done, 2026-10-28.
 3. The `qtpy` profile: the console's screens on the QT Py, signing on a testnet over Wi-Fi, as the
-   Feather does. Nothing else changes.
+   Feather does. Written and run in the emulator; not yet on the board.
 4. The link on the QT Py's own USB, from a desktop relay, on the bench.
 5. The same from Android Chrome.
 6. The link on the bridge. Now it is a cosigner you can leave plugged in.
@@ -220,13 +228,47 @@ The handoff's three demos, as they come out here:
 
 ## Open
 
-- **The screen's driver and size.** Read the listing. The 1.14″ 240 × 135 ST7789 is the one the
-  console's three-button screens are drawn for.
-- **The ATECC608's state.** Configured and locked already? Which slot holds the key? Nothing gets
-  locked until that is known and the config is the one meant.
+- **The ATECC608's key.** The bench's chip is an ATECC608A with the `legacy-test` config: config
+  locked, data open. That is a test chip, for the emulator's flow and a testnet. A cosigner's own
+  key is a ceremony on a chip set up for it ([docs/LOCKING.md](../../../docs/LOCKING.md)); nothing
+  here writes or locks one.
 - **USB host power on the R1** once it runs Android. If it gives none, an OTG Y-cable or a powered
   hub.
 - **Web Serial or WebUSB on Android Chrome** with a CP2102N or a CH340: not tried.
+
+## On the bench (2026-10-28)
+
+A QT Py ESP32 Pico (5395): an ESP32-PICO-V3-02 with 8 MB of flash and 2 MB of PSRAM. On USB it is
+a WCH CH9102 (1a86:55d4), `/dev/cu.usbserial-…` on a Mac. It came with Adafruit's self-test.
+
+**1. MicroPython 1.26.1,** the `ESP32_GENERIC-SPIRAM` build from
+[micropython.org](https://micropython.org/download/ESP32_GENERIC-SPIRAM/).
+`ESP32_GENERIC-SPIRAM-20250911-v1.26.1.bin` had SHA-256
+`7c8b439f08449d0ea9ea6d317f35dc5d3743f9e87173afa00caf1fed1f536ccc`. A plain ESP32's image goes at
+0x1000; esptool reset the board into its flasher on its own, no buttons:
+
+```sh
+esptool --chip esp32 --port $PICO_PORT erase-flash
+esptool --chip esp32 --port $PICO_PORT --baud 460800 write-flash -z 0x1000 ESP32_GENERIC-SPIRAM-20250911-v1.26.1.bin
+```
+
+It started with 2 MB of heap free, and the STEMMA QT bus (`I2C(1)` on 22/19) answered at 0x60.
+
+**2. The bench check,** [`bench/check.py`](bench/check.py): the screen, the three buttons and the
+key, read-only. It draws each button's box, lit while held, the bus and the key's serial, config and
+locks, and four colour bars. D2 reads the key again.
+
+```sh
+B=hardware/builds/qtpy-cosigner/bench
+mpremote connect $PICO_PORT fs mkdir :bench + \
+  fs cp $B/board.py :bench/board.py + fs cp $B/tft.py :bench/tft.py + \
+  fs cp firmware/atecc.py :bench/atecc.py + fs cp firmware/chipcfg.py :bench/chipcfg.py + \
+  fs cp $B/check.py :bench/check.py + fs cp $B/main.py :main.py + reset
+```
+
+What it showed: the 1.8″ right way up, its colours and all four edges; D0, D1 and D2 each read
+pressed and released, D1 and D2 together too, over the serial log; the key at 0x60 on every D2,
+an ATECC608A, serial `0123f3acfd2a826bee`, `legacy-test`, config locked, data open.
 
 ## What was checked
 
@@ -235,5 +277,9 @@ The handoff's three demos, as they come out here:
 - `python3 hardware/builds/qtpy-cosigner/wiring.py --check`: both diagrams are what the script
   draws, and the pin table above is the script's.
 
-Not checked: anything on a board. The pad positions in the diagrams are drawn to the board's size,
-not measured; go by the silkscreen.
+- On the board, 2026-10-28: [on the bench](#on-the-bench-2026-10-28), above.
+- The `qtpy` profile: `node test-vectors/run-console.mjs` (`main_qtpy`), on MicroPython in
+  WebAssembly. Not on the board.
+
+Not checked: the console on the board; the S3 QT Py at all. The pad positions in the diagrams are
+drawn to the board's size, not measured; go by the silkscreen.

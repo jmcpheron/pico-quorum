@@ -1151,15 +1151,21 @@ def case_three():
     moves on and, held (D1L), moves back; D2 opens, walks the pages not yet seen, and held signs:
     2 s, 3 s when a page is red. Run in a device of its own (main_three): board.py is read once.
     The same for PicoQuorumKey (main_pqk): the Feather's buttons and screen on other pins. And for
-    the knob Feather (main_knob), where Boot is D0 and the knob's detents and push are D1, D1L, D2."""
+    the knob Feather (main_knob), where Boot is D0 and the knob's detents and push are D1, D1L, D2.
+    And for the QT Py cosigner (main_qtpy): the 1.8" as 160x128, the buttons named in a footer."""
     chip()
     Q = fresh(extra='BOARD = "%s"' % THREE_BOARD[0])
     if THREE_BOARD[0] == "feather-knob":
         import board
         check(board.DIAL and board.NAMES["D2"] == "push" and (board.SDA, board.SCL) == (42, 41),
               "the knob Feather: Boot and the knob as D0-D2, the key on 42/41")
-    check(Q.L.BOARD == THREE_BOARD[0] and Q.THREE and (Q.L.W, Q.L.H) == (240, 135) and Q.U.__name__ == "quorum_ui_s" and Q.PRESS == "D2",
-          THREE_BOARD[0] + ": three buttons, 240x135, the small screens' UI")
+    if THREE_BOARD[0] == "qtpy":
+        import board
+        check(Q.U.BAR and not Q.U.RAIL and board.KEYS == {"D0": 4, "D1": 32, "D2": 33} and not board.HIGH
+              and (board.SDA, board.SCL) == (22, 19), "the QT Py: D0 D1 D2 on 4/32/33 pressed low, the key on 22/19, a footer, no rail")
+    size = (160, 128) if THREE_BOARD[0] == "qtpy" else (240, 135)
+    check(Q.L.BOARD == THREE_BOARD[0] and Q.THREE and (Q.L.W, Q.L.H) == size and Q.U.__name__ == "quorum_ui_s" and Q.PRESS == "D2",
+          THREE_BOARD[0] + ": three buttons, %dx%d, the small screens' UI" % size)
     good, red = tx(Q, 0), tx(Q, 1, to=OTHER, data="0xdeadbeef")
     refused = [tx(Q, 2, safe=OTHER), tx(Q, 3, tamper=True), tx(Q, 4, op=2), tx(Q, 5, to=OTHER, op=1, data="0x12345678")]
     serve(Q, [good, red] + refused)
@@ -1283,33 +1289,38 @@ def case_three():
             fonts.text = real
         return out
 
-    rail = Q.U.RAIL
+    rail, foot = Q.U.RAIL, Q.U.FOOT if Q.U.BAR else Q.L.H
+
+    def edge(x, y):
+        """Where the buttons are named: left of the Feather's rail, or in the QT Py's footer."""
+        return x < rail or y >= foot
+
     Q.msg = ""
     Q.open_entry(e)
     t = drawn()
-    left = [s for s, x, y, f in t if x < rail]
+    left = [s for s, x, y, f in t if edge(x, y)]
     check(left == ["Reject", "Next", "See %d" % len(Q.unseen())], "the rail on a review: Reject, Next, See %d" % len(Q.unseen()))
     while Q.unseen():
         Q.three("D1")
-    check([s for s, x, y, f in drawn() if x < rail] == ["Reject", "Next", "Sign"], "every page seen: Sign")
+    check([s for s, x, y, f in drawn() if edge(x, y)] == ["Reject", "Next", "Sign"], "every page seen: Sign")
     ok = True
     for p in range(len(Q.pages)):
         Q.page = p
         for s, x, y, f in drawn():
-            if y + fonts.height(f) > Q.L.H + 3 or (x < rail and s not in ("Reject", "Next", "Sign")):
+            if y + fonts.height(f) > Q.L.H + 3 or (edge(x, y) and s not in ("Reject", "Next", "Sign")):
                 ok = False
                 print("      page %d: %r at (%d, %d) in %s" % (p + 1, s, x, y, f))
-    check(ok, "every page of a review fits 240x135, and only the rail is drawn left of it")
+    check(ok, "every page of a review fits %dx%d, and only the buttons' names are drawn by them" % (Q.L.W, Q.L.H))
     Q.state = "home"
-    check([s for s, x, y, f in drawn() if x < rail] == ["Next", "Open"], "the rail on home: Next, Open")
+    check([s for s, x, y, f in drawn() if edge(x, y)] == ["Next", "Open"], "the rail on home: Next, Open")
     Q.state = "pinfail"
-    t = [s for s, x, y, f in drawn() if x < rail]
+    t = [s for s, x, y, f in drawn() if edge(x, y)]
     check(t == ["Check"], "the rail on Not pinned: Check (%r)" % t)
 
     # The Key screen (docs/ONBOARDING.md): this key's owner address as a QR code, then in full
     def fits(where):
         bad = [(s, x, y) for s, x, y, f in drawn() if y + fonts.height(f) > Q.L.H + 3 or x + fonts.width(s, f) > Q.L.W
-               or (x < rail and s not in ("Back", "Full", "Code", "Next", "Open"))]
+               or (edge(x, y) and s not in ("Back", "Full", "Code", "Next", "Open"))]
         if bad:
             print("      %s: %r" % (where, bad[:3]))
         return not bad
@@ -1321,7 +1332,7 @@ def case_three():
     t = drawn()
     check(Q.state == "key" and Q.kpage == 0 and Q.U._qr[0] == txservice.checksum(Q.me) and Q.U._qr[1] == 29,
           "D2 on Key: the owner address, EIP-55, as a 29-module QR code")
-    check([s for s, x, y, f in t if x < rail] == ["Back", "Full"] and fits("key code"), "the code page: rail Back, Full; it fits")
+    check([s for s, x, y, f in t if edge(x, y)] == ["Back", "Full"] and fits("key code"), "the code page: rail Back, Full; it fits")
     tick("D1")
     t = " ".join(s for s, x, y, f in drawn())
     check(Q.kpage == 1 and Q.me[2:6] in t and "not a wallet" in t and fits("key full"),
@@ -1369,7 +1380,7 @@ def case_three():
         return out, t
 
     def clear(pics, t):
-        bad = [p for p in pics if p[1] < rail or p[1] + p[3] > Q.L.W or p[2] < Q.U.HEAD or p[2] + p[3] > Q.L.H]
+        bad = [p for p in pics if p[1] < rail or p[1] + p[3] > Q.L.W or p[2] < Q.U.HEAD or p[2] + p[3] > foot]
         for s, x, y, f in t:
             bad += [(s, p) for p in pics if x < p[1] + p[3] and p[1] < x + fonts.width(s, f) and y < p[2] + p[3] and p[2] < y + fonts.height(f)]
         return bad
@@ -1442,6 +1453,10 @@ def main_pqk():
 
 def main_knob():
     return main_three("feather-knob")
+
+
+def main_qtpy():
+    return main_three("qtpy")
 
 
 def main():

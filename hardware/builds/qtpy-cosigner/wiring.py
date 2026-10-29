@@ -1,5 +1,5 @@
 """The QT Py cosigner's wiring diagrams: an Adafruit QT Py ESP32 seen from its top, USB-C up, with an
-SPI screen, an ATECC608 breakout on the STEMMA QT port and two buttons (wiring.svg), and the USB
+SPI screen, an ATECC608 breakout on the STEMMA QT port and three buttons (wiring.svg), and the USB
 serial bridge that later carries the link instead of the QT Py's own USB (link.svg). Writes both
 next to this file. --check writes nothing: it stops if either file differs from what this draws, or
 if the README's pin table disagrees with the pins here.
@@ -28,7 +28,7 @@ BOOT = (0, 0)
 SCREEN = [("GND", "GND", "#222222"), ("3V3", "3V", "#d0312d"), ("MOSI", "MO", "#2e7dd7"),
           ("SCL", "SCK", "#d7832e"), ("BL", "A3", "#c2185b"), ("RST", "A2", "#8a6d3b"),
           ("DC", "A1", "#1f9e6f"), ("CS", "A0", "#7a5cc7")]
-BUTTONS = [("D2", "Sign", "SCL", "#0a7d8c"), ("D1", "Next", "TX", "#6b8e23")]
+BUTTONS = [("D0", "Reject", "SDA", "#c62828"), ("D2", "Sign", "SCL", "#0a7d8c"), ("D1", "Next", "TX", "#6b8e23")]
 # The link, later: a 3.3 V USB serial bridge on UART1. (its pin, the QT Py's pad or None, colour)
 BRIDGE = [("5V", "5V", "#d0312d"), ("GND", "GND", "#222222"), ("RXD", "SDA", "#2e7dd7"),
           ("TXD", "RX", "#1f9e6f"), ("3V3", None, "#999999"), ("DTR", None, "#999999"), ("RTS", None, "#999999")]
@@ -36,7 +36,8 @@ BRIDGE = [("5V", "5V", "#d0312d"), ("GND", "GND", "#222222"), ("RXD", "SDA", "#2
 # What each pad is for, in the README's table
 USE = {"A0": "screen CS", "A1": "screen DC", "A2": "screen RST", "A3": "screen BL", "SCK": "screen SCL (the clock)",
        "MO": "screen MOSI", "TX": "D1, Next: a button to GND", "SCL": "D2, Sign: a button to GND",
-       "SDA": "the link, later: UART1 TX to the bridge's RXD", "RX": "the link, later: UART1 RX from the bridge's TXD"}
+       "SDA": "D0, Reject: a button to GND. Later the link's UART1 TX, and D0 moves to A3",
+       "RX": "the link, later: UART1 RX from the bridge's TXD"}
 
 S = 12.0                              # px per mm
 BX, BY = 250, 170                     # the board's top-left corner on the page
@@ -89,12 +90,12 @@ def board(out, used, own_usb):
     out.append('<rect x="%.1f" y="%.1f" width="%.1f" height="%.1f" fill="#3a3a3a" stroke="#666"/>' % (cx - 3.6 * S, BY + 8.8 * S, 7.2 * S, 5.6 * S))
     out.append('<text x="%.1f" y="%.1f" text-anchor="middle" fill="#eee" font-size="9">ESP32-S3</text>' % (cx, BY + 11.3 * S))
     out.append('<text x="%.1f" y="%.1f" text-anchor="middle" fill="#aaa" font-size="8">or ESP32 Pico</text>' % (cx, BY + 12.5 * S))
-    for i, (lab, col) in enumerate((("Boot", "#d4a017"), ("Reset", "#888"))):
+    for i, (lab, col) in enumerate((("Boot", "#888"), ("Reset", "#888"))):
         bx = cx - 3.2 * S + i * 3.6 * S
         out.append('<rect x="%.1f" y="%.1f" width="%.1f" height="%.1f" rx="2" fill="#bbb" stroke="%s" stroke-width="2"/>' % (
             bx, BY + 14.8 * S, 2.8 * S, 2.0 * S, col))
         out.append('<text x="%.1f" y="%.1f" text-anchor="middle" fill="%s" font-size="9">%s</text>' % (
-            bx + 1.4 * S, BY + 17.9 * S, "#f0c040" if i == 0 else "#bbb", lab + (" = D0" if i == 0 else "")))
+            bx + 1.4 * S, BY + 17.9 * S, "#bbb", lab))
     out.append('<rect x="%.1f" y="%.1f" width="%.1f" height="%.1f" fill="none" stroke="#f0c040" stroke-dasharray="4 3"/>' % (
         cx - 3.2 * S, BY + BH - 2.2 * S, 6.4 * S, 2.6 * S))
     for col, left in ((LEFT, True), (RIGHT, False)):
@@ -114,7 +115,7 @@ def board(out, used, own_usb):
 
 def wiring_svg():
     out = []
-    head(out, 800, 800, "The QT Py cosigner: QT Py ESP32, SPI screen, ATECC608 breakout, two buttons",
+    head(out, 800, 800, "The QT Py cosigner: QT Py ESP32, SPI screen, ATECC608 breakout, three buttons",
          "Seen from the top, USB-C up. Small numbers: GPIO on the S3 / on the ESP32 Pico. Go by the silkscreen labels.")
     used = {p for _a, p, _c in SCREEN} | {p for _d, _l, p, _c in BUTTONS}
     board(out, used, "to the phone")
@@ -165,7 +166,7 @@ def wiring_svg():
     # the buttons, on the left: each to its pad and to GND
     for i, (d, lab, pad, col) in enumerate(BUTTONS):
         px, py = pad_xy(pad)
-        by = py + (-14 if i == 0 else 14)
+        by = py - 14                    # the pads are 30 px apart: each button just above its own
         sx = 172
         out.append('<rect x="%d" y="%.1f" width="34" height="20" rx="3" fill="#eee" stroke="%s" stroke-width="2"/>' % (sx, by - 10, col))
         out.append('<circle cx="%d" cy="%.1f" r="5" fill="%s"/>' % (sx + 17, by, col))
@@ -177,8 +178,8 @@ def wiring_svg():
 
     notes = ["Screen: CS A0, DC A1, RST A2, BL A3; its SCL to SCK and its MOSI (or SDA) to MO.",
              "Its SCL is the SPI clock: never the QT Py's SCL pad. 3V3 to 3V, never 5V.",
-             "Buttons to GND, read with the chip's own pull-ups: D1 (Next) on TX, D2 (Sign) on SCL.",
-             "Boot is D0 (Reject). The QT Py has one GND pad: every ground symbol is that pad.",
+             "Buttons to GND, read with the chip's own pull-ups: D0 (Reject) on SDA, D1 (Next) on TX, D2 (Sign) on SCL.",
+             "Boot is not read. The QT Py has one GND pad: every ground symbol is that pad.",
              "The key is on the STEMMA QT port, a bus of its own; the SDA and SCL pads are not it."]
     for i, n in enumerate(notes):
         out.append('<text x="20" y="%d" fill="#333" font-size="10.5">%s</text>' % (712 + i * 16, n))
@@ -233,7 +234,7 @@ def link_svg():
     line(out, [(gx + 7, gy), (gx + 40, gy)], "#222")
     ground(out, gx + 40, gy)
 
-    notes = ["The bridge's TXD to RX (UART1 RX), its RXD to SDA (UART1 TX), GND to GND.",
+    notes = ["The bridge's TXD to RX (UART1 RX), its RXD to SDA (UART1 TX): D0 moves to A3, BL to 3V.",
              "Its 5V through a Schottky to the 5V pad: the QT Py runs from the phone's cable.",
              "DTR and RTS go nowhere, so the phone can't reset the QT Py or start its ROM flasher.",
              "MicroPython never puts its REPL on UART1. Flashing stays a person with the board,",
