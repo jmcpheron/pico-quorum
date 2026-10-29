@@ -2,8 +2,10 @@
 
 *Design, 2026-10-29. Written by a script and read back by KiCad 10: the schematic (netlist and ERC)
 and the board, routed (DRC). The fab files for JLCPCB are in [console-rp/fab/](console-rp/fab/) and
-pass `tools/keypcb jlc console-rp`. Ready to order: two real panels were checked against J2
-([The panel](#the-panel)). Not built yet, and the firmware it needs is not written.*
+pass `tools/keypcb jlc console-rp`. Two real panels were checked against J2 ([The panel](#the-panel)).
+Five ordered from JLCPCB on 2026-10-29, fully assembled
+([the order](../../buildlog/2026-10-29-console-rp-order.md)). Not built yet, and the firmware it
+needs is not written.*
 
 ![console-rp from above: a warning triangle and EXPERIMENTAL HARDWARE COSIGNER over the 1.14-inch screen at the top left, PicoQuorum console-rp under it, and D0, D1 and D2 in a row below that; the flash, the RP2350, the crystal, the CH343P, and the key chip with an 8-bit key pointing at it, to its right; the USB-C on the right edge, RESET and BOOTSEL at the bottom right, and the bench header's holes along the top](renders/console-rp-top.jpg)
 
@@ -253,7 +255,8 @@ An outside review on 2026-10-29 found these, all left as they are for the first 
 ## Steps to a board
 
 1. **Panels:** two bought and checked by hand on 2026-10-29 ([The panel](#the-panel)).
-2. **Order it:** upload the zip, BOM and CPL; Economic, one side, qty 5. Check L1's stock. Hold
+2. **Order it** (done 2026-10-29, [the order](../../buildlog/2026-10-29-console-rp-order.md)): upload the
+   zip, BOM and CPL; Economic, one side, qty 5. Check L1's stock. Hold
    `fab/check/cpl-overlay.png` beside JLCPCB's placement preview, L1's dot above all.
    JLCPCB's RP2350 design guide asks for Raspberry Pi's layout, the AOTA inductor with a silkscreen
    mark for its way round, and the ABM8-272-T3: the board has all three. Its offer of a review
@@ -266,7 +269,8 @@ An outside review on 2026-10-29 found these, all left as they are for the first 
 
 ## Open
 
-- [ ] L1: Abracon's part in stock, or a tested substitute.
+- [ ] L1: Abracon's part in stock, or a tested substitute. This order took JLCPCB's last 6; LCSC
+  showed 0 afterwards (2026-10-29).
 - [ ] U3, the XC6206: about 82 °C over the air at 0.12 A by the datasheet's figure. The board
   draws less, but a measurement would say.
 - [ ] The relay: a Web Serial page in the app, a command-line tool, or both?
