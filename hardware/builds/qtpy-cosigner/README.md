@@ -211,8 +211,7 @@ Each is a firmware change, so a new release fingerprint ([AGENTS.md](../../../AG
 1. Wire the screen; the bench script draws on it. Done, 2026-10-28.
 2. The key answers at 0x60; its serial on the screen. Done, 2026-10-28.
 3. The `qtpy` profile: the console's screens on the QT Py, signing on a testnet over Wi-Fi, as the
-   Feather does. On the board 2026-10-28, chip #1 pinned, the Base Sepolia 3-of-6 its Safe: the
-   console starts, verifies TLS and finds this key an owner. Signing not yet tried.
+   Feather does. Done, 2026-10-28: chip #1 confirmed a Base Sepolia transaction on the 3-of-6.
 4. The link on the QT Py's own USB, from a desktop relay, on the bench.
 5. The same from Android Chrome.
 6. The link on the bridge. Now it is a cosigner you can leave plugged in.
@@ -285,6 +284,10 @@ pin, then `PICO_PORT=/dev/cu.usbserial-… tools/fw push console` (build `6cf8b5
 `tools/fw verify` passed: every file's hash, TLS verified, the Safe "ok, owner", the pin ok, 1.6 MB
 free, the watchdog on.
 
+**4. A signature,** 2026-10-28. A transaction proposed on the 3-of-6 from a browser wallet came into
+the queue; the QT Py showed its pages, and Sign held on D2 posted chip #1's confirmation. TM1, the
+Trust M key, confirmed the same transaction from its own console.
+
 ## What was checked
 
 - The pads and GPIOs: CircuitPython's `pins.c` for `adafruit_qtpy_esp32s3_nopsram`,
@@ -296,5 +299,5 @@ free, the watchdog on.
 - The `qtpy` profile: `node test-vectors/run-console.mjs` (`main_qtpy`), on MicroPython in
   WebAssembly, and on the board, above.
 
-Not checked: a signature from the QT Py; the S3 QT Py at all. The pad positions in the diagrams are
+Not checked: the S3 QT Py at all. The pad positions in the diagrams are
 drawn to the board's size, not measured; go by the silkscreen.
