@@ -2,7 +2,8 @@
 
 *Design, 2026-10-29. Written by a script and read back by KiCad 10: the schematic (netlist and ERC)
 and the board, routed (DRC). The fab files for JLCPCB are in [console-rp/fab/](console-rp/fab/) and
-pass `tools/keypcb jlc console-rp`. Not ordered. The firmware it needs is not written.*
+pass `tools/keypcb jlc console-rp`. Ready to order: two real panels were checked against J2
+([The panel](#the-panel)). Not built yet, and the firmware it needs is not written.*
 
 ![console-rp from above: a warning triangle and EXPERIMENTAL HARDWARE COSIGNER over the 1.14-inch screen at the top left, PicoQuorum console-rp under it, and D0, D1 and D2 in a row below that; the flash, the RP2350, the crystal, the CH343P, and the key chip with an 8-bit key pointing at it, to its right; the USB-C on the right edge, RESET and BOOTSEL at the bottom right, and the bench header's holes along the top](renders/console-rp-top.jpg)
 
@@ -120,6 +121,40 @@ their minimal design, turned as theirs is.
   Pixels are 0.4 mm for the key and 0.3 mm for the dragon, so every gap is at least twice JLCPCB's
   0.15 mm.
 
+### The panel
+
+The panel is the common 8-pin 1.14″ ST7789V with a plug-in ribbon. Sellers call it NFP114H-03AF
+(printed on the ribbon), NFP114H-03D, N114-2413THBIG09-C08 or Y114-2413THBIG09-C08. YIYANG's
+datasheet for the Y114 (rev A, 2020) gives:
+- pins 1 LEDA, 2 GND, 3 RESET, 4 RS, 5 SDA, 6 SCL, 7 VDD, 8 CS, at 0.5 mm, the same as J2;
+- glass 31.0 × 17.6 × 1.6 mm, with a 23 ± 0.3 mm tail;
+- one white LED, its cathode grounded inside, 2.9 to 3.1 V at 20 mA; VDD 2.4 to 3.3 V.
+
+On 2026-10-29 two panels (Walfront's "ST7789V LCD Display Module 1.14 Inch ... Inline Type 2Pcs")
+were checked by hand:
+- the tail is 23 mm;
+- pin 1 is on the side the board expects. With the glass face up and the ribbon leaving its right
+  end, pin 1 is nearer the bottom edge, as on the datasheet's drawing. The fold under the glass
+  keeps it there, and that is where J2's pad 1 (LEDA) is.
+
+What follows from the datasheet, none of it a change to the board:
+- **The ribbon loops, it isn't creased.** The datasheet's tight fold ends 21.0 ± 0.5 mm in from
+  the glass's edge, but J2 is about 18.2 mm in. The spare ribbon makes a looser loop, about
+  1.5 to 2 mm past the glass's right end by the drawing (not measured). Nothing on the board is
+  there; a case needs room for it. console-s3 put its J2 for the tight fold; this board and
+  console-usb didn't.
+- **The top-right foam pad goes 2.5 mm in from the corner.** At the corner it would sit on U6's
+  pins 3 and 4.
+- The glass is 0.6 mm wider than the generator's 17.0, which is still the probots listing's figure.
+  The extra 0.3 mm each side meets the silkscreen corners and covers nothing new.
+- The active area is 1.4 mm off-centre, away from the ribbon. So each button sits 1.4 mm right of
+  the middle of its footer slot, well inside the slot's 8 mm.
+- R8's 22 Ω gives about 12 to 22 mA, by the datasheet's Vf and a 3.3 V rail within 2%. The high
+  end is just past 20 mA. Dim it with PWM, or fit 27 Ω (parts list only) if it runs bright.
+
+Other 1.14″ panels to avoid: the 13-pin N114-2413THBIG01-H13 (another pinout), the solder-type
+ribbon, and modules on a small board with a 2.54 mm header (GND on pin 1).
+
 ### Round the RP2350: Raspberry Pi's layout
 
 Raspberry Pi says to copy its minimal design's layout, so the board does. `rpi_minimal.py` reads
@@ -203,14 +238,22 @@ U3 runs about 82 °C over the air at 0.12 A on the datasheet's SOT-23 figure (34
 
 Not checked:
 - L1's footprint (Raspberry Pi's) against Abracon's land pattern;
-- the 3D fit's guessed sizes: the panel's foam and glass, and how high U6's leads rise;
-- the screen's pin order on a real panel;
+- the 3D fit's guessed sizes: the foam, the ribbon's loop, and how high U6's leads rise;
 - anything on a real board.
+
+An outside review on 2026-10-29 found these, all left as they are for the first boards:
+- USB D+ and D- between J1, U2 and U4 have ground under 75% and 48% of their tracks. D- crosses
+  to the back on three vias. At full speed (12 Mb/s) 20 mm of track is electrically short.
+- VBUS has 11 µF on it, C18's 10 µF and C20's 1 µF. USB asks for at most 10 µF; C18's comment
+  counts only itself. A 4.7 µF C18 would fix it with no copper change.
+- C14 (pins 53-54) is about 8 mm of track from them, against Raspberry Pi's 4.5 mm. Those pins
+  also meet the 3V3 ring under the chip and its six 100n capacitors.
+- U3's heat (below, under Open) needs a measurement.
 
 ## Steps to a board
 
-1. **Buy two panels** and check the pin order (console-usb's step 1 is the same panel).
-2. **Quote it:** upload the zip, BOM and CPL; Economic, one side, qty 5. Check L1's stock. Hold
+1. **Panels:** two bought and checked by hand on 2026-10-29 ([The panel](#the-panel)).
+2. **Order it:** upload the zip, BOM and CPL; Economic, one side, qty 5. Check L1's stock. Hold
    `fab/check/cpl-overlay.png` beside JLCPCB's placement preview, L1's dot above all.
    JLCPCB's RP2350 design guide asks for Raspberry Pi's layout, the AOTA inductor with a silkscreen
    mark for its way round, and the ABM8-272-T3: the board has all three. Its offer of a review
