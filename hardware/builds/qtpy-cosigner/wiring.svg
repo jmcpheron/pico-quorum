@@ -1,0 +1,140 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800" font-family="Helvetica, Arial, sans-serif" font-size="11">
+<rect width="800" height="800" fill="#ffffff"/>
+<text x="20" y="28" font-size="16" font-weight="bold">The QT Py cosigner: QT Py ESP32, SPI screen, ATECC608 breakout, three buttons</text>
+<text x="20" y="46" fill="#555">Seen from the top, USB-C up. Small numbers: GPIO on the S3 / on the ESP32 Pico. Go by the silkscreen labels.</text>
+<rect x="250" y="170" width="213.6" height="259.2" rx="18.0" fill="#1d1d1d"/>
+<rect x="302.8" y="152.0" width="108.0" height="50.4" fill="#9a9a9a" rx="3"/>
+<text x="356.8" y="171.2" text-anchor="middle" font-size="10">USB-C</text>
+<text x="356.8" y="189.2" text-anchor="middle" fill="#333" font-size="9">to the phone</text>
+<rect x="313.6" y="275.6" width="86.4" height="67.2" fill="#3a3a3a" stroke="#666"/>
+<text x="356.8" y="305.6" text-anchor="middle" fill="#eee" font-size="9">ESP32-S3</text>
+<text x="356.8" y="320.0" text-anchor="middle" fill="#aaa" font-size="8">or ESP32 Pico</text>
+<rect x="318.4" y="347.6" width="33.6" height="24.0" rx="2" fill="#bbb" stroke="#888" stroke-width="2"/>
+<text x="335.2" y="384.8" text-anchor="middle" fill="#bbb" font-size="9">Boot</text>
+<rect x="361.6" y="347.6" width="33.6" height="24.0" rx="2" fill="#bbb" stroke="#888" stroke-width="2"/>
+<text x="378.4" y="384.8" text-anchor="middle" fill="#bbb" font-size="9">Reset</text>
+<rect x="318.4" y="402.8" width="76.8" height="31.2" fill="none" stroke="#f0c040" stroke-dasharray="4 3"/>
+<circle cx="265.4" cy="208.2" r="7" fill="#d4a017" stroke="#d4a017" stroke-width="2"/>
+<text x="277.4" y="208.2" text-anchor="start" fill="#fff" font-weight="bold">A0</text>
+<text x="277.4" y="218.2" text-anchor="start" fill="#999" font-size="8">18/26</text>
+<circle cx="265.4" cy="238.6" r="7" fill="#d4a017" stroke="#d4a017" stroke-width="2"/>
+<text x="277.4" y="238.6" text-anchor="start" fill="#fff" font-weight="bold">A1</text>
+<text x="277.4" y="248.6" text-anchor="start" fill="#999" font-size="8">17/25</text>
+<circle cx="265.4" cy="269.1" r="7" fill="#d4a017" stroke="#d4a017" stroke-width="2"/>
+<text x="277.4" y="269.1" text-anchor="start" fill="#fff" font-weight="bold">A2</text>
+<text x="277.4" y="279.1" text-anchor="start" fill="#999" font-size="8">9/27</text>
+<circle cx="265.4" cy="299.6" r="7" fill="#d4a017" stroke="#d4a017" stroke-width="2"/>
+<text x="277.4" y="299.6" text-anchor="start" fill="#fff" font-weight="bold">A3</text>
+<text x="277.4" y="309.6" text-anchor="start" fill="#999" font-size="8">8/15</text>
+<circle cx="265.4" cy="330.1" r="7" fill="#d4a017" stroke="#d4a017" stroke-width="2"/>
+<text x="277.4" y="330.1" text-anchor="start" fill="#fff" font-weight="bold">SDA</text>
+<text x="277.4" y="340.1" text-anchor="start" fill="#999" font-size="8">7/4</text>
+<circle cx="265.4" cy="360.6" r="7" fill="#d4a017" stroke="#d4a017" stroke-width="2"/>
+<text x="277.4" y="360.6" text-anchor="start" fill="#fff" font-weight="bold">SCL</text>
+<text x="277.4" y="370.6" text-anchor="start" fill="#999" font-size="8">6/33</text>
+<circle cx="265.4" cy="391.0" r="7" fill="#d4a017" stroke="#d4a017" stroke-width="2"/>
+<text x="277.4" y="391.0" text-anchor="start" fill="#fff" font-weight="bold">TX</text>
+<text x="277.4" y="401.0" text-anchor="start" fill="#999" font-size="8">5/32</text>
+<circle cx="448.2" cy="208.2" r="7" fill="#000" stroke="#d4a017" stroke-width="2"/>
+<text x="436.2" y="212.2" text-anchor="end" fill="#888" font-weight="normal">5V</text>
+<circle cx="448.2" cy="238.6" r="7" fill="#d4a017" stroke="#d4a017" stroke-width="2"/>
+<text x="436.2" y="242.6" text-anchor="end" fill="#fff" font-weight="bold">GND</text>
+<circle cx="448.2" cy="269.1" r="7" fill="#d4a017" stroke="#d4a017" stroke-width="2"/>
+<text x="436.2" y="273.1" text-anchor="end" fill="#fff" font-weight="bold">3V</text>
+<circle cx="448.2" cy="299.6" r="7" fill="#d4a017" stroke="#d4a017" stroke-width="2"/>
+<text x="436.2" y="299.6" text-anchor="end" fill="#fff" font-weight="bold">MO</text>
+<text x="436.2" y="309.6" text-anchor="end" fill="#999" font-size="8">35/13</text>
+<circle cx="448.2" cy="330.1" r="7" fill="#000" stroke="#d4a017" stroke-width="2"/>
+<text x="436.2" y="330.1" text-anchor="end" fill="#888" font-weight="normal">MI</text>
+<text x="436.2" y="340.1" text-anchor="end" fill="#999" font-size="8">37/12</text>
+<circle cx="448.2" cy="360.6" r="7" fill="#d4a017" stroke="#d4a017" stroke-width="2"/>
+<text x="436.2" y="360.6" text-anchor="end" fill="#fff" font-weight="bold">SCK</text>
+<text x="436.2" y="370.6" text-anchor="end" fill="#999" font-size="8">36/14</text>
+<circle cx="448.2" cy="391.0" r="7" fill="#000" stroke="#d4a017" stroke-width="2"/>
+<text x="436.2" y="391.0" text-anchor="end" fill="#888" font-weight="normal">RX</text>
+<text x="436.2" y="401.0" text-anchor="end" fill="#999" font-size="8">16/7</text>
+<rect x="290" y="62" width="134" height="44" rx="8" fill="#f2f2f2" stroke="#888"/>
+<text x="357" y="81" text-anchor="middle" font-weight="bold">phone (the relay)</text>
+<text x="357" y="96" text-anchor="middle" fill="#555" font-size="9">USB-C, OTG</text>
+<polyline points="356.8,106.0 356.8,152.0" fill="none" stroke="#777" stroke-width="2.5" stroke-linejoin="round"/>
+<rect x="600" y="110" width="170" height="410" rx="6" fill="#f2f2f2" stroke="#888"/>
+<rect x="658" y="260" width="96" height="150" fill="#3a6ea5"/>
+<text x="608" y="128" font-weight="bold">SPI screen</text>
+<text x="608" y="142" fill="#555" font-size="9">ST7789 or ST7735, 3.3 V</text>
+<text x="608" y="156" fill="#555" font-size="9">pin order varies: go by</text>
+<text x="608" y="168" fill="#555" font-size="9">the labels on yours</text>
+<circle cx="600" cy="238.6" r="5" fill="#222222"/>
+<text x="609" y="242.6" font-size="10">GND</text>
+<polyline points="455.2,238.6 600.0,238.6" fill="none" stroke="#222222" stroke-width="2.5" stroke-linejoin="round"/>
+<circle cx="600" cy="269.1" r="5" fill="#d0312d"/>
+<text x="609" y="273.1" font-size="10">3V3</text>
+<polyline points="455.2,269.1 600.0,269.1" fill="none" stroke="#d0312d" stroke-width="2.5" stroke-linejoin="round"/>
+<circle cx="600" cy="299.6" r="5" fill="#2e7dd7"/>
+<text x="609" y="303.6" font-size="10">MOSI</text>
+<polyline points="455.2,299.6 600.0,299.6" fill="none" stroke="#2e7dd7" stroke-width="2.5" stroke-linejoin="round"/>
+<circle cx="600" cy="360.6" r="5" fill="#d7832e"/>
+<text x="609" y="364.6" font-size="10">SCL</text>
+<polyline points="455.2,360.6 600.0,360.6" fill="none" stroke="#d7832e" stroke-width="2.5" stroke-linejoin="round"/>
+<circle cx="600" cy="420.0" r="5" fill="#c2185b"/>
+<text x="609" y="424.0" font-size="10">BL</text>
+<polyline points="258.4,299.6 136.0,299.6 136.0,640.0 504.0,640.0 504.0,420.0 600.0,420.0" fill="none" stroke="#c2185b" stroke-width="2.5" stroke-linejoin="round"/>
+<circle cx="600" cy="445.0" r="5" fill="#8a6d3b"/>
+<text x="609" y="449.0" font-size="10">RST</text>
+<polyline points="258.4,269.1 124.0,269.1 124.0,652.0 516.0,652.0 516.0,445.0 600.0,445.0" fill="none" stroke="#8a6d3b" stroke-width="2.5" stroke-linejoin="round"/>
+<circle cx="600" cy="470.0" r="5" fill="#1f9e6f"/>
+<text x="609" y="474.0" font-size="10">DC</text>
+<polyline points="258.4,238.6 112.0,238.6 112.0,664.0 528.0,664.0 528.0,470.0 600.0,470.0" fill="none" stroke="#1f9e6f" stroke-width="2.5" stroke-linejoin="round"/>
+<circle cx="600" cy="495.0" r="5" fill="#7a5cc7"/>
+<text x="609" y="499.0" font-size="10">CS</text>
+<polyline points="258.4,208.2 100.0,208.2 100.0,676.0 540.0,676.0 540.0,495.0 600.0,495.0" fill="none" stroke="#7a5cc7" stroke-width="2.5" stroke-linejoin="round"/>
+<circle cx="498.2" cy="238.6" r="3.5" fill="#222"/>
+<line x1="498.2" y1="238.6" x2="498.2" y2="228.6" stroke="#222" stroke-width="2.5"/>
+<line x1="489.2" y1="228.6" x2="507.2" y2="228.6" stroke="#222" stroke-width="2"/>
+<line x1="492.2" y1="224.6" x2="504.2" y2="224.6" stroke="#222" stroke-width="2"/>
+<line x1="495.2" y1="220.6" x2="501.2" y2="220.6" stroke="#222" stroke-width="2"/>
+<rect x="285" y="485" width="145" height="110" rx="6" fill="#f2f2f2" stroke="#888"/>
+<rect x="346" y="531" width="22" height="22" fill="#333"/>
+<text x="293" y="503" font-weight="bold">ATECC608 breakout</text>
+<text x="293" y="517" fill="#555" font-size="9">I2C 0x60, the key</text>
+<text x="293" y="585" fill="#555" font-size="9">SDA1 41/22, SCL1 40/19</text>
+<line x1="350.8" y1="418.4" x2="350.8" y2="485" stroke="#222222" stroke-width="2.5"/>
+<line x1="354.8" y1="418.4" x2="354.8" y2="485" stroke="#d0312d" stroke-width="2.5"/>
+<line x1="358.8" y1="418.4" x2="358.8" y2="485" stroke="#2e7dd7" stroke-width="2.5"/>
+<line x1="362.8" y1="418.4" x2="362.8" y2="485" stroke="#f0c020" stroke-width="2.5"/>
+<text x="370.8" y="463" fill="#555" font-size="9">STEMMA QT cable, from the port on the back</text>
+<rect x="172" y="306.1" width="34" height="20" rx="3" fill="#eee" stroke="#c62828" stroke-width="2"/>
+<circle cx="189" cy="316.1" r="5" fill="#c62828"/>
+<text x="130" y="320.1" text-anchor="end" font-weight="bold">D0</text>
+<text x="130" y="331.1" text-anchor="end" fill="#555" font-size="9">Reject</text>
+<polyline points="258.4,330.1 230.0,330.1 230.0,316.1 206.0,316.1" fill="none" stroke="#c62828" stroke-width="2.5" stroke-linejoin="round"/>
+<polyline points="172.0,316.1 156.0,316.1" fill="none" stroke="#222" stroke-width="2.5" stroke-linejoin="round"/>
+<line x1="156.0" y1="316.1" x2="156.0" y2="326.1" stroke="#222" stroke-width="2.5"/>
+<line x1="147.0" y1="326.1" x2="165.0" y2="326.1" stroke="#222" stroke-width="2"/>
+<line x1="150.0" y1="330.1" x2="162.0" y2="330.1" stroke="#222" stroke-width="2"/>
+<line x1="153.0" y1="334.1" x2="159.0" y2="334.1" stroke="#222" stroke-width="2"/>
+<rect x="172" y="336.6" width="34" height="20" rx="3" fill="#eee" stroke="#0a7d8c" stroke-width="2"/>
+<circle cx="189" cy="346.6" r="5" fill="#0a7d8c"/>
+<text x="130" y="350.6" text-anchor="end" font-weight="bold">D2</text>
+<text x="130" y="361.6" text-anchor="end" fill="#555" font-size="9">Sign</text>
+<polyline points="258.4,360.6 230.0,360.6 230.0,346.6 206.0,346.6" fill="none" stroke="#0a7d8c" stroke-width="2.5" stroke-linejoin="round"/>
+<polyline points="172.0,346.6 156.0,346.6" fill="none" stroke="#222" stroke-width="2.5" stroke-linejoin="round"/>
+<line x1="156.0" y1="346.6" x2="156.0" y2="356.6" stroke="#222" stroke-width="2.5"/>
+<line x1="147.0" y1="356.6" x2="165.0" y2="356.6" stroke="#222" stroke-width="2"/>
+<line x1="150.0" y1="360.6" x2="162.0" y2="360.6" stroke="#222" stroke-width="2"/>
+<line x1="153.0" y1="364.6" x2="159.0" y2="364.6" stroke="#222" stroke-width="2"/>
+<rect x="172" y="367.0" width="34" height="20" rx="3" fill="#eee" stroke="#6b8e23" stroke-width="2"/>
+<circle cx="189" cy="377.0" r="5" fill="#6b8e23"/>
+<text x="130" y="381.0" text-anchor="end" font-weight="bold">D1</text>
+<text x="130" y="392.0" text-anchor="end" fill="#555" font-size="9">Next</text>
+<polyline points="258.4,391.0 230.0,391.0 230.0,377.0 206.0,377.0" fill="none" stroke="#6b8e23" stroke-width="2.5" stroke-linejoin="round"/>
+<polyline points="172.0,377.0 156.0,377.0" fill="none" stroke="#222" stroke-width="2.5" stroke-linejoin="round"/>
+<line x1="156.0" y1="377.0" x2="156.0" y2="387.0" stroke="#222" stroke-width="2.5"/>
+<line x1="147.0" y1="387.0" x2="165.0" y2="387.0" stroke="#222" stroke-width="2"/>
+<line x1="150.0" y1="391.0" x2="162.0" y2="391.0" stroke="#222" stroke-width="2"/>
+<line x1="153.0" y1="395.0" x2="159.0" y2="395.0" stroke="#222" stroke-width="2"/>
+<text x="20" y="712" fill="#333" font-size="10.5">Screen: CS A0, DC A1, RST A2, BL A3; its SCL to SCK and its MOSI (or SDA) to MO.</text>
+<text x="20" y="728" fill="#333" font-size="10.5">Its SCL is the SPI clock: never the QT Py's SCL pad. 3V3 to 3V, never 5V.</text>
+<text x="20" y="744" fill="#333" font-size="10.5">Buttons to GND, read with the chip's own pull-ups: D0 (Reject) on SDA, D1 (Next) on TX, D2 (Sign) on SCL.</text>
+<text x="20" y="760" fill="#333" font-size="10.5">Boot is not read. The QT Py has one GND pad: every ground symbol is that pad.</text>
+<text x="20" y="776" fill="#333" font-size="10.5">The key is on the STEMMA QT port, a bus of its own; the SDA and SCL pads are not it.</text>
+</svg>

@@ -22,6 +22,10 @@
 #            only button. The Feather's three keys come from Boot and the knob (DIAL), so the console
 #            and the ceremony run as on feather-s3. Only when secrets.BOARD names it, which comes
 #            before the look at GPIO16/17: they are its knob's A2 and A1.
+#   "qtpy": the QT Py cosigner (hardware/builds/qtpy-cosigner/README.md): Adafruit's QT Py ESP32
+#            Pico (5395) with the 1.8" ST7735S as 160x128 and three buttons, D0 D1 D2, all pressed
+#            low (THREE). No rail: a footer names what each does. Only when secrets.BOARD names it;
+#            any other plain ESP32 is "esp32".
 # W x H is what the apps draw, X_OFF where that sits on the panel (0 when they draw all of it).
 # BANDS: retain full native resolution, but only buffer 30 rows at a time (19,200 bytes at 320 wide,
 # 14,400 at 240). Any panel whose whole frame would be over 45 KB is drawn this way: the 240x240
@@ -60,14 +64,14 @@ def _pulled_up(*pins):
 
 if ESP32:
     BOARD = ("feather-knob" if BOARD == "feather-knob" else "picoquorum-key" if _pulled_up(16, 17) else "feather-s3") \
-        if S3 else "esp32"
-elif BOARD not in ("waveshare", "build1", "feather-s3", "picoquorum-key", "feather-knob"):
+        if S3 else "qtpy" if BOARD == "qtpy" else "esp32"
+elif BOARD not in ("waveshare", "build1", "feather-s3", "picoquorum-key", "feather-knob", "qtpy"):
     print("board: unknown BOARD %r, using waveshare" % BOARD)
     BOARD = "waveshare"
 
 KNOB = BOARD in ("build1", "esp32")
 DIAL = BOARD == "feather-knob"
-THREE = BOARD in ("feather-s3", "picoquorum-key") or DIAL
+THREE = BOARD in ("feather-s3", "picoquorum-key", "qtpy") or DIAL
 DC, CS, SCK, MOSI, RST, BL = 8, 9, 10, 11, 12, 13
 BUTTONS = {"A": 15, "B": 17, "X": 19, "Y": 21}
 SPI_ID, SDA, SCL, LED = 1, 4, 5, "LED"      # SDA, SCL: the key's I2C (atecc.py); LED: the status LED
@@ -130,6 +134,25 @@ if BOARD == "picoquorum-key":
     NOT_KEYS, POWER = (), None
     KEYS = dict(BUTTONS)
     MAINT, SETUP = BUTTONS["D1"], BUTTONS["D2"]
+if BOARD == "qtpy":
+    # The QT Py ESP32 Pico's pads, from CircuitPython's pins.c (the build's README): the screen on
+    # HSPI's own pins (SCK 14, MO 13), CS DC RST BL on A0-A3; D0 the SDA pad (GPIO4, not a strap;
+    # the link's TX later, when D0 moves to A3), D1 the TX pad, D2 the SCL pad, all to ground with
+    # the ESP32's pull-ups. Boot does nothing here. The key on the STEMMA QT port's own bus
+    # (22/19). The LED pin is the NeoPixel's data, unpowered (GPIO8 stays low): it lights nothing.
+    # The 1.8" as build1's, proven on this board (bench/check.py, 2026-10-28).
+    DC, CS, SCK, MOSI, RST, BL = 25, 26, 14, 13, 27, 15
+    BUTTONS = {"D0": 4, "D1": 32, "D2": 33}
+    HIGH = ()
+    SPI_ID, SDA, SCL, LED = 1, 22, 19, 5
+    NOT_KEYS, POWER = (), None
+    PANEL_W, PANEL_H = W, H = 160, 128
+    MADCTL, RAM_X, RAM_Y = 0xA0, 0, 0
+    SPI_BAUD = 24_000_000
+    RAIL_Y = None           # no rail: the buttons sit anywhere on a breadboard, so quorum_ui_s's footer
+    INIT = "plain"
+    KEYS = dict(BUTTONS)
+    MAINT, SETUP = BUTTONS["D1"], BUTTONS["D2"]     # as the Feather's
 if KNOB:
     # A on GP2 and B on GP3 as wired (BREADBOARD.md); read the other way round, because this knob
     # counted clockwise as anticlockwise (2026-09-27). Swapping the two wires does the same.

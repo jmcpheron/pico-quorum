@@ -23,8 +23,8 @@ async function run(main) {
   dev.dispose();
   return n;
 }
-// The Feather's three buttons, PicoQuorumKey's, and the knob Feather's Boot and knob that stand in
-// for them, each in a device of their own: board.py reads secrets.BOARD once.
-const failed = (await run("main")) + (await run("main_three")) + (await run("main_pqk")) + (await run("main_knob"));
+// The Feather's three buttons, PicoQuorumKey's, the knob Feather's Boot and knob that stand in
+// for them, and the QT Py's, each in a device of their own: board.py reads secrets.BOARD once.
+const failed = (await run("main")) + (await run("main_three")) + (await run("main_pqk")) + (await run("main_knob")) + (await run("main_qtpy"));
 if (quiet) console.log(out.filter((l) => /^pass/.test(l)).length + " pass, " + failed + " failed");
 process.exit(failed ? 1 : 0);

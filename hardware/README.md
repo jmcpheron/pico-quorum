@@ -16,6 +16,7 @@ screens are bench scripts, never part of the image ([builds/](builds/README.md#f
 | [Feather + adapters](wiring/FEATHER-S3.md) | build | key-c, STEMMA QT to USB-C adapters | `feather-s3`; bench in [wiring/feather-s3/](wiring/feather-s3/) | runs; chip 3 through the ceremony, 2026-10-22 |
 | [Feather pigtail](builds/feather-pigtail/README.md) | build | key-c, a USB-C cable soldered to the pins | `feather-s3`; bench `swap.py`; a case | written up, not wired |
 | [Feather knob](builds/feather-knob/README.md) | build | key-c, a USB-C adapter on the header pins | `feather-knob` (knob and Boot); bench `dial.py` | written up, not wired |
+| [QT Py cosigner](builds/qtpy-cosigner/README.md) | build | ATECC608 breakout, STEMMA QT | `qtpy`; bench `check.py`; the USB link not written | runs the console, 2026-10-28 |
 | [key-c and the other keys](key-pcb/README.md) | board | — | — | key-c P2 built and working; P3 drawn |
 | [console-a (console-pcb)](console-pcb/README.md) | board | key-c, USB-C | `build1` | designed |
 | [console-a](console-a/README.md) | board | pads | `waveshare` | designed, not ordered |
@@ -31,7 +32,8 @@ The parts of each are below.
 - [`DEV-CONSOLE.md`](DEV-CONSOLE.md): the no-solder dev console (Pico 2 W, Waveshare Pico-LCD-1.3,
   an ATECC608 breakout), from picowallet
 - [`builds/`](builds/README.md): rigs put together from bought boards, one folder each (README,
-  `bench/`, `case/`); the first is the [Feather pigtail](builds/feather-pigtail/README.md)
+  `bench/`, `case/`); the first is the [Feather pigtail](builds/feather-pigtail/README.md), and the
+  [QT Py cosigner](builds/qtpy-cosigner/README.md) is a QT Py ESP32 with a phone as its relay
 - [`wiring/`](wiring/): the key connector pinout and console schematics; Build 1 in
   [`wiring/BUILD1.md`](wiring/BUILD1.md) (its build order, rules and firmware to do), and on a breadboard in [`wiring/BREADBOARD.md`](wiring/BREADBOARD.md);
   the same parts on an ESP32 DevKit instead of a Pico in [`wiring/ESP32.md`](wiring/ESP32.md)

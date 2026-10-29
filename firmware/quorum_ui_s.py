@@ -11,6 +11,9 @@
 # The Feather (240x135, lcd.THREE) has no footer and no knob: a strip down the left edge, the rail,
 # names what each of its three buttons does on this screen, level with the button (board.RAIL_Y).
 # On a review: Reject, Next, and Sign, which fills the strip while it is held.
+#
+# The QT Py cosigner (board "qtpy", 160x128, THREE without RAIL_Y) has three buttons but no rail:
+# its footer says the same, D0 D1 D2 left to right, and Sign's slot fills while it is held (BAR).
 import time
 import board
 import lcd as L
@@ -20,15 +23,16 @@ import quorum_ui as B
 from quorum_ui import c, txt, txt_r, fit, para, rrect, pill, mark, warn_sign, logo, ident, short, page_colors
 
 W, H = L.W, L.H
-RAIL = 36 if L.THREE else 0     # the Feather's rail; the screens start right of it
+BAR = L.THREE and not board.RAIL_Y     # three buttons, named in the footer (the QT Py)
+RAIL = 36 if L.THREE and not BAR else 0     # the Feather's rail; the screens start right of it
 X0 = RAIL
 M = X0 + 5                      # side margin
 R = W - 5
 TW = R - M
 CX = (X0 + W) // 2              # the middle of what the screens draw on
 HEAD = 16                       # header strip
-FOOT = H if L.THREE else H - 18     # footer from here down (the Feather has none)
-PER = 4 if L.THREE else 3       # four-character chunks a line, in an address or a hash
+FOOT = H if RAIL else H - 18    # footer from here down (the Feather has none)
+PER = 4 if RAIL else 3          # four-character chunks a line, in an address or a hash
 use = B.use
 
 
@@ -82,7 +86,7 @@ def footer_msg(d, q, bg="bg"):
     when it drew."""
     if not q.msg:
         return False
-    y = H - 17 if L.THREE else FOOT
+    y = FOOT - 17 if L.THREE else FOOT
     d.fill_rect(X0, y, W - X0, H - y, c(bg))
     txt_c(d, fit(q.msg, TW, "sans12"), y + 1, "sans12", "warn", bg)
     return True
@@ -98,6 +102,9 @@ def rail(d, q, labels=(None, None, None), bg="bg", hold=None):
     message along the bottom. labels: three (text, fill, ink), or None where a button does nothing.
     hold: (fraction, red) while Sign is held, the strip filling from the bottom."""
     footer_msg(d, q, bg)
+    if BAR:
+        bar(d, labels, bg, hold)
+        return
     d.fill_rect(0, 0, RAIL, H, c("surface"))
     if hold:
         h = int(H * min(1, hold[0]))
@@ -112,6 +119,27 @@ def rail(d, q, labels=(None, None, None), bg="bg", hold=None):
             txt(d, s, 1 + (RAIL - 2 - F.width(s, "sans12")) // 2, top, "sans12", ink, fill)
 
 
+def bar(d, labels, bg, hold):
+    """The QT Py's footer: D0, D1 and D2 left to right, a slot each, empty where a button does
+    nothing here. While Sign is held its slot fills from the left."""
+    d.fill_rect(0, FOOT, W, H - FOOT, c(bg))
+    sw = (W - 8) // 3
+    for i, lab in enumerate(labels):
+        if not lab:
+            continue
+        s, fill, ink = lab
+        x = 2 + i * (sw + 2)
+        rrect(d, x, FOOT + 1, sw, H - FOOT - 2, 4, "surface" if hold and i == 2 else fill)
+        if hold and i == 2:
+            w = int(sw * min(1, hold[0]))
+            on = "bad_bar" if hold[1] else "ok"
+            if w >= 8:
+                rrect(d, x, FOOT + 1, w, H - FOOT - 2, 4, on)
+            fill, ink = (on if 2 * w >= sw else "surface"), "text"     # light on both: it straddles the edge
+        s = fit(s, sw - 4, "sans12")
+        txt(d, s, x + (sw - F.width(s, "sans12")) // 2, FOOT + 1, "sans12", ink, fill)
+
+
 def footer_press(d, q, what, bg="bg"):
     """What a press does, after the knob's mark."""
     if footer_msg(d, q, bg):
@@ -123,7 +151,7 @@ def footer_press(d, q, what, bg="bg"):
 
 def choices(d, q, items, focus, bg="bg"):
     """Pills the knob (D1 on the Feather) moves onto, right-aligned, the one in focus lit."""
-    y = H - 18 if L.THREE else FOOT + 1
+    y = FOOT - 18 if L.THREE else FOOT + 1
     if not L.THREE:
         if footer_msg(d, q, bg):
             return
@@ -162,7 +190,7 @@ def draw_home(q):
         elif not added:
             txt(d, fit("Add this key to the Safe: Key, below" if L.THREE else "Add this key to the Safe", TW, "sans12"),
                 M, y + 36, "sans12", "muted")
-    rows = 2 if q.outside else 3
+    rows = (2 if q.outside else 3) - BAR      # the QT Py: its choices sit above the footer
     top = max(0, min(q.sel - (rows - 1), len(q.queue) - rows))
     for i in range(top, min(len(q.queue), top + rows)):
         e = q.queue[i]
@@ -255,7 +283,7 @@ def who_page(d, q, label, a, pc, bg, y):
     for line in addr_lines(a):
         txt(d, line, M, y, "mono13", pc["stake"], bg)
         y += 15
-    s = 5 if L.THREE else 3             # 40 px on the Feather, 24 px on the 1.8"
+    s = 5 if RAIL else 2 if BAR else 3  # 40 px on the Feather, 24 px on the 1.8", 16 px over the QT Py's footer
     blockies.draw(d, a.lower(), R - 8 * s, min(y - 12, FOOT - 8 * s - 1), s)     # under the line above, over the footer
 
 
@@ -355,7 +383,7 @@ def draw_review(q):
             txt(d, fit(nm, TW - 34, "sans12"), M + 13, y, "sans12", "text" if done or a == q.me else "muted")
             if L.THREE:                 # room for each owner's blockie, as on Owners
                 blockies.draw(d, a.lower(), R - 16, y, 2)
-            y += 18 if L.THREE else 16
+            y += 18 if RAIL else 16
         if not ok and y <= FOOT - 16:
             txt(d, fit(why, TW, "sans12"), M, FOOT - 16, "sans12", "bad")
     elif kind == "verify":
@@ -495,11 +523,11 @@ def draw_device(q):
             ("sec", "%d events" % q.sec) if q.sec is not None else
             ("uses", "#%d" % q.counter if q.counter is not None else "not counted"),
             ("free", "%d KB \u00b7 %s" % (gc.mem_free() // 1024, (image.VERSION or image.BUILD) + (" " + image.RELEASE[:4] if image.RELEASE else "")))]
-    y = HEAD + 1
+    y = HEAD + (0 if BAR else 1)
     for k, v in rows:
         txt(d, k, M, y, "sans12", "muted")
         txt_r(d, fit(v, TW - 36, "sans12"), R, y, "sans12", "bad" if v == "FAIL" else "text")
-        y += 15
+        y += 12 if BAR else 15         # the QT Py: six rows over its choices and its footer
     if L.THREE:
         choices(d, q, (("chip", "Chip"), ("wifi", "Wi-Fi"), ("back", "Back")), q.dfoot)
         rail(d, q, (BACK, NEXT, OPEN))
@@ -530,7 +558,7 @@ def draw_chip(q):
     for k, v in rows:
         if y > FOOT - 14:
             break
-        kw = 62 if L.THREE else 44         # the label column: the Feather has the room
+        kw = 62 if RAIL else 44            # the label column: the Feather has the room
         txt(d, fit(k, kw, "sans12"), M, y, "sans12", "muted")
         txt(d, fit(str(v), TW - kw - 4, "sans12"), M + kw + 4, y, "sans12", "bad" if str(v).startswith(("FAILED", "MISSING")) else "text")
         y += 13
@@ -576,7 +604,7 @@ def draw_qr(d, text, x0, y0, size):
 
 def draw_key(q):
     """The Feather's Key screen: this key's owner address, the address a Safe adds as an owner.
-    Page 0: its QR code (EIP-55, 29 modules at 4 px, 132 px with the margin) beside the short
+    Page 0: its QR code (EIP-55, 29 modules at 4 px, 132 px with the margin; 3 px on the QT Py) beside the short
     address and its picture. Page 1: the address in full. D1 switches. It is a signer, not a
     wallet, and the screen says so: a phone that reads the code may offer to send to it."""
     import txservice
@@ -585,31 +613,33 @@ def draw_key(q):
     a = txservice.checksum(q.me)
     if q.kpage == 0:
         n = qr_of(a)[0]
-        box = n * 4 + 16
-        draw_qr(d, a, W - box, (H - box) // 2, 4)
+        k = 4 if FOOT >= n * 4 + 16 else 3     # 99 px on the QT Py, over its footer
+        box = n * k + 4 * k
+        draw_qr(d, a, W - box, (FOOT - box) // 2, k)
         col = W - box - 4 - M
-        txt(d, fit("Your key", col, "bold14"), M, 0, "bold14")
+        txt(d, "Your key" if F.width("Your key", "bold14") <= col else "Key", M, 0, "bold14")
         txt(d, fit(q.me[:6], col, "mono13"), M, 20, "mono13", "muted")
-        txt(d, fit("\u2026" + q.me[-4:], col, "mono13"), M, 34, "mono13", "muted")
-        blockies.draw(d, q.me, M, 54, 3)
-        y = 84
+        txt(d, fit("\u2026" + q.me[-4:], col, "mono13"), M, 34 - 2 * BAR, "mono13", "muted")
+        blockies.draw(d, q.me, M, 54 - 7 * BAR, 3)
+        y = 84 - 12 * BAR
         for line in ("A signer,", "not a", "wallet."):
             txt(d, fit(line, col, "sans12"), M, y, "sans12", "warn")
-            y += 14
+            y += 14 - 2 * BAR
         labels = (BACK, ("Full", "raised", "text"), None)
     else:
         header(d, "Your key", q.chip["name"] if q.chip else "")
         y = HEAD + 3
         for line in addr_lines(a):
             txt(d, line, M, y, "mono13")
-            y += 16
+            y += 16 - 2 * BAR
         blockies.draw(d, q.me, R - 24, HEAD + 31, 3)      # beside the short last line
         k = "key " + (q.fingerprint() or "none")
         if q.counter is not None:
             k += " \u00b7 use #%d" % q.counter
         txt(d, fit(k, TW, "sans12"), M, y + 2, "sans12", "faint")
         y += 18
-        for line in F.wrap("A signer, not a wallet: never send funds to it.", TW, "sans12"):
+        warn = "A signer, not a wallet." if BAR else "A signer, not a wallet: never send funds to it."
+        for line in F.wrap(warn, TW, "sans12"):
             txt(d, line, M, y, "sans12", "warn")
             y += 14
         labels = (BACK, ("Code", "raised", "text"), None)
@@ -623,7 +653,8 @@ def notice(q, ok, title, lines, press=None, d2=None):
     d = q.d
     d.fill(c("bg"))
     mark(d, ok, M + 11, 13, 10)
-    txt(d, fit(title, TW - 28, "bold18"), M + 27, 1, "bold18")
+    f = "bold18" if F.width(title, "bold18") <= TW - 28 else "bold14"     # whole, smaller, on the QT Py
+    txt(d, fit(title, TW - 28, f), M + 27, 1 + 2 * (f == "bold14"), f)
     y = 30
     for k, s in enumerate(lines):
         for line in F.wrap(s, TW, "sans12"):

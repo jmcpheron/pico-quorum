@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="650" viewBox="0 0 800 650" font-family="Helvetica, Arial, sans-serif" font-size="11">
+<rect width="800" height="650" fill="#ffffff"/>
+<text x="20" y="28" font-size="16" font-weight="bold">The QT Py cosigner, later: the link on a USB serial bridge</text>
+<text x="20" y="46" fill="#555">The phone reaches only UART1. The QT Py's own USB-C stays empty. Screen, key and buttons as in wiring.svg.</text>
+<rect x="250" y="170" width="213.6" height="259.2" rx="18.0" fill="#1d1d1d"/>
+<rect x="302.8" y="152.0" width="108.0" height="50.4" fill="#9a9a9a" rx="3"/>
+<text x="356.8" y="171.2" text-anchor="middle" font-size="10">USB-C</text>
+<text x="356.8" y="189.2" text-anchor="middle" fill="#333" font-size="9">leave empty</text>
+<rect x="313.6" y="275.6" width="86.4" height="67.2" fill="#3a3a3a" stroke="#666"/>
+<text x="356.8" y="305.6" text-anchor="middle" fill="#eee" font-size="9">ESP32-S3</text>
+<text x="356.8" y="320.0" text-anchor="middle" fill="#aaa" font-size="8">or ESP32 Pico</text>
+<rect x="318.4" y="347.6" width="33.6" height="24.0" rx="2" fill="#bbb" stroke="#888" stroke-width="2"/>
+<text x="335.2" y="384.8" text-anchor="middle" fill="#bbb" font-size="9">Boot</text>
+<rect x="361.6" y="347.6" width="33.6" height="24.0" rx="2" fill="#bbb" stroke="#888" stroke-width="2"/>
+<text x="378.4" y="384.8" text-anchor="middle" fill="#bbb" font-size="9">Reset</text>
+<rect x="318.4" y="402.8" width="76.8" height="31.2" fill="none" stroke="#f0c040" stroke-dasharray="4 3"/>
+<circle cx="265.4" cy="208.2" r="7" fill="#000" stroke="#d4a017" stroke-width="2"/>
+<text x="277.4" y="208.2" text-anchor="start" fill="#888" font-weight="normal">A0</text>
+<text x="277.4" y="218.2" text-anchor="start" fill="#999" font-size="8">18/26</text>
+<circle cx="265.4" cy="238.6" r="7" fill="#000" stroke="#d4a017" stroke-width="2"/>
+<text x="277.4" y="238.6" text-anchor="start" fill="#888" font-weight="normal">A1</text>
+<text x="277.4" y="248.6" text-anchor="start" fill="#999" font-size="8">17/25</text>
+<circle cx="265.4" cy="269.1" r="7" fill="#000" stroke="#d4a017" stroke-width="2"/>
+<text x="277.4" y="269.1" text-anchor="start" fill="#888" font-weight="normal">A2</text>
+<text x="277.4" y="279.1" text-anchor="start" fill="#999" font-size="8">9/27</text>
+<circle cx="265.4" cy="299.6" r="7" fill="#000" stroke="#d4a017" stroke-width="2"/>
+<text x="277.4" y="299.6" text-anchor="start" fill="#888" font-weight="normal">A3</text>
+<text x="277.4" y="309.6" text-anchor="start" fill="#999" font-size="8">8/15</text>
+<circle cx="265.4" cy="330.1" r="7" fill="#d4a017" stroke="#d4a017" stroke-width="2"/>
+<text x="277.4" y="330.1" text-anchor="start" fill="#fff" font-weight="bold">SDA</text>
+<text x="277.4" y="340.1" text-anchor="start" fill="#999" font-size="8">7/4</text>
+<circle cx="265.4" cy="360.6" r="7" fill="#000" stroke="#d4a017" stroke-width="2"/>
+<text x="277.4" y="360.6" text-anchor="start" fill="#888" font-weight="normal">SCL</text>
+<text x="277.4" y="370.6" text-anchor="start" fill="#999" font-size="8">6/33</text>
+<circle cx="265.4" cy="391.0" r="7" fill="#000" stroke="#d4a017" stroke-width="2"/>
+<text x="277.4" y="391.0" text-anchor="start" fill="#888" font-weight="normal">TX</text>
+<text x="277.4" y="401.0" text-anchor="start" fill="#999" font-size="8">5/32</text>
+<circle cx="448.2" cy="208.2" r="7" fill="#d4a017" stroke="#d4a017" stroke-width="2"/>
+<text x="436.2" y="212.2" text-anchor="end" fill="#fff" font-weight="bold">5V</text>
+<circle cx="448.2" cy="238.6" r="7" fill="#d4a017" stroke="#d4a017" stroke-width="2"/>
+<text x="436.2" y="242.6" text-anchor="end" fill="#fff" font-weight="bold">GND</text>
+<circle cx="448.2" cy="269.1" r="7" fill="#000" stroke="#d4a017" stroke-width="2"/>
+<text x="436.2" y="273.1" text-anchor="end" fill="#888" font-weight="normal">3V</text>
+<circle cx="448.2" cy="299.6" r="7" fill="#000" stroke="#d4a017" stroke-width="2"/>
+<text x="436.2" y="299.6" text-anchor="end" fill="#888" font-weight="normal">MO</text>
+<text x="436.2" y="309.6" text-anchor="end" fill="#999" font-size="8">35/13</text>
+<circle cx="448.2" cy="330.1" r="7" fill="#000" stroke="#d4a017" stroke-width="2"/>
+<text x="436.2" y="330.1" text-anchor="end" fill="#888" font-weight="normal">MI</text>
+<text x="436.2" y="340.1" text-anchor="end" fill="#999" font-size="8">37/12</text>
+<circle cx="448.2" cy="360.6" r="7" fill="#000" stroke="#d4a017" stroke-width="2"/>
+<text x="436.2" y="360.6" text-anchor="end" fill="#888" font-weight="normal">SCK</text>
+<text x="436.2" y="370.6" text-anchor="end" fill="#999" font-size="8">36/14</text>
+<circle cx="448.2" cy="391.0" r="7" fill="#d4a017" stroke="#d4a017" stroke-width="2"/>
+<text x="436.2" y="391.0" text-anchor="end" fill="#fff" font-weight="bold">RX</text>
+<text x="436.2" y="401.0" text-anchor="end" fill="#999" font-size="8">16/7</text>
+<text x="422.8" y="166.0" fill="#d0312d" font-weight="bold" font-size="16">&#215;</text>
+<rect x="30" y="66" width="140" height="44" rx="8" fill="#f2f2f2" stroke="#888"/>
+<text x="100" y="85" text-anchor="middle" font-weight="bold">phone (the relay)</text>
+<text x="100" y="100" text-anchor="middle" fill="#555" font-size="9">USB-C, OTG</text>
+<polyline points="100.0,110.0 100.0,200.0" fill="none" stroke="#777" stroke-width="2.5" stroke-linejoin="round"/>
+<rect x="30" y="200" width="140" height="295" rx="6" fill="#f2f2f2" stroke="#888"/>
+<text x="38" y="218" font-weight="bold">USB serial bridge</text>
+<text x="38" y="232" fill="#555" font-size="9">CP2102N or CH340, 3.3 V logic</text>
+<text x="38" y="480" fill="#d0312d" font-size="9">&#215; not connected</text>
+<circle cx="170" cy="245.0" r="5" fill="#d0312d"/>
+<text x="161" y="249.0" text-anchor="end" font-size="10">5V</text>
+<polyline points="170.0,245.0 200.0,245.0 200.0,140.0 500.0,140.0 500.0,208.2 455.2,208.2" fill="none" stroke="#d0312d" stroke-width="2.5" stroke-linejoin="round"/>
+<rect x="330" y="130" width="40" height="20" fill="#fff"/>
+<polygon points="341,131 341,149 357,140" fill="#222"/>
+<line x1="358" y1="130" x2="358" y2="150" stroke="#222" stroke-width="3"/>
+<text x="350" y="124" text-anchor="middle" fill="#555" font-size="9">Schottky, e.g. 1N5817: bar to the QT Py</text>
+<circle cx="170" cy="285.0" r="5" fill="#222222"/>
+<text x="161" y="289.0" text-anchor="end" font-size="10">GND</text>
+<polyline points="170.0,285.0 192.0,285.0" fill="none" stroke="#222222" stroke-width="2.5" stroke-linejoin="round"/>
+<line x1="192.0" y1="285.0" x2="192.0" y2="295.0" stroke="#222" stroke-width="2.5"/>
+<line x1="183.0" y1="295.0" x2="201.0" y2="295.0" stroke="#222" stroke-width="2"/>
+<line x1="186.0" y1="299.0" x2="198.0" y2="299.0" stroke="#222" stroke-width="2"/>
+<line x1="189.0" y1="303.0" x2="195.0" y2="303.0" stroke="#222" stroke-width="2"/>
+<circle cx="170" cy="330.1" r="5" fill="#2e7dd7"/>
+<text x="161" y="334.1" text-anchor="end" font-size="10">RXD</text>
+<polyline points="170.0,330.1 258.4,330.1" fill="none" stroke="#2e7dd7" stroke-width="2.5" stroke-linejoin="round"/>
+<circle cx="170" cy="365.0" r="5" fill="#1f9e6f"/>
+<text x="161" y="369.0" text-anchor="end" font-size="10">TXD</text>
+<polyline points="170.0,365.0 215.0,365.0 215.0,505.0 500.0,505.0 500.0,391.0 455.2,391.0" fill="none" stroke="#1f9e6f" stroke-width="2.5" stroke-linejoin="round"/>
+<circle cx="170" cy="400.0" r="5" fill="#999999"/>
+<text x="161" y="404.0" text-anchor="end" font-size="10">3V3</text>
+<text x="178" y="405.0" fill="#d0312d" font-weight="bold" font-size="13">&#215;</text>
+<circle cx="170" cy="430.0" r="5" fill="#999999"/>
+<text x="161" y="434.0" text-anchor="end" font-size="10">DTR</text>
+<text x="178" y="435.0" fill="#d0312d" font-weight="bold" font-size="13">&#215;</text>
+<circle cx="170" cy="460.0" r="5" fill="#999999"/>
+<text x="161" y="464.0" text-anchor="end" font-size="10">RTS</text>
+<text x="178" y="465.0" fill="#d0312d" font-weight="bold" font-size="13">&#215;</text>
+<polyline points="455.2,238.6 488.2,238.6" fill="none" stroke="#222" stroke-width="2.5" stroke-linejoin="round"/>
+<line x1="488.2" y1="238.6" x2="488.2" y2="248.6" stroke="#222" stroke-width="2.5"/>
+<line x1="479.2" y1="248.6" x2="497.2" y2="248.6" stroke="#222" stroke-width="2"/>
+<line x1="482.2" y1="252.6" x2="494.2" y2="252.6" stroke="#222" stroke-width="2"/>
+<line x1="485.2" y1="256.6" x2="491.2" y2="256.6" stroke="#222" stroke-width="2"/>
+<text x="20" y="560" fill="#333" font-size="10.5">The bridge's TXD to RX (UART1 RX), its RXD to SDA (UART1 TX): D0 moves to A3, BL to 3V.</text>
+<text x="20" y="576" fill="#333" font-size="10.5">Its 5V through a Schottky to the 5V pad: the QT Py runs from the phone's cable.</text>
+<text x="20" y="592" fill="#333" font-size="10.5">DTR and RTS go nowhere, so the phone can't reset the QT Py or start its ROM flasher.</text>
+<text x="20" y="608" fill="#333" font-size="10.5">MicroPython never puts its REPL on UART1. Flashing stays a person with the board,</text>
+<text x="20" y="624" fill="#333" font-size="10.5">a cable in the QT Py's own USB-C and Boot held. Every ground symbol is the GND pad.</text>
+</svg>
