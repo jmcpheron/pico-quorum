@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # The key PCBs in hardware/key-pcb (see its README.md and ORDERING.md), and the console boards in
-# hardware/console-pcb, hardware/console-a, hardware/console-pocket and hardware/console-s3, and the
-# Feather's wing in hardware/feather-wing. Needs KiCad's kicad-cli: 9 for rev A, 10 for the rest.
+# hardware/console-pcb, hardware/console-a, hardware/console-pocket, hardware/console-s3 and
+# hardware/console-rp, and the Feather's wing in hardware/feather-wing. Needs KiCad's kicad-cli: 9 for
+# rev A, 10 for the rest.
 #
 #   tools/keypcb check [board]    ERC on the schematic, then DRC with schematic parity on the board
 #   tools/keypcb fab [board]      writes <board>/fab/: the Gerber + drill zip, and the BOM and CPL
@@ -37,6 +38,10 @@
 #   tools/keypcb gen-console-s3   rewrites console-s3 (the S3 module on the back, placed, not routed) from
 #                                 hardware/console-s3/gen_console_s3.py, the same way; `route console-s3`
 #                                 routes it
+#   tools/keypcb gen-console-rp [check] [render]  rewrites console-rp (the RP2350 console, placed) from
+#                                 hardware/console-rp/gen_console_rp.py (KiCad's own Python) and checks it;
+#                                 `route console-rp` routes it, and `check` checks the routed board without
+#                                 rewriting it
 #
 # board is one of the key-*, console-* or wing-* folders; without one, every board. A name used in two
 # folders (console-a) is written with its folder: console-pcb/console-a, console-a/console-a.
@@ -51,6 +56,7 @@ CONSOLE_A = os.path.join(os.path.dirname(ROOT), "console-a")
 CONSOLE_POCKET = os.path.join(os.path.dirname(ROOT), "console-pocket")
 FEATHER_WING = os.path.join(os.path.dirname(ROOT), "feather-wing")
 CONSOLE_S3 = os.path.join(os.path.dirname(ROOT), "console-s3")
+CONSOLE_RP = os.path.join(os.path.dirname(ROOT), "console-rp")
 
 # Gerber layers JLCPCB wants for a 2-layer board. Paste layers are only used for assembly orders,
 # and harmless on a bare-board order.
@@ -63,6 +69,7 @@ def _board_dirs():
     dirs = sorted(d for d in glob.glob(os.path.join(ROOT, "key-*")) + glob.glob(os.path.join(CONSOLE, "console-*"))
                   + glob.glob(os.path.join(CONSOLE_A, "console-*")) + glob.glob(os.path.join(CONSOLE_POCKET, "console-*"))
                   + glob.glob(os.path.join(FEATHER_WING, "wing-*")) + glob.glob(os.path.join(CONSOLE_S3, "console-*"))
+                  + glob.glob(os.path.join(CONSOLE_RP, "console-*"))
                   if os.path.isdir(d))
     base = [os.path.basename(d) for d in dirs]
     return {(b if base.count(b) == 1 else os.path.basename(os.path.dirname(d)) + "/" + b): d for b, d in zip(base, dirs)}
@@ -337,7 +344,40 @@ if gnd:
         y += mm(2.5)
 for k in gone:
     b.Remove(items[k])
-print(f"dropped {dropped} dangling vias and track ends, added {stitched} ground vias")
+# Then the front's ground islands the grid missed, cut off by tracks: fill, and give each island with
+# no ground via or hole in it one via where one fits, wholly inside its fill and the back's ground
+# fill, 0.9 mm from any other hole and 0.45 mm from any pad (its mask opening and 0.1 mm more), 0.1 mm
+# steps from its middle out.
+tied = 0
+if gnd:
+    pcbnew.ZONE_FILLER(b).Fill(b.Zones())
+    holes = [(t.GetPosition().x, t.GetPosition().y) for t in b.GetTracks() if t.Type() == via_t]
+    holes += [(p.GetPosition().x, p.GetPosition().y) for p in pads if p.GetDrillSizeX() > 0]
+    mine = lambda z, layer: not z.GetIsRuleArea() and z.GetNetCode() == gnd.GetNetCode() and z.IsOnLayer(layer)
+    back = [z.GetFilledPolysList(pcbnew.B_Cu) for z in b.Zones() if mine(z, pcbnew.B_Cu)]
+    ring = [(int(mm(0.3) * dx), int(mm(0.3) * dy)) for dx, dy in around]
+    for z in [z for z in b.Zones() if mine(z, pcbnew.F_Cu)]:
+        fill = z.GetFilledPolysList(pcbnew.F_Cu)
+        for i in range(fill.OutlineCount()):
+            if any(fill.Contains(V(*h), i) for h in holes):
+                continue
+            bb = fill.Outline(i).BBox()
+            cx, cy = bb.Centre().x, bb.Centre().y
+            pts = sorted(((x, y) for x in range(bb.GetLeft(), bb.GetRight(), mm(0.1)) for y in range(bb.GetTop(), bb.GetBottom(), mm(0.1))),
+                         key=lambda q: (q[0] - cx) ** 2 + (q[1] - cy) ** 2)
+            for x, y in pts:
+                if (all(fill.Contains(V(x + dx, y + dy), i) for dx, dy in ring + [(0, 0)])
+                        and any(all(f.Contains(V(x + dx, y + dy)) for dx, dy in ring) for f in back)
+                        and not any(r.Contains(V(x, y)) for r in keep)
+                        and not any(p.GetEffectiveShape(l).Collide(V(x, y), mm(0.45)) for p in pads for l in (pcbnew.F_Cu, pcbnew.B_Cu) if p.IsOnLayer(l))
+                        and all(((x - hx) ** 2 + (y - hy) ** 2) ** 0.5 >= mm(0.9) for hx, hy in holes)):
+                    v = pcbnew.PCB_VIA(b)
+                    v.SetPosition(V(x, y)); v.SetWidth(mm(0.6)); v.SetDrill(mm(0.3)); v.SetNet(gnd)
+                    b.Add(v)
+                    holes.append((x, y))
+                    tied += 1
+                    break
+print(f"dropped {dropped} dangling vias and track ends, added {stitched} ground vias and {tied} in ground islands")
 pcbnew.ZONE_FILLER(b).Fill(b.Zones())
 pcbnew.SaveBoard(sys.argv[2], b)
 """
@@ -345,8 +385,11 @@ pcbnew.SaveBoard(sys.argv[2], b)
 
 def route(name, passes="100"):
     """Freerouting, headless, its analytics off. The board file changes only if the whole round trip
-    works. The rule areas (an antenna's keep-out, a shell's) go to it as keep-outs."""
+    works. The rule areas (an antenna's keep-out, a shell's) go to it as keep-outs. A net class
+    named Ground isn't routed: the pours and the stitching vias join it."""
     d, sch, pcb = files(name)
+    classes = json.load(open(os.path.splitext(pcb)[0] + ".kicad_pro"))["net_settings"]["classes"]
+    skip = ["-inc", "Ground"] if any(c["name"] == "Ground" for c in classes) else []
     if not os.path.exists(FREEROUTING):
         sys.exit(f"no Freerouting jar at {FREEROUTING}: set FREEROUTING_JAR (https://github.com/freerouting/freerouting/releases)")
     with tempfile.TemporaryDirectory() as t:
@@ -355,7 +398,7 @@ def route(name, passes="100"):
                      [JAVA, "-Djava.awt.headless=true", "-jar", FREEROUTING, "--gui.enabled=false",
                       "--usage_and_diagnostic_data.disable_analytics=true",
                       "--router.copper_to_edge_clearance_um=300",       # its own default is 250; JLCPCB's and the boards' is 0.3 mm
-                      "-de", dsn, "-do", ses, "-mp", passes],
+                      *skip, "-de", dsn, "-do", ses, "-mp", passes],
                      [KICAD_PY, "-c", SPECCTRA, "import", pcb, ses]):
             r = subprocess.run(args, capture_output=True, text=True)
             if r.returncode or (args[0] == JAVA and not os.path.exists(ses)):
@@ -452,16 +495,21 @@ def jlc_drc(d, pcb, spec):
     kicad("pcb", "drc", "--severity-all", "--schematic-parity", "--format", "json", "-o", rpt, pcb)
     r = json.load(open(rpt))
     allow = spec.get("jlc_allow", [])
-    found, allowed = [], []
-    for v in r.get("violations", []):
-        what = " / ".join(i.get("description", "") for i in v.get("items", []))
-        ok = next((a for a in allow if a["type"] == v["type"] and re.search(rf"\b{re.escape(a['ref'])}\b", what)), None)
-        (allowed if ok else found).append(f"{v['type']}: {what[:90]}" + (f" ({ok['why']})" if ok else ""))
-    loose, parity = len(r.get("unconnected_items", [])), len(r.get("schematic_parity", []))
+    found, allowed, parity = [], [], 0
+    for kind in ("violations", "schematic_parity"):
+        for v in r.get(kind, []):
+            what = " / ".join(i.get("description", "") for i in v.get("items", []))
+            ok = next((a for a in allow if a["type"] == v["type"] and re.search(rf"\b{re.escape(a['ref'])}\b", what)), None)
+            if ok:
+                allowed.append(f"{v['type']}: {what[:90]} ({ok['why']})")
+            else:
+                found.append(f"{v['type']}: {what[:90]}")
+                parity += kind == "schematic_parity"
+    loose = len(r.get("unconnected_items", []))
     print("1. DRC with JLCPCB's limits (tools/jlc/limits.py), every check an error")
     bad = bool(found or loose or parity)
     print(f"  {'FAIL' if bad else 'ok':<4} " + (f"0 violations, 0 unconnected, 0 parity issues" + (f", {len(allowed)} allowed" if allowed else "")
-          if not bad else f"{len(found)} violations, {loose} unconnected, {parity} parity issues: {found[:8]}"))
+          if not bad else f"{len(found) - parity} violations, {loose} unconnected, {parity} parity issues: {found[:8]}"))
     if len(found) > 8:
         kinds = {}
         for f in found:
@@ -648,7 +696,8 @@ def main():
             "gen-console-a": os.path.join(CONSOLE_A, "gen.py"),
             "gen-console-pocket": os.path.join(CONSOLE_POCKET, "gen_console.py"),
             "gen-feather-wing": os.path.join(FEATHER_WING, "gen_wing.py"),
-            "gen-console-s3": os.path.join(CONSOLE_S3, "gen_console_s3.py")}
+            "gen-console-s3": os.path.join(CONSOLE_S3, "gen_console_s3.py"),
+            "gen-console-rp": os.path.join(CONSOLE_RP, "gen_console_rp.py")}
     if len(sys.argv) > 1 and sys.argv[1] in gens:
         py = KICAD_PY if sys.argv[1] not in ("gen-console-pocket", "gen-feather-wing", "gen-console-s3") else "python3"
         os.execvp(py, [py, gens[sys.argv[1]], *sys.argv[2:]])
