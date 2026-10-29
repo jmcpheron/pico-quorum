@@ -4,7 +4,7 @@
 |---|---|
 | board | Adafruit QT Py ESP32-S3 with 2 MB PSRAM ([5700](https://www.adafruit.com/product/5700)); the QT Py ESP32 Pico ([5395](https://www.adafruit.com/product/5395)) has the same pads |
 | key | Adafruit's ATECC608 breakout ([4314](https://www.adafruit.com/product/4314)) on a STEMMA QT cable |
-| runs | MicroPython 1.26.1 and [`bench/check.py`](bench/check.py). The console's `qtpy` profile runs in the emulator, [not yet on the board](#the-firmware-it-needs) |
+| runs | the console image (`BOARD = "qtpy"`), over Wi-Fi, for a Base Sepolia Safe; [`bench/check.py`](bench/check.py) first |
 | case | none yet |
 | status | wired on a breadboard and checked 2026-10-28: a QT Py ESP32 Pico, the 1.8″ ST7735S, three buttons, an ATECC608A ([on the bench](#on-the-bench-2026-10-28)) |
 
@@ -196,7 +196,7 @@ says the same at more length.
   `THREE` with D0 D1 D2 pressed low, the 1.8″ as 160 × 128, the key on 22/19, nothing to power up.
   `quorum_ui_s.py` names the buttons in a footer, since there is no rail beside the screen.
   `test-vectors/run-console.mjs` runs the three-button suite on it (`main_qtpy`), and
-  `node tools/board/shots_qtpy.mjs` draws its screens. Not yet run on the board. An S3 QT Py would
+  `node tools/board/shots_qtpy.mjs` draws its screens. On the board since 2026-10-28. An S3 QT Py would
   need its own pins, and `qtpy` read before the look at GPIO16/17, since the link holds RX high.
 - **The link,** shared with console-usb: the console's requests to Safe's service on UART1 in
   place of HTTPS, and a relay on the phone. The handoff's first choice for the phone is a page in
@@ -211,7 +211,8 @@ Each is a firmware change, so a new release fingerprint ([AGENTS.md](../../../AG
 1. Wire the screen; the bench script draws on it. Done, 2026-10-28.
 2. The key answers at 0x60; its serial on the screen. Done, 2026-10-28.
 3. The `qtpy` profile: the console's screens on the QT Py, signing on a testnet over Wi-Fi, as the
-   Feather does. Written and run in the emulator; not yet on the board.
+   Feather does. On the board 2026-10-28, chip #1 pinned, the Base Sepolia 3-of-6 its Safe: the
+   console starts, verifies TLS and finds this key an owner. Signing not yet tried.
 4. The link on the QT Py's own USB, from a desktop relay, on the bench.
 5. The same from Android Chrome.
 6. The link on the bridge. Now it is a cosigner you can leave plugged in.
@@ -278,6 +279,12 @@ chip #1 ([docs/LOCKING.md](../../../docs/LOCKING.md)): slot 0's owner address ca
 `0x2843705391b7E2cf06b0b964b532Ad9891535E53` in 1.6 s, the one in
 [docs/STATUS.md](../../../docs/STATUS.md), whose signer proxy is deployed on Base Sepolia and Base.
 
+**3. The console,** 2026-10-28. A `secrets.py` with `BOARD = "qtpy"`, Wi-Fi, a Safe API key,
+the Base Sepolia 3-of-6 (`0x5617…DC41`, [docs/STATUS.md](../../../docs/STATUS.md)) and chip #1's
+pin, then `PICO_PORT=/dev/cu.usbserial-… tools/fw push console` (build `6cf8b52f`). The push and
+`tools/fw verify` passed: every file's hash, TLS verified, the Safe "ok, owner", the pin ok, 1.6 MB
+free, the watchdog on.
+
 ## What was checked
 
 - The pads and GPIOs: CircuitPython's `pins.c` for `adafruit_qtpy_esp32s3_nopsram`,
@@ -287,7 +294,7 @@ chip #1 ([docs/LOCKING.md](../../../docs/LOCKING.md)): slot 0's owner address ca
 
 - On the board, 2026-10-28: [on the bench](#on-the-bench-2026-10-28), above.
 - The `qtpy` profile: `node test-vectors/run-console.mjs` (`main_qtpy`), on MicroPython in
-  WebAssembly. Not on the board.
+  WebAssembly, and on the board, above.
 
-Not checked: the console on the board; the S3 QT Py at all. The pad positions in the diagrams are
+Not checked: a signature from the QT Py; the S3 QT Py at all. The pad positions in the diagrams are
 drawn to the board's size, not measured; go by the silkscreen.
