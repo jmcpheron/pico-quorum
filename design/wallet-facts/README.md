@@ -15,7 +15,7 @@ A label puts the few facts that matter in big type, the breakdown under them, an
 at the bottom:
 
 - **Serving size.** The kind of money the setup is made for.
-- **Keys to move money.** The calories. One key means one mistake can be the whole balance.
+- **Keys to move money.** The biggest number. One key means one mistake can be the whole balance.
 - **Copies of the key**, and **key types**:
   - **Sealed**: born in a chip, one copy, nothing to leak and nothing to restore. A PicoQuorum key,
     a wedgie.
