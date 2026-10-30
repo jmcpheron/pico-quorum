@@ -1,0 +1,516 @@
+<title>Wallet Facts</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@500;700&family=Atkinson+Hyperlegible+Next:wght@400;700;800&display=swap">
+<style>
+/* Layout: a shelf of printed labels. The page wears PicoQuorum's colours; each label is a white
+   sticker in black ink, in both themes, the way a real one is printed. */
+:root {
+  --bg: #F5F6F8;
+  --fg: #101318;
+  --muted: #565E6A;
+  --line: #D6DAE1;
+  --card: #FFFFFF;
+  --ok: #16963E;
+  --warn: #A86600;
+  --eth: #627EEA;
+  --red: #D02424;
+  /* The labels are printed objects: these never change with the theme. */
+  --ink: #000000;
+  --paper: #FFFFFF;
+  --ink-soft: #3A3F47;
+  --stamp-natural: #16963E;
+  --stamp-artificial: #A86600;
+  --stamp-raw: #D02424;
+  --stamp-blend: #3F5BD8;
+  --shadow: 0 1px 2px rgba(16, 19, 24, .08), 0 8px 24px rgba(16, 19, 24, .08);
+  --sans: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Atkinson Hyperlegible Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0B0D11; --fg: #F2F4F7; --muted: #98A0AC; --line: #262A33; --card: #14171D;
+    --ok: #34C759; --warn: #FFB830; --eth: #7A92FF; --red: #FF5C54;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 10px 30px rgba(0, 0, 0, .45);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0B0D11; --fg: #F2F4F7; --muted: #98A0AC; --line: #262A33; --card: #14171D;
+  --ok: #34C759; --warn: #FFB830; --eth: #7A92FF; --red: #FF5C54;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 10px 30px rgba(0, 0, 0, .45);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--sans);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+.wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding-block: 40px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid;
+  gap: 56px;
+  overflow-x: clip;
+}
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+p { margin: 0; }
+.eyebrow {
+  font-size: .78rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Intro */
+.intro { display: grid; gap: 14px; max-width: 64ch; }
+.intro h1 { font-size: clamp(2.4rem, 6vw, 3.6rem); font-weight: 800; line-height: 1.02; letter-spacing: -.02em; }
+.intro .lede { font-size: 1.18rem; }
+.intro .note { color: var(--muted); }
+
+/* Section heads */
+section { display: grid; gap: 20px; }
+.sec-head { display: grid; gap: 6px; max-width: 64ch; }
+.sec-head h2 { font-size: 1.6rem; font-weight: 800; letter-spacing: -.01em; }
+.sec-head p { color: var(--muted); }
+
+/* The three sugars */
+.sugars { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.sugar {
+  background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+  padding: 18px; display: grid; gap: 10px; align-content: start; min-width: 0;
+}
+.sugar h3 { font-size: 1.15rem; font-weight: 800; }
+.sugar .kind { font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.sugar.natural .kind { color: var(--ok); }
+.sugar.raw .kind { color: var(--red); }
+.sugar.artificial .kind { color: var(--warn); }
+.sugar p { font-size: .95rem; }
+.sugar .eg { color: var(--muted); font-size: .88rem; }
+
+/* How to read */
+.howto { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px 24px; }
+.howto div { display: grid; gap: 4px; border-top: 2px solid var(--fg); padding-top: 10px; min-width: 0; }
+.howto b { font-size: .98rem; }
+.howto span { color: var(--muted); font-size: .92rem; }
+
+/* The shelf of labels */
+.shelf {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: 28px 24px;
+  align-items: start;
+}
+.item { display: grid; gap: 10px; min-width: 0; }
+.item .cap { display: grid; gap: 2px; }
+.item .cap b { font-size: 1.05rem; }
+.item .cap span { color: var(--muted); font-size: .9rem; }
+
+/* One label */
+.label {
+  background: var(--paper); color: var(--ink);
+  border: 1.5px solid var(--ink);
+  padding: 6px 8px 8px;
+  font-family: var(--sans);
+  font-size: .82rem; line-height: 1.25;
+  box-shadow: var(--shadow);
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+}
+.lab-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.lab-title { font-size: 2.15rem; font-weight: 800; letter-spacing: -.025em; line-height: 1; }
+.stamp {
+  flex: none; width: 80px; height: 80px; border-radius: 50%;
+  border: 2px solid currentColor; outline: 1px solid currentColor; outline-offset: 2px;
+  display: grid; place-items: center; text-align: center;
+  font-size: .56rem; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; line-height: 1.1;
+  padding: 8px; transform: rotate(-9deg); margin: 4px 4px 2px 0;
+}
+.stamp.natural { color: var(--stamp-natural); }
+.stamp.artificial { color: var(--stamp-artificial); }
+.stamp.raw { color: var(--stamp-raw); }
+.stamp.blend { color: var(--stamp-blend); }
+.stamp em { display: block; font-style: normal; font-size: 1.05rem; letter-spacing: 0; }
+.lab-setup { font-size: .86rem; padding: 2px 0 1px; }
+.r-thin { border-top: 1px solid var(--ink); }
+.r-med { border-top: 4px solid var(--ink); }
+.r-fat { border-top: 9px solid var(--ink); }
+.serving { display: flex; justify-content: space-between; gap: 10px; font-weight: 800; font-size: .98rem; padding: 2px 0 4px; }
+.serving span:last-child { text-align: right; }
+.big { display: flex; justify-content: space-between; align-items: end; gap: 10px; padding: 2px 0 3px; }
+.big .k { font-weight: 800; font-size: 1.05rem; line-height: 1.1; }
+.big .k small { display: block; font-weight: 400; font-size: .74rem; }
+.big .v { font-weight: 800; font-size: 2.3rem; line-height: .95; letter-spacing: -.02em; white-space: nowrap; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) auto 3.4em; column-gap: 8px; }
+.grid > div { display: contents; }
+.grid span { padding: 2px 0; border-top: 1px solid var(--ink); }
+.grid .colhead span { border-top: 0; font-weight: 800; font-size: .72rem; padding: 3px 0 1px; }
+.grid .colhead span:nth-child(n+2), .grid .num, .grid .exp { text-align: right; }
+.grid .exp { font-weight: 400; }
+.grid .num { font-weight: 800; }
+.grid .group span { font-weight: 800; }
+.grid .group span:first-child b { font-weight: 800; }
+.grid .group span:first-child i { font-style: normal; font-weight: 400; }
+.grid .sub span:first-child { padding-left: 14px; }
+.grid .sub2 span:first-child { padding-left: 28px; }
+.grid .first span { border-top: 0; }
+.grid .dash { color: var(--ink-soft); }
+.grid .hi { font-weight: 800; }
+.trace { display: grid; grid-template-columns: 1fr 1fr; column-gap: 12px; padding-top: 2px; }
+.trace div { display: flex; justify-content: space-between; gap: 6px; padding: 2px 0; border-bottom: 1px solid var(--ink); min-width: 0; }
+.trace div span:first-child { min-width: 0; }
+.trace div span:last-child { text-align: right; font-weight: 700; }
+.foot { font-size: .7rem; line-height: 1.3; padding: 4px 0 0; display: grid; gap: 4px; }
+.ingred { font-size: .74rem; line-height: 1.3; padding-top: 6px; }
+.ingred b { font-weight: 800; text-transform: uppercase; }
+.contains { font-weight: 800; text-transform: uppercase; font-size: .78rem; padding-top: 5px; letter-spacing: .01em; }
+.warning { border: 2px solid var(--ink); padding: 5px 7px; margin-top: 7px; font-size: .76rem; line-height: 1.3; }
+.warning b { text-transform: uppercase; font-weight: 800; }
+
+/* Front of the box */
+.fronts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 20px; }
+.front {
+  background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+  padding: 16px; display: grid; gap: 12px; align-content: start; min-width: 0;
+}
+.front .rung { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.front .rung b { font-size: 1.1rem; }
+.front .rung span { font-family: var(--mono); font-size: .8rem; color: var(--muted); white-space: nowrap; }
+.chips { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.chip {
+  background: var(--paper); color: var(--ink); border: 1.5px solid var(--ink);
+  padding: 6px 6px 7px; display: grid; gap: 3px; align-content: start; min-width: 0;
+}
+.chip small { font-size: .64rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; line-height: 1.15; }
+.chip strong { font-size: .95rem; font-weight: 800; line-height: 1.1; overflow-wrap: anywhere; }
+.chip small { overflow-wrap: anywhere; }
+.chip.bad strong { color: var(--stamp-raw); }
+.chip.mid strong { color: var(--stamp-artificial); }
+.chip.good strong { color: var(--stamp-natural); }
+.front p { font-size: .9rem; color: var(--muted); }
+.src { color: var(--muted); font-size: .88rem; max-width: 70ch; }
+
+footer { color: var(--muted); font-size: .88rem; display: grid; gap: 6px; max-width: 70ch; border-top: 1px solid var(--line); padding-top: 18px; }
+
+@media (max-width: 380px) {
+  .lab-title { font-size: 1.8rem; }
+  .stamp { width: 64px; height: 64px; }
+  .trace { grid-template-columns: 1fr; }
+}
+</style>
+
+<main class="wrap">
+  <header class="intro">
+    <p class="eyebrow">PicoQuorum · a concept for wallet hygiene</p>
+    <h1>Wallet Facts</h1>
+    <p class="lede">Every wallet is a recipe: some keys, some copies of them, and a list of things you
+      trust. A label puts what matters most in big type at the top, and the trace amounts at the bottom.</p>
+    <p class="note">These are mockups for discussion. The exposure levels are rough judgments, not
+      measurements, and they describe kinds of setup, not any one company's product.</p>
+  </header>
+
+  <section aria-labelledby="sugars-h">
+    <div class="sec-head">
+      <p class="eyebrow">Read the sugars first</p>
+      <h2 id="sugars-h">Three kinds of key</h2>
+      <p>The label's sugar line says where each key came from and how many copies of it exist. That
+        one fact decides most of what can go wrong.</p>
+    </div>
+    <div class="sugars">
+      <div class="sugar natural">
+        <p class="kind">Natural</p>
+        <h3>Born in a sealed chip</h3>
+        <p>The private key is made inside a secure element and never leaves it. There's no seed
+          phrase and no copy anywhere, so there's nothing to leak. There's also nothing to restore from.</p>
+        <p class="eg">A PicoQuorum key, a wedgie.</p>
+      </div>
+      <div class="sugar raw">
+        <p class="kind">Raw seed</p>
+        <h3>Written down as words</h3>
+        <p>Twelve or twenty-four words are the key. Every copy, on paper, in a photo or in a password
+          manager, is the whole key. Backing it up and exposing it are the same act.</p>
+        <p class="eg">A browser wallet, a phone wallet, most hardware wallets.</p>
+      </div>
+      <div class="sugar artificial">
+        <p class="kind">Artificial sweetener</p>
+        <h3>Synced by a platform</h3>
+        <p>A passkey tastes like no seed phrase. But Apple or Google keeps copies on every device
+          on your account and in its cloud. The backup is real, and it is your account.</p>
+        <p class="eg">Face ID or Touch ID passkeys, synced.</p>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="read-h">
+    <div class="sec-head">
+      <p class="eyebrow">How to read a label</p>
+      <h2 id="read-h">Big numbers first, trace amounts last</h2>
+    </div>
+    <div class="howto">
+      <div><b>Serving size</b><span>The kind of money the setup is made for. The same wallet is fine for lunch money and wrong for savings.</span></div>
+      <div><b>Keys to move money</b><span>The calories. One key means one mistake can be the whole balance.</span></div>
+      <div><b>Exposure, then % at risk</b><span>How easy an attack is, and how much of the balance one incident of it can take.</span></div>
+      <div><b>Ingredients and Contains</b><span>Everything you trust, most important first, and the warnings people need to see.</span></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="shelf-h">
+    <div class="sec-head">
+      <p class="eyebrow">The shelf</p>
+      <h2 id="shelf-h">Five setups, side by side</h2>
+      <p>The first three are really one thing: a single secret, in a different wrapper. Look at the
+        right-hand column. For one key, every attack that works takes 100%.</p>
+    </div>
+    <div class="shelf" id="shelf"></div>
+  </section>
+
+  <section aria-labelledby="front-h">
+    <div class="sec-head">
+      <p class="eyebrow">For Instant Wallet</p>
+      <h2 id="front-h">The front of the box changes as you climb</h2>
+      <p>Instant Wallet keeps one address while you add keys. A small front-of-box panel could
+        show three numbers at each rung, with the full label one tap away.</p>
+    </div>
+    <div class="fronts" id="fronts"></div>
+    <p class="src">Rungs from Instant Wallet's plan as of October 2026: a Face ID passkey first,
+      recovery by the BuidlGuidl DAO after 7 days, your own recovery later, then a wedgie. The phone's
+      default daily limit is 100 USDC plus 0.04 ETH. Those details are still moving.</p>
+  </section>
+
+  <footer>
+    <p>A concept from the PicoQuorum project. It rates no company's product, and it isn't a
+      security audit.</p>
+    <p>Source: design/wallet-facts in the PicoQuorum repository.</p>
+  </footer>
+</main>
+
+<script>
+// Each label is data. Rows are [name, exposure, % at risk]; "—" means it doesn't apply.
+const FOOT = "* % at risk: how much of the balance one incident of that kind can take. Exposure: how easy that incident is to pull off, a rough judgment.";
+
+const LABELS = [
+  {
+    name: "Browser extension wallet",
+    note: "One key from a seed phrase, in a browser on your computer.",
+    stamp: ["raw", "Contains", "seeds"],
+    setup: "1 key per wallet",
+    serving: "Spending money",
+    keys: "1",
+    copies: ["2", [["In the browser, encrypted", "1"], ["On paper, as 12 or 24 words", "1"]]],
+    types: ["0", "1", "0"],
+    groups: [
+      ["Remote", [["Phishing site", "High", "100%"], ["Malware on the computer", "High", "100%"], ["Blind signing", "High", "100%"], ["A lying app or service", "High", "100%"]]],
+      ["In person", [["Seed words found", "Med", "100%"], ["Laptop stolen", "Low", "100%"], ["Someone forces you", "Low", "100%"]]],
+      ["Loss", [["Laptop lost or broken", "Low", "0%"], ["Seed words lost", "Low", "0%"], ["Both lost", "Low", "100%"]]],
+    ],
+    trace: [["Secure element", "None"], ["Key can leave", "Yes, as words"], ["Checks the hash", "No"], ["Build you can verify", "Varies"]],
+    ingredients: "Seed phrase, your computer's operating system, your browser, the wallet extension and its automatic updates, every site you connect it to.",
+    contains: "Contains: seeds.",
+  },
+  {
+    name: "Hardware wallet and a paper seed",
+    note: "The key signs on a device, and its seed sits in a drawer.",
+    stamp: ["raw", "Contains", "seeds"],
+    setup: "1 key per wallet",
+    serving: "One person's savings",
+    keys: "1",
+    copies: ["2", [["In the hardware wallet", "1"], ["On paper, as 24 words", "1"]]],
+    types: ["0", "1", "0"],
+    groups: [
+      ["Remote", [["Phishing site", "Med", "100%"], ["Malware on the computer", "Low", "100%"], ["Blind signing", "Med", "100%"], ["A lying app or service", "Med", "100%"], ["A bad firmware update", "Low", "100%"]]],
+      ["In person", [["Seed words found", "Med", "100%"], ["Device stolen", "Low", "100%"], ["Someone forces you", "Low", "100%"]]],
+      ["Loss", [["Device lost or broken", "Low", "0%"], ["Seed words lost", "Low", "0%"], ["Both lost", "Low", "100%"]]],
+    ],
+    trace: [["Secure element", "Usually"], ["Key can leave", "Yes, as words"], ["Checks the hash", "Sometimes"], ["Build you can verify", "Varies"]],
+    ingredients: "Seed phrase, the device and its maker's firmware updates, its small screen, the computer and app that build each transaction, the drawer the paper lives in.",
+    contains: "Contains: seeds.",
+  },
+  {
+    name: "Synced passkey, alone",
+    note: "Face ID on your phone is the wallet's only key.",
+    stamp: ["artificial", "Artificially", "sweetened"],
+    setup: "1 key per wallet",
+    serving: "Spending money",
+    keys: "1",
+    copies: ["Many", [["On each device on your account", "All"], ["In the platform's cloud keychain", "1"]]],
+    types: ["0", "0", "1"],
+    groups: [
+      ["Remote", [["Phishing site", "Low", "100%"], ["Malware on the phone", "Med", "100%"], ["Blind signing", "High", "100%"], ["The wallet's site changed", "High", "100%"]]],
+      ["In person", [["Cloud account taken over", "Med", "100%"], ["Phone stolen with its passcode", "Med", "100%"], ["Someone forces you", "Low", "100%"]]],
+      ["Loss", [["Phone lost or broken", "Low", "0%"], ["Account locked or closed", "Low", "100%"]]],
+    ],
+    trace: [["Secure element", "Each device"], ["Key can leave", "To your devices"], ["Checks the hash", "No"], ["Build you can verify", "No"]],
+    ingredients: "Your Apple or Google account, its password and recovery settings, every device signed in to it, the platform's sync service, the wallet site's code each time it loads.",
+    contains: "Contains no seed phrase. Contains your cloud account.",
+  },
+  {
+    name: "Sealed chip key, alone",
+    note: "A PicoQuorum key in its console, as a wallet's only owner. Don't do this.",
+    stamp: ["natural", "100%", "natural key"],
+    setup: "1 key per wallet",
+    serving: "Not a meal on its own",
+    keys: "1",
+    copies: ["1", [["In the chip, sealed", "1"], ["Anywhere else", "0"]]],
+    types: ["1", "0", "0"],
+    groups: [
+      ["Remote", [["Phishing site", "Low", "100%"], ["Malware on a computer", "Low", "100%"], ["Blind signing", "Low", "100%"], ["A lying app or service", "Low", "100%"]]],
+      ["In person", [["Backup found", "—", "—"], ["Board stolen", "Med", "100%"], ["Someone forces you", "Low", "100%"]]],
+      ["Loss", [["Board lost, broken or fried", "High", "100%"]]],
+    ],
+    trace: [["Secure element", "ATECC608 or Trust M"], ["Key can leave", "No"], ["Checks the hash", "Yes, its own"], ["Build you can verify", "Yes"]],
+    ingredients: "One secure element, locked for good. The console's MicroPython, which you can read and match to its release fingerprint. Your eyes on its screen, and your thumb on Sign.",
+    contains: "Contains no seeds, no cloud and no backup.",
+    warning: ["Warning:", "there is no backup. As a wallet's only key, losing the board loses everything. Use it as one owner of a multisig."],
+  },
+  {
+    name: "Safe, 2 of 3, three people",
+    note: "A PicoQuorum console, a hardware wallet and a synced passkey, each with a different person.",
+    stamp: ["blend", "A balanced", "blend"],
+    setup: "3 keys, 3 people",
+    serving: "A family, a club, a treasury",
+    keys: "2 of 3",
+    copies: ["Per key", [["PicoQuorum key", "1"], ["Hardware wallet", "2"], ["Passkey", "Many"]]],
+    types: ["1", "1", "1"],
+    groups: [
+      ["Remote, one owner", [["Phishing site", "Low", "0%"], ["Malware on a computer", "Low", "0%"], ["Blind signing", "Low", "0%"]]],
+      ["Remote, two owners", [["Same lying app or service †", "Med", "100%"]]],
+      ["In person", [["Seed words found", "Low", "0%"], ["One device stolen", "Low", "0%"], ["One person forced", "Low", "0%"]]],
+      ["Loss", [["One key lost", "Low", "0%"], ["Two keys lost", "Low", "100%"]]],
+    ],
+    trace: [["Contracts", "Safe, audited"], ["Key can leave", "Depends"], ["Checks the hash", "The console"], ["Build you can verify", "The console"]],
+    ingredients: "Safe's audited contracts, three people, three keys that fail in different ways, the PicoQuorum console's firmware, Safe's transaction service (the console rebuilds the hash itself).",
+    contains: "Contains one natural key, one raw seed and one artificial sweetener.",
+    extraFoot: "† The hardware wallet and the passkey both sign what Safe{Wallet} shows them. If it lies to both, two signatures land on the same bad transaction. Two owners who read the same screen fail together.",
+  },
+];
+
+const FRONTS = [
+  {
+    rung: "Instant", tag: "Face ID",
+    chips: [["Keys for a big move", "1", "bad"], ["A stolen phone takes", "All of it", "bad"], ["Lost the phone", "DAO, 7 days", "mid"]],
+    text: "Spending money. The address exists before the first deposit.",
+  },
+  {
+    rung: "Your own recovery", tag: "+ paper seed",
+    chips: [["Keys for a big move", "1", "bad"], ["A stolen phone takes", "All of it", "bad"], ["Lost the phone", "You, 7 days", "good"]],
+    text: "A fresh seed on three cards, any two rebuild it. It replaces the DAO as the recovery address.",
+  },
+  {
+    rung: "Hardened", tag: "+ wedgie",
+    chips: [["Keys for a big move", "Wedgie", "good"], ["A stolen phone takes", "Its daily limit", "mid"], ["Lost a key", "The others replace it", "good"]],
+    text: "The sealed chip joins. The phone keeps a small daily allowance for everyday spending.",
+  },
+];
+
+function el(tag, cls, text) {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text != null) n.textContent = text;
+  return n;
+}
+function row(cls, cells) {
+  const r = el("div", cls);
+  cells.forEach(([text, c]) => r.append(el("span", c || "", text)));
+  return r;
+}
+
+function label(d) {
+  const L = el("article", "label");
+  L.setAttribute("aria-label", "Wallet Facts: " + d.name);
+
+  const head = el("div", "lab-head");
+  head.append(el("h3", "lab-title", "Wallet Facts"));
+  const st = el("span", "stamp " + d.stamp[0]);
+  st.append(document.createTextNode(d.stamp[1]), el("em", null, d.stamp[2]));
+  head.append(st);
+  L.append(head, el("p", "lab-setup", d.setup));
+
+  const sv = el("div", "serving r-thin");
+  sv.append(el("span", null, "Serving size"), el("span", null, d.serving));
+  L.append(sv, el("div", "r-fat"));
+
+  const big = el("div", "big");
+  const k = el("span", "k", "Keys to move money");
+  k.append(el("small", null, "the calories"));
+  big.append(k, el("span", "v", d.keys));
+  L.append(big, el("div", "r-med"));
+
+  const g = el("div", "grid");
+  g.append(row("colhead", [[""], ["Exposure"], ["% at risk*"]]));
+  const copies = el("div", "group first");
+  const c0 = el("span");
+  c0.append(el("b", null, "Copies of the key "), el("i", null, d.copies[0]));
+  copies.append(c0, el("span"), el("span"));
+  g.append(copies);
+  d.copies[1].forEach(([n, v]) => g.append(row("sub", [[n + " " + v], [""], [""]])));
+
+  const types = el("div", "group");
+  types.append(el("span", null, "Key types"), el("span"), el("span"));
+  g.append(types);
+  [["natural key, sealed in a chip", 0], ["raw seed, as words", 1], ["artificial sweetener, synced", 2]]
+    .forEach(([n, i]) => g.append(row("sub", [["Includes " + d.types[i] + " " + n], [""], [""]])));
+
+  d.groups.forEach(([title, rows]) => {
+    g.append(row("group", [[title], [""], [""]]));
+    rows.forEach(([n, e, p]) => {
+      const dash = e === "—";
+      g.append(row("sub", [[n], [e, dash ? "exp dash" : "exp"], [p, dash ? "num dash" : (p === "0%" ? "num" : "num hi")]]));
+    });
+  });
+  L.append(g, el("div", "r-fat"));
+
+  const tr = el("div", "trace");
+  d.trace.forEach(([kk, v]) => {
+    const t = el("div");
+    t.append(el("span", null, kk), el("span", null, v));
+    tr.append(t);
+  });
+  L.append(tr);
+
+  const ft = el("div", "foot");
+  ft.append(el("p", null, FOOT));
+  if (d.extraFoot) ft.append(el("p", null, d.extraFoot));
+  L.append(ft);
+
+  const ing = el("p", "ingred");
+  ing.append(el("b", null, "Ingredients: "), document.createTextNode(d.ingredients));
+  L.append(ing, el("p", "contains", d.contains));
+
+  if (d.warning) {
+    const w = el("p", "warning");
+    w.append(el("b", null, d.warning[0] + " "), document.createTextNode(d.warning[1]));
+    L.append(w);
+  }
+  return L;
+}
+
+const shelf = document.getElementById("shelf");
+LABELS.forEach((d) => {
+  const item = el("div", "item");
+  const cap = el("div", "cap");
+  cap.append(el("b", null, d.name), el("span", null, d.note));
+  item.append(cap, label(d));
+  shelf.append(item);
+});
+
+const fronts = document.getElementById("fronts");
+FRONTS.forEach((f) => {
+  const card = el("div", "front");
+  const r = el("div", "rung");
+  r.append(el("b", null, f.rung), el("span", null, f.tag));
+  const chips = el("div", "chips");
+  f.chips.forEach(([k, v, tone]) => {
+    const c = el("div", "chip " + tone);
+    c.append(el("small", null, k), el("strong", null, v));
+    chips.append(c);
+  });
+  card.append(r, chips, el("p", null, f.text));
+  fronts.append(card);
+});
+</script>
