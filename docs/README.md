@@ -18,6 +18,7 @@ troubleshooting.
 - [`ONBOARDING.md`](ONBOARDING.md): a proposal: giving someone a key, what they do, and what the console says to them
 - [`BRANDED-KEYS.md`](BRANDED-KEYS.md): a proposal: the bench brands each chip, the user's console makes its key
 - [`ATTESTED-KEYS.md`](ATTESTED-KEYS.md): a proposal: an attestation key per chip, so a key can prove it is in a branded chip; the gas relay, its treasury and picoquorum.eth on top
+- [`SEALED-COSIGNER.md`](SEALED-COSIGNER.md): a draft proposal: a shared profile for sealed hardware cosigners (PicoQuorum, the wedgie), with levels and test vectors, meant to move to a neutral repository
 - [`KEY-RUNBOOK.md`](KEY-RUNBOOK.md): the five key-c 608Cs on the ESP32, branded or not, one session at a time
 - [`LADDER.md`](LADDER.md): the test ladder from a simulated Safe to Ethereum mainnet, and the `tools/quorum live` runbook
 - [`firmware-production/`](firmware-production/README.md) and [`quorum-ui/`](quorum-ui/README.md): screenshot walkthroughs
