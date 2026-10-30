@@ -4,8 +4,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@500;700&family=Atkinson+Hyperlegible+Next:wght@400;700;800&display=swap">
 <style>
-/* Layout: a shelf of printed labels. The page wears PicoQuorum's colours; each label is a white
-   sticker in black ink, in both themes, the way a real one is printed. */
+/* Layout: one chart, then a shelf of printed labels, then the incidents their rows point to.
+   The page wears PicoQuorum's colours; each label is a white sticker in black ink, in both themes. */
 :root {
   --bg: #F5F6F8;
   --fg: #101318;
@@ -16,14 +16,16 @@
   --warn: #A86600;
   --eth: #627EEA;
   --red: #D02424;
+  --dot: #565E6A;
+  --hl: rgba(255, 184, 48, .22);
   /* The labels are printed objects: these never change with the theme. */
   --ink: #000000;
   --paper: #FFFFFF;
   --ink-soft: #3A3F47;
-  --stamp-natural: #16963E;
-  --stamp-artificial: #A86600;
-  --stamp-raw: #D02424;
-  --stamp-blend: #3F5BD8;
+  --stamp-sealed: #16963E;
+  --stamp-synced: #A86600;
+  --stamp-seed: #D02424;
+  --stamp-quorum: #3F5BD8;
   --shadow: 0 1px 2px rgba(16, 19, 24, .08), 0 8px 24px rgba(16, 19, 24, .08);
   --sans: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: "Atkinson Hyperlegible Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
@@ -31,19 +33,23 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #0B0D11; --fg: #F2F4F7; --muted: #98A0AC; --line: #262A33; --card: #14171D;
-    --ok: #34C759; --warn: #FFB830; --eth: #7A92FF; --red: #FF5C54;
+    --ok: #34C759; --warn: #FFB830; --eth: #7A92FF; --red: #FF5C54; --dot: #98A0AC;
+    --hl: rgba(255, 184, 48, .16);
     --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 10px 30px rgba(0, 0, 0, .45);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #0B0D11; --fg: #F2F4F7; --muted: #98A0AC; --line: #262A33; --card: #14171D;
-  --ok: #34C759; --warn: #FFB830; --eth: #7A92FF; --red: #FF5C54;
+  --ok: #34C759; --warn: #FFB830; --eth: #7A92FF; --red: #FF5C54; --dot: #98A0AC;
+  --hl: rgba(255, 184, 48, .16);
   --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 10px 30px rgba(0, 0, 0, .45);
   color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 body {
   background: var(--bg);
   color: var(--fg);
@@ -63,6 +69,8 @@ body {
 }
 h1, h2, h3 { text-wrap: balance; margin: 0; }
 p { margin: 0; }
+a { color: inherit; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--eth); outline-offset: 2px; }
 .eyebrow {
   font-size: .78rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
   color: var(--muted);
@@ -80,19 +88,50 @@ section { display: grid; gap: 20px; }
 .sec-head h2 { font-size: 1.6rem; font-weight: 800; letter-spacing: -.01em; }
 .sec-head p { color: var(--muted); }
 
-/* The three sugars */
-.sugars { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
-.sugar {
+/* The chart */
+.plotwrap { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 24px; align-items: center; }
+.plot {
+  position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+  padding: 12px; min-width: 0;
+}
+.plot svg { display: block; width: 100%; height: auto; overflow: visible; }
+.plot .axis { stroke: var(--muted); stroke-width: 1; fill: none; }
+.plot .grid-l { stroke: var(--line); stroke-width: 1; }
+.plot .diag { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 5 5; fill: none; }
+.plot .band { fill: var(--line); opacity: .45; }
+.plot text { fill: var(--muted); font-family: var(--sans); font-size: 12px; }
+.plot .t-strong { fill: var(--fg); font-weight: 700; font-size: 13px; }
+.plot .t-axis { font-weight: 700; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+.plot .t-note { font-style: italic; }
+.plot .dot { fill: var(--dot); stroke: var(--card); stroke-width: 2; }
+.plot .dot.safe { fill: var(--ok); }
+.plot .ring { fill: none; stroke: var(--ok); stroke-width: 1.5; opacity: .5; }
+.plot .hit { fill: transparent; cursor: pointer; }
+.plot .pt:focus { outline: none; }
+.plot .pt:focus .dot, .plot .pt:hover .dot { stroke: var(--fg); }
+.tip {
+  position: absolute; pointer-events: none; z-index: 2; max-width: 240px;
+  background: var(--fg); color: var(--bg); border-radius: 6px; padding: 8px 10px;
+  font-size: .82rem; line-height: 1.35; box-shadow: var(--shadow);
+}
+.tip b { display: block; }
+.plot-side { display: grid; gap: 12px; min-width: 0; }
+.plot-side p { font-size: .98rem; }
+.plot-side .small { color: var(--muted); font-size: .88rem; }
+
+/* Key types */
+.kinds { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.kind {
   background: var(--card); border: 1px solid var(--line); border-radius: 10px;
   padding: 18px; display: grid; gap: 10px; align-content: start; min-width: 0;
 }
-.sugar h3 { font-size: 1.15rem; font-weight: 800; }
-.sugar .kind { font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-.sugar.natural .kind { color: var(--ok); }
-.sugar.raw .kind { color: var(--red); }
-.sugar.artificial .kind { color: var(--warn); }
-.sugar p { font-size: .95rem; }
-.sugar .eg { color: var(--muted); font-size: .88rem; }
+.kind h3 { font-size: 1.15rem; font-weight: 800; }
+.kind .tag { font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.kind.sealed .tag { color: var(--ok); }
+.kind.seed .tag { color: var(--red); }
+.kind.synced .tag { color: var(--warn); }
+.kind p { font-size: .95rem; }
+.kind .eg { color: var(--muted); font-size: .88rem; }
 
 /* How to read */
 .howto { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px 24px; }
@@ -132,11 +171,11 @@ section { display: grid; gap: 20px; }
   font-size: .56rem; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; line-height: 1.1;
   padding: 8px; transform: rotate(-9deg); margin: 4px 4px 2px 0;
 }
-.stamp.natural { color: var(--stamp-natural); }
-.stamp.artificial { color: var(--stamp-artificial); }
-.stamp.raw { color: var(--stamp-raw); }
-.stamp.blend { color: var(--stamp-blend); }
-.stamp em { display: block; font-style: normal; font-size: 1.05rem; letter-spacing: 0; }
+.stamp.sealed { color: var(--stamp-sealed); }
+.stamp.synced { color: var(--stamp-synced); }
+.stamp.seed { color: var(--stamp-seed); }
+.stamp.quorum { color: var(--stamp-quorum); }
+.stamp em { display: block; font-style: normal; font-size: 1.02rem; letter-spacing: 0; }
 .lab-setup { font-size: .86rem; padding: 2px 0 1px; }
 .r-thin { border-top: 1px solid var(--ink); }
 .r-med { border-top: 4px solid var(--ink); }
@@ -145,7 +184,6 @@ section { display: grid; gap: 20px; }
 .serving span:last-child { text-align: right; }
 .big { display: flex; justify-content: space-between; align-items: end; gap: 10px; padding: 2px 0 3px; }
 .big .k { font-weight: 800; font-size: 1.05rem; line-height: 1.1; }
-.big .k small { display: block; font-weight: 400; font-size: .74rem; }
 .big .v { font-weight: 800; font-size: 2.3rem; line-height: .95; letter-spacing: -.02em; white-space: nowrap; }
 .grid { display: grid; grid-template-columns: minmax(0, 1fr) auto 3.4em; column-gap: 8px; }
 .grid > div { display: contents; }
@@ -155,13 +193,17 @@ section { display: grid; gap: 20px; }
 .grid .exp { font-weight: 400; }
 .grid .num { font-weight: 800; }
 .grid .group span { font-weight: 800; }
-.grid .group span:first-child b { font-weight: 800; }
 .grid .group span:first-child i { font-style: normal; font-weight: 400; }
 .grid .sub span:first-child { padding-left: 14px; }
-.grid .sub2 span:first-child { padding-left: 28px; }
 .grid .first span { border-top: 0; }
 .grid .dash { color: var(--ink-soft); }
-.grid .hi { font-weight: 800; }
+.ref {
+  display: inline-grid; place-items: center; min-width: 1.35em; height: 1.35em; padding: 0 .25em;
+  margin-left: 3px; border: 1px solid var(--ink); border-radius: .7em;
+  font-size: .62rem; font-weight: 800; line-height: 1; vertical-align: .15em;
+  text-decoration: none; color: var(--ink);
+}
+.ref:hover { background: var(--ink); color: var(--paper); }
 .trace { display: grid; grid-template-columns: 1fr 1fr; column-gap: 12px; padding-top: 2px; }
 .trace div { display: flex; justify-content: space-between; gap: 6px; padding: 2px 0; border-bottom: 1px solid var(--ink); min-width: 0; }
 .trace div span:first-child { min-width: 0; }
@@ -172,6 +214,32 @@ section { display: grid; gap: 20px; }
 .contains { font-weight: 800; text-transform: uppercase; font-size: .78rem; padding-top: 5px; letter-spacing: .01em; }
 .warning { border: 2px solid var(--ink); padding: 5px 7px; margin-top: 7px; font-size: .76rem; line-height: 1.3; }
 .warning b { text-transform: uppercase; font-weight: 800; }
+
+/* Incidents */
+.incidents { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); gap: 14px; }
+.inc {
+  background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+  padding: 14px 16px; display: grid; gap: 8px; align-content: start; min-width: 0;
+  scroll-margin-top: 24px; transition: background-color .4s;
+}
+.inc:target { background: var(--hl); border-color: var(--warn); }
+.inc-top { display: flex; gap: 10px; align-items: baseline; }
+.inc-n {
+  flex: none; display: inline-grid; place-items: center; width: 1.6em; height: 1.6em; border-radius: 50%;
+  border: 1.5px solid var(--fg); font-size: .78rem; font-weight: 800;
+}
+.inc-top div { display: grid; min-width: 0; }
+.inc-top b { font-size: 1.02rem; line-height: 1.25; }
+.inc-date { font-family: var(--mono); font-size: .78rem; color: var(--muted); }
+.inc p { font-size: .92rem; }
+.inc .lesson { font-weight: 700; }
+.inc .rows { font-size: .82rem; color: var(--muted); }
+.inc .new {
+  font-size: .7rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--warn);
+  border: 1px solid currentColor; border-radius: 4px; padding: 0 5px; margin-left: 6px; vertical-align: .1em;
+}
+.inc .srcs { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: .82rem; }
+.inc .srcs a { color: var(--eth); overflow-wrap: anywhere; }
 
 /* Front of the box */
 .fronts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 20px; }
@@ -187,20 +255,22 @@ section { display: grid; gap: 20px; }
   background: var(--paper); color: var(--ink); border: 1.5px solid var(--ink);
   padding: 6px 6px 7px; display: grid; gap: 3px; align-content: start; min-width: 0;
 }
-.chip small { font-size: .64rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; line-height: 1.15; }
+.chip small { font-size: .64rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; line-height: 1.15; overflow-wrap: anywhere; }
 .chip strong { font-size: .95rem; font-weight: 800; line-height: 1.1; overflow-wrap: anywhere; }
-.chip small { overflow-wrap: anywhere; }
-.chip.bad strong { color: var(--stamp-raw); }
-.chip.mid strong { color: var(--stamp-artificial); }
-.chip.good strong { color: var(--stamp-natural); }
+.chip.bad strong { color: var(--stamp-seed); }
+.chip.mid strong { color: var(--stamp-synced); }
+.chip.good strong { color: var(--stamp-sealed); }
 .front p { font-size: .9rem; color: var(--muted); }
 .src { color: var(--muted); font-size: .88rem; max-width: 70ch; }
 
 footer { color: var(--muted); font-size: .88rem; display: grid; gap: 6px; max-width: 70ch; border-top: 1px solid var(--line); padding-top: 18px; }
 
+@media (max-width: 760px) {
+  .plotwrap { grid-template-columns: minmax(0, 1fr); }
+}
 @media (max-width: 380px) {
   .lab-title { font-size: 1.8rem; }
-  .stamp { width: 64px; height: 64px; }
+  .stamp { width: 68px; height: 68px; }
   .trace { grid-template-columns: 1fr; }
 }
 </style>
@@ -215,33 +285,57 @@ footer { color: var(--muted); font-size: .88rem; display: grid; gap: 6px; max-wi
       measurements, and they describe kinds of setup, not any one company's product.</p>
   </header>
 
-  <section aria-labelledby="sugars-h">
+  <section aria-labelledby="plot-h">
     <div class="sec-head">
-      <p class="eyebrow">Read the sugars first</p>
-      <h2 id="sugars-h">Three kinds of key</h2>
-      <p>The label's sugar line says where each key came from and how many copies of it exist. That
-        one fact decides most of what can go wrong.</p>
+      <p class="eyebrow">The one picture</p>
+      <h2 id="plot-h">Hard to steal, or hard to lose. With one key, pick one.</h2>
     </div>
-    <div class="sugars">
-      <div class="sugar natural">
-        <p class="kind">Natural</p>
-        <h3>Born in a sealed chip</h3>
+    <div class="plotwrap">
+      <figure class="plot" id="plot" style="margin:0">
+        <svg viewBox="0 0 520 440" role="img" aria-labelledby="plot-title plot-desc">
+          <title id="plot-title">How hard each setup is to steal and to lose</title>
+          <desc id="plot-desc">Four single-key setups sit along one diagonal: the harder to steal, the easier to lose. A 2-of-3 Safe sits alone in the top right corner, hard to steal and hard to lose.</desc>
+        </svg>
+        <div class="tip" id="tip" hidden></div>
+      </figure>
+      <div class="plot-side">
+        <p>Every single-key setup lands near the same diagonal. A backup makes the key harder to lose,
+          and it's one more copy to steal. Sealing the key makes it hard to steal, and there's
+          nothing to restore.</p>
+        <p>A multisig is the only setup that leaves the line. Each key can be sealed with no backup,
+          because the other owners are the backup.</p>
+        <p class="small">Positions are judgments, placed to show the shape, not measured. Hover or tab
+          to a dot for the reason.</p>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="kinds-h">
+    <div class="sec-head">
+      <p class="eyebrow">Read the key types first</p>
+      <h2 id="kinds-h">Three kinds of key</h2>
+      <p>Where a key was made, and how many copies of it exist, decide most of what can go wrong.</p>
+    </div>
+    <div class="kinds">
+      <div class="kind sealed">
+        <p class="tag">Sealed</p>
+        <h3>Born in a chip, one copy</h3>
         <p>The private key is made inside a secure element and never leaves it. There's no seed
           phrase and no copy anywhere, so there's nothing to leak. There's also nothing to restore from.</p>
         <p class="eg">A PicoQuorum key, a wedgie.</p>
       </div>
-      <div class="sugar raw">
-        <p class="kind">Raw seed</p>
+      <div class="kind seed">
+        <p class="tag">Seed words</p>
         <h3>Written down as words</h3>
         <p>Twelve or twenty-four words are the key. Every copy, on paper, in a photo or in a password
           manager, is the whole key. Backing it up and exposing it are the same act.</p>
         <p class="eg">A browser wallet, a phone wallet, most hardware wallets.</p>
       </div>
-      <div class="sugar artificial">
-        <p class="kind">Artificial sweetener</p>
-        <h3>Synced by a platform</h3>
-        <p>A passkey tastes like no seed phrase. But Apple or Google keeps copies on every device
-          on your account and in its cloud. The backup is real, and it is your account.</p>
+      <div class="kind synced">
+        <p class="tag">Synced</p>
+        <h3>Copied by a platform</h3>
+        <p>A passkey has no seed phrase. But Apple or Google keeps copies on every device on your
+          account and in its cloud. The backup is real, and it is your account.</p>
         <p class="eg">Face ID or Touch ID passkeys, synced.</p>
       </div>
     </div>
@@ -254,9 +348,9 @@ footer { color: var(--muted); font-size: .88rem; display: grid; gap: 6px; max-wi
     </div>
     <div class="howto">
       <div><b>Serving size</b><span>The kind of money the setup is made for. The same wallet is fine for lunch money and wrong for savings.</span></div>
-      <div><b>Keys to move money</b><span>The calories. One key means one mistake can be the whole balance.</span></div>
+      <div><b>Keys to move money</b><span>The biggest number. One key means one mistake can be the whole balance.</span></div>
       <div><b>Exposure, then % at risk</b><span>How easy an attack is, and how much of the balance one incident of it can take.</span></div>
-      <div><b>Ingredients and Contains</b><span>Everything you trust, most important first, and the warnings people need to see.</span></div>
+      <div><b>The numbered circles</b><span>Real incidents where that row happened. Tap one to read it.</span></div>
     </div>
   </section>
 
@@ -268,6 +362,16 @@ footer { color: var(--muted); font-size: .88rem; display: grid; gap: 6px; max-wi
         right-hand column. For one key, every attack that works takes 100%.</p>
     </div>
     <div class="shelf" id="shelf"></div>
+  </section>
+
+  <section aria-labelledby="inc-h">
+    <div class="sec-head">
+      <p class="eyebrow">Footnotes</p>
+      <h2 id="inc-h">Where the rows came from</h2>
+      <p>Each numbered circle on a label points here. Figures for the newest incidents are early
+        reports and will change.</p>
+    </div>
+    <div class="incidents" id="incidents"></div>
   </section>
 
   <section aria-labelledby="front-h">
@@ -291,22 +395,107 @@ footer { color: var(--muted); font-size: .88rem; display: grid; gap: 6px; max-wi
 </main>
 
 <script>
-// Each label is data. Rows are [name, exposure, % at risk]; "—" means it doesn't apply.
-const FOOT = "* % at risk: how much of the balance one incident of that kind can take. Exposure: how easy that incident is to pull off, a rough judgment.";
+// Incidents, in the order they're numbered. Rows on the labels cite them by id.
+const INCIDENTS = [
+  {
+    id: "binance", date: "29 Oct 2026", isNew: true,
+    title: "Binance hot wallets drained",
+    text: "Binance confirmed a security incident and paused withdrawals on several networks. Early reports put the outflows between about $2 billion and $5.7 billion; Tether and Circle froze about $1.8 billion. On-chain analysts saw an EIP-7702 delegation installed on a hot wallet minutes before the sweep. SlowMist's Cosine says the delegation sped up the sweep and wasn't the root cause. Binance says user funds are safe.",
+    lesson: "A key that can sign a permission can hand over everything in one signature.",
+    rows: "A permission you signed · Malware or a stolen key",
+    srcs: [["TechCrunch", "https://techcrunch.com/2026/10/29/binance-pauses-withdrawals-as-hackers-suspected-of-stealing-billions-in-crypto/"], ["Decrypt", "https://decrypt.co/382191/binance-suspected-hack-5-billion-tether-circle-freeze-crypto"], ["SlowMist via TechFlow", "https://www.techflowpost.com/en-US/newsletter/141998"]],
+  },
+  {
+    id: "polymarket", date: "29 Oct 2026", isNew: true,
+    title: "Polymarket, through a vendor's script",
+    text: "A compromised third-party script (DebugBear) on Polymarket's site used trading permissions that victims' browsers already held. One analyst counted 995 accounts and about $2.65 million. The contracts weren't touched. Polymarket paused trading and says it will repay users.",
+    lesson: "The site you trust can change under you, and it inherits what you already allowed.",
+    rows: "A lying app or service · A permission you signed",
+    srcs: [["TechCrunch", "https://techcrunch.com/2026/10/29/binance-pauses-withdrawals-as-hackers-suspected-of-stealing-billions-in-crypto/"], ["Cyber Kendra", "https://www.cyberkendra.com/2026/10/polymarket-hack-debugbear-script-drains-wallets.html"]],
+  },
+  {
+    id: "delegation", date: "Oct 2026",
+    title: "EIP-7702 delegation drains",
+    text: "On 14 October one wallet lost about $22,700 after an attacker sponsored a transaction carrying the victim's own signed EIP-7702 authorization. Sweeper contracts like this have drained wallets since the upgrade shipped. EIP-7702 isn't a bug; the signature is.",
+    lesson: "Signing a permission isn't like signing a payment. It keeps working after you look away.",
+    rows: "A permission you signed · Phishing site",
+    srcs: [["The Crypto Times", "https://www.cryptotimes.io/2026/10/14/ethereum-wallet-loses-22-7k-in-eip-7702-delegation-attack/"]],
+  },
+  {
+    id: "bybit", date: "21 Feb 2025",
+    title: "Bybit, about $1.5 billion",
+    text: "Attackers broke into a Safe{Wallet} developer's machine and changed the front end's JavaScript. Bybit's signers, on hardware wallets, saw a routine transfer and signed a change to their Safe's logic instead. Attributed to North Korea's Lazarus group.",
+    lesson: "Every signer read the same screen, so every signer was fooled at once.",
+    rows: "Blind signing · A lying app or service · Same lying app, two owners",
+    srcs: [["SlowMist", "https://slowmist.medium.com/bybits-1-5-billion-theft-unveiled-safe-wallet-front-end-code-tampered-84b78f0fa9c2"], ["BleepingComputer", "https://www.bleepingcomputer.com/news/security/lazarus-hacked-bybit-via-a-breached-safe-wallet-developer-machine/"]],
+  },
+  {
+    id: "radiant", date: "Oct 2024",
+    title: "Radiant Capital, about $50 million",
+    text: "Malware on three long-time contributors' devices made the Safe{Wallet} interface show normal transactions while different ones were signed. The multisig needed 3 of 11. Radiant later wound down.",
+    lesson: "A threshold only helps if the signers fail in different ways.",
+    rows: "Malware on the computer · Blind signing · Same lying app, two owners",
+    srcs: [["The Record", "https://therecord.media/crypto-platform-radiant-capital-50-million-stolen"], ["The Block", "https://www.theblock.co/post/403254/unable-to-recover-from-roughly-50-million-hack-radiant-capital-is-winding-down"]],
+  },
+  {
+    id: "wazirx", date: "Jul 2024",
+    title: "WazirX, about $230 million",
+    text: "A Safe multisig held by the exchange's signers approved a transaction that wasn't the one their interface showed.",
+    lesson: "What you see and what you sign have to be checked by something that isn't the page.",
+    rows: "A lying app or service · Same lying app, two owners",
+    srcs: [["Wikipedia", "https://en.wikipedia.org/wiki/2024_WazirX_hack"]],
+  },
+  {
+    id: "connectkit", date: "14 Dec 2023",
+    title: "Ledger Connect Kit",
+    text: "A phished npm account pushed a drainer into a library that many dapp front ends load. About $600,000 was taken in hours. Ledger's devices weren't compromised; the sites around them were.",
+    lesson: "A good device can't help if it signs what a poisoned page asks for.",
+    rows: "A lying app or service · The wallet's site changed",
+    srcs: [["The Hacker News", "https://thehackernews.com/2023/12/crypto-hardware-wallet-ledgers-supply.html"], ["Sonatype", "https://www.sonatype.com/blog/decrypting-the-ledger-connect-kit-compromise-a-deep-dive-into-the-crypto-drainer-attack"]],
+  },
+  {
+    id: "lastpass", date: "2022 to 2025",
+    title: "Seed phrases in password vaults",
+    text: "After LastPass's 2022 breach, researchers tied more than $35 million in thefts to seed phrases stored in vaults whose master passwords were later cracked. LastPass says there's no conclusive link.",
+    lesson: "A digital copy of the seed words is the whole key, wherever it's stored.",
+    rows: "Seed words found",
+    srcs: [["Krebs on Security", "https://krebsonsecurity.com/2023/09/experts-fear-crooks-are-cracking-keys-stolen-in-lastpass-breach/"], ["TechRadar", "https://www.techradar.com/pro/security/lastpass-security-breach-linked-to-a-string-of-crypto-heists"]],
+  },
+  {
+    id: "passcode", date: "2023",
+    title: "Stolen iPhones with their passcodes",
+    text: "Thieves watched people type their passcodes in public, took the phones, and changed the Apple account to lock the owners out. Apple later added Stolen Device Protection.",
+    lesson: "A synced key is only as safe as the account that syncs it.",
+    rows: "Phone stolen with its passcode · Cloud account taken over",
+    srcs: [["AppleInsider", "https://appleinsider.com/articles/23/02/24/if-both-your-iphone-and-passcode-get-stolen-youre-in-deep-trouble"], ["9to5Mac", "https://9to5mac.com/2023/04/19/locked-out-of-apple-accounts/"]],
+  },
+  {
+    id: "wrench", date: "Jan 2025",
+    title: "Kidnapping of a Ledger co-founder",
+    text: "David Balland and his partner were abducted from their home in France for a crypto ransom, and freed by police. Physical \"wrench attacks\" have risen since.",
+    lesson: "If one person can move the money, one person can be forced to.",
+    rows: "Someone forces you",
+    srcs: [["Bloomberg Law", "https://news.bloomberglaw.com/crypto/co-founder-of-french-crypto-startup-freed-after-kidnapping"], ["The Block", "https://www.theblock.co/post/394688/authorities-arrest-missing-suspect-ledger-co-founder-david-ballands-kidnapping"]],
+  },
+];
+const NUM = Object.fromEntries(INCIDENTS.map((d, i) => [d.id, i + 1]));
+
+// Each label is data. Rows are [name, exposure, % at risk, incident ids]; "—" means it doesn't apply.
+const FOOT = "* % at risk: how much of the balance one incident of that kind can take. Exposure: how easy that incident is to pull off, a rough judgment. Numbered circles: real incidents, in the footnotes below.";
 
 const LABELS = [
   {
     name: "Browser extension wallet",
     note: "One key from a seed phrase, in a browser on your computer.",
-    stamp: ["raw", "Contains", "seeds"],
+    stamp: ["seed", "Contains", "seeds"],
     setup: "1 key per wallet",
     serving: "Spending money",
     keys: "1",
     copies: ["2", [["In the browser, encrypted", "1"], ["On paper, as 12 or 24 words", "1"]]],
     types: ["0", "1", "0"],
     groups: [
-      ["Remote", [["Phishing site", "High", "100%"], ["Malware on the computer", "High", "100%"], ["Blind signing", "High", "100%"], ["A lying app or service", "High", "100%"]]],
-      ["In person", [["Seed words found", "Med", "100%"], ["Laptop stolen", "Low", "100%"], ["Someone forces you", "Low", "100%"]]],
+      ["Remote", [["Phishing site", "High", "100%", ["delegation"]], ["Malware on the computer", "High", "100%", ["radiant"]], ["Blind signing", "High", "100%", ["bybit"]], ["A lying app or service", "High", "100%", ["connectkit", "polymarket"]], ["A permission you signed", "High", "100%", ["binance", "delegation"]]]],
+      ["In person", [["Seed words found", "Med", "100%", ["lastpass"]], ["Laptop stolen", "Low", "100%"], ["Someone forces you", "Low", "100%", ["wrench"]]]],
       ["Loss", [["Laptop lost or broken", "Low", "0%"], ["Seed words lost", "Low", "0%"], ["Both lost", "Low", "100%"]]],
     ],
     trace: [["Secure element", "None"], ["Key can leave", "Yes, as words"], ["Checks the hash", "No"], ["Build you can verify", "Varies"]],
@@ -316,15 +505,15 @@ const LABELS = [
   {
     name: "Hardware wallet and a paper seed",
     note: "The key signs on a device, and its seed sits in a drawer.",
-    stamp: ["raw", "Contains", "seeds"],
+    stamp: ["seed", "Contains", "seeds"],
     setup: "1 key per wallet",
     serving: "One person's savings",
     keys: "1",
     copies: ["2", [["In the hardware wallet", "1"], ["On paper, as 24 words", "1"]]],
     types: ["0", "1", "0"],
     groups: [
-      ["Remote", [["Phishing site", "Med", "100%"], ["Malware on the computer", "Low", "100%"], ["Blind signing", "Med", "100%"], ["A lying app or service", "Med", "100%"], ["A bad firmware update", "Low", "100%"]]],
-      ["In person", [["Seed words found", "Med", "100%"], ["Device stolen", "Low", "100%"], ["Someone forces you", "Low", "100%"]]],
+      ["Remote", [["Phishing site", "Med", "100%"], ["Malware on the computer", "Low", "100%"], ["Blind signing", "Med", "100%", ["bybit"]], ["A lying app or service", "Med", "100%", ["connectkit"]], ["A permission you signed", "Med", "100%", ["binance"]], ["A bad firmware update", "Low", "100%"]]],
+      ["In person", [["Seed words found", "Med", "100%", ["lastpass"]], ["Device stolen", "Low", "100%"], ["Someone forces you", "Low", "100%", ["wrench"]]]],
       ["Loss", [["Device lost or broken", "Low", "0%"], ["Seed words lost", "Low", "0%"], ["Both lost", "Low", "100%"]]],
     ],
     trace: [["Secure element", "Usually"], ["Key can leave", "Yes, as words"], ["Checks the hash", "Sometimes"], ["Build you can verify", "Varies"]],
@@ -334,15 +523,15 @@ const LABELS = [
   {
     name: "Synced passkey, alone",
     note: "Face ID on your phone is the wallet's only key.",
-    stamp: ["artificial", "Artificially", "sweetened"],
+    stamp: ["synced", "Synced", "copies"],
     setup: "1 key per wallet",
     serving: "Spending money",
     keys: "1",
     copies: ["Many", [["On each device on your account", "All"], ["In the platform's cloud keychain", "1"]]],
     types: ["0", "0", "1"],
     groups: [
-      ["Remote", [["Phishing site", "Low", "100%"], ["Malware on the phone", "Med", "100%"], ["Blind signing", "High", "100%"], ["The wallet's site changed", "High", "100%"]]],
-      ["In person", [["Cloud account taken over", "Med", "100%"], ["Phone stolen with its passcode", "Med", "100%"], ["Someone forces you", "Low", "100%"]]],
+      ["Remote", [["Phishing site", "Low", "100%"], ["Malware on the phone", "Med", "100%"], ["Blind signing", "High", "100%"], ["The wallet's site changed", "High", "100%", ["connectkit", "polymarket"]], ["A permission you signed", "Med", "100%", ["polymarket"]]]],
+      ["In person", [["Cloud account taken over", "Med", "100%", ["passcode"]], ["Phone stolen with its passcode", "Med", "100%", ["passcode"]], ["Someone forces you", "Low", "100%", ["wrench"]]]],
       ["Loss", [["Phone lost or broken", "Low", "0%"], ["Account locked or closed", "Low", "100%"]]],
     ],
     trace: [["Secure element", "Each device"], ["Key can leave", "To your devices"], ["Checks the hash", "No"], ["Build you can verify", "No"]],
@@ -352,15 +541,15 @@ const LABELS = [
   {
     name: "Sealed chip key, alone",
     note: "A PicoQuorum key in its console, as a wallet's only owner. Don't do this.",
-    stamp: ["natural", "100%", "natural key"],
+    stamp: ["sealed", "Sealed", "1 copy"],
     setup: "1 key per wallet",
     serving: "Not a meal on its own",
     keys: "1",
     copies: ["1", [["In the chip, sealed", "1"], ["Anywhere else", "0"]]],
     types: ["1", "0", "0"],
     groups: [
-      ["Remote", [["Phishing site", "Low", "100%"], ["Malware on a computer", "Low", "100%"], ["Blind signing", "Low", "100%"], ["A lying app or service", "Low", "100%"]]],
-      ["In person", [["Backup found", "—", "—"], ["Board stolen", "Med", "100%"], ["Someone forces you", "Low", "100%"]]],
+      ["Remote", [["Phishing site", "Low", "100%"], ["Malware on a computer", "Low", "100%"], ["Blind signing", "Low", "100%"], ["A lying app or service", "Low", "100%"], ["A permission you signed", "Low", "100%"]]],
+      ["In person", [["Backup found", "—", "—"], ["Board stolen", "Med", "100%"], ["Someone forces you", "Low", "100%", ["wrench"]]]],
       ["Loss", [["Board lost, broken or fried", "High", "100%"]]],
     ],
     trace: [["Secure element", "ATECC608 or Trust M"], ["Key can leave", "No"], ["Checks the hash", "Yes, its own"], ["Build you can verify", "Yes"]],
@@ -371,22 +560,22 @@ const LABELS = [
   {
     name: "Safe, 2 of 3, three people",
     note: "A PicoQuorum console, a hardware wallet and a synced passkey, each with a different person.",
-    stamp: ["blend", "A balanced", "blend"],
+    stamp: ["quorum", "Quorum", "2 of 3"],
     setup: "3 keys, 3 people",
     serving: "A family, a club, a treasury",
     keys: "2 of 3",
     copies: ["Per key", [["PicoQuorum key", "1"], ["Hardware wallet", "2"], ["Passkey", "Many"]]],
     types: ["1", "1", "1"],
     groups: [
-      ["Remote, one owner", [["Phishing site", "Low", "0%"], ["Malware on a computer", "Low", "0%"], ["Blind signing", "Low", "0%"]]],
-      ["Remote, two owners", [["Same lying app or service †", "Med", "100%"]]],
+      ["Remote, one owner", [["Phishing site", "Low", "0%"], ["Malware on a computer", "Low", "0%"], ["Blind signing", "Low", "0%"], ["A permission you signed", "Low", "0%"]]],
+      ["Remote, two owners", [["Same lying app or service †", "Med", "100%", ["bybit", "radiant", "wazirx"]]]],
       ["In person", [["Seed words found", "Low", "0%"], ["One device stolen", "Low", "0%"], ["One person forced", "Low", "0%"]]],
       ["Loss", [["One key lost", "Low", "0%"], ["Two keys lost", "Low", "100%"]]],
     ],
     trace: [["Contracts", "Safe, audited"], ["Key can leave", "Depends"], ["Checks the hash", "The console"], ["Build you can verify", "The console"]],
     ingredients: "Safe's audited contracts, three people, three keys that fail in different ways, the PicoQuorum console's firmware, Safe's transaction service (the console rebuilds the hash itself).",
-    contains: "Contains one natural key, one raw seed and one artificial sweetener.",
-    extraFoot: "† The hardware wallet and the passkey both sign what Safe{Wallet} shows them. If it lies to both, two signatures land on the same bad transaction. Two owners who read the same screen fail together.",
+    contains: "Contains one sealed key, one seed and one synced passkey.",
+    extraFoot: "† The hardware wallet and the passkey both sign what Safe{Wallet} shows them. If it lies to both, two signatures land on the same bad transaction. Two owners who read the same screen fail together. All three incidents cited here were multisigs.",
   },
 ];
 
@@ -408,11 +597,93 @@ const FRONTS = [
   },
 ];
 
+// Chart points: x = how hard to steal, y = how hard to lose, both 0 to 10, by judgment.
+const POINTS = [
+  { name: "Browser extension wallet", x: 2, y: 7, why: "Easy to steal: phishing, malware and the seed words all reach it. Hard to lose while the seed words are safe." },
+  { name: "Synced passkey", x: 3.4, y: 6.4, why: "No seed to find, but the cloud account and a stolen phone with its passcode reach it. Syncing makes a lost phone cheap." },
+  { name: "Hardware wallet + seed", x: 5.4, y: 4.4, why: "The device guards signing, but the paper is the whole key. Lose the device and the paper together and it's gone." },
+  { name: "Sealed chip, alone", x: 8.2, y: 1.4, why: "Nothing to leak and the console checks the hash. One lost or broken board loses everything." },
+  { name: "Safe, 2 of 3", x: 8.6, y: 8.6, why: "One stolen key takes nothing, one lost key costs nothing. Its weak spot is two owners reading the same lying screen.", safe: true },
+];
+
 function el(tag, cls, text) {
   const n = document.createElement(tag);
   if (cls) n.className = cls;
   if (text != null) n.textContent = text;
   return n;
+}
+const SVGNS = "http://www.w3.org/2000/svg";
+function sv(tag, attrs, text) {
+  const n = document.createElementNS(SVGNS, tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  if (text != null) n.textContent = text;
+  return n;
+}
+
+function drawPlot() {
+  const svg = document.querySelector("#plot svg");
+  const tip = document.getElementById("tip");
+  const L = 56, R = 500, T = 20, B = 384;
+  const X = (v) => L + (v / 10) * (R - L);
+  const Y = (v) => B - (v / 10) * (B - T);
+  [2.5, 5, 7.5].forEach((v) => {
+    svg.append(sv("line", { class: "grid-l", x1: X(v), y1: T, x2: X(v), y2: B }));
+    svg.append(sv("line", { class: "grid-l", x1: L, y1: Y(v), x2: R, y2: Y(v) }));
+  });
+  // The single-key line: harder to steal means easier to lose.
+  svg.append(sv("polygon", { class: "band", points: [[0.4, 9.2], [1.6, 9.2], [9.6, 1.2], [9.6, 0.1], [8.4, 0.1], [0.4, 8.1]].map(([a, b]) => X(a) + "," + Y(b)).join(" ") }));
+  svg.append(sv("line", { class: "diag", x1: X(0.8), y1: Y(8.8), x2: X(9.4), y2: Y(0.4) }));
+  svg.append(sv("text", { class: "t-note", x: X(1.3), y: Y(6.2), transform: `rotate(38.7 ${X(1.3)} ${Y(6.2)})` }, "one key: somewhere along this line"));
+  svg.append(sv("path", { class: "axis", d: `M${L},${T} V${B} H${R}` }));
+  svg.append(sv("text", { class: "t-axis", x: R, y: B + 34, "text-anchor": "end" }, "Harder to steal →"));
+  svg.append(sv("text", { x: L, y: B + 18 }, "easy"));
+  svg.append(sv("text", { x: R, y: B + 18, "text-anchor": "end" }, "hard"));
+  svg.append(sv("text", { class: "t-axis", x: 0, y: 0, transform: `translate(${L - 34} ${T + 30}) rotate(-90)`, "text-anchor": "end" }, "Harder to lose →"));
+  svg.append(sv("text", { x: L - 8, y: B, "text-anchor": "end" }, "easy"));
+  svg.append(sv("text", { x: L - 8, y: T + 10, "text-anchor": "end" }, "hard"));
+
+  const plot = document.getElementById("plot");
+  POINTS.forEach((p) => {
+    const g = sv("g", { class: "pt", tabindex: "0", role: "img", "aria-label": p.name + ". " + p.why });
+    const cx = X(p.x), cy = Y(p.y);
+    if (p.safe) g.append(sv("circle", { class: "ring", cx, cy, r: 16 }));
+    g.append(sv("circle", { class: "dot" + (p.safe ? " safe" : ""), cx, cy, r: p.safe ? 8 : 6 }));
+    g.append(sv("circle", { class: "hit", cx, cy, r: 20 }));
+    const right = p.x < 7;
+    const lx = right ? cx + 13 : cx - 13;
+    const ly = p.safe ? cy + 32 : cy + 4;
+    g.append(sv("text", { class: "t-strong", x: p.safe ? cx : lx, y: ly, "text-anchor": p.safe ? "end" : (right ? "start" : "end") }, p.name));
+    const show = () => {
+      tip.replaceChildren(el("b", null, p.name), document.createTextNode(p.why));
+      tip.hidden = false;
+      const box = plot.getBoundingClientRect(), s = svg.getBoundingClientRect();
+      const k = s.width / 520;
+      let left = s.left - box.left + cx * k + 14, top = s.top - box.top + cy * k - 10;
+      const w = tip.offsetWidth;
+      if (left + w > box.width - 8) left = s.left - box.left + cx * k - w - 14;
+      tip.style.left = Math.max(8, left) + "px";
+      tip.style.top = Math.max(8, top) + "px";
+    };
+    const hide = () => { tip.hidden = true; };
+    g.addEventListener("mouseenter", show);
+    g.addEventListener("mouseleave", hide);
+    g.addEventListener("focus", show);
+    g.addEventListener("blur", hide);
+    g.addEventListener("click", show);
+    svg.append(g);
+  });
+}
+
+function refs(ids) {
+  const f = document.createDocumentFragment();
+  (ids || []).forEach((id) => {
+    const a = el("a", "ref", String(NUM[id]));
+    a.href = "#inc-" + id;
+    a.title = INCIDENTS[NUM[id] - 1].title;
+    a.setAttribute("aria-label", "Incident " + NUM[id] + ": " + a.title);
+    f.append(a);
+  });
+  return f;
 }
 function row(cls, cells) {
   const r = el("div", cls);
@@ -421,74 +692,76 @@ function row(cls, cells) {
 }
 
 function label(d) {
-  const L = el("article", "label");
-  L.setAttribute("aria-label", "Wallet Facts: " + d.name);
+  const Lb = el("article", "label");
+  Lb.setAttribute("aria-label", "Wallet Facts: " + d.name);
 
   const head = el("div", "lab-head");
   head.append(el("h3", "lab-title", "Wallet Facts"));
   const st = el("span", "stamp " + d.stamp[0]);
   st.append(document.createTextNode(d.stamp[1]), el("em", null, d.stamp[2]));
   head.append(st);
-  L.append(head, el("p", "lab-setup", d.setup));
+  Lb.append(head, el("p", "lab-setup", d.setup));
 
-  const sv = el("div", "serving r-thin");
-  sv.append(el("span", null, "Serving size"), el("span", null, d.serving));
-  L.append(sv, el("div", "r-fat"));
+  const serv = el("div", "serving r-thin");
+  serv.append(el("span", null, "Serving size"), el("span", null, d.serving));
+  Lb.append(serv, el("div", "r-fat"));
 
   const big = el("div", "big");
-  const k = el("span", "k", "Keys to move money");
-  k.append(el("small", null, "the calories"));
-  big.append(k, el("span", "v", d.keys));
-  L.append(big, el("div", "r-med"));
+  big.append(el("span", "k", "Keys to move money"), el("span", "v", d.keys));
+  Lb.append(big, el("div", "r-med"));
 
   const g = el("div", "grid");
   g.append(row("colhead", [[""], ["Exposure"], ["% at risk*"]]));
   const copies = el("div", "group first");
-  const c0 = el("span");
-  c0.append(el("b", null, "Copies of the key "), el("i", null, d.copies[0]));
+  const c0 = el("span", null, "Copies of the key ");
+  c0.append(el("i", null, d.copies[0]));
   copies.append(c0, el("span"), el("span"));
   g.append(copies);
   d.copies[1].forEach(([n, v]) => g.append(row("sub", [[n + " " + v], [""], [""]])));
 
-  const types = el("div", "group");
-  types.append(el("span", null, "Key types"), el("span"), el("span"));
-  g.append(types);
-  [["natural key, sealed in a chip", 0], ["raw seed, as words", 1], ["artificial sweetener, synced", 2]]
+  g.append(row("group", [["Key types"], [""], [""]]));
+  [["sealed key, in a chip", 0], ["seed, as words", 1], ["synced key, copied by a platform", 2]]
     .forEach(([n, i]) => g.append(row("sub", [["Includes " + d.types[i] + " " + n], [""], [""]])));
 
   d.groups.forEach(([title, rows]) => {
     g.append(row("group", [[title], [""], [""]]));
-    rows.forEach(([n, e, p]) => {
+    rows.forEach(([n, e, p, ids]) => {
       const dash = e === "—";
-      g.append(row("sub", [[n], [e, dash ? "exp dash" : "exp"], [p, dash ? "num dash" : (p === "0%" ? "num" : "num hi")]]));
+      const r = el("div", "sub");
+      const name = el("span", null, n);
+      name.append(refs(ids));
+      r.append(name, el("span", dash ? "exp dash" : "exp", e), el("span", dash ? "num dash" : "num", p));
+      g.append(r);
     });
   });
-  L.append(g, el("div", "r-fat"));
+  Lb.append(g, el("div", "r-fat"));
 
   const tr = el("div", "trace");
-  d.trace.forEach(([kk, v]) => {
+  d.trace.forEach(([k, v]) => {
     const t = el("div");
-    t.append(el("span", null, kk), el("span", null, v));
+    t.append(el("span", null, k), el("span", null, v));
     tr.append(t);
   });
-  L.append(tr);
+  Lb.append(tr);
 
   const ft = el("div", "foot");
   ft.append(el("p", null, FOOT));
   if (d.extraFoot) ft.append(el("p", null, d.extraFoot));
-  L.append(ft);
+  Lb.append(ft);
 
   const ing = el("p", "ingred");
   ing.append(el("b", null, "Ingredients: "), document.createTextNode(d.ingredients));
-  L.append(ing, el("p", "contains", d.contains));
+  Lb.append(ing, el("p", "contains", d.contains));
 
   if (d.warning) {
     const w = el("p", "warning");
     w.append(el("b", null, d.warning[0] + " "), document.createTextNode(d.warning[1]));
-    L.append(w);
+    Lb.append(w);
   }
-  return L;
+  return Lb;
 }
+
+drawPlot();
 
 const shelf = document.getElementById("shelf");
 LABELS.forEach((d) => {
@@ -497,6 +770,26 @@ LABELS.forEach((d) => {
   cap.append(el("b", null, d.name), el("span", null, d.note));
   item.append(cap, label(d));
   shelf.append(item);
+});
+
+const incidents = document.getElementById("incidents");
+INCIDENTS.forEach((d, i) => {
+  const card = el("article", "inc");
+  card.id = "inc-" + d.id;
+  const top = el("div", "inc-top");
+  const t = el("div");
+  const b = el("b", null, d.title);
+  if (d.isNew) b.append(el("span", "new", "new"));
+  t.append(b, el("span", "inc-date", d.date));
+  top.append(el("span", "inc-n", String(i + 1)), t);
+  const srcs = el("div", "srcs");
+  d.srcs.forEach(([n, u]) => {
+    const a = el("a", null, n);
+    a.href = u; a.target = "_blank"; a.rel = "noopener";
+    srcs.append(a);
+  });
+  card.append(top, el("p", null, d.text), el("p", "lesson", d.lesson), el("p", "rows", "Shows up as: " + d.rows), srcs);
+  incidents.append(card);
 });
 
 const fronts = document.getElementById("fronts");

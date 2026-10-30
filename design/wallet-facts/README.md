@@ -16,24 +16,31 @@ at the bottom:
 
 - **Serving size.** The kind of money the setup is made for.
 - **Keys to move money.** The calories. One key means one mistake can be the whole balance.
-- **Copies of the key**, and **key types**, the sugars:
-  - **Natural**: born in a sealed chip, one copy, nothing to leak and nothing to restore. A
-    PicoQuorum key, a wedgie.
-  - **Raw seed**: twelve or twenty-four words. Every copy is the whole key.
-  - **Artificial sweetener**: a passkey synced by Apple or Google. No seed phrase, and the backup
-    is your account.
+- **Copies of the key**, and **key types**:
+  - **Sealed**: born in a chip, one copy, nothing to leak and nothing to restore. A PicoQuorum key,
+    a wedgie.
+  - **Seed words**: twelve or twenty-four words. Every copy is the whole key.
+  - **Synced**: a passkey copied by Apple or Google. No seed phrase, and the backup is your account.
 - **Exposure and % at risk.** For each kind of attack or loss: how easy it is (a rough judgment),
   and how much of the balance one incident takes. For any single-key wallet, every attack that works
   takes 100%. That column is the lesson.
 - **Trace amounts.** The secure element, whether the key can leave, whether the device checks the
   hash itself, whether you can verify the build.
+- **Numbered circles** on a row point to real incidents where that row happened, with sources:
+  Binance's hot wallets and Polymarket (both 29 October 2026, early reports), EIP-7702 delegation
+  drains, Bybit, Radiant, WazirX, Ledger Connect Kit, seed phrases in LastPass vaults, stolen
+  iPhones with their passcodes, and a kidnapping for ransom.
 - **Ingredients**, everything you trust in order of how much, and **Contains**: "Contains: seeds."
+
+Above the labels, one chart: how hard each setup is to steal against how hard it is to lose. Every
+single-key setup sits near one diagonal. The 2-of-3 Safe is the only one off it.
 
 The five mockups are a browser extension wallet, a hardware wallet with a paper seed, a synced
 passkey alone, a sealed chip key alone (with a warning: no backup), and a 2-of-3 Safe held by three
 people.
 
-The Safe label shows a real limit too. If two of its owners sign what the same web page shows them,
+The Safe label shows a real limit too, and three of the incidents (Bybit, Radiant, WazirX) were
+multisigs that hit it. If two of its owners sign what the same web page shows them,
 a lying page gets both signatures. The console only helps when it is one of the two. That is the
 governance rule in another form: no technology, and no person, holds a threshold's worth of keys.
 
