@@ -38,7 +38,7 @@ U1_Y = 2.675                        # the ATECC608 from the board's centre, towa
 CART = (22.0, 46.0)                 # outside, across and long
 WALL_B, WALL_T = 1.2, 1.2           # under the board and over the receptacle
 CART_T = WALL_B + KEYC[2] + REC[1] + 0.3 + WALL_T   # 7.56
-BOARD_Y0 = 0.6                      # the board's plug end (and the receptacle's face) from the cartridge's end
+BOARD_Y0 = 0.0                      # the receptacle's face flush with the cartridge's end, so a plug mates fully
 CLEAR = 0.2                         # round the board in its pocket
 
 

@@ -5,7 +5,7 @@
 | board | a Pico 2 W (castellated), wires or headers soldered on |
 | key | a key-c in a printed cartridge that slides into a bay ([case/CONCEPTS.md](case/CONCEPTS.md)) |
 | runs | the console image as `BOARD = "build1"`, `SCREEN = "2.8"`, unchanged; `firmware/bench1.py` first |
-| case | four concepts for the 2.8″ in [case/CONCEPTS.md](case/CONCEPTS.md); the first wedge, for the 2.4″, in [`case.py`](case/case.py) |
+| case | [the prism](#the-case-the-prism): a one-piece body and a front plate, M3 into heat-set inserts |
 | status | written up 2026-10-30 for a demo; not wired, not printed, not run |
 
 Build 1 again, made into a box. A rotary knob does everything on the screen, and one metal push
@@ -20,8 +20,8 @@ parts, hand wiring, a printed case.
 ## Parts
 
 - a Pico 2 W
-- the 2.8″ ST7789 240 × 320 SPI screen, the one Build 1 proved on the bench (2026-09-27) and an
-  earlier case was made for. Same 8 pins as the 2.4″ this build started with
+- the 2.8″ IPS 240 × 320 SPI screen (ST7789) from the earlier build, the one Build 1 proved on the
+  bench (2026-09-27). Same 8 pins as the 2.4″ this build started with
 - an EC11 knob with push, the one from Build 1: 20 detents, a 6 mm D-shaft, an M7 bushing
 - the sign switch: a 12 mm metal push switch, **momentary** and normally open. See [the sign switch](#the-sign-switch)
 - a key-c, and a USB-C plug for it: a C-to-C cable cut short behind one plug, as the
@@ -173,58 +173,74 @@ Push the image as usual (`tools/fw push`, [docs/guide](../../../docs/guide/)). T
 that is provisioned already. This build doesn't run a ceremony, and nothing in it writes or locks a
 chip.
 
-## The case
+## The case: the prism
 
-**For the 2.8″, see [case/CONCEPTS.md](case/CONCEPTS.md):** four bodies to choose from and a key
-cartridge that slides into a bay in each, so the key never stands up out of the case. The wedge
-below is the first case, drawn for the 2.4″ with the key standing up; it is kept until one of the
-concepts replaces it.
-
-[`case/case.py`](case/case.py), CadQuery, like the pigtail's:
+[`case/prism.py`](case/prism.py), CadQuery. A first draft to print and try.
 
 ```sh
-uv run --python 3.11 --with cadquery --with matplotlib python hardware/builds/pico-sign/case/case.py
+uv run --python 3.11 --with cadquery --with matplotlib --with pillow \
+    python hardware/builds/pico-sign/case/prism.py [screen.png]
 ```
 
-| file | what |
+![the prism](case/out/prism/prism_front.png)
+
+A triangle seen from the side, 180 mm wide: the front plate slopes at 60°, a flat band 34 mm deep runs
+along the top, and the back falls at 70°. 78 mm tall, 107 mm front to back.
+
+**Two printed parts:**
+- **The body**, one piece, open at the front. Printed front-down, every face leans at 40° or less
+  from upright, so it needs no supports. Its outside edges are chamfered 2.5 mm. A channel 3 mm tall
+  and 1.5 mm deep runs round the base, plate included, for a strip of another colour.
+- **The plate**, 3 mm, printed face down. Four M3 countersunk screws hold it, into heat-set inserts
+  in blocks at the corners of the body's opening.
+
+**On the plate:**
+- the screen on the left, in a bevelled window, on four posts (M2.5 self-tapping into the plate)
+- the controls on the right:
+  - the sign switch on top, a 12 mm metal push switch, on a ring 2 mm thicker behind the plate
+    because it's pressed hard, with HOLD TO SIGN under it
+  - the knob under that, with TURN / PUSH
+- PICOQUORUM and SEALED HARDWARE COSIGNER cut under the screen
+
+![the plate, front and back](case/out/prism/prism_plate.png)
+
+**The key** lies flat in a tray sunk into the top band, in its cartridge
+([CONCEPTS.md](case/CONCEPTS.md#the-key-cartridge)), its chip window up, 2.4 mm below the surface. A
+finger scoop at the grip end lifts it out. The console's USB-C plug sits in a cradle under the
+band at the tray's other end, its face flush with the tray's end. So the cartridge slides along the
+tray onto it, and a pull comes off the cradle, never the joints. "KEY" is cut beside the tray.
+
+**Inside:**
+- the Pico on four posts on the floor, at the left, its USB out of the left side
+- the plug's cable out through the cradle's back stop
+- 27 mm between the sign switch's lugs and the floor
+
+![the body, open](case/out/prism/prism_body.png)
+
+| file in `case/out/prism/` | what |
 |---|---|
-| `out/pico_sign_base.stl` | the tray, floor down, as it prints |
-| `out/pico_sign_lid.stl` | the lid, top face down, as it prints |
-| `out/pico_sign_assembly.step` | closed, with a box for each part, for CAD |
-| `out/pico_sign_preview.png`, `out/pico_sign_exploded.png` | the pictures below |
+| `prism_body.stl` | the body, front down, as it prints (180 × 104 × 88 mm) |
+| `prism_plate.stl` | the plate, face down |
+| `prism_assembly.step` | closed, with a box for each part |
+| `prism_front.png`, `prism_plate.png`, `prism_body.png` | the pictures here |
 
-![the case](case/out/pico_sign_preview.png)
-![the case, lid lifted](case/out/pico_sign_exploded.png)
-
-100 × 150 mm, 36 mm tall at the front and 56 at the back, so the lid slopes about 7.6°. On the lid,
-from the front:
-- the sign switch, on a ring 2 mm thicker underneath, because it is pressed hard
-- the knob, centred above the sign switch: one knob, one switch
-- the screen, landscape, in a bevelled window, its panel in a 1 mm pocket underneath
-- the key dock: the plug's overmold in a sleeve under the lid, its face 1.2 mm under the top. The lid
-  round the opening keeps it from pulling out when a key comes off. A key-c stands straight up out
-  of the lid
-- words cut 0.6 mm in: HOLD TO SIGN, MOVE / OPEN, KEY
-
-The Pico lies on four posts on the floor, its USB out through the back wall. The lid sits on four
-corner posts and a rim inside the walls, with four M3 screws into heat-set inserts.
-
-**What the script checks:** only that the boxes standing in for the parts don't overlap the base,
-the lid or each other, and that the sign switch's lugs clear the floor (3.7 mm). It is not a fit check.
+**What the script checks:** that the boxes standing in for the screen board, the switch, the knob,
+the plug, the cartridge and the Pico with its wires don't overlap the body, the plate or each
+other (50 pairs). Also that the plug clears the top band (0.38 mm). It is not a fit check.
 
 **Before printing:**
-- **Measure the screen.** `SCREEN_GLASS` and `SCREEN_PCB` are guesses. The window comes from the
-  panel's active area (48.96 × 36.72 mm, a 2.4″ 240 × 320).
-- **Measure the sign switch.** It assumes a 12 mm bushing and 28 mm of body and lugs under the lid.
-- The plug is the pigtail's, by calipers. If yours differs, change `PLUG_*`.
-- For tonight, hot glue holds the plug in its sleeve from below, and two strips of foam tape hold the
-  screen.
+- **Measure the screen.** `SCREEN_*` are a placeholder: an 86 × 50 mm board with M3 holes 3 mm in,
+  a 69.2 × 50 mm glass and a 57.6 × 43.2 mm active area. The glass and active area are the usual 2.8″
+  IPS panel's; the board and its holes vary by maker.
+- **The plug:** the cut cable's overmold, as the Feather pigtail measured it. A different cable, or
+  a USB-C plug breakout, needs the cradle (`PLUG_*`) changed.
+- **The sign switch:** a 12 mm bushing and 28 mm of body under the plate, momentary.
+- Print the plate first: every part's hole is in it.
 
-**Print:** lid first, top face down, no supports. It is flat and quick, and every part's hole is in
-it, so it tells you most of what's wrong. Then the base, floor down. The sign switch's ring wants solid
-infill or 5 walls. Not printed yet.
+Not printed yet. The pictures are matplotlib's, and its shading is rough.
 
-The pictures are matplotlib's, and its shading is rough. Faces sometimes draw in the wrong order.
+**Earlier:** [CONCEPTS.md](case/CONCEPTS.md) has the four first concepts for the 2.8″ and the key
+cartridge. [`case.py`](case/case.py) is the first wedge, for the 2.4″, with the key standing up.
 
 ## The demo
 

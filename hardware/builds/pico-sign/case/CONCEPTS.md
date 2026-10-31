@@ -1,6 +1,7 @@
 # Case concepts for the 2.8″ screen
 
-> **A first round, 2026-10-31, to choose from.** Four bodies and one key cartridge, drawn by
+> **A first round, 2026-10-31.** The design went on as [the prism](../README.md#the-case-the-prism); the
+> cartridge is the one it uses. Four bodies and one key cartridge, drawn by
 > [`concepts.py`](concepts.py) in CadQuery:
 >
 > ```sh
@@ -36,8 +37,8 @@ a bay.
 - **22 × 46 × 7.6 mm**, two halves that close round a key-c for good. The top half holds the board
   in a pocket and has room over its parts. The bottom half is a 1.2 mm plate. Glue it, or use two M2
   screws if you want to be able to open it.
-- **The plug end is open** to the key-c's USB-C receptacle: a 10.3 × 4.5 mm opening over the
-  receptacle's face, set 0.6 mm in.
+- **The plug end is open** to the key-c's USB-C receptacle: a 10.3 × 4.5 mm opening, the
+  receptacle's face flush with the cartridge's end, so a plug's overmold stops against it at full depth.
 - **A window over the ATECC608.** You can see the chip: the key *is* that chip.
 - **A label recess**, 16 × 9 mm, for the owner's name or the key's blockie.
 - **One rear corner cut at 45°,** so it only goes into a bay label-up. USB-C doesn't care which way
