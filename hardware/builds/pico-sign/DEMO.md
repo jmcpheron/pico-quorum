@@ -43,9 +43,9 @@ Each scenario is one `tools/quorum propose <name>` on the laptop. The box picks 
 poll.
 
 1. **The honest one.** `send-eth`: Alice sends 0.05 ETH to Carol and signs. On the box, turn through
-   the pages (to, amount, the hash worked out on the box), then stomp and hold: the bar fills, 2 s,
+   the pages (to, amount, the hash worked out on the box), then hold to sign: the bar fills, 2 s,
    signed. The laptop's dashboard shows the second approval and it executes. *"This is normal: one
-   page, one stomp."*
+   page, one hold."*
 2. **The laptop lies.** `tampered`: the laptop's screen shows 0.05 ETH to Carol, but the hash it
    asks the box to sign is for 5 ETH to a stranger. The box works the hash out itself from the
    fields it shows, so the signature it makes is over 0.05 ETH to Carol. The service checks it
@@ -67,7 +67,7 @@ The box is a reader. The key is the owner. Swap the key and you swap who's signi
 
 1. Power off (pull the power bank's cable). Take Key 1 off the top, put Key 2 on. Power on.
 2. The box reads Key 2 and shows that it's not an owner: "Not an owner yet". Open the waiting
-   transaction and try to stomp: "Can't sign: this key is not an owner".
+   transaction and try to sign: "Can't sign: this key is not an owner".
 3. Swap back to Key 1, power on, and it signs as before.
 
 Things to know before filming:
@@ -86,9 +86,9 @@ Written to be read aloud, about a minute.
 
 > Yesterday's Binance theft started, as far as anyone knows, with one engineer's laptop. Once an
 > attacker owns your laptop, they own everything it shows you. So here's a different idea. This is
-> a homemade signing box. A Raspberry Pi Pico, a screen, a knob, and a guitar pedal switch. The key
+> a homemade signing box. A Raspberry Pi Pico, a screen, a knob, and one switch you hold to sign. The key
 > is this little board on top. It holds one owner key of a multisig, and the key can't leave the
-> chip. Here's a normal payment. I turn through it on the box, not the laptop, and stomp to sign.
+> chip. Here's a normal payment. I turn through it on the box, not the laptop, and hold to sign.
 > Now the laptop lies. It shows me fifty thousandths of an ether to Carol, and asks for a signature
 > on five ether to a stranger. The box doesn't take the laptop's word for it. It works out what it's
 > signing from what's on its own screen, so the attacker gets a signature for the payment I saw,

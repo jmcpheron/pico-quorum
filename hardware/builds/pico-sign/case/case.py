@@ -1,12 +1,12 @@
-"""Case for the stompbox (hardware/builds/pico-stomp/README.md), concept A: a guitar-pedal wedge.
+"""Case for pico-sign (hardware/builds/pico-sign/README.md), concept A: a wedge.
 A tray (the base) with sloped walls, and a flat lid on the slope that holds every part: the
-footswitch at the front, the knob above it, the 2.4" screen
+sign switch at the front, the knob above it, the 2.4" screen
 landscape behind them, and the key dock at the back, where a key-c stands up out of the lid. The
 Pico lies on the floor with its USB out of the back wall.
 
-Run: uv run --python 3.11 --with cadquery --with matplotlib python hardware/builds/pico-stomp/case/case.py
+Run: uv run --python 3.11 --with cadquery --with matplotlib python hardware/builds/pico-sign/case/case.py
 
-A mock-up to print and try, not a checked design. The footswitch, knob and plug sizes are the
+A mock-up to print and try, not a checked design. The sign switch, knob and plug sizes are the
 usual ones, and the plug's are the Feather pigtail's calipers. The screen module's are a guess:
 measure yours and change SCREEN_* first. All dimensions mm.
 
@@ -35,10 +35,10 @@ BOSS_IN = WALL + 3.5        # a post's centre from the outside walls
 SCREW, CSK = 3.4, 6.6       # the lid's M3 countersunk screws
 
 # --- the parts on the lid (u across, v up the slope) ----------------------------------------------
-FOOT_UV, FOOT_HOLE = (W / 2, 30.0), 12.2        # a 12 mm footswitch bushing
-FOOT_RING, FOOT_RING_T = 26.0, 2.0              # a thicker ring under it: a stomp is a big push
-FOOT_BODY, FOOT_DEPTH = 17.5, 28.0              # its body and lugs below the panel, a soft-touch momentary
-KNOB_UV, KNOB_HOLE = (W / 2, 68.0), 7.2         # EC11, M7 bushing: one knob, one stomp
+SIGN_UV, SIGN_HOLE = (W / 2, 30.0), 12.2        # the sign switch: a 12 mm bushing
+SIGN_RING, SIGN_RING_T = 26.0, 2.0              # a thicker ring under it: it is pressed hard
+SIGN_BODY, SIGN_DEPTH = 17.5, 28.0              # its body and lugs below the panel, a soft-touch momentary
+KNOB_UV, KNOB_HOLE = (W / 2, 68.0), 7.2         # EC11, M7 bushing: one knob, one switch
 SCREEN_UV = (W / 2, 112.0)                      # the active area's centre
 SCREEN_ACTIVE = (48.96, 36.72)                  # 2.4" 240x320, landscape: from the panel's datasheet
 SCREEN_GLASS = (60.3, 42.7, 2.4)                # the panel, a guess: measure yours
@@ -115,14 +115,14 @@ def lid():
     for u, v in posts:
         rim = rim.cut(lid_wp(-LID).center(u, v).circle(BOSS_D / 2 + 0.6).extrude(-RIM_D))
     t = t.union(rim)
-    # under the footswitch, a thicker ring
-    t = t.union(lid_wp(-LID).center(*FOOT_UV).circle(FOOT_RING / 2).extrude(-FOOT_RING_T))
+    # under the sign switch, a thicker ring
+    t = t.union(lid_wp(-LID).center(*SIGN_UV).circle(SIGN_RING / 2).extrude(-SIGN_RING_T))
     # round the plug's overmold, a sleeve
     sw, sh = PLUG_W + 2 * SLEEVE_T, PLUG_H + 2 * SLEEVE_T
     t = t.union(lid_wp(-LID).center(*DOCK_UV).rect(sw, sh).extrude(-(PLUG_L + KEEPER - LID)))
     # holes
-    for (u, v), d in [(FOOT_UV, FOOT_HOLE), (KNOB_UV, KNOB_HOLE)]:
-        t = t.cut(lid_wp(1).center(u, v).circle(d / 2).extrude(-(LID + FOOT_RING_T + 2)))
+    for (u, v), d in [(SIGN_UV, SIGN_HOLE), (KNOB_UV, KNOB_HOLE)]:
+        t = t.cut(lid_wp(1).center(u, v).circle(d / 2).extrude(-(LID + SIGN_RING_T + 2)))
     for u, v in posts:
         t = t.cut(lid_wp(1).center(u, v).circle(SCREW / 2).extrude(-(LID + 2)))
         t = t.cut(lid_wp(0).center(u, v).circle(CSK / 2).workplane(offset=-(CSK - SCREW) / 2)
@@ -151,13 +151,13 @@ def stand_ins():
     def on_lid(shape, color, name):
         s.append((shape, color, name))
 
-    fu, fv = FOOT_UV
+    fu, fv = SIGN_UV
     on_lid(lid_wp(0).center(fu, fv).circle(7).extrude(2).union(
         lid_wp(2).center(fu, fv).polygon(6, 16).extrude(2.5)).union(
         lid_wp(4.5).center(fu, fv).circle(6).extrude(9)).union(
-        lid_wp(13.5).center(fu, fv).circle(6.2).extrude(1.5)), (0.78, 0.78, 0.80), "footswitch")
-    on_lid(lid_wp(-LID - FOOT_RING_T).center(fu, fv).rect(FOOT_BODY, FOOT_BODY).extrude(-FOOT_DEPTH),
-           (0.25, 0.25, 0.28), "footswitch body")
+        lid_wp(13.5).center(fu, fv).circle(6.2).extrude(1.5)), (0.78, 0.78, 0.80), "sign switch")
+    on_lid(lid_wp(-LID - SIGN_RING_T).center(fu, fv).rect(SIGN_BODY, SIGN_BODY).extrude(-SIGN_DEPTH),
+           (0.25, 0.25, 0.28), "sign switch body")
     ku, kv = KNOB_UV
     on_lid(lid_wp(0).center(ku, kv).circle(9).extrude(15).faces(">Z").edges().fillet(1.5), (0.12, 0.12, 0.13), "knob")
     on_lid(lid_wp(15).center(ku, kv).rect(0.8, 7).extrude(0.4), (0.9, 0.9, 0.9), "knob mark")
@@ -193,22 +193,22 @@ def checks(b, l, parts):
     lid_body = l
     names = {n: sh for sh, _, n in parts}
     out = []
-    for n in ("footswitch body", "EC11 body", "screen board", "plug overmold", "headers and wires (space)"):
+    for n in ("sign switch body", "EC11 body", "screen board", "plug overmold", "headers and wires (space)"):
         v = names[n].intersect(b).val().Volume()
         out.append(("%s vs base" % n, v))
     for n in ("headers and wires (space)",):
-        for m in ("screen board", "plug overmold", "footswitch body", "EC11 body"):
+        for m in ("screen board", "plug overmold", "sign switch body", "EC11 body"):
             out.append(("%s vs %s" % (n, m), names[n].intersect(names[m]).val().Volume()))
-    for n in ("footswitch body", "EC11 body", "screen panel", "plug overmold"):
+    for n in ("sign switch body", "EC11 body", "screen panel", "plug overmold"):
         out.append(("%s vs lid" % n, names[n].intersect(lid_body).val().Volume()))
-    gap = names["footswitch body"].val().BoundingBox().zmin - FLOOR
-    print("footswitch lugs to the floor: %.1f mm" % gap)
+    gap = names["sign switch body"].val().BoundingBox().zmin - FLOOR
+    print("sign switch lugs to the floor: %.1f mm" % gap)
     print("screen board to the wires' space: %.1f mm" % (names["screen board"].val().BoundingBox().zmin
                                                         - names["headers and wires (space)"].val().BoundingBox().zmax))
     bad = [(n, v) for n, v in out if v > 0.01]
     for n, v in out:
         print("  %-48s %s" % (n, "clear" if v <= 0.01 else "OVERLAP %.2f mm3" % v))
-    assert gap > 1.0, "the footswitch reaches the floor: raise HF"
+    assert gap > 1.0, "the sign switch reaches the floor: raise HF"
     return bad
 
 
@@ -260,30 +260,30 @@ def main():
     bad = checks(b, l, parts)
     if bad:
         print("WARNING: overlaps above")
-    cq.exporters.export(b, os.path.join(OUT, "stompbox_base.stl"), tolerance=0.05, angularTolerance=0.2)
+    cq.exporters.export(b, os.path.join(OUT, "pico_sign_base.stl"), tolerance=0.05, angularTolerance=0.2)
     # the lid as it prints: top face down
     flat = l.translate((0, 0, -HF)).rotate((0, 0, 0), (1, 0, 0), -math.degrees(A)).rotate((0, 0, 0), (1, 0, 0), 180)
     flat = flat.translate((0, 0, -flat.val().BoundingBox().zmin))
-    cq.exporters.export(flat, os.path.join(OUT, "stompbox_lid.stl"), tolerance=0.05, angularTolerance=0.2)
-    asm = cq.Assembly(name="stompbox")
+    cq.exporters.export(flat, os.path.join(OUT, "pico_sign_lid.stl"), tolerance=0.05, angularTolerance=0.2)
+    asm = cq.Assembly(name="pico_sign")
     asm.add(b, name="base", color=cq.Color(0.20, 0.20, 0.22))
     asm.add(l, name="lid", color=cq.Color(0.93, 0.62, 0.15))
     for sh, col, n in parts:
         asm.add(sh, name=n.replace(" ", "_").replace("(", "").replace(")", ""), color=cq.Color(*col))
-    asm.save(os.path.join(OUT, "stompbox_assembly.step"))
+    asm.save(os.path.join(OUT, "pico_sign_assembly.step"))
 
     shell, top = (0.22, 0.22, 0.24), (0.95, 0.63, 0.15)
     closed = [(b, shell, (0, 0, 0)), (l, top, (0, 0, 0))] + [(sh, c, (0, 0, 0)) for sh, c, n in parts]
-    render(closed, os.path.join(OUT, "stompbox_preview.png"),
+    render(closed, os.path.join(OUT, "pico_sign_preview.png"),
            [("front, three-quarter", 24, -62), ("from the side", 4, -2), ("from above", 88, -90)])
     lift = (0, -18 * SA * 3, 34)
     opened = [(b, shell, (0, 0, 0))] + [(l, top, lift)] + \
              [(sh, c, lift if n not in ("Pico 2 W", "micro-USB", "headers and wires (space)") else (0, 0, 0))
               for sh, c, n in parts]
-    render(opened, os.path.join(OUT, "stompbox_exploded.png"),
+    render(opened, os.path.join(OUT, "pico_sign_exploded.png"),
            [("lid lifted", 28, -55), ("lid lifted, from behind", 30, 128)])
     for f in sorted(os.listdir(OUT)):
-        print("wrote", os.path.join("hardware/builds/pico-stomp/case/out", f))
+        print("wrote", os.path.join("hardware/builds/pico-sign/case/out", f))
 
 
 if __name__ == "__main__":

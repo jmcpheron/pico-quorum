@@ -1,8 +1,8 @@
-"""The stompbox's wiring: a Pico 2 W seen from the top, USB on the left, with the 2.4" ST7789 screen,
-an EC11 knob, a footswitch for Sign, and a USB-C plug for a key-c.
+"""pico-sign's wiring: a Pico 2 W seen from the top, USB on the left, with the 2.4" ST7789 screen,
+an EC11 knob, a hold-to-sign switch, and a USB-C plug for a key-c.
 Writes wiring.svg next to this file. --check writes nothing: it loads firmware/board.py as the
 "build1" profile and stops if its pins differ from the ones here.
-    python3 hardware/builds/pico-stomp/wiring.py [--check]
+    python3 hardware/builds/pico-sign/wiring.py [--check]
 
 Physical pin numbers as in hardware/wiring/BUILD1.md: USB to the left, chips up, pins 1-20 along
 the bottom from the USB end, 40-21 along the top. Every signal is on Build 1's pin."""
@@ -25,13 +25,13 @@ KNOB = [("SW1", 2, "#e07b00"), ("SW2", "C", "#222222"), ("C", 3, "#222222"), ("A
 KEY = [("VBUS", "bus", "#d0312d"), ("D+", 6, "#2a9d3a"), ("D-", 7, "#7a5cc7"), ("GND", 8, "#222222")]
 SCREEN = [("VCC", "bus", "#d0312d"), ("DC", 11, "#c2410c"), ("CS", 12, "#a16207"), ("GND", 13, "#222222"),
           ("SCL", 14, "#0e7490"), ("SDA", 15, "#1d4ed8"), ("RST", 16, "#6d28d9"), ("BLK", 17, "#be185d")]
-FOOT = [("lug", 18, "#222222"), ("lug", 20, "#d4a000")]
+SIGN_SW = [("lug", 18, "#222222"), ("lug", 20, "#d4a000")]
 POWER = 36
 
 # The pins board.py's build1 profile must read for them (the knob's A and B either way round:
 # board.py reads them swapped for the bench knob, and swapping the wires does the same)
 WANT = {"ENC_SW": 1, "DC": 8, "CS": 9, "SCK": 10, "MOSI": 11, "RST": 12, "BL": 13, "SDA": 4, "SCL": 5}
-WANT_KEYS = {"A": 15}               # A is Sign (the footswitch)
+WANT_KEYS = {"A": 15}               # A is Sign (the sign switch)
 
 
 def gp(pin):
@@ -60,13 +60,13 @@ def check():
     for k, want in WANT_KEYS.items():
         if b["KEYS"].get(k) != want:
             bad.append("button %s: board.py GPIO%s, the wiring GPIO%d" % (k, b["KEYS"].get(k), want))
-    if gp(FOOT[1][1]) != WANT_KEYS["A"]:
-        bad.append("the footswitch is drawn on the wrong pin")
+    if gp(SIGN_SW[1][1]) != WANT_KEYS["A"]:
+        bad.append("the sign switch is drawn on the wrong pin")
     if gp(KNOB[0][1]) != WANT["ENC_SW"] or gp(KEY[1][1]) != WANT["SDA"] or gp(KEY[2][1]) != WANT["SCL"]:
         bad.append("the knob's push or the key's bus is drawn on the wrong pin")
     if bad:
         sys.exit("the wiring and board.py's build1 profile disagree:\n  " + "\n  ".join(bad))
-    print("pico-stomp wiring: agrees with board.py build1 (Sign GP15, knob GP1-3, key GP4/5, screen GP8-13)")
+    print("pico-sign wiring: agrees with board.py build1 (Sign GP15, knob GP1-3, key GP4/5, screen GP8-13)")
 
 
 # --- drawing -------------------------------------------------------------------------------------
@@ -91,8 +91,8 @@ def svg():
     o = ['<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d" '
          'font-family="Helvetica, Arial, sans-serif" font-size="12">' % (W, H, W, H),
          '<rect width="%d" height="%d" fill="#ffffff"/>' % (W, H),
-         '<text x="24" y="34" font-size="19" font-weight="bold">PicoQuorum stompbox: Pico 2 W, 2.4" screen, '
-         'EC11 knob, footswitch Sign, key-c</text>',
+         '<text x="24" y="34" font-size="19" font-weight="bold">PicoQuorum pico-sign: Pico 2 W, 2.4" screen, '
+         'EC11 knob, hold-to-sign switch, key-c</text>',
          '<text x="24" y="56" fill="#555">Pico seen from the top, USB on the left. Firmware: the console image, '
          'BOARD = "build1", SCREEN = "2.4". Go by the names printed on each part.</text>']
 
@@ -117,7 +117,7 @@ def svg():
     o.append('<rect x="%.1f" y="%.1f" width="%.1f" height="%.1f" fill="#2b2b2b"/>' % (PX + 19 * S, PY + 6.5 * S, 8 * S, 8 * S))
     o.append('<rect x="%.1f" y="%.1f" width="%.1f" height="%.1f" fill="#c9cfd4"/>' % (PX + 33 * S, PY + 5 * S, 11 * S, 11 * S))
     text(PX + PW / 2 + 40, PY + PH / 2 + 5, "Pico 2 W", 15, col="#ffffff", bold=True)
-    used = {POWER} | {p for part in (KNOB, KEY, SCREEN, FOOT) for _, p, _ in part if isinstance(p, int)}
+    used = {POWER} | {p for part in (KNOB, KEY, SCREEN, SIGN_SW) for _, p, _ in part if isinstance(p, int)}
     for n in range(1, 41):
         x, y = pin_xy(n)
         u = n in used
@@ -159,13 +159,13 @@ def svg():
               "key-c plugs on here\n4.7k VBUS to D+, 4.7k VBUS to D-\n(key-c has no pull-ups)")
     se = part(478, PART_Y, 330, 190, "2.4\" ST7789 240x320", SCREEN, "#e8f4ea",
               "your header's order differs: go by the names\nSCL = SPI clock, SDA = SPI data (MOSI)\nnot the key's I2C")
-    fe = part(836, PART_Y, 150, 150, "Footswitch", FOOT, "#fdf2c4", "SIGN, held 2 s\nMOMENTARY, normally\nopen. Not latching", pitch=60)
+    fe = part(836, PART_Y, 150, 150, "Sign switch", SIGN_SW, "#fdf2c4", "HOLD TO SIGN, 2 s\nMOMENTARY, normally\nopen. Not latching", pitch=60)
 
     # Every wire from a part up to the Pico's bottom row: up to its lane, along, up to the pin. The
     # parts' pins and the Pico's run in the same order, so no two wires cross when, of the wires going
     # right, the leftmost runs highest, and of those going left, the rightmost.
     wires = []
-    for pins, ends in ((KNOB, k), (KEY, ke), (SCREEN, se), (FOOT, fe)):
+    for pins, ends in ((KNOB, k), (KEY, ke), (SCREEN, se), (SIGN_SW, fe)):
         at = {label: xy for (label, _, _), xy in zip(pins, ends)}
         for (label, p, col), (x, y) in zip(pins, ends):
             if p == "bus":
@@ -185,7 +185,7 @@ def svg():
         line([(x, y), (x, lane[w]), (px, lane[w]), (px, py)], col)
 
     # notes
-    notes = ["One press of the knob opens; a turn moves. On a review the footswitch is Sign: held 2 s (3 s when a page is red).",
+    notes = ["One press of the knob opens; a turn moves. On a review the sign switch is Sign: held 2 s (3 s when a page is red).",
              "The knob's push on the Sign row signs too (build1's rules). No Reject button: not signing is all a cosigner can do.",
              "Pull-ups: key-c has none of its own. 4.7k from D+ and from D- to VBUS (which is 3V3), at the plug.",
              "The key is powered whenever the Pico is: no switch, no current limit, as on the Feather pigtail."]
