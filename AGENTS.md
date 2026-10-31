@@ -13,8 +13,7 @@ dependency, a network call or a new way to sign without asking first.
    - The key signs in one place, `quorum.sign_it` (`firmware/quorum.py`), over the Safe transaction
      hash rebuilt from the fields on the screen (`firmware/safe_tx.py`).
    - It never signs a hash or digest that Safe's service, the app or a page hands it.
-   - Every page is seen and Sign is held before it signs. Red pages stay red, and Reject stays one
-     easy press.
+   - Every page is seen and Sign is held before it signs. Red pages stay red.
    - `test-vectors/manifest.mjs` checks the signing site, and `test-vectors/run-console.mjs` the
      refusals.
 2. **The console image is exactly what it imports.**
