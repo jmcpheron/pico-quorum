@@ -27,9 +27,10 @@ QUORUM_URL = "http://<mac-lan-ip>:8787"
 # The clock card's time zone, in hours from UTC (it says UTC when this is 0).
 # QUORUM_UTC_OFFSET = -7
 QUORUM_THEME = "dark"   # or "light"
-# The boot screen: "mark" (the default: the PicoQuorum mark turning into Ethereum in ~3.7 s, light on the Pico),
-# "still" (the finished mark at once), "orbit" (the full orbit animation, ~8-10 fps) or "checklist".
-# BOOT_ART = "mark"
+# The boot screen: "pixel" (the default: the PicoQuorum mark turning into Ethereum in pixel art, 8 steps a
+# second, ~3.8 s), "mark" (the same in smooth vectors, ~3.7 s), "still" (the finished mark at once), "orbit"
+# (the full orbit animation, ~8-10 fps) or "checklist".
+# BOOT_ART = "pixel"
 # Its taglines (firmware/taglines.py): "serious" (the default), "fun", "all" or "none".
 # BOOT_TAGLINES = "serious"
 # The console pins which chip, slot and key it signs with (tools/fw pin writes this line). The

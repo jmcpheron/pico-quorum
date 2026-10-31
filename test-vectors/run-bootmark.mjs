@@ -116,10 +116,10 @@ _stats = json.dumps([sum(sent), max(sent[1:]), len([s for s in sent if s == 0]),
   } catch (e) { console.error(`bootmark ${p.name}: ${String(e)}`); failed = true; } finally { dev.dispose(); }
 }
 
-// splash with the default art: the mark, a 0.3 s lead-in, the hold, and both art modules released.
+// splash with BOOT_ART = "mark": a 0.3 s lead-in, the hold, and both art modules released.
 {
   const dev = await createDevice({ loadMicroPython, keys: new Int32Array(16), files: readWorkspace(),
-    shims: readShims(), heapsize: 2 * 1024 * 1024, secrets: '', onStdout: console.log });
+    shims: readShims(), heapsize: 2 * 1024 * 1024, secrets: 'BOOT_ART="mark"', onStdout: console.log });
   try {
     dev.mp.runPython(`
 import splash, sys
@@ -149,7 +149,7 @@ assert not wide, 'too wide for the 240x240: %r' % wide
 assert taglines.pool() == taglines.SERIOUS and taglines.pick() in taglines.SERIOUS
 assert sorted(taglines.cycle()) == sorted(taglines.SERIOUS)
 `);
-    console.log('bootmark: splash picks the mark by default, 4.0 s hold, released at finish; the diamond lands on the logo; the timer draws, pauses and stops; ' +
+    console.log('bootmark: splash picks the mark when asked, 4.0 s hold, released at finish; the diamond lands on the logo; the timer draws, pauses and stops; ' +
       'every tagline fits 220 px, serious by default');
   } catch (e) { console.error(`bootmark splash: ${String(e)}`); failed = true; } finally { dev.dispose(); }
 }

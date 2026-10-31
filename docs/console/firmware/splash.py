@@ -1,6 +1,7 @@
 # Boot display: a short black lead-in, then the PicoQuorum mark with the real boot status on its
-# last line. secrets.BOOT_ART picks the art: "mark" (the default, bootmark.py: flat vectors, only
-# what changed is sent to the panel, runs on every panel), "still" (the finished mark at once) or
+# last line. secrets.BOOT_ART picks the art: "pixel" (the default, bootpixel.py: the mark in pixel
+# art at 8 steps a second, only what changed is sent, runs on every panel), "mark" (bootmark.py: flat
+# vectors, only what changed is sent, every 30 ms), "still" (the finished mark at once) or
 # "orbit" (bootart.py: the full orbit, the whole panel every frame, ~8-10 fps on the Pico; strip-
 # buffered 240-row panels only, others get the mark) or "checklist" (the chip and a row per step,
 # no art). The console calls finish before starting its
@@ -73,9 +74,9 @@ def pause(on=True):
 def _choice():
     try:
         import secrets
-        return getattr(secrets, "BOOT_ART", "mark")
+        return getattr(secrets, "BOOT_ART", "pixel")
     except ImportError:
-        return "mark"
+        return "pixel"
 
 
 def begin():
@@ -91,12 +92,16 @@ def begin():
             # (MemoryError in bootart.render, 2026-09-29).
             import bootart
             _art = bootart
-        elif art != "checklist":
+        elif art in ("mark", "still"):
             import bootmark
             _art, _gap = bootmark, 30
             _still = art == "still"
             BLACK_LEAD_MS = bootmark.LEAD_MS
             ANIMATION_MS = 0 if _still else bootmark.DURATION_MS
+        elif art != "checklist":
+            import bootpixel
+            _art, _gap = bootpixel, 30
+            BLACK_LEAD_MS, ANIMATION_MS = bootpixel.LEAD_MS, bootpixel.DURATION_MS
         _t0 = time.ticks_ms()
         step("screen", "ok", L.GREEN)
     return lcd
@@ -237,7 +242,8 @@ def _draw():
 
 
 def finish(keys=None, wait=True):
-    """Let the branding reach the name (the mark: 0.3 s black + 3.7 s; the orbit: 4 s + 9.6 s); any key skips.
+    """Let the branding reach the name (the pixel mark: 0.3 s black + 3.75 s; the mark: 0.3 s + 3.7 s;
+    the orbit: 4 s + 9.6 s); any key skips.
     Called before the console starts its timer/watchdog. Release animation code before TLS.
     Errors bypass this hold and go straight to the console's error screen.
     """
@@ -258,5 +264,6 @@ def finish(keys=None, wait=True):
         _art = None
         sys.modules.pop("bootart", None)
         sys.modules.pop("bootmark", None)
+        sys.modules.pop("bootpixel", None)
         sys.modules.pop("taglines", None)
         gc.collect()

@@ -71,6 +71,7 @@ jobs:
         run: |
           node test-vectors/run-display.mjs
           node test-vectors/run-bootmark.mjs
+          node test-vectors/run-bootpixel.mjs
           node test-vectors/run-bootart.mjs
 
   fwbuild:

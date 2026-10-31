@@ -255,8 +255,10 @@ the demoscene. Each fits 220 px; the test checks.
 
 <img src="boot/mark-taglines.png">
 
-`secrets.BOOT_ART` picks the boot screen: `"mark"` (the default), `"still"` (the finished mark at
-once, then only the status line changes), `"orbit"` (the full animation above) or `"checklist"`.
+`secrets.BOOT_ART` picks the boot screen: `"pixel"` (the default since 2026-10-31: the same story in
+pixel art, 8 steps a second, `firmware/bootpixel.py`), `"mark"` (this one), `"still"` (the finished
+mark at once, then only the status line changes), `"orbit"` (the full animation above) or
+`"checklist"`. `node test-vectors/run-bootpixel.mjs` checks the pixel art the same way on four panels.
 `node test-vectors/run-bootmark.mjs` checks that after every frame the panel equals the whole
 scene painted afresh, on all three panels, and prints the bytes sent.
 
