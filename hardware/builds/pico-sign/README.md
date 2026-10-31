@@ -187,54 +187,129 @@ uv run --python 3.11 --with cadquery --with matplotlib --with pillow \
 A triangle seen from the side, 180 mm wide: the front plate slopes at 60°, a flat band 34 mm deep runs
 along the top, and the back falls at 70°. 78 mm tall, 107 mm front to back.
 
-**Two printed parts:**
-- **The body**, one piece, open at the front. Printed front-down, every face leans at 40° or less
-  from upright, so it needs no supports. Its outside edges are chamfered 2.5 mm. A channel 3 mm tall
-  and 1.5 mm deep runs round the base, plate included, for a strip of another colour.
-- **The plate**, 3 mm, printed face down. Four M3 countersunk screws hold it, into heat-set inserts
-  in blocks at the corners of the body's opening.
+**Four printed parts:**
+- **The body**, one piece, open at the front. It prints on its back: the front's opening faces up
+  and the desk's side is a wall, 180 × 93 × 98 mm. The four blocks that hold the plate's inserts
+  stand out from the side walls, so under each, as it prints, a 45° chamfer runs down to its wall.
+  Its outside edges are chamfered 2.5 mm. A channel 3 mm tall and 1.5 mm deep runs round the base,
+  plate included, for a strip of another colour.
+- **The plate**, 3 mm, printed face down, so the words are on the bed and the posts, pins and bosses
+  stand up. Four M3 countersunk screws hold it, into heat-set inserts in blocks at the corners of the
+  body's opening.
+- **The carrier**, 2.5 mm, behind the screen. The Pico screws to its back. Prints face down, the
+  Pico's posts up.
+- **Four spacers**, 4 mm tubes that slip onto the screen's pins.
+- **The plug lock**, 12.5 × 11 × 9.3 mm, that holds the key's plug up. Prints as it sits.
 
 **On the plate:**
-- the screen on the left, in a bevelled window, on four posts (M2.5 self-tapping into the plate)
+- the screen on the left, in a bevelled window. On the back, at the screen board's four holes
+  (4.6 mm), a post with a 7 mm seat, 4.2 mm tall: the panel's 4.0 mm plus 0.2, so the board rests
+  on the seats round its holes and the glass doesn't press the plate. Where the glass comes close to a
+  hole, the seat is cut flat 0.3 mm from the glass's edge. On each seat a 4.2 mm pin goes on through
+  the board, a spacer and the carrier, tapered at the tip. Drop the screen on and it is in place.
+- four 9 mm bosses above and below the screen, each with an M3 insert: the carrier rests on them.
+  The carrier is 1 mm bigger than the screen's board all round, for wall round its pin holes.
 - the controls on the right:
   - the sign switch on top, a 12 mm metal push switch, on a ring 2 mm thicker behind the plate
-    because it's pressed hard, with HOLD TO SIGN under it
-  - the knob under that, with TURN / PUSH
-- PICOQUORUM and SEALED HARDWARE COSIGNER cut under the screen
+    because it's pressed hard
+  - the knob under that
+  - under each, a 30 × 8 mm frame, a 0.6 mm line cut 0.6 mm deep, for a sticker or a printed label
+- PICOQUORUM cut under the screen, as big as fits between the bottom screws, the window and the
+  colour channel: 9.3 mm letters, 81 mm long (the script works it out and prints it)
 
 ![the plate, front and back](case/out/prism/prism_plate.png)
 
-**The key** lies flat in a tray sunk into the top band, in its cartridge
-([CONCEPTS.md](case/CONCEPTS.md#the-key-cartridge)), its chip window up, 2.4 mm below the surface. A
-finger scoop at the grip end lifts it out. The console's USB-C plug sits in a cradle under the
-band at the tray's other end, its face flush with the tray's end. So the cartridge slides along the
-tray onto it, and a pull comes off the cradle, never the joints. "KEY" is cut beside the tray.
+**The key** plugs straight down onto a USB-C plug that stands in the top, on the screen's side
+(24 mm from the left, just left of the Pico), near the back edge. The plug is a cut cable's: its
+overmold, 12.4 × 5.5 × 17.1 mm (calipers), ends flush with the top in a hole with 0.2 mm round it, so
+only the metal shell stands up and the key goes on all the way. The key, in its cartridge
+([CONCEPTS.md](case/CONCEPTS.md#the-key-cartridge)), stands up out of the top, its chip window to
+the front.
+
+The plug's holder hangs from the top, built back to the back wall. Its channel is open at the front,
+and so is the slot for the cable in the stop at its foot. Putting the plug in:
+1. Slide it into the channel from the front, low, the cable down through the stop's slot. The channel
+   has 9.4 mm under the plug's final place, so its shell clears the top's underside.
+2. Push it up into the top's hole until the overmold is flush.
+3. Slide **the lock** in under it, the cable into the lock's slot, which is open at its back end.
+   It fills the 9.4 mm, so the plug can't drop when the key goes on, and two 0.3 mm bumps click into
+   dimples in the channel's walls. Its front lip is to pull it out by.
+
+![the key's plug and the lock](case/out/prism/prism_plug.png)
 
 **Inside:**
-- the Pico on four posts on the floor, at the left, its USB out of the left side
-- the plug's cable out through the cradle's back stop
+- behind the screen, a stack on the pins: the screen board, a spacer on each pin, then the carrier.
+  The carrier is the board's size, with an ear out to each boss. Four screws through the ears into the
+  bosses hold it, and through the spacers it holds the board down on its posts. The spacers leave 4 mm
+  for the parts on the board's back. The carrier is cut round the screen's header, so its wires pass.
+- the Pico on four 6.5 mm posts on the carrier's back, an M2 insert in each. It sits above the
+  screen's header, so its plug and cable pass over the header's wires. Its USB points left (seen from
+  the front), and its pins point away from the carrier: with the plate face down and the carrier on,
+  the pins point up. With the headers soldered the usual way that puts its parts and USB socket toward
+  the carrier, and the posts leave room for the plug there. Soldered the other way, it fits too.
+- the USB cable out through a 13 mm square hole in the left wall, level with the Pico's USB. The plug
+  passes it whichever face its socket is on.
+- the key's plug cable down from its holder, beside the Pico
 - 27 mm between the sign switch's lugs and the floor
 
 ![the body, open](case/out/prism/prism_body.png)
 
+![behind the plate](case/out/prism/prism_carrier.png)
+
+![the plate's back](case/out/prism/prism_plate_back.png)
+
+![the body as it prints](case/out/prism/prism_print.png)
+
+**The hardware**, from the kits on the bench (inserts are named thread × length × outside diameter):
+
+| where | inserts | screws |
+|---|---|---|
+| the body's corner blocks, for the plate | 4 × M3\*6\*5, in 4.2 mm holes | 4 × M3 × 8 **countersunk**: not in the kit |
+| the plate's bosses, for the carrier | 4 × M3\*6\*5, in 4.2 mm holes | 4 × M3 × 8 socket head, with M3 washers |
+| the carrier's posts, for the Pico | 4 × M2\*4\*3.2, in 2.7 mm holes | 4 × M2 × 4 socket head |
+| the screen | none: four pins and four spacers | none |
+
+The insert holes (`M3_INSERT`, `M2_INSERT`) are about 0.84 of the insert's outside diameter, not
+tried. Print one boss and set an insert before printing the rest.
+
 | file in `case/out/prism/` | what |
 |---|---|
-| `prism_body.stl` | the body, front down, as it prints (180 × 104 × 88 mm) |
-| `prism_plate.stl` | the plate, face down |
+| `prism_body.stl` | the body, on its back, as it prints (180 × 93 × 98 mm) |
+| `prism_plate.stl` | the plate, face down, the pins up |
+| `prism_carrier.stl`, `prism_spacers.stl` | the carrier, the Pico's posts up; the four spacers |
+| `prism_plug_lock.stl` | the lock for the key's plug |
 | `prism_assembly.step` | closed, with a box for each part |
-| `prism_front.png`, `prism_plate.png`, `prism_body.png` | the pictures here |
+| `prism_*.png` | the pictures here |
 
-**What the script checks:** that the boxes standing in for the screen board, the switch, the knob,
-the plug, the cartridge and the Pico with its wires don't overlap the body, the plate or each
-other (50 pairs). Also that the plug clears the top band (0.38 mm). It is not a fit check.
+**What the script checks:** that the boxes standing in for the screen's glass and board, the switch,
+the knob, the plug, the cartridge, the Pico with its parts, wires and USB plug, and the carrier's screw heads
+don't overlap the body, the plate, the carrier, the spacers, the plug lock or each other (181 pairs). The closest
+are the carrier to the body (1.3 mm), the Pico's wires to the plug's holder (2.0 mm), the glass to the
+seats' flats (0.3 mm) and the bosses to the screen's board (2.25 mm). The plug stand-in covers the socket on either
+face of the Pico. Also that the bosses and the Pico's posts are deep enough for their inserts. It is not a fit
+check.
+
+**Overhangs:** the script turns the body as it prints and lists every flat face that leans more than
+45° past upright and isn't on the bed. Four are left, none of them the insert blocks:
+- the 2.5 mm chamfer along the top's back edge (717 mm²): it starts at the bed and leans 55°. A short
+  lip; it may droop a little.
+- the colour channel in the back (565 mm²): a 3 mm bridge, 1.5 mm off the bed
+- the front side of the plug's hole in the top (31 mm²): a bridge 12.8 mm across, 2.4 mm deep
+- a side of the Pico's cable hole in the left wall (19 mm²)
 
 **Before printing:**
-- **Measure the screen.** `SCREEN_*` are a placeholder: an 86 × 50 mm board with M3 holes 3 mm in,
-  a 69.2 × 50 mm glass and a 57.6 × 43.2 mm active area. The glass and active area are the usual 2.8″
-  IPS panel's; the board and its holes vary by maker.
-- **The plug:** the cut cable's overmold, as the Feather pigtail measured it. A different cable, or
-  a USB-C plug breakout, needs the cradle (`PLUG_*`) changed.
+- **The screen** is measured with calipers: the board 80 × 48.5 × 1.5 mm, its holes 4.6 mm, the
+  panel 4.0 mm from the board's front to the glass's front. The holes' centres come from their edges:
+  35.1 inside and 44.6 outside top to bottom, so 39.85; 76.1 and 76.5 outside across, so about 71.7.
+  **Still to measure:** the panel's outline and where it sits on the board, and the visible area. The
+  panel is a placeholder 66.5 × 48.5 mm, centred, to fit between the holes; the visible area is a
+  2.8″ 240 × 320 panel's usual 57.6 × 43.2 mm, centred on it. The seats' flats and the window follow
+  them; the script prints how close the glass comes to a hole.
+- **The key's plug:** the cut cable's overmold, 12.4 × 5.5 × 17.1 mm, as the Feather pigtail and
+  the bench's cable both measured. A different cable needs the pocket (`PLUG_*`) changed.
 - **The sign switch:** a 12 mm bushing and 28 mm of body under the plate, momentary.
+- **The Pico's plug:** a micro-USB overmold of 11 × 8 mm is assumed (`USB_PLUG`). A fatter one may
+  touch the carrier; measure yours.
 - Print the plate first: every part's hole is in it.
 
 Not printed yet. The pictures are matplotlib's, and its shading is rough.
