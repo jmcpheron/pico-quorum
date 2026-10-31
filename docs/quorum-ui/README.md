@@ -13,6 +13,11 @@ iteration and work through both.
 **v2, a redo of the look:** a new boot screen (a 3-of-5 star that becomes a spinning Ethereum
 diamond) and the plan for type and graphics. See [v2/README.md](v2/README.md).
 
+**v3, from the ground up (a plan, 2026-10-31):** the pixel-art theme everywhere, rules for a sealed
+cosigner's review, mock-ups of a module from nowhere and of turning on account abstraction on
+purpose, and a draft standard for binding what a cosigner showed into its signature. See
+[v3/README.md](v3/README.md) and [v3/STANDARD.md](v3/STANDARD.md).
+
 **Next: other screen sizes.** A plan for the six screens on order (0.96″ to 3.5″): the same flow
 reflowed per size, the code it needs, and questions for you. See [SCREENS.md](SCREENS.md).
 
