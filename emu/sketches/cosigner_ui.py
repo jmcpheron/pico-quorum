@@ -179,7 +179,7 @@ def s_attack1(d):
     row(d, 164, "FROM", "Safe service, proposer BOB")
     row(d, 178, "HASH", "5A3C 1F07 .. 77D2 9E21")
     text(d, "computed on this device", 84, 190, DIM)
-    footer(d, [("knob", "PAGES", INK), ("push", "REJECT", RED), ("lock", "SIGN LOCKED", DIM)])
+    footer(d, [("knob", "PAGES", INK), ("push", "LEAVE", INK), ("lock", "SIGN LOCKED", DIM)])
 
 
 def s_attack2(d):
@@ -191,7 +191,7 @@ def s_attack2(d):
                            "is how the Oct 29 exchange theft was set up.") + 6
     y = check(d, y, None, "Proposed from a laptop session 4 minutes ago.") + 6
     y = check(d, y, True, "The hash on page 1 was rebuilt here from these fields, not taken from the service.")
-    footer(d, [("knob", "PAGES", INK), ("push", "REJECT", RED), ("lock", "SIGN LOCKED", DIM)])
+    footer(d, [("knob", "PAGES", INK), ("push", "LEAVE", INK), ("lock", "SIGN LOCKED", DIM)])
 
 
 def s_attack3(d):
@@ -200,10 +200,10 @@ def s_attack3(d):
     d.rect(12, 64, W - 24, 80, col(RED))
     para(d, "An unknown module is never signed here, however long the footswitch is held. "
             "To use one, add it to the registry first: 2 of 3 owners and a 48 h wait.", 20, 72, INK, 35)
-    row(d, 154, "REJECT", "One push signs a no-op at")
-    text(d, "nonce 42, for owners to burn", 84, 166, INK)
+    row(d, 154, "CANCEL", "Only another tx executed at")
+    text(d, "nonce 42 cancels this one", 84, 166, INK)
     row(d, 186, "TELL", "co-signers code 9E21-C04A")
-    footer(d, [("knob", "PAGES", INK), ("push", "REJECT", RED), ("lock", "SIGN LOCKED", DIM)])
+    footer(d, [("knob", "PAGES", INK), ("push", "LEAVE", INK), ("lock", "SIGN LOCKED", DIM)])
 
 
 def s_7702(d):
@@ -218,7 +218,7 @@ def s_7702(d):
     para(d, "The contract can do anything this account can, on every chain, until the "
             "delegation is replaced. Pre-signed for 50 nonces, it stays live as the "
             "account keeps working.", 84, 132, INK, 28)
-    footer(d, [("knob", "PAGES", INK), ("push", "REJECT", RED), ("lock", "NEVER SIGNED", DIM)])
+    footer(d, [("knob", "PAGES", INK), ("push", "LEAVE", INK), ("lock", "NEVER SIGNED", DIM)])
 
 
 def s_aa1(d):
@@ -235,7 +235,7 @@ def s_aa1(d):
     text(d, "codehash matches r12", 158, 152, INK)
     row(d, 168, "APPROVED", "r12 signed 2 of 3, Oct 12")
     row(d, 184, "DELAY", "48 h before it takes effect")
-    footer(d, [("knob", "PAGES", INK), ("push", "REJECT", RED), ("foot", "SIGN: 3 MORE", DIM)])
+    footer(d, [("knob", "PAGES", INK), ("push", "LEAVE", INK), ("foot", "SIGN: 3 MORE", DIM)])
 
 
 def s_aa2(d):
@@ -247,7 +247,7 @@ def s_aa2(d):
     y = check(d, y, True, "Every operation still needs 2 of 3 owners: the module checks the Safe's own signatures.") + 5
     y = check(d, y, True, "Owners, threshold and other modules are unchanged.") + 5
     y = check(d, y, None, "New on this device: SafeOp approvals (EIP-712), shown and hashed the same way.")
-    footer(d, [("knob", "PAGES", INK), ("push", "REJECT", RED), ("foot", "SIGN: 2 MORE", DIM)])
+    footer(d, [("knob", "PAGES", INK), ("push", "LEAVE", INK), ("foot", "SIGN: 2 MORE", DIM)])
 
 
 def s_aa3(d):
@@ -262,7 +262,7 @@ def s_aa3(d):
     text(d, "   (3 s: this page is amber)", 12, 140, MUTED)
     row(d, 166, "SIGNS", "SafeTx 5A3C..9E21")
     row(d, 180, "CODE", "9E21-C04A  read it out")
-    footer(d, [("knob", "ARM", AMBER), ("push", "REJECT", RED), ("foot", "HOLD 3 S", INK)])
+    footer(d, [("knob", "ARM", AMBER), ("push", "LEAVE", INK), ("foot", "HOLD 3 S", INK)])
 
 
 def s_hold(d):
@@ -275,7 +275,7 @@ def s_hold(d):
     row(d, 142, "INTENT", "pq1 control 7F2A..C3B0")
     text(d, "the review shown, hashed", 84, 154, DIM)
     row(d, 172, "KEY", "chip 3, P-256, sealed")
-    footer(d, [("foot", "KEEP HOLDING", BLUE), ("push", "REJECT", RED)])
+    footer(d, [("foot", "KEEP HOLDING", BLUE)])
 
 
 def s_done(d):

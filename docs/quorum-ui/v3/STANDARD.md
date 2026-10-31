@@ -91,8 +91,11 @@ A cosigner MUST NOT sign, however it is asked:
   `control` class, until the run is cleared
 - a subject whose facts it can't work out
 
-It MUST offer Reject as a single action, and MUST NOT accept Sign as a single action. For `control`,
-it MUST require a separate arming action before the signing action.
+Leaving a review without signing MUST be a single action and MUST send nothing. A cosigner MUST
+NOT offer a "reject" that suggests it cancels anything: a Safe transaction is cancelled only when
+another one executes at its nonce. When two or more queued transactions share a nonce, it MUST show
+that only one of them can execute. It MUST NOT accept Sign as a single action. For `control`, it
+MUST require a separate arming action before the signing action.
 
 ### 4. Registry
 
