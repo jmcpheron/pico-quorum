@@ -28,7 +28,6 @@ parts, hand wiring, a printed case.
 - a key-c, and a USB-C plug for it: a C-to-C cable cut short behind one plug, as the
   [Feather pigtail](../feather-pigtail/README.md) uses, or a USB-C plug breakout
 - two 4.7 kΩ resistors, the key's pull-ups
-- optional: a 12 mm momentary push button, for Reject
 - for the case: four M3 × 8 countersunk screws, four M3 heat-set inserts, four M2 × 5 screws for the
   Pico, four small rubber feet
 
@@ -77,16 +76,6 @@ with no change. Physical pins count from the USB end: 1–20 along one side, 40�
 
 GP15 is the Waveshare's A, which the console reads as Sign. Build 1 kept it for a Sign button.
 
-### Reject (optional)
-
-| button leg | Pico pin | GPIO |
-|---|---|---|
-| either | **27** | GP21 |
-| the other | **28**, GND | |
-
-GP21 is the Waveshare's Y, which the console reads as Reject. Without it, Reject is still there: turn
-past the last page to the Reject row and push.
-
 ### The key
 
 key-c: D+ carries SDA, D− carries SCL, VBUS is the key's power
@@ -134,18 +123,22 @@ The console's build1 rules, from `firmware/quorum.py`. Nothing here is new.
 
 | | on a review | anywhere else |
 |---|---|---|
-| turn clockwise | the next page; past the last, the Sign, Reject and Back rows | the next row or choice |
+| turn clockwise | the next page; past the last, the action rows | the next row or choice |
 | turn back | the page before | the one before |
-| push the knob | jumps to the rows; on Sign, held, signs; on Reject, rejects | open |
+| push the knob | jumps to the rows; on Sign, held, signs; on Back, leaves it unsigned | open |
 | **footswitch** | **Sign: every page seen first, then held 2 s (3 s when a page is red)** | says "Sign button: only for signing" |
-| Reject button | Reject, one press | the queue, from home |
+
+- **There is no Reject button.** A cosigner can't reject a Safe transaction: not signing it is all
+  it can do. A transaction is only cancelled when the owners execute another one at the same nonce.
+  Today's console still has a Reject row on a review, but it only hides the transaction on this
+  console. The v3 plan (`docs/quorum-ui/v3/`) drops it.
 
 - **The footswitch is not the only way to sign.** The knob's push on the Sign row, held, signs too.
   Making the footswitch the only one is a firmware change and a new release fingerprint (AGENTS.md).
   Not done; ask first.
 - Let go early and nothing is signed. A red page needs 3 s.
-- **Maintenance:** the knob held down at power-up. **Wi-Fi setup:** Reject held at power-up
-  (`SETUP` is the Y pin), or by itself when no network is saved.
+- **Maintenance:** the knob held down at power-up. **Wi-Fi setup:** by itself when no network is
+  saved, or Device → Wi-Fi. (GP21 held at power-up starts it too, but nothing is wired to GP21 here.)
 
 ## First: the bench check
 
@@ -204,12 +197,12 @@ uv run --python 3.11 --with cadquery --with matplotlib python hardware/builds/pi
 100 × 150 mm, 36 mm tall at the front and 56 at the back, so the lid slopes about 7.6°. On the lid,
 from the front:
 - the footswitch, on a ring 2 mm thicker underneath, because a stomp is a big push
-- the knob on the right and the Reject button on the left (`REJECT = False` leaves its hole out)
+- the knob, centred above the footswitch: one knob, one stomp
 - the screen, landscape, in a bevelled window, its panel in a 1 mm pocket underneath
 - the key dock: the plug's overmold in a sleeve under the lid, its face 1.2 mm under the top. The lid
   round the opening keeps it from pulling out when a key comes off. A key-c stands straight up out
   of the lid
-- words cut 0.6 mm in: HOLD TO SIGN, REJECT, MOVE / OPEN, KEY
+- words cut 0.6 mm in: HOLD TO SIGN, MOVE / OPEN, KEY
 
 The Pico lies on four posts on the floor, its USB out through the back wall. The lid sits on four
 corner posts and a rim inside the walls, with four M3 screws into heat-set inserts.

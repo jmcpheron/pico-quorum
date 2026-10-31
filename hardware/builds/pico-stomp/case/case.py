@@ -1,6 +1,6 @@
 """Case for the stompbox (hardware/builds/pico-stomp/README.md), concept A: a guitar-pedal wedge.
 A tray (the base) with sloped walls, and a flat lid on the slope that holds every part: the
-footswitch at the front, the knob and an optional Reject button above it, the 2.4" screen
+footswitch at the front, the knob above it, the 2.4" screen
 landscape behind them, and the key dock at the back, where a key-c stands up out of the lid. The
 Pico lies on the floor with its USB out of the back wall.
 
@@ -38,9 +38,7 @@ SCREW, CSK = 3.4, 6.6       # the lid's M3 countersunk screws
 FOOT_UV, FOOT_HOLE = (W / 2, 30.0), 12.2        # a 12 mm footswitch bushing
 FOOT_RING, FOOT_RING_T = 26.0, 2.0              # a thicker ring under it: a stomp is a big push
 FOOT_BODY, FOOT_DEPTH = 17.5, 28.0              # its body and lugs below the panel, a soft-touch momentary
-KNOB_UV, KNOB_HOLE = (W / 2 + 28, 68.0), 7.2    # EC11, M7 bushing
-REJECT = True               # the optional Reject button: a 12 mm momentary push button
-REJECT_UV, REJECT_HOLE = (W / 2 - 28, 68.0), 12.2
+KNOB_UV, KNOB_HOLE = (W / 2, 68.0), 7.2         # EC11, M7 bushing: one knob, one stomp
 SCREEN_UV = (W / 2, 112.0)                      # the active area's centre
 SCREEN_ACTIVE = (48.96, 36.72)                  # 2.4" 240x320, landscape: from the panel's datasheet
 SCREEN_GLASS = (60.3, 42.7, 2.4)                # the panel, a guess: measure yours
@@ -123,7 +121,7 @@ def lid():
     sw, sh = PLUG_W + 2 * SLEEVE_T, PLUG_H + 2 * SLEEVE_T
     t = t.union(lid_wp(-LID).center(*DOCK_UV).rect(sw, sh).extrude(-(PLUG_L + KEEPER - LID)))
     # holes
-    for (u, v), d in [(FOOT_UV, FOOT_HOLE), (KNOB_UV, KNOB_HOLE)] + ([(REJECT_UV, REJECT_HOLE)] if REJECT else []):
+    for (u, v), d in [(FOOT_UV, FOOT_HOLE), (KNOB_UV, KNOB_HOLE)]:
         t = t.cut(lid_wp(1).center(u, v).circle(d / 2).extrude(-(LID + FOOT_RING_T + 2)))
     for u, v in posts:
         t = t.cut(lid_wp(1).center(u, v).circle(SCREW / 2).extrude(-(LID + 2)))
@@ -141,7 +139,6 @@ def lid():
     t = t.cut(lid_wp(-KEEPER).center(*DOCK_UV).rect(PLUG_W + 0.3, PLUG_H + 0.3).extrude(-(PLUG_L + 1)))
     # words, cut 0.6 into the top
     for txt, (u, v), size in [("HOLD TO SIGN", (W / 2, 10.0), 6.0), ("KEY", (DOCK_UV[0] + 16, DOCK_UV[1]), 4.5)] + \
-            ([("REJECT", (REJECT_UV[0], REJECT_UV[1] - 12), 4.5)] if REJECT else []) + \
             [("MOVE / OPEN", (KNOB_UV[0], KNOB_UV[1] - 15), 4.0)]:
         t = t.cut(lid_wp(0).center(u, v).text(txt, size, -0.6, combine=False, halign="center", valign="center"))
     return t
@@ -165,10 +162,6 @@ def stand_ins():
     on_lid(lid_wp(0).center(ku, kv).circle(9).extrude(15).faces(">Z").edges().fillet(1.5), (0.12, 0.12, 0.13), "knob")
     on_lid(lid_wp(15).center(ku, kv).rect(0.8, 7).extrude(0.4), (0.9, 0.9, 0.9), "knob mark")
     on_lid(lid_wp(-LID).center(ku, kv).rect(12, 12).extrude(-7), (0.25, 0.25, 0.28), "EC11 body")
-    if REJECT:
-        ru, rv = REJECT_UV
-        on_lid(lid_wp(0).center(ru, rv).circle(8).extrude(2).union(lid_wp(2).center(ru, rv).circle(6).extrude(4)),
-               (0.80, 0.16, 0.14), "reject button")
     gw, gh, gt = SCREEN_GLASS
     pw, ph, pt = SCREEN_PCB
     gw0 = -LID + SCREEN_POCKET

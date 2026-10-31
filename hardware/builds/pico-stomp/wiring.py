@@ -1,5 +1,5 @@
 """The stompbox's wiring: a Pico 2 W seen from the top, USB on the left, with the 2.4" ST7789 screen,
-an EC11 knob, a footswitch for Sign, a USB-C plug for a key-c, and an optional Reject button.
+an EC11 knob, a footswitch for Sign, and a USB-C plug for a key-c.
 Writes wiring.svg next to this file. --check writes nothing: it loads firmware/board.py as the
 "build1" profile and stops if its pins differ from the ones here.
     python3 hardware/builds/pico-stomp/wiring.py [--check]
@@ -26,13 +26,12 @@ KEY = [("VBUS", "bus", "#d0312d"), ("D+", 6, "#2a9d3a"), ("D-", 7, "#7a5cc7"), (
 SCREEN = [("VCC", "bus", "#d0312d"), ("DC", 11, "#c2410c"), ("CS", 12, "#a16207"), ("GND", 13, "#222222"),
           ("SCL", 14, "#0e7490"), ("SDA", 15, "#1d4ed8"), ("RST", 16, "#6d28d9"), ("BLK", 17, "#be185d")]
 FOOT = [("lug", 18, "#222222"), ("lug", 20, "#d4a000")]
-REJECT = [("leg", 27, "#d0312d"), ("leg", 28, "#222222")]
 POWER = 36
 
 # The pins board.py's build1 profile must read for them (the knob's A and B either way round:
 # board.py reads them swapped for the bench knob, and swapping the wires does the same)
 WANT = {"ENC_SW": 1, "DC": 8, "CS": 9, "SCK": 10, "MOSI": 11, "RST": 12, "BL": 13, "SDA": 4, "SCL": 5}
-WANT_KEYS = {"A": 15, "Y": 21}      # A is Sign (the footswitch), Y is Reject
+WANT_KEYS = {"A": 15}               # A is Sign (the footswitch)
 
 
 def gp(pin):
@@ -61,13 +60,13 @@ def check():
     for k, want in WANT_KEYS.items():
         if b["KEYS"].get(k) != want:
             bad.append("button %s: board.py GPIO%s, the wiring GPIO%d" % (k, b["KEYS"].get(k), want))
-    if gp(FOOT[1][1]) != WANT_KEYS["A"] or gp(REJECT[0][1]) != WANT_KEYS["Y"]:
-        bad.append("the footswitch or Reject is drawn on the wrong pin")
+    if gp(FOOT[1][1]) != WANT_KEYS["A"]:
+        bad.append("the footswitch is drawn on the wrong pin")
     if gp(KNOB[0][1]) != WANT["ENC_SW"] or gp(KEY[1][1]) != WANT["SDA"] or gp(KEY[2][1]) != WANT["SCL"]:
         bad.append("the knob's push or the key's bus is drawn on the wrong pin")
     if bad:
         sys.exit("the wiring and board.py's build1 profile disagree:\n  " + "\n  ".join(bad))
-    print("pico-stomp wiring: agrees with board.py build1 (Sign GP15, Reject GP21, knob GP1-3, key GP4/5, screen GP8-13)")
+    print("pico-stomp wiring: agrees with board.py build1 (Sign GP15, knob GP1-3, key GP4/5, screen GP8-13)")
 
 
 # --- drawing -------------------------------------------------------------------------------------
@@ -118,7 +117,7 @@ def svg():
     o.append('<rect x="%.1f" y="%.1f" width="%.1f" height="%.1f" fill="#2b2b2b"/>' % (PX + 19 * S, PY + 6.5 * S, 8 * S, 8 * S))
     o.append('<rect x="%.1f" y="%.1f" width="%.1f" height="%.1f" fill="#c9cfd4"/>' % (PX + 33 * S, PY + 5 * S, 11 * S, 11 * S))
     text(PX + PW / 2 + 40, PY + PH / 2 + 5, "Pico 2 W", 15, col="#ffffff", bold=True)
-    used = {POWER} | {p for part in (KNOB, KEY, SCREEN, FOOT, REJECT) for _, p, _ in part if isinstance(p, int)}
+    used = {POWER} | {p for part in (KNOB, KEY, SCREEN, FOOT) for _, p, _ in part if isinstance(p, int)}
     for n in range(1, 41):
         x, y = pin_xy(n)
         u = n in used
@@ -185,16 +184,9 @@ def svg():
         px, py = pin_xy(p)
         line([(x, y), (x, lane[w]), (px, lane[w]), (px, py)], col)
 
-    # optional Reject, above the Pico, its legs down to pins 27 and 28
-    re_ = part(640, 76, 190, 70, "Reject (optional)", REJECT, "#fde8e8", dash=True, pitch=60, bottom=True)
-    for (label, p, col), (x, y), ly in zip(REJECT, re_, (PY - 40, PY - 28)):
-        px, py = pin_xy(p)
-        line([(x, y), (x, ly), (px, ly), (px, py)], col, 2.6, "7 4")
-    text(735, 72, "a 12 mm push button: one press, Reject on a review", 10, col="#7f1d1d")
-
     # notes
     notes = ["One press of the knob opens; a turn moves. On a review the footswitch is Sign: held 2 s (3 s when a page is red).",
-             "The knob's push on the Sign row signs too (build1's rules). Reject: turn to the Reject row and push, or the optional button.",
+             "The knob's push on the Sign row signs too (build1's rules). No Reject button: not signing is all a cosigner can do.",
              "Pull-ups: key-c has none of its own. 4.7k from D+ and from D- to VBUS (which is 3V3), at the plug.",
              "The key is powered whenever the Pico is: no switch, no current limit, as on the Feather pigtail."]
     for i, s in enumerate(notes):

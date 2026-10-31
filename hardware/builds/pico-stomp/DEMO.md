@@ -54,8 +54,9 @@ poll.
    which is useless to the attacker."* (Check this on the emulator first: what the box shows and what
    the dashboard logs.)
 3. **The quiet takeover.** `add-owner` or `threshold`: a stranger added as an owner, or the
-   threshold dropped to 1. The box turns red, and Sign needs 3 s. Hit Reject: one press on the
-   red button. *"This is the move that turns a multisig into a single key. The box says so in red."*
+   threshold dropped to 1. The box turns red, and Sign needs 3 s. Don't sign it: turn to Back and
+   push. *"This is the move that turns a multisig into a single key. The box says so in red. I
+   don't sign, and without my key it can't reach the threshold."*
 4. **The thing it won't do.** `delegate-unknown`: a delegatecall to a contract the box has never
    heard of, which would run its code as the Safe itself. The box refuses it outright: no hold
    long enough signs it. *"Some things no amount of 'just click approve' gets through."*
@@ -91,7 +92,7 @@ Written to be read aloud, about a minute.
 > Now the laptop lies. It shows me fifty thousandths of an ether to Carol, and asks for a signature
 > on five ether to a stranger. The box doesn't take the laptop's word for it. It works out what it's
 > signing from what's on its own screen, so the attacker gets a signature for the payment I saw,
-> and nothing else. Here's someone quietly adding an owner. Red, and one press rejects it. And here's
+> and nothing else. Here's someone quietly adding an owner. Red, so I don't sign it. And here's
 > a call the box won't sign at all, no matter how long I stand on it. Swap the key, and the box
 > becomes someone else's signer. It's a prototype, it's not audited, and it's one owner of several.
 > But the idea is simple. The thing that shows you the transaction should be the thing that signs it.
