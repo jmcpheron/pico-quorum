@@ -3,9 +3,9 @@
 | | |
 |---|---|
 | board | a Pico 2 W (castellated), wires or headers soldered on |
-| key | a key-c, on a USB-C plug that stands up out of the lid |
-| runs | the console image as `BOARD = "build1"`, `SCREEN = "2.4"`, unchanged; `firmware/bench1.py` first |
-| case | [`case/`](case/case.py): a wedge, a tray and a flat lid. Ideas in [case/IDEAS.md](case/IDEAS.md) |
+| key | a key-c in a printed cartridge that slides into a bay ([case/CONCEPTS.md](case/CONCEPTS.md)) |
+| runs | the console image as `BOARD = "build1"`, `SCREEN = "2.8"`, unchanged; `firmware/bench1.py` first |
+| case | four concepts for the 2.8″ in [case/CONCEPTS.md](case/CONCEPTS.md); the first wedge, for the 2.4″, in [`case.py`](case/case.py) |
 | status | written up 2026-10-30 for a demo; not wired, not printed, not run |
 
 Build 1 again, made into a box. A rotary knob does everything on the screen, and one metal push
@@ -20,9 +20,8 @@ parts, hand wiring, a printed case.
 ## Parts
 
 - a Pico 2 W
-- the 2.4″ ST7789 240 × 320 SPI screen from the six-pack of 2026-09-24
-  ([KICKOFF](../../../docs/KICKOFF.md)). Not yet seen working: the one try, on the ESP32, showed
-  nothing, and its wiring wasn't checked ([BUILDLOG](../../../buildlog/BUILDLOG.md), 2026-10-07)
+- the 2.8″ ST7789 240 × 320 SPI screen, the one Build 1 proved on the bench (2026-09-27) and an
+  earlier case was made for. Same 8 pins as the 2.4″ this build started with
 - an EC11 knob with push, the one from Build 1: 20 detents, a 6 mm D-shaft, an M7 bushing
 - the sign switch: a 12 mm metal push switch, **momentary** and normally open. See [the sign switch](#the-sign-switch)
 - a key-c, and a USB-C plug for it: a C-to-C cable cut short behind one plug, as the
@@ -146,7 +145,7 @@ In the board's `secrets.py`, beside the rest:
 
 ```python
 BOARD = "build1"
-SCREEN = "2.4"
+SCREEN = "2.8"
 ```
 
 Then `tools/usb push`, `tools/usb`, `import wallet; wallet.stop()`, `import bench1`, as in
@@ -163,12 +162,10 @@ What to look for:
 `bench1` doesn't show GP15 or GP21. Check them on the console: the sign switch on home says "Sign
 button: only for signing".
 
-**If the 2.4″ won't come up** after the wiring checks out, it may not be an ST7789. An ILI9341 is
-the common other chip on 2.4″ boards. It takes most of the same start-up, but not inversion, so its
-colours would come out as a negative. `bench1`'s `INVERT = False` would show that. The console has
-no such setting for build1: it would be a firmware change and a new release fingerprint. The
-2.8″ is proven on build1 (2026-09-27). It is the fallback, and the case's window would need
-widening.
+**The 2.8″ is proven on build1** (2026-09-27): `MADCTL = 0x60`, inversion on, 24 MHz. If it comes up
+upside down, the header is on the other side from Build 1's case: that is `MADCTL`. (The 2.4″ this
+build started with was never seen working; if you go back to it, it may be an ILI9341, which needs
+inversion off: a firmware change.)
 
 ## Then: the console
 
@@ -177,6 +174,11 @@ that is provisioned already. This build doesn't run a ceremony, and nothing in i
 chip.
 
 ## The case
+
+**For the 2.8″, see [case/CONCEPTS.md](case/CONCEPTS.md):** four bodies to choose from and a key
+cartridge that slides into a bay in each, so the key never stands up out of the case. The wedge
+below is the first case, drawn for the 2.4″ with the key standing up; it is kept until one of the
+concepts replaces it.
 
 [`case/case.py`](case/case.py), CadQuery, like the pigtail's:
 

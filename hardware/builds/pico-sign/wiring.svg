@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1020" height="860" viewBox="0 0 1020 860" font-family="Helvetica, Arial, sans-serif" font-size="12">
 <rect width="1020" height="860" fill="#ffffff"/>
-<text x="24" y="34" font-size="19" font-weight="bold">PicoQuorum pico-sign: Pico 2 W, 2.4" screen, EC11 knob, hold-to-sign switch, key-c</text>
-<text x="24" y="56" fill="#555">Pico seen from the top, USB on the left. Firmware: the console image, BOARD = "build1", SCREEN = "2.4". Go by the names printed on each part.</text>
+<text x="24" y="34" font-size="19" font-weight="bold">PicoQuorum pico-sign: Pico 2 W, 2.8" screen, EC11 knob, hold-to-sign switch, key-c</text>
+<text x="24" y="56" fill="#555">Pico seen from the top, USB on the left. Firmware: the console image, BOARD = "build1", SCREEN = "2.8". Go by the names printed on each part.</text>
 <rect x="330" y="210" width="408.0" height="168.0" rx="6" fill="#1f6f3f"/>
 <rect x="319.6" y="262.0" width="44.0" height="64.0" rx="2" fill="#bfc4c9"/>
 <text x="354.0" y="298.0" font-size="10" text-anchor="middle" fill="#333" transform="rotate(-90 354.0 298.0)">USB</text>
@@ -135,7 +135,7 @@
 <rect x="410.0" y="550.0" width="8" height="12" fill="#c9a227"/>
 <text x="414.0" y="578.0" font-size="10" text-anchor="middle" fill="#222" font-weight="bold">GND</text>
 <rect x="478.0" y="560.0" width="330.0" height="190.0" rx="8" fill="#e8f4ea" stroke="#333" stroke-width="1.5"/>
-<text x="643.0" y="657.0" font-size="14" text-anchor="middle" fill="#111" font-weight="bold">2.4" ST7789 240x320</text>
+<text x="643.0" y="657.0" font-size="14" text-anchor="middle" fill="#111" font-weight="bold">2.8" ST7789 240x320</text>
 <text x="643.0" y="675.0" font-size="11" text-anchor="middle" fill="#444">your header's order differs: go by the names</text>
 <text x="643.0" y="690.0" font-size="11" text-anchor="middle" fill="#444">SCL = SPI clock, SDA = SPI data (MOSI)</text>
 <text x="643.0" y="705.0" font-size="11" text-anchor="middle" fill="#444">not the key's I2C</text>

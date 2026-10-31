@@ -1,4 +1,4 @@
-"""pico-sign's wiring: a Pico 2 W seen from the top, USB on the left, with the 2.4" ST7789 screen,
+"""pico-sign's wiring: a Pico 2 W seen from the top, USB on the left, with the 2.8" ST7789 screen,
 an EC11 knob, a hold-to-sign switch, and a USB-C plug for a key-c.
 Writes wiring.svg next to this file. --check writes nothing: it loads firmware/board.py as the
 "build1" profile and stops if its pins differ from the ones here.
@@ -40,7 +40,7 @@ def gp(pin):
 
 def build1():
     """firmware/board.py, run on CPython with secrets.BOARD = "build1"."""
-    sys.modules["secrets"] = types.SimpleNamespace(BOARD="build1", SCREEN="2.4")
+    sys.modules["secrets"] = types.SimpleNamespace(BOARD="build1", SCREEN="2.8")
     ns = {"__name__": "board"}
     exec(compile(open(os.path.join(REPO, "firmware", "board.py")).read(), "board.py", "exec"), ns)
     del sys.modules["secrets"]
@@ -91,10 +91,10 @@ def svg():
     o = ['<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d" '
          'font-family="Helvetica, Arial, sans-serif" font-size="12">' % (W, H, W, H),
          '<rect width="%d" height="%d" fill="#ffffff"/>' % (W, H),
-         '<text x="24" y="34" font-size="19" font-weight="bold">PicoQuorum pico-sign: Pico 2 W, 2.4" screen, '
+         '<text x="24" y="34" font-size="19" font-weight="bold">PicoQuorum pico-sign: Pico 2 W, 2.8" screen, '
          'EC11 knob, hold-to-sign switch, key-c</text>',
          '<text x="24" y="56" fill="#555">Pico seen from the top, USB on the left. Firmware: the console image, '
-         'BOARD = "build1", SCREEN = "2.4". Go by the names printed on each part.</text>']
+         'BOARD = "build1", SCREEN = "2.8". Go by the names printed on each part.</text>']
 
     def line(pts, col, w=2.6, dash=None):
         o.append('<polyline points="%s" fill="none" stroke="%s" stroke-width="%s" stroke-linejoin="round"%s/>'
@@ -157,7 +157,7 @@ def svg():
     k = part(40, PART_Y, 190, 150, "EC11 knob", KNOB, "#e6eef8", "turn: move   push: open\nA C B one side, SW the other")
     ke = part(262, PART_Y, 190, 150, "USB-C plug", KEY, "#fff3e0",
               "key-c plugs on here\n4.7k VBUS to D+, 4.7k VBUS to D-\n(key-c has no pull-ups)")
-    se = part(478, PART_Y, 330, 190, "2.4\" ST7789 240x320", SCREEN, "#e8f4ea",
+    se = part(478, PART_Y, 330, 190, "2.8\" ST7789 240x320", SCREEN, "#e8f4ea",
               "your header's order differs: go by the names\nSCL = SPI clock, SDA = SPI data (MOSI)\nnot the key's I2C")
     fe = part(836, PART_Y, 150, 150, "Sign switch", SIGN_SW, "#fdf2c4", "HOLD TO SIGN, 2 s\nMOMENTARY, normally\nopen. Not latching", pitch=60)
 
