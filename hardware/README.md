@@ -16,6 +16,7 @@ screens are bench scripts, never part of the image ([builds/](builds/README.md#f
 | [Feather + adapters](wiring/FEATHER-S3.md) | build | key-c, STEMMA QT to USB-C adapters | `feather-s3`; bench in [wiring/feather-s3/](wiring/feather-s3/) | runs; chip 3 through the ceremony, 2026-10-22 |
 | [Feather pigtail](builds/feather-pigtail/README.md) | build | key-c, a USB-C cable soldered to the pins | `feather-s3`; bench `swap.py`; a case | written up, not wired |
 | [Feather knob](builds/feather-knob/README.md) | build | key-c, a USB-C adapter on the header pins | `feather-knob` (knob and Boot); bench `dial.py` | written up, not wired |
+| [Stompbox](builds/pico-stomp/README.md) | build | key-c, a USB-C plug out of the lid | `build1` (knob, footswitch as Sign); a case | written up, not wired |
 | [key-c and the other keys](key-pcb/README.md) | board | — | — | key-c P2 built and working; P3 drawn |
 | [console-a (console-pcb)](console-pcb/README.md) | board | key-c, USB-C | `build1` | designed |
 | [console-a](console-a/README.md) | board | pads | `waveshare` | designed, not ordered |
