@@ -12,6 +12,9 @@ console. v3 starts again from what a sealed cosigner is for. It answers one ques
 safe answer the easy one. The look is a retro screen, but for work: a terminal grid, a small fixed
 palette, words, not decoration.
 
+**Four looks to choose from** (terminal, instrument, annunciator, statement), each with the same
+screens and a design philosophy: [DIRECTIONS.md](DIRECTIONS.md). The terminal look below is one of them.
+
 A draft standard goes with it: [STANDARD.md](STANDARD.md), PQ-REVIEW-1. It describes what a
 cosigner shows, how that is hashed, and how the hash rides in a Safe passkey signature. It needs no
 change to Safe's contracts. It is also written as a worked example of how to start a standard.
@@ -50,8 +53,10 @@ the facts as label and value rows, and a footer that names what each control doe
    makes a control change green. It makes it *possible*.
 3. **Every number on the screen was worked out here.** The hash, the code, the amounts, the names.
    The screen says so (`computed on this device`). Nothing the service says is shown as fact.
-4. **One control, one meaning.** The knob moves. Its push opens, and on a review it rejects. The
-   footswitch signs and does nothing else. Reject is always one push; Sign is never one press.
+4. **One control, one meaning.** The knob moves. Its push opens, and on a review it leaves: back to
+   the queue, nothing sent. The footswitch signs and does nothing else; Sign is never one press.
+   **There is no Reject.** A cosigner can't reject a Safe transaction, only not sign it. It is
+   cancelled when the owners execute another one at the same nonce, and the screen says so.
 5. **A refusal is a rule, not a setting.** `WILL NOT SIGN` pages say which rule and how to get past it
    legitimately (usually: the registry, which needs the owners and a wait). No hold is long enough.
 6. **The screen says what gets signed.** The hold page names the hash, the review's intent hash
@@ -70,7 +75,7 @@ then turn or press A for the next.
 | ![home](shots/01-home.png) | **Home.** The quorum's state in one line, each Safe with its chain, threshold and what waits. The footswitch is greyed: it only signs. |
 | ![takes control, page 1](shots/02-attack-1.png) | **A module from nowhere, page 1.** Red: *takes control*. The module's code is unknown and not in the registry. The effect in one sentence. Where it came from. The hash, rebuilt here. Sign is locked. |
 | ![why it is red](shots/03-attack-2.png) | **Page 2: why it is red.** Each reason with its mark. The second is the one Oct 29 was made of: a run of queued requests for consecutive future nonces. |
-| ![will not sign](shots/04-attack-3.png) | **Page 3: will not sign.** The rule, and the legitimate way past it. Reject is one push: it signs a rejection, a no-op at the same nonce. Once the other owners sign it too and it executes, that nonce is used up. |
+| ![will not sign](shots/04-attack-3.png) | **Page 3: will not sign.** The rule, and the legitimate way past it. No Reject: only another transaction executed at nonce 42 cancels this one. When one is proposed, this device shows it as the other contender for that nonce. |
 | ![EIP-7702 delegation](shots/05-eip7702.png) | **An EIP-7702 delegation,** as a cosigner that held an EOA key would show it. Chain 0 means every chain. Fifty nonces. This device's key is P-256 and can't sign one at all ([below](#what-this-device-does-today)). |
 | ![account upgrade](shots/06-aa-1.png) | **Account abstraction, on purpose, page 1.** Amber, not red: it changes who can act, but the code is known. Two calls in one batch, both to Safe4337Module 0.3.0, its code hash in registry r12, which 2 of 3 owners approved. A 48 h delay. |
 | ![what changes](shots/07-aa-2.png) | **Page 2: what changes.** What the module may do, and what stays the same. And that this device will now be asked to sign SafeOps too. |
