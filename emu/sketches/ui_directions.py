@@ -4,7 +4,7 @@
 #   B instrument   IBM Plex on graphite, hairlines, colour only for meaning
 #   C annunciator  a cockpit's alert grammar: mono capitals on black, red/amber/cyan/green
 #   D statement    light paper, Inter, one plain sentence a page, the details under it
-# Controls in all four: turn = pages, push = open / leave (nothing sent), footswitch = sign, held.
+# Controls in all four: turn = pages, push = open / leave (nothing sent), the sign switch = sign, held.
 # There is no Reject: a cosigner can only not sign. A design study for docs/quorum-ui/v3/DIRECTIONS.md:
 # it reads no chip, asks no service and signs nothing. The transactions are made up.
 #   tools/emu run ui_directions      then turn or press A for the next screen
@@ -55,7 +55,7 @@ class A:
     ICONS = {"warn": (0x18, 0x3C, 0x24, 0x66, 0x66, 0xFF, 0xE7, 0xFF), "ok": (0x00, 0x01, 0x03, 0x86, 0xCC, 0x78, 0x30, 0x00),
              "info": (0x18, 0x18, 0x00, 0x38, 0x18, 0x18, 0x3C, 0x00), "lock": (0x18, 0x24, 0x24, 0x7E, 0x7E, 0x66, 0x7E, 0x7E),
              "knob": (0x3C, 0x66, 0xE7, 0xFF, 0xFF, 0xFF, 0x7E, 0x3C), "push": (0x3C, 0x42, 0x99, 0xBD, 0xBD, 0x99, 0x42, 0x3C),
-             "foot": (0x00, 0x18, 0x3C, 0x3C, 0x18, 0x7E, 0xFF, 0xFF)}
+             "sign": (0x00, 0x18, 0x3C, 0x3C, 0x18, 0x7E, 0xFF, 0xFF)}
     _sp = {}
 
     @classmethod
@@ -127,7 +127,7 @@ class A:
     @classmethod
     def send(cls, d):
         cls.frame(d, "FAMILY SAFE  N41", "1/2", "green", "ROUTINE", pick(("A PAYMENT TO SOMEONE YOU KNOW", "TO SOMEONE YOU KNOW")),
-                  [("knob", "PAGES", cls.INK), ("push", "LEAVE", cls.INK), ("foot", "HOLD 2 S", cls.INK)])
+                  [("knob", "PAGES", cls.INK), ("push", "LEAVE", cls.INK), ("sign", "HOLD 2 S", cls.INK)])
         cls.row(d, 68, "SEND", "")
         cls.t(d, "0.05 ETH", 76 if WIDE else 64, 64, cls.INK, 2)
         cls.row(d, 90, "TO", "Carol (address book)")
@@ -139,7 +139,7 @@ class A:
     @classmethod
     def hold(cls, d):
         cls.frame(d, "FAMILY SAFE  N41", "SIGN", "blue", "HOLDING 1.4S", pick(("LET GO TO STOP. NOTHING SENT YET", "LET GO TO STOP")),
-                  [("foot", "KEEP HOLDING", cls.BLUE)])
+                  [("sign", "KEEP HOLDING", cls.BLUE)])
         n = 10
         sw = (W - 20) // n
         for i in range(n):
@@ -233,7 +233,7 @@ class B:
     @classmethod
     def hold(cls, d):
         cls.frame(d, "Family Safe · Base", "Nonce 41", "Signing", cls.BLUE,
-                  [("Hold", "the footswitch", cls.INK), ("Let go", "to stop", None)])
+                  [("Hold", "to sign", cls.INK), ("Let go", "to stop", None)])
         F.text(d, "Keep holding", cls.M, 54, "bold26", cls.INK, cls.BG)
         d.fill_rect(cls.M, 100, W - 2 * cls.M, 4, col(cls.LINE))
         d.fill_rect(cls.M, 100, (W - 2 * cls.M) * 7 // 10, 4, col(cls.BLUE))
@@ -397,7 +397,7 @@ class D:
         y = cls.small(d, y + 6, "Carol is in your address book.")
         F.text(d, pick(CAROL), cls.M, y + 2, "mono13", cls.MUTED, cls.BG)
         cls.small(d, y + 26, "Alice approved it. Yours makes 2 of 2.", cls.INK, "sans14")
-        cls.bar(d, pick(("Hold the footswitch to approve", "Hold footswitch to approve")), cls.INK, cls.BG)
+        cls.bar(d, "Hold to sign", cls.INK, cls.BG)
 
     @classmethod
     def hold(cls, d):

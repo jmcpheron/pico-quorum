@@ -25,7 +25,7 @@ ICONS = {
     "lock": (0x18, 0x24, 0x24, 0x7E, 0x7E, 0x66, 0x7E, 0x7E),
     "knob": (0x3C, 0x66, 0xE7, 0xFF, 0xFF, 0xFF, 0x7E, 0x3C),
     "push": (0x3C, 0x42, 0x99, 0xBD, 0xBD, 0x99, 0x42, 0x3C),
-    "foot": (0x00, 0x18, 0x3C, 0x3C, 0x18, 0x7E, 0xFF, 0xFF),
+    "sign": (0x00, 0x18, 0x3C, 0x3C, 0x18, 0x7E, 0xFF, 0xFF),
     "info": (0x18, 0x18, 0x00, 0x38, 0x18, 0x18, 0x3C, 0x00),
     "chip": (0x5A, 0xFF, 0x81, 0xBD, 0xBD, 0x81, 0xFF, 0x5A),
 }
@@ -118,7 +118,7 @@ def band(d, kind, title, sub=""):
 
 
 def footer(d, items):
-    """What each control does on this page: the knob's turn, its push, the footswitch."""
+    """What each control does on this page: the knob's turn, its push, the sign switch."""
     d.fill_rect(0, H - 20, W, 20, col(PANEL))
     d.hline(0, H - 21, W, col(RULE))
     x = 6
@@ -163,7 +163,7 @@ def s_home(d):
     text(d, "0.05 ETH TO CAROL  2 H AGO", 12, 158, INK)
     text(d, "THIS KEY", 12, 180, MUTED)
     text(d, "OWNER 0x47C0..8F35  SEALED", 12, 192, INK)
-    footer(d, [("knob", "SELECT", INK), ("push", "OPEN", INK), ("foot", "SIGN ONLY", DIM)])
+    footer(d, [("knob", "SELECT", INK), ("push", "OPEN", INK), ("sign", "SIGN ONLY", DIM)])
 
 
 def s_attack1(d):
@@ -198,7 +198,7 @@ def s_attack3(d):
     topbar(d, "FAMILY SAFE  NONCE 42", "3/3")
     band(d, "red", "WILL NOT SIGN", "THIS DEVICE'S RULE, NOT A SETTING")
     d.rect(12, 64, W - 24, 80, col(RED))
-    para(d, "An unknown module is never signed here, however long the footswitch is held. "
+    para(d, "An unknown module is never signed here, however long Sign is held. "
             "To use one, add it to the registry first: 2 of 3 owners and a 48 h wait.", 20, 72, INK, 35)
     row(d, 154, "CANCEL", "Only another tx executed at")
     text(d, "nonce 42 cancels this one", 84, 166, INK)
@@ -235,7 +235,7 @@ def s_aa1(d):
     text(d, "codehash matches r12", 158, 152, INK)
     row(d, 168, "APPROVED", "r12 signed 2 of 3, Oct 12")
     row(d, 184, "DELAY", "48 h before it takes effect")
-    footer(d, [("knob", "PAGES", INK), ("push", "LEAVE", INK), ("foot", "SIGN: 3 MORE", DIM)])
+    footer(d, [("knob", "PAGES", INK), ("push", "LEAVE", INK), ("sign", "SIGN: 3 MORE", DIM)])
 
 
 def s_aa2(d):
@@ -247,7 +247,7 @@ def s_aa2(d):
     y = check(d, y, True, "Every operation still needs 2 of 3 owners: the module checks the Safe's own signatures.") + 5
     y = check(d, y, True, "Owners, threshold and other modules are unchanged.") + 5
     y = check(d, y, None, "New on this device: SafeOp approvals (EIP-712), shown and hashed the same way.")
-    footer(d, [("knob", "PAGES", INK), ("push", "LEAVE", INK), ("foot", "SIGN: 2 MORE", DIM)])
+    footer(d, [("knob", "PAGES", INK), ("push", "LEAVE", INK), ("sign", "SIGN: 2 MORE", DIM)])
 
 
 def s_aa3(d):
@@ -258,11 +258,11 @@ def s_aa3(d):
     for i in range(12):
         d.fill_rect(x0 + i * 24, 86, 20, 14, col(AMBER if i < 8 else RULE))
     text(d, "8 OF 12", W - 68, 106, AMBER)
-    text(d, "2  HOLD THE FOOTSWITCH 3 S", 12, 128, INK)
+    text(d, "2  HOLD TO SIGN, 3 S", 12, 128, INK)
     text(d, "   (3 s: this page is amber)", 12, 140, MUTED)
     row(d, 166, "SIGNS", "SafeTx 5A3C..9E21")
     row(d, 180, "CODE", "9E21-C04A  read it out")
-    footer(d, [("knob", "ARM", AMBER), ("push", "LEAVE", INK), ("foot", "HOLD 3 S", INK)])
+    footer(d, [("knob", "ARM", AMBER), ("push", "LEAVE", INK), ("sign", "HOLD 3 S", INK)])
 
 
 def s_hold(d):
@@ -275,7 +275,7 @@ def s_hold(d):
     row(d, 142, "INTENT", "pq1 control 7F2A..C3B0")
     text(d, "the review shown, hashed", 84, 154, DIM)
     row(d, 172, "KEY", "chip 3, P-256, sealed")
-    footer(d, [("foot", "KEEP HOLDING", BLUE)])
+    footer(d, [("sign", "KEEP HOLDING", BLUE)])
 
 
 def s_done(d):

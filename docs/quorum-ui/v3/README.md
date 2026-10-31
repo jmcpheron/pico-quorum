@@ -2,7 +2,7 @@
 
 > **Status: a plan, 2026-10-31.** The screens below are mock-ups drawn by
 > [`emu/sketches/cosigner_ui.py`](../../../emu/sketches/cosigner_ui.py) with the console's own
-> drawing code, on the stompbox's 320 × 240 panel. They read no chip, ask no service and sign
+> drawing code, on the pico-sign build's 320 × 240 panel. They read no chip, ask no service and sign
 > nothing. The transactions in them are made up. Nothing in the console has changed except the boot
 > screen, which is v3's first piece (`firmware/bootpixel.py`, the default since 2026-10-31).
 
@@ -37,7 +37,7 @@ The boot screen set it. v3 keeps it everywhere.
 | **Grid** | 8 px. The built-in 8 × 8 font, one cell a letter: 40 columns × 30 rows on 320 × 240, 30 × 30 on 240 × 240. Titles are the same font doubled. Art is drawn in big pixels: 4 px on the 240-row panels, 3 on the Feather, 2 on the 1.8″ |
 | **Palette** | night `#181425` · panel `#26203C` · rule `#3A3A64` · ink `#FAF0D7` · muted `#968EB4` · dim `#605A80` · amber `#F7A834` · green `#60CE6C` · blue `#6E9CF0` · red `#EE5464`. Shading picks a tone from a short ramp, never a blend |
 | **Bands** | the colour of the band under the top bar says what the transaction can do: **red** takes control or pays out more than it shows, **amber** changes who can act or isn't fully read, **green** is routine, **blue** is this device's own state (holding, signing) |
-| **Icons** | 8 × 8 bitmaps on the same grid: warn, ok, no, lock, info, chip, and the three controls (knob, push, footswitch) |
+| **Icons** | 8 × 8 bitmaps on the same grid: warn, ok, no, lock, info, chip, and the three controls (knob, push, sign switch) |
 | **Motion** | 8 steps a second. Nothing slides; things change on a step. A frame between steps sends nothing to the panel |
 | **Words** | short, plain, upper case only for labels and titles. Numbers as people read them: `1,043`, `48 h`, `0x75CF 1146 .. 8FD5 C226` |
 
@@ -54,7 +54,7 @@ the facts as label and value rows, and a footer that names what each control doe
 3. **Every number on the screen was worked out here.** The hash, the code, the amounts, the names.
    The screen says so (`computed on this device`). Nothing the service says is shown as fact.
 4. **One control, one meaning.** The knob moves. Its push opens, and on a review it leaves: back to
-   the queue, nothing sent. The footswitch signs and does nothing else; Sign is never one press.
+   the queue, nothing sent. The sign switch signs and does nothing else; Sign is never one press.
    **There is no Reject.** A cosigner can't reject a Safe transaction, only not sign it. It is
    cancelled when the owners execute another one at the same nonce, and the screen says so.
 5. **A refusal is a rule, not a setting.** `WILL NOT SIGN` pages say which rule and how to get past it
@@ -72,14 +72,14 @@ then turn or press A for the next.
 
 | | |
 |---|---|
-| ![home](shots/01-home.png) | **Home.** The quorum's state in one line, each Safe with its chain, threshold and what waits. The footswitch is greyed: it only signs. |
+| ![home](shots/01-home.png) | **Home.** The quorum's state in one line, each Safe with its chain, threshold and what waits. The sign switch is greyed: it only signs. |
 | ![takes control, page 1](shots/02-attack-1.png) | **A module from nowhere, page 1.** Red: *takes control*. The module's code is unknown and not in the registry. The effect in one sentence. Where it came from. The hash, rebuilt here. Sign is locked. |
 | ![why it is red](shots/03-attack-2.png) | **Page 2: why it is red.** Each reason with its mark. The second is the one Oct 29 was made of: a run of queued requests for consecutive future nonces. |
 | ![will not sign](shots/04-attack-3.png) | **Page 3: will not sign.** The rule, and the legitimate way past it. No Reject: only another transaction executed at nonce 42 cancels this one. When one is proposed, this device shows it as the other contender for that nonce. |
 | ![EIP-7702 delegation](shots/05-eip7702.png) | **An EIP-7702 delegation,** as a cosigner that held an EOA key would show it. Chain 0 means every chain. Fifty nonces. This device's key is P-256 and can't sign one at all ([below](#what-this-device-does-today)). |
 | ![account upgrade](shots/06-aa-1.png) | **Account abstraction, on purpose, page 1.** Amber, not red: it changes who can act, but the code is known. Two calls in one batch, both to Safe4337Module 0.3.0, its code hash in registry r12, which 2 of 3 owners approved. A 48 h delay. |
 | ![what changes](shots/07-aa-2.png) | **Page 2: what changes.** What the module may do, and what stays the same. And that this device will now be asked to sign SafeOps too. |
-| ![arm then hold](shots/08-aa-3.png) | **Page 4: arm, then hold.** A control change is armed with the knob first (12 detents), then held on the footswitch for 3 s. Turning back disarms. |
+| ![arm then hold](shots/08-aa-3.png) | **Page 4: arm, then hold.** A control change is armed with the knob first (12 detents), then held on the sign switch for 3 s. Turning back disarms. |
 | ![holding](shots/09-hold.png) | **Holding.** What will be signed: the SafeTx hash, the review's intent hash, the key. Let go and nothing is sent. |
 | ![approved](shots/10-done.png) | **Approved.** Sent, when it takes effect, and that any owner can cancel until then. The key's use counter. |
 
@@ -142,7 +142,7 @@ for the Safe without its owners:
 |---|---|
 | **R1. A control change to unknown code is refused.** Module, guard, fallback handler, singleton or a delegatecall target must be in the Safe's registry. | the gap above; the module from nowhere |
 | **R2. A run of future nonces is a red flag.** When the queue holds more than 3 transactions for the same Safe with consecutive nonces and the same control-class target, every one of them is refused until the run is cleared. | Oct 29's pre-signing |
-| **R3. A control change is armed, then held.** 12 knob detents to arm, then 3 s on the footswitch. Turning back disarms. | a hold made in a hurry |
+| **R3. A control change is armed, then held.** 12 knob detents to arm, then 3 s on the sign switch. Turning back disarms. | a hold made in a hurry |
 | **R4. A control change waits.** The registry and the Safe's Delay modifier make a control change take effect only after 48 h; any owner can cancel. The device says when. | a quiet takeover nobody saw in time |
 | **R5, for a future EOA cosigner:** never sign a 7702 authorization for chain 0; only for the account's current nonce; one at a time; only to a delegate in the registry. | the 7702 version, if this device ever holds an EOA key |
 
@@ -236,7 +236,7 @@ a network stack, the device is a screen, three controls, a chip and a parser.
    agreeing on the vectors is what makes PQ-REVIEW-1 a standard and not one device's habit.
 2. **`pq-ui`:** these screens in `embedded-graphics`, rendered to PNG on the host and compared with
    the mock-ups; then in the browser.
-3. **Firmware on the RP2350** with embassy: the stompbox first, over USB, sealed.
+3. **Firmware on the RP2350** with embassy: the pico-sign build first, over USB, sealed.
 4. Retire the MicroPython image once (3) passes the console's tests.
 
 Step 1 is useful even if step 3 never happens: the web app can use it to show exactly what the

@@ -1,5 +1,5 @@
 // Draws every screen of a UI study sketch on a panel and writes them as PNGs, as the panel's RAM would
-// hold them. Defaults: the v3 mock-ups (emu/sketches/cosigner_ui.py) on the stompbox's 2.4" at 320x240.
+// hold them. Defaults: the v3 mock-ups (emu/sketches/cosigner_ui.py) on the pico-sign build's 2.4" at 320x240.
 //   node emu/render-cosigner-ui.mjs [sketch] [out dir] [panel]     panel: build1-2.4 | waveshare
 //   node emu/render-cosigner-ui.mjs ui_directions docs/quorum-ui/v3/directions/320 build1-2.4
 import { mkdirSync, writeFileSync } from "node:fs";
