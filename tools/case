@@ -1,0 +1,171 @@
+#!/usr/bin/env python3
+# The printed cases and mock-ups, rebuilt from their CadQuery scripts. Each script runs under uv, in
+# Python 3.11 with the packages in PINS (the ones the outputs were last made with). Needs uv.
+#
+#   tools/case list                  the designs: their scripts, what they write, the pages that show it
+#   tools/case build [design...]     runs each design's scripts in order; without one, every design
+#   tools/case check [design...]     builds, then lists every output the build changed, added or removed,
+#                                    and every picture or file a design's pages link to that isn't there.
+#                                    Exits 1 if there is any. A design's outputs are up to date when a
+#                                    check changes nothing
+#
+# A STEP file's header holds the time it was written, and OpenCASCADE writes an assembly's colours in a
+# different order each run. If a rebuilt STEP differs from the one before only in those, the one before
+# is put back, so a rebuild that changes nothing leaves the file as it was.
+# To add a design: an entry in DESIGNS. Its scripts run from the repository's root. Run from anywhere.
+import glob, hashlib, os, re, subprocess, sys, time
+
+ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+PINS = ["cadquery==2.8.0", "cadquery-ocp==7.9.3.1.1", "matplotlib==3.11.2", "pillow==13.0.0", "numpy==2.4.6"]
+PS = "hardware/builds/pico-sign"
+
+# name: what it is, its scripts in order, its outputs (globs), the pages that show them; and outputs that
+# come out a little different each run, which check lists but doesn't count
+DESIGNS = {
+    "prism": dict(
+        about="pico-sign's case: the prism, its carrier, and the assembly pictures",
+        scripts=[PS + "/case/prism.py", PS + "/case/assembly.py"],
+        outputs=[PS + "/case/out/prism/*", PS + "/case/out/prism/assembly/*"],
+        pages=[PS + "/README.md", PS + "/ASSEMBLY.md"]),
+    "pico-sign-concepts": dict(
+        about="pico-sign's four case concepts and the key cartridge",
+        scripts=[PS + "/case/concepts.py"],
+        outputs=[PS + "/case/out/concepts/*"],
+        pages=[PS + "/case/CONCEPTS.md"],
+        # OpenCASCADE's booleans put one of the vault's points at 0 on one run, -8.9e-16 on the next
+        unrepeatable=[PS + "/case/out/concepts/D-vault.png", PS + "/case/out/concepts/concepts.step"]),
+    "pico-sign-wedge": dict(
+        about="pico-sign's first case, the wedge (concept A, the 2.4\" screen)",
+        scripts=[PS + "/case/case.py"],
+        outputs=[PS + "/case/out/pico_sign_*"],
+        pages=[]),
+    "feather-pigtail": dict(
+        about="the Feather pigtail's tray and bezel, v2",
+        scripts=["hardware/builds/feather-pigtail/case/case.py"],
+        outputs=["hardware/builds/feather-pigtail/case/out/pigtail_*_v2*"],
+        pages=["hardware/builds/feather-pigtail/README.md"]),
+    "key-tray": dict(
+        about="the snap-lid case for the ATECC608 breakout, v2 and v3",
+        scripts=["cad/key/tray.py"],
+        outputs=["cad/key/out/key_*_v2*", "cad/key/out/key_*_v3*"],
+        pages=["cad/key/README.md"]),
+    "key-c-print": dict(
+        about="key-c P2 as one solid, to print",
+        scripts=["hardware/key-pcb/key-c-usbc/3d/print_mockup.py"],
+        outputs=["hardware/key-pcb/key-c-usbc/3d/key-c-P2-print.step"],
+        pages=[]),
+}
+
+STAMP = re.compile(rb"(FILE_NAME\('[^']*',')([0-9T:.+-]+)(')")
+LINKED = re.compile(r"""(?:\]\(|src=["'])([^)"'#\s]+\.(?:png|jpg|jpeg|gif|svg|stl|step|3mf))""", re.I)
+
+
+def outputs(d):
+    return sorted({f for g in d["outputs"] for f in glob.glob(os.path.join(ROOT, g)) if os.path.isfile(f)})
+
+
+def snapshot(d):
+    return {f: open(f, "rb").read() for f in outputs(d)}
+
+
+def step_key(b):
+    """A STEP file without its time, and with its colours (everything from the first presentation entity on)
+    as a sorted list, each with the entities it points to written in: the same for the same model and colours."""
+    s = STAMP.sub(rb"\1\3", b, count=1).decode("latin-1")
+    i = s.find("MECHANICAL_DESIGN_GEOMETRIC_PRESENTATION_REPRESENTATION")
+    if i < 0:
+        return s
+    i = s.rfind("\n", 0, i) + 1
+    ents = {k: re.sub(r"\s+", "", v) for k, v in re.findall(r"^#(\d+) = (.*?);$", s[i:], re.S | re.M)}
+    done = {}
+    def inline(k):
+        if k not in done:
+            done[k] = re.sub(r"#(\d+)", lambda m: "{%s}" % inline(m.group(1)) if m.group(1) in ents else m.group(0), ents[k])
+        return done[k]
+    used = {r for v in ents.values() for r in re.findall(r"#(\d+)", v)}
+    return s[:i], sorted(inline(k) for k in ents if k not in used)
+
+
+def keep_steps(before):
+    """A rebuilt STEP that is the one before but for its time and the order of its colours: put the one before back."""
+    for f, old in before.items():
+        if f.lower().endswith(".step") and os.path.exists(f):
+            new = open(f, "rb").read()
+            if new != old and step_key(new) == step_key(old):
+                open(f, "wb").write(old)
+
+
+def run(name, d):
+    before = snapshot(d)
+    t0 = time.time()
+    for s in d["scripts"]:
+        cmd = ["uv", "run", "--no-project", "--python", "3.11"] + [a for p in PINS for a in ("--with", p)] + ["python", s]
+        print("== %s: %s" % (name, s), flush=True)
+        r = subprocess.run(cmd, cwd=ROOT)
+        if r.returncode:
+            sys.exit("%s failed (exit %d)" % (s, r.returncode))
+    keep_steps(before)
+    print("== %s: built in %.0f s" % (name, time.time() - t0), flush=True)
+    return before
+
+
+def missing_links(d):
+    out = []
+    for page in d["pages"]:
+        p = os.path.join(ROOT, page)
+        for link in LINKED.findall(open(p).read()):
+            if "://" not in link and not os.path.exists(os.path.normpath(os.path.join(os.path.dirname(p), link))):
+                out.append((page, link))
+    return out
+
+
+def rel(f):
+    return os.path.relpath(f, ROOT)
+
+
+def main(argv):
+    if not argv or argv[0] not in ("list", "build", "check"):
+        sys.exit(__doc__ or "usage: tools/case list | build [design...] | check [design...]")
+    cmd, names = argv[0], argv[1:] or list(DESIGNS)
+    for n in names:
+        if n not in DESIGNS:
+            sys.exit("no design %r; tools/case list shows them" % n)
+    if cmd == "list":
+        for n in names:
+            d = DESIGNS[n]
+            print("%s: %s" % (n, d["about"]))
+            print("  runs   " + "\n         ".join(d["scripts"]))
+            print("  writes " + "\n         ".join(d["outputs"]))
+            if d["pages"]:
+                print("  shown  " + "\n         ".join(d["pages"]))
+        return 0
+    bad = 0
+    for n in names:
+        d = DESIGNS[n]
+        before = run(n, d)
+        if cmd != "check":
+            continue
+        after = snapshot(d)
+        loose = {os.path.join(ROOT, f) for f in d.get("unrepeatable", [])}
+        changed = [f for f in after if f in before and after[f] != before[f] and f not in loose]
+        for f in sorted(loose):
+            if f in after and f in before and after[f] != before[f]:
+                print("  differs  %s (not repeatable run to run; not counted)" % rel(f))
+        added = [f for f in after if f not in before]
+        removed = [f for f in before if f not in after]
+        links = missing_links(d)
+        for label, fs in (("changed", changed), ("added", added), ("removed", removed)):
+            for f in fs:
+                print("  %-8s %s" % (label, rel(f)))
+        for page, link in links:
+            print("  missing  %s, linked from %s" % (link, page))
+        n_bad = len(changed) + len(added) + len(removed) + len(links)
+        print("== %s: %s" % (n, "%d outputs, up to date" % len(after) if not n_bad else "%d differences" % n_bad))
+        bad += n_bad
+    if cmd == "check" and len(names) > 1:
+        print("checked %d designs: %s" % (len(names), "up to date" if not bad else "%d differences" % bad))
+    return 1 if bad else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
