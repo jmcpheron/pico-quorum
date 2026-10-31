@@ -548,10 +548,10 @@ def case_console_pin():
     T, Q = console(owner="0x" + "12" * 20)
     check(Q.state == "pinfail" and "owner" in Q.pin_why, "a Trust M whose record names another owner than the pin: nothing signed")
     T, Q = console(pin=False, atecc=False)
-    check(Q.state == "pinfail", "the production console with no pin: nothing signed")
+    check(Q.state == "home" and Q.pin_ok and Q.sig.name == "trustm", "the production console with no pin: signs with the sealed Trust M (since 2026-10-31)")
     only_trustm()                           # factory-fresh, no record
     T, Q = console(pin=False, atecc=False)
-    check(Q.state == "pinfail" and not Q.qx, "a fresh Trust M: no key, not pinned")
+    check(not Q.qx and not Q.me, "a fresh Trust M, no pin: no key, so no owner address and nothing to sign for (state %s)" % Q.state)
 
 
 def case_dual():

@@ -33,8 +33,8 @@ QUORUM_THEME = "dark"   # or "light"
 # BOOT_ART = "pixel"
 # Its taglines (firmware/taglines.py): "serious" (the default), "fun", "all" or "none".
 # BOOT_TAGLINES = "serious"
-# The console pins which chip, slot and key it signs with (tools/fw pin writes this line). The
-# production image signs nothing without it, or when the chip in the board doesn't match.
+# The console pins which chip, slot and key it signs with (tools/fw pin writes this line). With a
+# pin, it signs nothing when the chip in the board doesn't match. Without one, it signs with any chip.
 # QUORUM_EXPECT = {"serial": "0123...", "slot": 0, "owner": "0x...", "locked": True}
 # HTTPS certificates are checked against the roots in firmware/ca_*.bin. A development board may
 # turn that off; the production image ignores this.

@@ -49,12 +49,12 @@ imports to the board, soft-resets so the old module's timers stop, imports the m
 prints its output for a few seconds. That is a one-time run: at power-up MicroPython only runs
 `main.py`. `--boot` (the page's "run at boot" box) also writes a `main.py` that imports the module.
 
-**A board with a production image is off limits.** `firmware/manifest.json` lists exactly what
-goes on a console, and `tools/fw` (backup, push, verify, pin, logs, restore) is the only way
-firmware reaches it, every file hash-checked. `ship` refuses a board whose `main.py` carries
-`# picoquorum-image:` unless `--force`: a ship there would copy past the manifest, and its soft
-reset leaves the console's watchdog unfed. `tools/usb push` refuses it too, and never copies
-`secrets.py` anywhere. Never change `main.py` on someone's console unless asked.
+**A board with a production image is tools/fw's.** `firmware/manifest.json` lists exactly what
+goes on a console, and `tools/fw` (backup, push, verify, pin, logs, restore) puts it there, every
+file hash-checked. `ship` and `tools/usb push` still work on a board whose `main.py` carries
+`# picoquorum-image:` (since 2026-10-31), but they say so: a ship there copies past the manifest,
+and its soft reset leaves the console's watchdog unfed, so the board may reset 8 s later. Neither
+copies `secrets.py`. Never change `main.py` on someone's console unless asked.
 
 ## The hardware, as seen from Python
 

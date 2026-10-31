@@ -8,8 +8,9 @@
 # ceremony has it), so nothing reachable from here can make, switch or lock a key.
 #
 # Pinned: secrets.QUORUM_EXPECT names each chip this board may use (one, or a list): its serial,
-# the slot and the owner address its key must produce. At boot the chip on the bus picks its entry. The production image (image.PRODUCTION) signs nothing until they all match, and
-# the check runs again right before every signature.
+# the slot and the owner address its key must produce. At boot the chip on the bus picks its entry. When a pin is set, the
+# console signs nothing until it matches, and the check runs again right before every signature. With no
+# pin, any image signs with the chip it finds (the production image too, since 2026-10-31).
 #
 # Safes: secrets.QUORUM_SAFES lists the Safes this console signs for (up to 4, any mix of chains;
 # QUORUM_SAFE, one, still works). Each is asked about at its own chain's service (quorum_cfg.py
@@ -463,10 +464,8 @@ def check_pin():
         pin_ok, pin_why = policy.expect_check(EXPECT, serial, sig.slot, row, me)
     elif EXPECTS:
         pin_ok, pin_why = False, "this chip is not one of the %d pinned" % len(EXPECTS)
-    elif PROD:
-        pin_ok, pin_why = False, "secrets.py has no QUORUM_EXPECT"
     else:
-        pin_ok, pin_why = True, ""      # a development board without a pin signs as before
+        pin_ok, pin_why = True, ""      # no pin: signs with the chip it finds, on any image
     qlog.write("pin %s: chip %s slot %d owner %s%s" % ("ok" if pin_ok else "FAIL", serial or sig.name, sig.slot, me or "none",
                                                      "" if pin_ok else " (%s)" % pin_why))
 

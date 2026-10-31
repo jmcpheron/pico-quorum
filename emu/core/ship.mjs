@@ -61,11 +61,10 @@ async function doShip(name, file, src, port, target, boot, force) {
   if (ls.code !== 0) return { ok: false, port, error: "cannot talk to the Pico at " + port, lines: lines(ls.out) };
   const have = ls.out.includes("'lcd.py'");
   const mainNow = (ls.out.match(/MAIN:\s*(.*)/) || [])[1] || "";
-  // A board with a production image (tools/fw push) is managed by tools/fw: a ship would copy a
-  // module and its imports past the manifest, and its soft reset leaves the console's watchdog
-  // unfed, so the board resets 8 s later in the middle of whatever runs.
-  if (/picoquorum-image:/.test(mainNow) && !force)
-    return { ok: false, port, error: "this board runs a production image (tools/fw push): use tools/fw, or ship --force on purpose", lines: [] };
+  // A board with a production image (tools/fw push): a ship copies a module and its imports past the
+  // manifest, and its soft reset leaves the console's watchdog unfed, so the board may reset 8 s
+  // later. Allowed; said in the result.
+  const prodNote = /picoquorum-image:/.test(mainNow) ? "note: this board ran a production image; shipped past its manifest (its watchdog may reset it)" : "";
   let bootNote = "";
   if (boot) {
     if (target === "wifi") bootNote = "main.py left alone: over WiFi, ship never writes main.py";
@@ -95,6 +94,7 @@ async function doShip(name, file, src, port, target, boot, force) {
   const out = lines(c.out).concat(lines(r.out));
   const failed = out.some((l) => /^Traceback/.test(l));
   if (bootNote) out.push(bootNote);
+  if (prodNote) out.push(prodNote);
   return { ok: !failed && (r.killed || r.code === 0), port, blocking: r.killed, copiedLcd: !have, lines: out, bootNote,
     copied: out.filter((l) => /^cp /.test(l)).map((l) => l.replace(/^cp .*\//, "").replace(/ :.*$/, "")) };
 }

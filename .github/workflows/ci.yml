@@ -99,8 +99,8 @@ jobs:
           node tools/releases/fingerprint.mjs
       - name: Each build.py names its source's fingerprint
         run: node tools/releases/cli.mjs release-json --out build/release.json build/console-* build/ceremony-* build/dual-*
-      - name: The README's build badges name this source (node tools/releases/badge.mjs)
-        run: node tools/releases/badge.mjs --check
+      - name: The README's build badges name this source (node tools/releases/badge.mjs; a warning, refreshed at a release)
+        run: node tools/releases/badge.mjs --check || echo "::warning::the README's build badges are behind this source. Refresh them at a release: node tools/releases/badge.mjs"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: firmware-builds
@@ -166,15 +166,15 @@ jobs:
         working-directory: emu
       - run: npm ci         # viem, for the mock Safe service the signing test confirms against
         working-directory: tools/mock-tx-service
-      - name: Rebuild docs/console and docs/emu; they must equal what is committed
+      - name: Rebuild docs/console and docs/emu; a warning when they are behind (refreshed at a release)
         working-directory: emu
         run: |
           node build.mjs
           if [ -n "$(git status --porcelain -- ../docs/emu ../docs/console)" ]; then
             git status --short -- ../docs/emu ../docs/console
-            echo "::error::docs/console or docs/emu differs from a rebuild of this commit. Run cd emu && node build.mjs, and commit both."
-            exit 1
+            echo "::warning::docs/console or docs/emu is behind this commit's firmware. Refresh at a release: cd emu && node build.mjs, and commit both."
           fi
+          git checkout -- ../docs/emu ../docs/console && git clean -fdq -- ../docs/emu ../docs/console
       - name: The console page in Chromium
         working-directory: emu
         run: |

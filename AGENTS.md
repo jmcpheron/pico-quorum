@@ -20,8 +20,9 @@ dependency, a network call or a new way to sign without asking first.
 2. **The console image is exactly what it imports.**
    - `firmware/manifest.json` lists each image. Nothing in the console image may change the chip
      (genkey, lock, write); `test-vectors/manifest.mjs` checks both.
-   - A firmware change is a new release fingerprint. Run `node tools/releases/badge.mjs` (the
-     README's build table) and rebuild the console page; CI checks both.
+   - A firmware change moves the release fingerprint. The README's build table
+     (`node tools/releases/badge.mjs`) and the console page are refreshed when a release is cut;
+     between releases CI only warns that they're behind.
 3. **Keys stay in their chips, and locks are permanent.**
    - Never add a command that reads a private key out, or that signs an arbitrary digest.
    - An ATECC608's locks can't be undone (`docs/LOCKING.md`). Don't provision, lock, run a key
@@ -41,8 +42,9 @@ dependency, a network call or a new way to sign without asking first.
    - Its viem client keeps `ccipRead: false` (`web/src/safe.mjs`).
 6. **`docs/` holds built files: never edit them by hand.**
    - `cd web && npm ci && npm run build` writes `docs/app/`, `docs/index.html` and `docs/home.css`.
-   - `cd emu && npm ci && node build.mjs` writes `docs/console/` and `docs/emu/`.
-   - Commit what they write. CI rebuilds both and fails on any difference, and
+   - `cd emu && npm ci && node build.mjs` writes `docs/console/` and `docs/emu/`, at a release.
+   - Commit what they write. CI rebuilds both: the app's `docs/` fails on any difference, the
+     console's only warns. And
      `.github/workflows/site-check.yml` compares what Pages serves with the commit.
    - `docs/releases/<version>.json` never changes after its tag.
 7. **No secrets in the repository**, nor in tests, logs, screenshots or pull requests.

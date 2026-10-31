@@ -21,14 +21,14 @@ fi
 mp="$(command -v mpremote || echo "$HOME/.local/bin/mpremote")"
 case "$1" in
   push)
-    # The production image (tools/fw push) marks its main.py; a blanket copy would undo its manifest.
+    # The production image (tools/fw push) marks its main.py. A blanket copy goes past its manifest:
+    # allowed, said once.
     if "$mp" connect "$port" resume exec "
 try:
     print('PRODUCTION-IMAGE' if '# picoquorum-image:' in open('main.py').read() else 'dev')
 except OSError:
     print('dev')" 2>/dev/null | grep -q PRODUCTION-IMAGE; then
-      echo "this board runs the production image: use tools/fw push (tools/usb push would copy every module)" >&2
-      exit 1
+      echo "note: this board ran the production image; copying every module past its manifest" >&2
     fi
     set -- connect "$port"
     for f in firmware/*.py; do

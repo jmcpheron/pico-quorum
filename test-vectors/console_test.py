@@ -251,7 +251,7 @@ def case_pin():
     Q = fresh(expect={"serial": SERIAL, "slot": 2, "owner": owner_of(2), "locked": True})
     check(Q.state == "pinfail" and "not locked" in Q.pin_why, "a pinned slot that is not locked: pinfail")
     Q = fresh(expect=None)
-    check(Q.state == "pinfail" and "QUORUM_EXPECT" in Q.pin_why, "production with no QUORUM_EXPECT: nothing is signable")
+    check(Q.state == "home" and Q.pin_ok, "production with no QUORUM_EXPECT: signs with the chip it finds (since 2026-10-31)")
     Q = fresh(prod=False, expect=None)
     check(Q.state == "home" and Q.pin_ok, "a development board without a pin works as before")
     Q = fresh(safe=False)
