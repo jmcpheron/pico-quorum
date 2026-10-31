@@ -105,6 +105,7 @@ PIN_D, PIN_HOLE = 4.2, 4.6          # pins on the posts, through the board's 4.6
 SPACER, SPACER_D = 4.0, 7.0         # tubes on the pins between the board and the carrier: room for the board's back parts
 CARRIER_MARGIN = 1.0                # the carrier this much bigger than the board all round: wall round its pin holes
 CARRIER_T = 2.5
+CARRIER_R = 2.0                     # its outline's corners, in and out
 CARRIER_SCREWS = [(-28.0, -31.0), (-28.0, 31.0), (28.0, -31.0), (28.0, 31.0)]   # from the board's centre: above and below it
 EAR_W = 12.0                        # the carrier's ears out to its screws
 BOSS_D = 9.0                        # the bosses on the plate's back: the carrier rests on them; an M3 insert in each
@@ -116,16 +117,21 @@ PICO_V = 67.0                       # its centre line, above the screen's
 # its parts and USB face the carrier; soldered the other way, they face away. The posts and the cable hole
 # take either: the micro-USB plug's overmold, 11 x 8 mm, centred 1.5 mm off whichever face has the socket.
 # Its posts on the carrier's back: the plug clears the carrier. Slim, to keep off the pads of the pins beside
-# each hole, so no insert: an M2 x 8 screw cuts its own thread in a 1.8 mm hole.
-PICO_UP, PICO_POST_D = 6.5, 4.5
+# each hole, so no insert: an M2 x 8 screw cuts its own thread in a 1.8 mm hole. The two at the USB end are
+# slimmer still: a hole 2 mm in from the board's end, so a post 3.6 across stops 0.2 mm short of it, where the
+# micro-USB plug starts. Their walls are 0.9 mm.
+PICO_UP, PICO_POST_D, PICO_POST_D_USB = 6.5, 4.5, 3.6
 PICO_SCREW_HOLE, PICO_SCREW = 1.8, 8.0
 USB_OVERHANG = 0.0                  # the micro-USB plug's face this far past the board's end: at it (the first carrier's fit)
+USB_SOCKET = (7.5, 5.6, 2.6)        # the micro-USB socket under the board, between the USB end's posts: wide, in from the
+                                    # board's end, tall. A usual micro-B's, not measured
 PICO_TOP = 22.0                     # headers and Dupont housings off the board, on the side away from the carrier
 USB_PLUG = (24.0, 11.0, 8.0, 1.5)   # the overmold and the cable's bend to the wall, its width, its thickness, its axis off the face
 PICO_HOLES = [(2.0, -5.7), (2.0, 5.7), (49.0, -5.7), (49.0, 5.7)]
-# Screwed only at the far end. On the first carrier the plug hit the posts at the USB end: a 6 mm post round a hole
-# 2 mm in reaches 1 mm past the board's end, and the 11 mm overmold spans both. Nothing holds the USB end.
-PICO_SCREWS = PICO_HOLES[2:]
+# On the first carrier the plug hit the posts at the USB end: a 6 mm post round a hole 2 mm in reaches 1 mm past
+# the board's end, and the 11 mm overmold spans both. Each hole's post, with its diameter:
+PICO_POSTS = [(dx, dy, PICO_POST_D_USB if dx < PICO[0] / 2 else PICO_POST_D) for dx, dy in PICO_HOLES]
+PICO_SCREWS = PICO_HOLES
 CABLE = 13.0                        # the square hole in the left wall: the plug passes it, its socket on either face
 W_BOARD = -PLATE - GLASS_GAP - SCREEN_GLASS[2]      # the screen board's front: the posts' tops
 W_CARRIER = W_BOARD - SCREEN_PCB_T - SPACER                  # the carrier's front: the bosses' tops
@@ -317,20 +323,22 @@ def carrier_and_spacers():
         edge = sv + math.copysign(bh / 2 - 2, v - sv)            # 2 mm into the board's outline
         far = v + math.copysign(EAR_W / 2, v - sv)
         car = car.union(pw(W_CARRIER).center(u, (edge + far) / 2).rect(EAR_W, abs(far - edge)).extrude(-CARRIER_T))
-        car = car.cut(pw(W_CARRIER + 1).center(u, v).circle(SCREW_D / 2).extrude(-CARRIER_T - 2))
     nw, nh = HEADER_NOTCH
     n0, n1 = su - bw / 2 - CARRIER_MARGIN - 1, su - bw / 2 + nw          # open past the carrier's edge
     if HEADER_SIDE > 0:
         n0, n1 = 2 * su - n1, 2 * su - n0
     car = car.cut(pw(W_CARRIER + 1).center((n0 + n1) / 2, sv).rect(n1 - n0, nh).extrude(-CARRIER_T - 2))
+    car = car.edges(cq.selectors.ParallelDirSelector(cq.Vector(0, -SF, CF))).fillet(CARRIER_R)   # before any hole
+    for u, v in carrier_screws():
+        car = car.cut(pw(W_CARRIER + 1).center(u, v).circle(SCREW_D / 2).extrude(-CARRIER_T - 2))
     spacers = None
     for c in screen_holes():
         car = car.cut(pw(W_CARRIER + 1).center(*c).circle(PIN_HOLE / 2).extrude(-CARRIER_T - 2))
         t = pw(W_BOARD - SCREEN_PCB_T).center(*c).circle(SPACER_D / 2).circle(PIN_HOLE / 2).extrude(-SPACER)
         spacers = t if spacers is None else spacers.union(t)
-    for dx, dy in PICO_SCREWS:
+    for dx, dy, d in PICO_POSTS:
         c = (PICO_U0 + dx, PICO_V + dy)
-        car = car.union(pw(W_CARRIER - CARRIER_T).center(*c).circle(PICO_POST_D / 2).extrude(-PICO_UP))
+        car = car.union(pw(W_CARRIER - CARRIER_T).center(*c).circle(d / 2).extrude(-PICO_UP))
         car = car.cut(pw(W_PICO + 0.01).center(*c).circle(PICO_SCREW_HOLE / 2).extrude(PICO_SCREW - PICO[2] + 0.5))   # blind, 1.5 mm short of the front
     return car, spacers
 
@@ -385,8 +393,8 @@ def stand_ins():
     s.append((pw(PLUG_NEAR).center(PICO_U0 + USB_OVERHANG - pl / 2, PICO_V).rect(pl, USB_PLUG[1]).extrude(PLUG_FAR - PLUG_NEAR),
               (0.15, 0.15, 0.15), "USB plug and bend (space)"))   # the socket on either face: both plugs' room
     near = pw(W_PICO).center(pc, PICO_V).rect(PICO[0], PICO[1]).extrude(3.0)
-    for dx, dy in PICO_SCREWS:
-        near = near.cut(pw(W_PICO - 1).center(PICO_U0 + dx, PICO_V + dy).circle(PICO_POST_D / 2 + 0.2).extrude(5))
+    for dx, dy, d in PICO_POSTS:
+        near = near.cut(pw(W_PICO - 1).center(PICO_U0 + dx, PICO_V + dy).circle(d / 2 + 0.2).extrude(5))
     s.append((near, (0.55, 0.55, 0.58), "Pico's parts toward the carrier (space)"))
     return s
 
@@ -429,8 +437,12 @@ def checks(body, plate, parts, carrier, spacers, lock):
     print("the Pico's plug to its posts: %.1f mm; its posts to the nearest pin's pad (pins 2.54 mm apart, rows 17.78, "
           "the first 1.61 from the end, pads 1.7 across): %.2f mm" % (
         n["USB plug and bend (space)"].val().distance(carrier.val()),
-        min(math.hypot(dx - (1.61 + 2.54 * i), dy - sy * 8.89) - PICO_POST_D / 2 - 0.85
-            for dx, dy in PICO_SCREWS for i in range(20) for sy in (-1, 1))))
+        min(math.hypot(dx - (1.61 + 2.54 * i), dy - sy * 8.89) - d / 2 - 0.85
+            for dx, dy, d in PICO_POSTS for i in range(20) for sy in (-1, 1))))
+    sw, sl = USB_SOCKET[:2]
+    print("the USB end's posts to the micro-USB socket between them (%.1f wide, not measured): %.2f mm" % (sw, min(
+        math.hypot(max(-USB_OVERHANG - dx, 0, dx - (sl - USB_OVERHANG)), max(abs(dy) - sw / 2, 0)) - d / 2
+        for dx, dy, d in PICO_POSTS if dx < PICO[0] / 2)))
     sw = n["sign switch body"].val().BoundingBox()
     print("sign switch's lugs to the floor: %.1f mm" % (sw.zmin - WALL))
     # the body as it prints, on its back: flat faces that lean more than 45 degrees past upright and aren't

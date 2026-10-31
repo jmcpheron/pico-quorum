@@ -28,7 +28,7 @@ parts, hand wiring, a printed case.
   [Feather pigtail](../feather-pigtail/README.md) uses, or a USB-C plug breakout
 - two 4.7 kΩ resistors, the key's pull-ups
 - for the case: eight M3 heat-set inserts; four M3 × 8 countersunk screws, four M3 × 8 socket head
-  screws with washers, two M2 × 8 socket head screws for the Pico; four rubber foot strips, 6 × 35 mm
+  screws with washers, four M2 × 8 socket head screws for the Pico; four rubber foot strips, 6 × 35 mm
   ([the hardware](#the-case-the-prism))
 
 ## The wiring
@@ -244,15 +244,16 @@ and so is the slot for the cable in the stop at its foot. Putting the plug in:
 
 **Inside:**
 - behind the screen, a stack on the pins: the screen board, a spacer on each pin, then the carrier.
-  The carrier is the board's size, with an ear out to each boss. Four screws through the ears into the
+  The carrier is the board's size, with an ear out to each boss, its corners rounded 2 mm. Four screws through the ears into the
   bosses hold it, and through the spacers it holds the board down on its posts. The spacers leave 4 mm
   for the parts on the board's back. The carrier is cut round the screen's header, so its wires pass.
 - the screen's header on the right (seen from the front), toward the controls, and the Pico's USB
   on the left: the screen's wires and the Pico's plug are at opposite ends.
-- the Pico on two 6.5 mm posts on the carrier's back, at its far end from the USB. They are 4.5 mm
-  across, to keep off the pads of the pins beside each hole, with a 1.8 mm hole an M2 × 8 screw cuts
-  its own thread in. The USB end has no posts: on the first carrier its micro-USB plug hit them. Its
-  USB points left (seen from the front), and its pins point away from the carrier: with the plate face
+- the Pico on four 6.5 mm posts on the carrier's back, each with a 1.8 mm hole an M2 × 8 screw cuts
+  its own thread in. The far end's are 4.5 mm across, to keep off the pads of the pins beside each hole.
+  The USB end's are 3.6 mm: on the first carrier its micro-USB plug hit 6 mm posts there. Slimmer, they
+  stop 0.2 mm short of the plug and 0.15 mm from the socket between them
+  ([the drawing](case/out/prism/assembly/pico-usb-end.png)). Its USB points left (seen from the front), and its pins point away from the carrier: with the plate face
   down and the carrier on, the pins point up. With the headers soldered the usual way that puts its
   parts and USB socket toward the carrier. Soldered the other way, it fits too.
 - the USB cable out through a 13 mm slot in the left wall, level with the Pico's USB, open to the
@@ -277,7 +278,7 @@ and so is the slot for the cable in the stop at its foot. Putting the plug in:
 |---|---|---|
 | the body's corner blocks, for the plate | 4 × M3\*6\*5, in 4.2 mm holes | 4 × M3 × 8 **countersunk**: not in the kit |
 | the plate's bosses, for the carrier | 4 × M3\*6\*5, in 4.2 mm holes | 4 × M3 × 8 socket head, with M3 washers |
-| the carrier's posts, for the Pico | none: 1.8 mm holes, self-tapping | 2 × M2 × 8 socket head, at the far end |
+| the carrier's posts, for the Pico | none: 1.8 mm holes, self-tapping | 4 × M2 × 8 socket head |
 | the screen | none: four pins and four spacers | none |
 
 The insert holes (`M3_INSERT`) are about 0.84 of the insert's outside diameter, not tried. Nor
@@ -298,8 +299,9 @@ don't overlap the body, the plate, the carrier, the spacers, the plug lock or ea
 are the carrier to the body (1.3 mm), the Pico's wires to the plug's holder (2.0 mm), the glass to the
 seats' flats (0.3 mm) and the bosses to the screen's board (2.25 mm). The plug stand-in covers the socket on either
 face of the Pico. Also that the bosses are deep enough for their inserts and the Pico's posts for
-their screws, and how close the plug comes to the posts (1.0 mm) and the posts to the Pico's pin pads
-(0.21 mm, from the Pico's drawing, not measured). It is not a fit
+their screws, and how close the posts come to the plug (0.2 mm), to the micro-USB socket (0.15 mm, a
+usual micro-B's 7.5 mm, `USB_SOCKET`) and to the Pico's pin pads (0.21 mm, from the Pico's drawing).
+The socket and the pads are not measured. It is not a fit
 check.
 
 **Overhangs:** the script turns the body as it prints and lists every flat face that leans more than

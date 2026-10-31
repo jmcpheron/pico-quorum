@@ -39,7 +39,7 @@ same either way.
 | M3 × 8 countersunk screw | 4 | the plate into the body. **Not in the bench's kits** |
 | M3 × 8 socket head screw | 4 | the carrier onto the plate's bosses |
 | M3 washer | 4 | under those |
-| M2 × 8 socket head screw | 2 | the Pico onto the carrier, at its far end. They cut their own thread |
+| M2 × 8 socket head screw | 4 | the Pico onto the carrier. They cut their own thread |
 | rubber strip, 6 × 35 mm | 4 | the body's feet |
 
 ![the hardware](case/out/prism/assembly/00-hardware.png)
@@ -139,11 +139,18 @@ at a time. They press the carrier onto the spacers, and the spacers hold the scr
 
 ![step 9](case/out/prism/assembly/09-pico.png)
 
-The Pico goes on its posts, its USB end to the **left** edge, its pins up and its parts down toward
-the carrier. Two M2 × 8 screws, through the holes at its far end, into the two posts there. The posts
-are 4.5 mm across with a 1.8 mm hole and no insert: each screw cuts its own thread, so turn it in
-slowly and stop when the Pico is held. There are no posts at the USB end: the micro-USB plug needs
-the room. Nothing holds that end but the two screws at the other.
+The Pico goes on its four posts, its USB end to the **left** edge, its pins up and its parts down
+toward the carrier. Four M2 × 8 screws. The posts have a 1.8 mm hole and no insert: each screw cuts its
+own thread, so turn it in slowly and stop when the Pico is held. The far end's posts are 4.5 mm
+across. The USB end's are 3.6 mm, so they stop short of the micro-USB plug and keep off the socket
+between them: their walls are 0.9 mm, so go gently there. If one splits, leave its screw out: the post
+still holds the board up when the cable goes in.
+
+![the USB end, drawn to scale](case/out/prism/assembly/pico-usb-end.png)
+
+The clearances at the USB end are small, and the socket's size is a usual micro-B's, not measured
+from this Pico: 0.2 mm from a post to the plug, 0.15 mm to the socket, 0.56 mm to the nearest pin's
+pad. Hold the Pico on the carrier before you screw it down.
 
 ## 10. The wires
 

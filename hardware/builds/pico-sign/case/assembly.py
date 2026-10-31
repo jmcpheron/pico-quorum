@@ -32,6 +32,7 @@ BLUE = (0.45, 0.62, 0.86)
 GREEN = (0.46, 0.74, 0.52)
 RED = (0.86, 0.30, 0.26)
 INK = (22, 22, 26)
+WHITE_HEX, BLACK_HEX = "#f7f7f5", "#333338"
 
 N = np.array([0.0, -P.SF, P.CF])            # out of the plate's face
 TH = math.radians(180 - P.A_F)              # the plate face down on the bench, as it prints
@@ -341,7 +342,8 @@ def build():
     pb = cq.Workplane("XY").box(51, 21, 1, centered=(False, True, False))
     for x, y in P.PICO_HOLES:
         pb = pb.cut(cq.Workplane("XY").center(x, y).circle(1.05).extrude(3, both=True))
-    usb = cq.Workplane("XY").box(5.6, 8, 2.6, centered=False).translate((-P.USB_OVERHANG, -4, -2.6))
+    sw, sl, sh = P.USB_SOCKET
+    usb = cq.Workplane("XY").box(sl, sw, sh, centered=False).translate((-P.USB_OVERHANG, -sw / 2, -sh))
     chip = cq.Workplane("XY").box(7, 7, 0.9, centered=(True, True, False)).translate((26, 0, -0.9))
     strips = wp(*[cq.Workplane("XY").box(50.8, 2.5, 2.5, centered=(True, True, False)).translate((25.5, y, 1)) for y in (-8.89, 8.89)])
     ppins = wp(*[cq.Workplane("XY").box(0.64, 0.64, 6, centered=(True, True, False)).translate((25.5 + (i - 9.5) * 2.54, y, 3.5))
@@ -385,6 +387,123 @@ def ctr(shape):
 
 def icon(parts, az=-55, el=30, size=170):
     return Shot(items(parts), az, el, (size, size), pad=0.14).img
+
+
+# --- a drawing: the Pico's USB end, its posts and the micro-USB plug ------------------------------------------
+def pico_usb_end(path):
+    """Two views of the Pico's USB end, in mm from the board's end (left is past it, toward the wall): from above
+    on the bench (the carrier under the Pico, its pins up) and from the side. Drawn from prism.py's numbers."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Circle, Rectangle
+    pl, pw_, pt, pax = P.USB_PLUG
+    hx, hy = P.PICO_HOLES[0][0], abs(P.PICO_HOLES[0][1])
+    d_usb, d_far, old = P.PICO_POST_D_USB, P.PICO_POST_D, 6.0
+    r = d_usb / 2
+    o = -P.USB_OVERHANG                                  # the plug's face
+    pads = [(1.61 + 2.54 * i, sy * 8.89) for i in range(5) for sy in (-1, 1)]
+    to_end = hx - r - o
+    to_pad = min(math.hypot(hx - x, hy - abs(y)) for x, y in pads) - r - 0.85
+    wall = (d_usb - P.PICO_SCREW_HOLE) / 2
+    sw, sl, sh = P.USB_SOCKET
+    to_socket = hy - sw / 2 - r
+    ink, plug, board, post, warn = "#16161a", "#3a3a40", "#76bd85", "#fcc05c", "#d94c42"
+    fig, (a, b) = plt.subplots(2, 1, figsize=(8, 10.4), gridspec_kw=dict(height_ratios=[1.15, 1]))
+    fig.suptitle("The Pico's USB end: its posts and the micro-USB plug", x=0.04, ha="left", fontsize=15)
+    t = dict(fontsize=9.5, color=ink)
+
+    # from above, on the bench
+    a.add_patch(Rectangle((0, -P.PICO[1] / 2), 16, P.PICO[1], fc=board, ec=ink, lw=1.2))
+    a.add_patch(Rectangle((-pl, -pw_ / 2), pl + o, pw_, fc=plug, ec=ink, lw=1.2, alpha=0.9))
+    a.add_patch(Rectangle((o, -sw / 2), sl, sw, fc="#bfc1c7", ec=ink, lw=1, ls=(0, (3, 2))))
+    for x, y in pads:
+        a.add_patch(Circle((x, y), 0.85, fc="#e0b85c", ec=ink, lw=0.8))
+    for sy in (-1, 1):
+        a.add_patch(Circle((hx, sy * hy), old / 2, fill=False, ec=warn, lw=1.2, ls=(0, (4, 3))))
+        a.add_patch(Circle((hx, sy * hy), r, fc=post, ec=ink, lw=1.4))
+        a.add_patch(Circle((hx, sy * hy), P.PICO_SCREW_HOLE / 2, fc="white", ec=ink, lw=1))
+    a.text(-8, 0, "micro-USB plug\n%.0f wide, its face\nat the board's end" % pw_, color="white", ha="center",
+           va="center", fontsize=9.5)
+    a.text(o + sl / 2, 0, "socket,\nunder the\nboard,\n%.1f wide" % sw, ha="center", va="center", fontsize=8.5, color=ink)
+    a.text(11.5, 0, "Pico 2 W", ha="center", va="center", fontsize=10, color=ink)
+    a.annotate("first carrier's %.0f mm post:\nreached %.0f mm past the end,\ninto the plug" % (old, old / 2 - hx),
+               (hx - old / 2 + 0.2, hy + 1.6), (-13, 10.5), color=warn, fontsize=9.5,
+               arrowprops=dict(arrowstyle="-", color=warn, lw=0.8))
+    a.annotate("post %.1f across, the same\n%.1f hole: wall %.2f" % (d_usb, P.PICO_SCREW_HOLE, wall),
+               (hx + r * 0.7, -hy - r * 0.7), (6, -14.5), fontsize=9.5, color=ink,
+               arrowprops=dict(arrowstyle="-", color=ink, lw=0.8))
+    a.annotate("pin pads", (pads[5][0] + 0.5, pads[5][1] + 0.6), (9, 12.6), fontsize=9.5, color=ink,
+               arrowprops=dict(arrowstyle="-", color=ink, lw=0.8))
+    # the clearances
+    def dim(ax, p0, p1, label, xy, color=ink):
+        ax.annotate("", p0, p1, arrowprops=dict(arrowstyle="<->", color=color, lw=1, shrinkA=0, shrinkB=0))
+        ax.text(*xy, label, fontsize=9.5, color=color, ha="center", va="center",
+                bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="none"))
+    dim(a, (o, hy), (hx - r, hy), "", (0, 0))
+    a.annotate("%.1f to the plug" % to_end, ((o + hx - r) / 2, hy), (-9, 7.6), fontsize=9.5, color=ink,
+               arrowprops=dict(arrowstyle="-", color=ink, lw=0.8))
+    c, q = (hx, -hy), pads[0]                         # the lower post and its nearest pad
+    k = math.hypot(q[0] - c[0], q[1] - c[1])
+    ux, uy = (q[0] - c[0]) / k, (q[1] - c[1]) / k
+    p0, p1 = (c[0] + ux * r, c[1] + uy * r), (q[0] - ux * 0.85, q[1] - uy * 0.85)
+    a.annotate("", p0, p1, arrowprops=dict(arrowstyle="<->", color=ink, lw=1, shrinkA=0, shrinkB=0))
+    a.annotate("%.2f to the pad" % to_pad, ((p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2), (-9, -13.2), fontsize=9.5,
+               color=ink, arrowprops=dict(arrowstyle="-", color=ink, lw=0.8))
+    a.annotate("", (hx, -hy + r), (hx, sw / 2), arrowprops=dict(arrowstyle="<->", color=ink, lw=1, shrinkA=0, shrinkB=0))
+    a.annotate("%.2f to the socket" % to_socket, (hx + 0.2, (-hy + r - sw / 2) / 2), (6.6, -3.0), fontsize=9.5, color=ink,
+               arrowprops=dict(arrowstyle="-", color=ink, lw=0.8))
+    a.annotate("", (hx, -P.PICO[1] / 2 - 0.9), (0, -P.PICO[1] / 2 - 0.9),
+               arrowprops=dict(arrowstyle="<->", color=ink, lw=0.8, shrinkA=0, shrinkB=0))
+    a.text(hx / 2, -P.PICO[1] / 2 - 1.8, "%.0f" % hx, fontsize=9, ha="center", va="top")
+    a.annotate("", (17, hy), (17, -hy), arrowprops=dict(arrowstyle="<->", color=ink, lw=0.8, shrinkA=0, shrinkB=0))
+    a.text(17.4, 0, "%.1f" % (2 * hy), fontsize=9, va="center")
+    a.axvline(0, color=ink, lw=0.6, ls=":")
+    a.set_xlim(-16, 20); a.set_ylim(-16.5, 15)
+    a.set_title("from above, on the bench: the carrier under the Pico, its pins up", loc="left", fontsize=11)
+
+    # from the side
+    up = P.PICO_UP
+    b.add_patch(Rectangle((-14, -P.CARRIER_T), 34, P.CARRIER_T, fc=WHITE_HEX, ec=ink, lw=1.2))
+    b.text(12, -P.CARRIER_T / 2, "carrier", ha="center", va="center", fontsize=9.5)
+    b.add_patch(Rectangle((hx - old / 2, 0), old, up, fill=False, ec=warn, lw=1.2, ls=(0, (4, 3))))
+    b.add_patch(Rectangle((hx - r, 0), d_usb, up, fc=post, ec=ink, lw=1.4))
+    b.add_patch(Rectangle((hx - P.PICO_SCREW_HOLE / 2, up - (P.PICO_SCREW - P.PICO[2] + 0.5)), P.PICO_SCREW_HOLE,
+                          P.PICO_SCREW - P.PICO[2] + 0.5, fc="white", ec=ink, lw=0.8))
+    b.add_patch(Rectangle((0, up), 16, P.PICO[2], fc=board, ec=ink, lw=1.2))
+    b.add_patch(Rectangle((o, up - sh), sl, sh, fc="#bfc1c7", ec=ink, lw=1, ls=(0, (3, 2))))
+    b.text(o + sl + 0.4, up - sh / 2, "socket: beside the post, not over it", fontsize=8.5, va="center")
+    b.add_patch(Rectangle((1.61 - 1.25, up + P.PICO[2]), 16, 2.5, fc=BLACK_HEX, ec=ink, lw=1))
+    for i in range(6):
+        b.add_patch(Rectangle((1.61 + 2.54 * i - 0.32, up + P.PICO[2]), 0.64, 8.5, fc="#e0b85c", ec=ink, lw=0.5))
+    z0 = up - pax - pt / 2
+    b.add_patch(Rectangle((-pl, z0), pl + o, pt, fc=plug, ec=ink, lw=1.2, alpha=0.9))
+    b.text(-pl / 2, z0 + pt / 2, "plug, %.0f thick" % pt, color="white", ha="center", va="center", fontsize=9.5)
+    b.text(10, up + P.PICO[2] + 9.6, "headers and Dupont leads", ha="center", fontsize=9)
+    b.text(hx + r + 0.4, 1.0, "post, %.1f tall" % up, fontsize=9.5)
+    b.annotate("", (-5, 0), (-5, z0), arrowprops=dict(arrowstyle="<->", color=ink, lw=1, shrinkA=0, shrinkB=0))
+    b.annotate("%.1f between the plug and the carrier" % z0, (-5, z0 / 2), (-15, -5.5), fontsize=9.5, color=ink,
+               arrowprops=dict(arrowstyle="-", color=ink, lw=0.8))
+    b.annotate("first carrier's post", (hx + old / 2, up * 0.4), (8, 3), color=warn, fontsize=9.5,
+               arrowprops=dict(arrowstyle="-", color=warn, lw=0.8))
+    b.axvline(0, color=ink, lw=0.6, ls=":")
+    b.set_xlim(-16, 20); b.set_ylim(-7, 21)
+    b.set_title("from the side, cut through a post: the plug stops short of it", loc="left", fontsize=11)
+
+    for ax in (a, b):
+        ax.set_aspect("equal")
+        ax.grid(True, color="#e6e6e9", lw=0.5)
+        ax.set_axisbelow(True)
+        ax.tick_params(labelsize=8, colors="#777")
+        for sp in ax.spines.values():
+            sp.set_visible(False)
+    fig.text(0.04, 0.012, "mm, from the board's end. The plug is drawn at the board's end, the closest a seated one can be. "
+             "Not measured:\nthe socket (a usual micro-B's %.1f x %.1f x %.1f) and the pads (from the Pico's drawing: pins "
+             "2.54 apart, rows 17.78, 1.7 across)." % (sw, sl, sh),
+             fontsize=8.5, color="#555")
+    fig.tight_layout(rect=(0, 0.04, 1, 0.97))
+    fig.savefig(path, dpi=160, facecolor="white")
+    plt.close(fig)
 
 
 # --- the steps ------------------------------------------------------------------------------------------------
@@ -568,7 +687,7 @@ def main():
         s.arrow(np.array(P.world(P.PICO_U0 + 25.5 + du, P.PICO_V - 14, P.W_PICO - 20)),
                 np.array(P.world(P.PICO_U0 + 25.5 + du, P.PICO_V - 14, P.W_PICO - 4)))
     s.label(np.array(P.world(P.PICO_U0 - 2, P.PICO_V, P.W_PICO - 24)), "USB to the LEFT edge", -60, 120, 26)
-    s.label(np.array(P.world(P.PICO_U0 + 2, P.PICO_V, P.W_PICO - 2)), "no screws at the USB end:\nits plug needs the room",
+    s.label(np.array(P.world(P.PICO_U0 + 2, P.PICO_V + 5.7, P.W_PICO - 3)), "slimmer posts at the USB end:\n%.1f mm, for its plug" % P.PICO_POST_D_USB,
             -40, 250, 24)
     s.label(np.array(P.world(P.PICO_U0 + 30, P.PICO_V + 9, P.W_PICO - 32)), "pins up, its parts\ndown to the carrier", 220, -120, 26)
     page("pico", 9, "The plate: the Pico on its posts", [s.img],
@@ -619,6 +738,7 @@ def main():
     b = Shot(items(whole + g["knob"] + g["key"]), -42, 18, (750, 950), pad=0.06)
     page("done", 13, "The knob's cap, then a key on top", [a.img, b.img],
          need=[(icon(g["knob"]), "1×", "knob cap"), (icon(g["key"], el=20), "1×", "a key-c in its cartridge")])
+    pico_usb_end(os.path.join(OUT, "pico-usb-end.png"))
 
 
 if __name__ == "__main__":
