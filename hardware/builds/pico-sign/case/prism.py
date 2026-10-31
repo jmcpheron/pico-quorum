@@ -45,17 +45,26 @@ P2 = (P1[0] + BAND, H)                              # the band's back edge
 P3 = (P2[0] + H / math.tan(math.radians(A_B)), 0.0)  # the back's foot
 PROFILE = [(0.0, 0.0), P1, P2, P3]
 ACCENT_Z, ACCENT_H, ACCENT_D = 6.0, 3.0, 1.5        # the channel round the base, for a strip of colour
+FOOT = (6.0, 35.0)                  # the rubber feet: four strips with round ends (calipers), front to back
+FOOT_CLEAR, FOOT_DEPTH = 0.3, 1.0   # round each in its pocket in the bottom; how deep the pocket is
+FOOT_X, FOOT_END = 14.0, 8.0        # the strips' centres in from the sides; their ends in from the front and back
 
 # --- the plate's parts (u, v) -----------------------------------------------------------------------
 # Calipers on the bench's 2.8": the board, its holes (4.6 mm) and the panel's thickness. The holes' centres
 # from their edges: 35.1 inside and 44.6 outside top to bottom; 76.1 and 76.5 outside across, so about 71.7.
-SCREEN_PCB = (80.0, 48.5)           # the board, the 8-pin header on its left, its pins out of the back
+SCREEN_PCB = (80.0, 48.5)           # the board, the 8-pin header at one end (HEADER_SIDE), its pins out of the back
 SCREEN_PCB_T = 1.5
 SCREEN_HOLES = (71.7, 39.85)        # its four holes' centres
 SCREEN_GLASS = (66.5, 48.5, 4.0)    # the panel: its outline a placeholder, between the holes; 4.0 thick, the board's front to the glass's
 SCREEN_ACTIVE = (57.6, 43.2)        # its active area, landscape: a 2.8" 240x320's, 0.18 mm pixels
-SCREEN_DX = 0.0                     # the glass right of the board's centre: a placeholder
-SCREEN_UV = (57.0, 50.0)            # the board's centre on the plate
+# The screen's 8-pin header: on the right (1), away from the Pico's USB, or on the left (-1), which is how the
+# firmware draws it the right way up today (board.py, MADCTL 0x60 for build1's 2.8"). On the right it needs
+# 0xA0: a firmware change, not made. Fitted on the first plate with the header on the right, the posts wanted
+# to be 1 mm toward the controls: the glass sits 1 mm off its holes' centre, away from the header.
+HEADER_SIDE = 1
+SCREEN_DX = -HEADER_SIDE * 1.0      # the glass this far right of the board's centre
+SCREEN_UV = (57.0 - SCREEN_DX, 50.0)    # the board's centre on the plate: the window stays at 57
+HEADER_U = SCREEN_UV[0] + HEADER_SIDE * (SCREEN_PCB[0] / 2 - 1.5)   # its pins, 1.5 mm in from the board's edge (the photo)
 CTRL_U = 140.0                      # the controls' column
 SIGN_V, KNOB_V = 62.0, 30.0         # the sign switch on top, the knob under it
 SIGN_HOLE, SIGN_RING, SIGN_RING_T = 12.2, 26.0, 2.0     # a 12 mm metal push switch; a thicker ring: it's pressed hard
@@ -69,7 +78,6 @@ SCREWS = [(11.0, 15.0), (W - 11.0, 15.0), (11.0, LP - 9.0), (W - 11.0, LP - 9.0)
 # M2 x 4/8/12/16 and M3 x 6/8/12/16, nuts and washers. Holes for the inserts are about 0.84 of the outside
 # diameter: print one boss and try an insert before the rest.
 M3_INSERT = (4.2, 6.0)              # M3*6*5: the hole, the insert's length
-M2_INSERT = (2.7, 4.0)              # M2*4*3.2
 INSERT_D, INSERT_L, BOSS_L = M3_INSERT[0], M3_INSERT[1], 12.0
 SCREW_D, CSK_D = 3.4, 6.6           # M3 countersunk: not in the kit
 
@@ -103,14 +111,21 @@ BOSS_D = 9.0                        # the bosses on the plate's back: the carrie
 HEADER_NOTCH = (9.0, 26.0)          # the carrier is cut round the screen's header and its wires: from the board's edge in, tall
 PICO = (51.0, 21.0, 1.0)
 PICO_U0 = 30.0                      # its USB end, pointing left: room for the plug and the cable's bend
-PICO_V = 67.0                       # its centre line, above the screen's: the plug and cable pass over the screen's header
+PICO_V = 67.0                       # its centre line, above the screen's
 # The Pico's pins point away from the carrier, its USB to the left. With its headers soldered the usual way
 # its parts and USB face the carrier; soldered the other way, they face away. The posts and the cable hole
 # take either: the micro-USB plug's overmold, 11 x 8 mm, centred 1.5 mm off whichever face has the socket.
-PICO_UP, PICO_POST_D = 6.5, 6.0     # its posts on the carrier's back, an M2 insert in each: the plug clears the carrier
+# Its posts on the carrier's back: the plug clears the carrier. Slim, to keep off the pads of the pins beside
+# each hole, so no insert: an M2 x 8 screw cuts its own thread in a 1.8 mm hole.
+PICO_UP, PICO_POST_D = 6.5, 4.5
+PICO_SCREW_HOLE, PICO_SCREW = 1.8, 8.0
+USB_OVERHANG = 0.0                  # the micro-USB plug's face this far past the board's end: at it (the first carrier's fit)
 PICO_TOP = 22.0                     # headers and Dupont housings off the board, on the side away from the carrier
 USB_PLUG = (24.0, 11.0, 8.0, 1.5)   # the overmold and the cable's bend to the wall, its width, its thickness, its axis off the face
 PICO_HOLES = [(2.0, -5.7), (2.0, 5.7), (49.0, -5.7), (49.0, 5.7)]
+# Screwed only at the far end. On the first carrier the plug hit the posts at the USB end: a 6 mm post round a hole
+# 2 mm in reaches 1 mm past the board's end, and the 11 mm overmold spans both. Nothing holds the USB end.
+PICO_SCREWS = PICO_HOLES[2:]
 CABLE = 13.0                        # the square hole in the left wall: the plug passes it, its socket on either face
 W_BOARD = -PLATE - GLASS_GAP - SCREEN_GLASS[2]      # the screen board's front: the posts' tops
 W_CARRIER = W_BOARD - SCREEN_PCB_T - SPACER                  # the carrier's front: the bosses' tops
@@ -118,7 +133,7 @@ W_PICO = W_CARRIER - CARRIER_T - PICO_UP            # the Pico's face on its pos
 PLUG_NEAR = W_PICO + USB_PLUG[3] + USB_PLUG[2] / 2               # the plug's reach toward the carrier, socket that side
 PLUG_FAR = W_PICO - PICO[2] - USB_PLUG[3] - USB_PLUG[2] / 2      # and away from it, socket the other side
 assert -PLATE - W_CARRIER >= M3_INSERT[1] + 1.5, "the bosses are too short for their inserts"
-assert CARRIER_T + PICO_UP >= M2_INSERT[1] + 1.0, "the Pico's posts are too short for their inserts"
+assert CARRIER_T + PICO_UP >= PICO_SCREW - PICO[2] + 0.5, "the Pico's posts are too short for their screws"
 
 
 def plate_plane(w=0.0):
@@ -227,12 +242,15 @@ def body_and_plate():
     for sx in (-1, 1):
         body = body.cut(cq.Workplane("XY").sphere(dr + 0.1).translate(detent_at(sx, pw_ - LOCK_CLEAR + dout - dr)))   # the bump's own centre
 
-    # the cable out through the left wall, level with the Pico's USB; rubber feet
-    hole = pw(PLUG_NEAR + (CABLE - (PLUG_NEAR - PLUG_FAR)) / 2).center(-1, PICO_V).rect(2 * (WALL + 3), CABLE).extrude(-CABLE)
+    # the cable out through the left wall, level with the Pico's USB: a slot open to the wall's front edge, so the
+    # cable, plugged in, slides down it as the plate goes on, and the plate closes it; rubber feet
+    deep = PLUG_NEAR + (CABLE - (PLUG_NEAR - PLUG_FAR)) / 2 - CABLE
+    hole = pw(0).center(-1, PICO_V).rect(2 * (WALL + 3), CABLE).extrude(deep)
     body = body.cut(hole.edges("|X").fillet(2.5))
-    for x in (14, W - 14):
-        for y in (12, P3[0] - 14):
-            body = body.cut(cq.Workplane("XY").circle(5.2).extrude(1.0).translate((x, y, 0)))
+    fw, fl = FOOT[0] + 2 * FOOT_CLEAR, FOOT[1] + 2 * FOOT_CLEAR
+    for x in (FOOT_X, W - FOOT_X):
+        for y in (FOOT_END + fl / 2, P3[0] - FOOT_END - fl / 2):
+            body = body.cut(cq.Workplane("XY").slot2D(fl, fw, 90).extrude(FOOT_DEPTH).translate((x, y, 0)))
     return body, plate
 
 
@@ -302,16 +320,18 @@ def carrier_and_spacers():
         car = car.cut(pw(W_CARRIER + 1).center(u, v).circle(SCREW_D / 2).extrude(-CARRIER_T - 2))
     nw, nh = HEADER_NOTCH
     n0, n1 = su - bw / 2 - CARRIER_MARGIN - 1, su - bw / 2 + nw          # open past the carrier's edge
+    if HEADER_SIDE > 0:
+        n0, n1 = 2 * su - n1, 2 * su - n0
     car = car.cut(pw(W_CARRIER + 1).center((n0 + n1) / 2, sv).rect(n1 - n0, nh).extrude(-CARRIER_T - 2))
     spacers = None
     for c in screen_holes():
         car = car.cut(pw(W_CARRIER + 1).center(*c).circle(PIN_HOLE / 2).extrude(-CARRIER_T - 2))
         t = pw(W_BOARD - SCREEN_PCB_T).center(*c).circle(SPACER_D / 2).circle(PIN_HOLE / 2).extrude(-SPACER)
         spacers = t if spacers is None else spacers.union(t)
-    for dx, dy in PICO_HOLES:
+    for dx, dy in PICO_SCREWS:
         c = (PICO_U0 + dx, PICO_V + dy)
         car = car.union(pw(W_CARRIER - CARRIER_T).center(*c).circle(PICO_POST_D / 2).extrude(-PICO_UP))
-        car = car.cut(pw(W_PICO + 0.01).center(*c).circle(M2_INSERT[0] / 2).extrude(M2_INSERT[1] + 0.5))
+        car = car.cut(pw(W_PICO + 0.01).center(*c).circle(PICO_SCREW_HOLE / 2).extrude(PICO_SCREW - PICO[2] + 0.5))   # blind, 1.5 mm short of the front
     return car, spacers
 
 
@@ -327,10 +347,10 @@ def stand_ins():
             brd = brd.cut(pw(W_BOARD + 1).center(su + sx * SCREEN_HOLES[0] / 2, sv + sy * SCREEN_HOLES[1] / 2)
                           .circle(PIN_HOLE / 2).extrude(-4))
     s.append((brd, (0.10, 0.30, 0.55), "screen board"))
-    s.append((pw(W_BOARD - SCREEN_PCB_T).center(su + 10, sv).rect(60, 30).extrude(-SPACER + 0.5), (0.3, 0.3, 0.32),
+    s.append((pw(W_BOARD - SCREEN_PCB_T).center(su - HEADER_SIDE * 10, sv).rect(60, 30).extrude(-SPACER + 0.5), (0.3, 0.3, 0.32),
               "screen board back parts"))
-    s.append((pw(W_BOARD - SCREEN_PCB_T).center(su - SCREEN_PCB[0] / 2 + 1.5, sv).rect(3, 21).extrude(-16), (0.1, 0.1, 0.1),
-              "screen header and wires"))       # pins 1.5 mm in from the edge (the photo), Dupont housings on them
+    s.append((pw(W_BOARD - SCREEN_PCB_T).center(HEADER_U, sv).rect(3, 21).extrude(-16), (0.1, 0.1, 0.1),
+              "screen header and wires"))       # Dupont housings on its pins
     heads = None                    # the carrier's M3 x 8 socket heads on M3 washers
     for c in carrier_screws():
         h = pw(W_CARRIER - CARRIER_T).center(*c).circle(3.5).extrude(-0.5).union(
@@ -362,10 +382,10 @@ def stand_ins():
     s.append((pw(W_PICO - PICO[2]).center(pc + 2, PICO_V).rect(PICO[0] - 4, PICO[1]).extrude(-(PICO_TOP - PICO[2])),
               (0.55, 0.55, 0.58), "headers and wires (space)"))
     pl = USB_PLUG[0]
-    s.append((pw(PLUG_NEAR).center(PICO_U0 - 1.3 - pl / 2, PICO_V).rect(pl, USB_PLUG[1]).extrude(PLUG_FAR - PLUG_NEAR),
+    s.append((pw(PLUG_NEAR).center(PICO_U0 + USB_OVERHANG - pl / 2, PICO_V).rect(pl, USB_PLUG[1]).extrude(PLUG_FAR - PLUG_NEAR),
               (0.15, 0.15, 0.15), "USB plug and bend (space)"))   # the socket on either face: both plugs' room
     near = pw(W_PICO).center(pc, PICO_V).rect(PICO[0], PICO[1]).extrude(3.0)
-    for dx, dy in PICO_HOLES:
+    for dx, dy in PICO_SCREWS:
         near = near.cut(pw(W_PICO - 1).center(PICO_U0 + dx, PICO_V + dy).circle(PICO_POST_D / 2 + 0.2).extrude(5))
     s.append((near, (0.55, 0.55, 0.58), "Pico's parts toward the carrier (space)"))
     return s
@@ -406,6 +426,11 @@ def checks(body, plate, parts, carrier, spacers, lock):
           "the bosses to the screen's board: %.2f mm" % (
         min(gap(c, 0, gu0, gu1, gv0, gv1) for c in screen_holes()), SEAT_D / 2 + GLASS_CLEAR,
         min(gap(c, BOSS_D / 2, bu0, bu1, bv0, bv1) for c in carrier_screws())))
+    print("the Pico's plug to its posts: %.1f mm; its posts to the nearest pin's pad (pins 2.54 mm apart, rows 17.78, "
+          "the first 1.61 from the end, pads 1.7 across): %.2f mm" % (
+        n["USB plug and bend (space)"].val().distance(carrier.val()),
+        min(math.hypot(dx - (1.61 + 2.54 * i), dy - sy * 8.89) - PICO_POST_D / 2 - 0.85
+            for dx, dy in PICO_SCREWS for i in range(20) for sy in (-1, 1))))
     sw = n["sign switch body"].val().BoundingBox()
     print("sign switch's lugs to the floor: %.1f mm" % (sw.zmin - WALL))
     # the body as it prints, on its back: flat faces that lean more than 45 degrees past upright and aren't

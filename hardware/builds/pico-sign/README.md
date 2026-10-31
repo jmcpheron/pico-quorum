@@ -5,7 +5,7 @@
 | board | a Pico 2 W (castellated), wires or headers soldered on |
 | key | a key-c in a printed cartridge that slides into a bay ([case/CONCEPTS.md](case/CONCEPTS.md)) |
 | runs | the console image as `BOARD = "build1"`, `SCREEN = "2.8"`, unchanged; `firmware/bench1.py` first |
-| case | [the prism](#the-case-the-prism): a one-piece body and a front plate, M3 into heat-set inserts |
+| case | [the prism](#the-case-the-prism): a one-piece body and a front plate, M3 into heat-set inserts; [put together step by step](ASSEMBLY.md) |
 | status | written up 2026-10-30 for a demo; not wired, not printed, not run |
 
 Build 1 again, made into a box. A rotary knob does everything on the screen, and one metal push
@@ -27,8 +27,9 @@ parts, hand wiring, a printed case.
 - a key-c, and a USB-C plug for it: a C-to-C cable cut short behind one plug, as the
   [Feather pigtail](../feather-pigtail/README.md) uses, or a USB-C plug breakout
 - two 4.7 kΩ resistors, the key's pull-ups
-- for the case: four M3 × 8 countersunk screws, four M3 heat-set inserts, four M2 × 5 screws for the
-  Pico, four small rubber feet
+- for the case: eight M3 heat-set inserts; four M3 × 8 countersunk screws, four M3 × 8 socket head
+  screws with washers, two M2 × 8 socket head screws for the Pico; four rubber foot strips, 6 × 35 mm
+  ([the hardware](#the-case-the-prism))
 
 ## The wiring
 
@@ -163,7 +164,9 @@ What to look for:
 button: only for signing".
 
 **The 2.8″ is proven on build1** (2026-09-27): `MADCTL = 0x60`, inversion on, 24 MHz. If it comes up
-upside down, the header is on the other side from Build 1's case: that is `MADCTL`. (The 2.4″ this
+upside down, the header is on the other side from Build 1's case: that is `MADCTL`. The prism puts the
+header on the right, so on it the screen comes up upside down until `MADCTL` is `0xA0` for this build.
+That is a firmware change, and a new release; it isn't made. (The 2.4″ this
 build started with was never seen working; if you go back to it, it may be an ILI9341, which needs
 inversion off: a firmware change.)
 
@@ -176,10 +179,10 @@ chip.
 ## The case: the prism
 
 [`case/prism.py`](case/prism.py), CadQuery. A first draft to print and try.
+[ASSEMBLY.md](ASSEMBLY.md) puts it together step by step, with pictures.
 
 ```sh
-uv run --python 3.11 --with cadquery --with matplotlib --with pillow \
-    python hardware/builds/pico-sign/case/prism.py [screen.png]
+tools/case build prism     # prism.py, then assembly.py's pictures; `check` says what changed
 ```
 
 ![the prism](case/out/prism/prism_front.png)
@@ -192,7 +195,9 @@ along the top, and the back falls at 70°. 78 mm tall, 107 mm front to back.
   and the desk's side is a wall, 180 × 93 × 98 mm. The four blocks that hold the plate's inserts
   stand out from the side walls, so under each, as it prints, a 45° chamfer runs down to its wall.
   Its outside edges are chamfered 2.5 mm. A channel 3 mm tall and 1.5 mm deep runs round the base,
-  plate included, for a strip of another colour.
+  plate included, for a strip of another colour. Under it, four pockets 1 mm deep for the rubber
+  feet, strips 6 × 35 mm with round ends (calipers), 0.3 mm round each: front to back, 14 mm in
+  from each side, their ends 8 mm in from the front and back edges.
 - **The plate**, 3 mm, printed face down, so the words are on the bed and the posts, pins and bosses
   stand up. Four M3 countersunk screws hold it, into heat-set inserts in blocks at the corners of the
   body's opening.
@@ -242,13 +247,19 @@ and so is the slot for the cable in the stop at its foot. Putting the plug in:
   The carrier is the board's size, with an ear out to each boss. Four screws through the ears into the
   bosses hold it, and through the spacers it holds the board down on its posts. The spacers leave 4 mm
   for the parts on the board's back. The carrier is cut round the screen's header, so its wires pass.
-- the Pico on four 6.5 mm posts on the carrier's back, an M2 insert in each. It sits above the
-  screen's header, so its plug and cable pass over the header's wires. Its USB points left (seen from
-  the front), and its pins point away from the carrier: with the plate face down and the carrier on,
-  the pins point up. With the headers soldered the usual way that puts its parts and USB socket toward
-  the carrier, and the posts leave room for the plug there. Soldered the other way, it fits too.
-- the USB cable out through a 13 mm square hole in the left wall, level with the Pico's USB. The plug
-  passes it whichever face its socket is on.
+- the screen's header on the right (seen from the front), toward the controls, and the Pico's USB
+  on the left: the screen's wires and the Pico's plug are at opposite ends.
+- the Pico on two 6.5 mm posts on the carrier's back, at its far end from the USB. They are 4.5 mm
+  across, to keep off the pads of the pins beside each hole, with a 1.8 mm hole an M2 × 8 screw cuts
+  its own thread in. The USB end has no posts: on the first carrier its micro-USB plug hit them. Its
+  USB points left (seen from the front), and its pins point away from the carrier: with the plate face
+  down and the carrier on, the pins point up. With the headers soldered the usual way that puts its
+  parts and USB socket toward the carrier. Soldered the other way, it fits too.
+- the USB cable out through a 13 mm slot in the left wall, level with the Pico's USB, open to the
+  wall's front edge. Plug the cable into the Pico first, lay it in the slot, and it slides down the
+  slot as the plate goes on; the plate closes it. A closed hole would stop the plate 3 to 7 mm out
+  (checked by moving the plate's stack and a 4 mm cable out along the plate's normal). The plug passes
+  it whichever face its socket is on.
 - the key's plug cable down from its holder, beside the Pico
 - 27 mm between the sign switch's lugs and the floor
 
@@ -266,11 +277,11 @@ and so is the slot for the cable in the stop at its foot. Putting the plug in:
 |---|---|---|
 | the body's corner blocks, for the plate | 4 × M3\*6\*5, in 4.2 mm holes | 4 × M3 × 8 **countersunk**: not in the kit |
 | the plate's bosses, for the carrier | 4 × M3\*6\*5, in 4.2 mm holes | 4 × M3 × 8 socket head, with M3 washers |
-| the carrier's posts, for the Pico | 4 × M2\*4\*3.2, in 2.7 mm holes | 4 × M2 × 4 socket head |
+| the carrier's posts, for the Pico | none: 1.8 mm holes, self-tapping | 2 × M2 × 8 socket head, at the far end |
 | the screen | none: four pins and four spacers | none |
 
-The insert holes (`M3_INSERT`, `M2_INSERT`) are about 0.84 of the insert's outside diameter, not
-tried. Print one boss and set an insert before printing the rest.
+The insert holes (`M3_INSERT`) are about 0.84 of the insert's outside diameter, not tried. Nor
+is an M2 screw in a printed 1.8 mm hole (`PICO_SCREW_HOLE`). Print one boss and set an insert before printing the rest.
 
 | file in `case/out/prism/` | what |
 |---|---|
@@ -286,7 +297,9 @@ the knob, the plug, the cartridge, the Pico with its parts, wires and USB plug, 
 don't overlap the body, the plate, the carrier, the spacers, the plug lock or each other (181 pairs). The closest
 are the carrier to the body (1.3 mm), the Pico's wires to the plug's holder (2.0 mm), the glass to the
 seats' flats (0.3 mm) and the bosses to the screen's board (2.25 mm). The plug stand-in covers the socket on either
-face of the Pico. Also that the bosses and the Pico's posts are deep enough for their inserts. It is not a fit
+face of the Pico. Also that the bosses are deep enough for their inserts and the Pico's posts for
+their screws, and how close the plug comes to the posts (1.0 mm) and the posts to the Pico's pin pads
+(0.21 mm, from the Pico's drawing, not measured). It is not a fit
 check.
 
 **Overhangs:** the script turns the body as it prints and lists every flat face that leans more than
@@ -295,16 +308,21 @@ check.
   lip; it may droop a little.
 - the colour channel in the back (565 mm²): a 3 mm bridge, 1.5 mm off the bed
 - the front side of the plug's hole in the top (31 mm²): a bridge 12.8 mm across, 2.4 mm deep
-- a side of the Pico's cable hole in the left wall (19 mm²)
+- the lower side of the Pico's cable slot in the left wall (56 mm²): the wall's 2.4 mm edge, 50°
+  from upright
 
 **Before printing:**
 - **The screen** is measured with calipers: the board 80 × 48.5 × 1.5 mm, its holes 4.6 mm, the
   panel 4.0 mm from the board's front to the glass's front. The holes' centres come from their edges:
   35.1 inside and 44.6 outside top to bottom, so 39.85; 76.1 and 76.5 outside across, so about 71.7.
-  **Still to measure:** the panel's outline and where it sits on the board, and the visible area. The
-  panel is a placeholder 66.5 × 48.5 mm, centred, to fit between the holes; the visible area is a
-  2.8″ 240 × 320 panel's usual 57.6 × 43.2 mm, centred on it. The seats' flats and the window follow
-  them; the script prints how close the glass comes to a hole.
+  **Fitted on the first plate (2026-10-30):** the screen sat well, but with its header on the right
+  the posts wanted to be 1 mm toward the controls. The header is on the right (`HEADER_SIDE`), away
+  from the Pico's USB: the glass sits 1 mm left of its holes' centre (`SCREEN_DX`), so the window
+  stays put and the posts, the bosses and the carrier move 1 mm right. The first plate has them where
+  they were, so its carrier is a separate one, made with the board's centre 1 mm back.
+  **Still to measure:** the panel's outline and the visible area. The panel is a placeholder
+  66.5 × 48.5 mm; the visible area is a 2.8″ 240 × 320 panel's usual 57.6 × 43.2 mm, centred on it.
+  The seats' flats and the window follow them; the script prints how close the glass comes to a hole.
 - **The key's plug:** the cut cable's overmold, 12.4 × 5.5 × 17.1 mm, as the Feather pigtail and
   the bench's cable both measured. A different cable needs the pocket (`PLUG_*`) changed.
 - **The sign switch:** a 12 mm bushing and 28 mm of body under the plate, momentary.
