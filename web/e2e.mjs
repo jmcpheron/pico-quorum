@@ -426,6 +426,43 @@ await step("a passkey's signer, from a deploy link, with a wallet that owns no S
   wallet.as = "alice";
 });
 
+await step("a new key's set-up link (#/k/<compressed key>): compare, deploy from any wallet, Add owner", async () => {
+  const priv = p256.utils.randomPrivateKey();
+  const full = p256.getPublicKey(priv, false), comp = Buffer.from(p256.getPublicKey(priv, true)).toString("hex");
+  const x = Buffer.from(full.slice(1, 33)).toString("hex"), y = Buffer.from(full.slice(33)).toString("hex");
+  const owner = getAddress(p256Owner(S.CFG.signer, "0x" + x, "0x" + y));
+  await page.goto(`${BASE}app/#/k/${comp.slice(0, 2) === "02" ? "03" : "02"}${"f".repeat(64)}`);   // x = 2^256-1: not a field element
+  await page.getByText("That isn't a key's set-up link").waitFor();
+  check(await page.getByRole("button", { name: /^Deploy on/ }).count() === 0, "#/k: a key that isn't on the curve is refused, no Deploy button");
+  await page.evaluate((a) => localStorage.setItem("pq.safes", JSON.stringify([{ chain: "basesep", address: a, name: "Family Safe" }])), SAFE);
+  await page.goto(`${BASE}app/#/k/${comp}`);
+  await page.getByRole("button", { name: "Deploy on Base Sepolia" }).waitFor();
+  check((await page.locator(".card .inline-ident code").first().innerText()).trim() === owner, `#/k: the owner address (${owner.slice(0, 10)}…), worked out from the compressed key`);
+  check(await page.getByText(/signer contract, not a wallet/).count() === 1, "#/k: says the owner address is not a wallet, before anything else");
+  check(await page.locator(`a[href="#/safe/basesep/${SAFE}/new/add/${owner}"]`).count() === 1, "#/k: Add owner for each saved Safe, with this key filled in");
+  wallet.as = "mallory";            // owns nothing here
+  const before = chain.sent.size;
+  await page.getByRole("button", { name: "Deploy on Base Sepolia" }).click();
+  await page.getByText("Deployed").waitFor();
+  const tx = [...chain.sent.values()].at(-1);
+  check(chain.sent.size === before + 1 && getAddress(tx.from) === who.mallory.address && tx.args[0] === BigInt("0x" + x) && tx.args[1] === BigInt("0x" + y) && tx.args[2] === BigInt(S.CFG.signer.verifiers),
+    "#/k Deploy: any wallet sends createSigner(x, y, verifiers) for the uncompressed key, and it lands");
+  await shot("9-key-setup");
+  await page.goto(`${BASE}app/#/signer`);
+  await page.fill("#signer-key", `https://picoquorum.app/app/#/k/${comp}`);
+  await page.getByRole("button", { name: "Show its signer" }).click();
+  await page.waitForURL(new RegExp(`#/k/${comp}$`));
+  check(true, "#/signer: a pasted set-up link opens that key's page");
+  await page.goto(`${BASE}app/#/signer`);
+  await page.fill("#signer-key", "0x" + comp.toUpperCase());
+  await page.getByRole("button", { name: "Show its signer" }).click();
+  await page.waitForURL(new RegExp(`#/k/${comp}$`));
+  await page.getByRole("button", { name: "Deploy on Base Sepolia" }).or(page.getByText("deployed", { exact: true })).first().waitFor();
+  check((await page.locator(".card .inline-ident code").first().innerText()).trim() === owner, "#/signer: a pasted compressed key (0x, any case) opens its page, with its owner address");
+  await page.evaluate(() => localStorage.removeItem("pq.safes"));
+  wallet.as = "alice";
+});
+
 check(!errors.length, `no page errors${errors.length ? ": " + errors.join("; ") : ""}`);
 check(!outside.length, `no request left the fakes${outside.length ? ": " + outside.join(", ") : ""}`);
 await browser.close();

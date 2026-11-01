@@ -1,7 +1,8 @@
 // The PicoQuorum page: open a Safe, see its owners and queue, check every confirmation, and execute
 // with the signatures laid out right. Keys: the registry (docs/registry/keys.json), each bundle checked
 // in the browser, and a key's signer deployed from the wallet: your passkey's, or anyone's from a
-// deploy link (#/signer/<x>/<y>), from any wallet. Everything is drawn with textContent:
+// deploy link (#/signer/<x>/<y>) or a new key's set-up link (#/k/<compressed key>), from any
+// wallet. Everything is drawn with textContent:
 // the queue comes from Safe's service and is untrusted.
 import { p256 } from "@noble/curves/p256";
 import { encodeFunctionData, getAddress, isAddress } from "viem";
@@ -739,7 +740,7 @@ async function keysView() {
           " signs with a passkey (Touch ID, Windows Hello, a phone, a security key). Make one there, and its page here adds it to a Safe.")),
     h("section", { class: "card" }, h("h2", { text: "Someone's passkey signer" }),
       h("p", { class: "muted" }, "A passkey owner's signer has to be deployed on a chain before its signatures count there. Any wallet can do it, owner of the Safe or not. ",
-        h("a", { href: "#/signer", text: "Deploy one from a deploy link" }), ".")),
+        h("a", { href: "#/signer", text: "Deploy one from a compressed key or a deploy link" }), ".")),
     h("section", { class: "card" }, h("h2", { text: "Check a bundle" }),
       h("p", { class: "muted", text: "Pick an attest-<serial>.json from tools/fw attest. It's checked here; nothing leaves your browser." }),
       h("label", { class: "btn", for: "bundle", text: "Choose a bundle…" }), file, checkOut));
@@ -866,23 +867,41 @@ function passkeyView() {
 const signerLink = (x, y) => new URL(`#/signer/${x}/${y}`, location.href.split("#")[0]).href;
 const onCurve = (x, y) => { try { p256.ProjectivePoint.fromHex("04" + x + y).assertValidity(); return true; } catch { return false; } };
 
-/** A deploy link, the key as x and y, or an uncompressed public key (04 x y) -> {x, y}, lowercase hex. */
+/** A compressed P-256 key (02|03 x, 66 hex digits) -> {x, y}, or null if it isn't one on the curve. */
+function unpackKey(hex) {
+  const t = String(hex || "").replace(/^0x/i, "").toLowerCase();
+  if (!/^0[23][0-9a-f]{64}$/.test(t)) return null;
+  try {
+    const u = p256.ProjectivePoint.fromHex(t).toRawBytes(false);
+    const hx = (b) => Array.from(b, (v) => v.toString(16).padStart(2, "0")).join("");
+    return { x: hx(u.slice(1, 33)), y: hx(u.slice(33)) };
+  } catch { return null; }
+}
+
+/** A deploy link or set-up link, the key as x and y, or a public key, uncompressed (04 x y) or
+ *  compressed (02|03 x) -> {x, y}, lowercase hex. */
 function parseKey(text) {
   const t = String(text || "").trim();
   const link = t.match(/#\/signer\/([0-9a-fA-F]{64})\/([0-9a-fA-F]{64})\b/);
   if (link) return { x: link[1].toLowerCase(), y: link[2].toLowerCase() };
+  const setup = t.match(/#\/k\/(?:0x)?([0-9a-fA-F]{66})\b/);
+  if (setup) return unpackKey(setup[1]);
   const hexes = (t.match(/(?:0x)?[0-9a-fA-F]+/g) || []).map((x) => x.replace(/^0x/, "").toLowerCase());
   if (hexes.length === 2 && hexes.every((x) => x.length === 64)) return { x: hexes[0], y: hexes[1] };
   if (hexes.length === 1 && /^04[0-9a-f]{128}$/.test(hexes[0])) return { x: hexes[0].slice(2, 66), y: hexes[0].slice(66) };
+  if (hexes.length === 1 && /^0[23][0-9a-f]{64}$/.test(hexes[0])) return unpackKey(hexes[0]);
   return null;
 }
 
 function signerForm() {
-  const input = h("textarea", { id: "signer-key", rows: 3, spellcheck: "false", placeholder: "https://…/app/#/signer/…  or the key's x and y" });
+  const input = h("textarea", { id: "signer-key", rows: 3, spellcheck: "false", placeholder: "03…  or https://…/app/#/k/…  or #/signer/…" });
   const why = h("p", { class: "bad", role: "alert" });
   const go = () => {
     const t = input.value.trim();
     const k = parseKey(t);
+    // a compressed key, or a set-up link: the key's own page (#/k); otherwise the deploy link's
+    const c = !/#\/signer\//.test(t) && (t.match(/#\/k\/(?:0x)?([0-9a-fA-F]{66})\b/)?.[1] || t.match(/^(?:0x)?(0[23][0-9a-fA-F]{64})$/)?.[1]);
+    if (k && c) return (location.hash = `#/k/${c.toLowerCase()}`);
     if (k) return onCurve(k.x, k.y) ? (location.hash = `#/signer/${k.x}/${k.y}`) : (why.textContent = "That isn't a P-256 public key. Check it was copied whole.");
     if (isAddress(t, { strict: false })) {
       const pk = myPasskey();
@@ -890,13 +909,13 @@ function signerForm() {
       why.textContent = "An owner address is a hash of the passkey's key, so it can't be deployed from the address alone. On the device with the passkey, open the console page (or Your passkey here) and share its deploy link.";
       return;
     }
-    why.textContent = "Paste a deploy link, or the key's x and y (64 hex digits each).";
+    why.textContent = "Paste a deploy link, a set-up link, the key's x and y (64 hex digits each), or its compressed key (02 or 03, then x).";
   };
   fill($main(),
-    h("section", { class: "hero" }, h("h1", { text: "Deploy a passkey's signer" }),
-      h("p", { class: "lede", text: "A passkey owns a Safe through a small signer contract. Until it's deployed on a chain, its signatures can't be checked there, and Safe's service refuses them. Any wallet can deploy it: it doesn't have to own the Safe, it moves no funds, it only pays the gas." })),
-    h("section", { class: "card" }, h("h2", { text: "The passkey" }),
-      h("p", { class: "muted", text: "Its deploy link, from the console page or Your passkey on the device that holds it (Share the deploy link)." }),
+    h("section", { class: "hero" }, h("h1", { text: "Deploy a key's signer" }),
+      h("p", { class: "lede", text: "A PicoQuorum key or a passkey owns a Safe through a small signer contract. Until it's deployed on a chain, its signatures can't be checked there, and Safe's service refuses them. Any wallet can deploy it: it doesn't have to own the Safe, it moves no funds, it only pays the gas." })),
+    h("section", { class: "card" }, h("h2", { text: "The key" }),
+      h("p", { class: "muted", text: "Paste a PicoQuorum key's compressed public key (02 or 03, then 64 hex digits) or its set-up link, or a passkey's deploy link from the console page or Your passkey (Share the deploy link). Not its owner address: that's a hash of the key." }),
       input, h("div", { class: "row" }, h("button", { class: "btn go", type: "button", text: "Show its signer", onclick: go })), why,
       myPasskey() ? h("p", { class: "small muted" }, "Your own passkey: ", h("a", { href: "#/passkey", text: "Your passkey" }), ".") : null));
 }
@@ -922,6 +941,54 @@ function signerView(x, y) {
       h("p", { class: "small muted" }, "Check it is the address the console page shows under Owner, and the one in the Safe. It's worked out here from the key and Safe's passkey factory; each chain's factory must name the same address before the button sends anything."),
       deploy,
       h("details", { class: "small" }, h("summary", { text: "The key" }),
+        h("p", {}, "x ", h("code", { class: "mono", text: "0x" + k.x })), h("p", {}, "y ", h("code", { class: "mono", text: "0x" + k.y })),
+        h("p", { class: "muted" }, "Sent to the factory as createSigner(x, y, ", h("code", { class: "mono", text: CFG.signer.verifiers }), ") at ",
+          h("code", { class: "mono", text: CFG.signer.factory }), "."))));
+  deployRows(deploy, { qx: BigInt("0x" + k.x), qy: BigInt("0x" + k.y) }, owner);
+}
+
+// ----------------------------------------------------------------------------- a new key's set-up link
+// #/k/<compressed key>: a PicoQuorum key's public key, 33 bytes, short enough for the console's QR
+// (docs/ONBOARDING.md, The QR code). The page works the owner address out again to compare with the
+// console's, deploys its signer from any wallet (which pays the gas and needn't own the Safe), and
+// links Add owner for each saved Safe. Nothing here signs for the key.
+const setupLink = (c) => new URL(`#/k/${c}`, location.href.split("#")[0]).href;
+
+function keySetupView(compressed) {
+  const c = String(compressed || "").replace(/^0x/i, "").toLowerCase();
+  const k = unpackKey(c);
+  if (!k) {
+    return fill($main(), h("section", { class: "hero" }, h("h1", { text: "That isn't a key's set-up link" }),
+      h("p", { class: "lede", text: "The link should end in the key's compressed public key: 02 or 03, then 64 hex digits. Scan or copy it again from the console." }),
+      h("p", {}, h("a", { href: "#/signer", text: "Paste a key" }))));
+  }
+  const owner = getAddress(p256Owner(CFG.signer, "0x" + k.x, "0x" + k.y));
+  const mine = myPasskey()?.owner === owner;
+  const known = nameOf(owner);
+  const safes = savedSafes().filter((s) => CHAINS[s.chain]);
+  const deploy = h("div", {});
+  fill($main(),
+    h("section", { class: "hero" },
+      h("div", { class: "safe-title" }, ident(owner, 56), h("div", {}, h("h1", { text: mine ? "Your passkey" : known || "A PicoQuorum key" }),
+        h("div", { class: "chips" }, mine ? badge("ok", "Your passkey") : null, badge("muted", `key ${k.x.slice(0, 8)}`)))),
+      h("p", { class: "lede", text: "Set it up as an owner of a Safe: compare its address with the console's, deploy its signer, then propose adding it." }),
+      h("p", { class: "muted", text: "Its owner address is a signer contract, not a wallet. Never send funds to it." })),
+    h("section", { class: "card" }, h("h2", { text: "1. Compare" }),
+      h("p", { class: "inline-ident" }, "Its owner address, the same on every chain: ", ident(owner, 20), h("code", { class: "mono", text: owner }), " ", copyButton(owner)),
+      h("p", { class: "small muted" }, "Check that the console shows this picture and address. It's worked out here from the key and Safe's passkey factory, and each chain's factory must name the same address before Deploy sends anything."),
+      registryNames[owner.toLowerCase()] ? h("p", { class: "small" }, h("a", { href: `#/key/${owner}`, text: "In the registry: see its checks" })) : null),
+    h("section", { class: "card" }, h("h2", { text: "2. Deploy its signer" }),
+      h("p", { class: "muted" }, "Once on each chain you use. Any wallet can send it: yours needn't own the Safe, and it moves no funds; it pays the gas (about 110k). No wallet here? ",
+        shareButton(setupLink(c), "Share this link", "Set up a PicoQuorum key"), " and open it where MetaMask or Rabby is."),
+      deploy),
+    h("section", { class: "card" }, h("h2", { text: "3. Add it to a Safe" }),
+      h("p", { class: "muted", text: "Propose adding it as an owner. The Safe's owners approve that as any transaction; keep the threshold at 2 or more." }),
+      safes.length
+        ? h("ul", { class: "add-to" }, ...safes.map((s) => h("li", {},
+            h("a", { href: `#/safe/${s.chain}/${getAddress(s.address)}/new/add/${owner}`, text: `Add to ${s.name || short(s.address)} (${CHAINS[s.chain].name})` }))))
+        : h("p", { class: "small muted" }, "No saved Safes. ", h("a", { href: "#/", text: "Open a Safe" }), " and save it first."),
+      h("details", { class: "small" }, h("summary", { text: "The key" }),
+        h("p", {}, "compressed ", h("code", { class: "mono", text: "0x" + c })),
         h("p", {}, "x ", h("code", { class: "mono", text: "0x" + k.x })), h("p", {}, "y ", h("code", { class: "mono", text: "0x" + k.y })),
         h("p", { class: "muted" }, "Sent to the factory as createSigner(x, y, ", h("code", { class: "mono", text: CFG.signer.verifiers }), ") at ",
           h("code", { class: "mono", text: CFG.signer.factory }), "."))));
@@ -1104,6 +1171,7 @@ function route() {
   if (parts[0] === "key") return keyView(parts[1]);
   if (parts[0] === "passkey") return passkeyView();
   if (parts[0] === "signer") return parts[1] ? signerView(parts[1], parts[2]) : signerForm();
+  if (parts[0] === "k") return parts[1] ? keySetupView(parts[1]) : signerForm();
   if (parts[0] === "settings") return settingsView();
   if (parts[0] === "releases") return releasesView();
   return notFound();
