@@ -451,8 +451,14 @@ await step("a new key's set-up link (#/k/<compressed key>): compare, deploy from
   await page.goto(`${BASE}app/#/signer`);
   await page.fill("#signer-key", `https://picoquorum.app/app/#/k/${comp}`);
   await page.getByRole("button", { name: "Show its signer" }).click();
-  await page.waitForURL(new RegExp(`#/signer/${x}/${y}$`));
-  check(true, "#/signer: a pasted set-up link opens that key's signer");
+  await page.waitForURL(new RegExp(`#/k/${comp}$`));
+  check(true, "#/signer: a pasted set-up link opens that key's page");
+  await page.goto(`${BASE}app/#/signer`);
+  await page.fill("#signer-key", "0x" + comp.toUpperCase());
+  await page.getByRole("button", { name: "Show its signer" }).click();
+  await page.waitForURL(new RegExp(`#/k/${comp}$`));
+  await page.getByRole("button", { name: "Deploy on Base Sepolia" }).or(page.getByText("deployed", { exact: true })).first().waitFor();
+  check((await page.locator(".card .inline-ident code").first().innerText()).trim() === owner, "#/signer: a pasted compressed key (0x, any case) opens its page, with its owner address");
   await page.evaluate(() => localStorage.removeItem("pq.safes"));
   wallet.as = "alice";
 });
