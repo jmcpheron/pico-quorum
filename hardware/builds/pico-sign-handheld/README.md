@@ -5,7 +5,7 @@
 | board | a Pico 2 W (castellated), wires soldered to its pads: no headers |
 | key | a key-c in [a clamshell](#the-keys-clamshell): two halves that snap shut, plugged straight down onto a USB-C plug in the top edge |
 | runs | the console image as `BOARD = "build1"`, `SCREEN = "2.4"`, unchanged; `firmware/bench1.py` first |
-| case | [the handheld](#the-case-the-handheld): a tub and a front plate, 86 × 118 × 30 mm, M3 into heat-set inserts |
+| case | [the handheld](#the-case-the-handheld): a tub and a front plate, 86 × 118 × 30 mm, M3 into heat-set inserts; [put together step by step](ASSEMBLY.md) |
 | status | written up 2026-11-02 for a demo; not printed, not wired, not run. The 2.4″ has not been seen working |
 
 [pico-sign](../pico-sign/README.md) again, smaller: a demo to show the project, and a console that
@@ -126,9 +126,10 @@ chip.
 ## The case: the handheld
 
 [`case/handheld.py`](case/handheld.py), CadQuery. A first draft to print and try.
+[ASSEMBLY.md](ASSEMBLY.md) puts it together step by step, with pictures.
 
 ```sh
-tools/case build handheld     # handheld.py; `tools/case check handheld` says what changed
+tools/case build handheld     # handheld.py, then assembly.py's pictures; `check` says what changed
 ```
 
 Flat and portrait, 86 mm wide, 118 tall and 30 thick, corners rounded 6 mm. The bottom right corner,
@@ -272,6 +273,8 @@ The insert holes and the 1.8 mm self-tapping holes are the prism's numbers, and 
 Print one post and set an insert first.
 
 ### Putting it together
+
+In short; [ASSEMBLY.md](ASSEMBLY.md) has it in 16 steps, with pictures.
 
 1. **The plate:** the four boss inserts.
 2. **The sign button:** the cover on the base, the pin through. The cap up through the base from below.
