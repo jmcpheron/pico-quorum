@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; font-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="The PicoQuorum Handheld: a Safe signing console you hold in two hands. A Pico 2 W, a 2.4-inch screen, a knob and a covered Sign button in a printed case, and how to put it together in 16 steps.">
+<link rel="canonical" href="https://picoquorum.app/handheld/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="PicoQuorum">
+<meta property="og:url" content="https://picoquorum.app/handheld/">
+<meta property="og:title" content="PicoQuorum Handheld: a signing console you hold in two hands">
+<meta property="og:description" content="A Pico 2 W, a 2.4-inch screen, a knob and a covered Sign button in a printed case. Put it together in 16 steps.">
+<meta property="og:image" content="https://picoquorum.app/handheld/card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The handheld's front plate in four colours, and the finished case with a key in its top edge.">
+<meta name="twitter:card" content="summary_large_image">
+<title>PicoQuorum Handheld · Build a signing console</title>
+<link rel="icon" href="../brand/mark-dark.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../home.css" integrity="sha384-elTVBHx8i/S3FaYj3kGiobnKM5M+hjzBQOjrl/QLfvMI/eHA+57zkZpJrp1wqiwD">
+</head>
+<body>
+<header class="top">
+  <a class="lockup" href="../" aria-label="PicoQuorum home">
+    <picture>
+      <source media="(prefers-color-scheme: light)" srcset="../brand/mark-light.svg">
+      <img src="../brand/mark-dark.svg" width="28" height="26" alt="">
+    </picture>
+    <span>PicoQuorum</span>
+  </a>
+  <nav aria-label="Main">
+    <a href="../guide/">Guide</a>
+    <a href="../console/">Console</a>
+    <a href="#build" aria-current="page">Handheld</a>
+    <a href="https://github.com/jmcpheron/pico-quorum">Source</a>
+  </nav>
+  <a class="btn go" href="../app/">Launch app</a>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="hero-text">
+      <p class="eyebrow">New build · PicoQuorum Handheld</p>
+      <h1>A signing console you hold in two&nbsp;hands.</h1>
+      <p class="lede">A Pico 2 W, a 2.4″ screen, a knob and a Sign button under a flip cover, in a flat printed case you hold like a handheld game or lay on the desk. The key, in a snap-shut clamshell, plugs into the top edge.</p>
+      <div class="cta">
+        <a class="btn go big" href="#build">Build it: 16 steps <span aria-hidden="true">↓</span></a>
+        <a class="btn big" href="https://github.com/jmcpheron/pico-quorum/tree/main/hardware/builds/pico-sign-handheld">The design files</a>
+      </div>
+      <p class="muted small">It runs the PicoQuorum console image unchanged: one owner of a Safe multisig, signing only the hash it works out itself. <a href="../">What PicoQuorum is</a></p>
+    </div>
+    <figure class="pic hero-pic">
+      <img src="card.png" width="1200" height="630" alt="The handheld's front plate in four colours: PICOQUORUM, the window, TURN and SIGN. Beside it, the finished case with a knob, a covered sign button, and the key standing up out of its top edge.">
+    </figure>
+  </section>
+
+  <section class="split">
+    <div>
+      <h2>Watch it go together</h2>
+      <!-- When the video is up, swap this box for a link to it. An embedded player would need the page's
+           Content-Security-Policy changed (frame-src), and that is a decision, not a copy edit. -->
+      <div class="video" role="img" aria-label="The assembly video: coming soon">
+        <span class="play" aria-hidden="true"></span>
+        <p><strong>The assembly video is on its way.</strong></p>
+        <p class="muted small">It goes up once the first handheld is printed and put together. Until then, the 16 steps below are the whole build.</p>
+      </div>
+    </div>
+    <div class="facts">
+      <h2>What's in it</h2>
+      <dl class="specs">
+        <dt>Size</dt><dd>86 × 118 × 30 mm; 164 mm tall with a key in</dd>
+        <dt>Board</dt><dd>Raspberry Pi Pico 2 W, wires soldered to its pads</dd>
+        <dt>Screen</dt><dd>2.4″ IPS, 240 × 320, SPI</dd>
+        <dt>Controls</dt><dd>An EC11 knob to turn and push. A tactile Sign button under a flip cover</dd>
+        <dt>Key</dt><dd>key-c, an ATECC608C behind USB-C, in a clamshell</dd>
+        <dt>Case</dt><dd>Eight printed parts and the key's two, M3 screws into heat-set inserts</dd>
+        <dt>Firmware</dt><dd>The console image as is: <code>BOARD = "build1"</code>, <code>SCREEN = "2.4"</code></dd>
+      </dl>
+      <p class="warn-note"><strong>A first draft.</strong> Designed and checked in CAD: 223 pairs of parts clear each other. Nothing is printed, wired or run yet, and the 2.4″ screen hasn't been seen working. Measure your parts first; <a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/README.md#before-printing">the README says which</a>.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Same console, same rules</h2>
+    <ol class="steps">
+      <li><span class="n">1</span><h3>Turn to read</h3><p>The knob pages through what a transaction does, in plain language. Owner and threshold changes are red pages.</p></li>
+      <li><span class="n">2</span><h3>Lift the cover</h3><p>Sign sits in a well under a flip cover, so it isn't pressed by accident.</p></li>
+      <li><span class="n">3</span><h3>Hold to sign</h3><p>Only after every page is seen, and only while held: 2 s, or 3 s when a page is red. Let go early and nothing is signed.</p></li>
+      <li><span class="n">4</span><h3>The key stays in its chip</h3><p>key-c signs the Safe transaction hash the console worked out itself. Its private key never leaves the chip.</p></li>
+    </ol>
+  </section>
+
+  <section class="split">
+    <div>
+      <h2>Four colours from one plate</h2>
+      <p>The front plate prints face down, so its face is its first layers. Change filament three times, at 0.6, 1.2 and 1.8 mm, and each depth of cut shows its own colour: the name in charcoal, TURN and SIGN in red, the wells in blue. No paint, no inlays.</p>
+      <p class="small muted">The depths, colours and words are settings in <a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/handheld.py"><code>handheld.py</code></a>. Not checked on a real print yet.</p>
+    </div>
+    <figure class="pic">
+      <img src="img/00-colours.png" width="1650" height="1510" loading="lazy" alt="The plate face on, with its colours: light grey face, charcoal name and frames, red words, blue well floors. Beside it, the sign well's cover, and the three stripes over the screen.">
+    </figure>
+  </section>
+
+  <section id="build">
+    <h2>Build it</h2>
+    <p class="lede">Sixteen steps, from printed parts to a key in the top. Each picture is drawn from the case's own model, so it follows the CAD's numbers: new printed parts in amber, what's done in white, and what the step needs along the bottom.</p>
+    <div class="cta">
+      <a class="btn big" href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/ASSEMBLY.md">The full guide, with every detail</a>
+      <a class="btn big" href="https://github.com/jmcpheron/pico-quorum/tree/main/hardware/builds/pico-sign-handheld/case/out">The STLs</a>
+    </div>
+
+    <h3 class="sub">What you need</h3>
+    <div class="need">
+      <figure class="pic"><img src="img/00-exploded.png" width="1650" height="1620" loading="lazy" alt="Every part of the handheld, pulled apart along one axis."><figcaption>Everything, pulled apart.</figcaption></figure>
+      <figure class="pic"><img src="img/00-printed-parts.png" width="1650" height="1480" loading="lazy" alt="The printed parts, each the way up it prints: the tub, the plate, the carrier, the spacers, the plug lock, the guard's base and cover, the button cap and the key's two halves."><figcaption>The printed parts, each the way up it prints.</figcaption></figure>
+      <div>
+        <ul class="ticks">
+          <li><strong>Bought:</strong> a Pico 2 W, the 2.4″ screen, an EC11 knob and cap, a 12 × 12 mm tactile switch and a mini breadboard, a USB-C plug on a short cable, two 4.7 kΩ resistors, a key-c.</li>
+          <li><strong>Hardware:</strong> eight M3 heat-set inserts, eight M3 × 8 and six M2 × 8 socket heads, four M3 washers, four rubber feet, 20 mm of 1.75 mm filament for the hinge.</li>
+          <li><strong>Tools:</strong> a soldering iron with an insert tip, 2.5 and 1.5 mm hex keys, flush cutters, a meter.</li>
+        </ul>
+        <figure class="pic"><img src="img/00-hardware.png" width="1650" height="380" loading="lazy" alt="The screws, inserts, washers, feet and hinge pin, with how many of each."></figure>
+      </div>
+    </div>
+
+    <h3 class="sub">The tub</h3>
+    <ol class="build">
+      <li id="step-1"><figure class="pic"><img src="img/01-tub-inserts.png" width="1650" height="1340" loading="lazy" alt="Step 1: an M3 insert going into each of the tub's four corner posts."></figure><h4>1. An insert in each corner post</h4><p>Let each one sink in under the iron's own weight. Don't twist. Stop when it's flush.</p></li>
+      <li id="step-2"><figure class="pic"><img src="img/02-feet.png" width="1650" height="1390" loading="lazy" alt="Step 2: four rubber strips into the pockets on the tub's back."></figure><h4>2. The feet</h4><p>Four rubber strips into their pockets, round ends into the round ends.</p></li>
+      <li id="step-3"><figure class="pic"><img src="img/03-key-plug.png" width="1650" height="1260" loading="lazy" alt="Step 3: the key's USB-C plug up into the hole in the top edge, and the printed lock under it."></figure><h4>3. The key's USB-C plug</h4><p>Pull-ups soldered at the plug first. Then up through the top edge until it's flush, and the lock clicks in under it.</p></li>
+      <li id="step-4"><figure class="pic"><img src="img/04-breadboard.png" width="1650" height="1460" loading="lazy" alt="Step 4: the mini breadboard between four stops on the tub's floor, and the tactile switch in it."></figure><h4>4. The breadboard and the Sign switch</h4><p>Between its four stops. The switch goes on the 3rd column from the right: that's under the button.</p></li>
+    </ol>
+
+    <h3 class="sub">The plate</h3>
+    <ol class="build" start="5">
+      <li id="step-5"><figure class="pic"><img src="img/05-plate-inserts.png" width="1650" height="1320" loading="lazy" alt="Step 5: inserts into the four bosses round the screen's window, on the plate's back."></figure><h4>5. An insert in each of the carrier's bosses</h4><p>Plate face down on a towel. Same as step 1.</p></li>
+      <li id="step-6"><figure class="pic"><img src="img/06-guard.png" width="1650" height="1170" loading="lazy" alt="Step 6: the guard's cover hinged to its base with a filament pin, and the button cap pushed up through the base."></figure><h4>6. The Sign button's guard</h4><p>The cover hinges on a pin of 1.75 mm filament. The cap goes up through the base from underneath.</p></li>
+      <li id="step-7"><figure class="pic"><img src="img/07-guard-in.png" width="1650" height="1390" loading="lazy" alt="Step 7: the guard dropped into the sign well and held by two M2 screws."></figure><h4>7. The guard into its well</h4><p>Two M2 screws. Shut, the cover is flush with the face.</p></li>
+      <li id="step-8"><figure class="pic"><img src="img/08-knob.png" width="1650" height="1270" loading="lazy" alt="Step 8: the EC11 knob in from behind, its nut on in the well."></figure><h4>8. The knob</h4><p>In from behind, its nut on in the well. Snug, not tight.</p></li>
+      <li id="step-9"><figure class="pic"><img src="img/09-screen.png" width="1650" height="1390" loading="lazy" alt="Step 9: the screen lowered glass down onto four pins, its header on the left."></figure><h4>9. The screen onto its pins</h4><p>Glass down, its 8-pin header on the left.</p></li>
+      <li id="step-10"><figure class="pic"><img src="img/10-spacers.png" width="1650" height="1320" loading="lazy" alt="Step 10: a printed spacer slipped onto each of the four pins."></figure><h4>10. The spacers</h4><p>A printed spacer on each pin.</p></li>
+      <li id="step-11"><figure class="pic"><img src="img/11-carrier.png" width="1650" height="1440" loading="lazy" alt="Step 11: the carrier over the pins, four M3 screws with washers into the bosses."></figure><h4>11. The carrier</h4><p>Four M3 screws with washers. Tighten them evenly: they hold the screen down.</p></li>
+      <li id="step-12"><figure class="pic"><img src="img/12-pico.png" width="1650" height="1440" loading="lazy" alt="Step 12: the Pico onto the carrier's four posts, parts down, USB end to the right."></figure><h4>12. The Pico</h4><p>Solder its wires first, with the board in your hand. Then onto the posts, USB to the right edge.</p></li>
+      <li id="step-13"><figure class="pic"><img src="img/13-wires.png" width="1650" height="1260" loading="lazy" alt="Step 13: the screen's and the knob's wires to the Pico, on the plate."></figure><h4>13. The wires</h4><p>Screen and knob to the Pico. Try it on the bench before it goes in the tub.</p></li>
+    </ol>
+
+    <h3 class="sub">Close it, and the key</h3>
+    <ol class="build" start="14">
+      <li id="step-14"><figure class="pic"><img src="img/14-close.png" width="1650" height="1440" loading="lazy" alt="Step 14: the plate onto the tub, four M3 socket heads into the counterbores."></figure><h4>14. Onto the tub</h4><p>The key's plug and the button's jumpers to the Pico. Then the plate on, four socket heads into the counterbores.</p></li>
+      <li id="step-15"><figure class="pic"><img src="img/15-key.png" width="1650" height="1340" loading="lazy" alt="Step 15: a key-c into the clamshell's tray, the cover pressed on until four clips click."></figure><h4>15. The key into its clamshell</h4><p>A peg through the key's lanyard hole, the cover on until four clips click. The chip shows through a window.</p></li>
+      <li id="step-16"><figure class="pic"><img src="img/16-done.png" width="1650" height="1370" loading="lazy" alt="Step 16: the knob's cap on, and the key straight down onto the plug in the top edge. Done."></figure><h4>16. The knob's cap, then the key</h4><p>Straight down onto the plug in the top edge, its chip's window toward the face. Done.</p></li>
+    </ol>
+  </section>
+
+  <section class="split">
+    <div>
+      <h2>Then: make it an owner</h2>
+      <p>Built, it's a PicoQuorum console like any other. Run the bench check, set it up for your Safe, and add its key as one owner. The owner's guide walks through it, and the app checks every confirmation and executes.</p>
+      <div class="cta">
+        <a class="btn big" href="../guide/">Read the owner's guide</a>
+        <a class="btn go big" href="../app/">Launch app <span aria-hidden="true">→</span></a>
+      </div>
+    </div>
+    <div class="facts">
+      <h2>More</h2>
+      <ul class="links">
+        <li><a href="../">PicoQuorum</a>: what it is, and how an approval goes</li>
+        <li><a href="../console/">Try the console in your browser</a>, with your passkey as its key</li>
+        <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/README.md">The handheld's README</a>: parts, wiring, the case's checks</li>
+        <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign/README.md">pico-sign</a>: the pins and wiring tables it shares</li>
+        <li><a href="https://github.com/jmcpheron/pico-quorum">The source</a>, all of it, on GitHub</li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <p>PicoQuorum is inspired by and built on <a href="https://github.com/austintgriffith/picowallet">picowallet</a> by Austin Griffith (MIT). The case is open hardware, CERN-OHL-W.</p>
+  <p class="muted">Hardware approvals for Safe · <a href="../">Home</a> · <a href="https://github.com/jmcpheron/pico-quorum">Source</a></p>
+</footer>
+</body>
+</html>
