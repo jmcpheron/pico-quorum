@@ -2,8 +2,10 @@
 # workflow calls it too, on the tagged commit. Actions are pinned by commit (the version is in the
 # comment); the token can only read.
 #
-#   firmware  the safe_tx/webauthn vectors on CPython and MicroPython, the console, Trust M and
-#             ceremony suites, the display and boot art, the image manifests
+#   firmware  the safe_tx/webauthn vectors on CPython and MicroPython, the console, the display and
+#             boot art, the image manifests
+#   bench     the Trust M, ceremony and brand suites, one runner each, only when firmware/,
+#             test-vectors/, emu/ or this file changed (changes decides; a release runs them always)
 #   fwbuild   tools/fw build for each image, with mpy-cross pinned: each build.py's RELEASE must be
 #             the release fingerprint of the source (the build dirs are kept as artifacts), and the
 #             README's build badges (docs/releases/badges/) must name it too
@@ -62,16 +64,69 @@ jobs:
           node test-vectors/manifest.mjs
       - name: Console
         run: node test-vectors/run-console.mjs
-      - name: Trust M, ceremony and brand
-        run: |
-          node test-vectors/run-trustm.mjs
-          node test-vectors/run-ceremony.mjs
-          node test-vectors/run-brand.mjs
       - name: Display and boot art
         run: |
           node test-vectors/run-display.mjs
           node test-vectors/run-bootmark.mjs
           node test-vectors/run-bootart.mjs
+
+  # Does this change touch what the bench suites read (the firmware, the emulator, the tests)? Only a
+  # pull request, or a push to main whose previous tip we have, can say no; anything else (a release
+  # tag, a new branch, a force push) runs them.
+  changes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      bench: ${{ steps.diff.outputs.bench }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          filter: blob:none
+      - id: diff
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          range=""
+          if [ "$EVENT" = pull_request ]; then
+            range="HEAD^1 HEAD"            # the merge commit, against the base it merges into
+          elif [ "$EVENT" = push ] && [ "$REF" = refs/heads/main ] && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            range="$BEFORE HEAD"
+          fi
+          bench=true
+          if [ -n "$range" ] && files="$(git diff --name-only $range)"; then
+            echo "$files"
+            echo "$files" | grep -qE '^(firmware/|test-vectors/|emu/|\.github/workflows/ci\.yml$)' || bench=false
+          fi
+          echo "bench=$bench" | tee -a "$GITHUB_OUTPUT"
+
+  # The chip benches on the virtual chips: Trust M, the quorum ceremony and the brand bench. Each takes
+  # minutes, so each has a runner, and they run only when the change touches what they read.
+  bench:
+    needs: changes
+    if: needs.changes.outputs.bench == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [trustm, ceremony, brand]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: emu/package-lock.json
+      - run: npm ci
+        working-directory: emu
+      - name: node test-vectors/run-${{ matrix.suite }}.mjs (only failures and the count)
+        run: node test-vectors/run-${{ matrix.suite }}.mjs --quiet
 
   fwbuild:
     runs-on: ubuntu-24.04
