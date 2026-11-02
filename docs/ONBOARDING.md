@@ -170,9 +170,16 @@ The console shows a QR code only when there's a next step, and the code says onl
 the owner address is a signer contract, not a wallet. The link's page says so before anything
 else, as the claim's last screen does.
 
-The code goes one way, console to phone. Nothing comes back over USB or Wi-Fi, so it's the
-air-gapped path for a key set up far from the organizer's laptop. The phone sees only public values,
-the same ones a co-signer checks.
+The code goes one way, console to phone. Nothing comes back over Wi-Fi, so it's the air-gapped
+path for a key set up far from the organizer's laptop. The phone sees only public values, the same
+ones a co-signer checks.
+
+**Over USB, from 2026.11.1:** plugged into a computer with Chrome or Edge, the app's **Device** page
+(`#/device`) reads the console: its board, release, key, Wi-Fi and the Safes it watches. It can send
+the console a Wi-Fi network or the Safes to watch. The console shows each on its own pages and saves
+it only when Sign is held on it. The link can't make it sign, read its key or touch its chip, and the
+REPL opens only in maintenance ([USB-LINK.md](USB-LINK.md)). The same page links to the console in
+the browser on the same three buttons, for practice, and shows the ceremony's real screens.
 
 ## The card
 
@@ -194,17 +201,19 @@ Printed by the app from the Safe's live state, so it's right on the day it's pri
 | | Today | Where |
 |---|---|---|
 | Wi-Fi setup by phone | yes; the Feather's fix is emulator-checked only | `wifisetup.py` |
+| Wi-Fi setup by computer | USB: the app's Device page, accepted on the console (2026.11.1; tested on the emulator and with a fake port in `web/e2e.mjs`) | `usblink.py`, `#/device` |
 | Make and seal a key on the console | yes, C1–C10 (chip 3, on the Feather) | `provision.py`, `setup_s.py` |
 | The keyholder makes their key (the claim) | Pico, emulator only; needs key 0000 | `claim.py`, [BRANDED-KEYS.md](BRANDED-KEYS.md) |
 | Pin the key | laptop: `tools/fw pin` | |
-| The Safes it watches | laptop: `tools/quorum live pico`, or `secrets.py` by hand | |
+| The Safes it watches | USB: the app's Device page, or `tools/quorum live pico`, each accepted on the console; or `secrets.py` by hand | `safes.json` |
 | The owner address on the console | at C7, and the Pico's This key screen; the Feather has no key screen yet | |
 | A QR of the key | **the Feather's Key screen**: the owner address, EIP-55 (2026-10-22, emulator) | `quorum_ui_s.draw_key` |
 | Deploy the signer | laptop, or the app's deploy link or set-up link, from any wallet | `#/signer/x/y`, `#/k/<compressed key>` |
 | Add owner, replace owner | the app (prefilled: `#/safe/<chain>/<Safe>/new/add/<owner>`), or the Safe app | `web/src/propose.mjs` |
 | Execute | the app, or `tools/quorum live exec` | |
 | A use the console didn't make | flagged on home | `quorum.py` |
-| Whose key it is, About, Check, Practice, the card | no | |
+| Practice | the console in the browser on three buttons (`console/?board=picoquorum-key`), and the ceremony's screens on the Device page | `emu/console/` |
+| Whose key it is, About, Check, the card | no | |
 
 ## What to build, in order
 
