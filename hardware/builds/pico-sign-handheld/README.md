@@ -169,10 +169,11 @@ floor take the back 10.4 mm there, where the Pico used to be, so the Pico moved 
 case grew 29 mm. It stays 30 thick. The screen stays 39 mm under the top edge, so the face has more room
 between the name and the controls.
 
-**Eight printed parts, and the key's two:**
+**Nine printed parts, and the key's two:**
 - **The tub**, one piece, open at the face. It prints on its back. In it:
   - four posts at the corners, an M3 insert in each, for the plate's screws
-  - [the key's bay](#the-keys-bay), in the back's top half, open at the top edge and at the back
+  - [the key's bay](#the-keys-bay), in the back's top half, open at the top edge and at the back, and through
+    to the inside: its floor is a part of its own
   - the key's plug holder at the bay's foot
   - a 14 mm square hole in the right side for the Pico's cable
   - four L-shaped stops on the floor for the sign button's breadboard
@@ -184,6 +185,7 @@ between the name and the controls.
 - **The carrier**, 2.5 mm, behind the screen, with a tail below it. The Pico screws to the tail's back.
   Printed face down.
 - **Four spacers**, 4 mm tubes, 7 mm across, that slip onto the screen's pins.
+- **[The bay's floor](#the-bays-floor)**, a flat panel that slides down into the bay. It prints flat.
 - **The plug lock**, which holds the key's plug up. It prints standing on its lip's face, its two bumps to the sides.
 - **The guard's base and cover**, in the sign button's well. The base prints as it sits, the cover face
   down.
@@ -258,7 +260,8 @@ the key's USB-C plug standing up at the bay's foot. Its top stands 8 mm out of t
 out by.
 
 - **The channel** is the cartridge's width and 0.3 mm more each side, and 8.8 mm deep: the cartridge, 0.92
-  mm in from the back, and 0.3 over its front. Its floor, 1.6 mm, keeps it out of the case's inside.
+  mm in from the back, and 0.3 over its front. Its floor, which keeps it out of the case's inside, is a
+  separate panel ([below](#the-bays-floor)), so the tub prints without supports.
 - **The grooves.** A tongue down each side of the cartridge runs in a groove in each side wall: 0.25 over
   and under it, 0.5 past its tip. The grooves guide it, and the lips behind them, 1.67 mm thick, keep it
   from falling out of the back. The plug is never the guide.
@@ -287,6 +290,24 @@ Nothing but friction holds the plug up into its hole when the key comes out, as 
 before it. If it lifts, a zip tie round the cable under the holder's stop keeps it down. Not tried.
 
 ![the tub, open](case/out/handheld_tub.png)
+
+### The bay's floor
+
+A flat panel, 51.6 × 46 × 1.6 mm, printed on its own (`handheld_bay_floor.stl`). As part of the tub it was a
+bridge 48.6 mm across, 8.8 mm off the bed, which most printers need supports for. On its own it prints flat.
+
+- **Its slots.** It slides down a slot in each side wall of the bay, from the top edge, and stands on the
+  bay's foot. Its edges go 1.5 mm into the slots, with 0.15 mm round them. A lip 1.2 mm thick on the inside
+  of each slot holds it, so the cartridge can't push it into the case.
+- **The click.** A bump at the end of each slot, 6 mm under the top edge, passes 0.15 mm into its edge on
+  the way in and clicks into a dimple in it, as the cartridge's do. Not tried: if it's tight, sand the bumps;
+  if it's loose, a drop of glue.
+- **Which way in.** Its hole at the top, either face in. The 3 mm hole is to hook it out by, with a hex key
+  or a bent paper clip.
+- **The carrier's screws.** The two above the screen come down over the slots' lips, so each lip has a notch
+  round them.
+- **The top edge** over the bay's mouth is still a bridge, but a narrow one: a strip 2.4 mm deep across
+  48.6 mm. It was there before too, joined to the floor. Most printers bridge it without supports.
 
 ### The key's cartridge
 
@@ -381,7 +402,7 @@ In short; [ASSEMBLY.md](ASSEMBLY.md) has it in 16 steps, with pictures.
 5. **The Pico** onto the posts on the carrier's tail, parts toward the carrier, four M2 × 8.
 6. **The wires** on the plate: the screen, the knob and the button to the Pico. Try it on the bench.
 7. **The tub:** the four corner inserts. The key's plug and its lock at the bay's foot, as above; its pull-ups at the plug
-   ([pico-sign's tables](../pico-sign/README.md#the-wiring)). The breadboard between its stops, the
+   ([pico-sign's tables](../pico-sign/README.md#the-wiring)). The bay's floor down its slots until it clicks. The breadboard between its stops, the
    switch in it on the 3rd column from the right, two flat jumpers. The key's and the switch's wires to
    the Pico.
 8. **Close it:** the plate onto the tub, four M3 × 8 socket heads into the counterbores. The feet in their pockets. The
@@ -397,7 +418,7 @@ bay, the Pico, the room for its parts and wires, and its USB plug don't overlap 
 carrier, the spacers, the plug lock or each other. That the guard's base, its screws' heads, the cap and
 the cover clear each other, the plate and the knob, with the cover shut and opened 30°, 60° and 90°; and
 that the cap, pressed to its stop, stays clear of the plate. And that the plate, its corner bosses
-included, clears the tub when it's shut. 243 pairs, all clear.
+included, clears the tub when it's shut. 265 pairs, all clear.
 
 For the key's bay, also: that the cartridge, slid in from the top, clears the tub, the plug's shell and
 the overmold at six places on the way (1, 4, 7, 15, 30 and 45 mm up), all but the bumps, which squeeze it
@@ -415,6 +436,7 @@ in. The closest:
 | the guard's cover to the cap's head | 0.4 |
 | the carrier to the tub | 1.0 |
 | the breadboard to the tub's corner post | 1.1 |
+| the carrier's screw heads to the slots' lips, in their notches | 1.0 |
 | the carrier's screw heads to the bay's floor | 1.3 |
 | the Pico's wires to the tub's floor | 1.3 |
 | the Pico to the key's plug holder | 1.4 |
@@ -428,10 +450,11 @@ and that the switch leaves room for the plunger under the well's floor. In the c
 overlap either half, nor the halves each other (U1 is 1.14 mm under the cover). It is not a fit check:
 the parts are boxes, and the screen's, the switch's and the breadboard's height are placeholders.
 
-**Overhangs**, with the tub on its back: nine flat faces face down off the bed. They are all bridges:
-- **the key's bay's floor: 48.6 mm across, 8.8 mm up.** The longest bridge in the build. If yours sags,
-  put supports in the bay only; its floor's underside is hidden behind the cartridge
+**Overhangs**, with the tub on its back: thirteen flat faces face down off the bed. None needs supports:
+- the top wall over the bay's mouth: 48.6 mm across but only 2.4 mm deep, 13.6 mm up. The bay's floor, which
+  was the longest bridge in the build, is now [a part of its own](#the-bays-floor)
 - the tops of the bay's two grooves: 1.7 mm across, 4 mm up
+- the slots' lips over the floor's edges, in four pieces between the screws' notches: 1.65 mm out, 11 mm up
 - the four feet's pockets: 6.6 mm across, 1 mm up
 - the top of the key's plug hole in the bay's foot: 12.8 mm across
 - the top of the Pico's cable hole in the right side: 14 mm across, its corners rounded 1.5 mm
@@ -460,7 +483,8 @@ bottom down, is the same.
 - **Measure the switch and the breadboard's height** (`TACT`, `BREADBOARD`, above).
 - **The key's plug** is the prism's: the cut cable's overmold, 12.4 × 5.5 × 17.1 mm. A different cable
   needs `PLUG_*` changed. The bay's depth follows the plug's axis, so measure it before printing the tub.
-- **Print the cartridge first**, and try it in `handheld_bay_test.stl`, the tub's top only: the grooves,
+- **Print the cartridge first**, and try it in `handheld_bay_test.stl`, the tub's top only, with the bay's
+  floor (`handheld_bay_floor.stl`) in its slots: the grooves,
   the rib and the bumps are not tried. It has the plug's holder and two corner posts, so the plug, its lock
   and a first insert can be tried in it too.
 - **The Pico's plug:** a micro-USB overmold 11 × 8 mm is assumed (`USB_PLUG`).
@@ -469,6 +493,7 @@ bottom down, is the same.
 | file in `case/out/` | what |
 |---|---|
 | `handheld_body.stl` | the tub, on its back, as it prints |
+| `handheld_bay_floor.stl` | the bay's floor, flat |
 | `handheld_bay_test.stl` | the tub's top only, from the plug holder's foot up: to try the cartridge in the bay, the plug and its lock, and an insert, before the whole tub |
 | `handheld_plate.stl` | the plate, face down |
 | `handheld_carrier.stl`, `handheld_spacers.stl` | the carrier, face down, the Pico's posts up; the four spacers |

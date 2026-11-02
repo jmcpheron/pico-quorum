@@ -26,6 +26,7 @@ All in `case/out/`, each the way up it prints.
 | the carrier | `handheld_carrier.stl` | 1 |
 | the spacers | `handheld_spacers.stl` (all four in one file) | 4 |
 | the plug lock | `handheld_plug_lock.stl` | 1 |
+| the bay's floor | `handheld_bay_floor.stl` | 1 |
 | the guard's base and cover | `handheld_guard_base.stl`, `handheld_guard_cover.stl` | 1 each |
 | the button cap | `handheld_sign_cap.stl` | 1 |
 | the key's tray and cover | `cartridge_tray.stl`, `cartridge_cover.stl` | 1 each |
@@ -40,15 +41,16 @@ Nothing has been printed yet, so try the untried parts first, in this order:
 1. **The key's cartridge**, `cartridge_tray.stl` and `cartridge_cover.stl`, in PETG if you have it: the
    clips are about 1.7% strain to snap in, close to PLA's 2%. Snap them shut without a key first.
 2. **The bay test**, `handheld_bay_test.stl`: the tub's top only, from the plug holder's foot up, about
-   half the tub. Slide the cartridge in and out: it should run in the grooves, stop on the rib upside down,
+   half the tub, and the bay's floor, `handheld_bay_floor.stl`. Slide the floor down its slots until it
+   clicks. Then slide the cartridge in and out: it should run in the grooves, stop on the rib upside down,
    and click at the bottom. Then try the plug and its lock (`handheld_plug_lock.stl`) in the holder, and
    an insert in one of its two corner posts. If the cartridge is tight, sand the bumps; if it's loose or
    won't go, `BAY_CLEAR`, `GROOVE_CLEAR` and `BUMP_R` in `handheld.py` are the numbers to change.
 3. **The plate**: every part's hole is in it. Four colours if you like ([below](#the-plates-colours)).
 4. **The rest:** the tub, the carrier, the spacers, the guard's base and cover, the cap.
 
-**Bridges** are the only overhangs. The longest is the bay's floor in the tub, 48.6 mm across; if it
-sags, put supports in the bay only. In the plate, the wells' floors are 20 to 25 mm; if they sag,
+**Bridges** are the only overhangs. The bay's floor is a part of its own, so the tub has no wide one: the
+longest is the top wall over the bay's mouth, 48.6 mm across but only 2.4 mm deep. In the plate, the wells' floors are 20 to 25 mm; if they sag,
 supports in the two wells only. The README lists every one ([what the script checks](README.md#what-the-script-checks)).
 
 <a id="the-plates-colours"></a>
@@ -109,7 +111,7 @@ The insert holes are 4.2 mm, not tried yet. If the first one goes in loose or wo
 
 Peel each strip and press it into its pocket, round ends into the round ends.
 
-## 3. The tub: the key's USB-C plug, at the foot of the key's bay
+## 3. The tub: the key's USB-C plug, then the bay's floor
 
 ![step 3](case/out/assembly/03-key-plug.png)
 
@@ -120,6 +122,8 @@ leave the wires about 12 cm long. Then, in the holder under the key's bay, point
    black overmold stops flush with the foot.
 3. Press the lock in under it, the cable in the lock's slot, until its two bumps click. Its lip is to
    pull it out by.
+4. Slide the bay's floor down its slots from the top edge, its hole at the top, either face in, until it
+   clicks onto the bay's foot. It goes in or out at any time; hook the hole to pull it out.
 
 ## 4. The tub: the breadboard and the sign button's switch
 

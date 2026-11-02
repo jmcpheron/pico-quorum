@@ -20,7 +20,8 @@ Run: uv run --python 3.11 --with cadquery --with matplotlib --with pillow \\
          python hardware/builds/pico-sign-handheld/case/handheld.py [screen.png]
 (or tools/case build handheld)
 
-Writes out/: handheld_body.stl (on its back, as it prints), handheld_bay_test.stl (its top, to try the key's bay), handheld_plate.stl (face down),
+Writes out/: handheld_body.stl (on its back, as it prints), handheld_bay_floor.stl (the bay's floor, flat),
+handheld_bay_test.stl (its top, to try the key's bay), handheld_plate.stl (face down),
 handheld_carrier.stl, handheld_spacers.stl, handheld_plug_lock.stl, handheld_guard_base.stl,
 handheld_guard_cover.stl, handheld_sign_cap.stl, handheld_tact_holder.stl (with SIGN_MOUNT = "holder"), handheld_assembly.step, handheld_*.png (the screen PNG warped onto the panel
 if one is given), and the cartridge's cartridge_*.stl and cartridge.png.
@@ -240,11 +241,20 @@ BAY_CLEAR = 0.3                     # round the cartridge's sides and over its f
 GROOVE_CLEAR = 0.25                 # over and under its tongues; past their tips, BAY_CLEAR more
 BAY_WALL, BAY_FLOOR = 2.0, 1.6      # the side walls outside the grooves; the floor between the bay and the inside
 BUMP_R = 0.75                       # the bumps: half-round, on the dimples' centres, so 0.15 short of filling them
+# The bay's floor is a separate flat panel, so the tub prints on its back with no 48.6 mm bridge over the bay: it
+# slides down a slot in each side wall from the top edge, stands on the bay's foot and clicks in near the top
+FLOOR_SLOT = 1.5                    # how far its edges go into the side walls
+FLOOR_CLEAR = 0.15                  # round it in its slots
+FLOOR_LIP = 1.2                     # the slots' lips on the inside, over its edges
+FLOOR_CLICK = 6.0                   # its click: two bumps this far under the top edge, as the cartridge's
+FLOOR_PULL = 3.0                    # a hole near its top, to hook it out by
 CART_Z = KEY_Z - (C.Z0 + C.REC[2] / 2)          # the cartridge's frame (its board's back) in the case: its receptacle on the plug
 CART_BACK, CART_FRONT = CART_Z - C.WALL_B, CART_Z + C.CART_T - C.WALL_B
 BAY_X = C.CART[0] / 2 + BAY_CLEAR   # the channel's half width
 GROOVE_X = C.CART[0] / 2 + C.TONGUE[0] + BAY_CLEAR + 0.2   # the grooves' floors, from the middle
 BAY_Z = CART_FRONT + BAY_CLEAR      # the bay's floor, its underside
+FLOOR_X = BAY_X + FLOOR_SLOT        # the floor panel's half width
+FLOOR_TOP = BAY_Z + BAY_FLOOR + FLOOR_CLEAR    # its slots' inner faces, the lips' undersides
 assert CART_BACK > 0.5, "the cartridge would stand out of the case's back"
 
 
@@ -354,16 +364,22 @@ def tub_and_plate():
 
     # the key's bay: a block on the back's top half, from the bay's foot (a wall WALL thick) to the top edge,
     # the channel cut down into it from the top and out through the back, a groove in each side for the
-    # cartridge's tongues; then the rib in its bottom left corner and the two bumps
+    # cartridge's tongues; then the rib in its bottom left corner and the two bumps. The channel goes right through
+    # to the inside: its floor is the separate panel (bay_floor), in a slot in each side wall, under a lip
     gz0, gz1 = CART_Z + C.TONGUE[1] - GROOVE_CLEAR, CART_Z + C.Z0 + GROOVE_CLEAR
-    body = body.union(box(KEY_X - GROOVE_X - BAY_WALL, KEY_X + GROOVE_X + BAY_WALL, BAY_Y0 - WALL, H, 0, BAY_Z + BAY_FLOOR)
+    body = body.union(box(KEY_X - GROOVE_X - BAY_WALL, KEY_X + GROOVE_X + BAY_WALL, BAY_Y0 - WALL, H, 0, FLOOR_TOP + FLOOR_LIP)
                       .intersect(full))
-    body = body.cut(box(KEY_X - BAY_X, KEY_X + BAY_X, BAY_Y0, H + 1, -1, BAY_Z))
+    body = body.cut(box(KEY_X - BAY_X, KEY_X + BAY_X, BAY_Y0, H + 1, -1, FLOOR_TOP + FLOOR_LIP + 1))
     body = body.cut(box(KEY_X - GROOVE_X, KEY_X + GROOVE_X, BAY_Y0, H + 1, gz0, gz1))
     nw, nl = C.NOTCH
     body = body.union(box(KEY_X - GROOVE_X - 0.01, KEY_X - C.CART[0] / 2 + nw - BAY_CLEAR, BAY_Y0 - 0.01,
-                          BAY_Y0 + nl - BAY_CLEAR, 0, BAY_Z + 0.01))
+                          BAY_Y0 + nl - BAY_CLEAR, 0, BAY_Z - FLOOR_CLEAR))
     body = body.union(bay_bumps())
+    body = body.cut(box(KEY_X - FLOOR_X - FLOOR_CLEAR, KEY_X + FLOOR_X + FLOOR_CLEAR, BAY_Y0, H + 1, BAY_Z - FLOOR_CLEAR, FLOOR_TOP))
+    body = body.union(floor_bumps())
+    for x, y in carrier_screws():       # the lips stop short of the carrier's screw heads, which come down over them
+        if BAY_Y0 < y < H:
+            body = body.cut(zp(FLOOR_TOP).center(x, y).circle(2.75 + 1.0).extrude(FLOOR_LIP + 1))
     # the key's plug: a holder on the floor under the bay's foot, a channel along it open toward the face. The
     # plug drops in low, its shell under the bay's foot, slides up into the foot's hole, flush, and the lock
     # drops in under it. The cable goes down through a slot in the stop, open toward the face too.
@@ -407,6 +423,25 @@ def bay_bumps():
     z0, z1 = CART_Z + C.Z0 + 0.6, CART_FRONT - 0.4
     return cq.Workplane("XY").pushPoints([(KEY_X - x, BAY_Y0 + dy), (KEY_X + x, BAY_Y0 + dy)]).circle(BUMP_R) \
         .extrude(z1 - z0).translate((0, 0, z0))
+
+
+def floor_bumps():
+    """The floor's click: a half-round bump at the end of each of its slots, FLOOR_CLICK under the top edge, standing
+    0.3 mm out of the slot's end, so 0.15 mm into the floor's edge on the way in, and into its dimples when it's home."""
+    xb = FLOOR_X + FLOOR_CLEAR + BUMP_R - 0.3
+    return cq.Workplane("XY").pushPoints([(KEY_X - xb, H - FLOOR_CLICK), (KEY_X + xb, H - FLOOR_CLICK)]).circle(BUMP_R) \
+        .extrude(BAY_FLOOR + 2 * FLOOR_CLEAR).translate((0, 0, BAY_Z - FLOOR_CLEAR))
+
+
+def bay_floor(up=0.0):
+    """The bay's floor: a flat panel, slid down its slots from the top edge onto the bay's foot. Its dimples take the
+    slots' bumps; the hole near its top is to hook it out by. up: that far up out of its slots."""
+    xb = FLOOR_X + FLOOR_CLEAR + BUMP_R - 0.3
+    f = box(KEY_X - FLOOR_X, KEY_X + FLOOR_X, BAY_Y0, H, BAY_Z, BAY_Z + BAY_FLOOR)
+    f = f.cut(cq.Workplane("XY").pushPoints([(KEY_X - xb, H - FLOOR_CLICK), (KEY_X + xb, H - FLOOR_CLICK),
+                                             ]).circle(BUMP_R + 0.1).extrude(BAY_FLOOR + 2).translate((0, 0, BAY_Z - 1)))
+    f = f.cut(zp(BAY_Z - 1).center(KEY_X, H - FLOOR_PULL - 1).circle(FLOOR_PULL / 2).extrude(BAY_FLOOR + 2))
+    return f.translate((0, up, 0))
 
 
 def place_cart(shape, up=0.0):
@@ -683,6 +718,10 @@ def checks(body, plate, parts, carrier, spacers, lock, base, cover, cap, holder)
     pairs += [("spacers", b, x) for b, x in (("body", body), ("plate", plate))]
     pairs += [(a, "plug lock", lock) for a in inside] + [("plug lock", "body", body), ("plug lock", "carrier", carrier)]
     n["carrier"], n["spacers"], n["plug lock"] = carrier, spacers, lock
+    floor = n["bay floor"] = bay_floor()
+    pairs += [(a, "bay floor", floor) for a in inside]
+    pairs += [("bay floor", b, x) for b, x in (("body", body), ("plate", plate), ("carrier", carrier), ("spacers", spacers),
+                                              ("plug lock", lock))]
     together = ({"key-c", "cartridge cover"}, {"key-c", "cartridge tray"}, {"cartridge cover", "cartridge tray"},
                 {"plug shell", "key-c"},
                 {"Pico 2 W", "Pico's parts, toward the carrier (space)"}, {"Pico 2 W", "Pico's wires (space)"},
@@ -706,7 +745,7 @@ def checks(body, plate, parts, carrier, spacers, lock, base, cover, cap, holder)
             bad += 1
             print("  OVERLAP %-36s %-24s %.2f mm3" % (a, bname, v))
     print("checked %d pairs: %s" % (len(pairs), "clear" if not bad else "%d overlap" % bad))
-    bad += bay_checks(body, n)
+    bad += bay_checks(body.union(n["bay floor"]), n)
 
     def d(a, b):
         return (n[a] if isinstance(a, str) else a).val().distance((n[b] if isinstance(b, str) else b).val())
@@ -725,7 +764,14 @@ def checks(body, plate, parts, carrier, spacers, lock, base, cover, cap, holder)
     print("the Pico's wires to the tub %.1f mm (the floor); its plug to the carrier %.1f mm; the Pico, its parts and wires "
           "to the plug holder %.1f mm; the carrier's screws to the tub %.1f mm (to the bay's floor: %.1f)" % (
               d("Pico's wires (space)", body), d("USB plug (space)", carrier), d(pico, plug_holder),
-              d("carrier screws", body), Z_CARRIER_BACK - 3.5 - (BAY_Z + BAY_FLOOR)))
+              d("carrier screws", body), d("carrier screws", "bay floor")))
+    floor = n["bay floor"]
+    sq = floor.translate((0, 2.0, 0)).intersect(floor_bumps()).val().Volume()
+    print("the bay's floor, a panel %.1f x %.1f x %.1f mm: %.1f mm into a slot in each side wall, %.2f mm round it; the "
+          "slots' lips %.1f mm. Slid in, its edges pass the bumps 0.15 mm deep (%.2f mm3 at 2 mm short of home); home, it "
+          "stands on the bay's foot and clears the rest of the tub, the cartridge by %.2f mm" % (
+              2 * FLOOR_X, H - BAY_Y0, BAY_FLOOR, FLOOR_SLOT, FLOOR_CLEAR, FLOOR_LIP, sq,
+              floor.val().distance(place_cart(C.clamshell()[0].union(C.clamshell()[1])).val())))
     pressed = sign_cap(TRAVEL)
     print("the sign button: its plunger %.1f mm over the switch's stem, %.1f mm below the well's floor; pressed %.2f mm "
           "to the stop, it pushes the stem %.2f mm (the switch's travel, about %.2f)" % (
@@ -853,6 +899,8 @@ def main():
     # the tub's top, from the plug holder's foot up: the bay, its grooves, rib and bumps, the plug and its lock,
     # and two corner posts for a first insert. To try the cartridge before printing the whole tub
     stl(body.intersect(box(-1, W + 1, Y_STOP - STOP - 1, H + 1, -1, T + 1)), "handheld_bay_test.stl")
+    floor = bay_floor()
+    stl(floor, "handheld_bay_floor.stl", 0.02)                                 # flat, its cartridge side on the bed
     flip = lambda s: s.rotate((0, 0, 0), (1, 0, 0), 180)                        # face down
     stl(flip(plate), "handheld_plate.stl")
     stl(flip(carrier), "handheld_carrier.stl")
@@ -873,6 +921,7 @@ def main():
     asm.add(carrier, name="carrier", color=cq.Color(0.35, 0.36, 0.40))
     asm.add(spacers, name="spacers", color=cq.Color(0.90, 0.60, 0.20))
     asm.add(lock, name="plug_lock", color=cq.Color(0.90, 0.60, 0.20))
+    asm.add(floor, name="bay_floor", color=cq.Color(0.20, 0.21, 0.23))
     asm.add(base, name="guard_base", color=cq.Color(0.35, 0.36, 0.40))
     asm.add(cover, name="guard_cover", color=cq.Color(0.80, 0.12, 0.10))
     asm.add(cap, name="sign_cap", color=cq.Color(0.90, 0.60, 0.20))
@@ -889,10 +938,10 @@ def main():
     PLATE_C, LOCK_C, RED = (0.74, 0.73, 0.70), (0.90, 0.60, 0.20), (0.80, 0.12, 0.10)
     keep = ("screen glass", "knob", "knob mark", "cartridge cover", "cartridge tray", "ATECC608")
     shown = [p for p in parts if p[2] in keep] + [(base, (0.35, 0.36, 0.40), "guard base"), (cover, COLOURS[2][1], "guard cover")]
-    K.render(dict(title="The handheld", parts=[(body, K.DARK, "body"), (plate, PLATE_C, "plate")] + shown, corners=corners,
+    K.render(dict(title="The handheld", parts=[(body, K.DARK, "body"), (floor, K.DARK, "bay floor"), (plate, PLATE_C, "plate")] + shown, corners=corners,
                   views=[("in the hand", 62, -90), ("the back: the key in its bay", -38, 120)]),
              os.path.join(OUT, "handheld_front.png"), screen_png)
-    inside = [(body, K.DARK, "body"), (lock, LOCK_C, "plug lock")] + \
+    inside = [(body, K.DARK, "body"), (floor, K.DARK, "bay floor"), (lock, LOCK_C, "plug lock")] + \
         [p for p in parts if p[2] in ("plug overmold", "plug shell", "cartridge cover", "cartridge tray", "key-c", "ATECC608")
          or (SIGN_MOUNT == "breadboard" and p[2] in ("breadboard", "tact switch"))]
     K.render(dict(title="The tub, open", parts=inside, corners=[],

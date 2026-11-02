@@ -118,6 +118,7 @@ def build():
     g["body"], g["plate"] = H.tub_and_plate()
     g["carrier"], _ = H.carrier_and_spacers()
     g["lock"] = H.plug_lock()
+    g["floor"] = H.bay_floor()
     g["base"], g["cover"], g["cap"] = H.guard_base(), H.guard_cover(), H.sign_cap()
     g["holder"] = None if BB else H.tact_holder()
     si = {n: sh for sh, _, n in H.stand_ins()}
@@ -197,7 +198,7 @@ def main():
         if f.endswith(".png"):
             os.remove(os.path.join(OUT, f))
     g = build()
-    body, plate, carrier, lock = g["body"], g["plate"], g["carrier"], g["lock"]
+    body, plate, carrier, lock, floor = g["body"], g["plate"], g["carrier"], g["lock"], g["floor"]
     base, cover, cap, holder = g["base"], g["cover"], g["cap"], g["holder"]
     ic = dict(m3i=icon([(M3I, BRASS)]), m3s=icon([(M3S, DARK)], el=15), m2s=icon([(M2S, DARK)], el=15),
               washer=icon([(WASHER, STEEL)], el=45), foot=icon([(FOOT, BLACK)], el=40),
@@ -214,6 +215,7 @@ def main():
              ("1 carrier:\nhandheld_carrier.stl", [(carrier, NEW)], 120, -40),
              ("4 spacers: handheld_spacers.stl", [(g["spacers"][0], NEW)], -55, 35),
              ("1 plug lock:\nhandheld_plug_lock.stl", [(lock, NEW)], -60, 35),
+             ("1 bay floor:\nhandheld_bay_floor.stl", [(floor, NEW)], -60, 45),
              ("1 guard base:\nhandheld_guard_base.stl", [(base, NEW)], -60, 40),
              ("1 guard cover:\nhandheld_guard_cover.stl", [(cover, NEW)], -60, 40),
              ("1 button cap:\nhandheld_sign_cap.stl", [(cap, NEW)], -60, 20),
@@ -256,7 +258,7 @@ def main():
     # the exploded view: the tub at the bottom, the plate high over it, its stack spread down from it
     G = 150.0
     done_plate = [(plate, WHITE)] + g["boss inserts"]
-    ex = items([(body, WHITE)] + g["body inserts"] + g["plug"] + [(lock, WHITE)]) + items(g["feet"], move=(0, 0, -20))
+    ex = items([(body, WHITE), (floor, WHITE)] + g["body inserts"] + g["plug"] + [(lock, WHITE)]) + items(g["feet"], move=(0, 0, -20))
     ex += items(g["key"], move=(0, 62, 0))
     ex += items(done_plate + [(base, WHITE), (cover, WHITE), (cap, WHITE)] + g["ec11"] + g["ec11 nut"] + g["base screws"],
                 move=(0, 0, G))
@@ -319,17 +321,28 @@ def main():
         its = items([(hold, WHITE)]) + items(g["plug"], move=plug_mv)
         if lock_mv is not None:
             its += items([(lock, NEW)], move=lock_mv)
-        s = Shot(its, -40, 45, (550, 820), fit=fit)
+        s = Shot(its, -40, 45, (412, 820), fit=fit)
         s.arrow(*arr)
-        s.d.multiline_text((24, 18), text, font=font(26), fill=INK, spacing=6)
+        s.d.multiline_text((20, 18), text, font=font(22), fill=INK, spacing=6)
         panels.append(s.img)
-    page("key-plug", next(N), "The tub: the key's USB-C plug, at the foot of the key's bay", panels,
-         need=[(icon(g["plug"][:2], el=20), "1×", "USB-C plug on its cable"), (icon([(lock, NEW)]), "1×", "the plug lock")],
-         note="Solder the plug's four wires and its two 4.7k pull-ups first. Leave the wires about 12 cm long.")
+    # 4: the bay's floor, down its slots from the top edge onto the foot, seen from the face side (the tub is open)
+    bay = body.intersect(H.box(H.KEY_X - 32, H.KEY_X + 32, H.BAY_Y0 - 6, H.H + 1, 0, 24))
+    lift = 28.0
+    ffit = [p(H.KEY_X + dx, y, dz) for dx in (-32, 32) for y in (H.BAY_Y0 - 6, H.H + lift) for dz in (0, 24)]
+    s = Shot(items([(bay, WHITE)] + g["plug"][:2] + [(lock, WHITE), (H.bay_floor(lift), NEW)]), -40, 45, (412, 820), fit=ffit)
+    fc = ctr(floor)
+    s.arrow(fc + (0, lift + 18, 3), fc + (0, lift - 4, 3))
+    s.d.multiline_text((20, 18), "4  the bay's floor down\n   its slots, until it clicks", font=font(22), fill=INK, spacing=6)
+    panels.append(s.img)
+    page("key-plug", next(N), "The tub: the key's USB-C plug, then the bay's floor", panels,
+         need=[(icon(g["plug"][:2], el=20), "1×", "USB-C plug on its cable"), (icon([(lock, NEW)]), "1×", "the plug lock"),
+               (icon([(floor, NEW)], el=45), "1×", "the bay's floor")],
+         note="Solder the plug's four wires and its two 4.7k pull-ups first. Leave the wires about 12 cm long.\n"
+              "The floor slides down from the top edge, its hole at the top, either face in. Hook the hole to pull it out.")
 
     # (breadboard) the breadboard on the tub's floor, the switch in it
     if BB:
-        inb = [(body, WHITE)] + g["body inserts"] + g["feet"] + g["plug"] + [(lock, WHITE)]
+        inb = [(body, WHITE), (floor, WHITE)] + g["body inserts"] + g["feet"] + g["plug"] + [(lock, WHITE)]
         bx0, bx1, by0, by1 = H.bb_box()
         a = Shot(items(inb) + items([(g["breadboard"][0][0], NEW)], move=(0, 0, 25)) + items(g["tact"], move=(0, 0, 45)),
                  -60, 40, (900, 950), pad=0.05)
@@ -491,7 +504,7 @@ def main():
 
     # 14. onto the tub
     stack = done13 + [(cap, WHITE), (H.guard_cover(), WHITE)] + g["base screws"]
-    inbody = [(body, WHITE)] + g["body inserts"] + g["feet"] + g["plug"] + [(lock, WHITE)] + g["breadboard"] + \
+    inbody = [(body, WHITE), (floor, WHITE)] + g["body inserts"] + g["feet"] + g["plug"] + [(lock, WHITE)] + g["breadboard"] + \
         (g["tact"] + g["tact wires"] if BB else [])
     a = Shot(items(inbody) + items(stack, move=(0, 0, 60)) + items(g["plate screws"], move=(0, 0, 85)), -55, 25, (900, 1000), pad=0.05)
     for x, y in H.SCREWS:

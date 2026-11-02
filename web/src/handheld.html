@@ -75,10 +75,10 @@
         <dt>Screen</dt><dd>2.4″ IPS, 240 × 320, SPI</dd>
         <dt>Controls</dt><dd>An EC11 knob to turn and push. A tactile Sign button under a flip cover</dd>
         <dt>Key</dt><dd>key-c, an ATECC608C behind USB-C, in a 48 × 54 mm snap-shut cartridge</dd>
-        <dt>Case</dt><dd>Eight printed parts and the cartridge's two, M3 screws into heat-set inserts</dd>
+        <dt>Case</dt><dd>Nine printed parts and the cartridge's two, none needing supports, M3 screws into heat-set inserts</dd>
         <dt>Firmware</dt><dd>The console image as is: <code>BOARD = "build1"</code>, <code>SCREEN = "2.4"</code></dd>
       </dl>
-      <p class="warn-note"><strong>A first draft.</strong> Designed and checked in CAD: 243 pairs of parts clear each other, and the cartridge clears everything as it slides in. Nothing is printed, wired or run yet, and the 2.4″ screen hasn't been seen working. Measure your parts first; <a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/README.md#before-printing">the README says which</a>.</p>
+      <p class="warn-note"><strong>A first draft.</strong> Designed and checked in CAD: 265 pairs of parts clear each other, and the cartridge clears everything as it slides in. Nothing is printed, wired or run yet, and the 2.4″ screen hasn't been seen working. Measure your parts first; <a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/README.md#before-printing">the README says which</a>.</p>
     </div>
   </section>
 
@@ -131,10 +131,10 @@
     <p>Every file is the way up it prints, flat on the bed, with no supports to start with. GitHub shows each in 3D; its download button saves the STL. Nothing has been printed yet, so try the new parts first, in this order:</p>
     <ol class="links">
       <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/out/cartridge_tray.stl"><code>cartridge_tray.stl</code></a>, <a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/out/cartridge_cover.stl"><code>cartridge_cover.stl</code></a>: the key's cartridge, each half on its outside face. PETG if you have it: the clips are close to PLA's limit.</li>
-      <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/out/handheld_bay_test.stl"><code>handheld_bay_test.stl</code></a>: the tub's top only: the bay, the plug's holder and two corner posts. Try the cartridge's fit here first.</li>
+      <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/out/handheld_bay_test.stl"><code>handheld_bay_test.stl</code></a>, <a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/out/handheld_bay_floor.stl"><code>handheld_bay_floor.stl</code></a>: the tub's top only, with the bay, the plug's holder and two corner posts; and the bay's floor, a flat panel that slides into it. Try the cartridge's fit here first.</li>
       <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/out/handheld_plug_lock.stl"><code>handheld_plug_lock.stl</code></a>: holds the key's plug up in its holder.</li>
       <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/out/handheld_plate.stl"><code>handheld_plate.stl</code></a>: the front plate, face down; four colours by filament changes.</li>
-      <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/out/handheld_body.stl"><code>handheld_body.stl</code></a>: the tub, on its back. The bay's floor is a 48.6 mm bridge: supports there only if it sags.</li>
+      <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/out/handheld_body.stl"><code>handheld_body.stl</code></a>: the tub, on its back, with no supports: the bay's floor is its own flat part.</li>
       <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/out/handheld_carrier.stl"><code>handheld_carrier.stl</code></a>, <a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/out/handheld_spacers.stl"><code>handheld_spacers.stl</code></a>: behind the screen, with the Pico's posts; the four spacers.</li>
       <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/out/handheld_guard_base.stl"><code>handheld_guard_base.stl</code></a>, <a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/out/handheld_guard_cover.stl"><code>handheld_guard_cover.stl</code></a>: the Sign button's flip cover and its base.</li>
       <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/out/handheld_sign_cap.stl"><code>handheld_sign_cap.stl</code></a>: the Sign button's cap, head down.</li>
@@ -144,7 +144,7 @@
     <h3 class="sub">What you need</h3>
     <div class="need">
       <figure class="pic"><img src="img/00-exploded.png" width="1650" height="1620" loading="lazy" alt="Every part of the handheld, pulled apart along one axis."><figcaption>Everything, pulled apart.</figcaption></figure>
-      <figure class="pic"><img src="img/00-printed-parts.png" width="1650" height="1480" loading="lazy" alt="The printed parts, each the way up it prints: the tub, the plate, the carrier, the spacers, the plug lock, the guard's base and cover, the button cap and the key's two halves."><figcaption>The printed parts, each the way up it prints.</figcaption></figure>
+      <figure class="pic"><img src="img/00-printed-parts.png" width="1650" height="1480" loading="lazy" alt="The printed parts, each the way up it prints: the tub, the plate, the carrier, the spacers, the plug lock, the bay's floor, the guard's base and cover, the button cap and the key's two halves."><figcaption>The printed parts, each the way up it prints.</figcaption></figure>
       <div>
         <ul class="ticks">
           <li><strong>Bought:</strong> a Pico 2 W, the 2.4″ screen, an EC11 knob and cap, a 12 × 12 mm tactile switch and a mini breadboard, a USB-C plug on a short cable, two 4.7 kΩ resistors, a key-c.</li>
@@ -159,7 +159,7 @@
     <ol class="build">
       <li id="step-1"><figure class="pic"><img src="img/01-tub-inserts.png" width="1650" height="1340" loading="lazy" alt="Step 1: an M3 insert going into each of the tub's four corner posts."></figure><h4>1. An insert in each corner post</h4><p>Let each one sink in under the iron's own weight. Don't twist. Stop when it's flush.</p></li>
       <li id="step-2"><figure class="pic"><img src="img/02-feet.png" width="1650" height="1390" loading="lazy" alt="Step 2: four rubber strips into the pockets on the tub's back."></figure><h4>2. The feet</h4><p>Four rubber strips into their pockets, round ends into the round ends.</p></li>
-      <li id="step-3"><figure class="pic"><img src="img/03-key-plug.png" width="1650" height="1260" loading="lazy" alt="Step 3: the key's USB-C plug up through the foot of the key's bay, and the printed lock under it."></figure><h4>3. The key's USB-C plug</h4><p>Pull-ups soldered at the plug first. Then up through the foot of the key's bay, pointing up, and the lock clicks in under it.</p></li>
+      <li id="step-3"><figure class="pic"><img src="img/03-key-plug.png" width="1650" height="1260" loading="lazy" alt="Step 3: the key's USB-C plug up through the foot of the key's bay, the printed lock under it, then the bay's floor down its slots."></figure><h4>3. The key's USB-C plug, then the bay's floor</h4><p>Pull-ups soldered at the plug first. Then up through the foot of the key's bay, and the lock clicks in under it. Then the bay's floor slides down its slots from the top edge until it clicks.</p></li>
       <li id="step-4"><figure class="pic"><img src="img/04-breadboard.png" width="1650" height="1460" loading="lazy" alt="Step 4: the mini breadboard between four stops on the tub's floor, and the tactile switch in it."></figure><h4>4. The breadboard and the Sign switch</h4><p>Between its four stops. The switch goes on the 3rd column from the right: that's under the button.</p></li>
     </ol>
 
