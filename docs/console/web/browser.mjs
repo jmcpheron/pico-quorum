@@ -12,7 +12,7 @@ export const local = {
 };
 
 // ---- keys ---------------------------------------------------------------------------------------
-export const KEY_ORDER = ["A", "B", "X", "Y", "up", "down", "left", "right", "press"];
+export const KEY_ORDER = ["A", "B", "X", "Y", "up", "down", "left", "right", "press", "D0", "D1", "D2"];     // core/runtime.mjs's
 // keyboard -> device. Joystick: W A S D (or the arrows) + space. Buttons: numpad 9 6 3 . (top row too).
 const KEYMAP = { w: "up", a: "left", s: "down", d: "right", " ": "press", 9: "A", 6: "B", 3: "X", ".": "Y",
   ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right", Enter: "press" };

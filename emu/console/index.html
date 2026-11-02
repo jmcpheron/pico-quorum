@@ -35,6 +35,11 @@
 
   <section class="run" aria-label="The console">
     <div class="device">
+      <div class="rail" role="group" aria-label="Buttons" hidden>
+        <button data-key="D0" aria-label="D0">D0</button>
+        <button data-key="D1" aria-label="D1">D1</button>
+        <button data-key="D2" aria-label="D2">D2</button>
+      </div>
       <div class="pad" role="group" aria-label="Joystick">
         <button class="dir up" data-key="up" aria-label="Up">▲</button>
         <button class="dir left" data-key="left" aria-label="Left">◀</button>
@@ -54,7 +59,9 @@
       </div>
     </div>
 
-    <p class="keys">Move <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>
+    <p class="keys three" hidden>D0 D1 D2 are <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd>, or <kbd>Esc</kbd> <kbd>↓</kbd> <kbd>Enter</kbd>.
+      Hold D2 to open or to sign. D1 held is back.</p>
+    <p class="keys pico">Move <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>
       · press <kbd>Enter</kbd> or <kbd>Space</kbd> · A B X Y are <kbd>9</kbd><kbd>6</kbd><kbd>3</kbd><kbd>.</kbd></p>
 
     <div class="panel">

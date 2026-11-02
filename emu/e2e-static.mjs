@@ -150,6 +150,26 @@ const owner2 = (await app2.locator(".card .inline-ident code").first().innerText
 check(/^0x[0-9a-fA-F]{40}$/.test(owner2) && await app2.locator('a[href*="/new/add/' + owner2 + '"]').count() === 1,
   `the app's Your passkey page: its owner address (${owner2.slice(0, 10)}…) and Add owner for the saved Safe, owner filled in`);
 check(owner2 === conOwner, "the console page and the app show the same owner address");
+// the same console on three buttons (?board=picoquorum-key, the app's Device page links it): the
+// S3 boards' 240x135 screen, D0 D1 D2 down its left edge, the same passkey and Safe
+await con.close();
+const three = await ctx2.newPage();
+watch(three, "three-button console");
+await three.goto(BASE + "console/?board=picoquorum-key");
+check(await three.evaluate(() => { const s = document.querySelector("#screen"); return s.width === 240 && s.height === 135 && document.querySelector(".pad").hidden && !document.querySelector(".rail").hidden; }),
+  "?board=picoquorum-key: a 240x135 screen, and D0 D1 D2 in place of the joystick and A B X Y");
+const drew3 = await three.waitForFunction(() => document.querySelector("#overlay").hidden && +(document.querySelector("#screen").dataset.frames || 0) > 0, null, { timeout: 60000 }).then(() => true, () => false);
+const lit3Now = () => three.evaluate(() => { const d = document.querySelector("#screen").getContext("2d").getImageData(0, 0, 240, 135).data; let n = 0; for (let i = 0; i < d.length; i += 4) n += d[i] + d[i + 1] + d[i + 2] > 60; return n; });
+let lit3 = drew3 ? await lit3Now() : 0;
+for (let i = 0; drew3 && i < 25 && lit3 <= 1000; i++) { await three.waitForTimeout(200); lit3 = await lit3Now(); }    // the splash draws in steps
+check(drew3 && lit3 > 1000, `and the firmware draws on it, as the PicoQuorumKey's profile (${lit3} lit pixels)`);
+await three.waitForTimeout(3000);                // past the splash
+if (process.env.SHOTS) await three.locator(".device").screenshot({ path: join(process.env.SHOTS, "console-three.png") });
+const shot3 = () => three.evaluate(() => document.querySelector("#screen").toDataURL());
+const changes3 = async (act) => { const b = await shot3(); await act(); for (let i = 0; i < 20; i++) { await three.waitForTimeout(150); if ((await shot3()) !== b) return true; } return false; };
+check(await changes3(async () => { const b = three.locator('[data-key="D1"]'); await b.dispatchEvent("pointerdown"); await three.waitForTimeout(150); await b.dispatchEvent("pointerup"); }),
+  "its D1 button reaches the firmware: the focus moves");
+check(await changes3(async () => { await three.keyboard.down("2"); await three.waitForTimeout(150); await three.keyboard.up("2"); }), "and so does the keyboard's 2");
 await ctx2.close();
 
 // 8. the same passkey in another browser (iCloud Keychain syncing it to the iPhone, say): this one
