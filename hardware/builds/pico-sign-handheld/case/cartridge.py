@@ -268,6 +268,8 @@ def write(out):
     top, bottom, _, _ = clamshell()
     flip = top.rotate((0, 0, 0), (1, 0, 0), 180)
     for s, name in ((flip, "cartridge_cover.stl"), (bottom, "cartridge_tray.stl")):
+        if not s.val().isValid():  # an invalid solid meshes with holes
+            raise SystemExit("cartridge: %s is not a valid solid" % name)
         cq.exporters.export(s.translate((0, 0, -s.val().BoundingBox().zmin)), os.path.join(out, name),
                             tolerance=0.02, angularTolerance=0.1)
     picture(os.path.join(out, "cartridge.png"))

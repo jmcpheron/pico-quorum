@@ -184,7 +184,7 @@ between the name and the controls.
 - **The carrier**, 2.5 mm, behind the screen, with a tail below it. The Pico screws to the tail's back.
   Printed face down.
 - **Four spacers**, 4 mm tubes that slip onto the screen's pins.
-- **The plug lock**, which holds the key's plug up. It prints on its side.
+- **The plug lock**, which holds the key's plug up. It prints standing on its lip's face, its two bumps to the sides.
 - **The guard's base and cover**, in the sign button's well. The base prints as it sits, the cover face
   down.
 - **The sign button's cap**, printed head down.
@@ -458,17 +458,19 @@ bottom down, is the same.
 - **Measure the switch and the breadboard's height** (`TACT`, `BREADBOARD`, above).
 - **The key's plug** is the prism's: the cut cable's overmold, 12.4 × 5.5 × 17.1 mm. A different cable
   needs `PLUG_*` changed. The bay's depth follows the plug's axis, so measure it before printing the tub.
-- **Print the cartridge first**, and try it in a test piece of the bay if you can: the grooves, the rib
-  and the bumps are not tried.
+- **Print the cartridge first**, and try it in `handheld_bay_test.stl`, the tub's top only: the grooves,
+  the rib and the bumps are not tried. It has the plug's holder and two corner posts, so the plug, its lock
+  and a first insert can be tried in it too.
 - **The Pico's plug:** a micro-USB overmold 11 × 8 mm is assumed (`USB_PLUG`).
 - Print the plate first: every part's hole is in it.
 
 | file in `case/out/` | what |
 |---|---|
 | `handheld_body.stl` | the tub, on its back, as it prints |
+| `handheld_bay_test.stl` | the tub's top only, from the plug holder's foot up: to try the cartridge in the bay, the plug and its lock, and an insert, before the whole tub |
 | `handheld_plate.stl` | the plate, face down |
 | `handheld_carrier.stl`, `handheld_spacers.stl` | the carrier, face down, the Pico's posts up; the four spacers |
-| `handheld_plug_lock.stl` | the lock for the key's plug, on its side |
+| `handheld_plug_lock.stl` | the lock for the key's plug, on its lip's face |
 | `handheld_guard_base.stl`, `handheld_guard_cover.stl` | the sign button's guard: the base as it sits, the cover face down |
 | `handheld_sign_cap.stl` | the sign button's cap, head down |
 | `cartridge_tray.stl`, `cartridge_cover.stl` | the key's cartridge, each half on its outside face |

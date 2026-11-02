@@ -540,6 +540,10 @@ def main():
     c3 = Shot(items(whole + g["knob"] + g["key"]), 115, -38, (530, 1000), pad=0.06)
     c3.label(p(H.KEY_X, H.H + C.PROUD / 2, H.CART_BACK), "in, and click:\nits top stands out\nto pull it by", -40, 250, 24)
     c3.d.multiline_text((24, 18), "3  all the way, onto\n   its plug", font=font(26), fill=INK, spacing=6)
+    # the site's share card (web/handheld-card.py): the second view again, without its labels
+    card = Shot(items(whole + g["knob"]) + items(g["key"], move=(0, lift, 0)), 115, -38, (600, 1000), pad=0.06)
+    card.arrow(k + (0, lift + 30, 0), k + (0, lift + 8, 0))
+    card.img.save(os.path.join(OUT, "card-key-in.png"), optimize=True)
     page("done", next(N), "The knob's cap, then the key into its bay", [a.img, b.img, c3.img],
          need=[(icon(g["knob"]), "1×", "knob cap"), (icon(g["key"], el=20), "1×", "the key in its cartridge")],
          note="It only goes in one way. If it stops early, take it out and turn it round: don't push it onto the plug.")

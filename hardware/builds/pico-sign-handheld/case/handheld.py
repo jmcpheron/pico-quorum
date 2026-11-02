@@ -20,7 +20,7 @@ Run: uv run --python 3.11 --with cadquery --with matplotlib --with pillow \\
          python hardware/builds/pico-sign-handheld/case/handheld.py [screen.png]
 (or tools/case build handheld)
 
-Writes out/: handheld_body.stl (on its back, as it prints), handheld_plate.stl (face down),
+Writes out/: handheld_body.stl (on its back, as it prints), handheld_bay_test.stl (its top, to try the key's bay), handheld_plate.stl (face down),
 handheld_carrier.stl, handheld_spacers.stl, handheld_plug_lock.stl, handheld_guard_base.stl,
 handheld_guard_cover.stl, handheld_sign_cap.stl, handheld_tact_holder.stl (with SIGN_MOUNT = "holder"), handheld_assembly.step, handheld_*.png (the screen PNG warped onto the panel
 if one is given), and the cartridge's cartridge_*.stl and cartridge.png.
@@ -537,15 +537,19 @@ def detent_at(s, dx):
 def plug_lock():
     """Drops into the holder's channel under the plug once the plug is up, the cable into its slot, which
     is open at its underside (its leading end). Two bumps click into dimples in the channel's walls; the
-    lip is to pull it out by. Prints on its side, the lip on the bed."""
+    lip is to pull it out by. Prints on the face the lip is part of, the bumps to the sides."""
     w = 2 * (PW - LOCK_CLEAR)
     z0, h = KEY_Z - PH + LOCK_CLEAR, LIFT - 0.1
     lock = box(KEY_X - w / 2, KEY_X + w / 2, Y_STOP, Y_STOP + h, z0, HOLDER_TOP + LOCK_TAB)
     lock = lock.cut(box(KEY_X - w, KEY_X + w, Y_STOP + 2, Y_STOP + h + 1, HOLDER_TOP, HOLDER_TOP + LOCK_TAB + 1))  # lip: 2 mm
     lock = lock.cut(cable_slot(KEY_Z, z0 - 1, Y_STOP - 1, h + 2))
     dr, dout = DETENT
+    # each bump a cone cut flat, 45 degrees, as tall as a sphere of dr standing dout out: spheres here didn't fuse
+    # (one way round) or left slivers at their poles in the STL (the other). Its base is 0.2 mm inside the lock
+    rb = (dr ** 2 - (dr - dout) ** 2) ** 0.5                     # the sphere's radius at the lock's face
     for s in (-1, 1):
-        lock = lock.union(cq.Workplane("XY").sphere(dr).translate(detent_at(s, w / 2 + dout - dr)))
+        x, y, z = detent_at(s, w / 2 - 0.2)
+        lock = lock.union(cq.Workplane(obj=cq.Solid.makeCone(rb + 0.2, rb - dout, dout + 0.2, cq.Vector(x, y, z), cq.Vector(s, 0, 0))))
     return lock
 
 
@@ -836,14 +840,21 @@ def main():
     bad = checks(body, plate, parts, carrier, spacers, lock, base, cover, cap, holder) + C.checks()
 
     def stl(shape, name, tol=0.05):
+        nonlocal bad
+        if not shape.val().isValid():  # an invalid solid meshes with holes; slicers may or may not mend them
+            print("  NOT A VALID SOLID: %s" % name)
+            bad += 1
         cq.exporters.export(shape.translate((0, 0, -shape.val().BoundingBox().zmin)), os.path.join(OUT, name),
                             tolerance=tol, angularTolerance=0.2)
     stl(body, "handheld_body.stl")                                              # on its back, as it is
+    # the tub's top, from the plug holder's foot up: the bay, its grooves, rib and bumps, the plug and its lock,
+    # and two corner posts for a first insert. To try the cartridge before printing the whole tub
+    stl(body.intersect(box(-1, W + 1, Y_STOP - STOP - 1, H + 1, -1, T + 1)), "handheld_bay_test.stl")
     flip = lambda s: s.rotate((0, 0, 0), (1, 0, 0), 180)                        # face down
     stl(flip(plate), "handheld_plate.stl")
     stl(flip(carrier), "handheld_carrier.stl")
     stl(spacers, "handheld_spacers.stl")
-    stl(lock.rotate((0, 0, 0), (0, 1, 0), 90), "handheld_plug_lock.stl", 0.02)  # on its side
+    stl(lock.rotate((0, 0, 0), (1, 0, 0), 90), "handheld_plug_lock.stl", 0.02)  # on its lip's face, the bumps to the sides
     stl(base, "handheld_guard_base.stl", 0.02)                                  # as it sits
     stl(flip(cover), "handheld_guard_cover.stl", 0.02)                          # face down
     stl(flip(cap), "handheld_sign_cap.stl", 0.02)                               # head down

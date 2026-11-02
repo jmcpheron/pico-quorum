@@ -32,6 +32,27 @@ All in `case/out/`, each the way up it prints.
 
 ![the printed parts](case/out/assembly/00-printed-parts.png)
 
+### Printing
+
+Each file is already the way up it prints, on the bed at z = 0. None of them needs supports to start with.
+Nothing has been printed yet, so try the untried parts first, in this order:
+
+1. **The key's cartridge**, `cartridge_tray.stl` and `cartridge_cover.stl`, in PETG if you have it: the
+   clips are about 1.7% strain to snap in, close to PLA's 2%. Snap them shut without a key first.
+2. **The bay test**, `handheld_bay_test.stl`: the tub's top only, from the plug holder's foot up, about
+   half the tub. Slide the cartridge in and out: it should run in the grooves, stop on the rib upside down,
+   and click at the bottom. Then try the plug and its lock (`handheld_plug_lock.stl`) in the holder, and
+   an insert in one of its two corner posts. If the cartridge is tight, sand the bumps; if it's loose or
+   won't go, `BAY_CLEAR`, `GROOVE_CLEAR` and `BUMP_R` in `handheld.py` are the numbers to change.
+3. **The plate**: every part's hole is in it. Four colours if you like ([below](#the-plates-colours)).
+4. **The rest:** the tub, the carrier, the spacers, the guard's base and cover, the cap.
+
+**Bridges** are the only overhangs. The longest is the bay's floor in the tub, 48.6 mm across; if it
+sags, put supports in the bay only. In the plate, the wells' floors are 20 to 25 mm; if they sag,
+supports in the two wells only. The README lists every one ([what the script checks](README.md#what-the-script-checks)).
+
+<a id="the-plates-colours"></a>
+
 **The plate in four colours:** change filament at 0.6, 1.2 and 1.8 mm as it prints, face down
 ([the colours](README.md#the-colours)).
 
