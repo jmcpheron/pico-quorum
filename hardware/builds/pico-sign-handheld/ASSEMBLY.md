@@ -26,7 +26,6 @@ All in `case/out/`, each the way up it prints.
 | the plug lock | `handheld_plug_lock.stl` | 1 |
 | the guard's base and cover | `handheld_guard_base.stl`, `handheld_guard_cover.stl` | 1 each |
 | the button cap | `handheld_sign_cap.stl` | 1 |
-| the switch holder | `handheld_tact_holder.stl` | 1 |
 | the key's tray and cover | `cartridge_tray.stl`, `cartridge_cover.stl` | 1 each |
 
 ![the printed parts](case/out/assembly/00-printed-parts.png)
@@ -36,10 +35,9 @@ All in `case/out/`, each the way up it prints.
 | what | how many | where |
 |---|---|---|
 | M3 heat-set insert, M3\*6\*5 | 8 | 4 in the tub's corner posts, 4 in the plate's bosses |
-| M3 × 8 countersunk screw | 4 | the plate into the tub. **Not in the bench's kits** |
-| M3 × 8 socket head screw | 4 | the carrier onto the plate's bosses |
-| M3 washer | 4 | under those |
-| M2 × 8 socket head screw | 8 | 4 for the Pico, 2 for the guard's base, 2 for the switch holder. They cut their own thread |
+| M3 × 8 socket head screw | 8 | 4 for the plate into the tub, their heads in counterbores; 4 for the carrier onto the plate's bosses |
+| M3 washer | 4 | under the carrier's screws |
+| M2 × 8 socket head screw | 6 | 4 for the Pico, 2 for the guard's base. They cut their own thread |
 | rubber strip, 6 × 35 mm | 4 | the tub's feet |
 | 1.75 mm filament | 20 mm | the guard's hinge pin |
 
@@ -49,7 +47,7 @@ All in `case/out/`, each the way up it prints.
 
 - the 2.4″ screen
 - a Pico 2 W, no headers
-- a 6 × 6 mm tactile switch
+- a 12 × 12 mm tactile switch, a mini breadboard (46 × 34.2 mm) and two flat jumper wires
 - an EC11 knob, its nut, and a cap for its 6 mm D-shaft
 - a USB-C plug on a short cable, for the key, and two 4.7 kΩ resistors
 - a micro-USB cable for the Pico
@@ -59,7 +57,7 @@ All in `case/out/`, each the way up it prints.
 ### Tools
 
 - a soldering iron, with an M3 heat-set insert tip as well as its usual one
-- hex keys: 2 mm (the countersunk screws), 2.5 mm (M3 socket heads), 1.5 mm (M2)
+- hex keys: 2.5 mm (M3 socket heads), 1.5 mm (M2)
 - a spanner or pliers for the knob's nut
 - flush cutters, for the hinge pin
 - a meter, for the switch's legs
@@ -95,40 +93,42 @@ leave the wires about 12 cm long. Then, in the holder at the tub's top edge:
 3. Press the lock in under it, the cable in the lock's slot, until its two bumps click. Its lip is to
    pull it out by.
 
-## 4. The plate: an insert in each of the carrier's bosses
+## 4. The tub: the breadboard and the sign button's switch
 
-![step 4](case/out/assembly/04-plate-inserts.png)
+![step 4](case/out/assembly/04-breadboard.png)
+
+The breadboard goes on the floor under where the button will be, between the four L-shaped stops, long
+across the case. Stick it down with its own tape. The 12 × 12 switch goes across the centre channel, its
+centre on the **3rd column from the right-hand end**, its legs in the 2nd and 4th. That column is under the
+button.
+
+Meter the switch first: find two legs, diagonally opposite, that beep only while it is pressed. Run a flat
+jumper from each of their rows; they go to pins 20 and 18. Under the button there's only about 6.6 mm over
+the board, so Dupont leads standing up won't fit.
+
+## 5. The plate: an insert in each of the carrier's bosses
+
+![step 5](case/out/assembly/05-plate-inserts.png)
 
 Lay the plate face down on a towel. An insert in each of the four round bosses round the window, as in
 step 1.
 
-## 5. The sign button's guard, on the bench
+## 6. The sign button's guard, on the bench
 
-![step 5](case/out/assembly/05-guard.png)
+![step 6](case/out/assembly/06-guard.png)
 
 1. Put the cover's knuckle between the base's two and push the filament through all three. It is tight
    in the base and free in the cover.
 2. Push the button cap up through the base from underneath. Its flange seats in the cone under the base.
 3. Trim the pin flush on both sides. The cover should swing up and down, and the cap move a little.
 
-## 6. The guard into its well
+## 7. The guard into its well
 
-![step 6](case/out/assembly/06-guard-in.png)
+![step 7](case/out/assembly/07-guard-in.png)
 
 Plate face up. The base, the cap and the cover go into the sign button's well together, the knuckles
 toward the screen. Two M2 × 8 through the base's holes into the plate. They cut their own thread: turn
 until firm, then stop.
-
-## 7. The sign button's switch
-
-![step 7](case/out/assembly/07-switch.png)
-
-Meter the switch first: find two legs, diagonally opposite, that beep only while it is pressed. Solder a
-wire to each (they go to pins 20 and 18). Plate face down: put the switch in the holder's pocket, its stem
-up toward the plate, the wires out of the slots. Screw the holder on behind the well with two M2 × 8.
-
-Press the cap from the front. It should click the switch, then stop on the floor. If it doesn't reach,
-your switch is shorter than the model's: measure it, set `TACT` in `handheld.py`, and reprint the holder.
 
 ## 8. The plate: the knob
 
@@ -169,18 +169,17 @@ slimmer posts are at the USB end. Four M2 × 8.
 
 ![step 13](case/out/assembly/13-wires.png)
 
-The screen's header, the knob and the sign button to the Pico, as pico-sign's tables say. Everything is
-on the plate now, so push the console image and try it on the bench
-([the bench check](README.md#first-the-bench-check)) before it goes in the tub. The key's plug wires
-come from the tub in the next step.
+The screen's header and the knob to the Pico, as pico-sign's tables say. Push the console image and try
+it on the bench ([the bench check](README.md#first-the-bench-check)) before it goes in the tub. The key's
+plug and the sign button's switch are in the tub: their wires come in the next step.
 
 ## 14. Onto the tub
 
 ![step 14](case/out/assembly/14-close.png)
 
-Lay the plate face down beside the tub and solder the key's plug wires to the Pico. Then the plate onto
-the tub, and four M3 × 8 countersunk through its corners. Snug, not tight: a countersunk head forced
-into plastic can split it. The micro-USB cable goes in through the hole in the right side, straight into
+Lay the plate face down beside the tub and solder the key's plug wires and the sign button's two jumpers
+to the Pico. Press the cap: the switch should click. Then the plate onto
+the tub, and four M3 × 8 socket heads through its corners, into the counterbores. Snug: they go into brass, but the plate is plastic. The micro-USB cable goes in through the hole in the right side, straight into
 the Pico's socket.
 
 ## 15. The key into its clamshell

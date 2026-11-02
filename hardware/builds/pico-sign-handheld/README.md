@@ -21,10 +21,10 @@ cover. The key, in a snap-shut clamshell, stands up out of the top edge.
 - **The screen** is the 2.4″ 240 × 320 SPI module with 8 pins, the one pico-sign started with:
   `SCREEN = "2.4"`.
 - **The case** is the handheld, not the prism: 86 × 118 × 30 mm against the prism's 180 × 107 × 78.
-- **The sign button is a 6 × 6 mm tactile switch** under a printed cap, not the 12 mm metal push
-  switch. See [the sign button](#the-sign-button).
-- **Everything you wire is on the plate.** The Pico is on the screen's carrier, as on the prism; the
-  knob and the sign button are in the plate. Only the key's plug is in the tub.
+- **The sign button is a 12 × 12 mm tactile switch** in a mini breadboard, under a printed cap, not the
+  12 mm metal push switch. See [the sign button](#the-sign-button).
+- **Most of the wiring is on the plate.** The Pico is on the screen's carrier, as on the prism, and the
+  knob is in the plate. The key's plug and the sign button's breadboard are in the tub.
 - **No headers.** The case leaves 4 mm under the Pico's board, so the wires are soldered to its pads.
 - **The controls are sunk in wells**, and the sign button has a [flip cover](#the-sign-buttons-cover).
 - **The key's case is a clamshell** that snaps shut, not pico-sign's cartridge, which is glued or
@@ -37,7 +37,7 @@ Everything else is pico-sign's.
 - a Pico 2 W
 - the 2.4″ IPS 240 × 320 SPI screen, 8 pins (VCC, GND, SCL, SDA, RST, DC, CS, BLK)
 - an EC11 knob with push, 20 detents, a 6 mm D-shaft, an M7 bushing, and a cap about 18 mm across
-- a 6 × 6 mm tactile switch, SMD, or through-hole with its legs bent flat
+- a 12 × 12 mm tactile switch and a mini breadboard (46 × 34.2 mm), and two flat jumper wires
 - a key-c, and a USB-C plug on a short cable for it, as on [pico-sign](../pico-sign/README.md#the-key)
 - two 4.7 kΩ resistors, the key's pull-ups
 - thin stranded wire
@@ -56,10 +56,11 @@ What changes is how the wires go:
 - **Solder them to the Pico's pads.** There is no room for headers or Dupont housings.
 - **The sign button** is wired as pico-sign's sign switch: one leg to pin 20 (GP15), the other to
   pin 18 (GND). A tactile switch's four legs are two pairs, joined inside; take two legs that are
-  diagonally opposite, and meter them: they beep only while it's pressed.
-- **Everything but the key is on the plate.** The screen, the knob, the button and the Pico are all on
-  it, so their wires can be short. The key's plug is in the tub: give its four wires about 12 cm, so the
-  plate can lie face down beside the tub while you wire it.
+  diagonally opposite, and meter them: they beep only while it's pressed. In the breadboard, wire their
+  rows with flat jumpers.
+- **The screen, the knob and the Pico are on the plate**, so their wires can be short. The key's plug and
+  the sign button's breadboard are in the tub: give their wires about 12 cm, so the plate can lie face
+  down beside the tub while you wire it.
 - **The screen's header.** Solder the leads to its pins at the back. The case leaves 11.5 mm behind the
   board for pins and wire.
 
@@ -82,27 +83,42 @@ screen's posts don't change.
 
 **A tactile switch, not the metal push switch.** The 12 mm metal switch from the music shop stands about
 13 mm out of the panel and hangs about 28 mm behind it (the prism's numbers). Sunk under a flush cover,
-that would make the case about 45 mm thick; sunk part way with no cover, about 40. A 6 × 6 mm tactile
-switch under a printed cap keeps it at 30.
+that would make the case about 45 mm thick; sunk part way with no cover, about 40. A tactile switch under
+a printed cap keeps it at 30.
 
 **It must be momentary.** A tactile switch is. pico-sign's README says
 [why it matters](../pico-sign/README.md#the-sign-switch): a switch that stays down would sign 2 s after
 one tap.
 
 **How it works.** The cap's head sits in the well, under the cover. Its plunger goes down through the
-well's floor and stops 0.2 mm over the switch's stem. Press it, and it moves 0.45 mm before a flange
-under the head stops on the floor: 0.2 mm to the stem, then 0.25 mm, a 6 × 6's usual travel. The flange
-keeps the cap from falling out, and the stop keeps it from crushing the switch. The switch sits in a
-printed holder screwed behind the plate.
+well's floor and stops 0.2 mm over the switch's stem. Press it, and it moves 0.55 mm before a flange under
+the head stops on the floor: 0.2 mm to the stem, then 0.35 mm, a little more than a 12 × 12's usual
+0.3 mm travel. The flange keeps the cap from falling out, and the stop keeps it from crushing the switch.
 
-**Measure your switch.** The script takes a usual 6 × 6: a body 3.5 mm tall, 5 mm to the stem's top,
-9 mm across its legs (`TACT`). Change those and run the script again. Only the holder changes, its
-pocket deeper or shallower, so you reprint only the holder. A switch shorter than 2.8 mm to its stem's
-top doesn't reach; the script says so.
+**The switch is in a mini breadboard** on the tub's floor (`SIGN_MOUNT = "breadboard"` in `handheld.py`):
+- **The breadboard** is the bench's mini one: 46 × 34.2 mm (calipers), 17 holes along it. It lies across
+  the case, under the button, its right-hand end 7.8 mm right of the button. Four L-shaped stops on the
+  floor, 1.5 mm tall, put it there; they hold its corners, clear of the tabs on its sides. Stick it down
+  with its own tape.
+- **The switch** is a 12 × 12 mm tactile switch, across the centre channel, as it sits in the photo.
+  Its centre goes on the **3rd column from the right-hand end** (its legs in the 2nd and 4th). That
+  column is under the button.
+- **Its wires:** two flat jumpers, from the rows of two diagonally opposite legs, to pins 20 (GP15) and
+  18 (GND). Under the button there's only about 6.6 mm over the board, so Dupont leads standing up don't
+  fit; flat jumpers do.
+- **What the script checks:** the board clears the tub's corner post (1.1 mm), the carrier's screws
+  (0.9 mm), the EC11 (7.1 mm) and the Pico's wires (14.4 mm).
 
-**Or a breadboard.** The holder is meant to make one unnecessary. If you'd rather, a mini breadboard
-could sit on the tub's floor under the button, with the switch in it. That isn't modelled or checked,
-and the plunger would need to be longer.
+**Measure two things before printing the cap:** the breadboard's height with its tape on (the script
+takes 8.5 mm), and the switch's height pushed into the board, from the board's top to the stem's top (the
+script takes 7.3 mm, a usual 12 × 12 × 7.3). They're `BREADBOARD` and `TACT` in `handheld.py`. Only the
+cap's plunger changes with them, so a wrong guess means reprinting only the cap. The plunger reaches
+3.1 mm below the well's floor; the script stops if the switch stands too tall for the space.
+
+**Or the printed holder.** With `SIGN_MOUNT = "holder"`, a 6 × 6 mm switch sits in a printed holder
+screwed behind the plate, on two more bosses, and the breadboard and its stops go. The script then writes
+`handheld_tact_holder.stl`, and assembly.py draws a holder step. It was checked before the breadboard came
+in, and not run since.
 
 ## What the controls do
 
@@ -136,19 +152,23 @@ Flat and portrait, 86 mm wide, 118 tall and 30 thick, corners rounded 6 mm. The 
 under the sign button, is rounded 20 mm. The back's edge is rounded 3 mm and the face's chamfered 1.5 mm.
 With a key in, it is 164 mm tall.
 
-**Nine printed parts, and the key's two:**
+**Eight printed parts, and the key's two:**
 - **The tub**, one piece, open at the face. It prints on its back. In it:
   - four posts at the corners, an M3 insert in each, for the plate's screws
   - the key's plug holder at the top edge
   - a 14 mm square hole in the right side for the Pico's cable
+  - four L-shaped stops on the floor for the sign button's breadboard
   - four pockets 1 mm deep in the back for rubber feet
-- **The plate**, 3 mm, printed face down. Four M3 countersunk screws hold it to the tub's posts.
+- **The plate**, 3 mm, printed face down. Four M3 × 8 socket head screws hold it to the tub's posts, their
+  heads sunk 0.2 mm under the face in counterbores 6 mm across. The plate is 2 mm thicker under each
+  (bosses on its back), and the posts 2 mm shorter, so 1.8 mm stays under each head and the screw goes
+  6.2 mm into its insert.
 - **The carrier**, 2.5 mm, behind the screen. The Pico screws to its back. Printed face down.
 - **Four spacers**, 4 mm tubes that slip onto the screen's pins.
 - **The plug lock**, which holds the key's plug up. It prints on its side.
 - **The guard's base and cover**, in the sign button's well. The base prints as it sits, the cover face
   down.
-- **The sign button's cap**, printed head down, and **the switch's holder**, printed as it sits.
+- **The sign button's cap**, printed head down.
 - **The key's tray and cover**: [the clamshell](#the-keys-clamshell).
 
 **On the plate:**
@@ -161,8 +181,8 @@ With a key in, it is 164 mm tall.
   - **the knob's well:** round, 25 mm across and 3 mm deep, a 2 mm floor for the EC11's nut. The knob's
     cap stands about 12 mm out of the face, with 3.5 mm round it for your fingers.
   - **the sign button's well:** the guard's outline, 20.6 × 24.6 mm, 7 mm deep, a 1.5 mm floor. A
-    notch under its bottom edge is for a thumbnail, to lift the cover. Behind its floor, four bosses:
-    two for the guard's base, two for the switch's holder.
+    notch under its bottom edge is for a thumbnail, to lift the cover. Behind its floor, two bosses for
+    the guard's base's screws.
 - a 20 × 6 mm frame under each, a 0.6 mm line cut 0.6 mm deep, for a label
 - PICOQUORUM cut between the controls and the window: 7.7 mm letters, 65 mm long (the script works it out)
 
@@ -248,8 +268,8 @@ of the pads beside each hole, of the micro-USB plug and of the socket.
   straight in to the socket.
 - Its wires, on the side away from the carrier, have 4 mm before the floor; the script leaves 1.3 mm more.
 
-So the plate, with the screen, the carrier, the Pico, the knob and the sign button on it, is one piece
-you can wire and try on the bench before it goes in the tub.
+So the plate, with the screen, the carrier, the Pico and the knob on it, is one piece you can wire and try
+on the bench before it goes in the tub; the sign button's switch joins it on two wires from the tub.
 
 ![behind the plate](case/out/handheld_carrier.png)
 
@@ -259,11 +279,11 @@ From the bench's kits (inserts are named thread × length × outside diameter):
 
 | where | inserts | screws |
 |---|---|---|
-| the tub's corner posts, for the plate | 4 × M3\*6\*5, in 4.2 mm holes | 4 × M3 × 8 **countersunk**: not in the kit |
+| the tub's corner posts, for the plate | 4 × M3\*6\*5, in 4.2 mm holes | 4 × M3 × 8 socket head, in counterbores |
 | the plate's bosses, for the carrier | 4 × M3\*6\*5, in 4.2 mm holes | 4 × M3 × 8 socket head, with M3 washers |
 | the carrier's posts, for the Pico | none: 1.8 mm holes, self-tapping | 4 × M2 × 8 socket head |
 | the guard's base, into the plate | none: 1.8 mm holes, self-tapping | 2 × M2 × 8 socket head |
-| the switch's holder, into the plate | none: 1.8 mm holes, self-tapping | 2 × M2 × 8 socket head |
+| the breadboard | none: its own tape, between four stops | none |
 | the screen | none: four pins and four spacers | none |
 | the feet | | 4 rubber strips, 6 × 35 mm |
 | the guard's hinge | none | 20 mm of 1.75 mm filament |
@@ -277,18 +297,18 @@ Print one post and set an insert first.
 In short; [ASSEMBLY.md](ASSEMBLY.md) has it in 16 steps, with pictures.
 
 1. **The plate:** the four boss inserts.
-2. **The sign button:** the cover on the base, the pin through. The cap up through the base from below.
-   The three into the well, two M2 × 8 through the base. Solder two wires to the switch's diagonal legs,
-   put it in the holder's pocket, stem up, wires out of the slots. Screw the holder on behind the well
-   with two M2 × 8, the switch under the plunger.
+2. **The sign button's guard:** the cover on the base, the pin through. The cap up through the base
+   from below. The three into the well, two M2 × 8 through the base.
 3. **The knob** with its nut.
 4. **The screen** face down onto its seats, the pins through its holes. A spacer on each pin, the
    carrier on, four M3 × 8 with washers.
 5. **The Pico** onto the carrier's posts, parts toward the carrier, four M2 × 8.
 6. **The wires** on the plate: the screen, the knob and the button to the Pico. Try it on the bench.
-7. **The tub:** the four corner inserts. The key's plug and its lock, as above. Its wires to the Pico, its
-   pull-ups at the plug ([pico-sign's tables](../pico-sign/README.md#the-wiring)).
-8. **Close it:** the plate onto the tub, four M3 × 8 countersunk. The feet in their pockets. The
+7. **The tub:** the four corner inserts. The key's plug and its lock, as above; its pull-ups at the plug
+   ([pico-sign's tables](../pico-sign/README.md#the-wiring)). The breadboard between its stops, the
+   switch in it on the 3rd column from the right, two flat jumpers. The key's and the switch's wires to
+   the Pico.
+8. **Close it:** the plate onto the tub, four M3 × 8 socket heads into the counterbores. The feet in their pockets. The
    micro-USB cable in through the right side.
 9. **The key:** into its tray, the peg through H1; the cover on, pressed until the four clips click.
    Then straight down onto the plug in the top edge.
@@ -296,12 +316,12 @@ In short; [ASSEMBLY.md](ASSEMBLY.md) has it in 16 steps, with pictures.
 ### What the script checks
 
 That the boxes standing in for the screen's glass, board, back parts and header, the carrier's screw
-heads, the tactile switch, the knob, the key's plug, the clamshell, the Pico, the room for its parts and
-wires, and its USB plug don't overlap the tub, the plate, the carrier, the spacers, the plug lock or each
+heads, the tactile switch and its breadboard, the knob, the key's plug, the clamshell, the Pico, the room
+for its parts and wires, and its USB plug don't overlap the tub, the plate, the carrier, the spacers, the plug lock or each
 other. That the guard's base, its screws' heads, the cap and the cover clear each other, the plate and
-the knob, with the cover shut and opened 30°, 60° and 90°; that the holder clears the plate, the switch,
-the carrier, the tub and the EC11; and that the cap, pressed to its stop, stays clear of the plate.
-208 pairs, all clear. The closest:
+the knob, with the cover shut and opened 30°, 60° and 90°; and that the cap, pressed to its stop, stays
+clear of the plate. And that the plate, its corner bosses included, clears the tub when it's shut.
+223 pairs, all clear. The closest:
 
 | | mm |
 |---|---|
@@ -310,15 +330,17 @@ the carrier, the tub and the EC11; and that the cap, pressed to its stop, stays 
 | the cap's plunger to the switch's stem, at rest | 0.2 |
 | the Pico's posts to the nearest pin's pad, from the Pico's drawing | 0.21 |
 | the guard's cover to the cap's head | 0.4 |
+| the breadboard to the carrier's screws | 0.9 |
 | the carrier to the tub | 1.0 |
+| the breadboard to the tub's corner post | 1.1 |
 | the plug lock to the carrier | 1.2 |
 | the Pico's wires to the tub's floor | 1.3 |
 | the Pico's plug to the hole in the side | 1.5 |
 
-It also checks that the bosses are deep enough for their inserts, the Pico's posts for their screws, and
-the holder's screws short of the well's floor. In the clamshell, that key-c, its parts and its tabs don't
+It also checks that the bosses are deep enough for their inserts and the Pico's posts for their screws,
+and that the switch leaves room for the plunger under the well's floor. In the clamshell, that key-c, its parts and its tabs don't
 overlap either half, nor the halves each other (U1 is 1.14 mm under the cover). It is not a fit check:
-the parts are boxes, and the screen's and the switch's are placeholders.
+the parts are boxes, and the screen's, the switch's and the breadboard's height are placeholders.
 
 **Overhangs**, with the tub on its back: six flat faces face down off the bed. They are all bridges:
 - the four feet's pockets: 6.6 mm across, 1 mm up
@@ -327,7 +349,8 @@ the parts are boxes, and the screen's and the switch's are placeholders.
 
 With the plate face down, the wells' floors are bridges: the knob's 25 mm across, 3 mm up; the sign
 button's 20.6 mm, 7 mm up, its plunger's hole in the middle. The thumbnail notch's top is one too, 2.5 mm
-up. The rest are the tops of the cuts for the name and the label frames, 0.6 mm up. Bridges of 20 to
+up. So are the four counterbores' floors, a ring round each screw's hole, 3.2 mm up. The rest are the
+tops of the cuts for the name and the label frames, 0.6 mm up. Bridges of 20 to
 25 mm print on most printers; if yours sags, put supports in the two wells only.
 
 The cap prints head down: its flange's cone leans 45°, so it needs no support. The base's cone, printed
@@ -342,7 +365,7 @@ bottom down, is the same.
   is a 2.4″ 240 × 320 panel's. If the glass sits off the board's centre, set `SCREEN_DX`, as the prism
   did. All of it is `SCREEN_*` at the top of `handheld.py`. The script prints how close the glass comes
   to the holes.
-- **Measure the tactile switch** (`TACT`, above).
+- **Measure the switch and the breadboard's height** (`TACT`, `BREADBOARD`, above).
 - **The key's plug** is the prism's: the cut cable's overmold, 12.4 × 5.5 × 17.1 mm. A different cable
   needs `PLUG_*` changed.
 - **The Pico's plug:** a micro-USB overmold 11 × 8 mm is assumed (`USB_PLUG`).
@@ -355,7 +378,7 @@ bottom down, is the same.
 | `handheld_carrier.stl`, `handheld_spacers.stl` | the carrier, face down, the Pico's posts up; the four spacers |
 | `handheld_plug_lock.stl` | the lock for the key's plug, on its side |
 | `handheld_guard_base.stl`, `handheld_guard_cover.stl` | the sign button's guard: the base as it sits, the cover face down |
-| `handheld_sign_cap.stl`, `handheld_tact_holder.stl` | the sign button's cap, head down; the switch's holder, as it sits |
+| `handheld_sign_cap.stl` | the sign button's cap, head down |
 | `cartridge_tray.stl`, `cartridge_cover.stl` | the key's clamshell, each half on its outside face |
 | `handheld_assembly.step` | closed, with a box for each part |
 | `handheld_*.png`, `cartridge.png` | the pictures here |
