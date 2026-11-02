@@ -1,4 +1,4 @@
-/* PicoQuorum's front page (docs/index.html). The same tokens as app.css, from docs/BRAND.md: dark
+/* PicoQuorum's front page (docs/index.html) and the handheld's (docs/handheld/). The same tokens as app.css, from docs/BRAND.md: dark
    first, the console's light theme for light mode. Green means signed and go; amber is waiting. */
 @font-face { font-family: "Atkinson Next"; src: url(app/fonts/next-400.woff2) format("woff2"); font-weight: 400; font-display: swap; }
 @font-face { font-family: "Atkinson Next"; src: url(app/fonts/next-700.woff2) format("woff2"); font-weight: 700; font-display: swap; }
@@ -81,21 +81,66 @@ h3 { font-size: 19px; margin: 0 0 6px; }
 .warn-note { background: var(--warn-soft); border-radius: 10px; padding: 12px 14px; font-size: 15px; }
 .warn-note strong { color: var(--warn); }
 
+code { font-size: .9em; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 0 5px; }
+nav a[aria-current] { color: var(--text); }
+
+/* the front page's "new" line, and what's being built */
+.announce { display: inline-flex; gap: 10px; align-items: center; margin: 0 0 18px; padding: 6px 14px 6px 6px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--panel); text-decoration: none; font-size: 15px; }
+.announce .tag { background: var(--ok-soft); color: var(--ok); font-weight: 700; border-radius: 999px; padding: 2px 10px; }
+.hw { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.hw li { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
+.hw img { display: block; width: 100%; height: 150px; object-fit: contain; background: #FFFFFF; }
+.hw img.px { image-rendering: pixelated; background: #000000; }
+.hw div { padding: 16px 18px 18px; }
+.hw p { margin: 0 0 8px; color: var(--muted); font-size: 15px; }
+.hw .state { display: inline-block; font-size: 13px; font-weight: 700; color: var(--warn); background: var(--warn-soft); border-radius: 6px; padding: 1px 8px; margin-bottom: 8px; }
+.hw .state.ok { color: var(--ok); background: var(--ok-soft); }
+
+/* the handheld page. Its pictures are drawn on white, so they sit on white in both themes. */
+.pic { margin: 0; background: #FFFFFF; border: 1px solid var(--line); border-radius: 14px; padding: 10px; }
+.pic img { display: block; width: 100%; height: auto; }
+.pic figcaption { color: #565E6A; font-size: 14px; padding: 6px 4px 0; }
+.hero-pic { box-shadow: 0 30px 80px -30px var(--glow); }
+.video { aspect-ratio: 16 / 9; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 4px;
+  padding: 24px; border-radius: 16px; border: 1px dashed var(--muted); background: var(--panel); }
+.video p { margin: 0; max-width: 40ch; }
+.play { width: 64px; height: 64px; border-radius: 50%; background: var(--ok-soft); position: relative; margin-bottom: 12px; }
+.play::after { content: ""; position: absolute; left: 26px; top: 20px; border-style: solid; border-width: 12px 0 12px 20px;
+  border-color: transparent transparent transparent var(--ok); }
+.specs { display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; margin: 0 0 20px; font-size: 15px; }
+.specs dt { color: var(--muted); }
+.specs dd { margin: 0; }
+h3.sub { font-size: 22px; margin: 36px 0 16px; }
+.need { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; align-items: start; }
+.need .ticks { margin-bottom: 16px; font-size: 15px; }
+.build { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px 20px; }
+.build li { scroll-margin-top: 16px; }
+.build h4 { font-size: 18px; margin: 12px 0 4px; }
+.build p { margin: 0; color: var(--muted); font-size: 15px; }
+.links { padding-left: 20px; margin: 0; display: grid; gap: 8px; font-size: 15px; }
+
 footer { max-width: 1080px; margin: 0 auto; padding: 24px 16px 48px; border-top: 1px solid var(--line); font-size: 15px; }
 footer p { margin: 4px 0; }
 
 @media (max-width: 900px) {
   .hero, .split { grid-template-columns: 1fr; gap: 32px; }
-  .steps, .shots { grid-template-columns: repeat(2, 1fr); }
+  .steps, .shots, .hw { grid-template-columns: repeat(2, 1fr); }
+  .need { grid-template-columns: 1fr 1fr; }
+  .need > div { grid-column: 1 / -1; }
   h1 { font-size: 40px; }
 }
 @media (max-width: 560px) {
   .top { gap: 10px; }
-  nav { margin-left: 0; order: 3; width: 100%; }
+  nav { margin-left: -8px; order: 3; width: calc(100% + 8px); flex-wrap: wrap; gap: 0; }
+  nav a { padding: 6px 8px; }
   .top > .btn { margin-left: auto; }
   h1 { font-size: 34px; }
   .lede { font-size: 18px; }
   .steps, .shots { grid-template-columns: 1fr; }
   .shots { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .hw, .need, .build { grid-template-columns: 1fr; }
+  .specs { grid-template-columns: 1fr; gap: 0 0; }
+  .specs dd { margin-bottom: 8px; }
   .btn.big { width: 100%; }
 }

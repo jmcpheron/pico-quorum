@@ -245,6 +245,18 @@ try {
   const home = readFileSync(`${ROOT}docs/index.html`, "utf8");
   check(/<a class="btn go big" href="app\/">Launch app/.test(home) && !/%%/.test(home) && !/<script/i.test(home),
     "docs/index.html: the front page launches the app, has no script and no unfilled placeholder");
+  const hand = readFileSync(`${ROOT}docs/handheld/index.html`, "utf8");
+  check(!/%%/.test(hand) && !/<script/i.test(hand) && /<meta name="twitter:card" content="summary_large_image">/.test(hand),
+    "docs/handheld/index.html: no script, no unfilled placeholder, a large share card");
+  // every local picture, stylesheet and link on the two static pages is a file the site serves
+  const { existsSync } = await import("node:fs");
+  const missing = [];
+  for (const [dir, html] of [["docs/", home], ["docs/handheld/", hand]])
+    for (const [, url] of html.matchAll(/(?:src|srcset|href)="([^"#:]+)(?:#[^"]*)?"/g)) {
+      const f = new URL(url, `file://${ROOT}${dir}`).pathname;
+      if (!existsSync(f.endsWith("/") ? f + "index.html" : f) && !existsSync(f + "README.md") && !existsSync(f + "index.md")) missing.push(dir + url);
+    }
+  check(!missing.length, `the front page and the handheld's: every local picture and link is in docs/${missing.length ? `; missing: ${missing.join(", ")}` : ""}`);
 } catch (e) {
   check(false, `docs/app: ${e.message} (run npm run build)`);
 }
