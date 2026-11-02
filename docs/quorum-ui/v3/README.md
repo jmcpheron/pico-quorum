@@ -19,6 +19,9 @@ A draft standard goes with it: [STANDARD.md](STANDARD.md), PQ-REVIEW-1. It descr
 cosigner shows, how that is hashed, and how the hash rides in a Safe passkey signature. It needs no
 change to Safe's contracts. It is also written as a worked example of how to start a standard.
 
+**A face for it:** [Quo](mascot/README.md), a pixel-art head in the band that wears the band's
+verdict, picked by the same rules. A concept, drawn on this frame.
+
 - [The theme](#the-theme)
 - [Seven rules for every screen](#seven-rules-for-every-screen)
 - [The screens](#the-screens)

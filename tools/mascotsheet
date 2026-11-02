@@ -1,0 +1,32 @@
+#!/bin/sh
+# Quo's pictures for docs/quorum-ui/v3/mascot/, all drawn by the sketches in the emulator:
+#   faces/NN-NAME.png   one card a face (emu/sketches/mascot_faces.py), 240 x 240
+#   sheet.png           the cards, four a row
+#   faces.gif           the cards in turn, home's blink included, at the panel's own pixels
+#   320/, 240/          the v3 screens with Quo (emu/sketches/mascot_ui.py), at 320 x 240 and 240 x 240
+#   tools/mascotsheet
+cd "$(dirname "$0")/.." || exit 1
+OUT=docs/quorum-ui/v3/mascot
+rm -rf "$OUT/faces" "$OUT/320" "$OUT/240"
+node emu/render-cosigner-ui.mjs mascot_faces "$OUT/faces" waveshare || exit 1
+node emu/render-cosigner-ui.mjs mascot_ui "$OUT/320" build1-2.4 || exit 1
+node emu/render-cosigner-ui.mjs mascot_ui "$OUT/240" waveshare || exit 1
+uv run --quiet --no-project --python 3.11 --with pillow==12.3.0 python - "$OUT" <<'PY'
+import glob, sys
+from PIL import Image
+out = sys.argv[1]
+cards = sorted(glob.glob(out + "/faces/*.png"))
+ims = {p.rsplit("-", 1)[-1][:-4]: Image.open(p).convert("RGB") for p in cards}
+order = [p.rsplit("-", 1)[-1][:-4] for p in cards]
+sheet = Image.new("RGB", (240 * 4, 240 * ((len(order) + 3) // 4)), (24, 20, 37))
+for k, name in enumerate(order):
+    sheet.paste(ims[name], (240 * (k % 4), 240 * (k // 4)))
+sheet.save(out + "/sheet.png", optimize=True)
+# idle, a blink (one 125 ms step), idle, then each face in turn
+seq = [("idle", 900), ("blink", 125), ("idle", 700)] + [(n, 1100) for n in order if n not in ("idle", "blink")]
+frames = [ims[n] for n, _ in seq]
+pal = sheet.quantize(colors=64, method=Image.Quantize.MEDIANCUT)
+q = [f.quantize(palette=pal, dither=Image.Dither.NONE) for f in frames]
+q[0].save(out + "/faces.gif", save_all=True, append_images=q[1:], duration=[t for _, t in seq], loop=0, optimize=True)
+print("sheet.png and faces.gif:", len(order), "faces")
+PY

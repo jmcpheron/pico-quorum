@@ -68,6 +68,17 @@ At 240 × 240 in [`checklist/240/`](checklist/240/). The same lines, with short 
 8. **The console's own fonts** (Atkinson Hyperlegible Mono and Next), so nothing is added to the
    image.
 
+## A layer for any of them: Quo, a face
+
+Not a fifth direction: a face that wears the band's verdict, picked by the same classification, so
+it can never disagree with it. Money eyes on a payment, scared on an owner change, hands over its eyes
+on code nobody here can read. Drawn on the terminal frame; on the checklist it would stand in the
+light's place. Every screen reads the same with it covered up. [mascot/README.md](mascot/README.md).
+
+| | | |
+|---|---|---|
+| ![a payment](mascot/320/02-send.png) | ![a module from nowhere](mascot/320/05-attack.png) | ![account upgrade, on purpose](mascot/320/06-aa.png) |
+
 ## The four at 320 × 240 (the pico-sign build's 2.4″)
 
 Rows: A, B, C, D. Columns: warning, payment, holding, home.
