@@ -30,6 +30,7 @@ HEAD = 16                       # header strip
 FOOT = H if L.THREE else H - 18     # footer from here down (the Feather has none)
 PER = 4 if L.THREE else 3       # four-character chunks a line, in an address or a hash
 use = B.use
+SAY = (("bold14", 17), ("sans12", 14))      # the errand's page: the fonts to try, from HEAD + 3 to FOOT
 
 
 def txt_c(d, s, y, font, fg="text", bg="bg", x0=X0, x1=W):
@@ -40,7 +41,7 @@ def txt_c(d, s, y, font, fg="text", bg="bg", x0=X0, x1=W):
 def pages_of(e):
     """The small screen's pages for one transaction, in order: what it does, each call and each
     address in it on a page of its own, the calldata and its digest, who has approved, then the
-    code to compare and the whole hash. A refused one: why, then its calls."""
+    code to compare, the code as an errand and the whole hash. A refused one: why, then its calls."""
     out = []
     for i, it in enumerate(e["r"]["items"]):
         out.append(("item", i))
@@ -55,7 +56,7 @@ def pages_of(e):
             out.append(("digest", i))
     if e["why"]:
         return [("refused", 0)] + out
-    return [("head", 0)] + out + [("approvals", 0), ("verify", 0), ("hash", 0)]
+    return [("head", 0)] + out + [("approvals", 0), ("verify", 0), ("say", 0), ("hash", 0)]
 
 
 def addr_lines(a):
@@ -276,7 +277,7 @@ def draw_review(q):
         head += " " + item_of(q, i)["title"]
     elif kind == "head":
         head += " " + q.CFG["chains"].get(str(q.CHAIN), "")
-    elif kind in ("approvals", "verify", "hash"):
+    elif kind in ("approvals", "verify", "say", "hash"):
         head += " " + kind
     header(d, head, "%d/%d" % (here, len(q.pages)), pc["head"], pc["on_head"], pc["on_head"] if lvl != "ok" else "muted")
     y = HEAD + 3
@@ -365,6 +366,8 @@ def draw_review(q):
         txt(d, code[:4], M, y + 30, "monob28", "stake")
         txt(d, code[4:], M, y + 58, "monob28", "stake")
         blockies.draw(d, e["mine"], R - 40, y + 36, 5)
+    elif kind == "say":                 # the same code, as an errand (phrase.py)
+        B.say(d, e["mine"], M, y, TW, FOOT, SAY)
     elif kind == "hash":                # the Safe tx hash, computed here
         y -= 1
         for line in B.hash_lines(e["mine"], per=PER):

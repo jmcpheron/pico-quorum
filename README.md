@@ -93,7 +93,10 @@ laptop's, not your browser's, not Safe{Wallet}'s, and not the transaction servic
   the Safe, or can't be undone, is a red page, red all over.
 - **Its own screen.** You page through every screen before Sign is allowed, then hold it for two
   seconds. The verify code (the hash's last eight characters and its blockie) is there to check
-  with whoever proposed it.
+  with whoever proposed it. The next page says the same code as an errand, for a phone call:
+  "Tell Priya the copper kettle can wait till Sunday." Its four bytes pick a name, a thing, an
+  item and a when, each from a list of 256 (`firmware/phrase.py`). The lists are public, so the
+  sentence only sounds ordinary. It is not a secret.
 - **Its own path.** It talks to the transaction service over its own Wi-Fi and TLS, checking
   certificates against the roots it carries. Nothing on your computer is in the loop.
 
@@ -182,10 +185,10 @@ console up to the README:
 
 | | image | release fingerprint |
 |---|---|---|
-| <img src="docs/releases/badges/console-blockie.svg" width="32" height="32" alt=""> | **console** | `9842bbedca80d744c63cc2a8bc829f6c9a0caf0e6a16eb54a36be7d0c2b05782` |
+| <img src="docs/releases/badges/console-blockie.svg" width="32" height="32" alt=""> | **console** | `c7db7a6fcc108533f1ab2c946972dd0dfc5b05a54753a34b64af707bd678e7e7` |
 | <img src="docs/releases/badges/ceremony-blockie.svg" width="32" height="32" alt=""> | **ceremony** | `9bc5e866c54872e462e4adf808284a2c9728c0c102dd03aabe34133ca53f2940` |
-| <img src="docs/releases/badges/brand-blockie.svg" width="32" height="32" alt=""> | **brand** | `f3599bec0b6c7e073d38e6ae897d7004c3ab82c861aa38e833c36ede2e2c7394` |
-| <img src="docs/releases/badges/dual-blockie.svg" width="32" height="32" alt=""> | **dual** | `0d3826c72ecf8bbf76f9a6580281b24712420192bed7d0229d87ffef2c8e9e0b` |
+| <img src="docs/releases/badges/brand-blockie.svg" width="32" height="32" alt=""> | **brand** | `a9a907f7ee6874890b23dd0a417357e3e0f2c3481f38ae86d37ded6f4d52510a` |
+| <img src="docs/releases/badges/dual-blockie.svg" width="32" height="32" alt=""> | **dual** | `9a775cd1b5e13f782405fec836d6617de30f274317c4cc296f339fb08e6e6d10` |
 
 <!-- build:end -->
 

@@ -23,7 +23,8 @@ What it does:
   signatures asked of the owner contract), and anything the console would refuse outright is flagged.
 - **Propose.** **New transaction** on a Safe builds a send (ETH or a token), an owner change
   (add, remove, replace), a threshold change, a rejection or a contract call, all plain calls with
-  no gas refund. The review shows the verify code and hash blockie the console will show. The
+  no gas refund. The review shows the verify code, hash blockie and errand (`src/phrase.mjs`) the
+  console will show. The
   wallet signs the SafeTx (EIP-712) as one owner, the signature is checked to come from it, and it
   goes to Safe's service (`src/propose.mjs`). A queued transaction can be confirmed from the wallet
   (**Confirm with wallet**) or cancelled with **Propose a rejection** at its nonce.

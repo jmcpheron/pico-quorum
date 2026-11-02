@@ -130,7 +130,7 @@ queue = []          # entries (see entry()) of every watched Safe, each Safe's l
 rr = 0              # the watched Safe the next poll asks about
 sel = 0             # the highlighted row on home
 cur = None          # the entry being reviewed
-pages = []          # its pages: ("summary"|"item"|"verify"|"refused", index)
+pages = []          # its pages: ("summary"|"item"|"calldata"|"verify"|"say"|"refused", index)
 page = 0
 seen = set()        # pages of cur the person has looked at
 hold_t0 = 0
@@ -814,7 +814,7 @@ def pages_of(e):
             items.append(("calldata", i))    # the raw call, on a page of its own
     if e["why"]:
         return [("refused", 0)] + items
-    return [("summary", 0)] + items + [("verify", 0)]
+    return [("summary", 0)] + items + [("verify", 0), ("say", 0)]
 
 
 def open_entry(e):

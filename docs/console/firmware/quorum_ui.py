@@ -24,6 +24,7 @@ import fonts as F
 import blockies
 import decode
 import icons as I
+import phrase
 
 THEMES = {
     "dark": {
@@ -960,6 +961,52 @@ def draw_verify(q):
         "ok" if ok or not v else "bad")
 
 
+def say_lines(h, w, font):
+    """The verify code as an errand (phrase.py), wrapped to w: lines of (word, x, is it the code's)."""
+    name, thing, item, when = phrase.words(h)
+    sp = F.width(" ", font)
+    out, line, x = [], [], 0
+    parts = (("Tell", 0), (name, 1), ("the", 0), (thing, 1), (item, 1), ("can wait till", 0), (when + ".", 1))
+    for s, code in parts:
+        for word in s.split(" "):
+            n = F.width(word, font)
+            if line and x + n > w:
+                out.append(line)
+                line, x = [], 0
+            line.append((word, x, code))
+            x += n + sp
+    return out + [line]
+
+
+def say_fit(h, w, rows, fits):
+    """The first of fits [(font, pitch)] the errand fits in, rows pixels tall. -> (font, pitch, lines)"""
+    for font, pitch in fits:
+        lines = say_lines(h, w, font)
+        if pitch * len(lines) <= rows:
+            break
+    return font, pitch, lines
+
+
+SAY = (74, 186, (("bold18", 22), ("bold14", 18)))     # the errand's page: top, bottom, the fonts to try
+
+
+def say(d, h, x, y, w, bottom, fits, bg="bg"):
+    font, pitch, lines = say_fit(h, w, bottom - y, fits)
+    for line in lines:
+        for word, dx, code in line:
+            txt(d, word, x + dx, y, font, "stake" if code else "text", bg)
+        y += pitch
+
+
+def draw_say(q):
+    """The verify code said as an errand: the same four bytes, for a call that needn't sound like a Safe."""
+    d = q.d
+    txt_c(d, "Or say it", 32, "bold18")
+    txt_c(d, "The same code, as an errand", 54, "sans12", "muted")
+    top, bottom, fits = SAY
+    say(d, q.cur["mine"], M, top, TW, bottom, fits)
+
+
 def draw_refused(q):
     d, e = q.d, q.cur
     bg = "bad_bg"
@@ -989,6 +1036,8 @@ def draw_review(q):
         pc = page_colors(q.cur["r"]["items"][i]["level"])
     elif kind == "verify":
         draw_verify(q)
+    elif kind == "say":
+        draw_say(q)
     else:
         draw_refused(q)
         pc = page_colors("red")

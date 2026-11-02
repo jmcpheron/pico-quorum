@@ -725,6 +725,50 @@ def drawn_texts(Q):
     return out
 
 
+def errand_fits(w, rows, fits):
+    """The errand (phrase.py) at its longest: the widest four words of each list, in every mix, wrapped
+    to w. -> (does each fit in rows pixels, in one of fits, the tallest)"""
+    import phrase, fonts as F, quorum_ui as U
+    font = fits[-1][0]
+    lists = [s.split("|") for s in (phrase.NAMES, phrase.THINGS, phrase.ITEMS, phrase.WHEN)]
+    wide = [sorted(range(256), key=lambda i: -F.width(l[i], font))[:4] for l in lists]
+    tall = 0
+    for a in wide[0]:
+        for b in wide[1]:
+            for c in wide[2]:
+                for d in wide[3]:
+                    f, pitch, lines = U.say_fit(bytes([a, b, c, d]), w, rows, fits)
+                    tall = max(tall, pitch * len(lines))
+    return tall <= rows, tall
+
+
+def case_say():
+    """The verify code as an errand (phrase.py): its own page after the code, the four bytes as four
+    words from lists of 256, and the longest sentence still fits the page."""
+    import phrase, quorum_ui as U, quorum_ui_s as S
+    lists = [s.split("|") for s in (phrase.NAMES, phrase.THINGS, phrase.ITEMS, phrase.WHEN)]
+    check([len(l) for l in lists] == [256] * 4 and all(len(set(w.lower() for w in l)) == 256 for l in lists)
+          and len(set(w.lower() for l in lists for w in l)) == 1024, "four lists of 256 words, no word twice")
+    check(phrase.phrase(bytes(32)) == "Tell Abby the amber accordion can wait till Monday."
+          and phrase.phrase("0x" + "ff" * 32) == "Tell Zoe the zinc yoga mat can wait till the first of next month.",
+          "00000000 and ffffffff: the first and the last word of each list")
+    chip()
+    Q = fresh()
+    serve(Q, [tx(Q, 0)])
+    e = Q.queue[0]
+    Q.open_entry(e)
+    check([k for k, i in Q.pages][-2:] == ["verify", "say"], "the errand is the page after the verify code")
+    Q.page = len(Q.pages) - 1
+    said = phrase.phrase(e["mine"])
+    check(said == phrase.phrase(bytes.fromhex(e["mine"][2:])) and said in " ".join(drawn_texts(Q)),
+          "the page says it: " + said)
+    top, bottom, fits = U.SAY
+    ok, tall = errand_fits(U.TW, bottom - top, fits)
+    check(ok, "240x240: the longest errand fits, %d of %d px" % (tall, bottom - top))
+    ok, tall = errand_fits(150, 128 - 18 - 19, S.SAY)
+    check(ok, "the 1.8\" (160x128): the longest errand fits, %d of %d px" % (tall, 128 - 18 - 19))
+
+
 def case_home():
     """Home when nothing waits for this key: the status screen (this key, whether it is ready, the
     Safes it watches); the queue list when something does, as before."""
@@ -1401,6 +1445,10 @@ def case_three():
     pics, t = pictures()
     check([s for s, x, y, px in pics] == want and not clear(pics, t), "Owners: each owner's blockie")
 
+    import quorum_ui_s as S
+    ok, tall = errand_fits(S.TW, S.FOOT - S.HEAD - 3, S.SAY)
+    check(ok, "the longest errand fits, %d of %d px" % (tall, S.FOOT - S.HEAD - 3))
+
     Q = fresh(safe=False, extra='BOARD = "%s"' % THREE_BOARD[0])
     t = " ".join(s for s, x, y, f in drawn())
     check(Q.state == "unconfigured" and Q.key_ready() and "Your key is ready" in t and fits("ready"),
@@ -1445,7 +1493,7 @@ def main_knob():
 
 
 def main():
-    for case in (case_pin, case_owners_pages, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_safes, case_watchdog, case_home, case_saver, case_release, case_passkey, case_release_approval, case_knob):
+    for case in (case_pin, case_owners_pages, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_safes, case_watchdog, case_home, case_saver, case_release, case_passkey, case_release_approval, case_knob, case_say):
         print("--", case.__name__[5:])
         try:
             case()

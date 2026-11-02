@@ -6,6 +6,7 @@
 //    sim.mjs and firmware/safe_tx.py, both confirmations check, and execTransaction's signatures are
 //    packed with the contract signature's data after the slots (the GS021 case).
 // 3. The verify code matches the console's, and the console's top-level refusals match decode.py.
+//    The errand (src/phrase.mjs) has the console's lists (firmware/phrase.py), word for word.
 // 4. Blockies: the page draws the same picture as the console (firmware/blockies.py) for addresses
 //    and transaction hashes.
 // 5. Proposing: every kind the page builds is read by the console's own decoder (firmware/decode.py)
@@ -124,6 +125,15 @@ check(S.consoleRefuses(8453, { operation: 1, to: "0x9641d764fc13c8b624c04430c735
   "refuses: not a multiSend delegatecall to a pinned batcher");
 check(S.consoleRefuses(8453, { operation: 1, to: "0x9641d764fc13c8b624c04430c7356c1c7c8102e2", data: "0x12345678" }) !== "",
   "refuses: any other call to the batcher by delegatecall");
+
+const W = await import("./src/phrase.mjs");
+const fwPhrase = JSON.parse(spawnSync("python3", ["-c", `import sys, json; sys.path.insert(0, ${JSON.stringify(ROOT + "firmware")})
+import phrase
+print(json.dumps([[s.split("|") for s in (phrase.NAMES, phrase.THINGS, phrase.ITEMS, phrase.WHEN)], phrase.phrase(sys.argv[1])]))`, hash],
+  { encoding: "utf8" }).stdout);
+check(JSON.stringify(W.LISTS) === JSON.stringify(fwPhrase[0]) && W.LISTS.every((l) => l.length === 256),
+  "errand: the console's four lists of 256 words, word for word");
+check(W.phrase(hash) === fwPhrase[1], `errand: "${W.phrase(hash)}", as the console says it`);
 
 // ----------------------------------------------------------------------------- 4. blockies
 const { blockie, rgb } = await import("./src/blockies.mjs");

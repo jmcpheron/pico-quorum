@@ -8,6 +8,7 @@ import { p256 } from "@noble/curves/p256";
 import { encodeFunctionData, getAddress, isAddress } from "viem";
 import { verifyBundle } from "./attest.mjs";
 import { blockieSrc } from "./blockies.mjs";
+import { phrase } from "./phrase.mjs";
 import {
   ERC20_ABI, KINDS, buildCall, isRejection, knownTokens, nextNonce, proposalBody, safeTx, typedData, walletSignature,
 } from "./propose.mjs";
@@ -676,8 +677,9 @@ function proposeForm(body, { name, c, safe, pub, svc, s, queued, keys, back, pre
       warnings.length ? h("ul", { class: "warns" }, ...warnings.map((w) => h("li", { text: w }))) : null,
       h("div", { class: "verify" }, ident(hash, 56),
         h("div", {}, h("div", { class: "muted small", text: "Verify code" }), h("code", { class: "vbig", text: verifyCode(hash) }),
-          h("div", { class: "mono small muted", text: hash }))),
-      h("p", { class: "small muted", text: "The console shows this code and picture before it signs. Tell the other owners to check it there." }),
+          h("div", { class: "mono small muted", text: hash }),
+          h("div", { class: "say" }, h("span", { class: "muted small", text: "Or say it " }), h("q", { text: phrase(hash) })))),
+      h("p", { class: "small muted", text: "The console shows this code, its picture and the same errand before it signs. Tell the other owners to check it there." }),
       h("div", { class: "row" }, sign, h("span", { class: "small muted", text: `Your wallet asks you to sign it as one confirmation. Nothing moves until ${s.threshold} owners have approved and someone executes it.` })),
       log.el, done));
   }
@@ -705,7 +707,7 @@ function proposeForm(body, { name, c, safe, pub, svc, s, queued, keys, back, pre
     log.done(st, `Proposed as #${t.nonce}`);
     sign.textContent = "Proposed";
     fill(done, h("div", { class: "done" },
-      h("p", {}, h("strong", { text: "In the queue. " }), `Ask the other owners to approve it, and to check the verify code ${verifyCode(hash)} on the console.`),
+      h("p", {}, h("strong", { text: "In the queue. " }), `Ask the other owners to approve it, and to check the verify code ${verifyCode(hash)} on the console, or say "${phrase(hash)}"`),
       h("div", { class: "row" }, h("a", { class: "btn go", href: back, text: "See it in the queue" }), copyButton(`${b.title} · #${t.nonce} · verify code ${verifyCode(hash)}`, "Copy the code for the others"))));
   }
 
