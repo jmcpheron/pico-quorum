@@ -25,6 +25,11 @@ One JSON object per line, each way, at 115200 baud. Every request has an `id`. E
 `{"pq":1,` and carries the same `id`. The console also prints logs on the same port; a host skips
 any line that doesn't start `{"pq":`. A line longer than 2 KB is dropped.
 
+The console writes each answer in pieces of 64 bytes. On an ESP32-S3's own USB, MicroPython 1.26.1
+drops the front of a long write. On the PicoQuorumKey, a 600-byte line written at once came out as
+its last 318 bytes, every time; written in 64-byte pieces it came out whole (2026-11-02). A log line
+printed between two pieces can land inside an answer; the host then skips that answer.
+
 | `op` | What it does | Answer |
 |---|---|---|
 | `hello` | names the console | `proto`, `mode` (`console`, `setup` or `stopped`), `board`, `image`, `version`, `release` (the fingerprint), `build` |

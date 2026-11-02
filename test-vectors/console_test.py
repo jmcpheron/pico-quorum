@@ -1561,6 +1561,22 @@ def case_link():
     check(not calls, "the link asked the chip nothing" + (": %s" % calls if calls else ""))
     Q.sig = real_sig
     usblink.send = real_send
+
+    # On the S3's own USB one long write loses its front (usblink.send): an answer goes out in
+    # writes of at most PIECE bytes, which together are the whole line.
+    pieces = []
+
+    class _Sys:
+        class stdout:
+            @staticmethod
+            def write(t):
+                pieces.append(t)
+    real_sys, usblink.sys = usblink.sys, _Sys
+    usblink.send({"id": 1, "ok": True, "pad": "x" * 600})
+    usblink.sys = real_sys
+    line = "".join(pieces)
+    check(len(pieces) > 9 and all(len(p) <= usblink.PIECE for p in pieces) and line.startswith('{"pq":1,') and line.endswith("\n")
+          and json.loads(line)["pad"] == "x" * 600, "a long answer goes out in writes of %d bytes at most, and is whole" % usblink.PIECE)
     import time
     usblink.time, usblink.host, usblink.open_ask = time, None, None
     for f in ("safes.json", "maint"):

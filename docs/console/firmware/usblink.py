@@ -31,10 +31,18 @@ _poll = None
 _in = None
 
 
+PIECE = 64          # bytes per write: the S3's USB-Serial/JTAG packet
+
+
 def send(d):
-    """One answer, written in one call so that nothing printed meanwhile lands inside it."""
+    """One answer, a line, written PIECE bytes at a time. On the ESP32-S3's own USB, MicroPython
+    1.26.1 drops the front of a long write: a 600-byte line written at once came out as its last
+    318 bytes, every time, and in 64-byte writes whole (PicoQuorumKey, 2026-11-02). A log printed
+    between two pieces could land inside the line; a host then skips that answer."""
     s = json.dumps(d)
-    sys.stdout.write('{"pq":%d%s%s\n' % (PROTO, "," if len(s) > 2 else "", s[1:]))
+    line = '{"pq":%d%s%s\n' % (PROTO, "," if len(s) > 2 else "", s[1:])
+    for i in range(0, len(line), PIECE):
+        sys.stdout.write(line[i:i + PIECE])
 
 
 def answer(mid, ok, why="", **more):
