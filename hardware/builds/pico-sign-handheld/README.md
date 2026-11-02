@@ -183,7 +183,7 @@ between the name and the controls.
   6.2 mm into its insert.
 - **The carrier**, 2.5 mm, behind the screen, with a tail below it. The Pico screws to the tail's back.
   Printed face down.
-- **Four spacers**, 4 mm tubes that slip onto the screen's pins.
+- **Four spacers**, 4 mm tubes, 7 mm across, that slip onto the screen's pins.
 - **The plug lock**, which holds the key's plug up. It prints standing on its lip's face, its two bumps to the sides.
 - **The guard's base and cover**, in the sign button's well. The base prints as it sits, the cover face
   down.
@@ -448,10 +448,12 @@ bottom down, is the same.
 
 ### Before printing
 
-- **Measure the screen.** None of its numbers is measured. The board (72 × 44 × 1.6 mm), the glass
-  (60.3 × 42.7 mm, 3.5 mm from the board's front to the glass's front) and the hole spacing
-  (66 × 38 mm, 3.2 mm holes) are placeholders. The board and the glass come from pico-sign's first
-  wedge ([`case.py`](../pico-sign/case/case.py)), which guessed them. The active area, 48.96 × 36.72 mm,
+- **Measure the screen.** Its holes are measured (calipers, 2026-11-02, on the bench's lonely binary 2.4″
+  board): 4.6 mm, their centres 63.85 × 31.95 mm apart. A first plate, printed with the guesses before
+  (66 × 38, 3.2 mm), didn't fit: its posts were too far apart both ways and its pins too thin. The board
+  (72 × 44 × 1.6 mm) and the glass (60.3 × 42.7 mm, 3.5 mm from the board's front to the glass's front)
+  are still placeholders. They come from pico-sign's first wedge ([`case.py`](../pico-sign/case/case.py)),
+  which guessed them. The active area, 48.96 × 36.72 mm,
   is a 2.4″ 240 × 320 panel's. If the glass sits off the board's centre, set `SCREEN_DX`, as the prism
   did. All of it is `SCREEN_*` at the top of `handheld.py`. The script prints how close the glass comes
   to the holes.

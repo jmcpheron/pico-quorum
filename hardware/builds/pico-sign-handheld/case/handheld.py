@@ -75,8 +75,9 @@ H = BAY_Y0 + C.CART[1] - C.PROUD    # the top edge: the cartridge's top stands P
 # guesses (pico-sign/case/case.py), but the active area, which is the panel's datasheet. Measure yours.
 SCREEN_PCB = (72.0, 44.0)           # the board, the 8-pin header at one end (HEADER_SIDE), its pins out of the back
 SCREEN_PCB_T = 1.6
-SCREEN_HOLES = (66.0, 38.0)         # its four holes' centres: placeholder, 3 mm in from each corner
-SCREEN_HOLE = 3.2                   # their diameter: placeholder
+SCREEN_HOLES = (63.85, 31.95)       # its four holes' centres. Calipers on the bench's board (2026-11-02): the holes'
+                                    # near and far edges 59.2 and 68.5 mm apart across, 27.2 and 36.7 up and down
+SCREEN_HOLE = 4.6                   # their diameter: calipers
 SCREEN_GLASS = (60.3, 42.7, 3.5)    # the panel: outline and thickness from the board's front to the glass's, placeholders
 SCREEN_ACTIVE = (48.96, 36.72)      # the active area, landscape: a 2.4" 240x320's, 0.153 mm pixels
 # The header on the left (-1), away from the controls; build1 draws the 2.8" the right way up that way
@@ -187,10 +188,10 @@ SCREWS = [(7.0, 7.0), br_screw(), (7.0, H - 7.0), (W - 7.0, H - 7.0)]
 
 # --- behind the screen: the prism's posts and pins, spacers and carrier ---------------------------------
 GLASS_GAP = 0.2                     # the glass this far behind the plate: the posts carry the board, not the glass
-SEAT_D = 6.0                        # the posts' tops, round the board's holes; cut flat where the glass is
+SEAT_D = 7.0                        # the posts' tops, round the board's holes; cut flat where the glass is
 GLASS_CLEAR = 0.3
 PIN_D, PIN_HOLE = SCREEN_HOLE - 0.4, SCREEN_HOLE
-SPACER, SPACER_D = 4.0, 6.0         # room for the parts on the board's back
+SPACER, SPACER_D = 4.0, 7.0         # room for the parts on the board's back; walls 1.2 mm round a pin's hole
 CARRIER_MARGIN, CARRIER_T, CARRIER_R = 1.0, 2.5, 2.0
 BOSS_D = 9.0
 CARRIER_SCREWS = [(sx * 26.0, sy * (SCREEN_PCB[1] / 2 + BOSS_D / 2 + 2.25)) for sx in (-1, 1) for sy in (-1, 1)]
@@ -611,7 +612,9 @@ def stand_ins():
     for c in screen_holes():
         brd = brd.cut(zp(Z_BOARD + 1).center(*c).circle(PIN_HOLE / 2).extrude(-4))
     s.append((brd, (0.10, 0.30, 0.55), "screen board"))
-    s.append((zp(Z_BOARD - SCREEN_PCB_T).center(sx - HEADER_SIDE * 8, sy).rect(50, 26).extrude(-SPACER + 0.5),
+    # the parts on its back, as one box: from a photo of the bench's board (2026-11-02), its two flex connectors
+    # and its passives sit within about 22 mm of the middle across and 18 up and down, none near the holes
+    s.append((zp(Z_BOARD - SCREEN_PCB_T).center(sx - HEADER_SIDE * 2, sy).rect(46, 36).extrude(-SPACER + 0.5),
               (0.3, 0.3, 0.32), "screen board back parts"))
     s.append((zp(Z_BOARD - SCREEN_PCB_T).center(HEADER_X, sy).rect(*HEADER[:2]).extrude(-HEADER[2]), (0.1, 0.1, 0.1),
               "screen header and wires"))
