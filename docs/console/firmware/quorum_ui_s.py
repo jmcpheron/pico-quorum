@@ -667,9 +667,55 @@ def draw_crashed(q, why=""):
            None, "Hold")
 
 
+def draw_ask(q):
+    """An ask from the computer over USB (quorum.ask, usblink.py): its pages, then D2 held accepts,
+    as a review's Sign; D0 refuses with one press. Nothing is saved until the hold completes."""
+    d = q.d
+    a = q.ask
+    p = a["pages"][q.apage]
+    n = len(a["pages"])
+    red = any(x.get("red") for x in a["pages"])
+    left = [i for i in range(n) if i not in q.aseen]
+    d.fill(c("bg"))
+    hold = None
+    if q.ahold:
+        need = q.ask_need()
+        el = min(need, time.ticks_diff(time.ticks_ms(), q.ahold[0]))
+        hold = (el / need, red)
+        on = "on_bad" if red else "on_ok"
+        header(d, "Keep holding", "%.1f s" % ((need - el) / 1000), "bad_bar" if red else "ok", on, on)
+    else:
+        header(d, p["title"], "USB %d/%d" % (q.apage + 1, n) if n > 1 else "USB",
+               "bad_bar" if red else "surface", "on_bad" if red else "text", "on_bad" if red else "muted")
+    y = HEAD + 3
+    for k, s in enumerate(p["lines"]):
+        font = "bold14" if k == 0 else "sans12"
+        for line in F.wrap(s, TW - (28 if p.get("addr") and k == 0 else 0), font):
+            if y > FOOT - 15:
+                break
+            txt(d, line, M, y, font, "text" if k == 0 else "muted")
+            y += 16 if k == 0 else 14
+    if p.get("addr"):
+        y += 2
+        for line in addr_lines(p["addr"]):
+            txt(d, line, M, y, "mono13")
+            y += 15
+        blockies.draw(d, p["addr"], R - 24, HEAD + 3, 3)
+    save = "Allow" if a["kind"] == "maint" else "Save"
+    if L.THREE:
+        d2 = ("See %d" % len(left), "raised", "warn") if left else (save, "bad_bar" if red else "ok", "on_bad" if red else "on_ok")
+        rail(d, q, (("No", "bad_bar", "on_bad"), None if hold else (NEXT if n > 1 else None), d2), "bg", hold)
+    elif not footer_msg(d, q):
+        txt_c(d, fit("hold the knob: %s · B: no" % save.lower() if q.KNOB else "A held: %s · Y: no" % save.lower(),
+                     TW, "sans12"), FOOT + 1, "sans12", "muted")
+    d.show()
+
+
 def draw(q):
     s = q.state
-    if s == "nochip":
+    if s == "ask":
+        draw_ask(q)
+    elif s == "nochip":
         draw_nochip(q)
     elif s == "pinfail":
         draw_pinfail(q)

@@ -136,6 +136,9 @@ key on the plug stays unpowered.
 - The console image and the ceremony are PicoQuorum's steps (`tools/fw push console`), from a
   release that has the `picoquorum-key` profile; 2026.10.12 and earlier don't
   ([PINS.md](PINS.md#in-the-console-image)).
+- From 2026.11.1, plug it into a computer and open the app's **Device** page in Chrome or Edge.
+  **Connect** shows the board, its release and its key. The page can send the board a Wi-Fi network
+  and the Safes to watch, each saved only once D2 is held on the board ([USB-LINK.md](../../../docs/USB-LINK.md)).
 
 ## Checks worth a minute each
 

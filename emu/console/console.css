@@ -72,6 +72,14 @@ h3 { font-size: 19px; margin: 0 0 6px; }
 }
 .screen-wrap { position: relative; width: var(--screen); height: var(--screen); background: #000; border: 6px solid #000; border-radius: 8px; }
 #screen { display: block; width: 100%; height: 100%; image-rendering: pixelated; image-rendering: crisp-edges; }
+/* three buttons down the screen's left edge (?board=picoquorum-key or feather-s3), level with its rail */
+.device [hidden] { display: none; }
+.device.three { grid-template-columns: auto auto; }
+.device.three .screen-wrap { height: calc(var(--screen) * 135 / 240); }
+.device.three .screen-wrap:has(.overlay:not([hidden])) { height: var(--screen); }    /* the prompts need the room */
+.rail { display: flex; flex-direction: column; justify-content: space-between; align-self: stretch; padding: 4px 0; }
+.rail button { width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--cap); color: var(--cap-ink); font-weight: 700; font-size: 13px; box-shadow: 0 3px 0 rgba(0, 0, 0, .3); }
+.rail button[data-key="D2"] { background: var(--ok); color: var(--ok-ink); }
 
 .device button { font: inherit; cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
 .pad { display: grid; grid-template-columns: repeat(3, 28px); grid-template-rows: repeat(3, 28px); padding: 6px; border-radius: 50%; background: var(--bg); border: 1px solid var(--line); }
@@ -171,6 +179,8 @@ summary { cursor: pointer; }
   .lede { font-size: 18px; }
   .device { --screen: calc(100vw - 32px - 28px - 12px); grid-template-columns: 1fr 1fr; padding: 16px 14px; }
   .screen-wrap { grid-column: 1 / -1; grid-row: 1; }
+  .device.three { --screen: calc(100vw - 32px - 28px - 12px - 44px - 18px); grid-template-columns: auto 1fr; }
+  .device.three .screen-wrap { grid-column: 2; }
   .pad { justify-self: center; grid-template-columns: repeat(3, 34px); grid-template-rows: repeat(3, 34px); }
   .dir { width: 34px; height: 34px; line-height: 34px; font-size: 12px; }
   .abxy { justify-self: center; display: grid; grid-template-columns: 52px 52px; gap: 10px; }

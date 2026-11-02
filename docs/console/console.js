@@ -13,7 +13,23 @@ const $ = (s) => document.querySelector(s);
 const sab = typeof SharedArrayBuffer !== "undefined" && self.crossOriginIsolated ? new SharedArrayBuffer(16 * 4) : null;
 const keys = sab ? new Int32Array(sab) : null;
 const rpcSab = sab ? new SharedArrayBuffer(8 + 65536) : null;     // the worker's questions (your passkey)
-const screen = $("#screen"), ctx = screen.getContext("2d"), img = ctx.createImageData(240, 240);
+// ?board=picoquorum-key or feather-s3: that board's 240x135 screen and three buttons, D0 D1 D2 down
+// its left edge (firmware/board.py). Anything else: the Pico with the Waveshare 1.3" board.
+const BOARD = ["picoquorum-key", "feather-s3"].find((b) => b === new URLSearchParams(location.search).get("board")) || "waveshare";
+const THREE = BOARD !== "waveshare";
+const BACKLIGHT = { waveshare: 13, "feather-s3": 45, "picoquorum-key": 21 }[BOARD];
+const screen = $("#screen"), ctx = screen.getContext("2d");
+if (THREE) {
+  screen.width = 240; screen.height = 135;
+  $(".device").classList.add("three");
+  for (const s of [".pad", ".abxy", ".keys.pico"]) $(s).hidden = true;
+  for (const s of [".rail", ".keys.three"]) $(s).hidden = false;
+}
+const img = ctx.createImageData(screen.width, screen.height);
+// The keyboard on three buttons: 1 2 3, or Esc (refuse, back), Down (next), Enter or Space (open, sign).
+const THREE_KEYS = { Digit1: "D0", Numpad1: "D0", Escape: "D0", Digit2: "D1", Numpad2: "D1", ArrowDown: "D1",
+  Digit3: "D2", Numpad3: "D2", Enter: "D2", NumpadEnter: "D2", Space: "D2" };
+const keyFor = (e) => (THREE ? THREE_KEYS[e.code] || THREE_KEYS[e.key] : keyOf(e));
 let worker = null;
 
 // ---- what the page says around the screen ----------------------------------------------------------
@@ -174,12 +190,13 @@ async function boot() {
     const m = e.data;
     if (m.type === "frame") { paintFrame(m.buf, img); ctx.putImageData(img, 0, 0); screen.dataset.frames = String(m.frames); }
     else if (m.type === "out") out(m.line);
-    else if (m.type === "pwm" && m.pin === 13) screen.style.filter = m.frac >= 0.99 ? "" : `brightness(${(0.2 + 0.8 * m.frac).toFixed(2)})`;  // the backlight (the screensaver dims it)
+    else if (m.type === "pwm" && m.pin === BACKLIGHT) screen.style.filter = m.frac >= 0.99 ? "" : `brightness(${(0.2 + 0.8 * m.frac).toFixed(2)})`;  // the backlight (the screensaver dims it)
     else if (m.type === "rpc") answer(rpcSab, m);
     else if (m.type === "reset") boot();
   };
   worker.onerror = (e) => out("worker: " + e.message);
-  worker.postMessage({ type: "boot", keys: sab, rpc: rpcSab, files: payload, shims: b.shims, secrets: staticSecrets(), passkey: local.get("emu.passkey") });
+  worker.postMessage({ type: "boot", keys: sab, rpc: rpcSab, files: payload, shims: b.shims, secrets: staticSecrets(), passkey: local.get("emu.passkey"),
+    board: BOARD, heapsize: THREE ? 2 * 1024 * 1024 : undefined });
 }
 
 async function start() {
@@ -233,12 +250,12 @@ for (const b of document.querySelectorAll("[data-key]")) {
 const typing = (t) => t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable);
 window.addEventListener("keydown", (e) => {
   if (typing(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
-  const k = keyOf(e);
-  if (!k || (e.target.tagName === "BUTTON" && !e.target.dataset.key && (k === "press"))) return;
+  const k = keyFor(e);
+  if (!k || (e.target.tagName === "BUTTON" && !e.target.dataset.key && (k === "press" || k === "D2"))) return;
   e.preventDefault();
   if (!e.repeat) setKey(k, true);
 });
-window.addEventListener("keyup", (e) => { const k = keyOf(e); if (k) setKey(k, false); });
+window.addEventListener("keyup", (e) => { const k = keyFor(e); if (k) setKey(k, false); });
 window.addEventListener("blur", () => { for (const k of KEY_ORDER) setKey(k, false); });
 window.addEventListener("storage", (e) => { if (e.key === "pq.safes" || e.key === "pq.apiKey") start(); });   // saved in the app's tab
 

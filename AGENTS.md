@@ -15,6 +15,8 @@ dependency, a network call or a new way to sign without asking first.
    - It never signs a hash or digest that Safe's service, the app or a page hands it.
    - Every page is seen and Sign is held before it signs. Red pages stay red, and Reject stays one
      easy press.
+   - The USB link (`firmware/usblink.py`, `docs/USB-LINK.md`) never signs, and what it writes is
+     accepted on the device first.
    - `test-vectors/manifest.mjs` checks the signing site, and `test-vectors/run-console.mjs` the
      refusals.
 2. **The console image is exactly what it imports.**

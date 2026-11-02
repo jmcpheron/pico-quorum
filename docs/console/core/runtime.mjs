@@ -10,7 +10,9 @@
 //   opts.appUrl           what secrets.APP_URL should be (a development console's fallback service)
 //   opts.secrets          more lines for secrets.py (Python), after the generated ones
 //   opts.http(method, url, body, headersJson, timeoutMs) -> { status, text, headers }  (sync)
-//   opts.onFrame(rgb565BigEndian Uint8Array 240*240*2)   after every full lcd.show()
+//   opts.board            a SCREENS name (default "waveshare"): where the frame sits in the panel's RAM,
+//                         its DC pin and its buttons. secrets.BOARD must name the same board.
+//   opts.onFrame(rgb565BigEndian Uint8Array W*H*2)   after every full lcd.show(); dev.W, dev.H
 //   opts.onStdout(line)   one line of Python output, no newline
 //   opts.onPwm(pin, frac) backlight and any other PWM
 //   opts.onPin(pin, v)    output pin writes (LED)
@@ -24,10 +26,18 @@
 //                         for the console page, whose only key is the visitor's passkey)
 //   opts.shims            { name: source } for /lib; the console page passes only the shims it uses
 
-export const KEY_ORDER = ["A", "B", "X", "Y", "up", "down", "left", "right", "press"];
+export const KEY_ORDER = ["A", "B", "X", "Y", "up", "down", "left", "right", "press", "D0", "D1", "D2"];
 // GPIO -> key, from firmware/lcd.py
 export const KEY_PINS = { 15: "A", 17: "B", 19: "X", 21: "Y", 2: "up", 18: "down", 16: "left", 20: "right", 3: "press" };
 export const W = 240, H = 240, FRAME_BYTES = W * H * 2;
+// Each board's screen and buttons, from firmware/board.py: the frame's size and where it sits in the
+// ST7789's RAM (RAM_X, RAM_Y), the DC pin, and GPIO -> key. Pulled-down buttons (board.HIGH) are the
+// Pin shim's business: every pin here reads 0 while held.
+export const SCREENS = {
+  waveshare: { w: W, h: H, x: 0, y: 0, dc: 8, pins: KEY_PINS },
+  "feather-s3": { w: 240, h: 135, x: 40, y: 53, dc: 40, pins: { 0: "D0", 1: "D1", 2: "D2" } },
+  "picoquorum-key": { w: 240, h: 135, x: 40, y: 53, dc: 9, pins: { 42: "D0", 41: "D1", 40: "D2" } },
+};
 export const DEFAULT_HEAP = 448 * 1024;
 
 const SHIMS = ["machine", "network", "requests", "socket", "rp2", "atecc_sim", "trustm_sim", "passkey"];
@@ -40,7 +50,10 @@ export async function createDevice(opts) {
   const inq = [];
   const stdin = opts.stdin || (() => (inq.length ? inq.shift() : null));
   function writeStdin(text) { for (const b of new TextEncoder().encode(text)) inq.push(b); }
-  const frame = new Uint8Array(FRAME_BYTES);
+  const scr = SCREENS[opts.board || "waveshare"];
+  if (!scr) throw new Error(`no screen for board ${opts.board}`);
+  const fw = scr.w, fh = scr.h, frameBytes = fw * fh * 2;
+  const frame = new Uint8Array(frameBytes);
   const pinOut = new Map();
   const timers = new Map();
   let timerSeq = 0;
@@ -48,7 +61,7 @@ export async function createDevice(opts) {
   let M = null; // emscripten module, for getValue
 
   // ---- display: ST7789 command stream on SPI1, DC on GP8 ---------------------------------
-  const lcd = { cmd: 0, xs: 0, xe: W - 1, ys: 0, ye: H - 1, cur: 0, args: [] };
+  const lcd = { cmd: 0, xs: scr.x, xe: scr.x + fw - 1, ys: scr.y, ye: scr.y + fh - 1, cur: 0, args: [] };
   let frames = 0;
   // SPI costs real time on the Pico: 115200 bytes per frame. rp2 clocks the peripherals at 48 MHz
   // unless machine.freq(cpu, peri) raises it, which caps SPI at 24 MHz (38 ms a frame).
@@ -77,7 +90,7 @@ export async function createDevice(opts) {
 
   function spiWrite(id, addr, n) {
     spiCost(id, n);
-    const dc = pinOut.get(8);
+    const dc = pinOut.get(scr.dc);
     if (dc === 0) {
       lcd.cmd = M.getValue(addr, "i8") & 255;
       lcd.args = [];
@@ -94,8 +107,8 @@ export async function createDevice(opts) {
       return;
     }
     if (lcd.cmd !== 0x2c) return;
-    const full = lcd.xs === 0 && lcd.ys === 0 && lcd.xe === W - 1 && lcd.ye === H - 1;
-    if (full && lcd.cur === 0 && n === FRAME_BYTES) {
+    const full = lcd.xs === scr.x && lcd.ys === scr.y && lcd.xe === scr.x + fw - 1 && lcd.ye === scr.y + fh - 1;
+    if (full && lcd.cur === 0 && n === frameBytes) {
       frame.set(readBytes(addr, n));
       lcd.cur = n;
     } else {
@@ -103,8 +116,8 @@ export async function createDevice(opts) {
       const ww = lcd.xe - lcd.xs + 1;
       for (let i = 0; i + 1 < b.length; i += 2) {
         const p = lcd.cur >> 1;
-        const x = lcd.xs + (p % ww), y = lcd.ys + Math.floor(p / ww);
-        if (x < W && y < H) { const o = (y * W + x) * 2; frame[o] = b[i]; frame[o + 1] = b[i + 1]; }
+        const x = lcd.xs - scr.x + (p % ww), y = lcd.ys - scr.y + Math.floor(p / ww);
+        if (x >= 0 && y >= 0 && x < fw && y < fh) { const o = (y * fw + x) * 2; frame[o] = b[i]; frame[o + 1] = b[i + 1]; }
         lcd.cur += 2;
       }
     }
@@ -119,7 +132,7 @@ export async function createDevice(opts) {
   let irqPoll = null;
   const bridge = {
     pin_read(id) {
-      const k = KEY_PINS[id];
+      const k = scr.pins[id];
       if (k !== undefined) return keys[KEY_ORDER.indexOf(k)] ? 0 : 1;
       const v = pinOut.get(id);
       return v === undefined ? 1 : v;
@@ -212,7 +225,8 @@ export async function createDevice(opts) {
   for (const name of SHIMS) if (opts.shims[name] !== undefined) FS.writeFile(`/lib/${name}.py`, opts.shims[name]);
   FS.writeFile("/lib/_bootstrap.py", opts.shims._bootstrap);
   for (const [name, data] of Object.entries(opts.files || {})) writeFile(name, data);
-  writeFile("secrets.py", secretsPy(opts.appUrl === null ? null : opts.appUrl || "http://localhost:3001") + (opts.secrets || ""));
+  writeFile("secrets.py", secretsPy(opts.appUrl === null ? null : opts.appUrl || "http://localhost:3001") +
+    (opts.board ? `BOARD = ${JSON.stringify(opts.board)}\n` : "") + (opts.secrets || ""));
   // A fixed throwaway software key, so the virtual console's owner address survives reboots and a
   // signer deployed against it on anvil keeps working across runs. Never a real key, and never on a public
   // page, where it would be anyone's: the console page passes null and gets no key.bin at all.
@@ -259,7 +273,7 @@ export async function createDevice(opts) {
     if (irqPoll) clearInterval(irqPoll);
   }
 
-  return { mp, run, exec, writeFile, writeStdin, listFiles, dispose, frame, get frames() { return frames; } };
+  return { mp, run, exec, writeFile, writeStdin, listFiles, dispose, frame, W: fw, H: fh, get frames() { return frames; } };
 }
 
 // Python for "import NAME fresh, then ENTRY", with the traceback printed instead of raised.

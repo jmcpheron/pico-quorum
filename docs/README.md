@@ -13,6 +13,7 @@ troubleshooting.
 - [`RELEASES.md`](RELEASES.md): firmware versions (year.month.n), what each holds, and how to make one
 - [`mainnet/`](mainnet/README.md): a Trust M signer in a mainnet Safe. Written for co-signers too: checking a chip, the threat model, the recommended configuration, the operator's runbook
 - [`SECURITY.md`](SECURITY.md): how to report a vulnerability, and the console's trust model
+- [`USB-LINK.md`](USB-LINK.md): what a computer can ask a console over USB (the app's Device page, `tools/fw`), what it never does, and the REPL only in maintenance
 - [`PROVISIONING.md`](PROVISIONING.md): the quorum v1 chip config and the fresh-chip ceremony
 - [`LOCKING.md`](LOCKING.md): what each ATECC608 lock does to the multisig
 - [`ONBOARDING.md`](ONBOARDING.md): a proposal: giving someone a key, what they do, and what the console says to them

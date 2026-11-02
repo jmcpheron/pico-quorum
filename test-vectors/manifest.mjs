@@ -54,6 +54,18 @@ check(asserts.length === 1 && asserts[0][0] === "quorum.py" && inSignIt(asserts[
 check(!con.includes("passkey.py"), "console: no image carries the emulator's passkey module");
 check(!/\bsig\.use\(/.test(con.map((f) => (f.endsWith(".py") ? src(f) : "")).join("\n")), "console: nothing switches the active slot");
 
+// The USB link (usblink.py, docs/USB-LINK.md): in the console image, holding USB once the console
+// runs, and never near the chip: it names no signer, driver or chip call, and writes nothing itself
+// (the asks it passes on are written by quorum.py and wifisetup.py, once accepted on the screen).
+const link = src("usblink.py");
+check(con.includes("usblink.py"), "console: carries the USB link");
+check(!/\b(sig|signer|atecc|trustm\w*|S)\.\w+\(|import (signer|atecc|trustm\w*)/.test(link) && !/\bopen\(/.test(link),
+  "usblink: no signer, driver or chip call, and no file it writes itself");
+const mainLines = src("main_console.py").trimEnd().split("\n");
+check(/^\s+usblink\.run\(_quorum\)$/.test(mainLines.at(-1)) && /kbd_intr\(-1\)/.test(mainLines.slice(0, 20).join("\n")),
+  "console: main.py turns Ctrl-C off first and ends by handing USB to the link, so it never returns to the REPL");
+check(/kbd_intr\(-1\)/.test(src("boot.py").split("\n").slice(0, 8).join("\n")), "boot.py turns Ctrl-C off before anything else");
+
 // tools/fw build compiles every module but boot.py and main.py with plain mpy-cross (no -march):
 // a native or viper function in them would not survive that.
 for (const [name, img] of Object.entries(M.images)) {

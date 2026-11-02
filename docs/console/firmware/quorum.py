@@ -22,7 +22,7 @@
 # (webauthn.py), because onchain this key owns the Safe through Safe's passkey signer.
 #
 #   import lcd; import quorum; quorum.start()      (main_console.py does this)
-import sys, time, machine, network, gc
+import sys, time, machine, network, gc, json
 import board
 import lcd as L
 import net
@@ -49,10 +49,30 @@ except ImportError:
 
 CFG = quorum_cfg.CFG
 PROD = image.PRODUCTION
-# The Safes this console signs for: QUORUM_SAFES (or QUORUM_SAFE) in secrets.py, made in the Safe
-# web app, else, on a development board only, the pinned Family Safe on the laptop. The production
-# image with none stops on an "unconfigured" screen instead.
-_given, SAFES_WHY = policy.safes(getattr(secrets, "QUORUM_SAFES", None), getattr(secrets, "QUORUM_SAFE", None)) if secrets else ([], "")
+SAFES_FILE = "safes.json"   # written only by a safes ask over USB that the person accepted here (usblink.py)
+
+
+def _file_safes():
+    """safes.json's list, or None when there is no such file (or it is not one of ours). Never a
+    Safe's own service: that comes only from secrets.py."""
+    try:
+        with open(SAFES_FILE) as f:
+            got = json.load(f)["safes"]
+        return [{k: s[k] for k in ("chainId", "address", "name") if k in s} for s in got] or None
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        return None
+
+
+# The Safes this console signs for: safes.json (sent over USB and accepted on this screen) when there
+# is one, else QUORUM_SAFES (or QUORUM_SAFE) in secrets.py, made in the Safe web app, else, on a
+# development board only, the pinned Family Safe on the laptop. The production image with none
+# stops on an "unconfigured" screen instead.
+_from_file = _file_safes()
+SAFES_FROM = SAFES_FILE if _from_file else "secrets.py"
+if _from_file:
+    _given, SAFES_WHY = policy.safes(_from_file, None)
+else:
+    _given, SAFES_WHY = policy.safes(getattr(secrets, "QUORUM_SAFES", None), getattr(secrets, "QUORUM_SAFE", None)) if secrets else ([], "")
 UNCONFIGURED = PROD and not _given
 SAFES = _given or policy.safes(None, CFG["safes"][0])[0]
 # APP_URL is the legacy wallet's laptop address: only a development console falls back to it. The
@@ -188,6 +208,16 @@ kpage = 0           # the Key screen: 0 its QR code, 1 its address in full
 saver_card = 0      # the screensaver's card in view (an index into saver_cards())
 saver_t0 = 0        # when it came up
 rpage = 0           # the Recent screen's page
+# An ask from the USB link (usblink.py): Wi-Fi, the Safes, or maintenance, on screen page by page.
+LINK_ASKS = ("wifi", "safes", "maint")
+ASK_FROM = ("home", "boot", "saver", "unconfigured", "nochip", "pinfail", "owners", "device", "recent", "key", "chip")
+ask = None          # {"kind", "item", "pages": [{"title", "lines", "addr"?, "red"?}], "back": the state it came over}
+apage = 0           # its page in view
+aseen = set()       # its pages seen
+ahold = None        # (t0, key) while the accepting key is held
+incoming = None     # (kind, item) handed over by the link, taken up by the next tick
+dropped = False     # the link's cancel, taken up by the next tick
+reset_at = 0        # ticks_ms to restart at, once an accepted ask is written
 
 
 def say(s, secs=3):
@@ -1517,6 +1547,166 @@ def led_tick():
         net.led.value(1 if net.up else 0)
 
 
+# ----------------------------------------------------------------------------- the USB link's asks
+def compressed():
+    """This key as 33 bytes of hex (02/03 and x): the app's set-up link, #/k/<this>."""
+    return (("02" if int(qy, 16) % 2 == 0 else "03") + qx[2:]) if qx else ""
+
+
+def link_status():
+    """usblink's status: only what the console already knows. Never a Wi-Fi password or the API
+    key, and nothing read off the chip for the asking."""
+    out = []
+    for w in ([] if UNCONFIGURED else WATCH):
+        info = w["info"] or {}
+        n, mine = queued_for(w)
+        out.append({"chainId": w["chain"], "address": w["addr"], "name": w["name"], "ok": w["ok"], "err": w["err"] or "",
+                    "threshold": threshold(w) if info else None, "owners": len(owners(w)) if info else None,
+                    "nonce": info.get("nonce"), "isOwner": (bool(me) and me in owners(w)) if info else None,
+                    "queued": n, "waiting": mine})
+    return {"mode": "console", "name": NAME, "state": state, "ready": readiness(), "serial": serial, "profile": profile,
+            "owner": me, "key": compressed(), "pinned": bool(EXPECT) and pin_ok, "pinWhy": pin_why, "counter": counter,
+            "wifi": {"up": net.up, "ssid": net.ssid() if net.up else "", "saved": [x[0] for x in net.networks()]},
+            "safes": out, "safesFrom": "" if UNCONFIGURED else SAFES_FROM, "ask": ask["kind"] if ask else None,
+            "watchdog": watch.running(), "image": image.IMAGE, "version": image.VERSION}
+
+
+def link_ask(kind, item):
+    """An ask the link checked: shown at the next tick, or why not now. A review, a hold or a
+    signature in flight is never interrupted."""
+    global incoming
+    if state not in ASK_FROM or incoming:
+        return "busy: the console is on its %s screen" % state
+    incoming = (kind, item)
+    return None
+
+
+def link_cancel():
+    global dropped
+    dropped = True
+
+
+def ask_pages(kind, item):
+    """What the person reads before accepting, one page each."""
+    if kind == "wifi":
+        return [{"title": "Wi-Fi from USB", "lines": [item["ssid"], "A network the computer sent to save.", "The console restarts and joins it."]}]
+    if kind == "maint":
+        return [{"title": "Maintenance?", "red": True,
+                 "lines": ["The computer asks to restart into maintenance.", "The console stops and its USB REPL opens.",
+                           "Only for tools/fw on your own computer."]}]
+    n = len(item)
+    pages = [{"title": "Safe %d of %d" % (i + 1, n), "addr": s["address"],
+              "lines": [s["name"], CFG["chains"].get(str(s["chainId"]), "chain %d" % s["chainId"])]}
+             for i, s in enumerate(item)]
+    now = "now: %s" % (", ".join(w["name"] for w in WATCH) if not UNCONFIGURED else "none")
+    pages.append({"title": "Watch %s?" % ("this Safe" if n == 1 else "these %d" % n),
+                  "lines": ["They replace the Safes it watches", now[:60], "The console restarts."]})
+    return pages
+
+
+def ask_tick():
+    """The link's part of a tick: take up a new ask, drop a cancelled or stale one, the hold."""
+    global ask, apage, aseen, ahold, incoming, dropped, state, dirty
+    if not incoming and state != "ask":
+        dropped = False
+        return
+    import usblink
+    if incoming:
+        kind, item = incoming
+        incoming = None
+        if state not in ASK_FROM:
+            usblink.done(False, "busy: the console is on its %s screen" % state)
+        else:
+            if state == "saver":
+                wake(time.ticks_ms())
+            ask = {"kind": kind, "item": item, "pages": ask_pages(kind, item), "back": "home" if state in ("boot", "saver") else state}
+            apage, aseen, ahold = 0, {0}, None
+            state, dirty = "ask", True
+            _log("USB asks: " + kind)
+    if state != "ask":
+        dropped = False
+        return
+    if dropped or usblink.expired():
+        why = "cancelled by the computer" if dropped else "nobody accepted it in time"
+        dropped = False
+        ask_close(False, why)
+        return
+    if ahold:
+        if not keys.held(ahold[1]):
+            ahold = None
+            say("Let go early · nothing saved")
+        elif time.ticks_diff(time.ticks_ms(), ahold[0]) >= ask_need():
+            ask_accept()
+        elif _n % 2 == 0:
+            dirty = True
+
+
+def ask_need():
+    return HOLD_RED_MS if ask and any(p.get("red") for p in ask["pages"]) else HOLD_MS
+
+
+def ask_key(k):
+    """A key on an ask. D0 (Y, B) refuses with one press; D1 (a turn, the joystick) pages; D2 (A,
+    the knob's press) walks to the pages not yet seen, then, held, accepts."""
+    global apage, ahold, dirty
+    if k in ("D0", REJECT, BACK):
+        ask_close(False, "refused on the device")
+    elif k in ("D1", "down", "right"):
+        apage = (apage + 1) % len(ask["pages"])
+    elif k in ("D1L", "up", "left"):
+        apage = (apage - 1) % len(ask["pages"])
+    elif k in ("D2", SIGN, "press"):
+        left = [i for i in range(len(ask["pages"])) if i not in aseen]
+        if left:
+            apage = left[0]
+            say("See every page first · %d more" % len(left))
+        else:
+            ahold = (time.ticks_ms(), k)
+    aseen.add(apage)
+    dirty = True
+
+
+def ask_accept():
+    """The person held the key: write what was asked, answer, and restart a moment later."""
+    global reset_at, ahold, dirty
+    import os
+    kind, item = ask["kind"], ask["item"]
+    ahold = None
+    try:
+        if kind == "wifi":
+            import wificfg
+            wificfg.save(item["ssid"], item["pass"])
+        elif kind == "safes":
+            with open(SAFES_FILE + ".tmp", "w") as f:
+                json.dump({"safes": item}, f)
+            os.rename(SAFES_FILE + ".tmp", SAFES_FILE)     # the old list or the new one, never half of one
+        elif kind == "maint":
+            open("maint", "w").close()
+        if hasattr(os, "sync"):
+            os.sync()
+    except OSError as e:
+        ask_close(False, "could not save: %r" % e)
+        return
+    qlog.write("USB: %s accepted on the device" % kind)
+    import usblink
+    usblink.done(True)
+    ask_close(None, "")
+    say("Saved · restarting", 5)
+    reset_at = time.ticks_add(time.ticks_ms(), 1500)       # time for the answer to leave
+    watch.extend(10000)
+
+
+def ask_close(ok, why):
+    """Off the screen, back where it came from. ok None: already answered (accepted)."""
+    global ask, ahold, state, dirty
+    if ok is not None:
+        import usblink
+        usblink.done(ok, why)
+        say("Nothing saved" if why.startswith("refused") else "USB: " + why)
+    state = ask["back"] if ask else "home"
+    ask, ahold, dirty = None, None, True
+
+
 def tick(t):
     global _busy, _n, dirty, dirty_rows, state, splash_until, msg, last_activity, last_key, fails, crash_t0
     if _busy:
@@ -1526,6 +1716,9 @@ def tick(t):
         _n += 1
         watch.extend(5000)
         net.poll_accept()
+        if reset_at and time.ticks_diff(time.ticks_ms(), reset_at) >= 0:
+            machine.reset()
+        ask_tick()
         polled = False
         if (state in ("home", "boot", "saver") and (last_poll == 0 or time.ticks_diff(time.ticks_ms(), last_poll) >= poll_every())
                 and time.ticks_diff(time.ticks_ms(), last_key) >= QUIET_MS):
@@ -1544,7 +1737,9 @@ def tick(t):
                 pressed = backlog(pressed)
         pressed = saver_tick(time.ticks_ms(), pressed)
         for k in pressed:
-            if THREE:
+            if state == "ask":
+                ask_key(k)
+            elif THREE:
                 three(k)
             elif KNOB and k in ("down", "up"):
                 turned(k)

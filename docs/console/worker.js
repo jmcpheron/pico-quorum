@@ -53,6 +53,7 @@ onmessage = async ({ data: m }) => {
     const files = Object.fromEntries(m.files.map((f) => [f.name, f.text !== undefined ? f.text : f.bytes]));
     dev = await createDevice({
       loadMicroPython, keys: new Int32Array(m.keys), files, shims: m.shims, appUrl: null, secrets: m.secrets,
+      board: m.board, heapsize: m.heapsize,          // ?board=: the S3 boards' 240x135 screen, D0 D1 D2, its 2 MB
       keyBin: null,                       // no software key: the passkey is the only key
       passkey: { info: () => m.passkey, get: (challenge) => askPage("passkey", { challenge }) },
       http: xhr, onFrame,

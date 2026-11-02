@@ -8,6 +8,9 @@
 // - Base Sepolia: a Safe 1.4.1, 2 of 3 (Alice, Bob, Carol), at nonce 9, with USDC.
 // - Safe's transaction service, with the real one's checks: the hash is the fields' hash, the sender
 //   is an owner, and every signature recovers to its owner.
+// - A console on USB (#/device): a fake navigator.serial that answers the USB link
+//   (docs/USB-LINK.md) as the firmware does. The firmware's own end is tested in
+//   test-vectors/console_test.py (case_link).
 // Exit 1 on any failure.
 import { createHash } from "node:crypto";
 import { createServer } from "node:http";
@@ -185,6 +188,59 @@ const WALLET_PAGE = () => {
   announce();
 };
 
+// The USB link's other end, for #/device: a scripted console that answers as firmware/usblink.py does.
+// It keeps what it was sent in window.__dev, and saves an ask only when the test accepts it.
+const FAKE_SERIAL = ({ release, safe }) => {
+  const enc = new TextEncoder(), dec = new TextDecoder();
+  const dev = window.__dev = { got: [], signals: [], filters: null, pending: null, down: false, opens: 0, buf: "", ctrl: null,
+    wifi: { up: true, ssid: "bench", saved: ["bench"] },
+    safes: [{ chainId: 84532, address: safe.toLowerCase(), name: "<b>Ops</b>", ok: true, err: "", threshold: 2, owners: 3, nonce: 9, isOwner: false, queued: 0, waiting: 0 }] };
+  const say = (o) => dev.ctrl?.enqueue(enc.encode('{"pq":1,' + JSON.stringify(o).slice(1) + "\n"));
+  const status = () => ({ mode: "console", name: "PicoQuorum", state: "home", ready: "ok", serial: "0123e063aa", profile: "608C",
+    owner: "0x5FbDB2315678afecb367f032d93F642f64180aa3", key: "02" + "ab".repeat(32), pinned: true, pinWhy: "", counter: 3,
+    wifi: dev.wifi, safes: dev.safes, safesFrom: "safes.json", ask: dev.pending?.op || null, watchdog: true, image: "console", version: "2026.11.1" });
+  function handle(m) {
+    dev.got.push(m);
+    if (m.op === "hello") return say({ id: m.id, ok: true, proto: 1, mode: "console", board: "picoquorum-key", image: "console", version: "2026.11.1", release, build: "cdab74db" });
+    if (m.op === "status") return say({ id: m.id, ok: true, ...status() });
+    if (m.op === "wifi" || m.op === "safes") {
+      if (dev.pending) return say({ id: m.id, ok: false, why: "busy: another ask is on the screen" });
+      dev.pending = m;
+      return;
+    }
+    say({ id: m.id, ok: false, why: "unknown op" });
+  }
+  dev.decide = (ok) => {
+    const m = dev.pending; dev.pending = null;
+    if (!ok) return say({ id: m.id, ok: false, why: "refused on the device", kind: m.op });
+    if (m.op === "safes") dev.safes = m.safes.map((x) => ({ ...x, ok: true, err: "", threshold: 2, owners: 3, nonce: 9, isOwner: true, queued: 0, waiting: 0 }));
+    else dev.wifi = { up: false, ssid: "", saved: [...dev.wifi.saved, m.ssid] };
+    say({ id: m.id, ok: true, kind: m.op });
+    setTimeout(() => {            // it restarts: the port goes, and comes back 2 s later
+      dev.down = true; dev.ctrl?.error(new TypeError("The device has been lost.")); dev.ctrl = null;
+      setTimeout(() => { dev.down = false; }, 2000);
+    }, 300);
+  };
+  const port = {
+    readable: null, writable: null,
+    getInfo: () => ({ usbVendorId: 0x303a, usbProductId: 0x1001 }),
+    async open({ baudRate }) {
+      if (dev.down) throw new DOMException("Failed to open serial port.", "NetworkError");
+      dev.opens++; dev.baud = baudRate;
+      port.readable = new ReadableStream({ start: (c) => { dev.ctrl = c; } });
+      port.writable = new WritableStream({ write(chunk) {
+        dev.buf += dec.decode(chunk);
+        let i;
+        while ((i = dev.buf.indexOf("\n")) >= 0) { const l = dev.buf.slice(0, i); dev.buf = dev.buf.slice(i + 1); handle(JSON.parse(l)); }
+      } });
+    },
+    async setSignals(s) { dev.signals.push(s); },
+    async close() { dev.ctrl = null; },
+  };
+  const serial = { async requestPort(o) { dev.filters = o.filters; return port; }, async getPorts() { return dev.down ? [] : [port]; } };
+  Object.defineProperty(Navigator.prototype, "serial", { configurable: true, get: () => serial });
+};
+
 // ----------------------------------------------------------------------------- the page's own files
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml",
   ".woff2": "font/woff2", ".png": "image/png", ".gif": "image/gif" };
@@ -207,6 +263,8 @@ await ctx.exposeFunction("__wallet", async (json) => {
   catch (e) { return JSON.stringify({ ok: false, error: { code: e.code, message: e.message } }); }
 });
 await ctx.addInitScript(WALLET_PAGE);
+const CONSOLE_RELEASE = JSON.parse(readFileSync(join(DOCS, "console/BUILD.json"), "utf8")).release;
+await ctx.addInitScript(FAKE_SERIAL, { release: CONSOLE_RELEASE, safe: SAFE });
 const CORS = { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "*" };
 await ctx.route("**/*", async (route) => {
   const r = route.request();
@@ -461,6 +519,57 @@ await step("a new key's set-up link (#/k/<compressed key>): compare, deploy from
   check((await page.locator(".card .inline-ident code").first().innerText()).trim() === owner, "#/signer: a pasted compressed key (0x, any case) opens its page, with its owner address");
   await page.evaluate(() => localStorage.removeItem("pq.safes"));
   wallet.as = "alice";
+});
+
+await step("#/device: a console on USB, its cards, a Safes ask accepted on it, a Wi-Fi ask refused", async () => {
+  const dev = (f) => page.evaluate(f);
+  await page.evaluate((safe) => localStorage.setItem("pq.safes", JSON.stringify([{ chain: "basesep", address: safe, name: "Team" }])), SAFE);
+  await page.goto(`${BASE}app/#/device`);
+  await page.getByRole("button", { name: "Connect a device" }).click();
+  await page.getByText("PicoQuorumKey", { exact: true }).waitFor();
+  const d = await dev(() => window.__dev);
+  check(d.filters.some((f) => f.usbVendorId === 0x303a) && d.baud === 115200, "#/device: the chooser offers Espressif's USB, and the port opens at 115200");
+  check(d.signals.length && d.signals.every((s) => s.dataTerminalReady === false && s.requestToSend === false), "#/device: DTR and RTS are set low, and never high");
+  await page.getByText("Same as the console in this browser").waitFor();
+  check(true, "#/device: the device's release fingerprint matches the console page's");
+  check(await page.locator('a[href="#/k/02' + "ab".repeat(32) + '"]').count() === 1, "#/device: the key's card links to its set-up page (#/k/<key>)");
+  check((await page.locator("main").innerText()).includes("<b>Ops</b>"), "#/device: a Safe's name from the device is drawn as text");
+  await shot("device-connected");
+
+  await page.locator(".checks input").first().check();
+  await page.getByRole("button", { name: "Send to the device" }).last().click();
+  await page.getByText("hold D2 for 2 s").waitFor();
+  const ask = await dev(() => window.__dev.pending);
+  check(ask?.op === "safes" && JSON.stringify(ask.safes) === JSON.stringify([{ chainId: 84532, address: SAFE.toLowerCase(), name: "Team" }]),
+    "#/device: the safes ask carries chainId, address and name only");
+  await dev(() => window.__dev.decide(true));
+  await page.getByText("Accepted on the console and saved").waitFor();
+  await page.getByText("It's back").waitFor({ timeout: 15000 });
+  await page.getByText("This key is an owner").waitFor();
+  check((await dev(() => window.__dev.opens)) === 2, "#/device: after the restart the page opens the port again, and reads the new Safes");
+
+  await page.fill("#dev-ssid", "home");
+  await page.fill("#dev-pass", "a long password");
+  await page.getByRole("button", { name: "Send to the device" }).first().click();
+  await page.getByText("hold D2 for 2 s").waitFor();
+  check((await page.inputValue("#dev-pass")) === "", "#/device: the password field is emptied once sent");
+  await dev(() => window.__dev.decide(false));
+  await page.getByText("Not saved: refused on the device").waitFor();
+  const ops = await dev(() => window.__dev.got.map((m) => m.op));
+  check(ops.every((o) => ["hello", "status", "wifi", "safes"].includes(o)), `#/device: the page asked only hello, status, wifi and safes (${[...new Set(ops)].join(", ")})`);
+  await page.evaluate(() => localStorage.removeItem("pq.safes"));
+});
+
+await step("#/device without Web Serial: it says so, and still offers the console in the browser", async () => {
+  const c2 = await browser.newContext();
+  await c2.addInitScript(() => { delete Navigator.prototype.serial; });
+  const p2 = await c2.newPage();
+  p2.on("pageerror", (e) => errors.push(e.message));
+  await p2.goto(`${BASE}app/#/device`);
+  await p2.getByText("can't talk to USB devices").waitFor();
+  check(await p2.getByRole("button", { name: "Connect a device" }).isDisabled(), "#/device: Connect is off without Web Serial");
+  check(await p2.locator('a[href="../console/?board=waveshare"]').count() === 1, "#/device: the console in the browser is still offered");
+  await c2.close();
 });
 
 check(!errors.length, `no page errors${errors.length ? ": " + errors.join("; ") : ""}`);

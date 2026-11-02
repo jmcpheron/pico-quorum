@@ -1,3 +1,10 @@
+# Ctrl-C first: from here a byte from USB stops nothing (usblink.py). MicroPython turns it back on
+# for main.py, which turns it off again before anything else; maintenance's REPL has it as usual.
+try:
+    import micropython
+    micropython.kbd_intr(-1)
+except Exception:
+    pass
 # Maintenance is decided before importing the display or network. Latch the physical key so
 # releasing it during startup cannot accidentally start the console.
 import os
