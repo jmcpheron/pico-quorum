@@ -5,21 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; font-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
-<meta name="description" content="The PicoQuorum Handheld: a Safe signing console you hold in two hands. A Pico 2 W, a 2.4-inch screen, a knob and a covered Sign button in a printed case, its key a cartridge that slides into the back. How to print it and put it together in 16 steps.">
+<meta name="description" content="The PicoQuorum Handheld: a Safe signing console you hold in two hands. A Pico 2 W, a 2.4-inch screen, a knob and a covered Sign button in a printed case, and how to put it together in 16 steps.">
 <link rel="canonical" href="https://picoquorum.app/handheld/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="PicoQuorum">
 <meta property="og:url" content="https://picoquorum.app/handheld/">
 <meta property="og:title" content="PicoQuorum Handheld: a signing console you hold in two hands">
-<meta property="og:description" content="A Pico 2 W, a 2.4-inch screen and a covered Sign button in a printed case. The key is a cartridge that slides into the back. Print it and put it together in 16 steps.">
+<meta property="og:description" content="A Pico 2 W, a 2.4-inch screen, a knob and a covered Sign button in a printed case. Put it together in 16 steps.">
 <meta property="og:image" content="https://picoquorum.app/handheld/card.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="The handheld's front plate in four colours, and the back of the case with the key's cartridge sliding into its bay.">
+<meta property="og:image:alt" content="The handheld's front plate in four colours, and the finished case with a key in its top edge.">
 <meta name="twitter:card" content="summary_large_image">
 <title>PicoQuorum Handheld · Build a signing console</title>
 <link rel="icon" href="../brand/mark-dark.svg" type="image/svg+xml">
-<link rel="stylesheet" href="../home.css" integrity="sha384-e1cBXxu99xgHuEqlJQXyiO3WVju4Ei4YxjnwG5b0TRCQq6o/2GzIN2IvcLg7rZSR">
+<link rel="stylesheet" href="../home.css" integrity="sha384-elTVBHx8i/S3FaYj3kGiobnKM5M+hjzBQOjrl/QLfvMI/eHA+57zkZpJrp1wqiwD">
 </head>
 <body>
 <header class="top">
@@ -44,7 +44,7 @@
     <div class="hero-text">
       <p class="eyebrow">New build · PicoQuorum Handheld</p>
       <h1>A signing console you hold in two&nbsp;hands.</h1>
-      <p class="lede">A Pico 2 W, a 2.4″ screen, a knob and a Sign button under a flip cover, in a flat printed case you hold like a handheld game or lay on the desk. The key is a cartridge: it slides down into a bay in the back, and clicks onto its plug.</p>
+      <p class="lede">A Pico 2 W, a 2.4″ screen, a knob and a Sign button under a flip cover, in a flat printed case you hold like a handheld game or lay on the desk. The key, in a snap-shut clamshell, plugs into the top edge.</p>
       <div class="cta">
         <a class="btn go big" href="#build">Build it: 16 steps <span aria-hidden="true">↓</span></a>
         <a class="btn big" href="https://github.com/jmcpheron/pico-quorum/tree/main/hardware/builds/pico-sign-handheld">The design files</a>
@@ -52,7 +52,7 @@
       <p class="muted small">It runs the PicoQuorum console image unchanged: one owner of a Safe multisig, signing only the hash it works out itself. <a href="../">What PicoQuorum is</a></p>
     </div>
     <figure class="pic hero-pic">
-      <img src="card.png" width="1200" height="630" alt="The handheld's front plate in four colours: PICOQUORUM, the window, TURN and SIGN. Beside it, the back of the case, the key's cartridge sliding down into its bay.">
+      <img src="card.png" width="1200" height="630" alt="The handheld's front plate in four colours: PICOQUORUM, the window, TURN and SIGN. Beside it, the finished case with a knob, a covered sign button, and the key standing up out of its top edge.">
     </figure>
   </section>
 
@@ -70,15 +70,15 @@
     <div class="facts">
       <h2>What's in it</h2>
       <dl class="specs">
-        <dt>Size</dt><dd>86 × 147 × 30 mm; 155 mm tall with a key in</dd>
+        <dt>Size</dt><dd>86 × 118 × 30 mm; 164 mm tall with a key in</dd>
         <dt>Board</dt><dd>Raspberry Pi Pico 2 W, wires soldered to its pads</dd>
         <dt>Screen</dt><dd>2.4″ IPS, 240 × 320, SPI</dd>
         <dt>Controls</dt><dd>An EC11 knob to turn and push. A tactile Sign button under a flip cover</dd>
-        <dt>Key</dt><dd>key-c, an ATECC608C behind USB-C, in a 48 × 54 mm snap-shut cartridge</dd>
-        <dt>Case</dt><dd>Eight printed parts and the cartridge's two, M3 screws into heat-set inserts</dd>
+        <dt>Key</dt><dd>key-c, an ATECC608C behind USB-C, in a clamshell</dd>
+        <dt>Case</dt><dd>Eight printed parts and the key's two, M3 screws into heat-set inserts</dd>
         <dt>Firmware</dt><dd>The console image as is: <code>BOARD = "build1"</code>, <code>SCREEN = "2.4"</code></dd>
       </dl>
-      <p class="warn-note"><strong>A first draft.</strong> Designed and checked in CAD: 243 pairs of parts clear each other, and the cartridge clears everything as it slides in. Nothing is printed, wired or run yet, and the 2.4″ screen hasn't been seen working. Measure your parts first; <a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/README.md#before-printing">the README says which</a>.</p>
+      <p class="warn-note"><strong>A first draft.</strong> Designed and checked in CAD: 223 pairs of parts clear each other. Nothing is printed, wired or run yet, and the 2.4″ screen hasn't been seen working. Measure your parts first; <a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/README.md#before-printing">the README says which</a>.</p>
     </div>
   </section>
 
@@ -94,22 +94,6 @@
 
   <section class="split">
     <div>
-      <h2>The key is a cartridge</h2>
-      <p>key-c, the USB-C board with the secure element on it, snaps into a 48 × 54 mm cartridge. The cartridge slides down into a bay in the back, the way a handheld game takes one: its label out of the back, its top standing 8 mm out of the top edge to pull it by.</p>
-      <ul class="ticks">
-        <li><strong>Grooves guide it.</strong> A tongue down each side runs in a groove, so the USB-C plug at the bottom is never the guide.</li>
-        <li><strong>One way in.</strong> A rib in one corner fits a notch in the cartridge. Upside down, it stops 2 mm before the plug.</li>
-        <li><strong>A click.</strong> Two bumps in the bay's walls click into its sides when it's home.</li>
-        <li><strong>Swap keys</strong> by swapping cartridges. Each has a frame on the back for a label.</li>
-      </ul>
-    </div>
-    <figure class="pic">
-      <img src="img/15-key.png" width="1680" height="1340" loading="lazy" alt="The key's cartridge: key-c into the tray, the cover clicked on with the chip in its window, and the back with its label frame and a tongue down each side.">
-    </figure>
-  </section>
-
-  <section class="split">
-    <div>
       <h2>Four colours from one plate</h2>
       <p>The front plate prints face down, so its face is its first layers. Change filament three times, at 0.6, 1.2 and 1.8 mm, and each depth of cut shows its own colour: the name in charcoal, TURN and SIGN in red, the wells in blue. No paint, no inlays.</p>
       <p class="small muted">The depths, colours and words are settings in <a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/handheld.py"><code>handheld.py</code></a>. Not checked on a real print yet.</p>
@@ -121,25 +105,11 @@
 
   <section id="build">
     <h2>Build it</h2>
-    <p class="lede">Sixteen steps, from printed parts to a key in its bay. Each picture is drawn from the case's own model, so it follows the CAD's numbers: new printed parts in amber, what's done in white, and what the step needs along the bottom.</p>
+    <p class="lede">Sixteen steps, from printed parts to a key in the top. Each picture is drawn from the case's own model, so it follows the CAD's numbers: new printed parts in amber, what's done in white, and what the step needs along the bottom.</p>
     <div class="cta">
       <a class="btn big" href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/ASSEMBLY.md">The full guide, with every detail</a>
       <a class="btn big" href="https://github.com/jmcpheron/pico-quorum/tree/main/hardware/builds/pico-sign-handheld/case/out">The STLs</a>
     </div>
-
-    <h3 class="sub">Print it</h3>
-    <p>Every file is the way up it prints, flat on the bed, with no supports to start with. GitHub shows each in 3D; its download button saves the STL. Nothing has been printed yet, so try the new parts first, in this order:</p>
-    <ol class="links">
-      <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/out/cartridge_tray.stl"><code>cartridge_tray.stl</code></a>, <a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/out/cartridge_cover.stl"><code>cartridge_cover.stl</code></a>: the key's cartridge, each half on its outside face. PETG if you have it: the clips are close to PLA's limit.</li>
-      <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/out/handheld_bay_test.stl"><code>handheld_bay_test.stl</code></a>: the tub's top only: the bay, the plug's holder and two corner posts. Try the cartridge's fit here first.</li>
-      <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/out/handheld_plug_lock.stl"><code>handheld_plug_lock.stl</code></a>: holds the key's plug up in its holder.</li>
-      <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/out/handheld_plate.stl"><code>handheld_plate.stl</code></a>: the front plate, face down; four colours by filament changes.</li>
-      <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/out/handheld_body.stl"><code>handheld_body.stl</code></a>: the tub, on its back. The bay's floor is a 48.6 mm bridge: supports there only if it sags.</li>
-      <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/out/handheld_carrier.stl"><code>handheld_carrier.stl</code></a>, <a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/out/handheld_spacers.stl"><code>handheld_spacers.stl</code></a>: behind the screen, with the Pico's posts; the four spacers.</li>
-      <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/out/handheld_guard_base.stl"><code>handheld_guard_base.stl</code></a>, <a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/out/handheld_guard_cover.stl"><code>handheld_guard_cover.stl</code></a>: the Sign button's flip cover and its base.</li>
-      <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/out/handheld_sign_cap.stl"><code>handheld_sign_cap.stl</code></a>: the Sign button's cap, head down.</li>
-    </ol>
-    <p class="small muted">If the cartridge is tight in the bay, sand the bumps. The numbers to change are in <a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/handheld.py"><code>handheld.py</code></a>, and <a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/ASSEMBLY.md#printing">the guide's printing notes</a> say which.</p>
 
     <h3 class="sub">What you need</h3>
     <div class="need">
@@ -148,7 +118,7 @@
       <div>
         <ul class="ticks">
           <li><strong>Bought:</strong> a Pico 2 W, the 2.4″ screen, an EC11 knob and cap, a 12 × 12 mm tactile switch and a mini breadboard, a USB-C plug on a short cable, two 4.7 kΩ resistors, a key-c.</li>
-          <li><strong>Hardware:</strong> ten M3 heat-set inserts, ten M3 × 8 and six M2 × 8 socket heads, six M3 washers, four rubber feet, 20 mm of 1.75 mm filament for the hinge.</li>
+          <li><strong>Hardware:</strong> eight M3 heat-set inserts, eight M3 × 8 and six M2 × 8 socket heads, four M3 washers, four rubber feet, 20 mm of 1.75 mm filament for the hinge.</li>
           <li><strong>Tools:</strong> a soldering iron with an insert tip, 2.5 and 1.5 mm hex keys, flush cutters, a meter.</li>
         </ul>
         <figure class="pic"><img src="img/00-hardware.png" width="1650" height="380" loading="lazy" alt="The screws, inserts, washers, feet and hinge pin, with how many of each."></figure>
@@ -159,28 +129,28 @@
     <ol class="build">
       <li id="step-1"><figure class="pic"><img src="img/01-tub-inserts.png" width="1650" height="1340" loading="lazy" alt="Step 1: an M3 insert going into each of the tub's four corner posts."></figure><h4>1. An insert in each corner post</h4><p>Let each one sink in under the iron's own weight. Don't twist. Stop when it's flush.</p></li>
       <li id="step-2"><figure class="pic"><img src="img/02-feet.png" width="1650" height="1390" loading="lazy" alt="Step 2: four rubber strips into the pockets on the tub's back."></figure><h4>2. The feet</h4><p>Four rubber strips into their pockets, round ends into the round ends.</p></li>
-      <li id="step-3"><figure class="pic"><img src="img/03-key-plug.png" width="1650" height="1260" loading="lazy" alt="Step 3: the key's USB-C plug up through the foot of the key's bay, and the printed lock under it."></figure><h4>3. The key's USB-C plug</h4><p>Pull-ups soldered at the plug first. Then up through the foot of the key's bay, pointing up, and the lock clicks in under it.</p></li>
+      <li id="step-3"><figure class="pic"><img src="img/03-key-plug.png" width="1650" height="1260" loading="lazy" alt="Step 3: the key's USB-C plug up into the hole in the top edge, and the printed lock under it."></figure><h4>3. The key's USB-C plug</h4><p>Pull-ups soldered at the plug first. Then up through the top edge until it's flush, and the lock clicks in under it.</p></li>
       <li id="step-4"><figure class="pic"><img src="img/04-breadboard.png" width="1650" height="1460" loading="lazy" alt="Step 4: the mini breadboard between four stops on the tub's floor, and the tactile switch in it."></figure><h4>4. The breadboard and the Sign switch</h4><p>Between its four stops. The switch goes on the 3rd column from the right: that's under the button.</p></li>
     </ol>
 
     <h3 class="sub">The plate</h3>
     <ol class="build" start="5">
-      <li id="step-5"><figure class="pic"><img src="img/05-plate-inserts.png" width="1650" height="1320" loading="lazy" alt="Step 5: inserts into the six bosses on the plate's back: four round the screen's window, two lower down."></figure><h4>5. An insert in each of the carrier's bosses</h4><p>Plate face down on a towel. Six: four round the window, two lower down for the carrier's tail.</p></li>
+      <li id="step-5"><figure class="pic"><img src="img/05-plate-inserts.png" width="1650" height="1320" loading="lazy" alt="Step 5: inserts into the four bosses round the screen's window, on the plate's back."></figure><h4>5. An insert in each of the carrier's bosses</h4><p>Plate face down on a towel. Same as step 1.</p></li>
       <li id="step-6"><figure class="pic"><img src="img/06-guard.png" width="1650" height="1170" loading="lazy" alt="Step 6: the guard's cover hinged to its base with a filament pin, and the button cap pushed up through the base."></figure><h4>6. The Sign button's guard</h4><p>The cover hinges on a pin of 1.75 mm filament. The cap goes up through the base from underneath.</p></li>
       <li id="step-7"><figure class="pic"><img src="img/07-guard-in.png" width="1650" height="1390" loading="lazy" alt="Step 7: the guard dropped into the sign well and held by two M2 screws."></figure><h4>7. The guard into its well</h4><p>Two M2 screws. Shut, the cover is flush with the face.</p></li>
       <li id="step-8"><figure class="pic"><img src="img/08-knob.png" width="1650" height="1270" loading="lazy" alt="Step 8: the EC11 knob in from behind, its nut on in the well."></figure><h4>8. The knob</h4><p>In from behind, its nut on in the well. Snug, not tight.</p></li>
       <li id="step-9"><figure class="pic"><img src="img/09-screen.png" width="1650" height="1390" loading="lazy" alt="Step 9: the screen lowered glass down onto four pins, its header on the left."></figure><h4>9. The screen onto its pins</h4><p>Glass down, its 8-pin header on the left.</p></li>
       <li id="step-10"><figure class="pic"><img src="img/10-spacers.png" width="1650" height="1320" loading="lazy" alt="Step 10: a printed spacer slipped onto each of the four pins."></figure><h4>10. The spacers</h4><p>A printed spacer on each pin.</p></li>
-      <li id="step-11"><figure class="pic"><img src="img/11-carrier.png" width="1650" height="1440" loading="lazy" alt="Step 11: the carrier over the pins, six M3 screws with washers into the bosses."></figure><h4>11. The carrier</h4><p>Six M3 screws with washers. Tighten the four round the screen evenly: they hold it down.</p></li>
-      <li id="step-12"><figure class="pic"><img src="img/12-pico.png" width="1650" height="1440" loading="lazy" alt="Step 12: the Pico onto four posts on the carrier's tail, below the screen, parts down, USB end to the right."></figure><h4>12. The Pico</h4><p>Solder its wires first, with the board in your hand. Then onto the posts on the carrier's tail, below the screen, USB to the right edge.</p></li>
+      <li id="step-11"><figure class="pic"><img src="img/11-carrier.png" width="1650" height="1440" loading="lazy" alt="Step 11: the carrier over the pins, four M3 screws with washers into the bosses."></figure><h4>11. The carrier</h4><p>Four M3 screws with washers. Tighten them evenly: they hold the screen down.</p></li>
+      <li id="step-12"><figure class="pic"><img src="img/12-pico.png" width="1650" height="1440" loading="lazy" alt="Step 12: the Pico onto the carrier's four posts, parts down, USB end to the right."></figure><h4>12. The Pico</h4><p>Solder its wires first, with the board in your hand. Then onto the posts, USB to the right edge.</p></li>
       <li id="step-13"><figure class="pic"><img src="img/13-wires.png" width="1650" height="1260" loading="lazy" alt="Step 13: the screen's and the knob's wires to the Pico, on the plate."></figure><h4>13. The wires</h4><p>Screen and knob to the Pico. Try it on the bench before it goes in the tub.</p></li>
     </ol>
 
-    <h3 class="sub">Close it, and the cartridge</h3>
+    <h3 class="sub">Close it, and the key</h3>
     <ol class="build" start="14">
       <li id="step-14"><figure class="pic"><img src="img/14-close.png" width="1650" height="1440" loading="lazy" alt="Step 14: the plate onto the tub, four M3 socket heads into the counterbores."></figure><h4>14. Onto the tub</h4><p>The key's plug and the button's jumpers to the Pico. Then the plate on, four socket heads into the counterbores.</p></li>
-      <li id="step-15"><figure class="pic"><img src="img/15-key.png" width="1680" height="1340" loading="lazy" alt="Step 15: a key-c into the cartridge's tray, the cover pressed on until four clips click; the back's label frame and the tongues down its sides."></figure><h4>15. The key into its cartridge</h4><p>A peg through the key's lanyard hole, the cover on until four clips click. The chip shows through a window; a label goes on the back.</p></li>
-      <li id="step-16"><figure class="pic"><img src="img/16-done.png" width="1650" height="1440" loading="lazy" alt="Step 16: the knob's cap on; then, from the back, the cartridge down the bay's grooves until it clicks onto its plug. Done."></figure><h4>16. The knob's cap, then the key into its bay</h4><p>Turn it over. The cartridge goes in from the top edge, label toward you, down the grooves until it clicks. Done.</p></li>
+      <li id="step-15"><figure class="pic"><img src="img/15-key.png" width="1650" height="1340" loading="lazy" alt="Step 15: a key-c into the clamshell's tray, the cover pressed on until four clips click."></figure><h4>15. The key into its clamshell</h4><p>A peg through the key's lanyard hole, the cover on until four clips click. The chip shows through a window.</p></li>
+      <li id="step-16"><figure class="pic"><img src="img/16-done.png" width="1650" height="1370" loading="lazy" alt="Step 16: the knob's cap on, and the key straight down onto the plug in the top edge. Done."></figure><h4>16. The knob's cap, then the key</h4><p>Straight down onto the plug in the top edge, its chip's window toward the face. Done.</p></li>
     </ol>
   </section>
 

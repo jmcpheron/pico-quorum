@@ -101,7 +101,6 @@ nav a[aria-current] { color: var(--text); }
 .pic { margin: 0; background: #FFFFFF; border: 1px solid var(--line); border-radius: 14px; padding: 10px; }
 .pic img { display: block; width: 100%; height: auto; }
 .pic figcaption { color: #565E6A; font-size: 14px; padding: 6px 4px 0; }
-.split > .pic { align-self: start; }
 .hero-pic { box-shadow: 0 30px 80px -30px var(--glow); }
 .video { aspect-ratio: 16 / 9; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 4px;
   padding: 24px; border-radius: 16px; border: 1px dashed var(--muted); background: var(--panel); }

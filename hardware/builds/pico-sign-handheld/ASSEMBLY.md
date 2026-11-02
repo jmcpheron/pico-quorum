@@ -2,7 +2,7 @@
 
 The build's [README](README.md) says what it is, its parts and its wiring; this page puts it together.
 
-Sixteen steps, from printed parts to a key in its bay. Each picture shows the step's new printed parts
+Sixteen steps, from printed parts to a key in the top. Each picture shows the step's new printed parts
 in amber, what's already done in white, and what the step needs along the bottom. The pictures are
 drawn from the case's own model ([`case/assembly.py`](case/assembly.py)), so they follow
 [`case/handheld.py`](case/handheld.py)'s numbers. Nothing here has been put together yet: this is the
@@ -32,27 +32,6 @@ All in `case/out/`, each the way up it prints.
 
 ![the printed parts](case/out/assembly/00-printed-parts.png)
 
-### Printing
-
-Each file is already the way up it prints, on the bed at z = 0. None of them needs supports to start with.
-Nothing has been printed yet, so try the untried parts first, in this order:
-
-1. **The key's cartridge**, `cartridge_tray.stl` and `cartridge_cover.stl`, in PETG if you have it: the
-   clips are about 1.7% strain to snap in, close to PLA's 2%. Snap them shut without a key first.
-2. **The bay test**, `handheld_bay_test.stl`: the tub's top only, from the plug holder's foot up, about
-   half the tub. Slide the cartridge in and out: it should run in the grooves, stop on the rib upside down,
-   and click at the bottom. Then try the plug and its lock (`handheld_plug_lock.stl`) in the holder, and
-   an insert in one of its two corner posts. If the cartridge is tight, sand the bumps; if it's loose or
-   won't go, `BAY_CLEAR`, `GROOVE_CLEAR` and `BUMP_R` in `handheld.py` are the numbers to change.
-3. **The plate**: every part's hole is in it. Four colours if you like ([below](#the-plates-colours)).
-4. **The rest:** the tub, the carrier, the spacers, the guard's base and cover, the cap.
-
-**Bridges** are the only overhangs. The longest is the bay's floor in the tub, 48.6 mm across; if it
-sags, put supports in the bay only. In the plate, the wells' floors are 20 to 25 mm; if they sag,
-supports in the two wells only. The README lists every one ([what the script checks](README.md#what-the-script-checks)).
-
-<a id="the-plates-colours"></a>
-
 **The plate in four colours:** change filament at 0.6, 1.2 and 1.8 mm as it prints, face down
 ([the colours](README.md#the-colours)).
 
@@ -62,9 +41,9 @@ supports in the two wells only. The README lists every one ([what the script che
 
 | what | how many | where |
 |---|---|---|
-| M3 heat-set insert, M3\*6\*5 | 10 | 4 in the tub's corner posts, 6 in the plate's bosses |
-| M3 × 8 socket head screw | 10 | 4 for the plate into the tub, their heads in counterbores; 6 for the carrier onto the plate's bosses |
-| M3 washer | 6 | under the carrier's screws |
+| M3 heat-set insert, M3\*6\*5 | 8 | 4 in the tub's corner posts, 4 in the plate's bosses |
+| M3 × 8 socket head screw | 8 | 4 for the plate into the tub, their heads in counterbores; 4 for the carrier onto the plate's bosses |
+| M3 washer | 4 | under the carrier's screws |
 | M2 × 8 socket head screw | 6 | 4 for the Pico, 2 for the guard's base. They cut their own thread |
 | rubber strip, 6 × 35 mm | 4 | the tub's feet |
 | 1.75 mm filament | 20 mm | the guard's hinge pin |
@@ -109,15 +88,15 @@ The insert holes are 4.2 mm, not tried yet. If the first one goes in loose or wo
 
 Peel each strip and press it into its pocket, round ends into the round ends.
 
-## 3. The tub: the key's USB-C plug, at the foot of the key's bay
+## 3. The tub: the key's USB-C plug
 
 ![step 3](case/out/assembly/03-key-plug.png)
 
 Solder the plug's four wires and its two pull-ups first ([the key](../pico-sign/README.md#the-key)), and
-leave the wires about 12 cm long. Then, in the holder under the key's bay, pointing up:
+leave the wires about 12 cm long. Then, in the holder at the tub's top edge:
 1. Drop the plug into the channel low, its cable down through the slot in the holder's foot.
-2. Push it up. The metal shell goes through the hole in the bay's foot and stands up into the bay, and the
-   black overmold stops flush with the foot.
+2. Push it up. The metal shell goes through the hole in the top edge, and the black overmold stops
+   flush with it.
 3. Press the lock in under it, the cable in the lock's slot, until its two bumps click. Its lip is to
    pull it out by.
 
@@ -138,8 +117,8 @@ the board, so Dupont leads standing up won't fit.
 
 ![step 5](case/out/assembly/05-plate-inserts.png)
 
-Lay the plate face down on a towel. An insert in each of the six round bosses: four round the window, two
-lower down for the carrier's tail. As in step 1.
+Lay the plate face down on a towel. An insert in each of the four round bosses round the window, as in
+step 1.
 
 ## 6. The sign button's guard, on the bench
 
@@ -182,17 +161,16 @@ A printed spacer on each pin.
 
 ![step 11](case/out/assembly/11-carrier.png)
 
-The carrier over the pins, the Pico's posts on its tail facing you, its notch round the screen's header.
-Six M3 × 8 with washers into the bosses. Tighten the four round the screen evenly, a little at a time: they
-hold the screen down.
+The carrier over the pins, the Pico's posts facing you, its notch round the screen's header. Four
+M3 × 8 with washers into the bosses. Tighten them evenly, a little at a time: they hold the screen down.
 
 ## 12. The plate: the Pico
 
 ![step 12](case/out/assembly/12-pico.png)
 
-Solder its wires to its pads first, with the board in your hand. Then onto the four posts on the
-carrier's tail, below the screen: its parts and USB socket down toward the carrier, its USB end to the
-plate's **right** edge. The slimmer posts are at the USB end. Four M2 × 8.
+Solder its wires to its pads first, with the board in your hand. Then onto the carrier's four posts:
+its parts and USB socket down toward the carrier, its USB end to the plate's **right** edge. The
+slimmer posts are at the USB end. Four M2 × 8.
 
 ## 13. The wires
 
@@ -211,7 +189,7 @@ to the Pico. Press the cap: the switch should click. Then the plate onto
 the tub, and four M3 × 8 socket heads through its corners, into the counterbores. Snug: they go into brass, but the plate is plastic. The micro-USB cable goes in through the hole in the right side, straight into
 the Pico's socket.
 
-## 15. The key into its cartridge
+## 15. The key into its clamshell
 
 ![step 15](case/out/assembly/15-key.png)
 
@@ -219,21 +197,12 @@ The key-c into the tray, parts up, the tray's peg through its round lanyard hole
 press until all four clips click. The chip shows through the window. To open it, push the four hooks in
 through the windows in the sides with a small screwdriver.
 
-The tray's outside is the back: a label goes in its frame. A tongue runs down each of the tray's sides,
-and the bottom left corner (seen from the front, the chip's window up) is cut away.
-
 The clips are not tried. Print the two halves and try them before the key goes in; if they're loose,
 glue them.
 
-## 16. The knob's cap, then the key into its bay
+## 16. The knob's cap, then the key
 
 ![step 16](case/out/assembly/16-done.png)
 
-The cap onto the knob's shaft. Then turn the handheld over. The key goes into the bay in the back from the
-top edge, plug end first, its label toward you and its cut corner at the top. Its tongues go into the
-bay's grooves. Slide it straight down until it clicks onto its plug; its top stays 8 mm out of the top
-edge, to pull it out by.
-
-It only goes in one way. Upside down, it stops on the rib in the bay's corner before it reaches the plug.
-Back to front, it won't start down the grooves. If it stops early, take it out and turn it round: don't
-push it onto the plug.
+The cap onto the knob's shaft. The key, in its clamshell, straight down onto the plug in the top edge,
+its chip's window toward the face.
