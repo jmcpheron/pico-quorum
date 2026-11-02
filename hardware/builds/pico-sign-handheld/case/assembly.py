@@ -173,9 +173,9 @@ def build():
     pl, pw_, pt = H.USB_PLUG[:3]
     g["usb cable"] = [(H.box(H.PICO_X1, H.PICO_X1 + 18, H.PICO_Y - pw_ / 2, H.PICO_Y + pw_ / 2, H.PLUG_Z - pt / 2, H.PLUG_Z + pt / 2), BLACK),
                       (cq.Workplane("YZ").center(H.PICO_Y, H.PLUG_Z).circle(1.75).extrude(40).translate((H.PICO_X1 + 18, 0, 0)), BLACK)]
-    # the key's plug and its cable; the key in its clamshell
+    # the key's plug and its cable; the key in its cartridge, in the bay
     g["plug"] = [(si["plug overmold"], BLACK), (si["plug shell"], STEEL),
-                 (cq.Workplane("XZ").center(H.KEY_X, H.KEY_Z).circle(2).extrude(30).translate((0, H.H - H.PLUG_L, 0)), BLACK)]
+                 (cq.Workplane("XZ").center(H.KEY_X, H.KEY_Z).circle(2).extrude(30).translate((0, H.BAY_Y0 - H.PLUG_L, 0)), BLACK)]
     g["key"] = [(si["cartridge cover"], NEW), (si["cartridge tray"], (0.86, 0.60, 0.25)), (si["ATECC608"], BLACK)]
     # the hardware in place
     g["body inserts"] = [it for x, y in H.SCREWS for it in pressed(x, y, ZPOST, True, 0)]
@@ -219,7 +219,7 @@ def main():
              ("1 button cap:\nhandheld_sign_cap.stl", [(cap, NEW)], -60, 20),
 ] + ([] if BB else [("1 switch holder:\nhandheld_tact_holder.stl", [(holder, NEW)], -60, 45)]) + [
              ("1 key tray + 1 key cover:\ncartridge_tray.stl, cartridge_cover.stl",
-              [(cb, NEW), (wp(*[s.moved(cq.Location(cq.Vector(30, 0, 0))) for s in ct.vals()]), NEW)], -60, 45)]
+              [(cb, NEW), (wp(*[s.moved(cq.Location(cq.Vector(C.CART[0] + 6, 0, 0))) for s in ct.vals()]), NEW)], -60, 45)]
     shots = []
     for name, parts, az, el in tiles:
         s = Shot(items(parts), az, el, (825, 560) if len(shots) < 2 else (412, 400), pad=0.16)
@@ -247,7 +247,9 @@ def main():
          note="The plate prints face down. Change filament before the layers that start at %s mm from the bed\n"
               "(layers %s at 0.2 mm). The number by each colour is where it starts." % (
                   ", ".join("%.1f" % z for z in H.LAYER_CHANGES), ", ".join(str(int(round(z / 0.2)) + 1) for z in H.LAYER_CHANGES)))
-    hw = [(ic["m3i"], "8×", "M3 insert, M3*6*5"), (ic["m3s"], "8×", "M3 × 8 socket head"), (ic["washer"], "4×", "M3 washer"),
+    nc = len(H.carrier_screws())
+    hw = [(ic["m3i"], "%d×" % (4 + nc), "M3 insert, M3*6*5"), (ic["m3s"], "%d×" % (4 + nc), "M3 × 8 socket head"),
+          (ic["washer"], "%d×" % nc, "M3 washer"),
           (ic["m2s"], "%d×" % (4 + 2 + len(g["holder screws"])), "M2 × 8 socket head"), (ic["foot"], "4×", "rubber strip"), (ic["pin"], "20 mm", "1.75 mm filament")]
     page("hardware", None, "The hardware", [Image.new("RGB", (1650, 10), (255, 255, 255))], need=hw)
 
@@ -255,7 +257,7 @@ def main():
     G = 150.0
     done_plate = [(plate, WHITE)] + g["boss inserts"]
     ex = items([(body, WHITE)] + g["body inserts"] + g["plug"] + [(lock, WHITE)]) + items(g["feet"], move=(0, 0, -20))
-    ex += items(g["key"], move=(0, 40, 0))
+    ex += items(g["key"], move=(0, 62, 0))
     ex += items(done_plate + [(base, WHITE), (cover, WHITE), (cap, WHITE)] + g["ec11"] + g["ec11 nut"] + g["base screws"],
                 move=(0, 0, G))
     ex += items(g["knob"], move=(0, 0, G + 25)) + items(g["plate screws"], move=(0, 0, G + 18))
@@ -276,7 +278,7 @@ def main():
                          ((p(H.bb_box()[0] + 6, ty - 10, H.Z_TACT) if BB else p(tx + 10, ty, H.Z_HOLDER + G + B["holder"])),
                           "breadboard\nand switch" if BB else "switch\nin its holder", -230 if BB else 230, 30),
                          (p(tx, ty, H.T + G), "button\nand cover", 160, -120),
-                         (ctr(g["key"][0][0]) + (0, 40, 0), "key", 120, -30), (ctr(g["feet"][0][0]) + (0, 0, -20), "feet", -160, 40)]:
+                         (ctr(g["key"][0][0]) + (0, 62, 0), "key", 120, -30), (ctr(g["feet"][0][0]) + (0, 0, -20), "feet", -160, 40)]:
         s.label(q, t, dx, dy)
     page("exploded", None, "Everything, pulled apart", [s.img])
 
@@ -303,15 +305,15 @@ def main():
     page("feet", next(N), "The tub: the rubber strips into their pockets", [s.img], need=[(ic["foot"], "4×", "rubber strip, 6 × 35")],
          note="Peel each strip and press it into its pocket, round ends to the round ends.")
 
-    # 3. the key's plug and its lock
-    hold = body.intersect(H.box(H.KEY_X - 18, H.KEY_X + 18, H.Y_STOP - 14, H.H + 8, 0, 24))
-    fit = [p(H.KEY_X + dx, H.H + dy, dz) for dx in (-18, 18) for dy in (-34, 8) for dz in (0, 32)]
+    # 3. the key's plug and its lock, at the bay's foot
+    hold = body.intersect(H.box(H.KEY_X - 18, H.KEY_X + 18, H.Y_STOP - 14, H.BAY_Y0 + 0.5, 0, 24))
+    fit = [p(H.KEY_X + dx, H.BAY_Y0 + dy, dz) for dx in (-18, 18) for dy in (-34, 8) for dz in (0, 32)]
     low, up = np.array((0, -H.LIFT, 0)), np.array((0, 0, 16))
-    mid = p(H.KEY_X, H.H - H.PLUG_L / 2, H.KEY_Z)
+    mid = p(H.KEY_X, H.BAY_Y0 - H.PLUG_L / 2, H.KEY_Z)
     panels = []
     for plug_mv, lock_mv, arr, text in [
             (low + up, None, (mid + low + up + (0, 0, 4), mid + low + (0, 0, 6)), "1  drop it in low,\n   its cable down the slot"),
-            (low, None, (mid + low + (0, 0, 8), mid + (0, 0, 8)), "2  push it up, the shell\n   through the top, flush"),
+            (low, None, (mid + low + (0, 0, 8), mid + (0, 0, 8)), "2  push it up, the shell\n   into the bay, flush"),
             (np.zeros(3), up, (mid + (0, -H.PLUG_L / 2 - 4, 26), mid + (0, -H.PLUG_L / 2 - 4, 12)),
              "3  press the lock in under it\n   until it clicks")]:
         its = items([(hold, WHITE)]) + items(g["plug"], move=plug_mv)
@@ -321,7 +323,7 @@ def main():
         s.arrow(*arr)
         s.d.multiline_text((24, 18), text, font=font(26), fill=INK, spacing=6)
         panels.append(s.img)
-    page("key-plug", next(N), "The tub: the key's USB-C plug, in the top edge", panels,
+    page("key-plug", next(N), "The tub: the key's USB-C plug, at the foot of the key's bay", panels,
          need=[(icon(g["plug"][:2], el=20), "1×", "USB-C plug on its cable"), (icon([(lock, NEW)]), "1×", "the plug lock")],
          note="Solder the plug's four wires and its two 4.7k pull-ups first. Leave the wires about 12 cm long.")
 
@@ -352,6 +354,7 @@ def main():
     for c in cs:
         ov.arrow(p(*c, H.Z_CARRIER - 18), p(*c, H.Z_CARRIER - 2))
     ov.label(p(sx, sy, H.T), "face down on a towel", 0, 0, 24)
+    ov.label(p(*cs[-1], H.Z_CARRIER - 20), "two more for\nthe carrier's tail", 200, 60, 24)
     c = cs[1]
     near = H.box(c[0] - 14, c[0] + 14, c[1] - 14, c[1] + 14, H.Z_CARRIER - 1, H.T + 1)
     fit = [p(c[0] + dx, c[1] + dy, z) for dx in (-12, 12) for dy in (-12, 12) for z in (H.T, H.Z_CARRIER - 30)]
@@ -359,7 +362,7 @@ def main():
              (550, 950), bench=True, fit=fit)
     a.label(p(*c, H.Z_CARRIER - 18), "straight down,\nstop flush", -150, -60, 24)
     page("plate-inserts", next(N), "The plate: an insert in each of the carrier's bosses", [ov.img, a.img],
-         need=[(ic["m3i"], "4×", "M3 insert"), (ic["iron"], "", "soldering iron")])
+         need=[(ic["m3i"], "%d×" % len(cs), "M3 insert"), (ic["iron"], "", "soldering iron")])
 
     # 5. the guard: cover on the base, the pin, the cap up through it
     x0, x1, y0, y1 = H.guard_box()
@@ -453,9 +456,9 @@ def main():
         s.arrow(p(*c, H.Z_CARRIER_BACK - 48), p(*c, H.Z_CARRIER_BACK - 32))
     s.label(p(H.HEADER_X + 2, sy, H.Z_CARRIER - 26), "the notch goes round\nthe screen's header", 170 * H.HEADER_SIDE, -170, 24)
     s.label(p(H.PICO_X1 - 10, H.PICO_Y + 6, H.Z_CARRIER_BACK - 32), "the Pico's posts\nface you", 180, -150, 24)
-    page("carrier", next(N), "The plate: the carrier over the pins, four screws into the bosses", [s.img],
-         need=[(icon([(carrier, NEW)], az=115, el=-40), "1×", "the carrier"), (ic["m3s"], "4×", "M3 × 8 socket head"),
-               (ic["washer"], "4×", "M3 washer")],
+    page("carrier", next(N), "The plate: the carrier over the pins, six screws into the bosses", [s.img],
+         need=[(icon([(carrier, NEW)], az=115, el=-40), "1×", "the carrier"), (ic["m3s"], "%d×" % nc, "M3 × 8 socket head"),
+               (ic["washer"], "%d×" % nc, "M3 washer")],
          note="The pins come up through the carrier. Tighten the screws evenly, a little at a time; they hold the screen down.")
 
     # 12. the Pico
@@ -468,7 +471,7 @@ def main():
     s.label(p(H.PICO_X1 - 30, H.PICO_Y - 8, H.Z_PICO - 22), "its parts and USB socket\ndown, toward the carrier", -330, 230, 26)
     s.label(p(H.PICO_X1 - 2, H.PICO_Y + 5.7, H.Z_CARRIER_BACK - H.PICO_UP), "slimmer posts at the USB end:\n%.1f mm, for its plug"
             % H.PICO_POST_D_USB, 200, -230, 24)
-    page("pico", next(N), "The plate: the Pico on the carrier's posts", [s.img],
+    page("pico", next(N), "The plate: the Pico on the posts on the carrier's tail", [s.img],
          need=[(icon(g["pico"]), "1×", "Pico 2 W, no headers"), (ic["m2s"], "4×", "M2 × 8 socket head")],
          note="Solder its wires to its pads before it goes on: it's easier with the board in your hand.")
 
@@ -494,7 +497,7 @@ def main():
     for x, y in H.SCREWS:
         a.arrow(p(x, y, H.T + 82), p(x, y, H.T + 64))
     a.arrow(p(H.W + 12, 20, H.T + 50), p(H.W + 12, 20, H.T + 12))
-    a.label(p(H.KEY_X, H.H - 20, H.ZP), "the key's%s wires\nto the Pico first" % (" and the button's" if BB else ""), -200, -80, 24)
+    a.label(p(H.KEY_X, H.BAY_Y0 - 15, H.ZP), "the key's%s wires\nto the Pico first" % (" and the button's" if BB else ""), -200, -80, 24)
     fit = [p(x, y, z) for x in (H.W - 20, H.W + 60) for y in (H.PICO_Y - 22, H.PICO_Y + 22) for z in (0, H.T + 4)]
     b = Shot(items(inbody + stack + g["plate screws"]) + items(g["usb cable"], move=(30, 0, 0)), -20, 20, (750, 1000), fit=fit)
     b.arrow(p(H.W + 46, H.PICO_Y, H.PLUG_Z + 12), p(H.W + 24, H.PICO_Y, H.PLUG_Z + 12))
@@ -506,29 +509,44 @@ def main():
     # 15. the key in its clamshell
     ct, cb, kb, kc = C.clamshell()
     up_ = lambda parts, dz: items(parts, move=(0, 0, dz))
-    kfit = [p(x, y, z) for x in (-14, 14) for y in (-4, 50) for z in (-3, 30)]
-    a = Shot(up_([(cb, NEW)], 0) + up_([(kb, BLUE), (kc, BLACK)], 10) + up_([(ct, NEW)], 22), -55, 32, (800, 900), fit=kfit)
+    cw, cl = C.CART
+    kfit = [p(x, y, z) for x in (-cw / 2 - 2, cw / 2 + 2) for y in (-4, cl + 2) for z in (-3, 30)]
+    a = Shot(up_([(cb, NEW)], 0) + up_([(kb, BLUE), (kc, BLACK)], 10) + up_([(ct, NEW)], 22), -55, 32, (560, 900), fit=kfit)
     a.arrow(p(0, 32, 9), p(0, 32, 2))
-    a.label(p(0, 32, 2), "the peg through the\nkey's round hole", -200, 120, 24)
+    a.label(p(0, 32, 2), "the peg through the\nkey's round hole", -120, 150, 24)
     a.arrow(p(0, 22, 27), p(0, 22, 15))
-    b = Shot(up_([(cb, NEW), (kb, BLUE), (kc, BLACK), (ct, NEW)], 0), -55, 32, (850, 900), fit=kfit)
-    b.label(p(C.CART[0] / 2, C.CLIP_Y[1], C.CATCH), "press until all four\nclips click", 150, 160, 24)
-    b.label(p(0, 18 + 2.7, C.CART_T - C.WALL_B), "the chip shows\nthrough the window", -60, -160, 24)
-    page("key", next(N), "The key into its clamshell", [a.img, b.img],
+    b = Shot(up_([(cb, NEW), (kb, BLUE), (kc, BLACK), (ct, NEW)], 0), -55, 32, (560, 900), fit=kfit)
+    b.label(p(cw / 2, C.CLIP_Y[1], C.CATCH), "press until all\nfour clips click", 40, 200, 24)
+    b.label(p(0, 18 + 2.7, C.CART_T - C.WALL_B), "the chip shows\nthrough the window", -60, -200, 24)
+    c3 = Shot(up_([(cb, NEW), (ct, NEW)], 0), -125, -40, (560, 900), fit=kfit)
+    c3.label(p(0, C.LABEL[2] + C.LABEL[1] / 2, -C.WALL_B), "the back: a frame\nfor a label", 60, -230, 24)
+    c3.label(p(-cw / 2 - C.TONGUE[0], 25, 0.7), "a tongue down\neach side", -20, 230, 24)
+    page("key", next(N), "The key into its cartridge", [a.img, b.img, c3.img],
          need=[(icon([(kb, BLUE), (kc, BLACK)]), "1×", "a key-c"), (icon([(cb, NEW)]), "1×", "key tray"),
                (icon([(ct, NEW)]), "1×", "key cover")],
          note="To open it, push the four hooks in through the windows in the sides with a small screwdriver.")
 
-    # 16. the knob's cap, the key on top
+    # 16. the knob's cap, then the key down into its bay in the back
     whole = inbody + stack + g["plate screws"]
-    a = Shot(items(whole) + items(g["knob"], move=(0, 0, 25)) + items(g["key"], move=(0, 30, 0)), -60, 30, (900, 1000), pad=0.05)
+    a = Shot(items(whole) + items(g["knob"], move=(0, 0, 25)), -60, 30, (520, 1000), pad=0.06)
     a.arrow(p(kx + 14, ky, H.T + 34), p(kx + 14, ky, H.T + 16))
+    a.d.multiline_text((24, 18), "1  the knob's cap", font=font(26), fill=INK, spacing=6)
     k = ctr(g["key"][0][0])
-    a.arrow(k + (0, 58, 0), k + (0, 34, 0))
-    a.label(k + (0, 30, 0), "the key, straight down\nonto its plug", -260, -90, 24)
-    b = Shot(items(whole + g["knob"] + g["key"]), -50, 35, (750, 1000), pad=0.06)
-    page("done", next(N), "The knob's cap, then a key in the top", [a.img, b.img],
-         need=[(icon(g["knob"]), "1×", "knob cap"), (icon(g["key"], el=20), "1×", "the key in its clamshell")])
+    lift = H.H - H.BAY_Y0 + 6
+    b = Shot(items(whole + g["knob"]) + items(g["key"], move=(0, lift, 0)), 115, -38, (600, 1000), pad=0.06)
+    b.arrow(k + (0, lift + 30, 0), k + (0, lift + 8, 0))
+    b.label(k + (0, lift, -4), "label out of the back,\nthe cut corner at the top", 70, 300, 24)
+    b.d.multiline_text((24, 18), "2  from the back: the key\n   down the bay's grooves", font=font(26), fill=INK, spacing=6)
+    c3 = Shot(items(whole + g["knob"] + g["key"]), 115, -38, (530, 1000), pad=0.06)
+    c3.label(p(H.KEY_X, H.H + C.PROUD / 2, H.CART_BACK), "in, and click:\nits top stands out\nto pull it by", -40, 250, 24)
+    c3.d.multiline_text((24, 18), "3  all the way, onto\n   its plug", font=font(26), fill=INK, spacing=6)
+    # the site's share card (web/handheld-card.py): the second view again, without its labels
+    card = Shot(items(whole + g["knob"]) + items(g["key"], move=(0, lift, 0)), 115, -38, (600, 1000), pad=0.06)
+    card.arrow(k + (0, lift + 30, 0), k + (0, lift + 8, 0))
+    card.img.save(os.path.join(OUT, "card-key-in.png"), optimize=True)
+    page("done", next(N), "The knob's cap, then the key into its bay", [a.img, b.img, c3.img],
+         need=[(icon(g["knob"]), "1×", "knob cap"), (icon(g["key"], el=20), "1×", "the key in its cartridge")],
+         note="It only goes in one way. If it stops early, take it out and turn it round: don't push it onto the plug.")
 
 
 if __name__ == "__main__":

@@ -5,27 +5,32 @@ each sunk in a well, with a frame for a label. The sign button is a printed cap 
 tactile switch: a 12 x 12 mm one in a mini breadboard on the tub's floor, or a 6 x 6 mm one in a printed
 holder behind the plate (SIGN_MOUNT). Its well holds a guard: a flip cover on a filament pin, flush with
 the face when shut. The plate fixes with four M3 socket head screws, in counterbores, into heat-set inserts in
-posts at the tub's corners. The key's USB-C plug stands in a holder at the top edge, built up from the
-back, its face flush with the edge: the key, in its clamshell (cartridge.py), plugs straight down onto it
-and stands up out of the top. The screen mount and the carrier are the prism's (pico-sign's prism.py):
-posts and pins on the plate's back, spacers, a carrier screwed to four bosses, the Pico screwed to the
-carrier's back, its USB out through the right side. Everything you wire is on the plate but the key's plug.
+posts at the tub's corners. The key, in its cartridge (cartridge.py), slides down into a bay in the back's
+top half, as a game cartridge does: the bay is open at the top edge and at the back, so the cartridge's
+label shows from behind, and its top stands out of the top edge to pull it by. Tongues on the cartridge
+run in grooves in the bay's sides, a rib at the bay's foot turns it away if it's the wrong way round, and
+two bumps click into dimples in its sides when it's in. The key's USB-C plug stands up at the bay's foot,
+in a holder built up from the back, its face flush with the floor the cartridge stands on. The screen
+mount and the carrier are the prism's (pico-sign's prism.py): posts and pins on the plate's back, spacers,
+a carrier screwed to bosses. The carrier has a tail below the screen, on two more bosses, and the Pico is
+screwed to the tail's back, below the key's plug, its USB out through the right side. Everything you wire
+is on the plate but the key's plug and the sign button's switch.
 
 Run: uv run --python 3.11 --with cadquery --with matplotlib --with pillow \\
          python hardware/builds/pico-sign-handheld/case/handheld.py [screen.png]
 (or tools/case build handheld)
 
-Writes out/: handheld_body.stl (on its back, as it prints), handheld_plate.stl (face down),
+Writes out/: handheld_body.stl (on its back, as it prints), handheld_bay_test.stl (its top, to try the key's bay), handheld_plate.stl (face down),
 handheld_carrier.stl, handheld_spacers.stl, handheld_plug_lock.stl, handheld_guard_base.stl,
 handheld_guard_cover.stl, handheld_sign_cap.stl, handheld_tact_holder.stl (with SIGN_MOUNT = "holder"), handheld_assembly.step, handheld_*.png (the screen PNG warped onto the panel
-if one is given), and the clamshell's cartridge_*.stl and cartridge.png.
+if one is given), and the cartridge's cartridge_*.stl and cartridge.png.
 
 A first draft to print and try. The 2.4" screen's numbers are placeholders (SCREEN_*): measure yours.
 The tactile switch (TACT) and the breadboard's height (BREADBOARD) are not measured: the cap's plunger follows them. The knob, the plugs and the Pico are the prism's numbers. The script checks only that the
 parts' stand-ins don't overlap the tub, the plate or each other. All dimensions mm.
 
 Frame: the handheld face up on the desk. x across, left to right; y from the bottom edge (your thumbs)
-up to the top edge (the key); z up from the desk, the face at z = T.
+up to the top edge (the key); z up from the desk, the face at z = T, the back (and the bay's opening) at 0.
 """
 import math
 import os
@@ -41,29 +46,45 @@ import cartridge as C       # the key's clamshell
 OUT = os.path.join(HERE, "out")
 
 # --- the outline: a rounded oblong, seen from the front --------------------------------------------
-W, H, T = 86.0, 118.0, 30.0         # across, bottom to top, thick
+W, T = 86.0, 30.0                   # across, thick; bottom to top, H, is what's stacked up the back (below)
 R, R_BR = 6.0, 20.0                 # the corners; the bottom right one rounder, under the sign switch
 WALL, PLATE = 2.4, 3.0
 BACK_R, FRONT_C = 3.0, 1.5          # the back's edge rounded, the face's edge chamfered
 FOOT = (6.0, 35.0)                  # the rubber feet: strips with round ends (calipers), bottom to top
 FOOT_CLEAR, FOOT_DEPTH = 0.3, 1.0
 FOOT_X, FOOT_END = 15.0, 8.0        # their centres in from the sides; their ends in from the bottom and top
+FOOT_X_TOP = 8.0                    # the top two, further out: the key's bay is between them
 ZP = T - PLATE                      # the plate's back: the tub's rim
+
+# --- up the back, bottom to top: the sign button's breadboard (under the controls), the Pico on the carrier's
+# tail, the key's plug in its holder, and the key's bay. H is what they add up to.
+PICO = (51.0, 21.0, 1.0)            # long, across, thick
+PICO_Y = 60.5                       # its centre line: its bottom edge 2.9 over the breadboard's top (47.1)
+PLUG_W, PLUG_H, PLUG_L = 12.4, 5.5, 17.1        # a cut USB-C cable's overmold (calipers)
+SHELL_W, SHELL_H, SHELL_L = 8.25, 2.4, 6.5
+PLUG_CLEAR = 0.2
+HOLDER_WALL, STOP, CABLE_SLOT = 1.6, 2.0, 5.0
+LIFT = SHELL_L + WALL + 0.5         # the plug goes in this far down, its shell under the bay's foot, then up into its hole
+HOLDER_GAP = 1.5                    # from the Pico's top edge to the plug holder's foot
+Y_STOP = PICO_Y + PICO[1] / 2 + HOLDER_GAP + STOP   # the stop's top: the lock fills from here to the plug
+BAY_Y0 = Y_STOP + PLUG_L + LIFT     # the bay's foot: the plug's overmold flush with it, the cartridge standing on it
+H = BAY_Y0 + C.CART[1] - C.PROUD    # the top edge: the cartridge's top stands PROUD out of it
 
 # --- the plate's parts (x, y) ----------------------------------------------------------------------
 # The 2.4" 240x320 SPI module (ST7789, or ILI9341: README), 8 pins. Placeholders, the earlier wedge's
 # guesses (pico-sign/case/case.py), but the active area, which is the panel's datasheet. Measure yours.
 SCREEN_PCB = (72.0, 44.0)           # the board, the 8-pin header at one end (HEADER_SIDE), its pins out of the back
 SCREEN_PCB_T = 1.6
-SCREEN_HOLES = (66.0, 38.0)         # its four holes' centres: placeholder, 3 mm in from each corner
-SCREEN_HOLE = 3.2                   # their diameter: placeholder
+SCREEN_HOLES = (63.85, 31.95)       # its four holes' centres. Calipers on the bench's board (2026-11-02): the holes'
+                                    # near and far edges 59.2 and 68.5 mm apart across, 27.2 and 36.7 up and down
+SCREEN_HOLE = 4.6                   # their diameter: calipers
 SCREEN_GLASS = (60.3, 42.7, 3.5)    # the panel: outline and thickness from the board's front to the glass's, placeholders
 SCREEN_ACTIVE = (48.96, 36.72)      # the active area, landscape: a 2.4" 240x320's, 0.153 mm pixels
 # The header on the left (-1), away from the controls; build1 draws the 2.8" the right way up that way
 # (MADCTL 0x60). The 2.4" isn't seen working yet (README).
 HEADER_SIDE = -1
 SCREEN_DX = 0.0                     # the glass this far right of the board's centre: measure
-SCREEN_XY = (W / 2, 79.0)           # the board's centre
+SCREEN_XY = (W / 2, H - 39.0)       # the board's centre: as far under the top edge as before the bay
 HEADER_X = SCREEN_XY[0] + HEADER_SIDE * (SCREEN_PCB[0] / 2 - 1.5)
 HEADER = (3.0, 21.0, 11.5)          # its 8 pins out of the back, with wires soldered to them: wide, tall, deep
 KNOB_XY, SIGN_XY = (22.0, 30.0), (64.0, 30.0)    # under the screen: the knob left, the sign button right
@@ -136,12 +157,13 @@ WELL_RIB = 3.0                      # the thickening behind a well, this much pa
 COLOURS = [("light grey", (0.86, 0.86, 0.84)), ("charcoal", (0.22, 0.22, 0.25)), ("red", (0.78, 0.16, 0.14)),
            ("blue", (0.20, 0.36, 0.72))]
 LAYER_CHANGES = (0.6, 1.2, 1.8)     # mm from the face: three layers each, at 0.2 mm layers
-NAME = "PICOQUORUM"                 # between the controls and the screen, as big as fits
+NAME = "PICOQUORUM"                 # under the screen, as big as fits in NAME_BAND
+NAME_BAND = 8.5                     # how tall its band is, under the window's bevel
 CUT = LAYER_CHANGES[0]              # the name and the frames' lines: the second colour
 LABEL_LINE, LABEL_DEPTH = 0.6, LAYER_CHANGES[1]     # the frames' line; their words: the third colour
 LABELS = [(KNOB_XY[0], 12.0, (23.0, 7.0), "TURN"), (SIGN_XY[0] - 3.0, 12.0, (23.0, 7.0), "SIGN")]   # bold: thin strokes won't print
 # three stripes over the screen, each cut to one of the depths: the three colours under the face, side by side
-STRIPES = dict(x0=14.0, x1=W - 15.6, y=108.6, h=1.6, gap=1.0)
+STRIPES = dict(x0=14.0, x1=W - 15.6, y=H - 9.4, h=1.6, gap=1.0)
 KNOB_CHAMFER, SIGN_CHAMFER = LAYER_CHANGES[1], LAYER_CHANGES[2]   # round the wells' tops, 45 degrees: rings of colour
 M3_INSERT = (4.2, 6.0)              # M3*6*5, as the prism: the hole, the insert's length
 SCREW_D = 3.4                       # M3 clearance
@@ -166,13 +188,17 @@ SCREWS = [(7.0, 7.0), br_screw(), (7.0, H - 7.0), (W - 7.0, H - 7.0)]
 
 # --- behind the screen: the prism's posts and pins, spacers and carrier ---------------------------------
 GLASS_GAP = 0.2                     # the glass this far behind the plate: the posts carry the board, not the glass
-SEAT_D = 6.0                        # the posts' tops, round the board's holes; cut flat where the glass is
+SEAT_D = 7.0                        # the posts' tops, round the board's holes; cut flat where the glass is
 GLASS_CLEAR = 0.3
 PIN_D, PIN_HOLE = SCREEN_HOLE - 0.4, SCREEN_HOLE
-SPACER, SPACER_D = 4.0, 6.0         # room for the parts on the board's back
+SPACER, SPACER_D = 4.0, 7.0         # room for the parts on the board's back; walls 1.2 mm round a pin's hole
 CARRIER_MARGIN, CARRIER_T, CARRIER_R = 1.0, 2.5, 2.0
 BOSS_D = 9.0
 CARRIER_SCREWS = [(sx * 26.0, sy * (SCREEN_PCB[1] / 2 + BOSS_D / 2 + 2.25)) for sx in (-1, 1) for sy in (-1, 1)]
+# the carrier's tail, down from under the screen to hold the Pico, and two more bosses for it: beside the Pico's ends,
+# under its bottom edge, the right one clear of its USB plug. Absolute x, y
+TAIL_SCREWS = [(W / 2 - 26.0, 50.0), (76.0, 50.0)]
+TAIL = (11.0, W / 2 + SCREEN_PCB[0] / 2 + CARRIER_MARGIN, 45.0)    # its left and right edges (the carrier's), its bottom
 EAR_W = 10.0
 HEADER_NOTCH = (9.0, 26.0)
 Z_BOARD = ZP - GLASS_GAP - SCREEN_GLASS[2]                  # the screen board's front: the posts' tops
@@ -182,9 +208,8 @@ assert ZP - Z_CARRIER >= M3_INSERT[1] + 1.5, "the bosses are too short for their
 
 # --- the Pico on the carrier's back, as on the prism, its USB out through the right side --------------------
 # Its parts and its USB socket face the carrier (with headers, the usual way; here, wires on its pads, the
-# same way up). It lies across, behind the screen, under the key's plug holder, its USB end to the right.
-PICO = (51.0, 21.0, 1.0)            # long, across, thick
-PICO_X1, PICO_Y = 72.0, 72.0        # its USB end; its centre line
+# same way up). It lies across on the carrier's tail, under the key's plug holder, its USB end to the right.
+PICO_X1 = 72.0                      # its USB end
 PICO_UP = 6.5                       # its posts on the carrier's back, the prism's: the plug clears the carrier
 PICO_POST_D, PICO_POST_D_USB = 4.5, 3.6         # the prism's: slimmer at the USB end, clear of the plug and socket
 PICO_SCREW_HOLE, PICO_SCREW = 1.8, 8.0          # M2 x 8, cutting its own thread
@@ -199,19 +224,28 @@ Z_PICO = Z_CARRIER_BACK - PICO_UP   # the Pico's face, toward the carrier
 PLUG_Z = Z_PICO + USB_PLUG[3]       # the plug's axis
 assert CARRIER_T + PICO_UP >= PICO_SCREW - PICO[2] + 0.5, "the Pico's posts are too short for their screws"
 
-# --- the key's plug in the top edge: the prism's holder and lock, laid on the floor ------------------------
-PLUG_W, PLUG_H, PLUG_L = 12.4, 5.5, 17.1        # a cut USB-C cable's overmold (calipers)
-SHELL_W, SHELL_H, SHELL_L = 8.25, 2.4, 6.5
-PLUG_CLEAR = 0.2
-HOLDER_WALL, STOP, CABLE_SLOT = 1.6, 2.0, 5.0
-LIFT = SHELL_L + WALL + 0.5         # the plug goes in this far down, its shell inside the top wall, then up into the hole
+# --- the key's plug at the bay's foot: the prism's holder and lock, laid on the floor, pointing up -----------
 LOCK_CLEAR, LOCK_TAB = 0.15, 2.5    # the lock: its clearance, the lip out of its face to pull it by
 DETENT = (0.8, 0.3)
 KEY_X = W / 2
 PW, PH = PLUG_W / 2 + PLUG_CLEAR, PLUG_H / 2 + PLUG_CLEAR
-KEY_Z = WALL + HOLDER_WALL + PH     # the plug's axis: the holder stands on the floor
+KEY_Z = WALL + PH                   # the plug's axis: the channel's floor is the tub's back, to keep the bay shallow
 HOLDER_TOP = KEY_Z + PH + HOLDER_WALL
-Y_STOP = H - PLUG_L - LIFT          # the stop's top: the lock fills from here to the plug
+
+# --- the key's bay: a slot down into the back's top half, open at the top edge and at the back ---------------
+# The cartridge stands on the bay's foot, its receptacle on the plug. Its back (the label) faces out of the
+# case's back, its front toward the screen. Its tongues run in a groove in each side wall; a rib fills the
+# bottom left corner, round its notch; a bump on each side wall clicks into its dimples when it's in.
+BAY_CLEAR = 0.3                     # round the cartridge's sides and over its front
+GROOVE_CLEAR = 0.25                 # over and under its tongues; past their tips, BAY_CLEAR more
+BAY_WALL, BAY_FLOOR = 2.0, 1.6      # the side walls outside the grooves; the floor between the bay and the inside
+BUMP_R = 0.75                       # the bumps: half-round, on the dimples' centres, so 0.15 short of filling them
+CART_Z = KEY_Z - (C.Z0 + C.REC[2] / 2)          # the cartridge's frame (its board's back) in the case: its receptacle on the plug
+CART_BACK, CART_FRONT = CART_Z - C.WALL_B, CART_Z + C.CART_T - C.WALL_B
+BAY_X = C.CART[0] / 2 + BAY_CLEAR   # the channel's half width
+GROOVE_X = C.CART[0] / 2 + C.TONGUE[0] + BAY_CLEAR + 0.2   # the grooves' floors, from the middle
+BAY_Z = CART_FRONT + BAY_CLEAR      # the bay's floor, its underside
+assert CART_BACK > 0.5, "the cartridge would stand out of the case's back"
 
 
 def zp(z):
@@ -293,8 +327,8 @@ def tub_and_plate():
         plate = plate.cut(zp(Z_HOLDER - 0.01).center(x, y).circle(M2_HOLE / 2).extrude(Z_FLOOR_TOP - 0.5 - Z_HOLDER))
 
     # the name, between the controls' tops and the window's bevel, clear of the edge's chamfer
-    y0 = max(KNOB_XY[1] + kd / 2 + KNOB_CHAMFER, gy1 + GUARD_CLEAR + SIGN_CHAMFER) + 1.5   # over the wells' chamfers
     y1 = sy - (ah + 6) / 2 - 1.5
+    y0 = max(KNOB_XY[1] + kd / 2 + KNOB_CHAMFER, gy1 + GUARD_CLEAR + SIGN_CHAMFER, y1 - NAME_BAND - 1.5) + 1.5   # over the wells' chamfers
     half = min(gx, W - gx) - FRONT_C - 9.0
     probe = cq.Workplane("XY").text(NAME, 10, 1, combine=False).val().BoundingBox()
     size = 10 * min(2 * half / probe.xlen, (y1 - y0) / probe.ylen)
@@ -318,13 +352,25 @@ def tub_and_plate():
             .close().extrude(-(depth + 0.01))
         plate = plate.cut(bar)
 
-    # the key's plug: a holder on the floor at the top edge, a channel along it open toward the face. The
-    # plug drops in low, its shell inside the top wall, slides up into the top's hole, flush, and the lock
+    # the key's bay: a block on the back's top half, from the bay's foot (a wall WALL thick) to the top edge,
+    # the channel cut down into it from the top and out through the back, a groove in each side for the
+    # cartridge's tongues; then the rib in its bottom left corner and the two bumps
+    gz0, gz1 = CART_Z + C.TONGUE[1] - GROOVE_CLEAR, CART_Z + C.Z0 + GROOVE_CLEAR
+    body = body.union(box(KEY_X - GROOVE_X - BAY_WALL, KEY_X + GROOVE_X + BAY_WALL, BAY_Y0 - WALL, H, 0, BAY_Z + BAY_FLOOR)
+                      .intersect(full))
+    body = body.cut(box(KEY_X - BAY_X, KEY_X + BAY_X, BAY_Y0, H + 1, -1, BAY_Z))
+    body = body.cut(box(KEY_X - GROOVE_X, KEY_X + GROOVE_X, BAY_Y0, H + 1, gz0, gz1))
+    nw, nl = C.NOTCH
+    body = body.union(box(KEY_X - GROOVE_X - 0.01, KEY_X - C.CART[0] / 2 + nw - BAY_CLEAR, BAY_Y0 - 0.01,
+                          BAY_Y0 + nl - BAY_CLEAR, 0, BAY_Z + 0.01))
+    body = body.union(bay_bumps())
+    # the key's plug: a holder on the floor under the bay's foot, a channel along it open toward the face. The
+    # plug drops in low, its shell under the bay's foot, slides up into the foot's hole, flush, and the lock
     # drops in under it. The cable goes down through a slot in the stop, open toward the face too.
     y0 = Y_STOP - STOP
-    body = body.union(box(KEY_X - PW - HOLDER_WALL, KEY_X + PW + HOLDER_WALL, y0, H - 1, WALL - 0.1, HOLDER_TOP).intersect(full))
-    body = body.cut(box(KEY_X - PW, KEY_X + PW, Y_STOP, H - WALL, KEY_Z - PH, HOLDER_TOP + 1))
-    body = body.cut(box(KEY_X - PW, KEY_X + PW, H - WALL - 0.01, H + 1, KEY_Z - PH, KEY_Z + PH))
+    body = body.union(box(KEY_X - PW - HOLDER_WALL, KEY_X + PW + HOLDER_WALL, y0, BAY_Y0 - WALL + 0.1, WALL - 0.1, HOLDER_TOP).intersect(full))
+    body = body.cut(box(KEY_X - PW, KEY_X + PW, Y_STOP, BAY_Y0 - WALL, KEY_Z - PH, HOLDER_TOP + 1))
+    body = body.cut(box(KEY_X - PW, KEY_X + PW, BAY_Y0 - WALL - 0.01, BAY_Y0 + 0.01, KEY_Z - PH, KEY_Z + PH))
     body = body.cut(cable_slot(KEY_Z, HOLDER_TOP + 1, y0 - 1, STOP + 2))
     dr, dout = DETENT
     for s in (-1, 1):      # round holes for the lock's bumps: dimples cut as spheres break OCC's later booleans here
@@ -347,10 +393,26 @@ def tub_and_plate():
                 body = body.union(arm_x.union(arm_y).intersect(full))
     # the rubber feet
     fw, fl = FOOT[0] + 2 * FOOT_CLEAR, FOOT[1] + 2 * FOOT_CLEAR
-    for x in (FOOT_X, W - FOOT_X):
-        for y in (FOOT_END + fl / 2, H - FOOT_END - fl / 2):
+    for fx, y in ((FOOT_X, FOOT_END + fl / 2), (FOOT_X_TOP, H - FOOT_END - fl / 2)):
+        for x in (fx, W - fx):
             body = body.cut(cq.Workplane("XY").slot2D(fl, fw, 90).extrude(FOOT_DEPTH).translate((x, y, -0.01)))
     return body, plate
+
+
+def bay_bumps():
+    """The detent's two bumps: half-round, standing out of the channel's side walls, on the cartridge's dimples'
+    centres when it's in, over its cover's sides."""
+    dy, dx, _ = C.DETENT
+    x = C.CART[0] / 2 + dx
+    z0, z1 = CART_Z + C.Z0 + 0.6, CART_FRONT - 0.4
+    return cq.Workplane("XY").pushPoints([(KEY_X - x, BAY_Y0 + dy), (KEY_X + x, BAY_Y0 + dy)]).circle(BUMP_R) \
+        .extrude(z1 - z0).translate((0, 0, z0))
+
+
+def place_cart(shape, up=0.0):
+    """A shape in the cartridge's frame, put in the bay; up: that far up out of it."""
+    loc = cq.Location(cq.Plane(origin=(KEY_X, BAY_Y0 + up, CART_Z), xDir=(1, 0, 0), normal=(0, 0, 1)))
+    return cq.Workplane().add([v.moved(loc) for v in shape.vals()])
 
 
 def bb_box(grow=0.0):
@@ -476,15 +538,19 @@ def detent_at(s, dx):
 def plug_lock():
     """Drops into the holder's channel under the plug once the plug is up, the cable into its slot, which
     is open at its underside (its leading end). Two bumps click into dimples in the channel's walls; the
-    lip is to pull it out by. Prints on its side, the lip on the bed."""
+    lip is to pull it out by. Prints on the face the lip is part of, the bumps to the sides."""
     w = 2 * (PW - LOCK_CLEAR)
     z0, h = KEY_Z - PH + LOCK_CLEAR, LIFT - 0.1
     lock = box(KEY_X - w / 2, KEY_X + w / 2, Y_STOP, Y_STOP + h, z0, HOLDER_TOP + LOCK_TAB)
     lock = lock.cut(box(KEY_X - w, KEY_X + w, Y_STOP + 2, Y_STOP + h + 1, HOLDER_TOP, HOLDER_TOP + LOCK_TAB + 1))  # lip: 2 mm
     lock = lock.cut(cable_slot(KEY_Z, z0 - 1, Y_STOP - 1, h + 2))
     dr, dout = DETENT
+    # each bump a cone cut flat, 45 degrees, as tall as a sphere of dr standing dout out: spheres here didn't fuse
+    # (one way round) or left slivers at their poles in the STL (the other). Its base is 0.2 mm inside the lock
+    rb = (dr ** 2 - (dr - dout) ** 2) ** 0.5                     # the sphere's radius at the lock's face
     for s in (-1, 1):
-        lock = lock.union(cq.Workplane("XY").sphere(dr).translate(detent_at(s, w / 2 + dout - dr)))
+        x, y, z = detent_at(s, w / 2 - 0.2)
+        lock = lock.union(cq.Workplane(obj=cq.Solid.makeCone(rb + 0.2, rb - dout, dout + 0.2, cq.Vector(x, y, z), cq.Vector(s, 0, 0))))
     return lock
 
 
@@ -495,20 +561,23 @@ def screen_holes():
 
 
 def carrier_screws():
-    return [(SCREEN_XY[0] + dx, SCREEN_XY[1] + dy) for dx, dy in CARRIER_SCREWS]
+    """The carrier's six screws: four round the screen, two for its tail."""
+    return [(SCREEN_XY[0] + dx, SCREEN_XY[1] + dy) for dx, dy in CARRIER_SCREWS] + TAIL_SCREWS
 
 
 def carrier_and_spacers():
     """The prism's carrier, without the Pico: the screen board's size and 1 mm more, an ear out to each
-    boss, cut round the header. It goes over the pins, rests on the bosses and screws into their inserts,
+    boss, a tail down below the screen for the Pico, on two more bosses, cut round the header. It goes over the pins, rests on the bosses and screws into their inserts,
     so the spacers press the board onto its posts. The spacers are four tubes, slipped on the pins."""
     sx, sy = SCREEN_XY
     bw, bh = SCREEN_PCB
     car = zp(Z_CARRIER).center(sx, sy).rect(bw + 2 * CARRIER_MARGIN, bh + 2 * CARRIER_MARGIN).extrude(-CARRIER_T)
-    for x, y in carrier_screws():
+    for x, y in carrier_screws()[:4]:   # the tail covers its own two
         edge = sy + math.copysign(bh / 2 - 2, y - sy)
         far = y + math.copysign(EAR_W / 2, y - sy)
         car = car.union(zp(Z_CARRIER).center(x, (edge + far) / 2).rect(EAR_W, abs(far - edge)).extrude(-CARRIER_T))
+    tx0, tx1, ty0 = TAIL                # the tail, for the Pico, down to its two screws
+    car = car.union(box(tx0, tx1, ty0, sy - bh / 2 + 2, Z_CARRIER_BACK, Z_CARRIER))
     nw, nh = HEADER_NOTCH
     n0, n1 = sx - bw / 2 - CARRIER_MARGIN - 1, sx - bw / 2 + nw
     if HEADER_SIDE > 0:
@@ -543,7 +612,9 @@ def stand_ins():
     for c in screen_holes():
         brd = brd.cut(zp(Z_BOARD + 1).center(*c).circle(PIN_HOLE / 2).extrude(-4))
     s.append((brd, (0.10, 0.30, 0.55), "screen board"))
-    s.append((zp(Z_BOARD - SCREEN_PCB_T).center(sx - HEADER_SIDE * 8, sy).rect(50, 26).extrude(-SPACER + 0.5),
+    # the parts on its back, as one box: from a photo of the bench's board (2026-11-02), its two flex connectors
+    # and its passives sit within about 22 mm of the middle across and 18 up and down, none near the holes
+    s.append((zp(Z_BOARD - SCREEN_PCB_T).center(sx - HEADER_SIDE * 2, sy).rect(46, 36).extrude(-SPACER + 0.5),
               (0.3, 0.3, 0.32), "screen board back parts"))
     s.append((zp(Z_BOARD - SCREEN_PCB_T).center(HEADER_X, sy).rect(*HEADER[:2]).extrude(-HEADER[2]), (0.1, 0.1, 0.1),
               "screen header and wires"))
@@ -571,18 +642,16 @@ def stand_ins():
     s.append((zp(kfloor + 2.5).center(*KNOB_XY).circle(9).extrude(13).faces(">Z").edges().fillet(1.5), (0.1, 0.1, 0.11), "knob"))
     s.append((zp(kfloor + 15.5).center(KNOB_XY[0], KNOB_XY[1] + 5).rect(0.8, 6).extrude(0.4), (0.9, 0.9, 0.9), "knob mark"))
     s.append((zp(kfloor - KNOB_FLOOR).center(*KNOB_XY).rect(*EC11[:2]).extrude(-EC11[2]), (0.25, 0.25, 0.28), "EC11 body"))
-    s.append((box(KEY_X - PLUG_W / 2, KEY_X + PLUG_W / 2, H - PLUG_L, H, KEY_Z - PLUG_H / 2, KEY_Z + PLUG_H / 2),
+    s.append((box(KEY_X - PLUG_W / 2, KEY_X + PLUG_W / 2, BAY_Y0 - PLUG_L, BAY_Y0, KEY_Z - PLUG_H / 2, KEY_Z + PLUG_H / 2),
               (0.15, 0.15, 0.15), "plug overmold"))
-    s.append((cq.Workplane("XZ").center(KEY_X, KEY_Z).slot2D(SHELL_W, SHELL_H).extrude(-SHELL_L).translate((0, H, 0)),
+    s.append((cq.Workplane("XZ").center(KEY_X, KEY_Z).slot2D(SHELL_W, SHELL_H).extrude(-SHELL_L).translate((0, BAY_Y0, 0)),
               (0.8, 0.8, 0.82), "plug shell"))
-    # the cartridge plugged on: its length up out of the top edge, its chip's window toward the face
-    o = (KEY_X, H, KEY_Z - (K.KEYC[2] + K.REC[1] / 2))
-    loc = cq.Location(cq.Plane(origin=o, xDir=(1, 0, 0), normal=(0, 0, 1)))
+    # the cartridge in its bay, on the plug: its label out of the back, its chip's window toward the screen
     top, bottom, board, chip = C.clamshell()
-    s.append((cq.Workplane().add(top.val().moved(loc)), K.AMBER, "cartridge cover"))
-    s.append((cq.Workplane().add(bottom.val().moved(loc)), K.AMBER_D, "cartridge tray"))
-    s.append((cq.Workplane().add(board.val().moved(loc)), (0.10, 0.25, 0.60), "key-c"))
-    s.append((cq.Workplane().add(chip.val().moved(loc)), (0.08, 0.08, 0.09), "ATECC608"))
+    s.append((place_cart(top), K.AMBER, "cartridge cover"))
+    s.append((place_cart(bottom), K.AMBER_D, "cartridge tray"))
+    s.append((place_cart(board), (0.10, 0.25, 0.60), "key-c"))
+    s.append((place_cart(chip), (0.08, 0.08, 0.09), "ATECC608"))
     pc = PICO_X1 - PICO[0] / 2
     s.append((zp(Z_PICO).center(pc, PICO_Y).rect(PICO[0], PICO[1]).extrude(-PICO[2]), (0.10, 0.42, 0.22), "Pico 2 W"))
     near = zp(Z_PICO).center(pc, PICO_Y).rect(PICO[0], PICO[1]).extrude(PICO_PARTS)
@@ -602,7 +671,7 @@ def checks(body, plate, parts, carrier, spacers, lock, base, cover, cap, holder)
     n = {name: sh for sh, _, name in parts}
     n["guard base"], n["guard cover"], n["sign cap"], n["tact holder"] = base, cover, cap, holder
     inside = ["screen glass", "screen board", "screen board back parts", "screen header and wires", "carrier screws",
-              "tact switch", "EC11 body", "plug overmold", "key-c", "cartridge cover", "cartridge tray",
+              "tact switch", "EC11 body", "plug overmold", "plug shell", "key-c", "cartridge cover", "cartridge tray",
               "Pico 2 W", "Pico's parts, toward the carrier (space)", "Pico's wires (space)", "USB plug (space)"]
     inside += ["breadboard"] if SIGN_MOUNT == "breadboard" else []
     pairs = [(a, "body", body) for a in inside] + [(a, "plate", plate) for a in inside]
@@ -615,6 +684,7 @@ def checks(body, plate, parts, carrier, spacers, lock, base, cover, cap, holder)
     pairs += [(a, "plug lock", lock) for a in inside] + [("plug lock", "body", body), ("plug lock", "carrier", carrier)]
     n["carrier"], n["spacers"], n["plug lock"] = carrier, spacers, lock
     together = ({"key-c", "cartridge cover"}, {"key-c", "cartridge tray"}, {"cartridge cover", "cartridge tray"},
+                {"plug shell", "key-c"},
                 {"Pico 2 W", "Pico's parts, toward the carrier (space)"}, {"Pico 2 W", "Pico's wires (space)"},
                 {"Pico's parts, toward the carrier (space)", "USB plug (space)"}, {"tact switch", "breadboard"})
     pairs += [(a, b, n[b]) for i, a in enumerate(inside) for b in inside[i + 1:] if {a, b} not in together]
@@ -636,6 +706,7 @@ def checks(body, plate, parts, carrier, spacers, lock, base, cover, cap, holder)
             bad += 1
             print("  OVERLAP %-36s %-24s %.2f mm3" % (a, bname, v))
     print("checked %d pairs: %s" % (len(pairs), "clear" if not bad else "%d overlap" % bad))
+    bad += bay_checks(body, n)
 
     def d(a, b):
         return (n[a] if isinstance(a, str) else a).val().distance((n[b] if isinstance(b, str) else b).val())
@@ -649,8 +720,12 @@ def checks(body, plate, parts, carrier, spacers, lock, base, cover, cap, holder)
                   BREADBOARD[0], BREADBOARD[1], BREADBOARD[2], x0, x1, y0, y1, d("breadboard", posts),
                   d("breadboard", "carrier screws"), d("breadboard", "EC11 body"), d("breadboard", "Pico's wires (space)"),
                   d("breadboard", plate)))
-    print("the Pico's wires to the tub %.1f mm (the floor, the key's plug holder); its plug to the carrier %.1f mm" % (
-        d("Pico's wires (space)", body), d("USB plug (space)", carrier)))
+    pico = box(PICO_X1 - PICO[0], PICO_X1, PICO_Y - PICO[1] / 2, PICO_Y + PICO[1] / 2, Z_PICO - PICO[2] - PICO_WIRES, Z_PICO + PICO_PARTS)
+    plug_holder = body.intersect(box(KEY_X - 12, KEY_X + 12, Y_STOP - STOP - 1, BAY_Y0, 0, ZP))
+    print("the Pico's wires to the tub %.1f mm (the floor); its plug to the carrier %.1f mm; the Pico, its parts and wires "
+          "to the plug holder %.1f mm; the carrier's screws to the tub %.1f mm (to the bay's floor: %.1f)" % (
+              d("Pico's wires (space)", body), d("USB plug (space)", carrier), d(pico, plug_holder),
+              d("carrier screws", body), Z_CARRIER_BACK - 3.5 - (BAY_Z + BAY_FLOOR)))
     pressed = sign_cap(TRAVEL)
     print("the sign button: its plunger %.1f mm over the switch's stem, %.1f mm below the well's floor; pressed %.2f mm "
           "to the stop, it pushes the stem %.2f mm (the switch's travel, about %.2f)" % (
@@ -705,6 +780,54 @@ def checks(body, plate, parts, carrier, spacers, lock, base, cover, cap, holder)
     return bad
 
 
+def bay_checks(body, n):
+    """The cartridge on its way in and in the bay: what it clears, what holds it, and that the wrong way round it
+    stops before the plug. Its sliding positions are checked without the bumps, which squeeze it on purpose."""
+    bad = 0
+    free = body.cut(bay_bumps())
+    top, bottom, _, _ = C.clamshell()
+    cart = top.union(bottom)
+    shell, mold = n["plug shell"], n["plug overmold"]
+    for up in (1.0, 4.0, 7.0, 15.0, 30.0, C.CART[1] - C.PROUD - 1.0):
+        c = place_cart(cart, up)
+        for what, x in (("the tub", free), ("the plug's shell", shell), ("the overmold", mold)):
+            v = c.intersect(x).val().Volume()
+            if v > 0.05:
+                bad += 1
+                print("  OVERLAP the cartridge %.0f mm up, %s: %.2f mm3" % (up, what, v))
+    above = free.intersect(box(0, W, BAY_Y0 + 0.5, H + 1, -1, T))     # the bay, all but its foot
+    inn = place_cart(cart)
+    sq = place_cart(cart, 10.0).intersect(bay_bumps()).val().Volume()
+    print("the key's cartridge, %.0f x %.0f x %.2f, in its bay: %.0f mm in, %.0f mm out of the top. It stands on the bay's "
+          "foot; elsewhere it clears the tub by %.2f mm (%.2f round its sides and over its front, %.2f over and under its "
+          "tongues, %.2f past their tips). Slid in from the top: clear of the tub, the plug's shell and the overmold at "
+          "6 places on the way, but for the bumps, which squeeze it %.2f mm a side (%.2f mm3) and click into its dimples" % (
+              C.CART[0], C.CART[1], C.CART_T, C.CART[1] - C.PROUD, C.PROUD, inn.val().distance(above.val()), BAY_CLEAR,
+              GROOVE_CLEAR, GROOVE_X - C.CART[0] / 2 - C.TONGUE[0], C.DETENT[2] - BUMP_R, sq))
+    print("its back %.2f mm in from the case's back; the bay %.2f mm deep, its floor %.1f mm, %.1f wide inside; the grooves' "
+          "lips %.2f mm thick; the bay's foot %.0f mm from the bottom edge" % (
+              CART_BACK, BAY_Z, BAY_FLOOR, 2 * BAY_X, CART_Z + C.TONGUE[1] - GROOVE_CLEAR, BAY_Y0))
+    # the wrong ways in. Upside down (turned in its own plane): the notch is at the top, so its bottom left corner
+    # stops on the rib. Back to front: its tongues are toward the screen, out of the grooves' line.
+    flip = cart.rotate((0, C.CART[1] / 2, 0), (0, C.CART[1] / 2, 1), 180)
+    lo, up = 0.0, 20.0                  # clear at up, not at lo: halve the gap to 0.05 mm
+    while up - lo > 0.05:
+        mid = (lo + up) / 2
+        if place_cart(flip, mid).intersect(free).val().Volume() < 0.05:
+            up = mid
+        else:
+            lo = mid
+    ok = up > SHELL_L + 0.5
+    bad += 0 if ok else 1
+    print("upside down, it stops on the rib %.1f mm over the bay's foot, %.1f mm before the plug's shell" % (up, up - SHELL_L))
+    zm = (C.CART_T - 2 * C.WALL_B) / 2
+    back = cart.rotate((0, 0, zm), (0, 1, zm), 180)
+    v = place_cart(back, C.CART[1] - C.PROUD - 1.0).intersect(free).val().Volume()
+    bad += 0 if v > 1.0 else 1
+    print("back to front, 1 mm into the top: %.1f mm3 into the tub, so it can't start in" % v)
+    return bad
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     screen_png = sys.argv[1] if len(sys.argv) > 1 else None
@@ -720,14 +843,21 @@ def main():
     bad = checks(body, plate, parts, carrier, spacers, lock, base, cover, cap, holder) + C.checks()
 
     def stl(shape, name, tol=0.05):
+        nonlocal bad
+        if not shape.val().isValid():  # an invalid solid meshes with holes; slicers may or may not mend them
+            print("  NOT A VALID SOLID: %s" % name)
+            bad += 1
         cq.exporters.export(shape.translate((0, 0, -shape.val().BoundingBox().zmin)), os.path.join(OUT, name),
                             tolerance=tol, angularTolerance=0.2)
     stl(body, "handheld_body.stl")                                              # on its back, as it is
+    # the tub's top, from the plug holder's foot up: the bay, its grooves, rib and bumps, the plug and its lock,
+    # and two corner posts for a first insert. To try the cartridge before printing the whole tub
+    stl(body.intersect(box(-1, W + 1, Y_STOP - STOP - 1, H + 1, -1, T + 1)), "handheld_bay_test.stl")
     flip = lambda s: s.rotate((0, 0, 0), (1, 0, 0), 180)                        # face down
     stl(flip(plate), "handheld_plate.stl")
     stl(flip(carrier), "handheld_carrier.stl")
     stl(spacers, "handheld_spacers.stl")
-    stl(lock.rotate((0, 0, 0), (0, 1, 0), 90), "handheld_plug_lock.stl", 0.02)  # on its side
+    stl(lock.rotate((0, 0, 0), (1, 0, 0), 90), "handheld_plug_lock.stl", 0.02)  # on its lip's face, the bumps to the sides
     stl(base, "handheld_guard_base.stl", 0.02)                                  # as it sits
     stl(flip(cover), "handheld_guard_cover.stl", 0.02)                          # face down
     stl(flip(cap), "handheld_sign_cap.stl", 0.02)                               # head down
@@ -736,7 +866,7 @@ def main():
     C.write(OUT)
     bb = body.val().BoundingBox()
     print("the case closed: %.0f x %.0f x %.0f mm; with a key in, %.0f mm tall" % (
-        bb.xlen, bb.ylen, bb.zlen, H + K.CART[1]))
+        bb.xlen, bb.ylen, T, H + C.PROUD))
     asm = cq.Assembly(name="pico_sign_handheld")
     asm.add(body, name="body", color=cq.Color(0.20, 0.21, 0.23))
     asm.add(plate, name="plate", color=cq.Color(0.74, 0.73, 0.70))
@@ -760,13 +890,13 @@ def main():
     keep = ("screen glass", "knob", "knob mark", "cartridge cover", "cartridge tray", "ATECC608")
     shown = [p for p in parts if p[2] in keep] + [(base, (0.35, 0.36, 0.40), "guard base"), (cover, COLOURS[2][1], "guard cover")]
     K.render(dict(title="The handheld", parts=[(body, K.DARK, "body"), (plate, PLATE_C, "plate")] + shown, corners=corners,
-                  views=[("in the hand", 62, -90), ("the top edge: the key on its plug", 28, 125)]),
+                  views=[("in the hand", 62, -90), ("the back: the key in its bay", -38, 120)]),
              os.path.join(OUT, "handheld_front.png"), screen_png)
     inside = [(body, K.DARK, "body"), (lock, LOCK_C, "plug lock")] + \
         [p for p in parts if p[2] in ("plug overmold", "plug shell", "cartridge cover", "cartridge tray", "key-c", "ATECC608")
          or (SIGN_MOUNT == "breadboard" and p[2] in ("breadboard", "tact switch"))]
     K.render(dict(title="The tub, open", parts=inside, corners=[],
-                  views=[("the key's plug and its lock" + (", the breadboard" if SIGN_MOUNT == "breadboard" else ""), 55, -70),
+                  views=[("the key's plug and its lock, the bay" + (", the breadboard" if SIGN_MOUNT == "breadboard" else ""), 55, -70),
                          ("the right side: the Pico's cable", 20, -30)]),
              os.path.join(OUT, "handheld_tub.png"))
     GREY = (0.35, 0.36, 0.40)
