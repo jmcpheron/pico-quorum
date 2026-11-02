@@ -128,9 +128,21 @@ else:
     assert Z_TACT < Z_HOLDER, "the switch is too short for its holder: TACT"
 assert M2_HEAD[1] <= CAP_UP, "the base's screw heads stand higher than the cap: they'd hit the cover"
 WELL_RIB = 3.0                      # the thickening behind a well, this much past it
+# Colours by layer change. The plate prints face down, so its face is its first layers, and whatever is cut into
+# the face shows the colour printing at the depth of its floor. Four filaments, changed at these depths from
+# the face: the face itself in the first; the name and the labels' frames, cut to the first depth, in the
+# second; the labels' words in the third; the deepest stripe in the fourth. The wells' chamfers, the window's
+# bevel and the plate's edge show them as rings.
+COLOURS = [("light grey", (0.86, 0.86, 0.84)), ("charcoal", (0.22, 0.22, 0.25)), ("red", (0.78, 0.16, 0.14)),
+           ("blue", (0.20, 0.36, 0.72))]
+LAYER_CHANGES = (0.6, 1.2, 1.8)     # mm from the face: three layers each, at 0.2 mm layers
 NAME = "PICOQUORUM"                 # between the controls and the screen, as big as fits
-LABELS = [(KNOB_XY[0], 13.0, (20.0, 6.0)), (SIGN_XY[0] - 3.0, 13.0, (20.0, 6.0))]   # frames for a label: x, y, size
-LABEL_LINE, CUT = 0.6, 0.6
+CUT = LAYER_CHANGES[0]              # the name and the frames' lines: the second colour
+LABEL_LINE, LABEL_DEPTH = 0.6, LAYER_CHANGES[1]     # the frames' line; their words: the third colour
+LABELS = [(KNOB_XY[0], 12.0, (23.0, 7.0), "TURN"), (SIGN_XY[0] - 3.0, 12.0, (23.0, 7.0), "SIGN")]   # bold: thin strokes won't print
+# three stripes over the screen, each cut to one of the depths: the three colours under the face, side by side
+STRIPES = dict(x0=14.0, x1=W - 15.6, y=108.6, h=1.6, gap=1.0)
+KNOB_CHAMFER, SIGN_CHAMFER = LAYER_CHANGES[1], LAYER_CHANGES[2]   # round the wells' tops, 45 degrees: rings of colour
 M3_INSERT = (4.2, 6.0)              # M3*6*5, as the prism: the hole, the insert's length
 SCREW_D = 3.4                       # M3 clearance
 # The plate's four screws are M3 x 8 socket heads (5.5 across, 3 tall), sunk in counterbores. The plate is
@@ -259,8 +271,14 @@ def tub_and_plate():
     kd, kdepth = KNOB_WELL
     plate = plate.union(zp(ZP).center(*KNOB_XY).circle(kd / 2 + WELL_RIB).extrude(-(kdepth + KNOB_FLOOR - PLATE)))
     plate = plate.cut(zp(T + 1).center(*KNOB_XY).circle(kd / 2).extrude(-(kdepth + 1)))
+    kc = KNOB_CHAMFER
+    plate = plate.cut(zp(T + 0.01).center(*KNOB_XY).circle(kd / 2 + kc + 0.01).workplane(offset=-(kc + 0.01))
+                      .circle(kd / 2).loft())
     plate = plate.union(guard_outline(WELL_RIB, ZP, ZP - (SIGN_WELL + SIGN_FLOOR - PLATE)))
     plate = plate.cut(guard_outline(GUARD_CLEAR, T - SIGN_WELL, T + 1))
+    sc = SIGN_CHAMFER
+    rim = lambda grow, z: guard_outline(grow, z - 0.01, z).faces(">Z").val().outerWire()
+    plate = plate.cut(cq.Workplane().add(cq.Solid.makeLoft([rim(GUARD_CLEAR + sc + 0.01, T + 0.01), rim(GUARD_CLEAR, T - sc)], True)))
     gx0, gx1, gy0, gy1 = guard_box()
     plate = plate.cut(zp(T + 1).center(SIGN_XY[0], gy0).circle(5.0).extrude(-3.5))     # under the cover's edge, to lift it
     for xy, d, deep in ((SIGN_XY, PLUNGER_D + 0.6, SIGN_WELL + SIGN_FLOOR), (KNOB_XY, KNOB_HOLE, kdepth + KNOB_FLOOR)):
@@ -275,17 +293,30 @@ def tub_and_plate():
         plate = plate.cut(zp(Z_HOLDER - 0.01).center(x, y).circle(M2_HOLE / 2).extrude(Z_FLOOR_TOP - 0.5 - Z_HOLDER))
 
     # the name, between the controls' tops and the window's bevel, clear of the edge's chamfer
-    y0 = max(KNOB_XY[1] + kd / 2, gy1 + GUARD_CLEAR) + 1.5   # over the wells
+    y0 = max(KNOB_XY[1] + kd / 2 + KNOB_CHAMFER, gy1 + GUARD_CLEAR + SIGN_CHAMFER) + 1.5   # over the wells' chamfers
     y1 = sy - (ah + 6) / 2 - 1.5
     half = min(gx, W - gx) - FRONT_C - 9.0
     probe = cq.Workplane("XY").text(NAME, 10, 1, combine=False).val().BoundingBox()
     size = 10 * min(2 * half / probe.xlen, (y1 - y0) / probe.ylen)
     print("the name: %.1f mm letters, %.0f mm long" % (probe.ylen * size / 10, probe.xlen * size / 10))
     plate = plate.cut(zp(T).center(gx, (y0 + y1) / 2).text(NAME, size, -CUT, combine=False, halign="center", valign="center"))
-    for x, y, (lw, lh) in LABELS:
+    for x, y, (lw, lh), words in LABELS:
         frame = zp(T).center(x, y).rect(lw, lh).extrude(-CUT).cut(
             zp(T).center(x, y).rect(lw - 2 * LABEL_LINE, lh - 2 * LABEL_LINE).extrude(-CUT))
         plate = plate.cut(frame)
+        probe = cq.Workplane("XY").text(words, 10, 1, combine=False, kind="bold").val().BoundingBox()
+        size = 10 * min((lw - 2 * LABEL_LINE - 2.4) / probe.xlen, (lh - 2 * LABEL_LINE - 1.6) / probe.ylen)
+        plate = plate.cut(zp(T).center(x, y).text(words, size, -LABEL_DEPTH, combine=False, kind="bold",
+                                                  halign="center", valign="center"))
+        print("the label %r: %.1f mm letters" % (words, probe.ylen * size / 10))
+    # the stripes, each a parallelogram with 45 degree ends, the nearest the screen cut shallowest
+    st = STRIPES
+    for i, depth in enumerate(LAYER_CHANGES):
+        yc = st["y"] + (i - 1) * (st["h"] + st["gap"])
+        y0_, y1_ = yc - st["h"] / 2, yc + st["h"] / 2
+        bar = zp(T + 0.01).polyline([(st["x0"], y0_), (st["x1"], y0_), (st["x1"] + st["h"], y1_), (st["x0"] + st["h"], y1_)]) \
+            .close().extrude(-(depth + 0.01))
+        plate = plate.cut(bar)
 
     # the key's plug: a holder on the floor at the top edge, a channel along it open toward the face. The
     # plug drops in low, its shell inside the top wall, slides up into the top's hole, flush, and the lock
@@ -326,6 +357,13 @@ def bb_box(grow=0.0):
     """The breadboard's outline on the floor, grown by grow: x0, x1, y0, y1."""
     bl, bw, _ = BREADBOARD
     return BB_X1 - bl - grow, BB_X1 + grow, SIGN_XY[1] - bw / 2 - grow, SIGN_XY[1] + bw / 2 + grow
+
+
+def colour_bands(plate):
+    """The plate cut at the layer changes: (shape, colour, name), the face's band first."""
+    cuts = [T + 1] + [T - z for z in LAYER_CHANGES] + [-1]
+    return [(plate.intersect(box(-1, W + 1, -1, H + 1, lo, hi)), c, name)
+            for (name, c), hi, lo in zip(COLOURS, cuts[:-1], cuts[1:])]
 
 
 def guard_box():
@@ -720,7 +758,7 @@ def main():
     corners = [(gx + a * aw / 2, sy + b * ah / 2, ZP - GLASS_GAP + 0.01) for a, b in ((-1, 1), (1, 1), (1, -1), (-1, -1))]
     PLATE_C, LOCK_C, RED = (0.74, 0.73, 0.70), (0.90, 0.60, 0.20), (0.80, 0.12, 0.10)
     keep = ("screen glass", "knob", "knob mark", "cartridge cover", "cartridge tray", "ATECC608")
-    shown = [p for p in parts if p[2] in keep] + [(base, (0.35, 0.36, 0.40), "guard base"), (cover, RED, "guard cover")]
+    shown = [p for p in parts if p[2] in keep] + [(base, (0.35, 0.36, 0.40), "guard base"), (cover, COLOURS[2][1], "guard cover")]
     K.render(dict(title="The handheld", parts=[(body, K.DARK, "body"), (plate, PLATE_C, "plate")] + shown, corners=corners,
                   views=[("in the hand", 62, -90), ("the top edge: the key on its plug", 28, 125)]),
              os.path.join(OUT, "handheld_front.png"), screen_png)
@@ -745,6 +783,7 @@ def main():
     K.render(dict(title="The plate", parts=[(plate, PLATE_C, "plate")], corners=corners,
                   views=[("front: the wells", 70, -90), ("back: posts and pins, bosses, the wells' backs", 45, 90)]),
              os.path.join(OUT, "handheld_plate.png"), screen_png)
+    # the colours are drawn by assembly.py (out/assembly/00-colours.png): its renderer sorts the bands right
     near = box(SIGN_XY[0] - 22, W + 1, SIGN_XY[1] - 22, SIGN_XY[1] + 26, ZP - 6, T + 1)
     sw = [p for p in parts if p[2] in ("tact switch", "base screws", "breadboard")]
     where = "in its holder" if holder is not None else "on the breadboard"

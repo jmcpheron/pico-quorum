@@ -226,6 +226,27 @@ def main():
         s.d.multiline_text((20, 14), name, font=font(24 if len(shots) < 2 else 19), fill=INK, spacing=5)
         shots.append(s.img)
     page("printed-parts", None, "The printed parts", [shots[:2], shots[2:6], shots[6:]])
+
+    # the colours: the plate cut at its layer changes, each band in its filament's colour
+    bands = [(sh, c) for sh, c, _ in H.colour_bands(plate)]
+    red = H.COLOURS[2][1]
+    a = Shot(items(bands), -90, 89, (700, 1000), pad=0.05)
+    near_sign = H.box(tx - 24, H.W + 1, -1, ty + 26, H.ZP - 8, H.T + 1)
+    sfit = [p(x, y, z) for x in (tx - 22, H.W) for y in (0, ty + 24) for z in (H.T - 8, H.T + 20)]
+    b = Shot(items([(sh.intersect(near_sign), c) for sh, c in bands] + [(base, (0.35, 0.36, 0.40)), (cap, red),
+                                                                       (H.guard_cover(100), red)]), -60, 42, (475, 1000), fit=sfit)
+    b.d.multiline_text((20, 16), "the sign well's chamfer:\nrings of colour; the cover\nand the cap in the red", font=font(22), fill=INK, spacing=5)
+    near_top = H.box(-1, H.W + 1, H.STRIPES["y"] - 10, H.H + 1, H.ZP - 1, H.T + 1)
+    c3 = Shot(items([(sh.intersect(near_top), c) for sh, c in bands]), -70, 38, (475, 1000), pad=0.06)
+    c3.d.multiline_text((20, 16), "the stripes over the screen:\none colour each", font=font(22), fill=INK, spacing=5)
+    edges = [0.0] + list(H.LAYER_CHANGES)
+    swatch = lambda col: icon([(cq.Workplane("XY").box(20, 20, 4), col)], el=35)
+    shows = ["the face", "name, frames", "words, rings", "wells' floors"]
+    need = [(swatch(col), "%.1f" % z0, "%s: %s" % (nm, sh)) for (nm, col), z0, sh in zip(H.COLOURS, edges, shows)]
+    page("colours", None, "The plate's colours: four filaments, one change at each depth", [a.img, b.img, c3.img], need=need,
+         note="The plate prints face down. Change filament before the layers that start at %s mm from the bed\n"
+              "(layers %s at 0.2 mm). The number by each colour is where it starts." % (
+                  ", ".join("%.1f" % z for z in H.LAYER_CHANGES), ", ".join(str(int(round(z / 0.2)) + 1) for z in H.LAYER_CHANGES)))
     hw = [(ic["m3i"], "8×", "M3 insert, M3*6*5"), (ic["m3s"], "8×", "M3 × 8 socket head"), (ic["washer"], "4×", "M3 washer"),
           (ic["m2s"], "%d×" % (4 + 2 + len(g["holder screws"])), "M2 × 8 socket head"), (ic["foot"], "4×", "rubber strip"), (ic["pin"], "20 mm", "1.75 mm filament")]
     page("hardware", None, "The hardware", [Image.new("RGB", (1650, 10), (255, 255, 255))], need=hw)

@@ -22,6 +22,8 @@ cover. The key, in a snap-shut clamshell, stands up out of the top edge.
 
 ![the handheld](case/out/handheld_front.png)
 
+**In four colours**, by changing filament as the plate prints: [the colours](#the-colours).
+
 ## What is different from pico-sign
 
 - **The screen** is the 2.4″ 240 × 320 SPI module with 8 pins, the one pico-sign started with:
@@ -189,17 +191,40 @@ With a key in, it is 164 mm tall.
   - **the sign button's well:** the guard's outline, 20.6 × 24.6 mm, 7 mm deep, a 1.5 mm floor. A
     notch under its bottom edge is for a thumbnail, to lift the cover. Behind its floor, two bosses for
     the guard's base's screws.
-- a 20 × 6 mm frame under each, a 0.6 mm line cut 0.6 mm deep, for a label
+- a 23 × 7 mm frame under each, a 0.6 mm line cut 0.6 mm deep, with TURN and SIGN in it, cut 1.2 mm
+- three stripes over the screen, cut 0.6, 1.2 and 1.8 mm ([the colours](#the-colours))
 - PICOQUORUM cut between the controls and the window: 7.7 mm letters, 65 mm long (the script works it out)
 
 ![the plate, front and back](case/out/handheld_plate.png)
+
+### The colours
+
+![the plate's colours](case/out/assembly/00-colours.png)
+
+The plate prints face down, so its face is its first layers. Whatever is cut into the face shows the
+colour printing at the depth of its floor. Change filament three times, at 0.6, 1.2 and 1.8 mm from the
+bed (before layers 4, 7 and 10, at 0.2 mm layers), and each depth of cut is its own colour:
+
+| from | colour (a suggestion) | shows |
+|---|---|---|
+| 0.0 mm | light grey | the face |
+| 0.6 mm | charcoal | PICOQUORUM and the label frames, cut 0.6 mm; the nearest stripe |
+| 1.2 mm | red | TURN and SIGN, cut 1.2 mm; the middle stripe |
+| 1.8 mm | blue | the far stripe, cut 1.8 mm; the wells' floors and everything behind |
+
+- **Rings.** Anything with sloped sides shows the colours in rings. That includes the window's 2 mm bevel, the knob well's 1.2 mm chamfer, the sign well's 1.8 mm chamfer and the plate's 1.5 mm edge chamfer.
+- **The stripes.** Three 1.6 mm bars over the screen, with 45° ends, show the three colours under the face side by side.
+- **The labels.** Their words are bold, 4.2 mm, so the strokes are wide enough to print. Longer words came out at 2.2 mm, too thin.
+- **The other parts.** Print the guard's cover and the button cap in the red, and the rest in any colour.
+- **Bridges.** The floors of the cuts print as short bridges over the hole, 0.6 to 1.8 mm off the bed, so they may look a little rougher than the face.
+- **Changing it.** The depths, the colours and the words are `LAYER_CHANGES`, `COLOURS` and `LABELS` in `handheld.py`. Nothing checks the colours on a real print yet.
 
 ### The sign button's cover
 
 ![the guard, open, and cut through the middle](case/out/handheld_guard.png)
 
 A flip cover over the sign button, so it isn't pressed by accident. Shut, it is flush with the face. It
-flips up toward the screen, and stops at 100°, where it rests on the well's edge.
+flips up toward the screen, and stops at 120°, where it rests on the well's chamfered edge.
 
 - **The base** is a 3 mm plate, the well's shape, so it can't turn in it. Two M2 × 8 screws hold it,
   through it into the bosses behind the floor; their heads stand no higher than the cap's. It has a hole
@@ -356,7 +381,8 @@ the parts are boxes, and the screen's, the switch's and the breadboard's height 
 With the plate face down, the wells' floors are bridges: the knob's 25 mm across, 3 mm up; the sign
 button's 20.6 mm, 7 mm up, its plunger's hole in the middle. The thumbnail notch's top is one too, 2.5 mm
 up. So are the four counterbores' floors, a ring round each screw's hole, 3.2 mm up. The rest are the
-tops of the cuts for the name and the label frames, 0.6 mm up. Bridges of 20 to
+tops of the cuts for the colours: the name, the frames and the first stripe 0.6 mm up, the words and the
+second stripe 1.2, the third stripe 1.8. Bridges of 20 to
 25 mm print on most printers; if yours sags, put supports in the two wells only.
 
 The cap prints head down: its flange's cone leans 45°, so it needs no support. The base's cone, printed

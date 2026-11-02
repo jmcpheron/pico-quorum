@@ -32,6 +32,11 @@ All in `case/out/`, each the way up it prints.
 
 ![the printed parts](case/out/assembly/00-printed-parts.png)
 
+**The plate in four colours:** change filament at 0.6, 1.2 and 1.8 mm as it prints, face down
+([the colours](README.md#the-colours)).
+
+![the plate's colours](case/out/assembly/00-colours.png)
+
 ### Hardware
 
 | what | how many | where |
