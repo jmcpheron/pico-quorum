@@ -1,8 +1,9 @@
 # console-rp rev B: a board you can count the parts of, built end to end by JLCPCB
 
-*Concept, 2026-11-02. A plan: nothing drawn, ordered or flashed. Rev A ([README.md](README.md)) was
-never ordered, so rev B edits the design in place at the next round; rev A's renders stay as the
-before picture. Prices and stock are JLCPCB's and LCSC's on the date given.*
+*Concept, 2026-11-02. Round 1, the silkscreen, is drawn on the board
+([README.md](README.md#rev-b-so-far)); the rest is a plan, and nothing is ordered or flashed. Rev A
+was never ordered, so rev B edits the design in place; rev A's pictures are in git history, at
+commit 3b72de1. Prices and stock are JLCPCB's and LCSC's on the date given.*
 
 Rev A is the console on a bare RP2350A with no radio: USB-C power, a CH343P serial bridge, the
 ATECC608C on the board, a 1.14″ panel in a ZIF. Two things ask for a revision.
@@ -87,7 +88,7 @@ JLCPCB X-rays QFN and BGA joints as a matter of course; it sells no potting or c
 ### A. Countable
 
 1. **No part on the back.** Already so. The pour and the vias stay (Raspberry Pi's DVDD tracks run
-   there). Add one silkscreen line: *nothing is fitted on this side*.
+   there). Add one silkscreen line: *nothing is fitted on this side*. **Drawn.**
 2. **Nothing under the glass.** The pad row, the backlight switch and the 0402s move out from under
    the panel. That removes *our* parts from the hidden volume; it doesn't remove the volume, and that
    volume is where a Ledger-style implant goes. **Open, both answers stated:**
@@ -103,11 +104,12 @@ JLCPCB X-rays QFN and BGA joints as a matter of course; it sells no potting or c
    silkscreen outline round every fitted part. The rule for an owner: every part inside an outline,
    no outline empty, and anything bigger than a grain of rice that isn't on the list is wrong. An
    MFF2 eSIM is 5 × 6 mm; the smallest cellular modules are 10 × 10 mm. Neither fits in an 0402's
-   outline.
+   outline. **Drawn,** with 53 of the 57 parts in an outline: four of Raspberry Pi's 0402s have
+   no room for one ([README.md](README.md#rev-b-so-far)).
 4. **One connector.** The USB-C, and nothing else. The ZIF goes (the pads replace it). J3 stays as
    bare holes, tinned and empty in the reference photo, with a silkscreen note that anything
    soldered there is a tamper sign. Bare holes are the easiest place to solder an implant, so the
-   note has to say it.
+   note has to say it. **The note is drawn;** the ZIF waits for the panel.
 5. **Two layers.** The only copper is the copper you can see; no inner layer can carry a trace
    antenna. Green or yellow mask, the clearest over copper at JLCPCB's prices; not white, not black.
    Don't claim an owner can check traces by eye: nobody compares 0.2 mm lines to a Gerber.
@@ -120,6 +122,7 @@ JLCPCB X-rays QFN and BGA joints as a matter of course; it sells no potting or c
    feed a modem, so an implant must draw from VBUS; a cellular burst is hundreds of milliamps to 2 A.
    Print the expected draw by the USB-C (the generator knows it: `jlc_spec()`'s regulator amps) and
    tell owners to plug in through a $10 USB-C meter. Anything over it, or any burst, is foreign.
+   **Drawn,** on the back.
 8. **No battery.** An implant runs only while the console is plugged in, and the owner is looking
    at the screen. The Ledger implant relied on its own power. State it as a property.
 9. **A clear case.** Two laser-cut acrylic sheets on the existing H1–H4 holes, four screws, the
@@ -131,7 +134,9 @@ JLCPCB X-rays QFN and BGA joints as a matter of course; it sells no potting or c
 
 A "no radio, no battery part" rule can't be checked as a category: `tools/jlc/parts.json` has no
 category field. The stronger rule: **every LCSC number in the BOM is in `parts.json`, and
-`parts.json` is the whitelist.** A part not read and written down there doesn't get placed.
+`parts.json` is the whitelist.** A part not read and written down there doesn't get placed. This
+already holds: `tools/jlc/netlist_check.py` fails a BOM line whose LCSC number isn't in
+`parts.json`.
 
 ### C. Not now, with the reason
 
@@ -149,15 +154,15 @@ category field. The stronger rule: **every LCSC number in the BOM is in `parts.j
 - [ ] Which panel first; the backlight's power if the 2.0″.
 - [ ] Does the factory stick the glass down, or does it hang on its tail.
 - [ ] The acrylic case drawing, and the Sign button's guard: the open item on every console board.
-- [ ] `fab/bom.csv` beside this file is an earlier write of the BOM (the same parts, in another
-      order); the fab files are in `console-rp/fab/`. Remove it at the next generator run.
 
 ## Steps, in later rounds
 
-1. **Buy one of each candidate panel,** as a parts pre-order or a two-board Standard run with only
-   the pad row on it: the pin order, the pitch, how the glass is fixed, and the real Standard fee.
-   Nothing is written to any board.
-2. **Edit `gen_console_rp.py` in place:** the pad footprint, the glass's keep-out and courtyard, the
-   part census and outlines, the back-side line, the current label; then `tools/keypcb
-   gen-console-rp check` and `tools/keypcb jlc console-rp`.
+1. **Read both panels' datasheets** from a browser (LCSC's pages refuse the cloud container): the
+   FPC's pin table, pitch and tail drawing. Then buy one of each, as a parts pre-order or a
+   two-board Standard run with only the pad row on it: how the glass is fixed, and the real
+   Standard fee. Nothing is written to any board.
+2. **Edit `gen_console_rp.py` in place:** the pad footprint, the glass's keep-out and courtyard,
+   and the parts out from under the glass; then route again, `tools/keypcb gen-console-rp check`
+   and `tools/keypcb jlc console-rp`. The census, outlines, back-side line and current label are
+   drawn already (round 1, 2026-11-02).
 3. **A `console-rp` firmware profile,** a new release fingerprint, once a board exists.

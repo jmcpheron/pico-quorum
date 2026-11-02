@@ -23,7 +23,7 @@ screens are bench scripts, never part of the image ([builds/](builds/README.md#f
 | [feather-wing a, b](feather-wing/README.md) | board | key-c, USB-C | `feather-s3` | not ordered |
 | [console-s3](console-s3/DESIGN.md) | board | ATECC608C on the board | `feather-s3` | to order ([plan](../ORDER-PLAN-2026-10-24.md)) |
 | [console-usb](console-usb/README.md) | board | ATECC608C on the board | `feather-s3`, plus firmware not written | not routed |
-| [console-rp](console-rp/README.md) | board | ATECC608C (SOIC-8) on the board | a `console-rp` profile, not written | routed, fab files pass `tools/keypcb jlc`; not ordered. Rev B planned: [CONCEPT.md](console-rp/CONCEPT.md) |
+| [console-rp](console-rp/README.md) | board | ATECC608C (SOIC-8) on the board | a `console-rp` profile, not written | routed, fab files pass `tools/keypcb jlc`; not ordered. Rev B planned ([CONCEPT.md](console-rp/CONCEPT.md)), its silkscreen drawn |
 | [picoquorum-key](picoquorum-key/README.md) | board | UDFN ATECC608C on the board; rev B adds a key port for key-c | `picoquorum-key`, picked by its key bus's pull-ups; the port needs a later image | rev A to order ([plan](../ORDER-PLAN-2026-10-24.md)); rev B designed, not ordered |
 
 The parts of each are below.
@@ -73,7 +73,8 @@ The parts of each are below.
   to UART1. JLCPCB places everything but the screen. Written by a script and checked by KiCad 10:
   the schematic, and a 72 × 36 mm board routed round Raspberry Pi's own layout, with 3D renders and
   fab files that pass `tools/keypcb jlc`; not ordered. Rev B, a panel JLCPCB solders itself and
-  a board whose parts an owner can count, is planned in [CONCEPT.md](console-rp/CONCEPT.md)
+  a board whose parts an owner can count, is planned in [CONCEPT.md](console-rp/CONCEPT.md); its
+  silkscreen (the census, the owner's rules on the back, the outlines) is drawn
 - [`picoquorum-key/`](picoquorum-key/README.md): PicoQuorumKey, a second S3 console designed apart
   from console-s3, to order beside it and compare: the module on the back, the 1.14″ panel in a
   ZIF, five buttons, the UDFN ATECC608C, 44 × 53 mm. Its own generators, tests and fab files in

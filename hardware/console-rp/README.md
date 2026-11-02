@@ -2,7 +2,9 @@
 
 *Design, 2026-10-29. Written by a script and read back by KiCad 10: the schematic (netlist and ERC)
 and the board, routed (DRC). The fab files for JLCPCB are in [console-rp/fab/](console-rp/fab/) and
-pass `tools/keypcb jlc console-rp`. Not ordered. The firmware it needs is not written.*
+pass `tools/keypcb jlc console-rp`. Not ordered. The firmware it needs is not written.
+Rev B's silkscreen drawn 2026-11-02 ([Rev B so far](#rev-b-so-far)); the rest of rev B is a plan,
+in [CONCEPT.md](CONCEPT.md).*
 
 ![console-rp from above: a warning triangle and EXPERIMENTAL HARDWARE COSIGNER over the 1.14-inch screen at the top left, PicoQuorum console-rp under it, and D0, D1 and D2 in a row below that; the flash, the RP2350, the crystal, the CH343P, and the key chip with an 8-bit key pointing at it, to its right; the USB-C on the right edge, RESET and BOOTSEL at the bottom right, and the bench header's holes along the top](renders/console-rp-top.jpg)
 
@@ -114,7 +116,7 @@ their minimal design, turned as theirs is.
 - The key, RESET, BOOTSEL and the LED are along the bottom; J3 is along the top.
 - The silkscreen: a warning triangle and EXPERIMENTAL HARDWARE COSIGNER over the glass, and the
   name under it. On the back: the revision, **picoquorum.dev** and the licence, which names it as
-  the Source Location.
+  the Source Location; and since rev B, the census and the owner's rules ([below](#rev-b-so-far)).
   console-s3's 8-bit key (a nod to Adventure) sits beside U5, the key that signs, pointing at it.
   Its dragon is the Easter egg: under the glass, below the ribbon's path, turned to face the key.
   Pixels are 0.4 mm for the key and 0.3 mm for the dragon, so every gap is at least twice JLCPCB's
@@ -185,6 +187,8 @@ gen-console-rp check` checks the routed one as it is. Both run:
 - **Raspberry Pi's areas:** no other net's copper in their regulator corner or crystal corner, or
   under the chip or the crystal on the back.
 - **Under the glass:** each part's height and place.
+- **The census** (rev B): the back's census and rules are the ones the table gives, and the
+  census's count is the board's own count of fitted parts.
 
 `tools/keypcb fab console-rp` writes the files to upload: `console-rp-gerbers.zip`, `bom.csv` and
 `cpl.csv` in [console-rp/fab/](console-rp/fab/). `tools/keypcb jlc console-rp`
@@ -206,6 +210,44 @@ Not checked:
 - the 3D fit's guessed sizes: the panel's foam and glass, and how high U6's leads rise;
 - the screen's pin order on a real panel;
 - anything on a real board.
+
+## Rev B so far
+
+Rev B ([CONCEPT.md](CONCEPT.md)) makes the board one whose parts an owner can count, and moves the
+panel to one JLCPCB solders itself. Round 1, on 2026-11-02, is the silkscreen only. No copper,
+part or place changed: the tracks, vias, pours, footprints and outline are rev A's, and so are the
+BOM and CPL.
+
+On the back, where no part is fitted:
+- **The census,** written by the generator from the table: *57 parts, every one on the front: 2 QFN,
+  2 SOIC-8, 4 SOT-23, 1 crystal, 1 inductor, 1 USB-C, 1 ZIF, 5 buttons, 1 LED, 2 0805, 37 0402, and
+  the panel, fitted by hand.* Anything on the board that isn't in it is foreign.
+- **The rules:** *nothing is fitted on this side*; *J3 is empty: a part in it is foreign*; *under
+  0.12 A at 5 V: more, or bursts, is a part that isn't ours.* The figure is `jlc_spec()`'s
+  regulator current. A modem draws hundreds of milliamps in bursts, so a $10 USB-C meter between
+  the console and the computer shows one.
+- **rev B** and the date, in place of rev A's.
+
+On the front, **an outline round each part that had none:** Raspberry Pi's 0402s round the RP2350.
+Every stock footprint already has one. Thirteen are drawn, two of them round a pair; C3 and R1, and
+the USB pair R13 and R14, have no room for one that keeps 0.15 mm from every pad and clear of J3's
+labels and L1's dot. So 53 of the 57 parts sit in an outline.
+
+How: `draw_silk()` in the generator is the board's whole silkscreen, and `tools/keypcb
+gen-console-rp silk` takes the routed board's own silkscreen off and draws it again, touching
+nothing else. Then the checks, all on 2026-11-02:
+- `gen-console-rp check`: as rev A, plus the census. ERC 0; DRC only the findings allowed above.
+- `tools/keypcb jlc console-rp --strict`: every check passed, with rev A's three warnings. The
+  golden pictures changed on F.SilkS and B.SilkS only; F.Cu, B.Cu, the masks and the paste are
+  pixel for pixel rev A's. The 3D fit was skipped: FreeCAD wasn't installed, and silkscreen has no
+  height.
+- The run was in a Linux container: KiCad 10.0.8 with KiCad's 10.0.6 footprint library, the one
+  the board was made with. 10.0.8's library moves the CH343P's pin-1 mark on the silkscreen, which
+  DRC reports as U4 not matching its library; the copper is the same. The schematic is unchanged
+  (its title block still says rev A).
+
+Still rev A, and waiting for the panel's datasheet: the ZIF, the parts under the glass, and the
+glass's courtyard.
 
 ## Steps to a board
 
@@ -232,4 +274,5 @@ Not checked:
 - [ ] picoquorum.dev, printed on the back, must lead to the site and the source before boards ship.
   Today the site is at picoquorum.app (`docs/CNAME`), and .dev doesn't reach it.
 - [ ] Rev B: a factory-soldered panel and a board whose parts an owner can count, in
-  [CONCEPT.md](CONCEPT.md) (2026-11-02).
+  [CONCEPT.md](CONCEPT.md). The silkscreen is drawn ([Rev B so far](#rev-b-so-far)); the panel's
+  pad row waits for its datasheet.

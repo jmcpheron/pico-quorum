@@ -6,6 +6,8 @@ a CH343P serial bridge to the RP2350's UART1. See README.md.
     tools/keypcb gen-console-rp [render]         writes the project, the board placed, not routed
     tools/keypcb route console-rp                routes it (Freerouting)
     tools/keypcb gen-console-rp check [render]   checks the routed board, writing nothing but renders
+    tools/keypcb gen-console-rp silk [render]    draws the routed board's silkscreen again (rev B's census,
+                                                 rules and outlines), copper untouched, then checks it
         (KiCad 10: kicad-cli, its Python with pcbnew, its stock libraries and, to render, its 3D
         models; on Linux the system Python's pcbnew)
 
@@ -1157,6 +1159,155 @@ def write_board(sh, nets):
     arc((W - r, 0), (W - k, k), (W, r)); arc((W, H - r), (W - k, H - k), (W - r, H))
     arc((r, H), (k, H - k), (0, H - r)); arc((0, r), (k, k), (r, 0))
 
+    draw_silk(b)
+    pcbnew.SaveBoard(os.path.join(OUT, NAME + ".kicad_pcb"), b)
+
+
+# --- rev B's silkscreen (CONCEPT.md): a census of the fitted parts, the owner's rules on the back,
+# and an outline round each part that has none of its own. draw_silk() is the board's whole
+# silkscreen, so `gen-console-rp silk` can draw it again on the routed board without touching copper.
+REV, REV_DATE = "B", "2026-11-02"
+# What an owner sees, from each footprint's name: the first group whose key is in it
+CENSUS = [("QFN", "QFN"), ("SOIC-8", "SOIC-8"), ("SOT-23", "SOT-23"), ("crystal", "Crystal"), ("inductor", "_L_"),
+          ("USB-C", "USB_C"), ("ZIF", "FPC_ZIF"), ("buttons", "SW_Push"), ("LED", "LED_"), ("0805", "_0805"),
+          ("0402", "0402")]
+OUTLINE_W, OUTLINE_GAP, SILK_PAD = 0.15, 0.25, 0.15     # JLCPCB's least line, the outline's gap to its pads, and silk to any pad
+
+
+def census():
+    """The parts JLCPCB fits (not J3, the panel, the holes or the mark), grouped: [(group, count)]."""
+    n = {}
+    for p in PARTS:
+        if p.get("dnp") or not p.get("bom", True):
+            continue
+        fp = p["fp"].split(":")[1]
+        group = next((g for g, key in CENSUS if key in fp), None)
+        if group is None:
+            sys.exit(f"{NAME}: the census has no group for {p['ref']} ({fp})")
+        n[group] = n.get(group, 0) + 1
+    return [(g, n[g]) for g, _ in CENSUS if g in n]
+
+
+def census_lines(width=34):
+    """The census as silkscreen lines, about width characters each."""
+    groups = census()
+    lines, line = [f"{sum(c for _, c in groups)} parts, every one on the front:"], ""
+    for i, (g, c) in enumerate(groups):
+        item = f"{c} {g}" + ("," if i < len(groups) - 1 else "")
+        if line and len(line) + 1 + len(item) > width:
+            lines.append(line)
+            line = item
+        else:
+            line = f"{line} {item}" if line else item
+    lines.append(line)
+    return lines + ["and the panel, fitted by hand"]
+
+
+def back_rules():
+    amps = max(jlc_spec()["regulator"]["amps"])
+    return ["nothing is fitted on this side", "J3 is empty: a part in it is foreign",
+            f"under {amps:g} A at 5 V: more, or bursts,", "is a part that isn't ours"]
+
+
+def outlines(b):
+    """Outlines (board units: x0, y0, x1, y1) round each fitted part with no silkscreen of its own,
+    OUTLINE_GAP outside its pads, where the line keeps SILK_PAD from every other pad. Parts that
+    can't each have one, because their neighbours are too near, share one if it fits. Returns
+    (the outlines, the parts left without one)."""
+    import pcbnew
+    fitted = [fp for fp in b.GetFootprints() if not fp.IsDNP() and not fp.IsExcludedFromBOM()]
+    pads = [(fp.GetReference(), q) for fp in b.GetFootprints() for q in fp.Pads() if q.IsOnLayer(pcbnew.F_Cu)]
+    w, cl, g = pcbnew.FromMM(OUTLINE_W), pcbnew.FromMM(SILK_PAD), pcbnew.FromMM(OUTLINE_GAP)
+    # and the silkscreen already there, the parts' own (L1's polarity dot above all) and the board's
+    # text, kept OUTLINE_W clear; not the board's lines, which are the art, the warning and these outlines
+    silk = [(fp.GetReference(), i.GetBoundingBox()) for fp in b.GetFootprints() for i in fp.GraphicalItems()
+            if i.GetLayer() == pcbnew.F_SilkS and i.Type() == pcbnew.PCB_SHAPE_T]
+    silk += [("text", d.GetBoundingBox()) for d in b.GetDrawings() if d.GetLayer() == pcbnew.F_SilkS and d.Type() == pcbnew.PCB_TEXT_T]
+
+    def box(fps):
+        bb = pcbnew.BOX2I()
+        for fp in fps:
+            for q in fp.Pads():
+                bb.Merge(q.GetBoundingBox())
+        return bb.GetLeft() - g, bb.GetTop() - g, bb.GetRight() + g, bb.GetBottom() + g
+
+    def hits(r, own):
+        x0, y0, x1, y1 = r
+        out = set()
+        for a, c in (((x0, y0), (x1, y0)), ((x1, y0), (x1, y1)), ((x1, y1), (x0, y1)), ((x0, y1), (x0, y0))):
+            seg = pcbnew.SHAPE_SEGMENT(pcbnew.VECTOR2I(*a), pcbnew.VECTOR2I(*c), w)
+            out |= {ref for ref, q in pads if ref not in own and q.GetEffectiveShape(pcbnew.F_Cu).Collide(seg, cl)}
+            sb = seg.BBox(w)
+            out |= {ref for ref, bb in silk if ref not in own and sb.Intersects(bb)}
+        return out
+
+    bare = [fp for fp in fitted if not any(i.GetLayer() == pcbnew.F_SilkS and i.Type() == pcbnew.PCB_SHAPE_T
+                                           for i in fp.GraphicalItems())]
+    done, misfit = [], {}
+    for fp in sorted(bare, key=lambda f: f.GetReference()):
+        r = box([fp])
+        h = hits(r, {fp.GetReference()})
+        if h:
+            misfit[fp.GetReference()] = (fp, h)
+        else:
+            done.append(r)
+    # the misfits in groups: each with the misfits its outline ran into
+    left, seen = [], set()
+    for ref in sorted(misfit):
+        if ref in seen:
+            continue
+        group, todo = {ref}, [ref]
+        while todo:
+            for o in misfit[todo.pop()][1]:
+                if o in misfit and o not in group:
+                    group.add(o)
+                    todo.append(o)
+        seen |= group
+        r = box([misfit[o][0] for o in group])
+        if hits(r, group):
+            left += sorted(group)
+        else:
+            done.append(r)
+    return done, left
+
+
+def redraw_silk():
+    """The routed board's own silkscreen, fab and comment items taken off and drawn again by
+    draw_silk(): no footprint, track, via or pour is touched."""
+    import pcbnew
+    path = os.path.join(OUT, NAME + ".kicad_pcb")
+    b = pcbnew.LoadBoard(path)
+    layers = (pcbnew.F_SilkS, pcbnew.B_SilkS, pcbnew.F_Fab, pcbnew.Cmts_User)
+    for d in [d for d in b.GetDrawings() if d.GetLayer() in layers]:
+        b.Delete(d)
+    draw_silk(b)
+    pcbnew.SaveBoard(path, b)
+    print(f"  drew the silkscreen again on {os.path.relpath(path, REPO)}")
+
+
+def check_silk(bad):
+    """The census and the rules on the back are census_lines() and back_rules(), the census's count
+    is the board's own count of fitted parts, and each fitted part has an outline."""
+    import pcbnew
+    b = pcbnew.LoadBoard(os.path.join(OUT, NAME + ".kicad_pcb"))
+    back = {d.GetText() for d in b.GetDrawings() if d.GetLayer() == pcbnew.B_SilkS and d.Type() == pcbnew.PCB_TEXT_T}
+    for line in census_lines() + back_rules():
+        if line not in back:
+            bad.append(f"the back's silkscreen lacks {line!r}")
+    fitted = [fp for fp in b.GetFootprints() if not fp.IsDNP() and not fp.IsExcludedFromBOM()]
+    total = sum(c for _, c in census())
+    if len(fitted) != total:
+        bad.append(f"the census says {total} parts, the board fits {len(fitted)}")
+    drawn, left = outlines(b)
+    print(f"  the census: {total} parts, {', '.join(f'{c} {g}' for g, c in census())}; "
+          f"{len(drawn)} outlines drawn for parts with none" + (f"; no room for one round {', '.join(left)}" if left else ""))
+
+
+def draw_silk(b):
+    """The board's silkscreen, and its fab and comment text: labels, the warning, the name, the
+    art, J3's pins, the back's text, rev B's census and rules, and the outlines."""
+    import pcbnew
+    mm = lambda x, y: pcbnew.VECTOR2I_MM(OX + x, OY + y)
     def text(s, x, y, size, layer=pcbnew.F_SilkS, back=False, rot=0, align=0, wide=None):
         t = pcbnew.PCB_TEXT(b)
         t.SetText(s); t.SetPosition(mm(x, y)); t.SetLayer(layer)
@@ -1197,12 +1348,23 @@ def write_board(sh, nets):
     for i, lab in enumerate(("GND", "3V3", "CLK", "DIO", "D-", "D+", "SDA", "SCL")):     # J3's pins, as the schematic, upright to fit
         text(lab, x3 - 2.54 * i, y3 + 2.6, 1.0, rot=90)
     text("no radio: USB serial only", XC, 20.0, 1.0, pcbnew.B_SilkS, back=True)
-    text("console-rp rev A " + DATE, 50.0, 22.0, 1.0, pcbnew.B_SilkS, back=True)
+    text(f"console-rp rev {REV} {REV_DATE}", 50.0, 22.0, 1.0, pcbnew.B_SilkS, back=True)
     text("picoquorum.dev", 50.0, 24.6, 1.4, pcbnew.B_SilkS, back=True)           # also the Source Location
     text("CERN-OHL-W v2, Source Location as 4.1", 50.0, 26.8, 1.0, pcbnew.B_SilkS, back=True)
     text("ribbon folds under the glass into J2", (ZIF_IN + GX1) / 2 + 1.0, YC + 3.0, 0.8, pcbnew.F_Fab)
+    # rev B: what an owner can count and check (CONCEPT.md). The back has no parts, so it says so,
+    # and carries the census and the rules; the front gets an outline round each part that has none
+    for i, line in enumerate(back_rules()):
+        text(line, XC, 23.0 + 2.0 * i, 1.0, pcbnew.B_SilkS, back=True, wide=0.85)
+    for i, line in enumerate(census_lines()):
+        text(line, 52.0, 7.0 + 2.0 * i, 1.0, pcbnew.B_SilkS, back=True, wide=0.85)
+    for x0, y0, x1, y1 in outlines(b)[0]:
+        for a, c in (((x0, y0), (x1, y0)), ((x1, y0), (x1, y1)), ((x1, y1), (x0, y1)), ((x0, y1), (x0, y0))):
+            s = pcbnew.PCB_SHAPE(b, pcbnew.SHAPE_T_SEGMENT)
+            s.SetStart(pcbnew.VECTOR2I(a[0], a[1])); s.SetEnd(pcbnew.VECTOR2I(c[0], c[1]))
+            s.SetLayer(pcbnew.F_SilkS); s.SetWidth(pcbnew.FromMM(OUTLINE_W))
+            b.Add(s)
     text(ROUTE_NOTE, W / 2, H + 2.0, 1.0, pcbnew.Cmts_User)
-    pcbnew.SaveBoard(os.path.join(OUT, NAME + ".kicad_pcb"), b)
 
 
 def is_routed():
@@ -1267,7 +1429,7 @@ RENDERS = [  # name, kicad-cli pcb render options
 
 
 def render():
-    """KiCad's own 3D view (raytraced) into renders/, as JPEGs (macOS's sips)."""
+    """KiCad's own 3D view (raytraced) into renders/, as JPEGs (macOS's sips, or ImageMagick's convert)."""
     import pcbnew
     os.makedirs(os.path.join(HERE, "renders"), exist_ok=True)
     with tempfile.TemporaryDirectory() as tmp:
@@ -1281,7 +1443,8 @@ def render():
             subprocess.run([CLI, "pcb", "render", "--quality", "high", "--background", "opaque", "--floor",
                             *opts, "-o", png, src], check=True, capture_output=True, env=kicad_env(tmp))
             jpg = os.path.join(HERE, "renders", f"{NAME}-{name}.jpg")
-            subprocess.run(["sips", "-s", "format", "jpeg", "-s", "formatOptions", "85", png, "--out", jpg], check=True, capture_output=True)
+            subprocess.run(["sips", "-s", "format", "jpeg", "-s", "formatOptions", "85", png, "--out", jpg] if shutil.which("sips")
+                           else ["convert", png, "-quality", "85", jpg], check=True, capture_output=True)
             print(f"  {os.path.relpath(jpg, REPO)}")
         for ext in (".kicad_pcb", ".kicad_pro", ".kicad_prl"):
             if os.path.exists(bare[:-10] + ext):
@@ -1338,7 +1501,9 @@ def jlc_spec():
 def main():
     bad = []
     check_firmware(bad)
-    checking = "check" in sys.argv[1:]
+    checking = "check" in sys.argv[1:] or "silk" in sys.argv[1:]
+    if "silk" in sys.argv[1:]:
+        redraw_silk()
     if not checking:
         if is_routed():
             sys.exit(f"{NAME}: {NAME}.kicad_pcb is routed, and a new schematic wouldn't match it. "
@@ -1361,6 +1526,7 @@ def main():
     drc = check_placement(bad, routed=checking)
     if checking:
         check_rpi(bad)
+        check_silk(bad)
     print(f"  the board: {NAME}.kicad_pcb, {W:g} x {H:g} mm, {'routed' if checking else 'placed, not routed'}; DRC: "
           + (", ".join(f"{k} {v}" for k, v in sorted(drc.items())) or "nothing"))
     if "render" in sys.argv[1:] and not bad:
