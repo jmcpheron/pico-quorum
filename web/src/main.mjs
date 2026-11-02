@@ -8,6 +8,7 @@ import { p256 } from "@noble/curves/p256";
 import { encodeFunctionData, getAddress, isAddress } from "viem";
 import { verifyBundle } from "./attest.mjs";
 import { blockieSrc } from "./blockies.mjs";
+import { deviceView } from "./device.mjs";
 import {
   ERC20_ABI, KINDS, buildCall, isRejection, knownTokens, nextNonce, proposalBody, safeTx, typedData, walletSignature,
 } from "./propose.mjs";
@@ -1155,6 +1156,14 @@ async function releasesView() {
   } catch (e) { fail(list, e); }
 }
 
+// The console page's own release (docs/console/BUILD.json "release"), to compare a device's with.
+let browserReleaseP = null;
+const browserRelease = () => (browserReleaseP ||= fetch(new URL("../console/BUILD.json", location.href), { cache: "no-cache" })
+  .then((r) => (r.ok ? r.json() : {})).then((b) => b.release || "").catch(() => ""));
+const chainIds = Object.fromEntries(Object.entries(CHAINS).map(([k, c]) => [k, c.id]));
+const chainName = (id) => CHAINS[chainById(id)]?.name || `chain ${id}`;
+const device = () => deviceView({ h, fill, add, badge, ident, steps, short, savedSafes, CHAINS, chainIds, chainName, releaseList, browserRelease, shortFp, main: $main() });
+
 function notFound() {
   fill($main(), h("section", { class: "hero" }, h("h1", { text: "Nothing here" }), h("p", {}, h("a", { href: "#/", text: "Back to the start" }))));
 }
@@ -1174,6 +1183,7 @@ function route() {
   if (parts[0] === "k") return parts[1] ? keySetupView(parts[1]) : signerForm();
   if (parts[0] === "settings") return settingsView();
   if (parts[0] === "releases") return releasesView();
+  if (parts[0] === "device") return device();
   return notFound();
 }
 window.addEventListener("hashchange", route);

@@ -44,6 +44,11 @@ What it does:
 - **Releases.** `docs/releases/index.json` (from `tools/release`), each release with its
   fingerprint's blockie. Type the eight digits from a console's Device screen to see which release
   it runs.
+- **Device.** `#/device` (`src/device.mjs`) connects to a console on this computer's USB through
+  Web Serial (Chrome or Edge on a computer). It shows what the console says it is: board, release,
+  key, Wi-Fi, the Safes it watches. It can also send it a Wi-Fi network or the Safes to watch. The
+  console saves either only when someone holds Sign on it. The link can't make it sign
+  (`docs/USB-LINK.md`). The page keeps DTR and RTS low, because their edges reset an ESP32-S3.
 - **Blockies.** Every Safe, owner, key, recipient and confirmation has its blockie, and each queued
   transaction shows its hash's blockie beside the verify code. `src/blockies.mjs` draws the same
   picture as the console (`firmware/blockies.py`), Safe{Wallet}, MetaMask and Etherscan: the seed is
