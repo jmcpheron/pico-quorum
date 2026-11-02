@@ -3,15 +3,16 @@
 | | |
 |---|---|
 | board | a Pico 2 W (castellated), wires soldered to its pads: no headers |
-| key | a key-c in pico-sign's cartridge, plugged straight down onto a USB-C plug in the top edge |
+| key | a key-c in [a clamshell](#the-keys-clamshell): two halves that snap shut, plugged straight down onto a USB-C plug in the top edge |
 | runs | the console image as `BOARD = "build1"`, `SCREEN = "2.4"`, unchanged; `firmware/bench1.py` first |
 | case | [the handheld](#the-case-the-handheld): a tub and a front plate, 86 × 118 × 30 mm, M3 into heat-set inserts |
 | status | written up 2026-11-02; not printed, not wired, not run. The 2.4″ has not been seen working |
 
-[pico-sign](../pico-sign/README.md) again, smaller. The same knob, the same hold-to-sign switch, the
-same pins and the same key cartridge, with the 2.4″ screen in place of the 2.8″, in a flat case you hold
-in two hands like a handheld game, or lay on the desk. The screen is across the top half; the knob is
-under it on the left, the sign switch on the right. The key stands up out of the top edge.
+[pico-sign](../pico-sign/README.md) again, smaller. The same knob, the same hold-to-sign switch and the
+same pins, with the 2.4″ screen in place of the 2.8″, in a flat case you hold in two hands like a
+handheld game, or lay on the desk. The screen is across the top half. Under it the knob is on the left
+and the sign switch on the right, each sunk in a well; the sign switch has a flip cover. The key, in a
+snap-shut clamshell, stands up out of the top edge.
 
 ![the handheld](case/out/handheld_front.png)
 
@@ -23,8 +24,11 @@ under it on the left, the sign switch on the right. The key stands up out of the
 - **The Pico lies on the tub's floor**, between the knob and the switch, its USB out of the bottom edge.
   On the prism it hangs behind the screen.
 - **No headers.** The case leaves 4 mm over the Pico's board, so the wires are soldered to its pads.
-- **A short sign switch.** 20 mm behind its ring, not the 28 mm the prism allows. See
+- **A short sign switch.** 20 mm under its head, not the 28 mm the prism allows. See
   [the sign switch](#the-sign-switch).
+- **The controls are sunk in wells**, and the sign switch has a [flip cover](#the-sign-switchs-cover).
+- **The key's case is a clamshell** that snaps shut, not pico-sign's cartridge, which is glued or
+  screwed. Same outside, so either fits either build.
 
 Everything else is pico-sign's.
 
@@ -34,8 +38,7 @@ Everything else is pico-sign's.
 - the 2.4″ IPS 240 × 320 SPI screen, 8 pins (VCC, GND, SCL, SDA, RST, DC, CS, BLK)
 - an EC11 knob with push, 20 detents, a 6 mm D-shaft, an M7 bushing, and a cap about 18 mm across
 - the sign switch: a 12 mm metal push switch, **momentary**, normally open, short-bodied
-- a key-c in its cartridge, and a USB-C plug on a short cable for it, as on
-  [pico-sign](../pico-sign/README.md#the-key)
+- a key-c, and a USB-C plug on a short cable for it, as on [pico-sign](../pico-sign/README.md#the-key)
 - two 4.7 kΩ resistors, the key's pull-ups
 - thin stranded wire, about 12 cm a lead
 - for the case: [the hardware](#the-hardware)
@@ -79,10 +82,13 @@ screen's posts don't change.
 [pico-sign's README](../pico-sign/README.md#the-sign-switch) says why, and how to meter one.
 
 **It must be short.** The case is 30 mm thick, and the switch hangs behind the plate. The script
-places a 20 mm body behind the plate's 2 mm ring and prints how deep a switch fits: up to 22.1 mm,
-lugs included. The pedal switches the prism allows for (28 mm) don't fit. 12 mm "anti-vandal" metal
-momentary switches are often about 20 mm long behind the panel. That is not measured. Measure yours, set
-`SIGN_DEPTH`, and run the script again.
+takes a switch 20 mm long from under its head to its lugs' tips, and prints how long one fits: up to
+23.1 mm. The pedal switches the prism allows for (28 mm) don't fit. 12 mm "anti-vandal" metal momentary
+switches are often about 20 mm long under the head. That is not measured.
+
+**Its head must be low.** It sits in a well under the cover. The script takes a head 15 mm across and
+2.0 mm tall over its flange's underside, with 0.4 mm between it and the cover. Measure yours, set
+`SIGN_HEAD` and `SIGN_DEPTH`, and run the script again: the well's depth follows the head.
 
 ## What the controls do
 
@@ -114,7 +120,7 @@ Flat and portrait, 86 mm wide, 118 tall and 30 thick, corners rounded 6 mm. The 
 under the sign switch, is rounded 20 mm. The back's edge is rounded 3 mm and the face's chamfered 1.5 mm.
 With a key in, it is 164 mm tall.
 
-**Five printed parts:**
+**Seven printed parts, and the key's two:**
 - **The tub**, one piece, open at the face. It prints on its back. In it:
   - four posts at the corners, an M3 insert in each, for the plate's screws
   - four posts for the Pico, M2 screws cutting their own thread
@@ -125,22 +131,48 @@ With a key in, it is 164 mm tall.
 - **The carrier**, 2.5 mm, behind the screen. It is the prism's, without the Pico.
 - **Four spacers**, 4 mm tubes that slip onto the screen's pins.
 - **The plug lock**, which holds the key's plug up. It prints on its side.
+- **The guard's base and cover**, for the sign switch. The base prints as it sits, the cover face down.
+- **The key's tray and cover**: [the clamshell](#the-keys-clamshell).
 
 **On the plate:**
 - the screen's window across the top, bevelled, 2 mm bigger than the active area
 - on the back, the prism's screen mount. A post at each of the screen board's holes is a seat for the
   board, with a pin through it, the spacer and the carrier. Where the glass comes close, the seat is cut
   flat. Four 9 mm bosses above and below the screen, each with an M3 insert, take the carrier.
-- the knob on the left and the sign switch on the right, 30 mm up from the bottom edge. The switch has
-  a ring 2 mm thicker behind the plate, because it's pressed hard.
+- the knob on the left and the sign switch on the right, 30 mm up from the bottom edge, each sunk in a
+  well. The plate is thickened behind each well, 3 mm past its edge, so its floor stays thick:
+  - **the knob's well:** round, 25 mm across and 3 mm deep, a 2 mm floor for the EC11's nut. The knob's
+    cap stands about 12 mm out of the face, with 3.5 mm round it for your fingers.
+  - **the sign switch's well:** the guard's outline, 20.6 × 24.6 mm, 6 mm deep, a 1.5 mm floor. A
+    notch under its bottom edge is for a thumbnail, to lift the cover.
 - a 20 × 6 mm frame under each, a 0.6 mm line cut 0.6 mm deep, for a label
 - PICOQUORUM cut between the controls and the window: 7.7 mm letters, 65 mm long (the script works it out)
 
 ![the plate, front and back](case/out/handheld_plate.png)
 
-**The key** plugs straight down onto a USB-C plug in the top edge, in the middle, near the back. As on the
+### The sign switch's cover
+
+![the guard, open](case/out/handheld_guard.png)
+
+A flip cover over the sign switch, so it isn't pressed by accident. Shut, it is flush with the face. It
+flips up toward the screen, and stops at 100°, where it rests on the well's edge.
+
+- **The base** is a 2 mm plate, the well's shape, so it can't turn in it. It has a hole for the switch and
+  a knuckle at each end of the hinge. The switch goes through the base and the floor. Its head clamps
+  the base down, and its nut is behind the plate. No screws.
+- **The cover** is 1.6 mm, with a knuckle between the base's two.
+- **The pin** is a piece of 1.75 mm filament, 20 mm long, pushed through the three knuckles. It is tight
+  in the base's (1.8 mm holes) and free in the cover's (2.0 mm). Trim it flush.
+- Put the cover on the base before the switch goes in. The pin goes in from the side.
+
+The cover stays shut by its own weight with the handheld flat, and by the pin's friction in your hands.
+There is no latch.
+
+### The key
+
+The key plugs straight down onto a USB-C plug in the top edge, in the middle, near the back. As on the
 prism, the plug is a cut cable's: its overmold, 12.4 × 5.5 × 17.1 mm (calipers), ends flush with the
-edge in a hole with 0.2 mm round it, so only the metal shell stands out. The key's cartridge stands up
+edge in a hole with 0.2 mm round it, so only the metal shell stands out. The key's clamshell stands up
 out of the top, its chip's window toward the face.
 
 The plug's holder is the prism's, laid on the floor. Its channel is open toward the face, and so is the
@@ -150,6 +182,35 @@ slot for the cable in the stop at its foot. Putting the plug in:
 2. Push it up into the top's hole until the overmold is flush.
 3. Drop **the lock** into the 9.4 mm under it, the cable in the lock's slot. Two bumps on the lock click
    into holes in the channel's walls. Its lip is to pull it out by.
+
+### The key's clamshell
+
+[`case/cartridge.py`](case/cartridge.py). Two halves that snap shut round a key-c. Each prints flat on its
+outside face, with no supports. Same outside as pico-sign's cartridge: 22 × 46 × 7.56 mm, a keyed corner
+and a lanyard hole.
+
+![the key's clamshell](case/out/cartridge.png)
+
+- **The tray** (the back) holds the board in a pocket 1.6 mm deep, the board's thickness. A 2.7 mm peg
+  stands up through key-c's 3 mm lanyard hole, H1, so the board can't slide either way: plugging the key
+  in pushes the board toward the grip, and pulling it off pulls the board toward the plug. A relief under the receptacle takes its shell tabs, which come
+  through the board.
+- **The cover** (the front) comes down on it. A rim 1 mm wide round the board's edge and a boss round the
+  peg press the board flat. Inside, 2.2 mm over the parts and a pocket over the receptacle, open at the
+  plug end. A window shows the ATECC608.
+- **Four clips** stand up from the tray, two each side, beside the board. Each hooks 0.25 mm over a ledge
+  in a window in the cover's side. Press the halves together and they click. To open it, push the four
+  hooks in through the windows with a small screwdriver.
+- The receptacle's face is flush with the plug end, so the plug goes all the way in.
+
+**Not tried.** The clips are 0.8 mm thick and 5 mm long to the hook: about 1.7% strain to snap in, by the
+usual cantilever sum. PLA takes about 2%, so PETG is the safer plastic. Print a pair and try it before the
+key goes in. If the clips are loose, glue the halves.
+
+key-c's numbers come from its board file: 16 × 36 × 1.6 mm, H1 3 mm at 14 mm from the centre, J1's
+tabs at ±4.32 mm. The receptacle's front is taken to be flush with the board's edge: not measured.
+
+### Inside
 
 ![the tub, open](case/out/handheld_tub.png)
 
@@ -174,6 +235,8 @@ From the bench's kits (inserts are named thread × length × outside diameter):
 | the tub's posts, for the Pico | none: 1.8 mm holes, self-tapping | 4 × M2 × 8 socket head |
 | the screen | none: four pins and four spacers | none |
 | the feet | | 4 rubber strips, 6 × 35 mm |
+| the guard's hinge | none | 20 mm of 1.75 mm filament |
+| the key's clamshell | none: it snaps shut | none |
 
 The insert holes and the 1.8 mm self-tapping holes are the prism's numbers, and neither has been tried.
 Print one post and set an insert first.
@@ -182,20 +245,23 @@ Print one post and set an insert first.
 
 1. **The tub:** the four corner inserts. The key's plug and its lock, as above. The Pico on its posts,
    four M2 × 8. The micro-USB cable in through the bottom edge.
-2. **The plate:** the four boss inserts. The sign switch and the knob with their nuts. The screen face
+2. **The plate:** the four boss inserts. The guard: its cover on its base, the pin through, then the
+   base into its well and the sign switch through both, its nut behind. The knob with its nut. The screen face
    down onto its seats, the pins through its holes. A spacer on each pin, the carrier on, four M3 × 8 with
    washers.
 3. **The wires:** the plate face down beside the tub. The screen, the knob and the switch to the Pico;
    the key's plug to the Pico, its pull-ups at the plug ([pico-sign's tables](../pico-sign/README.md#the-wiring)).
 4. **Close it:** the plate onto the tub, four M3 × 8 countersunk. The feet in their pockets.
-5. **The key:** its cartridge straight down onto the plug in the top edge.
+5. **The key:** into its tray, the peg through H1; the cover on, pressed until the four clips click.
+   Then straight down onto the plug in the top edge.
 
 ### What the script checks
 
 That the boxes standing in for the screen's glass, board, back parts and header, the carrier's screw
-heads, the switch, the knob, the key's plug, the cartridge, the Pico, the room for its parts and wires
+heads, the switch, the knob, the key's plug, the clamshell, the Pico, the room for its parts and wires
 on either face, and its USB plug don't overlap the tub, the plate, the carrier, the spacers, the plug
-lock or each other: 180 pairs, all clear. The closest:
+lock or each other. That the guard's base and cover clear the plate, the switch and the knob, with the
+cover shut and opened 30°, 60° and 90°. 198 pairs, all clear. The closest:
 
 | | mm |
 |---|---|
@@ -205,16 +271,24 @@ lock or each other: 180 pairs, all clear. The closest:
 | the carrier to the tub | 1.0 |
 | the plug lock to the carrier | 1.2 |
 | the Pico's wires to the carrier | 1.8 |
-| the sign switch to the floor | 2.6 |
+| the guard's cover to the switch's head | 0.4 |
+| the sign switch to the floor | 3.6 |
 | the Pico to the sign switch | 3.5 |
 
 It also checks that the bosses are deep enough for their inserts and the Pico's posts for their screws.
-It is not a fit check: the parts are boxes, and the screen's are placeholders.
+In the clamshell, that key-c, its parts and its tabs don't overlap either half, nor the halves each other
+(U1 is 1.14 mm under the cover). It is not a fit check: the parts are boxes, and the screen's and the
+switch's are placeholders.
 
 **Overhangs**, with the tub on its back: six flat faces face down off the bed. They are all bridges:
 - the four feet's pockets: 6.6 mm across, 1 mm up
 - the top of the key's plug hole in the top edge: 12.8 mm across
 - the top of the Pico's cable hole in the bottom edge: 14 mm across, its corners rounded 1.5 mm
+
+With the plate face down, the wells' floors are bridges: the knob's 25 mm across, 3 mm up; the sign
+switch's 20.6 mm, 6 mm up, its hole in the middle. The thumbnail notch's top is one too, 2.5 mm up. The
+rest are the tops of the cuts for the name and the label frames, 0.6 mm up. Bridges of 20 to 25 mm print
+on most printers; if yours sags, put supports in the two wells only.
 
 ### Before printing
 
@@ -225,7 +299,7 @@ It is not a fit check: the parts are boxes, and the screen's are placeholders.
   is a 2.4″ 240 × 320 panel's. If the glass sits off the board's centre, set `SCREEN_DX`, as the prism
   did. All of it is `SCREEN_*` at the top of `handheld.py`. The script prints how close the glass comes
   to the holes.
-- **Measure the sign switch** (`SIGN_DEPTH`, above).
+- **Measure the sign switch** (`SIGN_HEAD`, `SIGN_DEPTH`, above).
 - **The key's plug** is the prism's: the cut cable's overmold, 12.4 × 5.5 × 17.1 mm. A different cable
   needs `PLUG_*` changed.
 - **The Pico's plug:** a micro-USB overmold 11 × 8 mm is assumed (`USB_PLUG`).
@@ -237,8 +311,10 @@ It is not a fit check: the parts are boxes, and the screen's are placeholders.
 | `handheld_plate.stl` | the plate, face down |
 | `handheld_carrier.stl`, `handheld_spacers.stl` | the carrier, face down; the four spacers |
 | `handheld_plug_lock.stl` | the lock for the key's plug, on its side |
+| `handheld_guard_base.stl`, `handheld_guard_cover.stl` | the sign switch's guard: the base as it sits, the cover face down |
+| `cartridge_tray.stl`, `cartridge_cover.stl` | the key's clamshell, each half on its outside face |
 | `handheld_assembly.step` | closed, with a box for each part |
-| `handheld_*.png` | the pictures here |
+| `handheld_*.png`, `cartridge.png` | the pictures here |
 
 Not printed yet. The pictures are matplotlib's, and its shading is rough: it draws some faces from behind
 through the plate.
