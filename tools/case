@@ -40,7 +40,7 @@ DESIGNS = {
         outputs=[PS + "/case/out/pico_sign_*"],
         pages=[]),
     "handheld": dict(
-        about="pico-sign-handheld's case: flat and portrait, for the 2.4\" screen; the carrier and the Pico; the sign button's guard; the key's clamshell; the assembly pictures",
+        about="pico-sign-handheld's case: flat and portrait, for the 2.4\" screen; the carrier and the Pico; the sign button's guard; the key's cartridge and its bay in the back; the assembly pictures",
         scripts=["hardware/builds/pico-sign-handheld/case/handheld.py", "hardware/builds/pico-sign-handheld/case/assembly.py"],
         outputs=["hardware/builds/pico-sign-handheld/case/out/*", "hardware/builds/pico-sign-handheld/case/out/assembly/*"],
         pages=["hardware/builds/pico-sign-handheld/README.md", "hardware/builds/pico-sign-handheld/ASSEMBLY.md"]),
