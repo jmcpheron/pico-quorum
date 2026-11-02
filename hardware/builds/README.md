@@ -36,3 +36,4 @@ differently on it. That is a firmware change, so it is a new release fingerprint
 |---|---|---|---|
 | [feather-pigtail](feather-pigtail/README.md) | Feather ESP32-S3 Reverse TFT | a USB-C cable soldered to its pins | `feather-s3`; `bench/swap.py` |
 | [feather-knob](feather-knob/README.md) | ESP32-S3 TFT Feather (5483) and an EC11 knob | a USB-C adapter on its header pins | `feather-knob`; `bench/dial.py` |
+| [pico-sign](pico-sign/README.md) | Pico 2 W, the 2.8″ screen, an EC11 knob and a hold-to-sign switch | a key-c in a cartridge, in a bay in the case | `build1`, `SCREEN = "2.8"`; `bench1.py` |

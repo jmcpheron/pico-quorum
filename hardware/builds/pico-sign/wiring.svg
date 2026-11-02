@@ -1,0 +1,193 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1020" height="860" viewBox="0 0 1020 860" font-family="Helvetica, Arial, sans-serif" font-size="12">
+<rect width="1020" height="860" fill="#ffffff"/>
+<text x="24" y="34" font-size="19" font-weight="bold">PicoQuorum pico-sign: Pico 2 W, 2.8" screen, EC11 knob, hold-to-sign switch, key-c</text>
+<text x="24" y="56" fill="#555">Pico seen from the top, USB on the left. Firmware: the console image, BOARD = "build1", SCREEN = "2.8". Go by the names printed on each part.</text>
+<rect x="330" y="210" width="408.0" height="168.0" rx="6" fill="#1f6f3f"/>
+<rect x="319.6" y="262.0" width="44.0" height="64.0" rx="2" fill="#bfc4c9"/>
+<text x="354.0" y="298.0" font-size="10" text-anchor="middle" fill="#333" transform="rotate(-90 354.0 298.0)">USB</text>
+<rect x="482.0" y="262.0" width="64.0" height="64.0" fill="#2b2b2b"/>
+<rect x="594.0" y="250.0" width="88.0" height="88.0" fill="#c9cfd4"/>
+<text x="574.0" y="299.0" font-size="15" text-anchor="middle" fill="#ffffff" font-weight="bold">Pico 2 W</text>
+<circle cx="341.0" cy="365.1" r="3.4" fill="#1f6f3f" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="341.0" y="382.1" font-size="9" text-anchor="middle" fill="#a7c8b2">1</text>
+<circle cx="361.3" cy="365.1" r="4.2" fill="#f4d77a" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="361.3" y="382.1" font-size="9" text-anchor="middle" fill="#ffffff">2</text>
+<text x="365.3" y="407.1" font-size="10" text-anchor="end" fill="#333" font-weight="bold" transform="rotate(-60 365.3 407.1)">GP1</text>
+<circle cx="381.6" cy="365.1" r="4.2" fill="#f4d77a" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="381.6" y="382.1" font-size="9" text-anchor="middle" fill="#ffffff">3</text>
+<text x="385.6" y="407.1" font-size="10" text-anchor="end" fill="#333" font-weight="bold" transform="rotate(-60 385.6 407.1)">GND</text>
+<circle cx="401.9" cy="365.1" r="4.2" fill="#f4d77a" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="401.9" y="382.1" font-size="9" text-anchor="middle" fill="#ffffff">4</text>
+<text x="405.9" y="407.1" font-size="10" text-anchor="end" fill="#333" font-weight="bold" transform="rotate(-60 405.9 407.1)">GP2</text>
+<circle cx="422.2" cy="365.1" r="4.2" fill="#f4d77a" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="422.2" y="382.1" font-size="9" text-anchor="middle" fill="#ffffff">5</text>
+<text x="426.2" y="407.1" font-size="10" text-anchor="end" fill="#333" font-weight="bold" transform="rotate(-60 426.2 407.1)">GP3</text>
+<circle cx="442.6" cy="365.1" r="4.2" fill="#f4d77a" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="442.6" y="382.1" font-size="9" text-anchor="middle" fill="#ffffff">6</text>
+<text x="446.6" y="407.1" font-size="10" text-anchor="end" fill="#333" font-weight="bold" transform="rotate(-60 446.6 407.1)">GP4</text>
+<circle cx="462.9" cy="365.1" r="4.2" fill="#f4d77a" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="462.9" y="382.1" font-size="9" text-anchor="middle" fill="#ffffff">7</text>
+<text x="466.9" y="407.1" font-size="10" text-anchor="end" fill="#333" font-weight="bold" transform="rotate(-60 466.9 407.1)">GP5</text>
+<circle cx="483.2" cy="365.1" r="4.2" fill="#f4d77a" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="483.2" y="382.1" font-size="9" text-anchor="middle" fill="#ffffff">8</text>
+<text x="487.2" y="407.1" font-size="10" text-anchor="end" fill="#333" font-weight="bold" transform="rotate(-60 487.2 407.1)">GND</text>
+<circle cx="503.5" cy="365.1" r="3.4" fill="#1f6f3f" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="503.5" y="382.1" font-size="9" text-anchor="middle" fill="#a7c8b2">9</text>
+<circle cx="523.8" cy="365.1" r="3.4" fill="#1f6f3f" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="523.8" y="382.1" font-size="9" text-anchor="middle" fill="#a7c8b2">10</text>
+<circle cx="544.2" cy="365.1" r="4.2" fill="#f4d77a" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="544.2" y="382.1" font-size="9" text-anchor="middle" fill="#ffffff">11</text>
+<text x="548.2" y="407.1" font-size="10" text-anchor="end" fill="#333" font-weight="bold" transform="rotate(-60 548.2 407.1)">GP8</text>
+<circle cx="564.5" cy="365.1" r="4.2" fill="#f4d77a" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="564.5" y="382.1" font-size="9" text-anchor="middle" fill="#ffffff">12</text>
+<text x="568.5" y="407.1" font-size="10" text-anchor="end" fill="#333" font-weight="bold" transform="rotate(-60 568.5 407.1)">GP9</text>
+<circle cx="584.8" cy="365.1" r="4.2" fill="#f4d77a" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="584.8" y="382.1" font-size="9" text-anchor="middle" fill="#ffffff">13</text>
+<text x="588.8" y="407.1" font-size="10" text-anchor="end" fill="#333" font-weight="bold" transform="rotate(-60 588.8 407.1)">GND</text>
+<circle cx="605.1" cy="365.1" r="4.2" fill="#f4d77a" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="605.1" y="382.1" font-size="9" text-anchor="middle" fill="#ffffff">14</text>
+<text x="609.1" y="407.1" font-size="10" text-anchor="end" fill="#333" font-weight="bold" transform="rotate(-60 609.1 407.1)">GP10</text>
+<circle cx="625.4" cy="365.1" r="4.2" fill="#f4d77a" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="625.4" y="382.1" font-size="9" text-anchor="middle" fill="#ffffff">15</text>
+<text x="629.4" y="407.1" font-size="10" text-anchor="end" fill="#333" font-weight="bold" transform="rotate(-60 629.4 407.1)">GP11</text>
+<circle cx="645.8" cy="365.1" r="4.2" fill="#f4d77a" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="645.8" y="382.1" font-size="9" text-anchor="middle" fill="#ffffff">16</text>
+<text x="649.8" y="407.1" font-size="10" text-anchor="end" fill="#333" font-weight="bold" transform="rotate(-60 649.8 407.1)">GP12</text>
+<circle cx="666.1" cy="365.1" r="4.2" fill="#f4d77a" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="666.1" y="382.1" font-size="9" text-anchor="middle" fill="#ffffff">17</text>
+<text x="670.1" y="407.1" font-size="10" text-anchor="end" fill="#333" font-weight="bold" transform="rotate(-60 670.1 407.1)">GP13</text>
+<circle cx="686.4" cy="365.1" r="4.2" fill="#f4d77a" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="686.4" y="382.1" font-size="9" text-anchor="middle" fill="#ffffff">18</text>
+<text x="690.4" y="407.1" font-size="10" text-anchor="end" fill="#333" font-weight="bold" transform="rotate(-60 690.4 407.1)">GND</text>
+<circle cx="706.7" cy="365.1" r="3.4" fill="#1f6f3f" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="706.7" y="382.1" font-size="9" text-anchor="middle" fill="#a7c8b2">19</text>
+<circle cx="727.0" cy="365.1" r="4.2" fill="#f4d77a" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="727.0" y="382.1" font-size="9" text-anchor="middle" fill="#ffffff">20</text>
+<text x="731.0" y="407.1" font-size="10" text-anchor="end" fill="#333" font-weight="bold" transform="rotate(-60 731.0 407.1)">GP15</text>
+<circle cx="727.0" cy="222.9" r="3.4" fill="#1f6f3f" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="727.0" y="212.9" font-size="9" text-anchor="middle" fill="#a7c8b2">21</text>
+<circle cx="706.7" cy="222.9" r="3.4" fill="#1f6f3f" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="706.7" y="212.9" font-size="9" text-anchor="middle" fill="#a7c8b2">22</text>
+<circle cx="686.4" cy="222.9" r="3.4" fill="#1f6f3f" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="686.4" y="212.9" font-size="9" text-anchor="middle" fill="#a7c8b2">23</text>
+<circle cx="666.1" cy="222.9" r="3.4" fill="#1f6f3f" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="666.1" y="212.9" font-size="9" text-anchor="middle" fill="#a7c8b2">24</text>
+<circle cx="645.8" cy="222.9" r="3.4" fill="#1f6f3f" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="645.8" y="212.9" font-size="9" text-anchor="middle" fill="#a7c8b2">25</text>
+<circle cx="625.4" cy="222.9" r="3.4" fill="#1f6f3f" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="625.4" y="212.9" font-size="9" text-anchor="middle" fill="#a7c8b2">26</text>
+<circle cx="605.1" cy="222.9" r="3.4" fill="#1f6f3f" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="605.1" y="212.9" font-size="9" text-anchor="middle" fill="#a7c8b2">27</text>
+<circle cx="584.8" cy="222.9" r="3.4" fill="#1f6f3f" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="584.8" y="212.9" font-size="9" text-anchor="middle" fill="#a7c8b2">28</text>
+<circle cx="564.5" cy="222.9" r="3.4" fill="#1f6f3f" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="564.5" y="212.9" font-size="9" text-anchor="middle" fill="#a7c8b2">29</text>
+<circle cx="544.2" cy="222.9" r="3.4" fill="#1f6f3f" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="544.2" y="212.9" font-size="9" text-anchor="middle" fill="#a7c8b2">30</text>
+<circle cx="523.8" cy="222.9" r="3.4" fill="#1f6f3f" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="523.8" y="212.9" font-size="9" text-anchor="middle" fill="#a7c8b2">31</text>
+<circle cx="503.5" cy="222.9" r="3.4" fill="#1f6f3f" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="503.5" y="212.9" font-size="9" text-anchor="middle" fill="#a7c8b2">32</text>
+<circle cx="483.2" cy="222.9" r="3.4" fill="#1f6f3f" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="483.2" y="212.9" font-size="9" text-anchor="middle" fill="#a7c8b2">33</text>
+<circle cx="462.9" cy="222.9" r="3.4" fill="#1f6f3f" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="462.9" y="212.9" font-size="9" text-anchor="middle" fill="#a7c8b2">34</text>
+<circle cx="442.6" cy="222.9" r="3.4" fill="#1f6f3f" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="442.6" y="212.9" font-size="9" text-anchor="middle" fill="#a7c8b2">35</text>
+<circle cx="422.2" cy="222.9" r="4.2" fill="#f4d77a" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="422.2" y="212.9" font-size="9" text-anchor="middle" fill="#ffffff">36</text>
+<text x="426.2" y="186.9" font-size="10" text-anchor="start" fill="#333" font-weight="bold" transform="rotate(-60 426.2 186.9)">3V3</text>
+<circle cx="401.9" cy="222.9" r="3.4" fill="#1f6f3f" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="401.9" y="212.9" font-size="9" text-anchor="middle" fill="#a7c8b2">37</text>
+<circle cx="381.6" cy="222.9" r="3.4" fill="#1f6f3f" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="381.6" y="212.9" font-size="9" text-anchor="middle" fill="#a7c8b2">38</text>
+<circle cx="361.3" cy="222.9" r="3.4" fill="#1f6f3f" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="361.3" y="212.9" font-size="9" text-anchor="middle" fill="#a7c8b2">39</text>
+<circle cx="341.0" cy="222.9" r="3.4" fill="#1f6f3f" stroke="#e8c15a" stroke-width="1.5"/>
+<text x="341.0" y="212.9" font-size="9" text-anchor="middle" fill="#a7c8b2">40</text>
+<polyline points="422.2,222.9 422.2,156.0 284.0,156.0 284.0,440.0 540.0,440.0" fill="none" stroke="#d0312d" stroke-width="3.4" stroke-linejoin="round"/>
+<text x="276.0" y="436.0" font-size="11" text-anchor="start" fill="#d0312d" font-weight="bold" transform="rotate(-90 276.0 436.0)">3V3 bus: pin 36 only. Never VBUS (40) or VSYS (39)</text>
+<rect x="40.0" y="560.0" width="190.0" height="150.0" rx="8" fill="#e6eef8" stroke="#333" stroke-width="1.5"/>
+<text x="135.0" y="637.0" font-size="14" text-anchor="middle" fill="#111" font-weight="bold">EC11 knob</text>
+<text x="135.0" y="655.0" font-size="11" text-anchor="middle" fill="#444">turn: move   push: open</text>
+<text x="135.0" y="670.0" font-size="11" text-anchor="middle" fill="#444">A C B one side, SW the other</text>
+<rect x="67.7" y="550.0" width="8" height="12" fill="#c9a227"/>
+<text x="71.7" y="578.0" font-size="10" text-anchor="middle" fill="#222" font-weight="bold">SW1</text>
+<rect x="99.3" y="550.0" width="8" height="12" fill="#c9a227"/>
+<text x="103.3" y="578.0" font-size="10" text-anchor="middle" fill="#222" font-weight="bold">SW2</text>
+<rect x="131.0" y="550.0" width="8" height="12" fill="#c9a227"/>
+<text x="135.0" y="578.0" font-size="10" text-anchor="middle" fill="#222" font-weight="bold">C</text>
+<rect x="162.7" y="550.0" width="8" height="12" fill="#c9a227"/>
+<text x="166.7" y="578.0" font-size="10" text-anchor="middle" fill="#222" font-weight="bold">A</text>
+<rect x="194.3" y="550.0" width="8" height="12" fill="#c9a227"/>
+<text x="198.3" y="578.0" font-size="10" text-anchor="middle" fill="#222" font-weight="bold">B</text>
+<rect x="262.0" y="560.0" width="190.0" height="150.0" rx="8" fill="#fff3e0" stroke="#333" stroke-width="1.5"/>
+<text x="357.0" y="637.0" font-size="14" text-anchor="middle" fill="#111" font-weight="bold">USB-C plug</text>
+<text x="357.0" y="655.0" font-size="11" text-anchor="middle" fill="#444">key-c plugs on here</text>
+<text x="357.0" y="670.0" font-size="11" text-anchor="middle" fill="#444">4.7k VBUS to D+, 4.7k VBUS to D-</text>
+<text x="357.0" y="685.0" font-size="11" text-anchor="middle" fill="#444">(key-c has no pull-ups)</text>
+<rect x="296.0" y="550.0" width="8" height="12" fill="#c9a227"/>
+<text x="300.0" y="578.0" font-size="10" text-anchor="middle" fill="#222" font-weight="bold">VBUS</text>
+<rect x="334.0" y="550.0" width="8" height="12" fill="#c9a227"/>
+<text x="338.0" y="578.0" font-size="10" text-anchor="middle" fill="#222" font-weight="bold">D+</text>
+<rect x="372.0" y="550.0" width="8" height="12" fill="#c9a227"/>
+<text x="376.0" y="578.0" font-size="10" text-anchor="middle" fill="#222" font-weight="bold">D-</text>
+<rect x="410.0" y="550.0" width="8" height="12" fill="#c9a227"/>
+<text x="414.0" y="578.0" font-size="10" text-anchor="middle" fill="#222" font-weight="bold">GND</text>
+<rect x="478.0" y="560.0" width="330.0" height="190.0" rx="8" fill="#e8f4ea" stroke="#333" stroke-width="1.5"/>
+<text x="643.0" y="657.0" font-size="14" text-anchor="middle" fill="#111" font-weight="bold">2.8" ST7789 240x320</text>
+<text x="643.0" y="675.0" font-size="11" text-anchor="middle" fill="#444">your header's order differs: go by the names</text>
+<text x="643.0" y="690.0" font-size="11" text-anchor="middle" fill="#444">SCL = SPI clock, SDA = SPI data (MOSI)</text>
+<text x="643.0" y="705.0" font-size="11" text-anchor="middle" fill="#444">not the key's I2C</text>
+<rect x="510.7" y="550.0" width="8" height="12" fill="#c9a227"/>
+<text x="514.7" y="578.0" font-size="10" text-anchor="middle" fill="#222" font-weight="bold">VCC</text>
+<rect x="547.3" y="550.0" width="8" height="12" fill="#c9a227"/>
+<text x="551.3" y="578.0" font-size="10" text-anchor="middle" fill="#222" font-weight="bold">DC</text>
+<rect x="584.0" y="550.0" width="8" height="12" fill="#c9a227"/>
+<text x="588.0" y="578.0" font-size="10" text-anchor="middle" fill="#222" font-weight="bold">CS</text>
+<rect x="620.7" y="550.0" width="8" height="12" fill="#c9a227"/>
+<text x="624.7" y="578.0" font-size="10" text-anchor="middle" fill="#222" font-weight="bold">GND</text>
+<rect x="657.3" y="550.0" width="8" height="12" fill="#c9a227"/>
+<text x="661.3" y="578.0" font-size="10" text-anchor="middle" fill="#222" font-weight="bold">SCL</text>
+<rect x="694.0" y="550.0" width="8" height="12" fill="#c9a227"/>
+<text x="698.0" y="578.0" font-size="10" text-anchor="middle" fill="#222" font-weight="bold">SDA</text>
+<rect x="730.7" y="550.0" width="8" height="12" fill="#c9a227"/>
+<text x="734.7" y="578.0" font-size="10" text-anchor="middle" fill="#222" font-weight="bold">RST</text>
+<rect x="767.3" y="550.0" width="8" height="12" fill="#c9a227"/>
+<text x="771.3" y="578.0" font-size="10" text-anchor="middle" fill="#222" font-weight="bold">BLK</text>
+<rect x="836.0" y="560.0" width="150.0" height="150.0" rx="8" fill="#fdf2c4" stroke="#333" stroke-width="1.5"/>
+<text x="911.0" y="637.0" font-size="14" text-anchor="middle" fill="#111" font-weight="bold">Sign switch</text>
+<text x="911.0" y="655.0" font-size="11" text-anchor="middle" fill="#444">HOLD TO SIGN, 2 s</text>
+<text x="911.0" y="670.0" font-size="11" text-anchor="middle" fill="#444">MOMENTARY, normally</text>
+<text x="911.0" y="685.0" font-size="11" text-anchor="middle" fill="#444">open. Not latching</text>
+<rect x="877.0" y="550.0" width="8" height="12" fill="#c9a227"/>
+<text x="881.0" y="578.0" font-size="10" text-anchor="middle" fill="#222" font-weight="bold">lug</text>
+<rect x="937.0" y="550.0" width="8" height="12" fill="#c9a227"/>
+<text x="941.0" y="578.0" font-size="10" text-anchor="middle" fill="#222" font-weight="bold">lug</text>
+<polyline points="103.3,550.0 103.3,538.0 135.0,538.0" fill="none" stroke="#222222" stroke-width="2.6" stroke-linejoin="round"/>
+<circle cx="135.0" cy="538.0" r="4" fill="#222222"/>
+<polyline points="300.0,550.0 300.0,440.0" fill="none" stroke="#d0312d" stroke-width="2.6" stroke-linejoin="round"/>
+<circle cx="300.0" cy="440.0" r="4" fill="#d0312d"/>
+<polyline points="514.7,550.0 514.7,440.0" fill="none" stroke="#d0312d" stroke-width="2.6" stroke-linejoin="round"/>
+<circle cx="514.7" cy="440.0" r="4" fill="#d0312d"/>
+<polyline points="71.7,550.0 71.7,462.0 361.3,462.0 361.3,365.1" fill="none" stroke="#e07b00" stroke-width="2.6" stroke-linejoin="round"/>
+<polyline points="135.0,550.0 135.0,472.0 381.6,472.0 381.6,365.1" fill="none" stroke="#222222" stroke-width="2.6" stroke-linejoin="round"/>
+<polyline points="166.7,550.0 166.7,482.0 401.9,482.0 401.9,365.1" fill="none" stroke="#2e7dd7" stroke-width="2.6" stroke-linejoin="round"/>
+<polyline points="198.3,550.0 198.3,492.0 422.2,492.0 422.2,365.1" fill="none" stroke="#1f9e8f" stroke-width="2.6" stroke-linejoin="round"/>
+<polyline points="338.0,550.0 338.0,502.0 442.6,502.0 442.6,365.1" fill="none" stroke="#2a9d3a" stroke-width="2.6" stroke-linejoin="round"/>
+<polyline points="376.0,550.0 376.0,512.0 462.9,512.0 462.9,365.1" fill="none" stroke="#7a5cc7" stroke-width="2.6" stroke-linejoin="round"/>
+<polyline points="414.0,550.0 414.0,522.0 483.2,522.0 483.2,365.1" fill="none" stroke="#222222" stroke-width="2.6" stroke-linejoin="round"/>
+<polyline points="551.3,550.0 551.3,542.0 544.2,542.0 544.2,365.1" fill="none" stroke="#c2410c" stroke-width="2.6" stroke-linejoin="round"/>
+<polyline points="588.0,550.0 588.0,532.0 564.5,532.0 564.5,365.1" fill="none" stroke="#a16207" stroke-width="2.6" stroke-linejoin="round"/>
+<polyline points="624.7,550.0 624.7,522.0 584.8,522.0 584.8,365.1" fill="none" stroke="#222222" stroke-width="2.6" stroke-linejoin="round"/>
+<polyline points="661.3,550.0 661.3,512.0 605.1,512.0 605.1,365.1" fill="none" stroke="#0e7490" stroke-width="2.6" stroke-linejoin="round"/>
+<polyline points="698.0,550.0 698.0,502.0 625.4,502.0 625.4,365.1" fill="none" stroke="#1d4ed8" stroke-width="2.6" stroke-linejoin="round"/>
+<polyline points="734.7,550.0 734.7,492.0 645.8,492.0 645.8,365.1" fill="none" stroke="#6d28d9" stroke-width="2.6" stroke-linejoin="round"/>
+<polyline points="771.3,550.0 771.3,482.0 666.1,482.0 666.1,365.1" fill="none" stroke="#be185d" stroke-width="2.6" stroke-linejoin="round"/>
+<polyline points="881.0,550.0 881.0,472.0 686.4,472.0 686.4,365.1" fill="none" stroke="#222222" stroke-width="2.6" stroke-linejoin="round"/>
+<polyline points="941.0,550.0 941.0,462.0 727.0,462.0 727.0,365.1" fill="none" stroke="#d4a000" stroke-width="2.6" stroke-linejoin="round"/>
+<text x="24.0" y="790.0" font-size="11.5" text-anchor="start" fill="#333">One press of the knob opens; a turn moves. On a review the sign switch is Sign: held 2 s (3 s when a page is red).</text>
+<text x="24.0" y="807.0" font-size="11.5" text-anchor="start" fill="#333">The knob's push on the Sign row signs too (build1's rules). No Reject button: not signing is all a cosigner can do.</text>
+<text x="24.0" y="824.0" font-size="11.5" text-anchor="start" fill="#333">Pull-ups: key-c has none of its own. 4.7k from D+ and from D- to VBUS (which is 3V3), at the plug.</text>
+<text x="24.0" y="841.0" font-size="11.5" text-anchor="start" fill="#333">The key is powered whenever the Pico is: no switch, no current limit, as on the Feather pigtail.</text>
+</svg>

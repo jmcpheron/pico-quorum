@@ -32,6 +32,16 @@ From picowallet (Austin Griffith, MIT): `emu`, the emulator's command line
   - `calc` works out the numbers behind the design: finger timing, I2C rise time, key power from
     a GPIO, and two ngspice runs. See [`../hardware/key-pcb/LEARN.md`](../hardware/key-pcb/LEARN.md).
 
+- `case`: the printed cases and mock-ups, rebuilt from their CadQuery scripts with uv, at pinned
+  versions of CadQuery, matplotlib, Pillow and numpy.
+  - `list` shows each design: its scripts, what they write, and the pages that show it.
+  - `build [design]` runs a design's scripts in order (the prism: `prism.py`, then `assembly.py`'s
+    step-by-step pictures).
+  - `check [design]` builds, then lists every output that changed, appeared or went, and every
+    picture a design's pages link to that isn't there. A design is up to date when it lists nothing.
+  - A STEP file that differs only in its time, or in the order of its colours, is left as it was.
+  - A new design is one entry in its `DESIGNS`.
+
 - [`fonts/`](fonts/): renders the console's anti-aliased fonts (Atkinson Hyperlegible, OFL) into
   `firmware/qf_*.bin`; `firmware/fonts.py` draws them
 
