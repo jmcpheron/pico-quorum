@@ -231,3 +231,5 @@ Not checked:
 - [ ] A case, and the Sign button's guard.
 - [ ] picoquorum.dev, printed on the back, must lead to the site and the source before boards ship.
   Today the site is at picoquorum.app (`docs/CNAME`), and .dev doesn't reach it.
+- [ ] Rev B: a factory-soldered panel and a board whose parts an owner can count, in
+  [CONCEPT.md](CONCEPT.md) (2026-11-02).
