@@ -1,4 +1,10 @@
-# pico-sign-handheld: pico-sign, flat, with the 2.4″ screen
+# PicoQuorum Handheld: a signing console you hold in two hands
+
+*pico-sign-handheld*: pico-sign's knob, sign button and pins, with the 2.4″ screen and a Pico 2 W, in a
+flat case that also lies flat on the desk.
+
+**To build it:** [ASSEMBLY.md](ASSEMBLY.md), 16 steps with pictures, from the printed parts to a key in
+the top.
 
 | | |
 |---|---|

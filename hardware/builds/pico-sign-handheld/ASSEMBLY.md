@@ -1,4 +1,6 @@
-# pico-sign-handheld: putting it together
+# PicoQuorum Handheld: putting it together
+
+The build's [README](README.md) says what it is, its parts and its wiring; this page puts it together.
 
 Sixteen steps, from printed parts to a key in the top. Each picture shows the step's new printed parts
 in amber, what's already done in white, and what the step needs along the bottom. The pictures are
