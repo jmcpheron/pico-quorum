@@ -1241,9 +1241,58 @@ def draw_chip(q):
     d.show()
 
 
+def draw_ask(q):
+    """An ask from the computer over USB (quorum.ask, usblink.py): its pages, then Sign held (A, or
+    the knob pressed down) accepts, as on a review; Y or B refuses. Nothing is saved before that."""
+    d = q.d
+    a = q.ask
+    p = a["pages"][q.apage]
+    n = len(a["pages"])
+    red = any(x.get("red") for x in a["pages"])
+    left = [i for i in range(n) if i not in q.aseen]
+    bar, ink = ("bad_bar", "on_bad") if red else ("surface", "text")
+    d.fill(c("bg"))
+    d.fill_rect(0, 0, W, 30, c(bar))
+    txt(d, fit(p["title"], TW - 70, "bold18"), M, 4, "bold18", ink, bar)
+    txt_r(d, "USB %d of %d" % (q.apage + 1, n) if n > 1 else "from USB", R, 9, "sans12", ink if red else "muted", bar)
+    y = 44
+    for k, s in enumerate(p["lines"]):
+        font = "bold18" if k == 0 else "sans14"
+        for line in F.wrap(s, TW - (40 if p.get("addr") and k == 0 else 0), font):
+            if y > 190:
+                break
+            txt(d, line, M, y, font, "text" if k == 0 else "muted")
+            y += 24 if k == 0 else 19
+    if p.get("addr"):
+        y += 4
+        for line in addr_lines(p["addr"]):
+            txt(d, line, M, y, "mono13")
+            y += 18
+        blockies.draw(d, p["addr"], R - 32, 40, 4)
+    save = "allow" if a["kind"] == "maint" else "save"
+    if q.ahold:
+        need = q.ask_need()
+        el = min(need, time.ticks_diff(time.ticks_ms(), q.ahold[0]))
+        rrect(d, OX + 14, 58, 212, 112, 10, "bad_bar" if red else "ok")
+        rrect(d, OX + 16, 60, 208, 108, 9, "surface")
+        txt_c(d, "Keep holding " + ("the knob" if q.ahold[1] == "press" else q.ahold[1]), 72, "bold18", "text", "surface")
+        rrect(d, OX + 30, 104, 180, 14, 7, "raised")
+        w = 180 * el // need
+        if w >= 14:
+            rrect(d, OX + 30, 104, w, 14, 7, "ok")
+        txt_c(d, "%.1f s to go" % ((need - el) / 1000), 124, "sans14", "muted", "surface")
+    elif q.KNOB:
+        footer_hints(d, q, (("", "held: " + save if not left else "next page"),))
+    else:
+        footer_hints(d, q, ((("A", "held: " + save) if not left else ("A", "next unseen")), ("Y", "no"), ("v", "page")))
+    d.show()
+
+
 def draw(q):
     s = q.state
-    if s == "nochip":
+    if s == "ask":
+        draw_ask(q)
+    elif s == "nochip":
         draw_nochip(q)
     elif s == "pinfail":
         draw_pinfail(q)

@@ -96,11 +96,18 @@ def run():
         txservice.reserve_early()
         import quorum
         quorum.start()
+        return quorum
 
 
 if __name__ == "__main__":
     try:
-        run()
+        import micropython
+        micropython.kbd_intr(-1)        # until it is clear which way this goes (usblink.py)
+    except BaseException:
+        pass
+    _q = None
+    try:
+        _q = run()
     except Exception as e:
         try:
             with open("error.log", "w") as f:
@@ -108,3 +115,8 @@ if __name__ == "__main__":
         except Exception:
             pass
         sys.print_exception(e)
+    if _q is not None:
+        # The console: USB is the link's from here, as in main_console.py. Never returns. The
+        # ceremony and the claim keep the REPL: they are run from the bench (tools/fw ceremony).
+        import usblink
+        usblink.run(_q)

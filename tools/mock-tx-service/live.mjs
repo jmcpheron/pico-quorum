@@ -49,6 +49,7 @@ import { CFG, safeTxHash } from "./sim.mjs";
 import { ERC1271_ABI, EXECUTOR, PASSKEY_ABI, SAFE_ABI, execArgs, reason } from "./chain.mjs";
 import { foundryBin } from "./fork.mjs";
 import { p256Owner, packSignatures, parse } from "./sigs.mjs";
+import { serialPorts } from "../../emu/core/devices.mjs";
 
 export const CHAINS = {
   basesep: { chain: baseSepolia, rpc: process.env.BASE_SEPOLIA_RPC || "https://sepolia.base.org",
@@ -404,6 +405,16 @@ async function rehearse() {
 }
 
 // ----------------------------------------------------------------------------- pico
+// One request over the USB link (tools/board/link.py, pyserial pinned): the answer, or null when the
+// board doesn't speak it (an older image, or maintenance's REPL).
+function linkAsk(req, wait = 4) {
+  const port = process.env.PICO_PORT || serialPorts()[0];
+  if (!port) die("no board on USB (set PICO_PORT=...)");
+  const r = spawnSync("uv", ["run", "--quiet", "--no-project", "--with", "pyserial==3.5", "python", join(ROOT, "tools/board/link.py"),
+    port, JSON.stringify(req), String(wait)], { encoding: "utf8", timeout: (wait + 30) * 1000 });
+  return r.status === 0 ? JSON.parse(r.stdout.trim().split("\n").pop()) : null;
+}
+
 async function pico() {
   // --chain basesep,base,eth: the console watches a Safe on each (QUORUM_SAFES), each asked about
   // at its own chain's service (firmware/quorum_cfg.py "services"). local stands alone: the
@@ -443,6 +454,19 @@ async function pico() {
     lines = [`QUORUM_SAFES = [\n    ${safes.map((x) => JSON.stringify(x)).join(",\n    ")}\n]`];
   }
   console.log(`the Pico's console, to ${names.map((x) => CHAINS[x].chain.name).join(" + ")}:\n  ${lines.join("\n  ")}`);
+  // A console from 2026.11 on holds USB (firmware/usblink.py): the Safes go over the link as an ask
+  // the person accepts on its screen, into safes.json. Its REPL is not there to edit secrets.py.
+  const linked = linkAsk({ op: "hello" });
+  if (linked) {
+    if (names[0] === "local") die("this console holds USB (the link), which sends Safes, not QUORUM_URL: put that line in secrets.py in maintenance (tools/fw)");
+    const safes = JSON.parse(lines[0].replace(/^QUORUM_SAFES = /, ""));
+    console.log(`the ${linked.image} console holds USB: sending the Safes as an ask.\n  >> on the board: read every page, then hold Sign (D2 on three buttons) 2 s. D0, Y or B says no.`);
+    const a = linkAsk({ op: "safes", safes }, 130);
+    if (!a) die("no answer from the board");
+    if (!a.ok) die("not saved: " + a.why);
+    console.log("  saved in safes.json on the board; it restarts with them. tools/fw verify reads it back in a minute.");
+    return;
+  }
   const code = `import os
 new = ${JSON.stringify(lines.join("\n"))}
 with open('secrets.py') as f:

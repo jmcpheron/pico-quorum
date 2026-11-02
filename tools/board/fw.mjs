@@ -58,6 +58,7 @@ const matches = (list, f) => list.some((p) => glob(p).test(f));
 
 function die(msg) {
   console.error("tools/fw: " + msg);
+  if (linkMaint) console.error("  (the board is in maintenance, as the link's ask left it: tools/fw push or tools/fw restart takes it back to the console)");
   process.exit(1);
 }
 
@@ -74,6 +75,11 @@ function port() {
 // back and let the caller judge the step by what the board printed, as always: a step cut short
 // lacks its marker and still fails. An error on the board (a traceback from <stdin>) fails here.
 function mp(args, { resume = true, timeout = 30000 } = {}) {
+  if (!linkChecked) {
+    linkChecked = true;
+    const h = link({ op: "hello" });
+    if (h) maintViaLink(h);
+  }
   const r = spawnSync(MPREMOTE, ["connect", port(), ...(resume ? ["resume"] : []), ...args], { encoding: "utf8", timeout });
   const out = (r.stdout || "") + (r.stderr || "");
   let code = r.status;
@@ -95,6 +101,35 @@ function waitPort(ms = 30000) {
     nap(500);
   }
   nap(2000);
+}
+
+// The USB link (firmware/usblink.py, docs/USB-LINK.md). A console from 2026.11 on holds USB itself
+// and never hands a running console's REPL over: it answers the link, and anything that needs the
+// REPL goes through maintenance, which the person accepts on the board. tools/board/link.py does
+// the talking, with pyserial pinned and DTR/RTS left low. -> the answer, or null when nothing on
+// the port speaks the link (an older image, or maintenance's REPL).
+const LINK = ["uv", "run", "--quiet", "--no-project", "--with", "pyserial==3.5", "python", join(ROOT, "tools/board/link.py")];
+let linkChecked = false;        // asked once per board session: is a console holding USB?
+let linkMaint = false;          // this run put the board in maintenance through the link: leave it after
+function link(req, wait = 4) {
+  const r = spawnSync(LINK[0], [...LINK.slice(1), port(), JSON.stringify(req), String(wait)], { encoding: "utf8", timeout: (wait + 30) * 1000 });
+  if (r.status === 1) die(`could not open ${port()}: ${r.stdout}${r.stderr}`);
+  if (r.status !== 0) return null;
+  return JSON.parse(r.stdout.trim().split("\n").pop());
+}
+
+// The running console holds USB: ask it for maintenance, which the person accepts on its screen
+// (every page seen, Sign held 3 s; D2 on three buttons). Then it restarts with its REPL open.
+function maintViaLink(h) {
+  if (h.mode === "stopped") die("the console stopped and holds USB: hold the maintenance key (B; D1 on three buttons; the knob) while plugging it in");
+  console.log(`the ${h.image} ${h.version || h.build} console holds USB (the link); asking it for maintenance.`);
+  console.log(`  >> on the board: read the page, then hold ${/feather|picoquorum/.test(h.board) ? "D2" : h.board === "build1" || h.board === "esp32" ? "the knob" : "A"} for 3 s. (D0, Y or B says no.)`);
+  const a = link({ op: "maint" }, 130);
+  if (!a) die("no answer from the board's maintenance ask");
+  if (!a.ok) die(`maintenance was not allowed: ${a.why}`);
+  console.log("  allowed; the board restarts into maintenance");
+  linkMaint = true;
+  waitPort();
 }
 
 function run(code, opts) {
@@ -359,7 +394,29 @@ function flash() {
 const kb = (n) => `${Math.round(n / 1024)} KB`;
 
 // ----------------------------------------------------------------------------- verify
+// A console that holds USB, read over the link: what it runs and its own view. No files: --files
+// reads every one of them in maintenance, as verify always has.
+function verifyLink(h) {
+  const s = link({ op: "status" }, 8) || {};
+  let ok = true;
+  console.log(`image: ${h.image}, version ${h.version || "none"}, build ${h.build}, release ${h.release ? short(h.release) : "none"} (over the USB link; --files reads every file, in maintenance)`);
+  if (M.images[h.image]) {
+    const b = build(h.image, { quiet: true });
+    if (b.release === h.release) console.log(`  the release fingerprint is this checkout's ${h.image} image`);
+    else { ok = false; console.log(`  !! not this checkout's ${h.image} image (${short(b.release)})`); }
+  }
+  console.log("console:");
+  for (const [k, v] of Object.entries(s)) if (!["pq", "id", "ok"].includes(k)) console.log(`  ${k}: ${JSON.stringify(v)}`);
+  if (h.image === "console" && !(s.pinned && s.watchdog)) ok = false;
+  console.log(ok ? "verify: all as expected" : "verify: see the lines above");
+  return ok;
+}
+
 async function verify({ baseline = false } = {}) {
+  if (!baseline && !has("--files") && !linkMaint) {
+    const h = link({ op: "hello" });
+    if (h) return verifyLink(h);
+  }
   const live = tagged(run(LIVE_PY), "LIVE");      // before pausing: the console's own view, as it runs
   pause();
   const files = boardFiles();
@@ -467,6 +524,8 @@ async function enterMaintenance() {
 async function leaveMaintenance() {
   run("import os\ntry:\n    os.remove('maint')\nexcept OSError:\n    pass\nif hasattr(os, 'sync'): os.sync()\nprint('LEFT')");
   await restartHandsOff();
+  linkMaint = false;
+  linkChecked = false;    // the console holds USB again: the next REPL command asks the link first
 }
 
 async function restartHandsOff(settle = 30000) {
@@ -860,7 +919,11 @@ if (has("--all")) {
 const cmds = {
   build: () => { const b = build(argv[1] || die("build console|ceremony")); console.log(`built ${b.image} ${M.version || ""} ${b.id}: ${b.names.length} files in ${b.dir}\nrelease ${short(b.release)}  ${b.release}`); },
   backup: () => backup(),
-  verify: async () => process.exit((await verify({ baseline: has("--baseline") })) ? 0 : 1),
+  verify: async () => {
+    const ok = await verify({ baseline: has("--baseline") });
+    if (linkMaint) await leaveMaintenance();
+    process.exit(ok ? 0 : 1);
+  },
   logs: () => logs(),
   pin: () => pin(),
   push: () => push(argv[1] || die("push console|ceremony")),
@@ -872,5 +935,10 @@ const cmds = {
   attest: () => attest(),
   ceremony: () => (argv[1] === "start" ? ceremonyStart() : argv[1] === "finish" ? ceremonyFinish() : die("ceremony start [--unpin] [--keep-open F1D2] | ceremony finish")),
 };
-if (!cmds[cmd]) die("usage: tools/fw build IMAGE | backup | verify [--baseline] | logs | pin | push IMAGE | restore DIR [--exact] [--secrets] | restart | chips | allow on|off | attest [--out FILE] | ceremony start|finish | measure tls   (any of them: --all for every board on USB)");
+if (!cmds[cmd]) die("usage: tools/fw build IMAGE | backup | verify [--baseline] [--files] | logs | pin | push IMAGE | restore DIR [--exact] [--secrets] | restart | chips | allow on|off | attest [--out FILE] | ceremony start|finish | measure tls   (any of them: --all for every board on USB)");
 await cmds[cmd]();
+// A command that reached the REPL through the link's maintenance ask hands the board back to the console.
+if (linkMaint) {
+  console.log("leaving maintenance: the console starts again");
+  await leaveMaintenance();
+}

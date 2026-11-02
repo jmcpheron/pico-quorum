@@ -176,7 +176,7 @@ def fresh(prod=True, url="https://api.safe.global/tx-service/basesep", expect="a
     for m in ("secrets", "build", "image", "quorum", "signer", "net", "txservice", "atecc", "qlog", "watch"):
         sys.modules.pop(m, None)
     for f in os.listdir():
-        if not keep and (f.startswith("counter-") or f == "slot.txt"):
+        if not keep and (f.startswith("counter-") or f in ("slot.txt", "safes.json")):
             os.remove(f)
     import txservice
     txservice.requests = SVC
@@ -1415,6 +1415,210 @@ def case_three():
           "pinned to another chip, no Safe: no code for this one, D2 does nothing")
 
 
+def case_link():
+    """The USB link (usblink.py, docs/USB-LINK.md): what a computer may read and ask, and that
+    nothing is written, and the chip never asked anything, until the person accepts on the screen.
+    On the Waveshare (Y refuses, the joystick pages, A held accepts) and on three buttons (D0, D1,
+    D2): main() and main_three() both run it."""
+    import usblink
+    import fonts
+    three = THREE_BOARD[0] if LINK_THREE[0] else None
+    NO, PAGE, YES = ("D0", "D1", "D2") if three else ("Y", "down", "A")
+    for f in ("safes.json", "maint"):
+        try:
+            os.remove(f)
+        except OSError:
+            pass
+    chip()
+    extra = 'WIFI_PASS = "hunter2hunter2"' + ('\nBOARD = "%s"' % three if three else "")
+    Q = fresh(extra=extra)
+    sent = []
+    real_send = usblink.send
+    usblink.send = lambda d: sent.append(d)
+    usblink.host, usblink.mode, usblink.open_ask, usblink.time = Q, "console", None, Q.time
+    calls = []
+
+    class Spy:
+        def __init__(self, real):
+            self.real = real
+
+        def __getattr__(self, n):
+            v = getattr(self.real, n)
+            if callable(v):             # a method: something asked of the chip (a label, its name, is not)
+                calls.append(n)
+            return v
+    real_sig, Q.sig = Q.sig, Spy(Q.sig)
+
+    def req(d):
+        del sent[:]
+        usblink.handle(d if isinstance(d, str) else json.dumps(d))
+        return sent[-1] if sent else None
+
+    def tick(*pressed):
+        Q.keys.pressed = lambda: list(pressed)
+        Q._busy, Q.last_poll, Q.splash_until = False, Q.time.now, 0
+        Q.tick(None)
+
+    def hold(k, ms):
+        Q.keys.down.add(k)
+        Q.time.now += ms
+        tick()
+        Q.keys.down.discard(k)
+
+    def on_screen():
+        out, real = [], fonts.text
+        fonts.text = lambda d, t, *a, **k: (out.append(t), real(d, t, *a, **k))[1]
+        try:
+            Q.U.draw(Q)
+        finally:
+            fonts.text = real
+        return " ".join(out)
+
+    r = req({"id": 1, "op": "hello"})
+    check(r["ok"] and r["id"] == 1 and r["proto"] == 1 and r["mode"] == "console" and r["image"] == "console", "hello: protocol, mode and image")
+    r = req({"id": 2, "op": "status"})
+    s = json.dumps(r)
+    check(r["ok"] and r["serial"] == SERIAL and r["owner"] == Q.me and r["pinned"] and r["key"][2:] == Q.qx[2:]
+          and r["safes"][0]["address"] == SAFE.lower() and r["safesFrom"] == "secrets.py", "status: the chip, the key, the pin and the Safes")
+    check("hunter2" not in s and "test-key" not in s and r["wifi"]["saved"] == ["emulator"], "status: network names, never a password or the API key")
+    check(req("not json")["ok"] is False and req("[1]")["ok"] is False and req({"op": "hello"})["why"] == "no id"
+          and req({"id": 3, "op": "sign", "hash": "0x" + "11" * 32})["why"] == "unknown op", "garbage, no id and a sign request: refused")
+    serve(Q, [tx(Q, 0)])
+    Q.open_entry(Q.queue[0])
+    r = req({"id": 9, "op": "wifi", "ssid": "Cafe", "pass": "12345678"})
+    check(r["ok"] is False and r["why"].startswith("busy") and Q.state == "review" and not usblink.open_ask, "a review is never interrupted")
+    Q.state, Q.cur, Q.queue = "home", None, []
+    a = {"chainId": CHAIN, "address": OTHER, "name": "New"}
+    bad = [({"id": 4, "op": "safes", "safes": [a] * 5}, "at most"),
+           ({"id": 4, "op": "safes", "safes": [dict(a, chainId=31337)]}, "no service"),
+           ({"id": 4, "op": "safes", "safes": [dict(a, url="http://evil")]}, "nothing else"),
+           ({"id": 4, "op": "safes", "safes": [dict(a, address="0x12")]}, "bad address"),
+           ({"id": 4, "op": "safes", "safes": [a, a]}, "twice"),
+           ({"id": 4, "op": "safes", "safes": []}, "one or more"),
+           ({"id": 4, "op": "safes", "safes": [dict(a, name="\n" * 3)]}, "plain"),
+           ({"id": 4, "op": "wifi", "ssid": "home", "pass": "short"}, "at least 8")]
+    for m, why in bad:
+        r = req(m)
+        check(r and r["ok"] is False and why in r["why"] and not usblink.open_ask and Q.state == "home", "refused before the screen: " + why)
+
+    r = req({"id": 10, "op": "safes", "safes": [a]})
+    check(r is None and usblink.open_ask and Q.state == "home", "a good ask: no answer yet")
+    tick()
+    check(Q.state == "ask" and len(Q.ask["pages"]) == 2 and "New" in on_screen(), "the next tick puts it on the screen: the Safe, then what changes")
+    check(req({"id": 11, "op": "wifi", "ssid": "x", "pass": "12345678"})["why"].startswith("busy"), "a second ask meanwhile: busy")
+    tick(YES)
+    check(Q.ahold is None and Q.apage == 1, "the accept key first shows the page not yet seen")
+    tick(YES)
+    Q.keys.down.add(YES)
+    Q.time.now += 1000
+    tick()
+    Q.keys.down.discard(YES)
+    tick()
+    check(Q.state == "ask" and Q.ahold is None and "safes.json" not in os.listdir(), "let go after 1 s: nothing saved")
+    tick(NO)
+    check(Q.state == "home" and sent[-1]["id"] == 10 and sent[-1]["ok"] is False and "refused" in sent[-1]["why"]
+          and "safes.json" not in os.listdir(), "%s refuses with one press: answered, nothing saved" % NO)
+
+    req({"id": 12, "op": "safes", "safes": [a, {"chainId": 8453, "address": ALICE, "name": "Base one"}]})
+    tick()
+    tick(PAGE)
+    tick(PAGE)
+    tick(YES)
+    hold(YES, Q.HOLD_MS)
+    saved = json.load(open("safes.json"))["safes"] if "safes.json" in os.listdir() else None
+    check(sent[-1]["id"] == 12 and sent[-1]["ok"] is True and saved and [x["address"] for x in saved] == [OTHER, ALICE]
+          and Q.reset_at and Q.state == "home", "every page seen, held %d s: safes.json written, answered, a restart due" % (Q.HOLD_MS // 1000))
+    Q.reset_at = 0
+    Q.sig = real_sig
+    Q = fresh(extra=extra, keep=True)
+    check(Q.SAFES_FROM == "safes.json" and [w["addr"] for w in Q.WATCH] == [OTHER, ALICE] and not any("url" in w["safe"] for w in Q.WATCH),
+          "after the restart: the console watches safes.json's Safes, ahead of secrets.py")
+    usblink.host, usblink.time = Q, Q.time
+    real_sig, Q.sig = Q.sig, Spy(Q.sig)
+
+    req({"id": 13, "op": "maint"})
+    tick()
+    tick(YES)
+    hold(YES, Q.HOLD_MS)
+    check("maint" not in os.listdir() and Q.state == "ask", "maint is red: %d s is not enough" % (Q.HOLD_MS // 1000))
+    tick(YES)
+    hold(YES, Q.HOLD_RED_MS)
+    check("maint" in os.listdir() and sent[-1]["id"] == 13 and sent[-1]["ok"], "held %d s: the maint file, for the restart into maintenance" % (Q.HOLD_RED_MS // 1000))
+    os.remove("maint")
+    Q.reset_at = 0
+
+    req({"id": 14, "op": "wifi", "ssid": "Cafe", "pass": "12345678"})
+    tick()
+    Q.time.now += usblink.ASK_S * 1000 + 1
+    tick()
+    check(Q.state == "home" and sent[-1]["id"] == 14 and not sent[-1]["ok"] and "in time" in sent[-1]["why"], "nobody there: refused after %d s" % usblink.ASK_S)
+    req({"id": 15, "op": "wifi", "ssid": "Cafe", "pass": "12345678"})
+    tick()
+    req({"id": 16, "op": "cancel"})
+    tick()
+    check(Q.state == "home" and any(x.get("id") == 15 and not x["ok"] and "cancelled" in x["why"] for x in sent), "cancel takes it off the screen")
+
+    check(not calls, "the link asked the chip nothing" + (": %s" % calls if calls else ""))
+    Q.sig = real_sig
+    usblink.send = real_send
+    import time
+    usblink.time, usblink.host, usblink.open_ask = time, None, None
+    for f in ("safes.json", "maint"):
+        try:
+            os.remove(f)
+        except OSError:
+            pass
+
+
+def case_setup_link():
+    """The link during Wi-Fi setup (a new board's first screen): status names the hotspot and the
+    saved networks, never a password; the one ask is a network, joined only after the choose key is
+    held 2 s; Y refuses. Nothing else may be asked."""
+    import usblink
+    import wificfg
+    import wifisetup as WS
+    sent, joined = [], []
+    real_send, real_join = usblink.send, WS.join
+    usblink.send = lambda d: sent.append(d)
+    WS.join = lambda ssid, pw, origin: joined.append((ssid, pw, origin))
+    clock = Clock()
+    WS.time, usblink.time = clock, clock
+    keys = Keys()
+    WS._keys, WS.ap_ssid, WS.view, WS._link = keys, "PicoQuorum-TEST", "qr", usblink
+    WS._draw = lambda: None
+    usblink.host, usblink.mode, usblink.open_ask = WS, "setup", None
+    wificfg.save("home", "a-secret-pass")
+
+    def req(d):
+        del sent[:]
+        usblink.handle(json.dumps(d))
+        return sent[-1] if sent else None
+    r = req({"id": 1, "op": "status"})
+    check(r["mode"] == "setup" and r["hotspot"] == "PicoQuorum-TEST" and r["wifi"]["saved"] == ["home"] and "a-secret" not in json.dumps(r),
+          "setup: status names the hotspot and saved networks, never a password")
+    check(req({"id": 2, "op": "safes", "safes": [{"chainId": CHAIN, "address": OTHER, "name": "x"}]})["why"].startswith("not here"),
+          "setup: only a network may be asked")
+    r = req({"id": 3, "op": "wifi", "ssid": "Cafe", "pass": "12345678"})
+    check(r is None and WS.view == "usb" and WS.usb["ssid"] == "Cafe", "a network ask: on the screen, no answer yet")
+    WS._key("Y")
+    check(WS.view == "qr" and sent[-1]["id"] == 3 and not sent[-1]["ok"] and not joined, "Y refuses: back to the QR, nothing joined")
+    req({"id": 4, "op": "wifi", "ssid": "Cafe", "pass": "12345678"})
+    WS._key("A")
+    keys.down.add("A")
+    clock.now += 1000
+    WS._usb_tick()
+    check(not joined and WS.view == "usb", "held 1 s: not yet")
+    clock.now += 1000
+    WS._usb_tick()
+    keys.down.discard("A")
+    check(joined == [("Cafe", "12345678", "qr")] and sent[-1]["id"] == 4 and sent[-1]["ok"], "held 2 s: it joins, and answers")
+    usblink.send, WS.join = real_send, real_join
+    import time
+    WS.time, usblink.time, usblink.host, usblink.open_ask, WS._link = time, time, None, None, None
+    wificfg.forget()
+
+
+LINK_THREE = [False]
 THREE_BOARD = ["feather-s3"]
 
 
@@ -1432,6 +1636,15 @@ def main_three(board="feather-s3"):
         failed[0] += 1
         print("FAIL  case_three raised")
         sys.print_exception(e)
+    print("-- link, " + board)
+    LINK_THREE[0] = True
+    try:
+        case_link()
+    except Exception as e:
+        failed[0] += 1
+        print("FAIL  case_link raised")
+        sys.print_exception(e)
+    LINK_THREE[0] = False
     print("%s: %d failed" % (board, failed[0]))
     return failed[0]
 
@@ -1445,7 +1658,7 @@ def main_knob():
 
 
 def main():
-    for case in (case_pin, case_owners_pages, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_safes, case_watchdog, case_home, case_saver, case_release, case_passkey, case_release_approval, case_knob):
+    for case in (case_pin, case_owners_pages, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_safes, case_watchdog, case_home, case_saver, case_release, case_passkey, case_release_approval, case_knob, case_link, case_setup_link):
         print("--", case.__name__[5:])
         try:
             case()

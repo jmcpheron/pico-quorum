@@ -13,9 +13,13 @@
 # Nothing else is reachable from here: the hotspot page sets Wi-Fi and nothing more, and the
 # console is not running (boot.py starts this before main.py and never returns to it).
 #
+# A computer on USB gets the link (usblink.py) meanwhile: hello, status, and one ask, a network to
+# join, which this screen shows and joins only when the person holds the choose key 2 s.
+#
 #   wifisetup.run()     blocking, from boot.py: never returns (restarts the board)
 #   wifisetup.start()   the same on a timer, for the emulator (emu/sketches/wifisetup_demo.py)
 import os
+import sys
 import time
 import network
 import board
@@ -45,6 +49,12 @@ _t_done = 0
 _origin = "qr"          # where a failed join goes back to
 _busy = False
 _frame = 0
+_link = None            # usblink, while run() holds USB
+LINK_ASKS = ("wifi",)
+USB_HOLD_MS = 2000
+usb = None              # {"ssid", "pass"}: the network the computer asked to join, on screen
+_uhold = None           # (t0, key) while the choose key is held on it
+_uback = "qr"           # the view it came over
 
 
 # ------------------------------------------------------------------------------------- radio
@@ -221,6 +231,68 @@ def _poll_join():
         _failed("no answer in %d s" % JOIN_S)
 
 
+# ------------------------------------------------------------------------------------- USB
+def link_status():
+    """usblink's status during setup: the hotspot's name, never its password, and the names of the
+    networks already saved, never theirs."""
+    return {"mode": "setup", "hotspot": ap_ssid, "view": view, "joining": st["ssid"] if view in ("join", "done") else "",
+            "result": st["state"], "msg": st.get("msg") or "", "ask": "wifi" if usb else None,
+            "wifi": {"up": False, "ssid": "", "saved": [n[0] for n in wificfg.load()]}}
+
+
+def link_ask(kind, item):
+    global usb, _uback, view, _uhold, _dirty
+    if view in ("join", "done"):
+        return "busy: joining %s" % st["ssid"]
+    usb, _uback, view, _uhold, _dirty = item, view, "usb", None, True
+    return None
+
+
+def link_cancel():
+    _usb_close(False, "cancelled by the computer")
+
+
+def _usb_close(ok, why):
+    global usb, view, _uhold, _dirty
+    if usb is not None and _link:
+        _link.done(ok, why)
+    usb, _uhold, _dirty = None, None, True
+    if view == "usb":
+        view = _uback
+
+
+def _usb_tick():
+    """The link's part of a step: what the computer sent, and the hold on its ask."""
+    global usb, _uhold, _dirty
+    _link.poll()
+    if view != "usb":
+        return
+    if _link.expired():
+        _usb_close(False, "nobody accepted it in time")
+    elif _uhold:
+        if not _keys.held(_uhold[1]):
+            _uhold = None
+        elif time.ticks_diff(time.ticks_ms(), _uhold[0]) >= USB_HOLD_MS:
+            ssid, pw = usb["ssid"], usb["pass"]
+            _link.done(True)
+            usb, _uhold = None, None
+            print("wifisetup: joining %s, asked over USB" % ssid)
+            join(ssid, pw, _uback if _uback in ("qr", "list") else "qr")
+        _dirty = True
+
+
+def _link_on():
+    """USB to the link for as long as setup runs (boot.py's, never the emulator's timer)."""
+    global _link
+    try:
+        import usblink
+        usblink.host, usblink.mode = sys.modules[__name__], "setup"
+        usblink.keep_ctrl_c_out()
+        _link = usblink
+    except ImportError:
+        _link = None
+
+
 # ------------------------------------------------------------------------------------- keyboard
 
 PAGES = (("abcdefghij", "klmnopqrst", "uvwxyz-_.@", "1234567890"),
@@ -298,13 +370,19 @@ def _list_items():
 
 
 def _key(k):
-    global view, sel, kb, _dirty, qr_mode
+    global view, sel, kb, _dirty, qr_mode, _uhold
+    raw = k
     if L.THREE:                         # the Feather: D0 back, D1 the next (held, the one before), D2 choose
         k = {"D0": "Y", "D1": "down", "D1L": "up", "D2": "A"}.get(k, k)
     ok = k in ("A", "press")
-    back = k == "Y"
+    back = k == "Y" or (k == "B" and view == "usb")
     _dirty = True
-    if view == "qr":
+    if view == "usb":
+        if back:
+            _usb_close(False, "refused on the device")
+        elif ok:
+            _uhold = (time.ticks_ms(), raw)
+    elif view == "qr":
         if ok:
             view, sel = "list", 0
         elif k == "X" and can_cancel:
@@ -464,7 +542,7 @@ def _qr_size(text, room):
 
 def _draw():
     _d.fill(L.color(*BG))
-    {"qr": _draw_qr, "list": _draw_list, "kbd": _draw_kbd, "join": _draw_join, "done": _draw_done}[view]()
+    {"qr": _draw_qr, "list": _draw_list, "kbd": _draw_kbd, "join": _draw_join, "done": _draw_done, "usb": _draw_usb}[view]()
     _d.show()
 
 
@@ -586,6 +664,19 @@ def _draw_join():
         ctx("This takes up to %d seconds" % JOIN_S, H // 2 + 30, "sans12", DIM)
 
 
+def _draw_usb():
+    W, H = L.W, L.H
+    _title("Wi-Fi from USB")
+    ctx("Join this network?", H // 2 - (40 if BIG else 26), "sans14" if BIG else "", DIM)
+    ctx(fit(usb["ssid"], W - 8, "bold18"), H // 2 - (16 if BIG else 12), "bold18", INK)
+    if _uhold:
+        f = min(1, time.ticks_diff(time.ticks_ms(), _uhold[0]) / USB_HOLD_MS)
+        _d.fill_rect(W // 2 - 60, H // 2 + 12, 120, 8, L.color(40, 50, 80))
+        _d.fill_rect(W // 2 - 60, H // 2 + 12, int(120 * f), 8, L.color(*GOOD))
+    how = ("D2 held: join  D0: no" if L.THREE else "hold the knob: join" if L.KNOB else "A held: join  Y: no")
+    ctx(how, H - (th("sans12") + 2 if BIG else 12), "sans12", DIM)
+
+
 def _draw_done():
     W, H = L.W, L.H
     _title("Connected", GOOD)
@@ -630,6 +721,8 @@ def step():
     _busy = True
     try:
         _frame += 1
+        if _link:
+            _usb_tick()
         for k in _keys.pressed():
             _key(k)
         _serve()
@@ -653,6 +746,7 @@ def step():
 def run():
     """From boot.py. Never returns: a saved network (or a cancel) restarts the board."""
     _setup()
+    _link_on()
     while True:
         step()
         time.sleep_ms(30)

@@ -1,12 +1,20 @@
 # picoquorum-image: console
 # main.py of the production image (tools/fw push console copies this file to :main.py). boot.py
-# already showed the splash and joined WiFi. This starts the Safe console on its timer and returns,
-# so the USB REPL stays free for tools/fw (backup, verify, logs, config).
+# already showed the splash and joined WiFi. This starts the Safe console on its timer, then hands
+# USB to the link (usblink.run), which never returns: while the console runs, a computer gets the
+# link's few requests and never the REPL (docs/USB-LINK.md). tools/fw reads the console through
+# the link, and asks it for maintenance to do anything else.
 #
-# Maintenance: hold B (on build1, the knob pressed down) while plugging the board in, and keep
-# holding it until the onboard LED lights (or tools/fw leaves a file named "maint" on flash).
-# The display stays off in maintenance. Then nothing starts: no
-# console, no watchdog, only the USB REPL, for a restore or a repair.
+# Maintenance: hold B (on build1, the knob pressed down; D1 on the Feather and PicoQuorumKey) while
+# plugging the board in, and keep holding it until the onboard LED lights, or accept the link's
+# maint ask on the screen (it leaves a file named "maint" on flash). The display stays off in
+# maintenance. Then nothing starts: no console, no watchdog, only the USB REPL, for a restore or a
+# repair.
+try:
+    import micropython
+    micropython.kbd_intr(-1)        # first: MicroPython turned Ctrl-C back on for this file
+except BaseException:
+    pass
 import sys
 import os
 
@@ -36,9 +44,12 @@ def _maintenance():
     return getattr(board, "MAINTENANCE", False) or board.key_down(board.MAINT)     # B, the knob's push on build1, D1 on the Feather
 
 
+_quorum = None
+_maint = False
 try:
     import image
     if _maintenance():
+        _maint = True
         print("maintenance: the console is not started")
         # Leave the heap and USB free even when the display driver is broken.
         from machine import Pin
@@ -67,6 +78,7 @@ try:
         import quorum
         splash.pause(False)
         quorum.start()
+        _quorum = quorum
 except Exception as e:
     try:
         with open("error.log", "w") as f:
@@ -80,3 +92,8 @@ except Exception as e:
                            "error.log has the details.", "build " + image.BUILD])
     except Exception:
         pass
+
+if not _maint:
+    # USB is the link's from here, a console that stopped included: never the REPL. Never returns.
+    import usblink
+    usblink.run(_quorum)

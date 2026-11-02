@@ -41,10 +41,23 @@ swapped on the board, or another slot, signs nothing.
 - Anyone on the chip's bus can raise the counter, but nobody can lower it. So a hidden signature
   shows up, and a raised count can mean a false alarm.
 
+**USB.** From 2026.11.1 the running console holds USB itself ([USB-LINK.md](USB-LINK.md)): a
+computer gets the link's few requests and never the REPL. Ctrl-C is off from the first line of
+`boot.py`, and `main.py` ends in a loop that never returns. The link reads what the console already
+shows, and writes Wi-Fi, the Safes or the maint file only when the person holds Sign on the
+console's own screen. It never signs and never touches the chip. The REPL is reachable only in
+maintenance: the maintenance key held at power-up, or the link's maint ask, accepted on the screen.
+This replaced the 2026-09-25 decision to keep the USB REPL on.
+
 **Still open to whoever holds the board:**
-- The USB REPL stays on, a decision made on 2026-09-25, because the tooling uses it.
+- The ROM bootloader. Anything holding the USB port can still put an ESP32-S3 into its ROM
+  bootloader with the DTR and RTS lines and write new firmware (esptool does this, and esptool-js
+  does it from Chrome); a Pico reboots to BOOTSEL on a 1200-baud touch. New firmware can make the
+  chip sign anything. Closing the REPL only removes the quiet way in, through the console's own
+  Python. Secure boot, and turning off USB download, close the rest; both are permanent eFuse
+  settings on the S3, and neither is done.
 - There is no chip PIN (see [PROVISIONING.md](PROVISIONING.md)).
-- Anyone with the board and a USB cable, or with the chip's I2C bus, can have the chip sign any
+- Anyone with the board in maintenance, or with the chip's I2C bus, can have the chip sign any
   digest. That is one owner's signature, and it shows up in the counter.
 - The WebAuthn "user verified" flag is the firmware's word that someone held A, not a
   chip-enforced factor.
