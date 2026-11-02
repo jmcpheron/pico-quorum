@@ -1,13 +1,14 @@
 """pico-sign-handheld's case: flat, portrait, held in two hands or laid on the desk. A tub, printed in
 one piece on its back, open at the face, and a front plate that holds everything you touch or read:
-the 2.4" screen across the top half; under it the knob on the left and the sign switch on the right,
-each sunk in a well, with a frame for a label. The sign switch's well holds a guard: a flip cover on a
-filament pin, flush with the face when shut. The plate fixes with four M3 countersunk screws into heat-set inserts in
+the 2.4" screen across the top half; under it the knob on the left and the sign button on the right,
+each sunk in a well, with a frame for a label. The sign button is a printed cap over a 6 x 6 mm tactile
+switch in a printed holder behind the plate. Its well holds a guard: a flip cover on a filament pin,
+flush with the face when shut. The plate fixes with four M3 countersunk screws into heat-set inserts in
 posts at the tub's corners. The key's USB-C plug stands in a holder at the top edge, built up from the
 back, its face flush with the edge: the key, in its clamshell (cartridge.py), plugs straight down onto it
-and stands up out of the top. The screen mount is the prism's (pico-sign's prism.py): posts
-and pins on the plate's back, spacers, a carrier screwed to four bosses. The Pico lies on four posts on
-the tub's floor between the knob and the switch, its USB out through the bottom edge.
+and stands up out of the top. The screen mount and the carrier are the prism's (pico-sign's prism.py):
+posts and pins on the plate's back, spacers, a carrier screwed to four bosses, the Pico screwed to the
+carrier's back, its USB out through the right side. Everything you wire is on the plate but the key's plug.
 
 Run: uv run --python 3.11 --with cadquery --with matplotlib --with pillow \\
          python hardware/builds/pico-sign-handheld/case/handheld.py [screen.png]
@@ -15,12 +16,11 @@ Run: uv run --python 3.11 --with cadquery --with matplotlib --with pillow \\
 
 Writes out/: handheld_body.stl (on its back, as it prints), handheld_plate.stl (face down),
 handheld_carrier.stl, handheld_spacers.stl, handheld_plug_lock.stl, handheld_guard_base.stl,
-handheld_guard_cover.stl, handheld_assembly.step, handheld_*.png (the screen PNG warped onto the panel
+handheld_guard_cover.stl, handheld_sign_cap.stl, handheld_tact_holder.stl, handheld_assembly.step, handheld_*.png (the screen PNG warped onto the panel
 if one is given), and the clamshell's cartridge_*.stl and cartridge.png.
 
 A first draft to print and try. The 2.4" screen's numbers are placeholders (SCREEN_*): measure yours.
-The sign switch is a short-bodied 12 mm one (SIGN_HEAD, SIGN_DEPTH), not measured; the script prints how
-long a switch fits. The knob, the plugs and the Pico are the prism's numbers. The script checks only that the
+The tactile switch is a usual 6 x 6 mm one (TACT), not measured: the holder follows it. The knob, the plugs and the Pico are the prism's numbers. The script checks only that the
 parts' stand-ins don't overlap the tub, the plate or each other. All dimensions mm.
 
 Frame: the handheld face up on the desk. x across, left to right; y from the bottom edge (your thumbs)
@@ -65,26 +65,45 @@ SCREEN_DX = 0.0                     # the glass this far right of the board's ce
 SCREEN_XY = (W / 2, 79.0)           # the board's centre
 HEADER_X = SCREEN_XY[0] + HEADER_SIDE * (SCREEN_PCB[0] / 2 - 1.5)
 HEADER = (3.0, 21.0, 11.5)          # its 8 pins out of the back, with wires soldered to them: wide, tall, deep
-KNOB_XY, SIGN_XY = (22.0, 30.0), (64.0, 30.0)    # under the screen: the knob left, the sign switch right
-SIGN_HOLE = 12.2                    # a 12 mm metal push switch
-SIGN_HEAD = (15.0, 2.0)             # its head over the plate: across, tall from its flange's underside. Not measured
-SIGN_BODY, SIGN_DEPTH = 16.0, 20.0  # its body and lugs: across, long from under its head. A short one, not measured
+KNOB_XY, SIGN_XY = (22.0, 30.0), (64.0, 30.0)    # under the screen: the knob left, the sign button right
 KNOB_HOLE = 7.2                     # EC11, M7 bushing
 EC11 = (12.0, 12.0, 7.0)            # its body behind the plate
 # Both sit in wells in the plate, the plate thickened behind each so the well's floor stays thick.
 KNOB_WELL, KNOB_FLOOR = (25.0, 3.0), 2.0        # round: across, deep; the floor under it, for the EC11's nut
-# The sign switch's well holds a guard: a base under the switch's head (the head clamps it to the floor),
-# two knuckles on it, and a cover hinged between them on a 1.75 mm filament pin. Shut, the cover is flush
-# with the face; it flips up toward the screen. The well is the base's outline, so the base can't turn.
+# The sign button: a printed cap in the well, its plunger down through the floor onto a tactile switch in a
+# printed holder screwed behind the plate. A flange under the cap seats in a cone under the guard's base, so
+# the cap can't fall out; pressed, it travels TRAVEL, then the flange stops on the floor.
+TACT = (6.0, 6.0, 3.5, 5.0, 9.0)    # the switch: body across, along, tall; tall to its stem's top; across its legs.
+                                    # A usual 6 x 6 mm one, SMD or through-hole with its legs bent flat. Not measured
+CAP_D, CAP_UP = 12.0, 2.0           # the cap's head: across, how far it stands over the guard's base
+FLANGE_D, FLANGE_T = 15.0, 0.5      # its flange: across, and its flat edge, under a 45 degree cone up to the head
+PLUNGER_D = 5.0
+STEM_GAP, TRAVEL = 0.2, 0.45        # the plunger over the switch's stem at rest; the cap's travel to the stop
+HOLDER = (24.0, 9.0, 1.2)           # the switch's holder: across, along, its floor under the switch
+HOLDER_BOSS = 4.0                   # the bosses it screws to, down from the floor's back
+M2_HOLE, M2_CLEAR, M2_SCREW, M2_HEAD = 1.8, 2.4, 8.0, (3.8, 2.0)   # self-tapping M2 x 8 socket heads
+# The well holds a guard: a base (two M2 screws through it into the plate), two knuckles on it, and a cover
+# hinged between them on a 1.75 mm filament pin. Shut, the cover is flush with the face; it flips up toward
+# the screen. The well is the base's outline, so the base can't turn.
 GUARD = (20.0, 24.0, 3.0)           # the base: across, tall, its corners' radius
-GUARD_DY = -10.0                    # its bottom edge from the switch's centre: the hinge is at the top
-BASE_T, COVER_T = 2.0, 1.6
-HEAD_CLEAR = 0.4                    # over the switch's head, under the cover
+GUARD_DY = -10.0                    # its bottom edge from the button's centre: the hinge is at the top
+BASE_T, COVER_T = 3.0, 1.6
+HEAD_CLEAR = 0.4                    # over the cap's head and the screws' heads, under the cover
+BASE_SCREWS = [(SIGN_XY[0] + sx * 7.5, SIGN_XY[1] - 7.5) for sx in (-1, 1)]
+HOLDER_SCREWS = [(SIGN_XY[0] + sx * 9.5, SIGN_XY[1]) for sx in (-1, 1)]
 KNUCKLE_R, KNUCKLE_W = 1.8, 4.0     # the hinge's knuckles: radius; the base's two, each this wide
 PIN_D, PIN_HOLE_BASE, PIN_HOLE_COVER = 1.75, 1.8, 2.0   # filament; tight in the base, free in the cover
 GUARD_CLEAR = 0.3                   # round the base in its well, round the cover's sides
-SIGN_WELL = COVER_T + HEAD_CLEAR + SIGN_HEAD[1] + BASE_T    # 6.0
+SIGN_WELL = COVER_T + HEAD_CLEAR + CAP_UP + BASE_T    # 7.0
 SIGN_FLOOR = 1.5
+Z_FLOOR_TOP = T - SIGN_WELL         # the sign well's floor, and its back
+Z_FLOOR_BOT = Z_FLOOR_TOP - SIGN_FLOOR
+Z_BASE_TOP = Z_FLOOR_TOP + BASE_T
+Z_TIP = Z_FLOOR_BOT - 1.0           # the plunger's tip, at rest
+Z_TACT = Z_TIP - STEM_GAP - TACT[3]  # the switch's underside
+Z_HOLDER = Z_FLOOR_BOT - HOLDER_BOSS  # the holder's top, against its bosses
+assert Z_TACT < Z_HOLDER, "the switch is too short for its holder: TACT"
+assert M2_HEAD[1] <= CAP_UP, "the base's screw heads stand higher than the cap: they'd hit the cover"
 WELL_RIB = 3.0                      # the thickening behind a well, this much past it
 NAME = "PICOQUORUM"                 # between the controls and the screen, as big as fits
 LABELS = [(KNOB_XY[0], 13.0, (20.0, 6.0)), (SIGN_XY[0] - 3.0, 13.0, (20.0, 6.0))]   # frames for a label: x, y, size
@@ -118,23 +137,24 @@ Z_CARRIER = Z_BOARD - SCREEN_PCB_T - SPACER                 # the carrier's fron
 Z_CARRIER_BACK = Z_CARRIER - CARRIER_T
 assert ZP - Z_CARRIER >= M3_INSERT[1] + 1.5, "the bosses are too short for their inserts"
 
-# --- the Pico on the tub's floor, its USB down through the bottom edge ----------------------------------
-PICO = (21.0, 51.0, 1.0)
-PICO_X = 42.0                       # its centre line, between the knob and the switch
-PICO_Y0 = 10.0                      # its USB end
-PICO_UP = 6.0                       # its posts, from the floor
+# --- the Pico on the carrier's back, as on the prism, its USB out through the right side --------------------
+# Its parts and its USB socket face the carrier (with headers, the usual way; here, wires on its pads, the
+# same way up). It lies across, behind the screen, under the key's plug holder, its USB end to the right.
+PICO = (51.0, 21.0, 1.0)            # long, across, thick
+PICO_X1, PICO_Y = 72.0, 72.0        # its USB end; its centre line
+PICO_UP = 6.5                       # its posts on the carrier's back, the prism's: the plug clears the carrier
 PICO_POST_D, PICO_POST_D_USB = 4.5, 3.6         # the prism's: slimmer at the USB end, clear of the plug and socket
 PICO_SCREW_HOLE, PICO_SCREW = 1.8, 8.0          # M2 x 8, cutting its own thread
-PICO_HOLES = [(-5.7, 2.0), (5.7, 2.0), (-5.7, 49.0), (5.7, 49.0)]   # from its USB end
-PICO_POSTS = [(dx, dy, PICO_POST_D_USB if dy < PICO[1] / 2 else PICO_POST_D) for dx, dy in PICO_HOLES]
-PICO_WIRES = 4.0                    # wires soldered to its pads, on the side away from the floor
+PICO_HOLES = [(2.0, -5.7), (2.0, 5.7), (49.0, -5.7), (49.0, 5.7)]   # in from its USB end, across
+PICO_POSTS = [(dx, dy, PICO_POST_D_USB if dx < PICO[0] / 2 else PICO_POST_D) for dx, dy in PICO_HOLES]
+PICO_PARTS = 3.0                    # its parts, toward the carrier
+PICO_WIRES = 4.0                    # wires soldered to its pads, on the side away from the carrier
 USB_PLUG = (24.0, 11.0, 8.0, 1.5)   # micro-USB: the overmold's length out of the case, width, thickness, axis off the face
-USB_SOCKET = (7.5, 5.6, 2.6)        # under the board when it lies parts down: wide, in from its end, tall. Not measured
-CABLE = 14.0                        # the square hole in the bottom edge: the plug passes, its socket on either face
-Z_PICO = WALL + PICO_UP             # the Pico's underside
-PLUG_LO = Z_PICO - USB_PLUG[3] - USB_PLUG[2] / 2                # the plug's reach down, socket under the board
-PLUG_HI = Z_PICO + PICO[2] + USB_PLUG[3] + USB_PLUG[2] / 2      # and up, socket on top
-assert WALL + PICO_UP >= PICO_SCREW - PICO[2] + 1.0, "the Pico's posts are too short for their screws"
+USB_SOCKET = (7.5, 5.6, 2.6)        # on the board's face, between the USB end's posts: wide, in from its end, tall. Not measured
+CABLE = 14.0                        # the square hole in the right side, round the plug
+Z_PICO = Z_CARRIER_BACK - PICO_UP   # the Pico's face, toward the carrier
+PLUG_Z = Z_PICO + USB_PLUG[3]       # the plug's axis
+assert CARRIER_T + PICO_UP >= PICO_SCREW - PICO[2] + 0.5, "the Pico's posts are too short for their screws"
 
 # --- the key's plug in the top edge: the prism's holder and lock, laid on the floor ------------------------
 PLUG_W, PLUG_H, PLUG_L = 12.4, 5.5, 17.1        # a cut USB-C cable's overmold (calipers)
@@ -210,8 +230,16 @@ def tub_and_plate():
     plate = plate.cut(guard_outline(GUARD_CLEAR, T - SIGN_WELL, T + 1))
     gx0, gx1, gy0, gy1 = guard_box()
     plate = plate.cut(zp(T + 1).center(SIGN_XY[0], gy0).circle(5.0).extrude(-3.5))     # under the cover's edge, to lift it
-    for xy, d, deep in ((SIGN_XY, SIGN_HOLE, SIGN_WELL + SIGN_FLOOR), (KNOB_XY, KNOB_HOLE, kdepth + KNOB_FLOOR)):
+    for xy, d, deep in ((SIGN_XY, PLUNGER_D + 0.6, SIGN_WELL + SIGN_FLOOR), (KNOB_XY, KNOB_HOLE, kdepth + KNOB_FLOOR)):
         plate = plate.cut(zp(T + 1).center(*xy).circle(d / 2).extrude(-(deep + 2)))
+    # bosses behind the sign well's floor: two for the guard's base (screws from the front), two for the
+    # switch's holder (screws from behind); a hole each for an M2 to cut its thread
+    for x, y in BASE_SCREWS + HOLDER_SCREWS:
+        plate = plate.union(zp(Z_FLOOR_BOT + 0.01).center(x, y).circle(2.5).extrude(-HOLDER_BOSS - 0.01))
+    for x, y in BASE_SCREWS:            # from the base's top, an M2 x 8's length, 0.5 short of the boss's end
+        plate = plate.cut(zp(Z_FLOOR_TOP + 0.01).center(x, y).circle(M2_HOLE / 2).extrude(-(M2_SCREW - BASE_T + 0.01)))
+    for x, y in HOLDER_SCREWS:          # from the holder's side, stopping 0.5 under the well's floor
+        plate = plate.cut(zp(Z_HOLDER - 0.01).center(x, y).circle(M2_HOLE / 2).extrude(Z_FLOOR_TOP - 0.5 - Z_HOLDER))
 
     # the name, between the controls' tops and the window's bevel, clear of the edge's chamfer
     y0 = max(KNOB_XY[1] + kd / 2, gy1 + GUARD_CLEAR) + 1.5   # over the wells
@@ -239,18 +267,10 @@ def tub_and_plate():
         x, y, z = detent_at(s, PW)
         body = body.cut(cq.Workplane("YZ").center(y, z).circle(dr).extrude(0.6, both=True).translate((x, 0, 0)))
 
-    # the Pico's posts on the floor, a hole each for an M2 screw that cuts its own thread
-    posts = holes = None
-    for dx, dy, d in PICO_POSTS:
-        c = (PICO_X + dx, PICO_Y0 + dy)
-        p = zp(1.0).center(*c).circle(d / 2).extrude(Z_PICO - 1.0)
-        h = zp(Z_PICO + 0.01).center(*c).circle(PICO_SCREW_HOLE / 2).extrude(-(PICO_SCREW - PICO[2] + 0.5))
-        posts, holes = (p, h) if posts is None else (posts.union(p), holes.union(h))
-    body = body.union(posts).cut(holes)
-    # its cable out through the bottom edge: a square hole with round corners, the plug passes either way up
-    zc = max((PLUG_LO + PLUG_HI) / 2, WALL + 0.3 + CABLE / 2)      # not flush with the floor: OCC chokes on it
-    hole = box(PICO_X - CABLE / 2, PICO_X + CABLE / 2, -1, WALL + 1, zc - CABLE / 2, zc + CABLE / 2)
-    body = body.cut(hole.edges("|Y").fillet(1.5))
+    # the Pico's cable in through the right side: a square hole with round corners, round the plug. The plug
+    # goes in from outside once the plate is on
+    hole = box(W - WALL - 1, W + 1, PICO_Y - CABLE / 2, PICO_Y + CABLE / 2, PLUG_Z - CABLE / 2, PLUG_Z + CABLE / 2)
+    body = body.cut(hole.edges("|X").fillet(1.5))
     # the rubber feet
     fw, fl = FOOT[0] + 2 * FOOT_CLEAR, FOOT[1] + 2 * FOOT_CLEAR
     for x in (FOOT_X, W - FOOT_X):
@@ -285,13 +305,57 @@ def guard_base():
     yh, zh = hinge()
     z0 = T - SIGN_WELL
     b = guard_outline(0, z0, z0 + BASE_T)
-    b = b.cut(zp(T).center(*SIGN_XY).circle(SIGN_HOLE / 2).extrude(-SIGN_WELL - 1))
+    b = b.cut(zp(T).center(*SIGN_XY).circle(CAP_D / 2 + 0.2).extrude(-SIGN_WELL - 1))
+    b = b.cut(cap_seat(0.2))
+    for x, y in BASE_SCREWS:
+        b = b.cut(zp(T).center(x, y).circle(M2_CLEAR / 2).extrude(-SIGN_WELL - 1))
     for k0 in (x0, x1 - KNUCKLE_W):
         tab = cq.Workplane("YZ").polyline([(yh - KNUCKLE_R, z0 + BASE_T - 0.1), (yh + KNUCKLE_R, z0 + BASE_T - 0.1),
                                            (yh + KNUCKLE_R, zh), (yh - KNUCKLE_R, zh)]).close().extrude(KNUCKLE_W)
         tab = tab.union(cq.Workplane("YZ").center(yh, zh).circle(KNUCKLE_R).extrude(KNUCKLE_W))
         b = b.union(tab.translate((k0, 0, 0)).intersect(guard_outline(0, z0, T + 1)))     # inside the round corners
     return b.cut(cq.Workplane("YZ").center(yh, zh).circle(PIN_HOLE_BASE / 2).extrude(GUARD[0] + 2).translate((x0 - 1, 0, 0)))
+
+
+def cap_seat(grow):
+    """The space under the base the cap's flange moves in: its flat edge, TRAVEL and a 45 degree cone up to
+    the head, grown by grow."""
+    r0, r1 = FLANGE_D / 2 + grow, CAP_D / 2 + grow
+    z = Z_FLOOR_TOP - 0.01
+    return zp(z).center(*SIGN_XY).circle(r0).extrude(FLANGE_T + TRAVEL + 0.01).faces(">Z").workplane() \
+        .circle(r0).workplane(offset=r0 - r1).circle(r1).loft()
+
+
+def sign_cap(pressed=0.0):
+    """The button: a head in the base's hole, a flange under the base, a plunger through the floor. At rest
+    the flange is TRAVEL over the floor; pressed, it comes down that far. Prints head down."""
+    zf = Z_FLOOR_TOP + TRAVEL - pressed           # the flange's underside
+    r0, r1 = FLANGE_D / 2, CAP_D / 2
+    c = zp(zf).center(*SIGN_XY).circle(r0).extrude(FLANGE_T).faces(">Z").workplane() \
+        .circle(r0).workplane(offset=r0 - r1).circle(r1).loft()
+    top = Z_BASE_TOP + CAP_UP - pressed
+    c = c.union(zp(zf + FLANGE_T + r0 - r1 - 0.01).center(*SIGN_XY).circle(r1).extrude(top - (zf + FLANGE_T + r0 - r1) + 0.01)
+                .faces(">Z").edges().fillet(0.8))
+    return c.union(zp(zf + 0.01).center(*SIGN_XY).circle(PLUNGER_D / 2).extrude(-(zf - (Z_TIP - pressed)) - 0.01))
+
+
+def tact_holder():
+    """A plate screwed to two bosses behind the sign well, a pocket in it for the tactile switch, its stem
+    toward the plunger, its legs in the pocket's ends; two slots for the wires. Prints as it sits."""
+    hw, hl, hf = HOLDER
+    x, y = SIGN_XY
+    z0 = Z_TACT - hf
+    h = box(x - hw / 2, x + hw / 2, y - hl / 2, y + hl / 2, z0, Z_HOLDER).edges("|Z").fillet(1.5)
+    h = h.cut(box(x - TACT[4] / 2 - 0.3, x + TACT[4] / 2 + 0.3, y - TACT[1] / 2 - 0.15, y + TACT[1] / 2 + 0.15, Z_TACT, Z_HOLDER + 1))
+    for s in (-1, 1):
+        h = h.cut(box(x + s * 3.5 - 0.75, x + s * 3.5 + 0.75, y - hl, y + hl, Z_HOLDER - 1.5, Z_HOLDER + 1))
+    seat = Z_FLOOR_TOP - 0.5 - M2_SCREW               # the screws' heads: their tips 0.5 under the well's floor
+    assert seat < Z_HOLDER - 1.0, "the holder's screws are too long"
+    for sx, sy in HOLDER_SCREWS:
+        h = h.cut(zp(z0 - 1).center(sx, sy).circle(M2_CLEAR / 2).extrude(Z_HOLDER - z0 + 2))
+        if seat > z0:
+            h = h.cut(zp(z0 - 1).center(sx, sy).circle(M2_HEAD[0] / 2 + 0.3).extrude(seat - z0 + 1))
+    return h
 
 
 def guard_cover(angle=0.0):
@@ -371,7 +435,15 @@ def carrier_and_spacers():
         car = car.cut(zp(Z_CARRIER + 1).center(*c).circle(PIN_HOLE / 2).extrude(-CARRIER_T - 2))
         t = zp(Z_BOARD - SCREEN_PCB_T).center(*c).circle(SPACER_D / 2).circle(PIN_HOLE / 2).extrude(-SPACER)
         spacers = t if spacers is None else spacers.union(t)
+    for c in pico_posts():              # the Pico's posts, the prism's: blind holes, 1.5 mm short of the front
+        car = car.union(zp(Z_CARRIER_BACK + 0.01).center(*c[:2]).circle(c[2] / 2).extrude(-PICO_UP - 0.01))
+        car = car.cut(zp(Z_PICO - 0.01).center(*c[:2]).circle(PICO_SCREW_HOLE / 2).extrude(PICO_SCREW - PICO[2] + 0.5))
     return car, spacers
+
+
+def pico_posts():
+    """Each of the Pico's posts: x, y, diameter. Its USB end is at PICO_X1, the board running left."""
+    return [(PICO_X1 - dx, PICO_Y + dy, d) for dx, dy, d in PICO_POSTS]
 
 
 # --- stand-ins, for the pictures, the STEP and the checks --------------------------------------------------
@@ -394,12 +466,17 @@ def stand_ins():
             zp(Z_CARRIER_BACK - 0.5).center(*c).circle(2.75).extrude(-3.0))
         heads = h if heads is None else heads.union(h)
     s.append((heads, (0.08, 0.08, 0.09), "carrier screws"))
-    flange = T - SIGN_WELL + BASE_T                 # the switch's flange sits on the guard's base
-    s.append((zp(flange).center(*SIGN_XY).circle(SIGN_HEAD[0] / 2).extrude(SIGN_HEAD[1] - 0.5).union(
-        zp(flange).center(*SIGN_XY).circle(4.5).extrude(SIGN_HEAD[1])), (0.78, 0.78, 0.80), "sign switch"))
-    floor = T - SIGN_WELL - SIGN_FLOOR
-    s.append((zp(floor).center(*SIGN_XY).circle(SIGN_BODY / 2).extrude(-(SIGN_DEPTH - (flange - floor))), (0.25, 0.25, 0.28),
-              "sign switch body"))
+    tw, tl, th, tall, legs = TACT
+    sw = box(SIGN_XY[0] - tw / 2, SIGN_XY[0] + tw / 2, SIGN_XY[1] - tl / 2, SIGN_XY[1] + tl / 2, Z_TACT, Z_TACT + th)
+    sw = sw.union(zp(Z_TACT + th - 0.01).center(*SIGN_XY).circle(1.75).extrude(tall - th + 0.01))
+    sw = sw.union(box(SIGN_XY[0] - legs / 2, SIGN_XY[0] + legs / 2, SIGN_XY[1] - tl / 2 + 0.5, SIGN_XY[1] + tl / 2 - 0.5,
+                      Z_TACT, Z_TACT + 0.6))
+    s.append((sw, (0.25, 0.25, 0.28), "tact switch"))
+    heads = None                    # the guard's base's two M2 socket heads
+    for x, y in BASE_SCREWS:
+        h = zp(Z_BASE_TOP).center(x, y).circle(M2_HEAD[0] / 2).extrude(M2_HEAD[1])
+        heads = h if heads is None else heads.union(h)
+    s.append((heads, (0.08, 0.08, 0.09), "base screws"))
     kfloor = T - KNOB_WELL[1]
     s.append((zp(kfloor + 2.5).center(*KNOB_XY).circle(9).extrude(13).faces(">Z").edges().fillet(1.5), (0.1, 0.1, 0.11), "knob"))
     s.append((zp(kfloor + 15.5).center(KNOB_XY[0], KNOB_XY[1] + 5).rect(0.8, 6).extrude(0.4), (0.9, 0.9, 0.9), "knob mark"))
@@ -416,43 +493,48 @@ def stand_ins():
     s.append((cq.Workplane().add(bottom.val().moved(loc)), K.AMBER_D, "cartridge tray"))
     s.append((cq.Workplane().add(board.val().moved(loc)), (0.10, 0.25, 0.60), "key-c"))
     s.append((cq.Workplane().add(chip.val().moved(loc)), (0.08, 0.08, 0.09), "ATECC608"))
-    pc = PICO_Y0 + PICO[1] / 2
-    s.append((zp(Z_PICO).center(PICO_X, pc).rect(PICO[0], PICO[1]).extrude(PICO[2]), (0.10, 0.42, 0.22), "Pico 2 W"))
-    s.append((zp(Z_PICO + PICO[2]).center(PICO_X, pc).rect(PICO[0], PICO[1]).extrude(PICO_WIRES),
-              (0.55, 0.55, 0.58), "Pico's parts and wires, face up (space)"))
-    under = zp(Z_PICO).center(PICO_X, pc).rect(PICO[0], PICO[1]).extrude(-USB_SOCKET[2])
-    for dx, dy, d in PICO_POSTS:
-        under = under.cut(zp(Z_PICO + 1).center(PICO_X + dx, PICO_Y0 + dy).circle(d / 2 + 0.2).extrude(-5))
-    s.append((under, (0.55, 0.55, 0.58), "Pico's parts, face down (space)"))
-    s.append((box(PICO_X - USB_PLUG[1] / 2, PICO_X + USB_PLUG[1] / 2, PICO_Y0 - USB_PLUG[0], PICO_Y0, PLUG_LO, PLUG_HI),
-              (0.15, 0.15, 0.15), "USB plug (space)"))   # the socket on either face: both plugs' room
+    pc = PICO_X1 - PICO[0] / 2
+    s.append((zp(Z_PICO).center(pc, PICO_Y).rect(PICO[0], PICO[1]).extrude(-PICO[2]), (0.10, 0.42, 0.22), "Pico 2 W"))
+    near = zp(Z_PICO).center(pc, PICO_Y).rect(PICO[0], PICO[1]).extrude(PICO_PARTS)
+    for x, y, d in pico_posts():
+        near = near.cut(zp(Z_PICO - 1).center(x, y).circle(d / 2 + 0.2).extrude(PICO_PARTS + 2))
+    s.append((near, (0.55, 0.55, 0.58), "Pico's parts, toward the carrier (space)"))
+    s.append((zp(Z_PICO - PICO[2]).center(pc, PICO_Y).rect(PICO[0], PICO[1]).extrude(-PICO_WIRES),
+              (0.55, 0.55, 0.58), "Pico's wires (space)"))
+    pl, pw_, pt = USB_PLUG[:3]
+    s.append((box(PICO_X1, PICO_X1 + pl, PICO_Y - pw_ / 2, PICO_Y + pw_ / 2, PLUG_Z - pt / 2, PLUG_Z + pt / 2),
+              (0.15, 0.15, 0.15), "USB plug (space)"))
     return s
 
 
-def checks(body, plate, parts, carrier, spacers, lock, base, cover):
+def checks(body, plate, parts, carrier, spacers, lock, base, cover, cap, holder):
     """Only that nothing obvious collides: the parts are boxes. Not a fit check."""
     n = {name: sh for sh, _, name in parts}
-    n["guard base"], n["guard cover"] = base, cover
+    n["guard base"], n["guard cover"], n["sign cap"], n["tact holder"] = base, cover, cap, holder
     inside = ["screen glass", "screen board", "screen board back parts", "screen header and wires", "carrier screws",
-              "sign switch body", "EC11 body", "plug overmold", "key-c", "cartridge cover", "cartridge tray",
-              "Pico 2 W", "Pico's parts and wires, face up (space)", "Pico's parts, face down (space)", "USB plug (space)"]
+              "tact switch", "EC11 body", "plug overmold", "key-c", "cartridge cover", "cartridge tray",
+              "Pico 2 W", "Pico's parts, toward the carrier (space)", "Pico's wires (space)", "USB plug (space)"]
     pairs = [(a, "body", body) for a in inside] + [(a, "plate", plate) for a in inside]
-    pairs += [(a, "carrier", carrier) for a in inside] + [(a, "spacers", spacers) for a in inside]
+    pairs += [(a, "carrier", carrier) for a in inside if a != "Pico's parts, toward the carrier (space)"]
+    pairs += [(a, "spacers", spacers) for a in inside]
     pairs += [("carrier", b, x) for b, x in (("body", body), ("plate", plate), ("spacers", spacers))]
     pairs += [("spacers", b, x) for b, x in (("body", body), ("plate", plate))]
     pairs += [(a, "plug lock", lock) for a in inside] + [("plug lock", "body", body), ("plug lock", "carrier", carrier)]
     n["carrier"], n["spacers"], n["plug lock"] = carrier, spacers, lock
     together = ({"key-c", "cartridge cover"}, {"key-c", "cartridge tray"}, {"cartridge cover", "cartridge tray"},
-                {"Pico 2 W", "Pico's parts and wires, face up (space)"}, {"Pico 2 W", "Pico's parts, face down (space)"},
-                {"Pico's parts and wires, face up (space)", "USB plug (space)"},
-                {"Pico's parts, face down (space)", "USB plug (space)"})
+                {"Pico 2 W", "Pico's parts, toward the carrier (space)"}, {"Pico 2 W", "Pico's wires (space)"},
+                {"Pico's parts, toward the carrier (space)", "USB plug (space)"})
     pairs += [(a, b, n[b]) for i, a in enumerate(inside) for b in inside[i + 1:] if {a, b} not in together]
     # the guard, shut and opening: its cover clears the plate, the base, the switch's head and the knob
     pairs += [("guard base", "plate", plate), ("guard cover", "plate", plate), ("guard cover", "guard base", base)]
-    pairs += [(g, h, n[h]) for g in ("guard base", "guard cover") for h in ("sign switch", "sign switch body", "knob")]
+    pairs += [(g, h, n[h]) for g in ("guard base", "guard cover") for h in ("sign cap", "base screws", "knob")]
+    pairs += [("sign cap", h, x) for h, x in (("plate", plate), ("tact switch", n["tact switch"]))]
+    pairs += [("tact holder", h, x) for h, x in (("plate", plate), ("tact switch", n["tact switch"]), ("carrier", carrier),
+                                                 ("body", body), ("EC11 body", n["EC11 body"]))]
     for a in (30, 60, 90):
         n["guard cover open %d" % a] = guard_cover(a)
-        pairs += [("guard cover open %d" % a, b, x) for b, x in (("plate", plate), ("guard base", base), ("sign switch", n["sign switch"]))]
+        pairs += [("guard cover open %d" % a, b, x) for b, x in (("plate", plate), ("guard base", base), ("sign cap", cap),
+                                                                ("base screws", n["base screws"]))]
     bad = 0
     for a, bname, b in pairs:
         v = n[a].intersect(b).val().Volume()
@@ -464,21 +546,22 @@ def checks(body, plate, parts, carrier, spacers, lock, base, cover):
     def d(a, b):
         return (n[a] if isinstance(a, str) else a).val().distance((n[b] if isinstance(b, str) else b).val())
     print("closest: the carrier to the body %.1f mm; the plug lock to the carrier %.1f mm; the Pico's wires to the "
-          "carrier %.1f mm; the Pico's wires to the screen's header %.1f mm" % (
-              d(carrier, body), d(lock, carrier), d("Pico's parts and wires, face up (space)", carrier),
-              d("Pico's parts and wires, face up (space)", "screen header and wires")))
-    print("the Pico to the sign switch's body %.1f mm, to the knob's %.1f mm" % (
-        d("Pico 2 W", "sign switch body"), d("Pico 2 W", "EC11 body")))
-    sw = n["sign switch body"].val().BoundingBox()
-    room = sw.zmin - WALL
-    print("the sign switch: %.1f mm long under its head, %.1f mm off the floor: one up to %.1f mm fits" % (
-        SIGN_DEPTH, room, SIGN_DEPTH + room - 0.5))
+          "screen's header %.1f mm, to the sign button's holder %.1f mm" % (
+              d(carrier, body), d(lock, carrier), d("Pico's wires (space)", "screen header and wires"),
+              d("Pico's wires (space)", holder)))
+    print("the Pico's wires to the tub %.1f mm (the floor, the key's plug holder); its plug to the carrier %.1f mm" % (
+        d("Pico's wires (space)", body), d("USB plug (space)", carrier)))
+    pressed = sign_cap(TRAVEL)
+    print("the sign button: its plunger %.1f mm over the switch's stem; pressed %.2f mm to the stop, it pushes the stem "
+          "%.2f mm (a 6 x 6's travel is about 0.25); the switch %.1f mm in its holder's pocket, %.1f mm off the floor" % (
+              STEM_GAP, TRAVEL, TRAVEL - STEM_GAP, Z_HOLDER - Z_TACT, Z_TACT - HOLDER[2] - WALL))
+    assert pressed.intersect(plate).val().Volume() < 0.05, "the cap, pressed, goes into the plate"
     stop = 90
     while stop < 180 and guard_cover(stop + 5).intersect(plate).val().Volume() < 0.05:
         stop += 5
     print("the guard's cover opens to %d degrees, where it rests on the well's edge" % stop)
-    print("the guard: the cover %.1f mm over the switch's head; the wells %.1f mm (the knob) and %.1f mm (the switch) "
-          "deep, their floors %.1f and %.1f mm" % (d("guard cover", "sign switch"), KNOB_WELL[1], SIGN_WELL,
+    print("the guard: the cover %.1f mm over the cap's head; the wells %.1f mm (the knob) and %.1f mm (the switch) "
+          "deep, their floors %.1f and %.1f mm" % (d("guard cover", "sign cap"), KNOB_WELL[1], SIGN_WELL,
                                                   KNOB_FLOOR, SIGN_FLOOR))
     gx0, gx1 = SCREEN_XY[0] + SCREEN_DX - SCREEN_GLASS[0] / 2, SCREEN_XY[0] + SCREEN_DX + SCREEN_GLASS[0] / 2
     gy0, gy1 = SCREEN_XY[1] - SCREEN_GLASS[1] / 2, SCREEN_XY[1] + SCREEN_GLASS[1] / 2
@@ -492,11 +575,12 @@ def checks(body, plate, parts, carrier, spacers, lock, base, cover):
               min(gap(c, 0, gx0, gx1, gy0, gy1) for c in screen_holes()), SEAT_D / 2 + GLASS_CLEAR,
               min(gap(c, BOSS_D / 2, bx0, bx1, by0, by1) for c in carrier_screws())))
     print("the Pico's posts to the nearest pin's pad: %.2f mm; the USB end's posts to the socket between them: %.2f mm; "
-          "the plug to the tub (the posts, the hole): %.1f mm" % (
-              min(math.hypot(dy - (1.61 + 2.54 * i), dx - s * 8.89) - dd / 2 - 0.85
+          "the plug to its posts %.1f mm, to the hole in the side %.1f mm" % (
+              min(math.hypot(dx - (1.61 + 2.54 * i), dy - s * 8.89) - dd / 2 - 0.85
                   for dx, dy, dd in PICO_POSTS for i in range(20) for s in (-1, 1)),
-              min(math.hypot(max(abs(dx) - USB_SOCKET[0] / 2, 0), max(dy - USB_SOCKET[1], 0)) - dd / 2
-                  for dx, dy, dd in PICO_POSTS if dy < PICO[1] / 2),
+              min(math.hypot(max(abs(dy) - USB_SOCKET[0] / 2, 0), max(dx - USB_SOCKET[1], 0)) - dd / 2
+                  for dx, dy, dd in PICO_POSTS if dx < PICO[0] / 2),
+              min(math.hypot(dx, max(abs(dy) - USB_PLUG[1] / 2, 0)) - dd / 2 for dx, dy, dd in PICO_POSTS if dx < PICO[0] / 2),
               n["USB plug (space)"].val().distance(body.val())))
     # the tub as it prints, on its back: flat faces that face down and aren't on the bed
     over = []
@@ -526,8 +610,8 @@ def main():
     carrier, spacers = carrier_and_spacers()
     lock = plug_lock()
     parts = stand_ins()
-    base, cover = guard_base(), guard_cover()
-    bad = checks(body, plate, parts, carrier, spacers, lock, base, cover) + C.checks()
+    base, cover, cap, holder = guard_base(), guard_cover(), sign_cap(), tact_holder()
+    bad = checks(body, plate, parts, carrier, spacers, lock, base, cover, cap, holder) + C.checks()
 
     def stl(shape, name, tol=0.05):
         cq.exporters.export(shape.translate((0, 0, -shape.val().BoundingBox().zmin)), os.path.join(OUT, name),
@@ -540,6 +624,8 @@ def main():
     stl(lock.rotate((0, 0, 0), (0, 1, 0), 90), "handheld_plug_lock.stl", 0.02)  # on its side
     stl(base, "handheld_guard_base.stl", 0.02)                                  # as it sits
     stl(flip(cover), "handheld_guard_cover.stl", 0.02)                          # face down
+    stl(flip(cap), "handheld_sign_cap.stl", 0.02)                               # head down
+    stl(holder, "handheld_tact_holder.stl", 0.02)                               # as it sits
     C.write(OUT)
     bb = body.val().BoundingBox()
     print("the case closed: %.0f x %.0f x %.0f mm; with a key in, %.0f mm tall" % (
@@ -552,6 +638,8 @@ def main():
     asm.add(lock, name="plug_lock", color=cq.Color(0.90, 0.60, 0.20))
     asm.add(base, name="guard_base", color=cq.Color(0.35, 0.36, 0.40))
     asm.add(cover, name="guard_cover", color=cq.Color(0.80, 0.12, 0.10))
+    asm.add(cap, name="sign_cap", color=cq.Color(0.90, 0.60, 0.20))
+    asm.add(holder, name="tact_holder", color=cq.Color(0.90, 0.60, 0.20))
     for sh, c, nm in parts:
         asm.add(sh, name=nm.replace(" ", "_").replace("(", "").replace(")", "").replace(",", "").replace("'", ""),
                 color=cq.Color(*c))
@@ -566,28 +654,41 @@ def main():
     K.render(dict(title="The handheld", parts=[(body, K.DARK, "body"), (plate, PLATE_C, "plate")] + shown, corners=corners,
                   views=[("in the hand", 62, -90), ("the top edge: the key on its plug", 28, 125)]),
              os.path.join(OUT, "handheld_front.png"), screen_png)
-    on_plate = ("screen", "sign", "knob", "EC11", "carrier")
     inside = [(body, K.DARK, "body"), (lock, LOCK_C, "plug lock")] + \
-        [p for p in parts if not p[2].startswith(on_plate) and not p[2].endswith("(space)")]
+        [p for p in parts if p[2] in ("plug overmold", "plug shell", "cartridge cover", "cartridge tray", "key-c", "ATECC608")]
     K.render(dict(title="The tub, open", parts=inside, corners=[],
-                  views=[("the Pico, the key's plug and its lock", 55, -70), ("the bottom edge: the Pico's cable", 20, -120)]),
+                  views=[("the key's plug and its lock", 55, -70), ("the right side: the Pico's cable", 20, -30)]),
              os.path.join(OUT, "handheld_tub.png"))
-    back = [(flip(plate), PLATE_C, "plate"), (flip(carrier), (0.35, 0.36, 0.40), "carrier"), (flip(spacers), LOCK_C, "spacers")] + \
+    GREY = (0.35, 0.36, 0.40)
+    back = [(flip(plate), PLATE_C, "plate"), (flip(carrier), GREY, "carrier"), (flip(spacers), LOCK_C, "spacers"),
+            (flip(holder), LOCK_C, "tact holder"), (flip(base), GREY, "guard base")] + \
         [(flip(sh), c, nm) for sh, c, nm in parts if nm in ("screen board", "screen header and wires", "carrier screws",
-                                                            "sign switch body", "EC11 body")]
+                                                            "tact switch", "EC11 body", "Pico 2 W")]
     K.render(dict(title="Behind the plate", parts=back, corners=[],
-                  views=[("the screen on its carrier, the switch, the knob", 55, -90), ("from the side", 20, -10)]),
+                  views=[("the carrier, the Pico on it, the sign button's holder", 55, -90), ("from the right", 20, -10)]),
              os.path.join(OUT, "handheld_carrier.png"))
     K.render(dict(title="The plate", parts=[(plate, PLATE_C, "plate")], corners=corners,
                   views=[("front: the wells", 70, -90), ("back: posts and pins, bosses, the wells' backs", 45, 90)]),
              os.path.join(OUT, "handheld_plate.png"), screen_png)
     near = box(SIGN_XY[0] - 22, W + 1, SIGN_XY[1] - 22, SIGN_XY[1] + 26, ZP - 6, T + 1)
-    sw = [p for p in parts if p[2] == "sign switch"]
-    K.render(dict(title="The sign switch's guard", corners=[],
-                  parts=[(plate.intersect(near), PLATE_C, "plate"), (base, (0.35, 0.36, 0.40), "guard base"),
-                         (guard_cover(110), RED, "guard cover")] + sw,
-                  views=[("open: the switch in its well", 50, -70), ("open, from the side", 12, 0)]),
-             os.path.join(OUT, "handheld_guard.png"))
+    sw = [p for p in parts if p[2] in ("tact switch", "base screws")]
+    cut = box(SIGN_XY[0], W + 1, -1, H, 0, T + 2)                 # the side view cut through the button's middle
+    K.render(dict(title="The sign button's guard", corners=[],
+                  parts=[(plate.intersect(near), PLATE_C, "plate"), (base, GREY, "guard base"), (cap, LOCK_C, "sign cap"),
+                         (holder, LOCK_C, "tact holder"), (guard_cover(100), RED, "guard cover")] + sw,
+                  views=[("open: the cap in its well", 50, -70)]),
+             os.path.join(OUT, "handheld_guard.a.png"))
+    K.render(dict(title="The sign button's guard", corners=[],
+                  parts=[(sh.cut(cut), c, nm) for sh, c, nm in [(plate.intersect(near), PLATE_C, "plate"), (base, GREY, "base"),
+                                                               (cap, LOCK_C, "cap"), (holder, LOCK_C, "holder"),
+                                                               (guard_cover(), RED, "cover")] + sw],
+                  views=[("cut through the middle: the cover, the cap, the switch in its holder", 0, 0)]),
+             os.path.join(OUT, "handheld_guard.b.png"))
+    from PIL import Image
+    a, b = Image.open(os.path.join(OUT, "handheld_guard.a.png")), Image.open(os.path.join(OUT, "handheld_guard.b.png"))
+    sheet = Image.new("RGB", (a.width + b.width, a.height), (240, 239, 242))
+    sheet.paste(a, (0, 0)); sheet.paste(b, (a.width, 0)); sheet.save(os.path.join(OUT, "handheld_guard.png"))
+    os.remove(os.path.join(OUT, "handheld_guard.a.png")); os.remove(os.path.join(OUT, "handheld_guard.b.png"))
     for f in sorted(os.listdir(OUT)):
         print("wrote", os.path.join("hardware/builds/pico-sign-handheld/case/out", f))
     return 1 if bad else 0
