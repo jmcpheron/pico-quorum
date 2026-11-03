@@ -919,3 +919,14 @@ panels ($16.28, Amazon) are bought apart and not in that figure. Production file
 Notes: [2026-10-24-console-s3-order.md](2026-10-24-console-s3-order.md). Plan:
 [ORDER-PLAN-2026-10-24.md](../ORDER-PLAN-2026-10-24.md). Design:
 [hardware/console-s3](../hardware/console-s3/DESIGN.md).
+
+## 2026-10-29 — console-rp ordered: the RP2350 console, fully assembled
+
+Five console-rp boards from JLCPCB, every part on by JLCPCB; only the panel clips in by hand.
+$164.28 with shipping and import, of which the boards are $90.69 ($18.14 each). Import taxes were
+35 % of that again. The panels are the console-s3 pair, already checked against J2. An estimate on
+the same terms: about $11.50 a board at 100, $9.90 at 500 and $9.60 at 1000, before the panel. L1
+and the crystal's stock limit a run before price does.
+
+Notes: [2026-10-29-console-rp-order.md](2026-10-29-console-rp-order.md). Design:
+[hardware/console-rp](../hardware/console-rp/README.md).
