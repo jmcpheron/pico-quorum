@@ -920,6 +920,13 @@ Notes: [2026-10-24-console-s3-order.md](2026-10-24-console-s3-order.md). Plan:
 [ORDER-PLAN-2026-10-24.md](../ORDER-PLAN-2026-10-24.md). Design:
 [hardware/console-s3](../hardware/console-s3/DESIGN.md).
 
+## 2026-11-03 — 100 panels ordered from BuyDisplay
+
+100 ER-TFT1.14-2 (1.14″ 135 × 240 ST7789, FPC) for the demo batches: $371.29 with shipping and
+the PayPal fee, $3.71 a panel, before any duty. Paid in advance through PayPal (receipt dated 2026-11-02); invoice and tracking still to come.
+Jason reports the first console-s3 and PicoQuorumKey boards both working.
+
+Notes: [2026-11-03-panels-order.md](2026-11-03-panels-order.md).
 ## 2026-10-29 — console-rp ordered: the RP2350 console, fully assembled
 
 Five console-rp boards from JLCPCB, every part on by JLCPCB; only the panel clips in by hand.
