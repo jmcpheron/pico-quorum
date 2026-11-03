@@ -3,18 +3,18 @@ worn on a lanyard or laid on the desk like a small handheld. The "shell" layout,
 walls are one front shell, and a flat panel closes the back. Four M2 screws go in from the front, through the
 shell's posts and the board's holes, into bosses on the back panel. At the antenna end, the top, the panel's
 tab hooks into a slot in the top wall. On the face: the window, caps on D0, D1 and D2 down its left side
-(Reject red, white, Sign green), holes over the LED and the key port's LED, pinholes for BOOT and RESET, and
-the mark and the name.
+(Reject red, white, Sign green, 1.5 mm proud), holes over the LED and the key port's LED, pinholes for BOOT and
+RESET, and the mark, big. The back panel carries the name.
 
-The switches are taller than their datasheet's 3.8 mm: calipers on a fitted board read 5.5 mm from the board's
-back to the top of a switch (5.1-5.2 pressed), so 4.7 mm over its front. The caps sit on that, and the face is
-as thick as their flanges need.
+The board is taken as 1.6 mm thick, not rev B's 0.8. Drawn for 0.8, the printed case came out with its back
+panel about 1 mm proud and its caps flush, and calipers on a fitted board read 5.5 mm from the board's back to
+the top of a switch (5.1-5.2 pressed): on a 1.6 mm board that is 3.9 mm over its front, the switch's datasheet
+3.8. The board's own thickness hasn't been measured. A straddle plug for the key port needs 0.8.
 
 The top-left corner is open for the key port: its plug stands out of the board's top edge, and a key-c
 plugs onto it from outside, the case cut away round it. A rib under the face holds the board's antenna end
 down on the antenna's keep-out band, which has no parts, not across U6, U7, R17 and R18 to the left of it;
-two ribs on the panel come up under the module's shield. The board is 0.8 mm thick, so ribs on the panel
-back it under D0-D2 and under BOOT and RESET, clear of the test pads. The USB-C is open at the bottom edge;
+two ribs on the panel come up under the module's shield. Ribs on the panel back the board under D0-D2 and under BOOT and RESET, clear of the test pads. The USB-C is open at the bottom edge;
 the lanyard's lug is at the top right. A dock holds it leaning back on the desk, the plug in a slot in its
 lip. (cad/consoles/README.md)
 
@@ -26,7 +26,7 @@ Writes out/badge/: badge_shell.stl (face down, as it prints), badge_back.stl (ou
 (flange down), badge_dock.stl, badge_assembly.step, badge_front.png, badge_face.png, badge_apart.png,
 badge_dock.png.
 
-Rev B with the port: 50 x 53 mm, 0.8 mm thick. Its parts are the placement file and BOM JLCPCB builds the port's
+Rev B with the port: 50 x 53 mm. Its parts are the placement file and BOM JLCPCB builds the port's
 boards from (hardware/out/rev-b/cpl-port.csv, bom-port.csv), its holes the drill file; the outline, the glass,
 the active area, the tape, the module, the plug and the back's test pads are its DESIGN.md's and
 tools/gen/gen_pcb.py's. The plug (fitted by hand) and a key-c on it are boxes: the plug's drawing gives its
@@ -44,7 +44,9 @@ import shell as S       # noqa: E402
 REV_B = os.path.join(S.REPO, "hardware", "picoquorum-key", "hardware", "out", "rev-b")
 OUT = os.path.join(HERE, "out", "badge")
 SCREEN = os.path.join(S.REPO, "docs", "quorum-ui", "feather", "03-review-head.png")
-W, H, T = 50.0, 53.0, 0.8
+# 1.6 mm, not rev B's 0.8: the case drawn for 0.8 came out with its back 0.8-1 mm proud and its caps flush, not
+# 1 mm proud, and with 1.6 the measured switches are 3.9 mm over the front, their datasheet's 3.8. Not measured yet.
+W, H, T = 50.0, 53.0, 1.6
 up = lambda y: H - y        # DESIGN.md's y runs down from the top edge; the placement file's, up from the bottom
 # The key port (DESIGN.md): the plug straddles a 7.90 mm paddle at X 4.05-11.95, its tip on the top edge, the board
 # cut away left of it and in a slot right of it (X 11.95-14.0), both 4.5 mm down. The plug is 8.4 mm wide and stands
@@ -84,7 +86,7 @@ def board():
     pz = -T / 2                                                          # the plug's and the key's axis: the board's middle
     px = sum(PADDLE) / 2
     return dict(
-        name="badge", title="The badge (PicoQuorumKey rev B, key port)", layout="shell", window_c=1.5,
+        name="badge", title="The badge (PicoQuorumKey rev B, key port)", layout="shell", window_c=1.5, cap_proud=1.5,
         W=W, H=H, R=1.5, T=T, holes=holes(), hole_d=2.2, parts=P,
         board_cut=[(-1.0, PADDLE[0], up(NOTCH_D), H + 1), (PADDLE[1], SLOT_X1, up(NOTCH_D), H + 1)],
         extras=[((px - PLUG[0] / 2, px + PLUG[0] / 2, H - 2.7, H + PLUG[1], pz - PLUG[2] / 2, pz + PLUG[2] / 2), S.K.STEEL, "key port plug"),
@@ -103,12 +105,12 @@ def board():
         # top 7 mm), which has no parts. Left of it, the band holds U6, U7, R18 and R17.
         rest=[(31.5, 46.5, 31.0, 31.0 + S.REST_W), (31.5, 46.5, 43.0, 43.0 + S.REST_W)],
         press=[(30.5, 46.0, 46.0, 52.0)],
-        # ribs on the panel under the 0.8 mm board where it's pressed: D0-D2, and BOOT and RESET. The back's test pads are at
+        # ribs on the panel under the board where it's pressed: D0-D2, and BOOT and RESET. The back's test pads are at
         # X 15-41 (y 14 and 18) and (8.4, 10), (15, 10): the ribs miss them.
         support=[(9.5, 11.5, 27.0, 45.0), (42.6, 44.6, 4.5, 16.5)],
-        face=[("mark", (21.0, 15.5, 4.5)), ("text", ("PicoQuorum", (20.0, 6.2), (26.0, 4.0)))],
+        face=[("mark", (20.0, 14.0, 8.0))],                             # the mark alone, big, under the screen
         flip="y",                   # turned over about its height to read the back
-        back_text=[("PicoQuorum", (25.0, 38.0), (30.0, 6.0), "bold"), ("PicoQuorum.app", (25.0, 31.0), (24.0, 3.0), "regular")],
+        back_text=[("PicoQuorum", (25.0, 26.5), (42.0, 10.0), "bold")],
         seen=("D1", "D4", "key port plug", "key-c"),
         views=dict(front=[("in the hand: four screws in the face, a key-c in its port", 58, -78), ("the back panel: the name, the Source Location", -55, 110)],
                    apart=[("apart: screws, front shell, caps, board, back panel", 30, -60)],

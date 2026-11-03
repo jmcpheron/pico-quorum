@@ -9,12 +9,14 @@ drawn for rev A. Its plate was printed and laid on a board: the board was rev B,
 the screen sat on U6 and U7, the key port's chips. The badge is drawn for rev B now
 ([below](#the-badge-picoquorumkey-rev-b)). Then, with caps on, the plate still stood off the board:
 its switches are taller than their datasheet says (calipers: 5.5 mm from the board's back to a switch's
-top). The badge now takes the measured height, and is a front shell and a back panel like the stick.
-Neither case has been fitted to its board since.
+top). The badge took that height and became a front shell and a back panel like the stick. Printed, its
+caps sat well but flush, and its back panel stood about 1 mm proud. Both are what a 1.6 mm board does
+to a case drawn for rev B's 0.8, so the badge is drawn for 1.6 now
+([below](#the-badge-picoquorumkey-rev-b)). The badge hasn't been fitted to its board since.
 
 | | the stick | the badge |
 |---|---|---|
-| board | console-s3 rev A, 64 × 22.86 × 1.6 mm | PicoQuorumKey rev B with the key port, 50 × 53 × 0.8 mm |
+| board | console-s3 rev A, 64 × 22.86 × 1.6 mm | PicoQuorumKey rev B with the key port, 50 × 53 mm, taken as 1.6 mm thick |
 | layout | a front shell and a back panel | a front shell and a back panel |
 | closed | 74.6 × 27.5 × 12.4 mm | 54.6 × 63.6 × 12.5 mm |
 | screws | 2 × M2 × 8 from the front, at the USB end | 4 × M2 × 8 from the front |
@@ -34,8 +36,11 @@ One script, [`shell.py`](shell.py), makes both, in the same layout ("shell"):
 - **The screws go in from the front,** through the shell's posts and the board's holes, into bosses on
   the back panel. Their heads sit in counterbores in the face: flush, or a little lower where a kit
   screw needs it to reach 3 mm into its boss.
-- **The back panel's antenna end hooks in.** That end of the board has no holes, so a tab, 2.0 × 1.2 mm,
-  goes into a slot in the end wall.
+- **The back panel's antenna end hooks in.** That end of the board has no holes, so a tab goes into a
+  slot in the end wall. The tab reaches 2.3 mm past the board's edge and stands 2.0 mm over the panel.
+  Its underside slopes at 45° from its 0.6 mm tip down to the panel, and the slot's roof slopes with
+  it, 0.2 mm clear. So neither prints a flat underside in the air: the first tabs did, and drooped.
+  The wall behind the slot is 0.7 mm at its thinnest.
 
 `shell.py` has a second layout, "plate": a tub, and a front plate set into its opening, with the screws
 from the back. The first drafts used it; neither case does now.
@@ -59,9 +64,7 @@ Both cases also share these:
   doesn't press them by mistake. BOOT is a 1.8 mm pinhole. On the badge RESET is too; on the stick it
   is the mark's lower-left dot, 3.75 mm across.
 - **A hole over the LED.**
-- **The back carries the name.** On the badge, `PicoQuorum.app` is under it: the Source Location
-  (CERN-OHL-W v2, section 4.1), since the case covers the board's own. The stick's back has the name
-  alone.
+- **The back carries the name, alone.** The faces carry only the mark.
 
 ![the stick, apart](out/stick/stick_apart.png)
 
@@ -96,17 +99,21 @@ Both cases also share these:
   parts. The band to its left holds U6, U7 (the port's ESD chips, 1.45 mm tall), R18 and R17. The
   first badge's rib ran across all of them, x 6–38, so its plate stood about 1.45 mm proud: run against
   rev B, the script finds it on U6 and U7.
-- **The switches are as measured:** 5.5 mm from the board's back to a switch's top, 5.1–5.2 pressed.
-  Less the 0.8 mm board, that is 4.7 mm over its front, not the datasheet's 3.8. The caps sit on that
-  and travel about 0.35 mm. Their flanges sit in pockets in the face's underside, so the face is
-  3.2 mm thick over the glass. The window's edge is chamfered 1.5 mm, not 0.8, to keep the screen in
-  view.
+- **The board is taken as 1.6 mm thick,** not rev B's 0.8: drawn for 0.8, the printed case's back
+  panel stood about 1 mm proud and its caps came out flush. With 1.6, the switches as measured (5.5 mm
+  from the board's back to a switch's top, 5.1–5.2 pressed) are 3.9 mm over its front, their
+  datasheet's 3.8. The board's thickness hasn't been measured. A straddle plug for the key port needs
+  a 0.8 mm board.
+- **The caps stand 1.5 mm proud,** not the stick's 1.0, and travel about 0.35 mm. Their flanges sit in
+  pockets in the face's underside, so the face is 2.5 mm thick over the glass. The window's edge is
+  chamfered 1.5 mm, not 0.8, to keep the screen in view.
 - **Four screws in the face,** one by each corner of the board. The back panel's top edge has its tab
   into the top wall, right of the key port's opening.
-- **Ribs back the 0.8 mm board where it's pressed:** a rib on the back panel under D0–D2, and one under
+- **Ribs back the board where it's pressed:** a rib on the back panel under D0–D2, and one under
   BOOT and RESET. They come up to 0.1 mm under the board's back and miss its test pads.
 - **A hole over D4,** the key port's LED, at the left edge by D0. It lights when the port powers a key.
-- **The mark and the name** are engraved under the screen. The face over the key chip is solid.
+- **The mark is big, under the screen,** 18 mm across its dots, with no name beside it. The face over the
+  key chip is solid. The back carries "PicoQuorum", 42 mm wide.
 - **The dock** holds it leaning back 25°. The plug goes down into a slot in the lip, and the cable
   leaves at the front.
 
@@ -152,7 +159,8 @@ the big parts, measure the rest and change the numbers in the scripts:
 - **the stick's switches:** the TS-1187A is taken as 1.5 mm tall (`PACKAGES`). The caps sit on them. If
   it is wrong, reprint the caps. The badge's are measured (`SWITCH_TOP` in `badge.py`, from the board's
   back).
-- **the badge's board:** taken as rev B's 0.8 mm (`T`). The switches' height over the front follows it.
+- **the badge's board:** taken as 1.6 mm (`T` in `badge.py`). The back's depth and the switches' height
+  over the front follow it.
 - **the module, as soldered:** 3.1 mm (`WROOM`). The ribs under it follow it.
 - **your cable's overmold**, against the 13.2 × 6.2 mm opening (`USB_OPEN`).
 - **the badge's key port:** the plug's height, and a key-c on it, against the open corner (`PLUG`,

@@ -61,7 +61,11 @@ LUG_HOLE = (8.0, 3.2)       # the lanyard's slot through the lug, an oval
 PANEL_T = 1.6               # the back panel
 SHELL_EDGE = (1.5, 0.8)     # the face's edge rounded, the back's
 SHELL_POST_R = 3.0          # the face's posts, wider than POST_R so a counterbore fits in them
-TAB = (2.0, 1.2, 0.2)       # the back panel's tab into the end wall: long, thick, clearance round it
+# The back panel's tab into the end wall: how far it reaches past the board's edge, how high its top stands over the
+# panel's inside, how thick it is at its tip, and the clearance round it in its slot. Its underside slopes at 45
+# degrees from its tip down to the panel, and the slot's roof slopes with it, so neither hangs in the air as it prints
+# (the panel outside down, the shell face down).
+TAB = (2.3, 2.0, 0.6, 0.2)
 
 # Footprint -> (along x at rotation 0, along y, height), by the first prefix that matches. Datasheet sizes
 # with the leads, not measured. The receptacles' face is at the board's edge.
@@ -285,15 +289,22 @@ class Case:
 
     def tab(self, grow=0.0):
         """The back panel's tab at the antenna end, into a slot in the end wall; grow makes the slot. b["tab"]: the
-        side ("right" or "top") and where along it the tab runs."""
+        side ("right" or "top") and where along it the tab runs. Drawn across the edge, u out from the board's edge
+        and z, then stood along it: a wedge, its top flat, its underside at 45 degrees down to the panel."""
         b = self.b
-        L, t, _ = TAB
+        reach, top, tip, _ = TAB
         side, a0, a1 = b["tab"]
-        z0, z1 = self.zf - t / 2 - grow, self.zf + t / 2 + grow
+        zf = self.zf
         # from the board's edge on: the module's antenna end is flush with it, and the tab stands above the panel
+        pts = [(0.05, zf + top - tip - reach + 0.05), (0.05, zf + top), (reach, zf + top), (reach, zf + top - tip)]
+        w = cq.Workplane("XY").polyline(pts).close()
+        if grow:
+            w = w.offset2D(grow, "intersection")
+        L = a1 - a0 + 2 * grow
+        s = w.extrude(L).rotate((0, 0, 0), (1, 0, 0), 90)      # (u, z, along) -> (u, -along, z)
         if side == "right":
-            return box(b["W"] - grow, self.inner[1] + L + grow, a0 - grow, a1 + grow, z0, z1)
-        return box(a0 - grow, a1 + grow, b["H"] - grow, self.inner[3] + L + grow, z0, z1)
+            return s.translate((b["W"], a1 + grow, 0))
+        return s.rotate((0, 0, 0), (0, 0, 1), 90).translate((a0 - grow, b["H"], 0))
 
     def front(self):
         """The "shell" layout's front: the face and the walls in one piece, open at the back."""
@@ -313,7 +324,7 @@ class Case:
             t = t.cut(cyl(x, y, M2_HEAD[0] / 2 + 0.2, self.seat, self.zt + 1))
         t = t.cut(self.usb_hole())
         t = self.notch(self.lug_slot(t))
-        t = t.cut(self.tab(TAB[2]))
+        t = t.cut(self.tab(TAB[3]))
         return self.face(t)
 
     def back(self):
@@ -457,7 +468,7 @@ class Case:
         for ref, name in self.b["buttons"]:
             q = self.b["parts"][ref]
             c = box(q["x"] - f, q["x"] + f, q["y"] - f, q["y"] + f, self.zcap, self.zft).edges("|Z").fillet(0.6)
-            stem = cyl(q["x"], q["y"], CAP_D / 2, self.zft - 0.01, self.zt + CAP_PROUD)
+            stem = cyl(q["x"], q["y"], CAP_D / 2, self.zft - 0.01, self.zt + self.b.get("cap_proud", CAP_PROUD))
             stem = stem.faces(">Z").edges().fillet(0.6)
             out.append((c.union(stem), CAP_C.get(name, PAPER), "cap " + name))
         return out
@@ -597,7 +608,7 @@ def build(b, out, screen_png=None):
         print("  %-7s %5.1f x %5.1f x %4.1f mm, %5.2f cm3" % (n, bb.xlen, bb.ylen, bb.zlen, sh.val().Volume() / 1000))
     print("%s: closed %.1f x %.1f x %.1f mm; %.1f mm over the glass; screws M2 x %g from the %s; caps %.1f mm proud"
           % (name, c.outer[1] - c.outer[0], c.outer[3] - c.outer[2], c.zt - c.z0, c.plate_t, c.screw,
-             "back" if c.layout == "plate" else "front", CAP_PROUD))
+             "back" if c.layout == "plate" else "front", b.get("cap_proud", CAP_PROUD)))
     for f in sorted(os.listdir(out)):
         print("wrote", os.path.relpath(os.path.join(out, f), REPO))
     return 1 if bad else 0, c
