@@ -46,11 +46,13 @@ Everything else is the same:
   - D2 is Sign green
 
   All three take the same light press. A case mustn't make Reject harder to reach than Sign.
-- **BOOT and RESET are pinholes,** 1.8 mm across. A paperclip reaches them, and a thumb doesn't press
-  them by mistake.
+- **BOOT and RESET are holes too small for a thumb.** A paperclip or a pen's tip reaches them, and a thumb
+  doesn't press them by mistake. BOOT is a 1.8 mm pinhole. On the badge RESET is too; on the stick it
+  is the mark's lower-left dot, 3.75 mm across.
 - **A hole over the LED.**
-- **The Source Location is on the back** (CERN-OHL-W v2, section 4.1). The case covers the board's
-  own, so the back carries `PicoQuorum.app` under the name.
+- **The back carries the name.** On the badge, `PicoQuorum.app` is under it: the Source Location
+  (CERN-OHL-W v2, section 4.1), since the case covers the board's own. The stick's back has the name
+  alone.
 
 ![the stick, apart](out/stick/stick_apart.png)
 
@@ -62,11 +64,16 @@ Everything else is the same:
   the badge's, so each counterbore has a wall; they run into the shell's walls at the corners.
 - **The back panel's other end hooks in.** A tab, 2.0 × 1.2 mm, goes into a slot in the end wall,
   inside the lanyard's lug. Fit that end first, then lower the USB end and screw it.
-- **The mark is at the antenna end,** engraved, over the board's own mark.
+- **The mark is big, at the antenna end,** engraved 0.5 mm, 17 mm across its dots. Its lower-left dot is
+  RESET's hole, cut through over the switch. The script places the mark from RESET's position and stops
+  if the dot isn't over it. The mark misses BOOT's pinhole by 1.1 mm and the LED's hole by 0.4 mm; the
+  LED lights just outside the triangle's left edge.
 - **The window is 1 mm wider than the active area needs.** The board's render centres the active area
   on the glass. ER-TFT1.14-2's drawing puts it 2.0 mm from the end away from the ribbon. The window
   shows the active area wherever it is, until a panel is measured.
 - **The dock** holds it leaning back 25°. The cable comes out of a slot in the dock's left side.
+
+![the stick's face, sliced](out/stick/stick_face.png)
 
 ![the stick on its dock](out/stick/stick_dock.png)
 
@@ -174,5 +181,6 @@ uv run --python 3.11 --with cadquery --with matplotlib --with pillow python cad/
 They write `out/stick/` and `out/badge/`:
 - the STLs to print
 - `<name>_assembly.step`, with the board's stand-ins
-- the pictures, with the Feather's review screen (`docs/quorum-ui/feather/03-review-head.png`) on the
+- `<name>_face.png`: the face sliced just under its top, which shows the engraving
+- the other pictures, with the Feather's review screen (`docs/quorum-ui/feather/03-review-head.png`) on the
   panel, or the PNG given

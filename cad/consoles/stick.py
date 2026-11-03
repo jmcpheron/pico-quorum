@@ -3,10 +3,10 @@ the face and the walls are one front shell, and a flat panel closes the back. Tw
 front, through the shell's posts and the board's holes at the USB end, into bosses on the back panel. At
 the other end the panel's tab hooks into a slot in the end wall, and a rib under the face holds the
 board's antenna end down onto two ribs on the panel under the module's shield: no metal near the antenna.
-The face has the window, caps on D0, D1 and D2 (Reject red, white, Sign green), pinholes for BOOT and
-RESET, a hole over the LED, and the mark at the antenna end. The USB-C is open at the left end; a lanyard
-lug at the right. A dock holds it leaning back on the desk, its cable out of the left side.
-(cad/consoles/README.md)
+The face has the window, caps on D0, D1 and D2 (Reject red, white, Sign green), a pinhole for BOOT, a
+hole over the LED, and the mark, big, at the antenna end: its lower-left dot is RESET's hole. The USB-C
+is open at the left end; a lanyard lug at the right. A dock holds it leaning back on the desk, its cable
+out of the left side. (cad/consoles/README.md)
 
 Run: uv run --python 3.11 --with cadquery --with matplotlib --with pillow \\
          python cad/consoles/stick.py [screen.png]
@@ -20,6 +20,7 @@ built it from (console-s3/fab/cpl.csv), checked against each other. Not measured
 where its active area sits), the switches' height, the module. A first draft to print and try.
 """
 import importlib.util
+import math
 import os
 import sys
 
@@ -35,6 +36,7 @@ G.place_switches()
 FAB = os.path.join(S3, "console-s3", "fab")
 OUT = os.path.join(HERE, "out", "stick")
 SCREEN = os.path.join(S.REPO, "docs", "quorum-ui", "feather", "03-review-head.png")
+MARK_R = 7.5                # the mark's circle: as big as clears the window, BOOT's pinhole and the lanyard's slot
 
 
 def board():
@@ -58,16 +60,18 @@ def board():
         glass=G.GLASS, glass_z=(G.PANEL["foam"], G.PANEL["foam"] + G.GLASS_T), active=active, window_over=over,
         fold=(gx1, gx1 + G.FOLD_R, G.FOLD_Y[0], G.FOLD_Y[1]),
         module=module, module_h=S.WROOM[2],
-        buttons=[("SW1", "D0"), ("SW2", "D1"), ("SW3", "D2")], pins=[("SW4", "BOOT"), ("SW5", "RESET")],
+        buttons=[("SW1", "D0"), ("SW2", "D1"), ("SW3", "D2")], pins=[("SW4", "BOOT")],
         led="D1", usb="J1", usb_edge="left", dock_depth=38.0, dock_plug=0.0,
         lug=("right", 6.0),
         # two ribs under the module's shield (its first 19 mm from the pin end), the plate's rib on the antenna end's
         # front, where the board has no copper and no parts (the keep-out, x 57.5 to the edge)
         rest=[(41.5, 41.5 + S.REST_W, 4.0, H - 4.0), (54.0, 54.0 + S.REST_W, 4.0, H - 4.0)],
         press=[(59.0, 63.0, 4.0, H - 4.0)],
-        face=[("mark", (60.7, yc + 0.4, 2.7))],
+        # the mark, big, at the antenna end: its lower-left dot over RESET (SW5) is RESET's hole
+        face=[("mark", (P["SW5"]["x"] + MARK_R * math.cos(math.radians(54)), P["SW5"]["y"] + MARK_R * math.sin(math.radians(54)),
+                        MARK_R, "SW5"))],
         flip="x",                   # turned over about its length to read the back
-        back_text=[("PicoQuorum", (33.0, 9.2), (40.0, 6.0), "bold"), ("PicoQuorum.app", (33.0, 16.6), (28.0, 2.8), "regular")],
+        back_text=[("PicoQuorum", (33.0, yc), (40.0, 6.0), "bold")],
         seen=("D1",),
         views=dict(front=[("in the hand: two screws in the face", 55, -72), ("the back panel: the name, the Source Location", -50, -120)],
                    apart=[("apart: screws, front shell, caps, board, back panel", 28, -62)],

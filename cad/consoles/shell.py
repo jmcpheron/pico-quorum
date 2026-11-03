@@ -406,8 +406,13 @@ class Case:
             p = p.cut(b["key_window"](zu - 1, zt + 1))
         for kind, args in b["face"]:
             if kind == "mark":
-                cx, cy, r = args
+                cx, cy, r = args[:3]
                 p = p.cut(mark(cx, cy, r, zt - ENGRAVE, zt + 1))
+                if len(args) > 3:           # a switch under the mark's lower-left dot: the dot is its hole, through
+                    q = P[args[3]]
+                    dx, dy = cx + r * math.cos(math.radians(-126)), cy + r * math.sin(math.radians(-126))
+                    assert abs(dx - q["x"]) < 0.01 and abs(dy - q["y"]) < 0.01, "the mark's dot isn't over " + args[3]
+                    p = p.cut(cyl(dx, dy, r / 4, zu - 1, zt + 1))
             else:
                 words, (cx, cy), (w, h) = args
                 size = fit_text(words, w, h)
@@ -584,6 +589,13 @@ def pictures(c, out, parts, dock, tilt, screws, things, over, screen_png):
     v = b["views"]
     K.render(dict(title=b["title"], parts=case + seen + [(screws, K.STEEL, "screws")], corners=corners, views=v["front"]),
              os.path.join(out, name + "_front.png"), screen_png)
+    # the face from above, sliced just under its top: every opening and the engraving, which a picture of the
+    # dark plastic doesn't show
+    x0, x1, y0, y1 = c.outer
+    face = case[0][0] if c.layout == "shell" else case[1][0]
+    cut = face.intersect(box(x0 - 1, x1 + 1, y0 - 1, y1 + 1, c.zt - 0.3, c.zt - 0.2))
+    K.render(dict(title=b["title"] + ": the face, sliced 0.25 mm under its top", parts=[(cut, (0.80, 0.80, 0.78), "face")],
+                  corners=[], views=[("", 89.9, -90)]), os.path.join(out, name + "_face.png"))
     # apart: each part moved off the board the way it goes on
     if c.layout == "plate":
         move = {"tub": 0, "plate": 22, "screws": -14}
