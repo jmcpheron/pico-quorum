@@ -2,20 +2,23 @@
 
 Two cases for the two S3 boards from JLCPCB, and a dock for each:
 - **the stick**, for [console-s3](../../hardware/console-s3/DESIGN.md)
-- **the badge**, for [PicoQuorumKey rev A](../../hardware/picoquorum-key/README.md)
+- **the badge**, for [PicoQuorumKey rev B](../../hardware/picoquorum-key/README.md) with its key port fitted
 
-**Status, 2026-11-03:** a first draft of each, drawn the day the boards arrived. Not printed, not
-fitted to a board.
+**Status, 2026-11-03:** a first draft of each, drawn the day the boards arrived. The first badge was
+drawn for rev A. Its plate was printed and laid on a board: the board was rev B, and the rib above
+the screen sat on U6 and U7, the key port's chips. The badge is drawn for rev B now
+([below](#the-badge-picoquorumkey-rev-b)). Neither case has been fitted to its board since.
 
 | | the stick | the badge |
 |---|---|---|
-| board | console-s3 rev A, 64 × 22.86 × 1.6 mm | PicoQuorumKey rev A, 44 × 53 × 1.6 mm |
+| board | console-s3 rev A, 64 × 22.86 × 1.6 mm | PicoQuorumKey rev B with the key port, 50 × 53 × 0.8 mm |
 | layout | a front shell and a back panel | a tub and a front plate |
-| closed | 74.6 × 27.5 × 12.4 mm | 48.6 × 63.6 × 12.2 mm |
+| closed | 74.6 × 27.5 × 12.4 mm | 54.6 × 63.6 × 11.4 mm |
 | screws | 2 × M2 × 8 from the front, at the USB end | 4 × M2 × 8 from the back |
 | USB-C | the left end | the bottom edge |
-| lanyard | a lug at the antenna end | a lug at the top |
-| dock | 81 × 38 × 15 mm, the cable out of the left | 55 × 50 × 48 mm, the plug in a slot in its lip |
+| key | on the board | the top-left corner is open: a key-c plugs into the key port from outside |
+| lanyard | a lug at the antenna end | a lug at the top right |
+| dock | 81 × 38 × 15 mm, the cable out of the left | 61 × 50 × 48 mm, the plug in a slot in its lip |
 
 ![the stick](out/stick/stick_front.png)
 
@@ -77,20 +80,29 @@ Everything else is the same:
 
 ![the stick on its dock](out/stick/stick_dock.png)
 
-## The badge (PicoQuorumKey rev A)
+## The badge (PicoQuorumKey rev B)
 
 [`badge.py`](badge.py). Portrait, like a small handheld, with a lug for a lanyard.
-- **The key window** is an opening over U2, the ATECC608C: the chip that is the key. The board's 8-bit
-  key and its dragon are beside the chip, so you can see them too. The post round H2 hides the
-  dragon's head. The window stops above BOOT, so BOOT stays behind its pinhole.
-- **The mark and the name** are engraved under the screen, left of the key window.
+- **The key port's corner is open.** The plug stands 9.6 mm out of the board's top edge, at the
+  top-left. The case is cut away there, through its whole thickness, for a key-c on the plug: 16 mm
+  wide, its edge about 3 mm past the tip. The key stands out of the top like a cartridge. The script
+  checks the plug and a plugged key-c against the case.
+- **The rib above the screen is on the antenna's keep-out band** (x 30.5–46, the top 7 mm), which has no
+  parts. The band to its left holds U6, U7 (the port's ESD chips, 1.45 mm tall), R18 and R17. The
+  first badge's rib ran across all of them, x 6–38, so its plate stood about 1.45 mm proud: run against
+  rev B, the script finds it on U6 and U7.
+- **Ribs back the 0.8 mm board where it's pressed:** a rib in the tub under D0–D2, and one under BOOT
+  and RESET. They come up to 0.1 mm under the board's back and miss its test pads.
+- **A hole over D4,** the key port's LED, at the left edge by D0. It lights when the port powers a key.
+- **The mark and the name** are engraved under the screen. The plate over the key chip is solid.
 - **The caps sit in pockets in the plate's underside,** because these switches stand 3.8 mm, higher
   than the glass. So the plate is 2.3 mm thick over the glass, not 1.8.
 - **The dock** holds it leaning back 25°. The plug goes down into a slot in the lip, and the cable
   leaves at the front.
 
-**Rev A only.** Rev B is 50 mm wide and 0.8 mm thick, with a key port at its top-left corner. This case
-doesn't fit it.
+**Rev B only.** Rev A is 44 mm wide and 1.6 mm thick, with no key port; its holes are 6 mm closer
+together. The rev A badge is in this folder's history (commit `7990d14`). A rev B board without the
+port's parts fits this case; its corner is just open.
 
 ![the badge on its dock](out/badge/badge_dock.png)
 
@@ -100,10 +112,12 @@ doesn't fit it.
 
 | | the stick | the badge |
 |---|---|---|
-| outline, holes | the generator (`gen_console_s3.py`) | the outline from DESIGN.md; the holes from the NPTH drill file JLCPCB drilled |
-| every part on the front | `console-s3/fab/cpl.csv` and `bom.csv`, the files JLCPCB built from. The script stops if they disagree with the generator | `hardware/out/rev-a/cpl.csv` and `bom.csv` |
+| outline, holes | the generator (`gen_console_s3.py`) | the outline and the key port's notch from DESIGN.md; the holes from rev B's NPTH drill file |
+| every part on the front | `console-s3/fab/cpl.csv` and `bom.csv`, the files JLCPCB built from. The script stops if they disagree with the generator | `hardware/out/rev-b/cpl-port.csv` and `bom-port.csv`, the files for the boards with the port. The script stops if the port's parts aren't in them |
 | glass, tape, ribbon fold | the generator: 31 × 17 mm glass, 1.6 mm thick on 2.0 mm tape | DESIGN.md: 31 × 17.6 mm glass, 1.6 mm thick on 1.5 mm tape |
-| module | the generator: the WROOM-1 on the back, 3.1 mm | DESIGN.md, less 6 mm in x (rev B was made from rev A that way) |
+| module | the generator: the WROOM-1 on the back, 3.1 mm | DESIGN.md |
+| the key port | | the plug's footprint drawing: 8.4 mm wide, 9.6 mm past the tip; its height (3.4 mm) is a guess. A key-c, 16 × 36 mm, from its design |
+| test pads on the back | | `tools/gen/gen_pcb.py`. The ribs under the board miss them |
 
 Each part is a box, at its footprint's usual size and height (`PACKAGES` in `shell.py`). These are not
 the makers' models.
@@ -114,6 +128,7 @@ When a case builds, the script checks that none of these overlap each other:
 - the printed parts: the tub and the plate, or the front shell and the back panel, and the caps
 - the board, each part's box, the glass and its ribbon fold, the module
 - a USB-C plug pushed fully home: 12.4 × 5.5 mm overmold, the handheld's measured cable
+- on the badge, the key port's plug and a key-c on it
 - the screws
 - the dock, with the case in it
 
@@ -129,6 +144,8 @@ these and change the numbers in the scripts:
   the plate too.
 - **the module, as soldered:** 3.1 mm (`WROOM`). The ribs under it follow it.
 - **your cable's overmold**, against the 13.2 × 6.2 mm opening (`USB_OPEN`).
+- **the badge's key port:** the plug's height, and a key-c on it, against the open corner (`PLUG`,
+  `KEYC` in `badge.py`).
 
 ## Printing
 

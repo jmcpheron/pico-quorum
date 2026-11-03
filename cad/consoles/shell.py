@@ -31,7 +31,7 @@ PLATE = 1.8                 # the plate over the glass, at the least
 PLATE_CLEAR = 0.2           # round the plate in the tub's opening
 GLASS_GAP = 0.15            # the plate's underside over the glass: it keeps the glass on its tape
 MOD_GAP = 0.5               # the floor under the module; two ribs come up to REST_GAP under its shield
-REST_GAP, REST_W = 0.1, 1.6
+REST_GAP, REST_W = 0.1, 1.6     # the same gap for ribs under the board's back where it's pressed (b["support"])
 POCKET = (0.4, 0.3)         # round and over a part that stands higher than the plate's underside
 BACK_R, FRONT_C = 2.0, 0.8  # the back's edge rounded, the face's edge chamfered
 WINDOW_MARGIN = 0.5         # the window round the active area
@@ -72,7 +72,7 @@ PACKAGES = [
     ("SOT-223", (6.5, 7.0, 1.8)), ("SOT-23-6", (2.9, 2.8, 1.45)), ("SOT-23-5", (2.9, 2.8, 1.25)),
     ("SOT-23", (2.9, 2.4, 1.2)), ("DFN-8", (3.0, 3.0, 0.6)),
     ("C_0805", (2.0, 1.25, 1.25)), ("C_0603", (1.6, 0.8, 0.9)), ("R_0603", (1.6, 0.8, 0.55)),
-    ("LED_0603", (1.6, 0.8, 0.8)),
+    ("LED_0603", (1.6, 0.8, 0.8)), ("D_SOD-523", (1.6, 0.8, 0.7)), ("D_SOD-323", (2.5, 1.3, 1.1)),
 ]
 WROOM = (25.5, 18.0, 3.1)   # ESP32-S3-WROOM-1: long, across, thick (Espressif's datasheet)
 
@@ -200,7 +200,11 @@ class Case:
         board = rrect(0, W, 0, H, b["R"], -T, 0)
         for x, y in b["holes"]:
             board = board.cut(cyl(x, y, b["hole_d"] / 2, -T - 1, 1))
+        for cx0, cx1, cy0, cy1 in b.get("board_cut", []):
+            board = board.cut(box(cx0, cx1, cy0, cy1, -T - 1, 1))
         out.append((board, BOARD_C, "board"))
+        for (ex0, ex1, ey0, ey1, ez0, ez1), col, n in b.get("extras", []):
+            out.append((box(ex0, ex1, ey0, ey1, ez0, ez1), col, n))
         for ref, p in sorted(P.items()):
             if p["side"] != "Top":
                 continue
@@ -247,12 +251,14 @@ class Case:
             add = s if add is None else add.union(s)
         for rx0, rx1, ry0, ry1 in b["rest"]:
             add = add.union(box(rx0, rx1, ry0, ry1, self.zf - 0.01, self.zmod - REST_GAP))
+        for rx0, rx1, ry0, ry1 in b.get("support", []):
+            add = add.union(box(rx0, rx1, ry0, ry1, self.zf - 0.01, self.zb - REST_GAP))
         t = t.union(add.intersect(inside))
         for x, y in b["holes"]:
             t = t.cut(cyl(x, y, M2_CLEAR / 2, self.z0 - 1, self.zb + 0.1))
             t = t.cut(cyl(x, y, M2_HEAD[0] / 2 + 0.2, self.z0 - 1, self.z0 + self.cb))
         t = t.cut(self.usb_hole())
-        t = self.lug_slot(t)
+        t = self.notch(self.lug_slot(t))
         # the back: the name, and the Source Location (CERN-OHL-W v2, section 4.1: the board's own is under the case)
         t = t.cut(self.back_text())
         return t
@@ -261,8 +267,20 @@ class Case:
         b = self.b
         side, lug = b["lug"]
         if side == "right":
-            return t.cut(slot(b["W"] + CLEAR + WALL + lug / 2 - 0.3, b["H"] / 2, LUG_HOLE[0], LUG_HOLE[1], self.z0 - 1, self.zt + 1, along_x=False))
-        return t.cut(slot(b["W"] / 2, b["H"] + CLEAR + WALL + lug / 2 - 0.3, LUG_HOLE[0], LUG_HOLE[1], self.z0 - 1, self.zt + 1))
+            return t.cut(slot(b["W"] + CLEAR + WALL + lug / 2 - 0.3, b.get("lug_at", b["H"] / 2), LUG_HOLE[0], LUG_HOLE[1],
+                              self.z0 - 1, self.zt + 1, along_x=False))
+        return t.cut(slot(b.get("lug_at", b["W"] / 2), b["H"] + CLEAR + WALL + lug / 2 - 0.3, LUG_HOLE[0], LUG_HOLE[1],
+                          self.z0 - 1, self.zt + 1))
+
+    def notch(self, t):
+        """t with an opening through the case at one edge, all the way through, for something that stands out of
+        the board's edge (b["notch"]: x0, x1, from y0 to past the top edge): the badge's key port."""
+        if not self.b.get("notch"):
+            return t
+        nx0, nx1, ny0 = self.b["notch"]
+        x0, x1, y0, y1 = self.outer
+        n = box(max(nx0, x0 - 1), nx1, ny0, y1 + 1, self.z0 - 1, self.zt + 1)
+        return t.cut(n.edges("|Z").fillet(0.8))
 
     def tab(self, grow=0.0):
         """The back panel's tab at the antenna end (the lug's side), into a slot in the end wall; grow makes the slot."""
@@ -290,7 +308,7 @@ class Case:
             t = t.cut(cyl(x, y, M2_CLEAR / 2, -1, self.zt + 1))
             t = t.cut(cyl(x, y, M2_HEAD[0] / 2 + 0.2, self.seat, self.zt + 1))
         t = t.cut(self.usb_hole())
-        t = self.lug_slot(t)
+        t = self.notch(self.lug_slot(t))
         t = t.cut(self.tab(TAB[2]))
         return self.face(t)
 
@@ -308,6 +326,8 @@ class Case:
             add = s if add is None else add.union(s)
         for rx0, rx1, ry0, ry1 in b["rest"]:
             add = add.union(box(rx0, rx1, ry0, ry1, self.zf - 0.01, self.zmod - REST_GAP))
+        for rx0, rx1, ry0, ry1 in b.get("support", []):
+            add = add.union(box(rx0, rx1, ry0, ry1, self.zf - 0.01, self.zb - REST_GAP))
         p = p.union(add.intersect(outline(self.zf - 0.01, self.zb + 0.01))).union(self.tab())
         for x, y in b["holes"]:
             p = p.cut(cyl(x, y, M2_PILOT / 2, self.z0 + 0.6, self.zb + 0.1))
@@ -355,6 +375,7 @@ class Case:
         zu, zt = self.zu, self.zt
         p = rrect(ix0 + c, ix1 - c, iy0 + c, iy1 - c, self.r_in - c, zu, zt)
         p = p.faces(">Z").edges().chamfer(0.5).cut(self.usb_hole())
+        p = self.notch(p)
         # posts on the board round its holes, ribs that hold its far end down
         for x, y in b["holes"]:
             p = p.union(cyl(x, y, POST_R, 0.0, zu + 0.01))
@@ -400,10 +421,9 @@ class Case:
             p = p.cut(cyl(q["x"], q["y"], PIN_HOLE / 2, zu - 1, zt + 1))
             p = p.cut(cq.Workplane("XY").workplane(offset=zt - 0.5).center(q["x"], q["y"]).circle(PIN_HOLE / 2)
                       .workplane(offset=0.51).circle(PIN_HOLE / 2 + 0.5).loft())
-        q = P[b["led"]]
-        p = p.cut(cyl(q["x"], q["y"], LED_HOLE / 2, zu - 1, zt + 1))
-        if b.get("key_window"):
-            p = p.cut(b["key_window"](zu - 1, zt + 1))
+        for ref in ([b["led"]] if isinstance(b["led"], str) else b["led"]):
+            q = P[ref]
+            p = p.cut(cyl(q["x"], q["y"], LED_HOLE / 2, zu - 1, zt + 1))
         for kind, args in b["face"]:
             if kind == "mark":
                 cx, cy, r = args[:3]
