@@ -56,6 +56,12 @@ PLUG = (12.4, 5.5, 17.1)
 PLUG_SHELL = (8.25, 2.4, 6.5)
 USB_OPEN = (13.2, 6.2, 1.5)     # the opening in the wall: across, tall, corner radius
 LUG_HOLE = (8.0, 3.2)       # the lanyard's slot through the lug, an oval
+# The other layout, "shell" (the stick): the face, walls and all are one front shell, a flat panel closes the
+# back, and the screws go in from the front, through the shell's posts and the board into bosses on the panel.
+PANEL_T = 1.6               # the back panel
+SHELL_EDGE = (1.5, 0.8)     # the face's edge rounded, the back's
+SHELL_POST_R = 3.0          # the face's posts, wider than POST_R so a counterbore fits in them
+TAB = (2.0, 1.2, 0.2)       # the back panel's tab into the end wall: long, thick, clearance round it
 
 # Footprint -> (along x at rotation 0, along y, height), by the first prefix that matches. Datasheet sizes
 # with the leads, not measured. The receptacles' face is at the board's edge.
@@ -146,7 +152,8 @@ class Case:
         self.zb = -T
         self.zmod = self.zb - b["module_h"]
         self.zf = self.zmod - MOD_GAP
-        self.z0 = self.zf - FLOOR
+        self.layout = b.get("layout", "plate")
+        self.z0 = self.zf - (FLOOR if self.layout == "plate" else PANEL_T)
         self.zu = b["glass_z"][1] + GLASS_GAP
         # the caps: a flange on each switch, under the plate or in a pocket in its underside
         tops = [P[r]["h"] for r, _ in b["buttons"]]
@@ -171,14 +178,19 @@ class Case:
         self.outer = (x0, x1, y0, y1)
         self.r_in = b["R"] + CLEAR
         self.r_out = self.r_in + WALL
-        # the screw: the longest in the kit that leaves the pilot's end and ENGAGE in the post
+        # the screw: the longest in the kit that stops short of the pilot hole's end with ENGAGE in the post or boss.
+        # "plate": from the back, into the plate's posts. "shell": from the front, into the back panel's bosses.
         cb = M2_HEAD[1] + 0.2
-        seat = self.z0 + cb
-        room = (self.zt - 0.8) - seat
-        fit = [s for s in M2_KIT if s <= room and seat + s >= ENGAGE]
-        assert fit, "no screw in the kit fits: room %.1f mm" % room
-        self.screw = max(fit)
         self.cb = cb
+        if self.layout == "plate":
+            seat = self.z0 + cb
+            fit = [s for s in M2_KIT if seat + s <= self.zt - 0.8 and seat + s >= ENGAGE]
+        else:
+            seat = self.zt - cb
+            fit = [s for s in M2_KIT if seat - s >= self.z0 + 0.6 and self.zb - (seat - s) >= ENGAGE]
+        assert fit, "no screw in the kit fits"
+        self.screw = max(fit)
+        self.seat = seat
 
     # --- what's on the board: stand-ins for the pictures and the checks -----------------------------------
     def standins(self):
@@ -240,15 +252,75 @@ class Case:
             t = t.cut(cyl(x, y, M2_CLEAR / 2, self.z0 - 1, self.zb + 0.1))
             t = t.cut(cyl(x, y, M2_HEAD[0] / 2 + 0.2, self.z0 - 1, self.z0 + self.cb))
         t = t.cut(self.usb_hole())
-        # the lanyard's lug
-        side, lug = b["lug"]
-        if side == "right":
-            t = t.cut(slot(b["W"] + CLEAR + WALL + lug / 2 - 0.3, b["H"] / 2, LUG_HOLE[0], LUG_HOLE[1], self.z0 - 1, self.zt + 1, along_x=False))
-        else:
-            t = t.cut(slot(b["W"] / 2, b["H"] + CLEAR + WALL + lug / 2 - 0.3, LUG_HOLE[0], LUG_HOLE[1], self.z0 - 1, self.zt + 1))
+        t = self.lug_slot(t)
         # the back: the name, and the Source Location (CERN-OHL-W v2, section 4.1: the board's own is under the case)
         t = t.cut(self.back_text())
         return t
+
+    def lug_slot(self, t):
+        b = self.b
+        side, lug = b["lug"]
+        if side == "right":
+            return t.cut(slot(b["W"] + CLEAR + WALL + lug / 2 - 0.3, b["H"] / 2, LUG_HOLE[0], LUG_HOLE[1], self.z0 - 1, self.zt + 1, along_x=False))
+        return t.cut(slot(b["W"] / 2, b["H"] + CLEAR + WALL + lug / 2 - 0.3, LUG_HOLE[0], LUG_HOLE[1], self.z0 - 1, self.zt + 1))
+
+    def tab(self, grow=0.0):
+        """The back panel's tab at the antenna end (the lug's side), into a slot in the end wall; grow makes the slot."""
+        b = self.b
+        L, t, _ = TAB
+        ix1 = self.inner[1]
+        y0, y1 = 4.0 - grow, b["H"] - 4.0 + grow
+        # from the board's edge on: the module's antenna end is flush with it, and the tab stands above the panel
+        return box(b["W"] - grow, ix1 + L + grow, y0, y1, self.zf - t / 2 - grow, self.zf + t / 2 + grow)
+
+    def front(self):
+        """The "shell" layout's front: the face and the walls in one piece, open at the back."""
+        b = self.b
+        x0, x1, y0, y1 = self.outer
+        t = rrect(x0, x1, y0, y1, self.r_out, self.z0, self.zt)
+        t = t.faces(">Z").edges().fillet(SHELL_EDGE[0]).faces("<Z").edges().fillet(SHELL_EDGE[1])
+        ix0, ix1, iy0, iy1 = self.inner
+        t = t.cut(rrect(ix0, ix1, iy0, iy1, self.r_in, self.z0 - 1, self.zu))
+        # posts on the board round its holes (they run into the walls at the corners), ribs on its antenna end
+        for x, y in b["holes"]:
+            t = t.union(cyl(x, y, SHELL_POST_R, 0.0, self.zu + 0.01))
+        for rx0, rx1, ry0, ry1 in b["press"]:
+            t = t.union(box(rx0, rx1, ry0, ry1, 0.0, self.zu + 0.01))
+        for x, y in b["holes"]:
+            t = t.cut(cyl(x, y, M2_CLEAR / 2, -1, self.zt + 1))
+            t = t.cut(cyl(x, y, M2_HEAD[0] / 2 + 0.2, self.seat, self.zt + 1))
+        t = t.cut(self.usb_hole())
+        t = self.lug_slot(t)
+        t = t.cut(self.tab(TAB[2]))
+        return self.face(t)
+
+    def back(self):
+        """The "shell" layout's back panel: flush in the shell's back, its tab in the end wall, two screws at the
+        other end into its bosses. Ribs under the module's shield; the name and the Source Location outside."""
+        b = self.b
+        ix0, ix1, iy0, iy1 = self.inner
+        c = PLATE_CLEAR
+        outline = lambda z0, z1: rrect(ix0 + c, ix1 - c, iy0 + c, iy1 - c, self.r_in - c, z0, z1)
+        p = outline(self.z0, self.zf).faces("<Z").edges().chamfer(0.5)
+        add = None
+        for x, y in b["holes"]:
+            s = cyl(x, y, BOSS_R, self.zf - 0.01, self.zb).union(cyl(x, y, BOSS_BASE[0], self.zf - 0.01, self.zf + BOSS_BASE[1]))
+            add = s if add is None else add.union(s)
+        for rx0, rx1, ry0, ry1 in b["rest"]:
+            add = add.union(box(rx0, rx1, ry0, ry1, self.zf - 0.01, self.zmod - REST_GAP))
+        p = p.union(add.intersect(outline(self.zf - 0.01, self.zb + 0.01))).union(self.tab())
+        for x, y in b["holes"]:
+            p = p.cut(cyl(x, y, M2_PILOT / 2, self.z0 + 0.6, self.zb + 0.1))
+        return p.cut(self.back_text())
+
+    def printed(self):
+        """The printed parts as they sit: (name, shape, colour), and how each lies on the bed."""
+        caps = [(n, s, col) for s, col, n in self.caps()]
+        if self.layout == "plate":
+            return [("tub", self.tub(), TUB_C, lambda s: s), ("plate", self.plate(), PLATE_C, flip)] + \
+                [(n, s, col, lambda s: s) for n, s, col in caps]
+        return [("shell", self.front(), TUB_C, flip), ("back", self.back(), PLATE_C, lambda s: s)] + \
+            [(n, s, col, lambda s: s) for n, s, col in caps]
 
     def usb_hole(self):
         """The USB opening: through the wall, and on to the receptacle's face at the board's edge."""
@@ -290,6 +362,12 @@ class Case:
             p = p.union(box(rx0, rx1, ry0, ry1, 0.0, zu + 0.01))
         for x, y in b["holes"]:
             p = p.cut(cyl(x, y, M2_PILOT / 2, -0.1, zt - 0.8))
+        return self.face(p)
+
+    def face(self, p):
+        """The face's openings and engraving, cut into p (the plate, or the front shell) between zu and zt."""
+        b, P = self.b, self.b["parts"]
+        zu, zt = self.zu, self.zt
         # pockets in the underside over any part that stands higher than it, but the capped buttons
         capped = {r for r, _ in b["buttons"]}
         for ref, q in P.items():
@@ -358,8 +436,11 @@ class Case:
     def screws(self):
         out = None
         for x, y in self.b["holes"]:
-            seat = self.z0 + self.cb
-            s = cyl(x, y, M2_HEAD[0] / 2, seat - M2_HEAD[1], seat).union(cyl(x, y, 0.95, seat, seat + self.screw))
+            seat = self.seat
+            if self.layout == "plate":
+                s = cyl(x, y, M2_HEAD[0] / 2, seat - M2_HEAD[1], seat).union(cyl(x, y, 0.95, seat, seat + self.screw))
+            else:
+                s = cyl(x, y, M2_HEAD[0] / 2, seat, seat + M2_HEAD[1]).union(cyl(x, y, 0.95, seat - self.screw, seat))
             out = s if out is None else out.union(s)
         return out
 
@@ -449,73 +530,71 @@ def build(b, out, screen_png=None):
     os.makedirs(out, exist_ok=True)
     c = Case(b)
     name = b["name"]
-    tub, plate, caps = c.tub(), c.plate(), c.caps()
+    parts = c.printed()                                 # (name, shape as it sits, colour, how it lies on the bed)
+    printed = [(n, s) for n, s, _, _ in parts]
     dock, tilt = c.dock()
     screws = c.screws()
     over, shell = c.plug()
     things = c.standins()
-    printed = [("tub", tub), ("plate", plate)] + [(n, s) for s, _, n in caps]
+    own = {"cap " + n: ref for ref, n in b["buttons"]}  # a cap sits on its own switch
     pairs = []
     for pn, ps in printed:
-        for sn, sh, in [(n, s) for s, _, n in things] + [("plug overmold", over), ("plug shell", shell)]:
-            if pn.startswith("cap") and sn == b["buttons"][[n for _, n in b["buttons"]].index(pn[4:])][0]:
-                continue                                            # a cap sits on its own switch
-            pairs.append((pn, ps, sn, sh))
+        for sn, sh in [(n, s) for s, _, n in things] + [("plug overmold", over), ("plug shell", shell)]:
+            if own.get(pn) != sn:
+                pairs.append((pn, ps, sn, sh))
     for i, (pn, ps) in enumerate(printed):
         for qn, qs in printed[i + 1:]:
             pairs.append((pn, ps, qn, qs))
     pairs += [("screws", screws, sn, sh) for sh, _, sn in things]
-    closed = [("tub", tub), ("plate", plate)] + [(n, s) for s, _, n in caps] + [("plug overmold", over)]
-    pairs += [("dock", dock, n, c.on_dock(s, tilt)) for n, s in closed]
+    pairs += [("dock", dock, n, c.on_dock(s, tilt)) for n, s in printed + [("plug overmold", over)]]
     bad = check(pairs)
     for line in bad:
         print("CHECK:", line)
-    stl(tub, os.path.join(out, name + "_tub.stl"))
-    stl(flip(plate), os.path.join(out, name + "_plate.stl"))
-    for s, _, n in caps:
-        stl(s.translate((0, 0, -c.zcap)), os.path.join(out, "%s_%s.stl" % (name, n.replace(" ", "_"))))
+    for n, s, _, lie in parts:
+        if n.startswith("cap"):
+            s = s.translate((0, 0, -c.zcap))
+        stl(lie(s), os.path.join(out, "%s_%s.stl" % (name, n.replace(" ", "_"))))
     stl(dock, os.path.join(out, name + "_dock.stl"))
     asm = cq.Assembly(name=name)
-    asm.add(tub, name="tub", color=cq.Color(*TUB_C))
-    asm.add(plate, name="plate", color=cq.Color(*PLATE_C))
-    for s, col, n in caps:
+    for n, s, col, _ in parts:
         asm.add(s, name=n.replace(" ", "_"), color=cq.Color(*col))
     asm.add(screws, name="screws", color=cq.Color(*K.STEEL))
     for s, col, n in things:
         asm.add(s, name="pcb_" + n.replace(" ", "_"), color=cq.Color(*col))
     asm.save(os.path.join(out, name + "_assembly.step"))
-    pictures(c, out, tub, plate, caps, dock, tilt, screws, things, over, screen_png)
+    pictures(c, out, parts, dock, tilt, screws, things, over, screen_png)
     for n, sh in printed + [("dock", dock)]:
         bb = sh.val().BoundingBox()
         print("  %-7s %5.1f x %5.1f x %4.1f mm, %5.2f cm3" % (n, bb.xlen, bb.ylen, bb.zlen, sh.val().Volume() / 1000))
-    bb = tub.val().BoundingBox()
-    print("%s: closed %.1f x %.1f x %.1f mm; plate %.1f mm over the glass; screws M2 x %g; caps %.1f mm proud"
-          % (name, bb.xlen, bb.ylen, bb.zlen, c.plate_t, c.screw, CAP_PROUD))
+    print("%s: closed %.1f x %.1f x %.1f mm; %.1f mm over the glass; screws M2 x %g from the %s; caps %.1f mm proud"
+          % (name, c.outer[1] - c.outer[0], c.outer[3] - c.outer[2], c.zt - c.z0, c.plate_t, c.screw,
+             "back" if c.layout == "plate" else "front", CAP_PROUD))
     for f in sorted(os.listdir(out)):
         print("wrote", os.path.relpath(os.path.join(out, f), REPO))
     return 1 if bad else 0, c
 
 
-def pictures(c, out, tub, plate, caps, dock, tilt, screws, things, over, screen_png):
+def pictures(c, out, parts, dock, tilt, screws, things, over, screen_png):
     b, name = c.b, c.b["name"]
     ax0, ay0, ax1, ay1 = b["active"]
     z = b["glass_z"][1] + 0.01
     corners = [(ax0, ay1, z), (ax1, ay1, z), (ax1, ay0, z), (ax0, ay0, z)]
-    if b.get("screen_turn"):
-        corners = corners[b["screen_turn"]:] + corners[:b["screen_turn"]]
     seen = [p for p in things if p[2] in ("glass",) or p[2] in b.get("seen", ())]
-    caps_ = [(s, col, n) for s, col, n in caps]
-    front = [(tub, TUB_C, "tub"), (plate, PLATE_C, "plate")] + caps_ + seen
+    case = [(s, col, n) for n, s, col, _ in parts]
     v = b["views"]
-    K.render(dict(title=b["title"], parts=front, corners=corners, views=v["front"]),
+    K.render(dict(title=b["title"], parts=case + seen + [(screws, K.STEEL, "screws")], corners=corners, views=v["front"]),
              os.path.join(out, name + "_front.png"), screen_png)
-    lift = lambda s, dz: s.translate((0, 0, dz))
-    ex = [(tub, TUB_C, "tub"), (lift(screws, -14), K.STEEL, "screws")] + [(s, col, n) for s, col, n in things] + \
-        [(lift(plate, 22), PLATE_C, "plate")] + [(lift(s, 14), col, n) for s, col, n in caps_]
+    # apart: each part moved off the board the way it goes on
+    if c.layout == "plate":
+        move = {"tub": 0, "plate": 22, "screws": -14}
+    else:
+        move = {"shell": 22, "back": -12, "screws": 40}
+    ex = [(s.translate((0, 0, move.get(n, 12))), col, n) for s, col, n in case] + \
+        [(screws.translate((0, 0, move["screws"])), K.STEEL, "screws")] + [(s, col, n) for s, col, n in things]
     K.render(dict(title=b["title"] + ", apart", parts=ex, corners=[], views=v["apart"]), os.path.join(out, name + "_apart.png"))
     rot = lambda s: c.on_dock(s, tilt)
-    docked = [(dock, K.MID, "dock"), (rot(tub), TUB_C, "tub"), (rot(plate), PLATE_C, "plate")] + \
-        [(rot(s), col, n) for s, col, n in caps_ + seen] + [(rot(over), K.BLACK, "plug")]
+    docked = [(dock, K.MID, "dock")] + [(rot(s), col, n) for s, col, n in case + seen] + \
+        [(rot(screws), K.STEEL, "screws"), (rot(over), K.BLACK, "plug")]
     dc = [rot_pt(c, p, tilt) for p in corners]
     K.render(dict(title=b["title"] + " on its dock", parts=docked, corners=dc, views=v["dock"]),
              os.path.join(out, name + "_dock.png"), screen_png)

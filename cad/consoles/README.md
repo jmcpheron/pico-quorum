@@ -10,8 +10,9 @@ fitted to a board.
 | | the stick | the badge |
 |---|---|---|
 | board | console-s3 rev A, 64 × 22.86 × 1.6 mm | PicoQuorumKey rev A, 44 × 53 × 1.6 mm |
-| closed | 74.6 × 27.5 × 12.2 mm | 48.6 × 63.6 × 12.2 mm |
-| screws | 2 × M2 × 8, at the USB end | 4 × M2 × 8 |
+| layout | a front shell and a back panel | a tub and a front plate |
+| closed | 74.6 × 27.5 × 12.4 mm | 48.6 × 63.6 × 12.2 mm |
+| screws | 2 × M2 × 8 from the front, at the USB end | 4 × M2 × 8 from the back |
 | USB-C | the left end | the bottom edge |
 | lanyard | a lug at the antenna end | a lug at the top |
 | dock | 81 × 38 × 15 mm, the cable out of the left | 55 × 50 × 48 mm, the plug in a slot in its lip |
@@ -22,24 +23,24 @@ fitted to a board.
 
 ## How they go together
 
-Both are the same kind of case, made by one script, [`shell.py`](shell.py):
+One script, [`shell.py`](shell.py), makes both. It has two layouts:
+- **"shell" (the stick):** the face and the walls are one front shell, and a flat panel closes the
+  back. The screws go in from the front, through the shell's posts and the board's holes, into bosses
+  on the back panel. Their heads sit flush in counterbores in the face.
+- **"plate" (the badge):** a tub, and a front plate set into its opening, flush with its rim. The screws
+  go in from the back, through bosses in the tub and the board's holes, into posts on the plate's
+  underside. There is nothing to see on the front.
 
-- **A tub and a front plate.** The plate sits in the tub's opening, flush with its rim. The board
-  lies between them, face up.
-- **The board's own holes hold it.** M2 screws go in from the back:
-  - through bosses in the tub
-  - through the board's holes
-  - into posts on the plate's underside
-
-  The bosses and posts clamp the board, and stay inside the 2.5 mm keep-out ring round each hole. There
-  is nothing to see on the front.
-- **The antenna end is held without metal.** A rib on the plate presses on the board's front where it
-  has no copper. Two ribs in the tub come up under the module's shield. The nearest screw is 23 mm
+Everything else is the same:
+- **The board's own holes hold it,** clamped between the posts on the face's side and the bosses on the
+  back's. Both stay inside the 2.5 mm keep-out ring round each hole on the board.
+- **The antenna end is held without metal.** A rib under the face presses on the board's front where it
+  has no copper. Two ribs on the back come up under the module's shield. The nearest screw is 23 mm
   from the antenna on the badge, 55 mm on the stick.
-- **The window** shows the active area and 0.5 mm round it. The plate keeps at least 0.8 mm over the
+- **The window** shows the active area and 0.5 mm round it. The face keeps at least 0.8 mm over the
   glass's edge, and sits 0.15 mm above the glass, so it keeps the glass on its tape.
-- **Caps on D0, D1 and D2.** Each cap has a round stem through the plate, and a square flange under the
-  plate that keeps it in. The caps are in the brand's colours ([BRAND.md](../../docs/BRAND.md)):
+- **Caps on D0, D1 and D2.** Each cap has a round stem through the face, and a square flange under it
+  that keeps it in. The caps are in the brand's colours ([BRAND.md](../../docs/BRAND.md)):
   - D0 is Reject red
   - D1 is white
   - D2 is Sign green
@@ -56,8 +57,11 @@ Both are the same kind of case, made by one script, [`shell.py`](shell.py):
 ## The stick (console-s3)
 
 [`stick.py`](stick.py). The board is a bar, and the case follows it.
-- **The screws are at the USB end only.** The board's only holes are there, by design: a screw at the
-  far end would be metal by the antenna.
+- **The screws are at the USB end only,** in the face. The board's only holes are there, by design: a
+  screw at the far end would be metal by the antenna. The posts round them are 6 mm across, wider than
+  the badge's, so each counterbore has a wall; they run into the shell's walls at the corners.
+- **The back panel's other end hooks in.** A tab, 2.0 × 1.2 mm, goes into a slot in the end wall,
+  inside the lanyard's lug. Fit that end first, then lower the USB end and screw it.
 - **The mark is at the antenna end,** engraved, over the board's own mark.
 - **The window is 1 mm wider than the active area needs.** The board's render centres the active area
   on the glass. ER-TFT1.14-2's drawing puts it 2.0 mm from the end away from the ribbon. The window
@@ -100,7 +104,7 @@ the makers' models.
 ## What the script checks, and what it doesn't
 
 When a case builds, the script checks that none of these overlap each other:
-- the tub, the plate and the caps
+- the printed parts: the tub and the plate, or the front shell and the back panel, and the caps
 - the board, each part's box, the glass and its ribbon fold, the module
 - a USB-C plug pushed fully home: 12.4 × 5.5 mm overmold, the handheld's measured cable
 - the screws
@@ -108,33 +112,46 @@ When a case builds, the script checks that none of these overlap each other:
 
 It prints a line for each overlap and exits 1 if there is one; both cases build with none. It also
 chooses the screw: the longest in the bench's kit (4, 8, 12, 16 mm) that leaves at least 3 mm of
-thread in the post.
+thread in the post or boss, and stops short of the end of its hole.
 
-**It doesn't check fit against a real board.** Nothing here is measured. Before printing the tub, measure
+**It doesn't check fit against a real board.** Nothing here is measured. Before printing the big parts, measure
 these and change the numbers in the scripts:
-- **the panel:** the glass's thickness and the tape's (`glass_z`). The plate's height follows them.
+- **the panel:** the glass's thickness and the tape's (`glass_z`). The face's height follows them.
 - **the switches:** the stick's TS-1187A is taken as 1.5 mm tall, the badge's 4.5 × 4.5 tacts as
   3.8 mm (`PACKAGES`). The caps sit on them. If a height is wrong, reprint the caps; on the badge,
   the plate too.
-- **the module, as soldered:** 3.1 mm (`WROOM`). The tub's ribs follow it.
+- **the module, as soldered:** 3.1 mm (`WROOM`). The ribs under it follow it.
 - **your cable's overmold**, against the 13.2 × 6.2 mm opening (`USB_OPEN`).
 
 ## Printing
 
 Every part prints without supports, judging by the shapes. They haven't been sliced.
-- **tub:** on its back, as written. The opening over the USB-C is a short bridge.
-- **plate:** face down, as written. The posts, ribs and pockets point up.
+- **the stick's shell:** face down, as written. The USB-C opening's far side is a 13 mm bridge.
+- **the stick's back panel:** outside down, as written. The bosses, ribs and tab point up.
+- **the badge's tub:** on its back, as written. The opening over the USB-C is a short bridge.
+- **the badge's plate:** face down, as written. The posts, ribs and pockets point up.
 - **caps:** flange down, one STL each, so each can be its own colour.
 - **dock:** on its base, as written.
 - PLA or PETG, 0.2 mm layers. The engraving is 0.5 mm deep.
 
-**Print the plate first** and lay it on the board. It's the fit check:
+**The fit check:** print the badge's plate first and lay it on the board. The stick's face is part of
+its shell, so print the shell first and lay the board in it. Either way, check that:
 - the posts land round the holes
 - the window frames the screen
 - the caps' holes sit over D0, D1 and D2
 
 ## Putting it together
 
+**The stick:**
+1. Lay the shell face down. Drop the caps in from behind, flange inside: red D0 at the top, white D1,
+   green D2.
+2. Lay the board in face down, its USB-C to the opening, the glass on the window's lip.
+3. Put the back panel's tab into the slot in the far end wall, then lower the USB end onto the board.
+4. Hold the panel on, turn the stick face up, and put the M2 × 8 screws in through the face.
+5. Turn each screw until it is snug, no tighter: it cuts its own thread in the panel's boss.
+6. Press each cap. It should click and come back.
+
+**The badge:**
 1. Drop the caps into the plate from behind, flange inside: red D0 at the top, white D1, green D2.
 2. Lay the board in the tub face up, its USB-C to the opening.
 3. Lay the plate on it, caps onto the switches.

@@ -1,16 +1,18 @@
-"""console-s3's case: the stick. A bar the board's own size and shape, 75 x 27 x 12 mm: a tub, and a front
-plate set into it flush, the board clamped between them by two M2 screws from the back through its holes
-at the USB end. The plate's ribs hold the antenna end down onto two ribs in the tub under the module's
-shield, so no metal goes near the antenna. The plate has the window, caps on D0, D1 and D2 (Reject red,
-white, Sign green), pinholes for BOOT and RESET, a hole over the LED, and the mark at the antenna end.
-The USB-C is open at the left end; a lanyard lug at the right. A dock holds it leaning back on the desk,
-its cable out of the left side. (cad/consoles/README.md)
+"""console-s3's case: the stick. A bar the board's own size and shape, 75 x 27 x 12 mm, in the "shell" layout:
+the face and the walls are one front shell, and a flat panel closes the back. Two M2 screws go in from the
+front, through the shell's posts and the board's holes at the USB end, into bosses on the back panel. At
+the other end the panel's tab hooks into a slot in the end wall, and a rib under the face holds the
+board's antenna end down onto two ribs on the panel under the module's shield: no metal near the antenna.
+The face has the window, caps on D0, D1 and D2 (Reject red, white, Sign green), pinholes for BOOT and
+RESET, a hole over the LED, and the mark at the antenna end. The USB-C is open at the left end; a lanyard
+lug at the right. A dock holds it leaning back on the desk, its cable out of the left side.
+(cad/consoles/README.md)
 
 Run: uv run --python 3.11 --with cadquery --with matplotlib --with pillow \\
          python cad/consoles/stick.py [screen.png]
 (or tools/case build stick)
 
-Writes out/stick/: stick_tub.stl (on its back, as it prints), stick_plate.stl (face down), stick_cap_D0/D1/D2.stl
+Writes out/stick/: stick_shell.stl (face down, as it prints), stick_back.stl (outside down), stick_cap_D0/D1/D2.stl
 (flange down), stick_dock.stl, stick_assembly.step, stick_front.png, stick_apart.png, stick_dock.png.
 
 The board's numbers are its generator's (hardware/console-s3/gen_console_s3.py) and the placement file JLCPCB
@@ -51,7 +53,7 @@ def board():
     mx, my = G.MOD_AT
     module = (mx - G.MOD_L / 2, mx + G.MOD_L / 2, my - G.MOD_W / 2, my + G.MOD_W / 2)
     return dict(
-        name="stick", title="The stick (console-s3)",
+        name="stick", title="The stick (console-s3)", layout="shell",
         W=W, H=H, R=G.CORNER, T=1.6, holes=[xy for _, xy in G.HOLES], hole_d=2.2, parts=P,
         glass=G.GLASS, glass_z=(G.PANEL["foam"], G.PANEL["foam"] + G.GLASS_T), active=active, window_over=over,
         fold=(gx1, gx1 + G.FOLD_R, G.FOLD_Y[0], G.FOLD_Y[1]),
@@ -67,8 +69,8 @@ def board():
         flip="x",                   # turned over about its length to read the back
         back_text=[("PicoQuorum", (33.0, 9.2), (40.0, 6.0), "bold"), ("PicoQuorum.app", (33.0, 16.6), (28.0, 2.8), "regular")],
         seen=("D1",),
-        views=dict(front=[("in the hand", 55, -72), ("the back: the name, the Source Location, two screws", -50, -120)],
-                   apart=[("apart: tub, screws, board, plate, caps", 28, -62)],
+        views=dict(front=[("in the hand: two screws in the face", 55, -72), ("the back panel: the name, the Source Location", -50, -120)],
+                   apart=[("apart: screws, front shell, caps, board, back panel", 28, -62)],
                    dock=[("on its dock, the cable out of the left", 18, -62)]),
     )
 
