@@ -1,22 +1,28 @@
-"""PicoQuorumKey rev B's case: the badge, for the board with its key port fitted. Portrait, 55 x 64 x 11 mm,
-worn on a lanyard or laid on the desk like a small handheld. A tub, and a front plate set into it flush, the
-board clamped between them by four M2 screws from the back through its four holes. On the plate: the window,
-caps on D0, D1 and D2 down its left side (Reject red, white, Sign green), holes over the LED and the key
-port's LED, pinholes for BOOT and RESET, and the mark and the name.
+"""PicoQuorumKey rev B's case: the badge, for the board with its key port fitted. Portrait, 55 x 64 x 12.5 mm,
+worn on a lanyard or laid on the desk like a small handheld. The "shell" layout, as the stick's: the face and the
+walls are one front shell, and a flat panel closes the back. Four M2 screws go in from the front, through the
+shell's posts and the board's holes, into bosses on the back panel. At the antenna end, the top, the panel's
+tab hooks into a slot in the top wall. On the face: the window, caps on D0, D1 and D2 down its left side
+(Reject red, white, Sign green), holes over the LED and the key port's LED, pinholes for BOOT and RESET, and
+the mark and the name.
+
+The switches are taller than their datasheet's 3.8 mm: calipers on a fitted board read 5.5 mm from the board's
+back to the top of a switch (5.1-5.2 pressed), so 4.7 mm over its front. The caps sit on that, and the face is
+as thick as their flanges need.
 
 The top-left corner is open for the key port: its plug stands out of the board's top edge, and a key-c
-plugs onto it from outside, the case cut away round it. The plate's rib holds the board's antenna end down
-on the antenna's keep-out band, which has no parts, not across U6, U7, R17 and R18 to the left of it; two
-ribs in the tub come up under the module's shield. The board is 0.8 mm thick, so ribs in the tub back it
-under D0-D2 and under BOOT and RESET, clear of the test pads. The USB-C is open at the bottom edge; the
-lanyard's lug is at the top right. A dock holds it leaning back on the desk, the plug in a slot in its lip.
-(cad/consoles/README.md)
+plugs onto it from outside, the case cut away round it. A rib under the face holds the board's antenna end
+down on the antenna's keep-out band, which has no parts, not across U6, U7, R17 and R18 to the left of it;
+two ribs on the panel come up under the module's shield. The board is 0.8 mm thick, so ribs on the panel
+back it under D0-D2 and under BOOT and RESET, clear of the test pads. The USB-C is open at the bottom edge;
+the lanyard's lug is at the top right. A dock holds it leaning back on the desk, the plug in a slot in its
+lip. (cad/consoles/README.md)
 
 Run: uv run --python 3.11 --with cadquery --with matplotlib --with pillow \\
          python cad/consoles/badge.py [screen.png]
 (or tools/case build badge)
 
-Writes out/badge/: badge_tub.stl (on its back, as it prints), badge_plate.stl (face down), badge_cap_D0/D1/D2.stl
+Writes out/badge/: badge_shell.stl (face down, as it prints), badge_back.stl (outside down), badge_cap_D0/D1/D2.stl
 (flange down), badge_dock.stl, badge_assembly.step, badge_front.png, badge_face.png, badge_apart.png,
 badge_dock.png.
 
@@ -25,7 +31,7 @@ boards from (hardware/out/rev-b/cpl-port.csv, bom-port.csv), its holes the drill
 the active area, the tape, the module, the plug and the back's test pads are its DESIGN.md's and
 tools/gen/gen_pcb.py's. The plug (fitted by hand) and a key-c on it are boxes: the plug's drawing gives its
 width and length, not its height; the key-c is its design's 16 x 36 mm. Not measured: the panel, the
-switches' height, the module, the plug. A first draft to print and try.
+module, the plug. A first draft to print and try.
 """
 import os
 import re
@@ -48,6 +54,8 @@ PADDLE, SLOT_X1, NOTCH_D = (4.05, 11.95), 14.0, 4.5
 PLUG = (8.4, 9.6, 3.4)      # across, past the tip, thick (not given: a USB-C plug's usual, straddling the board)
 KEYC = (16.0, 36.0, 7.4)    # across, long, thick with its receptacle and its parts (key-c's design)
 KEYC_GAP = 3.0
+SWITCH_TOP = 5.5            # the switches' tops from the board's back: calipers, 2026-11-03 (5.1-5.2 pressed)
+SWITCHES = ("SW1", "SW2", "SW3", "SW6", "SW7")
 
 
 def holes():
@@ -71,10 +79,12 @@ def board():
         assert abs(P[ref]["y"] - up(y)) < 0.01 and abs(P[ref]["x"] - 10.5) < 0.01, ref
     for ref in ("U6", "U7", "R17", "R18", "D4"):                         # the port's parts, which this case is for
         assert ref in P, ref
+    for ref in SWITCHES:                                                 # as measured, not the datasheet's 3.8
+        P[ref]["h"] = SWITCH_TOP - T
     pz = -T / 2                                                          # the plug's and the key's axis: the board's middle
     px = sum(PADDLE) / 2
     return dict(
-        name="badge", title="The badge (PicoQuorumKey rev B, key port)",
+        name="badge", title="The badge (PicoQuorumKey rev B, key port)", layout="shell", window_c=1.5,
         W=W, H=H, R=1.5, T=T, holes=holes(), hole_d=2.2, parts=P,
         board_cut=[(-1.0, PADDLE[0], up(NOTCH_D), H + 1), (PADDLE[1], SLOT_X1, up(NOTCH_D), H + 1)],
         extras=[((px - PLUG[0] / 2, px + PLUG[0] / 2, H - 2.7, H + PLUG[1], pz - PLUG[2] / 2, pz + PLUG[2] / 2), S.K.STEEL, "key port plug"),
@@ -87,20 +97,21 @@ def board():
         buttons=[("SW1", "D0"), ("SW2", "D1"), ("SW3", "D2")], pins=[("SW6", "BOOT"), ("SW7", "RESET")],
         led=["D1", "D4"], usb="J1", usb_edge="bottom", dock_depth=50.0, dock_plug=20.0,
         lug=("top", 6.0), lug_at=34.0,                                  # right of the key port's opening
+        tab=("top", 20.0, 46.0),                                        # the back panel's tab into the top wall, by the antenna
         notch=(-10.0, px + KEYC[0] / 2 + 0.5, H + 0.2),                 # the key port: open from the board's top edge
-        # ribs under the module's shield; the plate's rib on the front of the antenna's keep-out band (X 29.5 on, the
+        # ribs under the module's shield; the face's rib on the front of the antenna's keep-out band (X 29.5 on, the
         # top 7 mm), which has no parts. Left of it, the band holds U6, U7, R18 and R17.
         rest=[(31.5, 46.5, 31.0, 31.0 + S.REST_W), (31.5, 46.5, 43.0, 43.0 + S.REST_W)],
         press=[(30.5, 46.0, 46.0, 52.0)],
-        # ribs under the 0.8 mm board where it's pressed: D0-D2, and BOOT and RESET. The back's test pads are at
+        # ribs on the panel under the 0.8 mm board where it's pressed: D0-D2, and BOOT and RESET. The back's test pads are at
         # X 15-41 (y 14 and 18) and (8.4, 10), (15, 10): the ribs miss them.
         support=[(9.5, 11.5, 27.0, 45.0), (42.6, 44.6, 4.5, 16.5)],
         face=[("mark", (21.0, 15.5, 4.5)), ("text", ("PicoQuorum", (20.0, 6.2), (26.0, 4.0)))],
         flip="y",                   # turned over about its height to read the back
         back_text=[("PicoQuorum", (25.0, 38.0), (30.0, 6.0), "bold"), ("PicoQuorum.app", (25.0, 31.0), (24.0, 3.0), "regular")],
         seen=("D1", "D4", "key port plug", "key-c"),
-        views=dict(front=[("in the hand, a key-c in its port", 58, -78), ("the back: the name, the Source Location, four screws", -55, 110)],
-                   apart=[("apart: tub, screws, board, plate, caps", 30, -60)],
+        views=dict(front=[("in the hand: four screws in the face, a key-c in its port", 58, -78), ("the back panel: the name, the Source Location", -55, 110)],
+                   apart=[("apart: screws, front shell, caps, board, back panel", 30, -60)],
                    dock=[("on its dock, the plug in the lip", 20, -68)]),
     )
 

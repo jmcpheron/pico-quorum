@@ -186,11 +186,12 @@ class Case:
             seat = self.z0 + cb
             fit = [s for s in M2_KIT if seat + s <= self.zt - 0.8 and seat + s >= ENGAGE]
         else:
-            seat = self.zt - cb
-            fit = [s for s in M2_KIT if seat - s >= self.z0 + 0.6 and self.zb - (seat - s) >= ENGAGE]
+            # the head flush with the face, or lower if that's what a kit screw needs to reach ENGAGE in the boss
+            seat_at = lambda s: min(self.zt - cb, self.zb + s - ENGAGE)
+            fit = [s for s in M2_KIT if seat_at(s) - s >= self.z0 + 0.6 and seat_at(s) >= 1.0]
         assert fit, "no screw in the kit fits"
         self.screw = max(fit)
-        self.seat = seat
+        self.seat = seat if self.layout == "plate" else seat_at(self.screw)
 
     # --- what's on the board: stand-ins for the pictures and the checks -----------------------------------
     def standins(self):
@@ -283,13 +284,16 @@ class Case:
         return t.cut(n.edges("|Z").fillet(0.8))
 
     def tab(self, grow=0.0):
-        """The back panel's tab at the antenna end (the lug's side), into a slot in the end wall; grow makes the slot."""
+        """The back panel's tab at the antenna end, into a slot in the end wall; grow makes the slot. b["tab"]: the
+        side ("right" or "top") and where along it the tab runs."""
         b = self.b
         L, t, _ = TAB
-        ix1 = self.inner[1]
-        y0, y1 = 4.0 - grow, b["H"] - 4.0 + grow
+        side, a0, a1 = b["tab"]
+        z0, z1 = self.zf - t / 2 - grow, self.zf + t / 2 + grow
         # from the board's edge on: the module's antenna end is flush with it, and the tab stands above the panel
-        return box(b["W"] - grow, ix1 + L + grow, y0, y1, self.zf - t / 2 - grow, self.zf + t / 2 + grow)
+        if side == "right":
+            return box(b["W"] - grow, self.inner[1] + L + grow, a0 - grow, a1 + grow, z0, z1)
+        return box(a0 - grow, a1 + grow, b["H"] - grow, self.inner[3] + L + grow, z0, z1)
 
     def front(self):
         """The "shell" layout's front: the face and the walls in one piece, open at the back."""
@@ -405,7 +409,7 @@ class Case:
         wy0, wy1 = max(ay0 - m, gy0 + GLASS_LIP), min(ay1 + m, gy1 - GLASS_LIP)
         self.window = (wx0, wx1, wy0, wy1)
         p = p.cut(box(wx0, wx1, wy0, wy1, zu - 1, zt + 1))
-        ch = WINDOW_C
+        ch = b.get("window_c", WINDOW_C)
         bev = (cq.Workplane("XY").workplane(offset=zt - ch).center((wx0 + wx1) / 2, (wy0 + wy1) / 2).rect(wx1 - wx0, wy1 - wy0)
                .workplane(offset=ch + 0.01).rect(wx1 - wx0 + 2 * ch + 0.02, wy1 - wy0 + 2 * ch + 0.02).loft())
         p = p.cut(bev)

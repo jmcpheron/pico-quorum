@@ -62,7 +62,7 @@ def board():
         module=module, module_h=S.WROOM[2],
         buttons=[("SW1", "D0"), ("SW2", "D1"), ("SW3", "D2")], pins=[("SW4", "BOOT")],
         led="D1", usb="J1", usb_edge="left", dock_depth=38.0, dock_plug=0.0,
-        lug=("right", 6.0),
+        lug=("right", 6.0), tab=("right", 4.0, G.H - 4.0),
         # two ribs under the module's shield (its first 19 mm from the pin end), the plate's rib on the antenna end's
         # front, where the board has no copper and no parts (the keep-out, x 57.5 to the edge)
         rest=[(41.5, 41.5 + S.REST_W, 4.0, H - 4.0), (54.0, 54.0 + S.REST_W, 4.0, H - 4.0)],

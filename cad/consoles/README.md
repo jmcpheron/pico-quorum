@@ -7,14 +7,17 @@ Two cases for the two S3 boards from JLCPCB, and a dock for each:
 **Status, 2026-11-03:** a first draft of each, drawn the day the boards arrived. The first badge was
 drawn for rev A. Its plate was printed and laid on a board: the board was rev B, and the rib above
 the screen sat on U6 and U7, the key port's chips. The badge is drawn for rev B now
-([below](#the-badge-picoquorumkey-rev-b)). Neither case has been fitted to its board since.
+([below](#the-badge-picoquorumkey-rev-b)). Then, with caps on, the plate still stood off the board:
+its switches are taller than their datasheet says (calipers: 5.5 mm from the board's back to a switch's
+top). The badge now takes the measured height, and is a front shell and a back panel like the stick.
+Neither case has been fitted to its board since.
 
 | | the stick | the badge |
 |---|---|---|
 | board | console-s3 rev A, 64 × 22.86 × 1.6 mm | PicoQuorumKey rev B with the key port, 50 × 53 × 0.8 mm |
-| layout | a front shell and a back panel | a tub and a front plate |
-| closed | 74.6 × 27.5 × 12.4 mm | 54.6 × 63.6 × 11.4 mm |
-| screws | 2 × M2 × 8 from the front, at the USB end | 4 × M2 × 8 from the back |
+| layout | a front shell and a back panel | a front shell and a back panel |
+| closed | 74.6 × 27.5 × 12.4 mm | 54.6 × 63.6 × 12.5 mm |
+| screws | 2 × M2 × 8 from the front, at the USB end | 4 × M2 × 8 from the front |
 | USB-C | the left end | the bottom edge |
 | key | on the board | the top-left corner is open: a key-c plugs into the key port from outside |
 | lanyard | a lug at the antenna end | a lug at the top right |
@@ -26,15 +29,18 @@ the screen sat on U6 and U7, the key port's chips. The badge is drawn for rev B 
 
 ## How they go together
 
-One script, [`shell.py`](shell.py), makes both. It has two layouts:
-- **"shell" (the stick):** the face and the walls are one front shell, and a flat panel closes the
-  back. The screws go in from the front, through the shell's posts and the board's holes, into bosses
-  on the back panel. Their heads sit flush in counterbores in the face.
-- **"plate" (the badge):** a tub, and a front plate set into its opening, flush with its rim. The screws
-  go in from the back, through bosses in the tub and the board's holes, into posts on the plate's
-  underside. There is nothing to see on the front.
+One script, [`shell.py`](shell.py), makes both, in the same layout ("shell"):
+- **The face and the walls are one front shell,** and a flat panel closes the back.
+- **The screws go in from the front,** through the shell's posts and the board's holes, into bosses on
+  the back panel. Their heads sit in counterbores in the face: flush, or a little lower where a kit
+  screw needs it to reach 3 mm into its boss.
+- **The back panel's antenna end hooks in.** That end of the board has no holes, so a tab, 2.0 × 1.2 mm,
+  goes into a slot in the end wall.
 
-Everything else is the same:
+`shell.py` has a second layout, "plate": a tub, and a front plate set into its opening, with the screws
+from the back. The first drafts used it; neither case does now.
+
+Both cases also share these:
 - **The board's own holes hold it,** clamped between the posts on the face's side and the bosses on the
   back's. Both stay inside the 2.5 mm keep-out ring round each hole on the board.
 - **The antenna end is held without metal.** A rib under the face presses on the board's front where it
@@ -63,10 +69,9 @@ Everything else is the same:
 
 [`stick.py`](stick.py). The board is a bar, and the case follows it.
 - **The screws are at the USB end only,** in the face. The board's only holes are there, by design: a
-  screw at the far end would be metal by the antenna. The posts round them are 6 mm across, wider than
-  the badge's, so each counterbore has a wall; they run into the shell's walls at the corners.
-- **The back panel's other end hooks in.** A tab, 2.0 × 1.2 mm, goes into a slot in the end wall,
-  inside the lanyard's lug. Fit that end first, then lower the USB end and screw it.
+  screw at the far end would be metal by the antenna. The posts round them are 6 mm across, so each
+  counterbore has a wall; they run into the shell's walls at the corners.
+- **The back panel's tab** goes into the end wall inside the lanyard's lug.
 - **The mark is big, at the antenna end,** engraved 0.5 mm, 17 mm across its dots. Its lower-left dot is
   RESET's hole, cut through over the switch. The script places the mark from RESET's position and stops
   if the dot isn't over it. The mark misses BOOT's pinhole by 1.1 mm and the LED's hole by 0.4 mm; the
@@ -91,12 +96,17 @@ Everything else is the same:
   parts. The band to its left holds U6, U7 (the port's ESD chips, 1.45 mm tall), R18 and R17. The
   first badge's rib ran across all of them, x 6–38, so its plate stood about 1.45 mm proud: run against
   rev B, the script finds it on U6 and U7.
-- **Ribs back the 0.8 mm board where it's pressed:** a rib in the tub under D0–D2, and one under BOOT
-  and RESET. They come up to 0.1 mm under the board's back and miss its test pads.
+- **The switches are as measured:** 5.5 mm from the board's back to a switch's top, 5.1–5.2 pressed.
+  Less the 0.8 mm board, that is 4.7 mm over its front, not the datasheet's 3.8. The caps sit on that
+  and travel about 0.35 mm. Their flanges sit in pockets in the face's underside, so the face is
+  3.2 mm thick over the glass. The window's edge is chamfered 1.5 mm, not 0.8, to keep the screen in
+  view.
+- **Four screws in the face,** one by each corner of the board. The back panel's top edge has its tab
+  into the top wall, right of the key port's opening.
+- **Ribs back the 0.8 mm board where it's pressed:** a rib on the back panel under D0–D2, and one under
+  BOOT and RESET. They come up to 0.1 mm under the board's back and miss its test pads.
 - **A hole over D4,** the key port's LED, at the left edge by D0. It lights when the port powers a key.
-- **The mark and the name** are engraved under the screen. The plate over the key chip is solid.
-- **The caps sit in pockets in the plate's underside,** because these switches stand 3.8 mm, higher
-  than the glass. So the plate is 2.3 mm thick over the glass, not 1.8.
+- **The mark and the name** are engraved under the screen. The face over the key chip is solid.
 - **The dock** holds it leaning back 25°. The plug goes down into a slot in the lip, and the cable
   leaves at the front.
 
@@ -125,7 +135,7 @@ the makers' models.
 ## What the script checks, and what it doesn't
 
 When a case builds, the script checks that none of these overlap each other:
-- the printed parts: the tub and the plate, or the front shell and the back panel, and the caps
+- the printed parts: the front shell, the back panel and the caps
 - the board, each part's box, the glass and its ribbon fold, the module
 - a USB-C plug pushed fully home: 12.4 × 5.5 mm overmold, the handheld's measured cable
 - on the badge, the key port's plug and a key-c on it
@@ -136,12 +146,13 @@ It prints a line for each overlap and exits 1 if there is one; both cases build 
 chooses the screw: the longest in the bench's kit (4, 8, 12, 16 mm) that leaves at least 3 mm of
 thread in the post or boss, and stops short of the end of its hole.
 
-**It doesn't check fit against a real board.** Nothing here is measured. Before printing the big parts, measure
-these and change the numbers in the scripts:
+**It doesn't check fit against a real board.** One thing is measured: the badge's switches. Before printing
+the big parts, measure the rest and change the numbers in the scripts:
 - **the panel:** the glass's thickness and the tape's (`glass_z`). The face's height follows them.
-- **the switches:** the stick's TS-1187A is taken as 1.5 mm tall, the badge's 4.5 × 4.5 tacts as
-  3.8 mm (`PACKAGES`). The caps sit on them. If a height is wrong, reprint the caps; on the badge,
-  the plate too.
+- **the stick's switches:** the TS-1187A is taken as 1.5 mm tall (`PACKAGES`). The caps sit on them. If
+  it is wrong, reprint the caps. The badge's are measured (`SWITCH_TOP` in `badge.py`, from the board's
+  back).
+- **the badge's board:** taken as rev B's 0.8 mm (`T`). The switches' height over the front follows it.
 - **the module, as soldered:** 3.1 mm (`WROOM`). The ribs under it follow it.
 - **your cable's overmold**, against the 13.2 × 6.2 mm opening (`USB_OPEN`).
 - **the badge's key port:** the plug's height, and a key-c on it, against the open corner (`PLUG`,
@@ -150,37 +161,29 @@ these and change the numbers in the scripts:
 ## Printing
 
 Every part prints without supports, judging by the shapes. They haven't been sliced.
-- **the stick's shell:** face down, as written. The USB-C opening's far side is a 13 mm bridge.
-- **the stick's back panel:** outside down, as written. The bosses, ribs and tab point up.
-- **the badge's tub:** on its back, as written. The opening over the USB-C is a short bridge.
-- **the badge's plate:** face down, as written. The posts, ribs and pockets point up.
+- **shell:** face down, as written. The USB-C opening's far side is a 13 mm bridge.
+- **back panel:** outside down, as written. The bosses, ribs and tab point up.
 - **caps:** flange down, one STL each, so each can be its own colour.
 - **dock:** on its base, as written.
 - PLA or PETG, 0.2 mm layers. The engraving is 0.5 mm deep.
 
-**The fit check:** print the badge's plate first and lay it on the board. The stick's face is part of
-its shell, so print the shell first and lay the board in it. Either way, check that:
+**The fit check:** print the shell first and lay the board in it, face down, with the caps in. Check that:
 - the posts land round the holes
 - the window frames the screen
-- the caps' holes sit over D0, D1 and D2
+- the caps' holes sit over D0, D1 and D2, and the board lies flat on the posts with the caps on its
+  switches
 
 ## Putting it together
 
-**The stick:**
+Both go together the same way:
 1. Lay the shell face down. Drop the caps in from behind, flange inside: red D0 at the top, white D1,
    green D2.
-2. Lay the board in face down, its USB-C to the opening, the glass on the window's lip.
-3. Put the back panel's tab into the slot in the far end wall, then lower the USB end onto the board.
-4. Hold the panel on, turn the stick face up, and put the M2 × 8 screws in through the face.
+2. Lay the board in face down, its USB-C to the opening, the glass on the window's lip. On the badge,
+   the key port's plug goes into the open corner.
+3. Put the back panel's tab into the slot in the end wall (the stick's right end, the badge's top),
+   then lower the other end onto the board.
+4. Hold the panel on, turn the case face up, and put the M2 × 8 screws in through the face.
 5. Turn each screw until it is snug, no tighter: it cuts its own thread in the panel's boss.
-6. Press each cap. It should click and come back.
-
-**The badge:**
-1. Drop the caps into the plate from behind, flange inside: red D0 at the top, white D1, green D2.
-2. Lay the board in the tub face up, its USB-C to the opening.
-3. Lay the plate on it, caps onto the switches.
-4. Hold the two together, turn them over, and put in the M2 × 8 screws.
-5. Turn each screw until it is snug, no tighter: it cuts its own thread in the post.
 6. Press each cap. It should click and come back.
 
 ## Run
