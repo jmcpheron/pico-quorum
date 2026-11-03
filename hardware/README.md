@@ -87,7 +87,10 @@ The parts of each are below.
 The inherited picowallet wiring (Pico + Waveshare LCD + ATECC608 + 18650) is in
 [`wiring/SOLDERING.md`](wiring/SOLDERING.md) and `tools/wiring`.
 
-**The enclosure** isn't designed yet. Its open questions (button layout, a flip cover or a guard
+**Cases for console-s3 and PicoQuorumKey rev A**, the stick and the badge, each with a dock, are in
+[`cad/consoles/`](../cad/consoles/README.md): first drafts, not printed.
+
+**The enclosure** for a finished console isn't designed yet. Its open questions (button layout, a flip cover or a guard
 over Sign, printed or aluminum, the faceplate name) are in the kickoff's
 [open decisions](../docs/KICKOFF.md#open-decisions).
 

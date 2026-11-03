@@ -49,6 +49,16 @@ DESIGNS = {
         scripts=["hardware/builds/feather-pigtail/case/case.py"],
         outputs=["hardware/builds/feather-pigtail/case/out/pigtail_*_v2*"],
         pages=["hardware/builds/feather-pigtail/README.md"]),
+    "stick": dict(
+        about="console-s3's case: the stick, its three caps and its dock",
+        scripts=["cad/consoles/stick.py"],
+        outputs=["cad/consoles/out/stick/*"],
+        pages=["cad/consoles/README.md"]),
+    "badge": dict(
+        about="PicoQuorumKey rev A's case: the badge, its three caps and its dock",
+        scripts=["cad/consoles/badge.py"],
+        outputs=["cad/consoles/out/badge/*"],
+        pages=["cad/consoles/README.md"]),
     "key-tray": dict(
         about="the snap-lid case for the ATECC608 breakout, v2 and v3",
         scripts=["cad/key/tray.py"],

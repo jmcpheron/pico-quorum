@@ -1,0 +1,82 @@
+"""console-s3's case: the stick. A bar the board's own size and shape, 75 x 27 x 12 mm: a tub, and a front
+plate set into it flush, the board clamped between them by two M2 screws from the back through its holes
+at the USB end. The plate's ribs hold the antenna end down onto two ribs in the tub under the module's
+shield, so no metal goes near the antenna. The plate has the window, caps on D0, D1 and D2 (Reject red,
+white, Sign green), pinholes for BOOT and RESET, a hole over the LED, and the mark at the antenna end.
+The USB-C is open at the left end; a lanyard lug at the right. A dock holds it leaning back on the desk,
+its cable out of the left side. (cad/consoles/README.md)
+
+Run: uv run --python 3.11 --with cadquery --with matplotlib --with pillow \\
+         python cad/consoles/stick.py [screen.png]
+(or tools/case build stick)
+
+Writes out/stick/: stick_tub.stl (on its back, as it prints), stick_plate.stl (face down), stick_cap_D0/D1/D2.stl
+(flange down), stick_dock.stl, stick_assembly.step, stick_front.png, stick_apart.png, stick_dock.png.
+
+The board's numbers are its generator's (hardware/console-s3/gen_console_s3.py) and the placement file JLCPCB
+built it from (console-s3/fab/cpl.csv), checked against each other. Not measured: the panel (glass, tape,
+where its active area sits), the switches' height, the module. A first draft to print and try.
+"""
+import importlib.util
+import os
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+import shell as S       # noqa: E402
+
+S3 = os.path.join(S.REPO, "hardware", "console-s3")
+_spec = importlib.util.spec_from_file_location("s3", os.path.join(S3, "gen_console_s3.py"))
+G = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(G)        # the board's generator; it writes nothing on import
+G.place_switches()
+FAB = os.path.join(S3, "console-s3", "fab")
+OUT = os.path.join(HERE, "out", "stick")
+SCREEN = os.path.join(S.REPO, "docs", "quorum-ui", "feather", "03-review-head.png")
+
+
+def board():
+    P = S.parts(os.path.join(FAB, "cpl.csv"), os.path.join(FAB, "bom.csv"))
+    for ref in ("SW1", "SW2", "SW3", "SW4", "SW5", "J1", "D1"):     # the fab file and the generator agree
+        gx, gy = G.PARTS[ref]["at"]
+        assert abs(P[ref]["x"] - gx) < 0.01 and abs(P[ref]["y"] - gy) < 0.01, ref
+    W, H, yc = G.W, G.H, G.YC
+    gx0, gy0, gx1, gy1 = G.GLASS
+    aw, ah = G.PANEL["active"]
+    # The active area: centred on the glass, as the board's own render draws it; ER-TFT1.14-2's drawing (as
+    # PicoQuorumKey reads it) has it 2.0 mm from the end away from the ribbon. The window shows either.
+    cx = (gx0 + gx1) / 2
+    active = (cx - aw / 2, yc - ah / 2, cx + aw / 2, yc + ah / 2)
+    over = (min(cx - aw / 2, gx0 + 2.0), yc - ah / 2, max(cx + aw / 2, gx0 + 2.0 + aw), yc + ah / 2)
+    mx, my = G.MOD_AT
+    module = (mx - G.MOD_L / 2, mx + G.MOD_L / 2, my - G.MOD_W / 2, my + G.MOD_W / 2)
+    return dict(
+        name="stick", title="The stick (console-s3)",
+        W=W, H=H, R=G.CORNER, T=1.6, holes=[xy for _, xy in G.HOLES], hole_d=2.2, parts=P,
+        glass=G.GLASS, glass_z=(G.PANEL["foam"], G.PANEL["foam"] + G.GLASS_T), active=active, window_over=over,
+        fold=(gx1, gx1 + G.FOLD_R, G.FOLD_Y[0], G.FOLD_Y[1]),
+        module=module, module_h=S.WROOM[2],
+        buttons=[("SW1", "D0"), ("SW2", "D1"), ("SW3", "D2")], pins=[("SW4", "BOOT"), ("SW5", "RESET")],
+        led="D1", usb="J1", usb_edge="left", dock_depth=38.0, dock_plug=0.0,
+        lug=("right", 6.0),
+        # two ribs under the module's shield (its first 19 mm from the pin end), the plate's rib on the antenna end's
+        # front, where the board has no copper and no parts (the keep-out, x 57.5 to the edge)
+        rest=[(41.5, 41.5 + S.REST_W, 4.0, H - 4.0), (54.0, 54.0 + S.REST_W, 4.0, H - 4.0)],
+        press=[(59.0, 63.0, 4.0, H - 4.0)],
+        face=[("mark", (60.7, yc + 0.4, 2.7))],
+        flip="x",                   # turned over about its length to read the back
+        back_text=[("PicoQuorum", (33.0, 9.2), (40.0, 6.0), "bold"), ("PicoQuorum.app", (33.0, 16.6), (28.0, 2.8), "regular")],
+        seen=("D1",),
+        views=dict(front=[("in the hand", 55, -72), ("the back: the name, the Source Location, two screws", -50, -120)],
+                   apart=[("apart: tub, screws, board, plate, caps", 28, -62)],
+                   dock=[("on its dock, the cable out of the left", 18, -62)]),
+    )
+
+
+def main():
+    bad, c = S.build(board(), OUT, sys.argv[1] if len(sys.argv) > 1 else SCREEN)
+    return bad
+
+
+if __name__ == "__main__":
+    sys.exit(main())
