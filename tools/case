@@ -59,6 +59,11 @@ DESIGNS = {
         scripts=["cad/consoles/badge.py"],
         outputs=["cad/consoles/out/badge/*"],
         pages=["cad/consoles/README.md"]),
+    "console-rp-mockup": dict(
+        about="console-rp as ordered, with its panel: one solid to print, 1:1 and 2x",
+        scripts=["hardware/console-rp/mockup/mockup.py"],
+        outputs=["hardware/console-rp/mockup/out/*"],
+        pages=["hardware/console-rp/mockup/README.md"]),
     "key-tray": dict(
         about="the snap-lid case for the ATECC608 breakout, v2 and v3",
         scripts=["cad/key/tray.py"],

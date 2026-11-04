@@ -10,7 +10,7 @@ needs is not written.*
 ![console-rp from above: a warning triangle and EXPERIMENTAL HARDWARE COSIGNER over the 1.14-inch screen at the top left, PicoQuorum console-rp under it, and D0, D1 and D2 in a row below that; the flash, the RP2350, the crystal, the CH343P, and the key chip with an 8-bit key pointing at it, to its right; the USB-C on the right edge, RESET and BOOTSEL at the bottom right, and the bench header's holes along the top](renders/console-rp-top.jpg)
 
 *KiCad's 3D render of the routed board. The panel is drawn as a box. More views are in
-[renders/](renders/).*
+[renders/](renders/). To hold one before the boards come, print [mockup/](mockup/README.md).*
 
 [console-usb](../console-usb/README.md) took the radio out of use on an ESP32-S3. This board takes
 it out of the chip: an **RP2350A** has none. The console talks to the world only through the USB-C
@@ -276,5 +276,7 @@ An outside review on 2026-10-29 found these, all left as they are for the first 
 - [ ] The relay: a Web Serial page in the app, a command-line tool, or both?
 - [ ] The 27 Ω pair: keep, or a Basic 22 Ω?
 - [ ] A case, and the Sign button's guard.
+  [mockup/](mockup/README.md) has the board with its panel as one solid to print, 1:1 and 2x, to
+  try one on.
 - [ ] picoquorum.dev, printed on the back, must lead to the site and the source before boards ship.
   Today the site is at picoquorum.app (`docs/CNAME`), and .dev doesn't reach it.
