@@ -81,6 +81,7 @@ def run():
             import keypick_s            # the owner's own key, on the customer's screens (no B+Y arm)
             chipapp.make_ui = lambda d, keys, sig, theme: keypick_s.UI(d, keys, sig, theme, provision.Ceremony(sig))
             chipapp.TITLE, chipapp.LABEL = "NEW KEY", "SET UP (make your key)"
+            chipapp.WELCOME = keypick_s.welcome
         chipapp.start()
     elif path == "claim":
         image.PRODUCTION = False        # as the ceremony: ALLOW_*, the arm and a hold

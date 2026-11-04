@@ -83,6 +83,32 @@ def rail(d, labels, hold=None, bg="surface"):
             U.txt(d, s, 1 + (RAIL - 2 - U.F.width(s, "sans12")) // 2, top + 14, "sans12", ink, fill)
 
 
+def welcome(d, frame):
+    """The dual image's first screen for a customer: the PicoQuorum mark, what happens next in
+    plain words, and a blockie that changes every frame, a picture of what's coming. Each one is
+    drawn from random bytes on this board, not a key: no key exists until Make."""
+    import os
+    from brand_ui import logo_mark
+    U.use("dark")
+    d.fill(U.c("bg"))
+    logo_mark(d, M + 10, 14, 1.0)
+    U.txt(d, "PicoQuorum", M + 25, 2, "bold18")
+    side = 72
+    bx, by = W - 5 - side, 32
+    seed = "0x" + hexlify(os.urandom(20)).decode()
+    U.rrect(d, bx - 3, by - 3, side + 6, side + 6, 6, "raised")
+    blockies.draw(d, seed, bx, by, side // 8)
+    cw = bx - 8 - M
+    y = 34
+    for line in ("Your key,", "made here."):
+        U.txt(d, U.fit(line, cw, "bold14"), M, y, "bold14")
+        y += 18
+    U.para(d, "Pick the one you like.", M, y + 4, cw, "sans12", "muted", "bg", 14, 112)
+    U.txt(d, U.fit("Press Start to begin", TW, "sans12"), M, 116, "sans12", "ok")
+    rail(d, (None, None, ("Start", "ok", "bg")))
+    d.show()
+
+
 def groups(a):
     """0x and 40 hex as lines of four-character groups that fit TW in mono13."""
     out, line = [], ""

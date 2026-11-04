@@ -715,6 +715,12 @@ def case_three():
     finally:
         quorum_cfg.CFG["brandKeys"] = {}
         plug(atecc_sim.chip())
+    import keypick_s
+    for f in range(3):
+        keypick_s.welcome(d, f)
+    fits("welcome", keypick_s.RAIL)
+    import chipapp
+    check(chipapp.WELCOME is None and not main_dual.__dict__.get("_q"), "the bench's banner unless the dual image sets WELCOME")
     quorum_ui.txt = real
     check(not bad, "every word fits 240x135, right of the rail%s" % ("" if not bad else ": %r" % bad[:4]))
 

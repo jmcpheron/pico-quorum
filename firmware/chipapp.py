@@ -21,6 +21,11 @@ sel = 0             # the knob's choice on the banner: 0 PROVISION, 1 the map
 # theme), and its banner.
 make_ui = None
 TITLE, LABEL = "CEREMONY IMAGE", "PROVISION (quorum v1)"
+# The dual image's own-key path on three buttons sets this: a customer's first screen, welcome(d,
+# frame), drawn again every ANIMATE ticks, in place of the bench's banner when a chip is in.
+WELCOME = None
+ANIMATE = 8                 # 8 ticks of 50 ms: a new frame every 0.4 s
+frame = 0
 STATE = {"factory": "FRESH: ready for PROVISION", "quorum-v1": "sealed or in progress: quorum v1",
          "quorum-v2": "branded or in progress: quorum v2", "quorum-v3": "branded or in progress: quorum v3",
          "quorum-tm1": "sealed: Trust M quorum-tm1", "quorum-tm1-open": "in progress: Trust M",
@@ -70,6 +75,8 @@ def serial_tail():
 
 
 def _banner(tail):
+    if WELCOME and chip:
+        return WELCOME(d, frame)
     import provision
     p = provision.palette(chip["theme"] if chip else "dark")
     d.fill(p["bg"])
@@ -144,7 +151,7 @@ def open_choice(what):
 
 
 def tick(t):
-    global _busy, ui, prov, sel
+    global _busy, ui, prov, sel, frame
     if _busy:
         return
     _busy = True
@@ -169,6 +176,11 @@ def tick(t):
                 if key in pressed:
                     open_choice(what)
                     break
+            else:
+                if WELCOME and chip:
+                    frame += 1
+                    if frame % ANIMATE == 0:
+                        banner()
         elif "A" in pressed:
             open_choice("prov")
         elif "X" in pressed and choices()[1:]:
