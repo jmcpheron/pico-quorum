@@ -16,8 +16,10 @@ const closure = (...mods) => [...new Set(mods.flatMap((m) => dependencies(m)))].
 // Apps and screens that can use the chip other than the console's one signature path.
 const NOT_IN_CONSOLE = ["chipcheck.py", "slots.py", "chipmap.py", "learn.py", "snakelab.py", "ceremony.py",
   "chipapp.py", "provision.py", "provision_tm.py", "main_ceremony.py", "brand.py", "main_brand.py",
-  "claim.py", "brand_ui.py", "setup_s.py"];
+  "claim.py", "brand_ui.py"];
 // qrcode.py is not on the list: it only turns text into a picture (the Wi-Fi setup screen, wifisetup.py).
+// Nor are ceremony_ui.py and setup_s.py, the ceremony's screen: they call no chip, and the console's
+// practice (practice.py) draws with them. The ceremony that writes (provision.py) stays out.
 // Signer and driver calls that change the chip. Only signer.py and the drivers may even name them
 // (atecc.py; trustm_q.py for the Trust M: trustm.py itself has none).
 const PERMANENT = /\.(genkey\w*|lock_\w+|provision\w*|write_config|restore_snapshot|write_note|write_data|write_otp|write_record\w*|gen_keypair|set_data|set_lifecycle|set_meta\w*)\(/;
@@ -52,6 +54,17 @@ const asserts = con.filter((f) => f.endsWith(".py") && !DRIVERS.includes(f))
   .flatMap((f) => src(f).split("\n").map((l, i) => [f, i, l])).filter(([, , l]) => /\bsig\.assertion\(/.test(l));
 check(asserts.length === 1 && asserts[0][0] === "quorum.py" && inSignIt(asserts[0][1]), "console: a passkey's assertion is asked for from quorum.sign_it only");
 check(!con.includes("passkey.py"), "console: no image carries the emulator's passkey module");
+// The practice ceremony (practice.py) reads the config zone and the serial, and asks nothing else of
+// the chip; its screen (ceremony_ui.py, setup_s.py) asks nothing of it at all.
+const code = (f) => src(f).split("\n").filter((l) => !/^\s*#/.test(l)).join("\n");
+const chipCalls = (f) => [...code(f).matchAll(/\b(?:sig|s|self\.sig|self\.chip|S|signer|atecc|trustm\w*)\.(\w+)\(/g)].map((m) => m[1])
+  .filter((c) => c !== "split");     // s.split(): a string
+check(chipCalls("practice.py").every((c) => ["config", "serial"].includes(c)), "console: the practice only reads the chip (config, serial)" +
+  (chipCalls("practice.py").every((c) => ["config", "serial"].includes(c)) ? "" : ` (calls ${chipCalls("practice.py")})`));
+check(["ceremony_ui.py", "setup_s.py"].every((f) => chipCalls(f).every((c) => ["arm", "armed", "gate"].includes(c))),
+  "console: the ceremony's screen calls no chip, only the signer's arm and gate");
+check(/\bdef arm\(self\):\s+self\.c\.arm\(\)/.test(src("practice.py")) && !/\bS\.arm\(|import signer/.test(code("practice.py")),
+  "console: the practice arms its own clock, never the signer's");
 check(!/\bsig\.use\(/.test(con.map((f) => (f.endsWith(".py") ? src(f) : "")).join("\n")), "console: nothing switches the active slot");
 
 // The USB link (usblink.py, docs/USB-LINK.md): in the console image, holding USB once the console

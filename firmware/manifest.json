@@ -1,6 +1,6 @@
 {
   "about": "Exactly what each firmware image puts on the board (tools/fw push). main is copied to :main.py. test-vectors/manifest.mjs checks that each list is the import closure of boot.py plus its main, that the console holds nothing else that can use the chip, and that no image carries secrets. preserve: files the board keeps across pushes (never copied, never deleted). flag: files a push asks about before deleting.",
-  "version": "2026.11.1",
+  "version": "2026.11.2",
   "images": {
     "console": {
       "main": "main_console.py",
@@ -9,7 +9,7 @@
                 "qf_bold26.bin", "qf_mono13.bin", "qf_monob28.bin", "qf_sans12.bin", "qf_sans14.bin", "qlog.py",
                 "quorum.py", "release.py", "quorum_cfg.py", "quorum_ui.py", "quorum_ui_s.py", "safe_tx.py", "signer.py", "splash.py", "theme.py",
                 "txservice.py", "vhttp.py", "watch.py", "webauthn.py", "wificfg.py", "wifisetup.py", "qrcode.py", "ca_amazon_root1.bin", "ca_amazon_root3.bin",
-                "ca_starfield_g2.bin", "tmcfg.py", "trustm.py", "trustm_q.py", "usblink.py"]
+                "ca_starfield_g2.bin", "tmcfg.py", "trustm.py", "trustm_q.py", "usblink.py", "ceremony_ui.py", "practice.py", "setup_s.py"]
     },
     "ceremony": {
       "main": "main_ceremony.py",
@@ -17,7 +17,7 @@
                 "fonts.py", "qf_bold14.bin", "qf_bold18.bin", "qf_bold26.bin", "qf_mono13.bin",
                 "qf_monob28.bin", "qf_sans12.bin", "qf_sans14.bin",
                 "keccak.py", "knob.py", "lcd.py", "learn.py", "main_ceremony.py", "net.py", "p256.py", "provision.py", "setup_s.py", "qrcode.py", "chips.py",
-                "quorum_cfg.py", "signer.py", "slots.py", "snakelab.py", "splash.py", "theme.py", "webauthn.py", "wificfg.py", "wifisetup.py", "provision_tm.py", "tmcfg.py", "trustm.py", "trustm_q.py", "usblink.py", "policy.py"]
+                "quorum_cfg.py", "signer.py", "slots.py", "snakelab.py", "splash.py", "theme.py", "webauthn.py", "wificfg.py", "wifisetup.py", "provision_tm.py", "tmcfg.py", "trustm.py", "trustm_q.py", "usblink.py", "policy.py", "ceremony_ui.py"]
     },
     "brand": {
       "main": "main_brand.py",
@@ -26,7 +26,7 @@
                 "learn.py", "main_brand.py", "claim.py", "net.py", "p256.py", "provision.py", "provision_tm.py", "setup_s.py", "qf_bold14.bin", "qf_bold18.bin", "qf_bold26.bin",
                 "qf_mono13.bin", "qf_monob28.bin", "qf_sans12.bin", "qf_sans14.bin", "qrcode.py", "quorum_cfg.py", "quorum_ui.py", "release.py",
                 "signer.py", "slots.py", "snakelab.py", "splash.py", "taglines.py", "theme.py", "tmcfg.py", "trustm.py", "trustm_q.py", "webauthn.py",
-                "wificfg.py", "wifisetup.py", "usblink.py", "policy.py"]
+                "wificfg.py", "wifisetup.py", "usblink.py", "policy.py", "ceremony_ui.py", "keypick_s.py"]
     },
     "dual": {
       "main": "main_dual.py",
@@ -37,7 +37,7 @@
                 "provision.py", "setup_s.py", "qf_bold14.bin", "qf_bold18.bin", "qf_bold26.bin", "qf_mono13.bin", "qf_monob28.bin",
                 "qf_sans12.bin", "qf_sans14.bin", "qlog.py", "qrcode.py", "quorum.py", "release.py", "quorum_cfg.py",
                 "quorum_ui.py", "quorum_ui_s.py", "safe_tx.py", "signer.py", "slots.py", "snakelab.py", "splash.py", "theme.py",
-                "txservice.py", "vhttp.py", "watch.py", "webauthn.py", "wificfg.py", "wifisetup.py", "provision_tm.py", "tmcfg.py", "trustm.py", "trustm_q.py", "usblink.py"]
+                "txservice.py", "vhttp.py", "watch.py", "webauthn.py", "wificfg.py", "wifisetup.py", "provision_tm.py", "tmcfg.py", "trustm.py", "trustm_q.py", "usblink.py", "ceremony_ui.py", "practice.py", "keypick_s.py"]
     }
   },
   "preserve": ["secrets.py", "secrets_*.py", "secrets.bak", "slot.txt", "snapshot-*.bin", "snapshot-tm-*.json", "counter-*.txt", "log.txt",

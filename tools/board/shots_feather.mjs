@@ -25,6 +25,7 @@ const shots = [];
 let railY = [];
 
 function shot(name, caption) {
+  name = String(shots.length + 1).padStart(2, "0") + "-" + name.replace(/^\d+-/, "");    // numbered in the order taken
   py(`import binascii\n_hex = binascii.hexlify(FULL).decode()`);
   const screen = scaleRGBA(frameToRGBA(Buffer.from(dev.mp.globals.get("_hex"), "hex")), W, H, S);
   const ow = EDGE + W * S, oh = H * S;
@@ -76,10 +77,16 @@ import json
 _y = json.dumps(list(board.RAIL_Y))
 draw()`);
 railY = JSON.parse(dev.mp.globals.get("_y"));
-shot("01-home", "Home: the queue. D1 moves down it, D2 opens the one in focus. Past the list, D1 reaches Owners and Device.");
-py(`Q.sel, Q.foot = 2, "device"\ndraw()`);
-shot("02-home-device", "D1 past the last row: the Owners and Device choices. D0 goes back onto the list.");
-py(`Q.sel, Q.foot = 0, None\nQ.open_entry(Q.queue[0])\ndraw()`);
+shot("01-home", "Home: four tabs, the Queue first. D0 moves to the next tab, D1 down the list and round (held: up), D2 does what the bar along the bottom says.");
+py(`Q.tab, Q.osel = 1, 1\ndraw()`);
+shot("02-home-owners", "The Owners tab: who can approve, each with a blockie. D2 shows the one in focus in full.");
+py(`Q.state, Q.who = "who", Q.owners()[1]\ndraw()`);
+shot("03-owner", "An owner in full, and its blockie. D0 back to the tab.");
+py(`Q.state, Q.tab = "home", 2\ndraw()`);
+shot("04-home-key", "The Key tab: this key's fingerprint and picture, and whether the Safe lists it. D2 shows its code.");
+py(`Q.tab, Q.dsel = 3, 0\ndraw()`);
+shot("05-home-device", "The Device tab: Chip, Wi-Fi, Practice and About, one row each.");
+py(`Q.tab, Q.sel = 0, 0\nQ.open_entry(Q.queue[0])\ndraw()`);
 shot("03-review-head", "A review opens on what it does. Rail: Reject (one press, any page), Next, and \"See 5\": D2 shows the next page not yet seen.");
 py(`page("item")\ndraw()`);
 shot("04-review-item", "The send: the amount, big.");
@@ -117,27 +124,23 @@ Q.unsent = (Q.queue[0], "0x00")
 draw()
 Q.unsent = None`);
 shot("17-result-unsent", "Signed but not sent: D2 sends it again, D0 goes back.");
-py(`Q.state, Q.opage = "owners", 0\ndraw()`);
-shot("18-owners", "Owners: who can approve, and each one's blockie. D0 back.");
-py(`Q.state, Q.dfoot = "device", "chip"\ndraw()`);
-shot("19-device", "Device: the chip, its slot and key, the pin, uses, memory. D1 moves along Chip, Wi-Fi, Back; D2 opens.");
-py(`Q.chip_back = "device"\nQ.open_chip()\ndraw()`);
+py(`Q.state = "device"\ndraw()`);
+shot("19-device", "Device tab, About: the chip, its slot and key, the pin, uses, memory. D0 back to the tab.");
+py(`Q.chip_back = "home"\nQ.open_chip()\ndraw()`);
 shot("20-chip", "The chip's own pages. D1 pages, D0 back.");
 py(`Q.state = "nochip"\ndraw()`);
 shot("21-nochip", "No chip on the bus: D2 checks again.");
 py(`Q.state, Q.pin_why, Q.EXPECT, Q.EXPECTS = "pinfail", "secrets.py has no QUORUM_EXPECT", None, []\ndraw()`);
 shot("22-pinfail", "A chip that isn't pinned: nothing will be signed until tools/fw pin adds it. D2 checks again.");
-py(`Q.state, Q.sel, Q.foot = "home", 0, "key"\ndraw()`);
-shot("23-home-key", "Past Owners and Device, D1 reaches Key: this key's QR code.");
-py(`Q.open_key("home")\ndraw()`);
-shot("24-key-code", "Key: the owner address as a QR code, beside its start, end and picture. A signer, not a wallet. D1 shows it in full, D0 goes back.");
+py(`Q.state, Q.sel, Q.tab = "home", 0, 2\nQ.open_key("home")\ndraw()`);
+shot("24-key-code", "Key: the app's set-up link (#/k/<compressed key>) as a QR code, beside the owner address's start, end and picture, to compare with the page the phone opens. A signer, not a wallet. D1 shows the address in full, D0 goes back.");
 py(`Q.kpage = 1\ndraw()`);
 shot("25-key-full", "The owner address in full, the key's fingerprint and use count.");
 py(`_owners, _queue = Q.owners, Q.queue
 Q.owners = lambda w=None: [T.OTHER]
-Q.queue, Q.state, Q.foot = [], "home", None
+Q.queue, Q.state, Q.tab = [], "home", 0
 draw()`);
-shot("26-home-not-owner", "A Safe that doesn't list this key yet: Not an owner yet, and where its code is.");
+shot("26-home-not-owner", "A Safe that doesn't list this key yet: Not an owner yet, and where its code is: the Key tab.");
 py(`Q.owners, Q.queue = _owners, _queue
 Q.state = "unconfigured"
 draw()`);
@@ -174,11 +177,13 @@ dev.dispose();
 const md = ["# The console on the Feather ESP32-S3 Reverse TFT", "",
   "Written by `node tools/board/shots_feather.mjs`: the real firmware on the emulator, 240 × 135, three",
   "buttons down the left edge (the grey dots: D0, D1, D2). The rail beside them says what each does here.", "",
-  "- **D0**: Reject on a review (one press, any page, even while Sign is held); Back anywhere else.",
-  "- **D1**: next page or row; held 1 s, the one before. On a review's first page, held: out without rejecting.",
-  "- **D2**: open; on a review, the next page not yet seen, then Sign: held 2 s, 3 s when a page is red.", "",
+  "- **D0**: on home, the next tab (Queue, Owners, Key, Device); Reject on a review (one press, any page, even while Sign is held); Back anywhere else.",
+  "- **D1**: next page or row, round from the last to the first; held 1 s, the one before. On a review's first page, held: out without rejecting.",
+  "- **D2**: what the bar along the bottom says; on a review, the next page not yet seen, then Sign: held 2 s, 3 s when a page is red.", "",
+  "Each button works the strip level with it: D0 the tabs along the top, D1 the list, D2 the bar. The rail's icons:",
+  "→ next tab, ‹ back, ⌄ next, ● open or OK, ✕ reject, ✓ sign.", "",
   "Every address on a review, and every owner, has its blockie: the picture Safe{Wallet} and Etherscan draw for it.",
-  "Key shows the key's owner address as a QR code (docs/ONBOARDING.md). The status home and the claim on three buttons come next.", ""];
+  "The Key tab shows the app's set-up link for the key as a QR code (docs/ONBOARDING.md).", ""];
 for (const [n, c] of shots) md.push(`### ${n.replace(/^\d+-/, "").replace(/-/g, " ")}`, "", c, "", `![${n}](${n}.png)`, "");
 writeFileSync(join(out, "README.md"), md.join("\n"));
 console.log(`${shots.length} shots in ${out}`);

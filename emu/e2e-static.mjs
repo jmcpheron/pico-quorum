@@ -167,8 +167,11 @@ await three.waitForTimeout(3000);                // past the splash
 if (process.env.SHOTS) await three.locator(".device").screenshot({ path: join(process.env.SHOTS, "console-three.png") });
 const shot3 = () => three.evaluate(() => document.querySelector("#screen").toDataURL());
 const changes3 = async (act) => { const b = await shot3(); await act(); for (let i = 0; i < 20; i++) { await three.waitForTimeout(150); if ((await shot3()) !== b) return true; } return false; };
-check(await changes3(async () => { const b = three.locator('[data-key="D1"]'); await b.dispatchEvent("pointerdown"); await three.waitForTimeout(150); await b.dispatchEvent("pointerup"); }),
-  "its D1 button reaches the firmware: the focus moves");
+const press3 = async (k) => { const b = three.locator(`[data-key="${k}"]`); await b.dispatchEvent("pointerdown"); await three.waitForTimeout(150); await b.dispatchEvent("pointerup"); };
+check(await changes3(() => press3("D0")), "its D0 button reaches the firmware: the next tab");
+let d1 = false;      // offline, only the Device tab has rows to move along: D0 on to it, trying D1 on each tab
+for (let i = 0; i < 5 && !d1; i++) if (!(d1 = await changes3(() => press3("D1")))) { await press3("D0"); await three.waitForTimeout(400); }
+check(d1, "its D1 button too: the next row (on the Device tab)");
 check(await changes3(async () => { await three.keyboard.down("2"); await three.waitForTimeout(150); await three.keyboard.up("2"); }), "and so does the keyboard's 2");
 await ctx2.close();
 

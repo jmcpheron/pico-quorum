@@ -16,6 +16,7 @@ import {
   CFG, CHAINS, GS, SAFE_ABI, SIGNER_ABI, Service, chainById, checkTx, client, consoleRefuses, dataBytes, eth, execCall, knownName, outcome,
   ownerKind, readSafe, reason, safeTxHash, verifyCode,
 } from "./safe.mjs";
+import { NEW_SAFE, checkNew, createCall, predict } from "./newsafe.mjs";
 import { wallet } from "./wallet.mjs";
 import { isApproved } from "../../tools/mock-tx-service/release.mjs";
 import { p256Owner } from "../../tools/mock-tx-service/sigs.mjs";
@@ -972,17 +973,18 @@ function keySetupView(compressed) {
     h("section", { class: "hero" },
       h("div", { class: "safe-title" }, ident(owner, 56), h("div", {}, h("h1", { text: mine ? "Your passkey" : known || "A PicoQuorum key" }),
         h("div", { class: "chips" }, mine ? badge("ok", "Your passkey") : null, badge("muted", `key ${k.x.slice(0, 8)}`)))),
-      h("p", { class: "lede", text: "Set it up as an owner of a Safe: compare its address with the console's, deploy its signer, then propose adding it." }),
+      h("p", { class: "lede", text: "Set it up as an owner of a Safe: compare its address with the console's, then make a new Safe with it, or deploy its signer and add it to one you have." }),
       h("p", { class: "muted", text: "Its owner address is a signer contract, not a wallet. Never send funds to it." })),
     h("section", { class: "card" }, h("h2", { text: "1. Compare" }),
       h("p", { class: "inline-ident" }, "Its owner address, the same on every chain: ", ident(owner, 20), h("code", { class: "mono", text: owner }), " ", copyButton(owner)),
       h("p", { class: "small muted" }, "Check that the console shows this picture and address. It's worked out here from the key and Safe's passkey factory, and each chain's factory must name the same address before Deploy sends anything."),
       registryNames[owner.toLowerCase()] ? h("p", { class: "small" }, h("a", { href: `#/key/${owner}`, text: "In the registry: see its checks" })) : null),
-    h("section", { class: "card" }, h("h2", { text: "2. Deploy its signer" }),
+    newSafeCard(k, owner),
+    h("section", { class: "card" }, h("h2", { text: "3. Or, for a Safe you have: deploy its signer" }),
       h("p", { class: "muted" }, "Once on each chain you use. Any wallet can send it: yours needn't own the Safe, and it moves no funds; it pays the gas (about 110k). No wallet here? ",
         shareButton(setupLink(c), "Share this link", "Set up a PicoQuorum key"), " and open it where MetaMask or Rabby is."),
       deploy),
-    h("section", { class: "card" }, h("h2", { text: "3. Add it to a Safe" }),
+    h("section", { class: "card" }, h("h2", { text: "4. Then add it to that Safe" }),
       h("p", { class: "muted", text: "Propose adding it as an owner. The Safe's owners approve that as any transaction; keep the threshold at 2 or more." }),
       safes.length
         ? h("ul", { class: "add-to" }, ...safes.map((s) => h("li", {},
@@ -994,6 +996,71 @@ function keySetupView(compressed) {
         h("p", { class: "muted" }, "Sent to the factory as createSigner(x, y, ", h("code", { class: "mono", text: CFG.signer.verifiers }), ") at ",
           h("code", { class: "mono", text: CFG.signer.factory }), "."))));
   deployRows(deploy, { qx: BigInt("0x" + k.x), qy: BigInt("0x" + k.y) }, owner);
+}
+
+// 2. A new Safe (src/newsafe.mjs): this wallet and the key, 2 of 2, the key's signer deployed and a
+// 7-day recovery to an address that isn't an owner, in one transaction from the wallet. The chain
+// is read back afterwards, and the Safe saved only if every check passes.
+function newSafeCard(k, owner) {
+  const qx = BigInt("0x" + k.x), qy = BigInt("0x" + k.y);
+  const nets = Object.entries(CHAINS);
+  const chainSel = h("select", { id: "new-chain", "aria-label": "Network" },
+    ...nets.map(([n, c]) => h("option", { value: n, text: c.test ? `${c.name} (test)` : c.name })));
+  const here = chainById(wallet.chainId);
+  chainSel.value = here && CHAINS[here] ? here : "basesep";
+  const back = h("input", { id: "recovery", type: "text", class: "mono-in", placeholder: "0x…", autocomplete: "off", spellcheck: "false" });
+  const go = h("button", { class: "btn go", type: "button", text: "Make the Safe" });
+  const log = steps();
+  // A phone's camera opens this page in the browser, which has no wallet: open it in the wallet's own.
+  const href = location.href;
+  const noWallet = !wallet.available().length ? h("p", { class: "small" }, "No wallet in this browser. Open this page in your wallet's: ",
+    h("a", { href: `https://metamask.app.link/dapp/${href.replace(/^https?:\/\//, "")}`, text: "MetaMask" }), " · ",
+    h("a", { href: `https://go.cb-w.com/dapp?cb_url=${encodeURIComponent(href)}`, text: "Coinbase Wallet" }), " · or ",
+    shareButton(href, "copy the link", "Set up a PicoQuorum key"), " into its browser.") : null;
+  go.onclick = async () => {
+    go.disabled = true;
+    fill(log.el);
+    try {
+      const name = chainSel.value, c = CHAINS[name], pub = pubFor(name);
+      const guardian = back.value.trim();
+      if (!isAddress(guardian, { strict: false })) throw new Error("The recovery address should be a whole 0x address.");
+      if (!wallet.account) await connect();
+      await wallet.ensureChain(c, rpcFor(name));
+      const me = getAddress(wallet.account), g = getAddress(guardian);
+      if (g === me || g === owner) throw new Error("The recovery address can't be an owner: not this wallet, not the key. A second account in your wallet will do.");
+      const got = getAddress(await pub.readContract({ address: CFG.signer.factory, abi: SIGNER_ABI, functionName: "getSigner", args: [qx, qy, BigInt(CFG.signer.verifiers)] }));
+      if (got !== owner) throw new Error(`${c.name}'s factory says ${got}, not ${owner}. Stop and find out why.`);
+      const safe = await predict(pub, me, owner, g, qx, qy);
+      log.add("ok", "The Safe will be ", h("code", { class: "mono", text: safe }), ` on ${c.name}`);
+      if (await pub.getCode({ address: safe })) log.add("ok", "It's there already: this wallet, key and recovery address made it before.");
+      else {
+        const s = log.run("Waiting for your wallet…");
+        const hash = await wallet.send(createCall(me, owner, g, qx, qy));
+        log.done(s, "Sent");
+        const s2 = log.run("Waiting for it to land…");
+        const rc = await pub.waitForTransactionReceipt({ hash });
+        if (rc.status !== "success") { log.done(s2, "It reverted. Nothing was made.", "bad"); go.disabled = false; return; }
+        log.done(s2, "Made");
+      }
+      const checks = await checkNew(pub, safe, me, owner, g);
+      for (const [ok, what] of checks) log.add(ok ? "ok" : "bad", what);
+      if (!checks.every(([ok]) => ok)) { log.add("bad", "That isn't the Safe this page meant to make. Don't use it; find out why."); return; }
+      saveSafe({ chain: name, address: safe, name: savedSafe({ chain: name, address: safe })?.name || "PicoQuorum Safe", threshold: 2, owners: [me, owner] });
+      log.add("ok", "Saved here. ", h("a", { href: `#/safe/${name}/${safe}`, text: "Open it" }), " · ",
+        h("a", { href: "#/device", text: "point the console at it" }), " · ", explorer(name, "address", safe));
+    } catch (e) { log.add("bad", said(e)); go.disabled = false; }
+  };
+  return h("section", { class: "card" }, h("h2", { text: "2. Make a new Safe with it" }),
+    h("p", { class: "muted" }, "One transaction from your wallet makes a Safe that needs both your wallet and this key for everything, deploys the key's signer, and turns on a ",
+      `${NEW_SAFE.days}-day recovery: if the console is lost, the recovery address can take the Safe back after ${NEW_SAFE.days} days. Your wallet and the key together can cancel it until then. Your wallet pays the gas (about 510k).`),
+    h("div", { class: "fields" },
+      h("label", { for: "new-chain", text: "Network" }), chainSel,
+      h("label", { for: "recovery", text: "Recovery address" }),
+      h("p", { class: "small muted hint", text: "Not an owner: a second account in your wallet, or another wallet you keep. Anyone holding it can take the Safe after a " + NEW_SAFE.days + "-day wait that the console doesn't show yet, so keep it as safe as your wallet." }),
+      back),
+    noWallet,
+    h("div", { class: "row" }, go),
+    log.el);
 }
 
 // ----------------------------------------------------------------------------- settings

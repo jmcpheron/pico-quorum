@@ -16,7 +16,7 @@ const STEP = 30;          // ms between frames: the pace draw() sees during the 
 const END = 4500;
 // Real boot status lines, changing at roughly the points the console's start() reaches them.
 const STATUS = [[0, 'screen: ok'], [400, 'chip: probing i2c...'], [700, 'chip: ATECC608 · 3f9a…c21 · pinned'],
-  [900, 'wifi: join emulator A skips'], [2600, 'wifi: 192.168.1.40'], [3000, 'app: safe svc api.safe.global'],
+  [900, 'wifi: join emulator any button skips'], [2600, 'wifi: 192.168.1.40'], [3000, 'app: safe svc api.safe.global'],
   [3400, 'app: Starting console']];
 
 const PANELS = [

@@ -142,7 +142,7 @@ keys = None
 sig = None          # the signer backend (the chip)
 svc = None          # txservice.Service
 timer = None
-state = "boot"      # boot | home | saver | review | hold | working | result | owners | device | recent | chip | key | nochip | pinfail | unconfigured | crashed
+state = "boot"      # boot | home | saver | review | hold | working | result | owners | device | recent | chip | key | who | nochip | pinfail | unconfigured | crashed | practice | ask
 qx = qy = ""
 me = ""             # this key's owner address, lowercase (see my_owner)
 ctx = None          # decode.context of the Safe in view: the pinned names plus "This key"
@@ -166,6 +166,7 @@ declined = set()    # safeTxHashes rejected on this console
 serial = ""         # the chip's serial number
 row = None          # the signing key's slot row, sig.key_row(): atecc.decode_slot's shape on either chip (None on a software key)
 profile = ""        # what the chip holds: quorum-v1, legacy-test, factory, unknown (chipcfg) / quorum-tm1, ... (tmcfg)
+facts = {}          # the chip as check_pin read it: model and locks, for the USB link's status (chip_facts)
 chip = None         # its entry in chips.json: name and theme (chips.py; cosmetic only)
 pin_ok = False      # the chip, slot and owner match QUORUM_EXPECT (always True on a dev board without one)
 pin_why = ""
@@ -176,8 +177,8 @@ sec = None          # the Trust M's security event counter when last read (None 
 chip_pages = []     # the Chip pages (sig.details), read off the chip when they are opened
 chip_page = 0
 opage = 0           # the Owners page in view: OWNERS_PER_PAGE owners a page, so a 3-of-5 or longer scrolls
-dfoot = "chip"      # knob, on the Device screen: "chip", "wifi" or "back"
-DFOOT = ("chip", "wifi", "back")
+dfoot = "chip"      # knob, on the Device screen: "chip", "wifi", "practice" or "back"
+DFOOT = ("chip", "wifi", "practice", "back")
 work_info = []      # short facts from the chip, shown under the Signing and Sending screens (sig.info)
 truncated = False   # the queue did not fit in memory: only the first few are shown
 fails = 0           # ticks in a row that raised
@@ -205,9 +206,19 @@ browse = None       # "list": the queue list opened from the status home (Y) whi
 chip_back = "device"    # where the Chip pages go back to
 key_back = "home"   # where the Key screen goes back to: home, or the unconfigured screen
 kpage = 0           # the Key screen: 0 its QR code, 1 its address in full
+prac = None         # the practice ceremony's screen (practice.py) while state is "practice"
+prac_back = "device"    # where it goes back to
 saver_card = 0      # the screensaver's card in view (an index into saver_cards())
 saver_t0 = 0        # when it came up
 rpage = 0           # the Recent screen's page
+# Home on three buttons: four tabs along the top (quorum_ui_s.draw_tabs). D0 is level with them and
+# moves to the next, D1 moves in the list below, D2 does what the bar along the bottom says.
+TABS = ("queue", "owners", "key", "device")
+DTAB = ("chip", "wifi", "practice", "about")     # the Device tab's rows; About is the Device screen
+tab = 0             # the tab in view (an index into TABS)
+osel = 0            # the Owners tab: the owner in focus
+dsel = 0            # the Device tab: the row in focus (DTAB)
+who = ""            # the owner the Owner screen (state "who") shows in full
 # An ask from the USB link (usblink.py): Wi-Fi, the Safes, or maintenance, on screen page by page.
 LINK_ASKS = ("wifi", "safes", "maint")
 ASK_FROM = ("home", "boot", "saver", "unconfigured", "nochip", "pinfail", "owners", "device", "recent", "key", "chip")
@@ -346,6 +357,22 @@ def open_key(back):
     state, key_back, kpage, dirty = "key", back, 0, True
 
 
+def open_practice(back):
+    """The ceremony as practice (practice.py): its screens, arm and holds, and nothing written."""
+    global state, prac, prac_back
+    import practice
+    prac = practice.ui(d, keys, sig, chip["theme"] if chip else "dark")
+    state, prac_back = "practice", back
+
+
+def practice_tick(pressed):
+    """A tick of the practice: every key goes to its screen, which keeps its own holds and arm."""
+    global state, prac, dirty
+    if prac.tick(pressed) == "back":
+        state, prac, dirty = prac_back, None, True
+        gc.collect()
+
+
 def open_safe(i):
     """A Safe row on the status home: its Owners screen."""
     global state, opage
@@ -475,13 +502,14 @@ def probe_chip():
 def check_pin():
     """Is the chip in the board the one QUORUM_EXPECT pins, with the key it pins? Reads the chip's
     own config zone, so it works on chip #1's test table and on quorum v1 alike."""
-    global serial, row, pin_ok, pin_why, profile, chip
-    serial, row, profile, chip = "", None, "", None
+    global serial, row, pin_ok, pin_why, profile, chip, facts
+    serial, row, profile, chip, facts = "", None, "", None, {}
     if S.is_chip(sig):
         try:
             serial = sig.serial()
             row = sig.key_row()
             profile = sig.profile()
+            facts = chip_facts()
         except Exception as e:
             pin_why = "chip: %r" % e
         chip, new = chips.seen(serial, profile or None, kind=sig.name)
@@ -499,6 +527,18 @@ def check_pin():
         pin_ok, pin_why = True, ""      # a development board without a pin signs as before
     qlog.write("pin %s: chip %s slot %d owner %s%s" % ("ok" if pin_ok else "FAIL", serial or sig.name, sig.slot, me or "none",
                                                      "" if pin_ok else " (%s)" % pin_why))
+
+
+def chip_facts():
+    """The chip's model and locks, for someone looking it over (the app's Device page). On an
+    ATECC608 one more read of its config zone; on the Trust M, the key slot's row only."""
+    out = {"model": "Trust M" if sig.name == "trustm" else sig.name, "keySealed": bool(row and row.get("locked"))}
+    if sig.name == "atecc608":
+        import chipcfg
+        cfg = sig.config()
+        rev = "".join("%02x" % b for b in cfg[4:8])
+        out.update(model=chipcfg.REVISIONS.get(rev, "ATECC rev " + rev), configLocked=cfg[87] == 0, dataLocked=cfg[86] == 0)
+    return out
 
 
 # ----------------------------------------------------------------------------- the counter
@@ -1239,9 +1279,14 @@ def handle(k):
             open_chip()
         elif k == REJECT:
             wifi_setup()
-        elif k in (BACK, "left", "X"):
+        elif k == "X":
+            open_practice("device")
+        elif k in (BACK, "left"):
             state = "home"
         dirty = True
+    elif state == "unconfigured":
+        if k == SIGN and not me:
+            open_practice("unconfigured")       # no key yet: the ceremony, as practice
     elif state == "chip":
         if k in (SIGN, "down", "right"):
             chip_page = (chip_page + 1) % len(chip_pages)
@@ -1374,9 +1419,14 @@ def knob(k):
                 open_chip()
             elif dfoot == "wifi":
                 wifi_setup()
+            elif dfoot == "practice":
+                open_practice("device")
             else:
                 state, dfoot = "home", "chip"
         dirty = True
+    elif state == "unconfigured":
+        if k == "press" and not me:
+            open_practice("unconfigured")
     elif state == "chip":
         if k == "down":
             chip_page = min(len(chip_pages) - 1, chip_page + 1)
@@ -1439,6 +1489,44 @@ def knob(k):
         dirty = True
 
 
+def tabs_key(k):
+    """A button on the three-button home, the tabs (TABS). Every list goes round."""
+    global tab, sel, osel, dsel, state, who, dirty, chip_back
+    t, step = TABS[tab], (1 if k == "D1" else -1)
+    own = owners()
+    if k == "D0":
+        tab = (tab + 1) % len(TABS)
+    elif k in ("D1", "D1L"):
+        if t == "queue" and queue:
+            sel = (sel + step) % len(queue)
+            focus_sel()
+        elif t == "owners" and own:
+            osel = (osel + step) % len(own)
+        elif t == "device":
+            dsel = (dsel + step) % len(DTAB)
+    elif k == "D2":
+        if t == "queue" and queue:
+            open_entry(queue[sel])
+        elif t == "owners" and own:
+            who, state = own[osel % len(own)], "who"
+        elif t == "key" and key_ready():
+            open_key("home")
+        elif t == "device":
+            row_ = DTAB[dsel]
+            if row_ == "chip":
+                chip_back = "home"
+                open_chip()
+            elif row_ == "wifi":
+                wifi_setup()
+            elif row_ == "practice":
+                open_practice("home")
+            else:
+                state = "device"
+    if outside:
+        outside_seen()
+    dirty = True
+
+
 def three(k):
     """One of the Feather's buttons: "D0", "D1", "D1L" (D1 held) or "D2", by state."""
     global state, dirty, browse, hfoot, foot, page, kpage
@@ -1467,6 +1555,8 @@ def three(k):
     elif state == "unconfigured":
         if k == "D2" and key_ready():
             open_key("unconfigured")    # a console being set up: its key's code, for the person adding it
+        elif k == "D2" and not me:
+            open_practice("unconfigured")   # no key yet: the ceremony, as practice
     elif state == "key":
         if k == "D0":
             handle(BACK)
@@ -1481,21 +1571,15 @@ def three(k):
         elif k == "D0":
             handle(BACK)
     elif state in ("home", "boot"):
+        tabs_key(k)
+    elif state in ("device", "who"):
         if k == "D0":
-            if hfoot is not None or foot is not None:
-                hfoot = foot = None
-            elif browse:
-                browse = None
-            dirty = True
-        elif k in ("D1", "D1L", "D2"):
-            knob({"D1": "down", "D1L": "up", "D2": "press"}[k])
-    elif state in ("device", "chip", "owners", "recent"):
+            state, dirty = "home", True     # back to the tab it came from
+    elif state in ("chip", "owners", "recent"):
         if k == "D0":
             handle(BACK)
         elif k in ("D1", "D1L"):
             knob("down" if k == "D1" else "up")
-        elif k == "D2" and state == "device":
-            knob("press")
 
 
 def turned(k):
@@ -1553,6 +1637,15 @@ def compressed():
     return (("02" if int(qy, 16) % 2 == 0 else "03") + qx[2:]) if qx else ""
 
 
+SETUP = "https://picoquorum.app/app/#/k/"   # the app's set-up page (docs/ONBOARDING.md, The QR code)
+
+
+def setup_link():
+    """The Key screen's QR code: the app's set-up page for this key, 97 characters, public values
+    only. The page works the owner address out again, deploys its signer and makes or joins a Safe."""
+    return SETUP + compressed() if qx else ""
+
+
 def link_status():
     """usblink's status: only what the console already knows. Never a Wi-Fi password or the API
     key, and nothing read off the chip for the asking."""
@@ -1565,7 +1658,7 @@ def link_status():
                     "nonce": info.get("nonce"), "isOwner": (bool(me) and me in owners(w)) if info else None,
                     "queued": n, "waiting": mine})
     return {"mode": "console", "name": NAME, "state": state, "ready": readiness(), "serial": serial, "profile": profile,
-            "owner": me, "key": compressed(), "pinned": bool(EXPECT) and pin_ok, "pinWhy": pin_why, "counter": counter,
+            "chip": facts, "owner": me, "key": compressed(), "pinned": bool(EXPECT) and pin_ok, "pinWhy": pin_why, "counter": counter,
             "wifi": {"up": net.up, "ssid": net.ssid() if net.up else "", "saved": [x[0] for x in net.networks()]},
             "safes": out, "safesFrom": "" if UNCONFIGURED else SAFES_FROM, "ask": ask["kind"] if ask else None,
             "watchdog": watch.running(), "image": image.IMAGE, "version": image.VERSION}
@@ -1736,6 +1829,9 @@ def tick(t):
             if polled:
                 pressed = backlog(pressed)
         pressed = saver_tick(time.ticks_ms(), pressed)
+        if state == "practice":
+            practice_tick(pressed)
+            pressed = []
         for k in pressed:
             if state == "ask":
                 ask_key(k)
@@ -1769,7 +1865,10 @@ def tick(t):
         led_tick()
         if svc and svc.lost and state in ("home", "saver"):
             restart_for_memory()
-        if dirty or dirty_rows:
+        if state == "practice":
+            dirty, dirty_rows = False, None
+            prac.draw()                 # its own dirty flag, through d.frames
+        elif dirty or dirty_rows:
             rows = None if dirty else dirty_rows
             dirty, dirty_rows = False, None
             if state == "boot" and splash_until:
@@ -1888,7 +1987,7 @@ def start():
     w = network.WLAN(network.STA_IF)
     if net.networks() and not w.isconnected() and not net.tried:
         try:
-            skip = " press skips" if KNOB else " A skips"
+            skip = " press skips" if KNOB else " any button skips"
             net.connect(progress=lambda ms: splash.spin("wifi", ("join " + net.ssid())[:12] + skip) or bool(keys.pressed()))
         except Exception as e:
             print("wifi:", e)

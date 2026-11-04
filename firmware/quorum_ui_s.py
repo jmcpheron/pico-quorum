@@ -9,15 +9,17 @@
 # while the knob is on them; SIGN is green only once every page has been seen.
 #
 # The Feather (240x135, lcd.THREE) has no footer and no knob: a strip down the left edge, the rail,
-# names what each of its three buttons does on this screen, level with the button (board.RAIL_Y).
-# On a review: Reject, Next, and Sign, which fills the strip while it is held.
+# names what each of its three buttons does on this screen, level with the button (board.RAIL_Y):
+# an icon over a word. On a review: Reject, Next, and Sign, which fills the strip while it is held.
+# Home is four tabs (draw_tabs), each button working the strip level with it: D0 the tabs along the
+# top, D1 the list in the middle, D2 the bar along the bottom, which says what it does.
 import time
 import board
 import lcd as L
 import fonts as F
 import blockies
 import quorum_ui as B
-from quorum_ui import c, txt, txt_r, fit, para, rrect, pill, mark, warn_sign, logo, ident, short, page_colors
+from quorum_ui import c, txt, txt_r, fit, para, rrect, pill, mark, warn_sign, logo, ident, short, page_colors, thick_line
 
 W, H = L.W, L.H
 RAIL = 36 if L.THREE else 0     # the Feather's rail; the screens start right of it
@@ -91,12 +93,43 @@ def footer_msg(d, q, bg="bg"):
 BACK = ("Back", "raised", "text")
 NEXT = ("Next", "raised", "text")
 OPEN = ("Open", "raised", "text")
+TAB = ("Tab", "raised", "text")
+# The rail's icon for each word: the dot is open or OK (a remote's middle button), the arrow the
+# next tab, the chevrons back and down.
+ICONS = {"Back": "back", "Next": "down", "Full": "down", "Open": "dot", "OK": "dot", "Code": "dot", "Check": "dot",
+         "Try": "dot", "Retry": "dot", "Hold": "dot", "Tab": "arrow", "Reject": "x", "No": "x", "Sign": "check",
+         "Save": "check", "Allow": "check"}
+
+
+def icon(d, kind, cx, cy, ink):
+    """A 9 px icon centred on (cx, cy)."""
+    col = c(ink)
+
+    def seg(x0, y0, x1, y1):
+        thick_line(d, x0, y0, x1, y1, ink, 2)
+    if kind == "back":
+        seg(cx + 2, cy - 4, cx - 2, cy); seg(cx - 2, cy, cx + 2, cy + 4)
+    elif kind == "down":
+        seg(cx - 4, cy - 2, cx, cy + 2); seg(cx, cy + 2, cx + 4, cy - 2)
+    elif kind == "x":
+        seg(cx - 3, cy - 3, cx + 3, cy + 3); seg(cx - 3, cy + 3, cx + 3, cy - 3)
+    elif kind == "check":
+        seg(cx - 4, cy, cx - 1, cy + 3); seg(cx - 1, cy + 3, cx + 4, cy - 3)
+    elif kind == "arrow":
+        d.fill_rect(cx - 6, cy - 1, 9, 2, col)
+        seg(cx + 1, cy - 4, cx + 5, cy); seg(cx + 5, cy, cx + 1, cy + 4)
+    elif kind == "dot":
+        d.ellipse(cx, cy, 4, 4, col, True)
+    elif kind == "eye":
+        d.ellipse(cx, cy, 6, 3, col)
+        d.ellipse(cx, cy, 1, 1, col, True)
 
 
 def rail(d, q, labels=(None, None, None), bg="bg", hold=None):
-    """The Feather: what D0, D1 and D2 do here, each label level with its button, and the last
-    message along the bottom. labels: three (text, fill, ink), or None where a button does nothing.
-    hold: (fraction, red) while Sign is held, the strip filling from the bottom."""
+    """The Feather: what D0, D1 and D2 do here, each label level with its button (an icon over a
+    word, ICONS), and the last message along the bottom. labels: three (text, fill, ink), or None
+    where a button does nothing. hold: (fraction, red) while Sign is held, the strip filling from
+    the bottom."""
     footer_msg(d, q, bg)
     d.fill_rect(0, 0, RAIL, H, c("surface"))
     if hold:
@@ -106,10 +139,14 @@ def rail(d, q, labels=(None, None, None), bg="bg", hold=None):
     for y, lab in zip(board.RAIL_Y, labels):
         if lab:
             s, fill, ink = lab
+            ic = "eye" if s.startswith("See ") else ICONS.get(s)
+            bh = 31 if ic else 16
             s = fit(s, RAIL - 2, "sans12")
-            top = max(0, min(H - 16, y - 8))
-            rrect(d, 1, top, RAIL - 2, 16, 7, fill)
-            txt(d, s, 1 + (RAIL - 2 - F.width(s, "sans12")) // 2, top, "sans12", ink, fill)
+            top = max(0, min(H - bh, y - bh // 2))
+            rrect(d, 1, top, RAIL - 2, bh, 6 if ic else 7, fill)
+            if ic:
+                icon(d, ic, RAIL // 2, top + 8, ink)
+            txt(d, s, 1 + (RAIL - 2 - F.width(s, "sans12")) // 2, top + (14 if ic else 0), "sans12", ink, fill)
 
 
 def footer_press(d, q, what, bg="bg"):
@@ -138,6 +175,8 @@ def choices(d, q, items, focus, bg="bg"):
 
 # ----------------------------------------------------------------------------- home
 def draw_home(q):
+    if L.THREE:
+        return draw_tabs(q)
     d = q.d
     d.fill(c("bg"))
     n_own, need = len(q.owners()), q.threshold()
@@ -194,6 +233,202 @@ def draw_home(q):
     choices(d, q, (("owners", "Owners"), ("device", "Device")) + ((("key", "Key"),) if L.THREE else ()), q.foot)
     if L.THREE:
         rail(d, q, (BACK if q.foot or q.browse else None, NEXT, OPEN if q.queue or q.foot else None))
+    d.show()
+
+
+# ----------------------------------------------------------------------------- home on three buttons
+TAB_NAMES = {"queue": "Queue", "owners": "Owners", "key": "Key", "device": "Device"}
+DEV_ROWS = {"chip": "Chip", "wifi": "Wi-Fi", "practice": "Practice", "about": "About"}
+
+
+def tab_strip(d, q):
+    """The tabs along the top, level with D0; the one in view lit. Queue says how many wait."""
+    d.fill_rect(X0 + 1, 0, W - X0 - 1, HEAD + 1, c("surface"))
+    todo = sum(1 for e in q.queue if q.waiting(e))
+    x = M - 3
+    for i, t in enumerate(q.TABS):
+        on = i == q.tab
+        name = TAB_NAMES[t] + (" %d" % todo if t == "queue" and todo else "")
+        w = F.width(name, "sans12") + 12
+        if on:
+            rrect(d, x, 1, w, 15, 7, "stake")
+        txt(d, name, x + 6, 0, "sans12", "bg" if on else ("warn" if t == "queue" and todo else "muted"),
+            "stake" if on else "surface")
+        x += w + 2
+
+
+def safe_line(d, q, left, ink, font="sans12"):
+    """Under the tabs: what this tab is about on the left, the Safe in view, its threshold and the
+    service's dot on the right."""
+    y = HEAD + 1
+    n_own = len(q.owners())
+    right = q.SAFE["name"] + (" %d/%d" % (q.threshold(), n_own) if n_own else "")
+    wl = F.width(left, font)
+    right = fit(right, R - M - wl - 20, "sans12")
+    txt_r(d, right, R, y + 1, "sans12", "muted")
+    d.ellipse(R - F.width(right, "sans12") - 7, y + 9, 3, 3, c("ok" if q.net_ok else "bad"), True)
+    txt(d, left, M, y + (0 if font == "bold14" else 1), font, ink)
+
+
+def row_box(d, y, on):
+    fill = "raised" if on else "surface"
+    rrect(d, X0 + 2, y, W - X0 - 4, 22, 4, fill)
+    return fill
+
+
+def rows(d, n, sel, y0, y1, draw_row):
+    """Rows of 24 px from y0, as many as fit above y1, scrolled to keep sel in view; a thin bar
+    on the right when they don't all fit."""
+    k = (y1 - y0) // 24
+    top = max(0, min(sel - k + 1, n - k)) if n > k else 0
+    y = y0
+    for i in range(top, min(n, top + k)):
+        draw_row(i, y, i == sel)
+        y += 24
+    if n > k:
+        h = y1 - y0
+        bh = max(8, h * k // n)
+        d.fill_rect(W - 2, y0, 2, h, c("surface"))
+        d.fill_rect(W - 2, y0 + (h - bh) * top // (n - k), 2, bh, c("muted"))
+
+
+def tx_row(d, q, e, y, on):
+    lvl = "red" if e["why"] else e["r"]["level"]
+    fill = row_box(d, y, on)
+    if lvl != "ok":
+        d.fill_rect(X0 + 2, y + 4, 3, 14, c("bad" if lvl == "red" else "warn"))
+    x = txt(d, "#%d" % e["n"], X0 + 8, y + 2, "mono13", "warn" if q.conflicts(e) else "faint", fill)
+    if q.signed_by_me(e):
+        st, sc = "done", "ok"
+    elif e["h"] in q.declined:
+        st, sc = "rej", "bad"
+    elif e["why"]:
+        st, sc = "\u2014", "bad"
+    else:
+        st, sc = "%d/%d" % (len(e["conf"]), q.threshold(e["w"])), "muted"
+    txt_r(d, st, R - 2, y + 3, "sans12", sc, fill)
+    xs = R - 2 - F.width(st, "sans12")
+    what = "Refused" if e["why"] else e["r"]["summary"]
+    f = "bold14" if on else "sans12"
+    txt(d, fit(what, xs - x - 10, f), x + 5, y + (1 if on else 3), f, {"red": "bad", "warn": "warn"}.get(lvl, "text"), fill)
+
+
+def bar(d, q, what):
+    """Along the bottom, level with D2: what it does here, after its dot."""
+    if not what or q.msg:
+        return
+    d.fill_rect(X0 + 1, H - 18, W - X0 - 1, 18, c("raised"))
+    icon(d, "dot", M + 2, H - 9, "text")
+    txt(d, fit(what, R - M - 12, "sans12"), M + 12, H - 17, "sans12", "text", "raised")
+
+
+def draw_tabs(q):
+    d = q.d
+    d.fill(c("bg"))
+    tab_strip(d, q)
+    t = q.TABS[q.tab]
+    y0, y1 = HEAD + 20, H - 18
+    what = None
+    if t == "queue":
+        ok = q.net_ok
+        todo = sum(1 for e in q.queue if q.waiting(e))
+        safe_line(d, q, ("WAITING \u00b7 %d" % todo) if todo else ("QUEUE" if ok else "OFFLINE"),
+                  "warn" if todo else ("muted" if ok else "bad"), "bold14" if todo else "sans12")
+        if not q.queue:
+            known = [w for w in q.WATCH if w["ok"] and q.owners(w)]
+            added = not known or any(q.me in q.owners(w) for w in known)
+            mark(d, ok and added, M + 13, y0 + 22, 10)
+            txt(d, ("Nothing to sign" if added else "Not an owner yet") if ok else "No service", M + 29, y0 + 10, "bold14")
+            if not ok:
+                txt(d, fit(q.net_err, TW, "sans12"), M, y0 + 36, "sans12", "muted")
+            elif not added:
+                txt(d, fit("Add this key to the Safe: the Key tab", TW, "sans12"), M, y0 + 36, "sans12", "muted")
+        else:
+            if q.outside:
+                rrect(d, X0 + 2, y1 - 22, W - X0 - 4, 22, 4, "warn_bg")
+                warn_sign(d, X0 + 12, y1 - 11, 7)
+                txt(d, fit("key used %d times elsewhere" % q.outside, TW - 24, "sans12"), X0 + 24, y1 - 19, "sans12", "warn_text", "warn_bg")
+                y1 -= 24
+            rows(d, len(q.queue), q.sel, y0, y1, lambda i, y, on: tx_row(d, q, q.queue[i], y, on))
+            e = q.queue[q.sel]
+            what = "Open #%d %s" % (e["n"], "Refused" if e["why"] else e["r"]["summary"])
+    elif t == "owners":
+        own = q.owners()
+        safe_line(d, q, "OWNERS", "muted")
+        sel = q.osel % len(own) if own else 0
+
+        def owner_row(i, y, on):
+            a = own[i]
+            fill = row_box(d, y, on)
+            blockies.draw(d, a.lower(), X0 + 6, y + 3, 2)
+            nm = ident(q, a)[0]
+            f = ("bold14" if on else "sans12") if nm else "mono13"
+            x = txt(d, fit(nm or short(a), TW - (60 if a == q.me else 30), f), X0 + 28, y + (1 if on and nm else 3), f,
+                    "text" if nm else "warn", fill)
+            if a == q.me:
+                pill(d, "you", x + 5, y + 3, "sans12", "stake", "bg")
+        rows(d, len(own), sel, y0, y1, owner_row)
+        if own:
+            nm = ident(q, own[sel])[0]
+            what = "Show %s in full" % (nm or short(own[sel]))
+        else:
+            txt(d, "Not read yet", M, y0 + 4, "sans12", "muted")
+    elif t == "key":
+        safe_line(d, q, "THIS KEY", "muted")
+        if q.me:
+            blockies.draw(d, q.me, M, y0 + 2, 6)
+            x = M + 56
+            txt(d, q.fingerprint() or "-", x, y0, "bold18")
+            owner = q.me in q.owners()
+            txt(d, fit("an owner" if owner else "not an owner yet", R - x, "sans12"), x, y0 + 24, "sans12",
+                "ok" if owner else "warn")
+            txt(d, q.me[:6] + "\u2026" + q.me[-4:], x, y0 + 40, "mono13", "stake")
+            if q.counter is not None:
+                txt(d, "use #%d" % q.counter, x, y0 + 58, "sans12", "faint")
+            if q.key_ready():
+                what = "Show its code, to add it to a Safe"
+        else:
+            txt(d, "No key", M, y0 + 4, "bold14")
+    else:
+        import image
+        safe_line(d, q, "DEVICE", "muted")
+        vals = {"chip": q.chip["name"] if q.chip else (q.serial[-8:] if q.serial else ""), "wifi": "",
+                "practice": "ceremony", "about": image.VERSION or image.BUILD}
+
+        def dev_row(i, y, on):
+            k = q.DTAB[i]
+            fill = row_box(d, y, on)
+            f = "bold14" if on else "sans12"
+            txt(d, DEV_ROWS[k], X0 + 8, y + (1 if on else 3), f, "text", fill)
+            if vals[k]:
+                txt_r(d, fit(vals[k], 90, "sans12"), R - 14, y + 3, "sans12", "muted", fill)
+            thick_line(d, R - 7, y + 7, R - 3, y + 11, "text" if on else "muted", 2)
+            thick_line(d, R - 3, y + 11, R - 7, y + 15, "text" if on else "muted", 2)
+        rows(d, len(q.DTAB), q.dsel, y0, y1, dev_row)
+        k = q.DTAB[q.dsel]
+        what = {"chip": "Open the chip's pages", "wifi": "Restart into Wi-Fi setup", "practice": "Practise the ceremony",
+                "about": "Open the device's facts"}[k]
+    bar(d, q, what)
+    rail(d, q, (TAB, NEXT if ((t == "queue" and len(q.queue) > 1) or (t == "owners" and len(q.owners()) > 1)
+                              or t == "device") else None, OPEN if what else None))
+    d.show()
+
+
+def draw_who(q):
+    """An owner from the Owners tab: who it is, the address in full and its picture."""
+    d = q.d
+    d.fill(c("bg"))
+    a = q.who
+    header(d, "Owner", "you" if a == q.me else "")
+    nm = ident(q, a)[0]
+    txt(d, fit(nm or "not in address book", TW, "bold14" if nm else "sans12"), M, HEAD + 3,
+        "bold14" if nm else "sans12", "text" if nm else "warn")
+    y = HEAD + 24
+    for line in addr_lines(a):
+        txt(d, line, M, y, "mono13", "stake")
+        y += 16
+    blockies.draw(d, a.lower(), R - 40, H - 44, 5)
+    rail(d, q, (BACK, None, None))
     d.show()
 
 
@@ -501,10 +736,9 @@ def draw_device(q):
         txt_r(d, fit(v, TW - 36, "sans12"), R, y, "sans12", "bad" if v == "FAIL" else "text")
         y += 15
     if L.THREE:
-        choices(d, q, (("chip", "Chip"), ("wifi", "Wi-Fi"), ("back", "Back")), q.dfoot)
-        rail(d, q, (BACK, NEXT, OPEN))
+        rail(d, q, (BACK, None, None))      # Chip, Wi-Fi and Practice are rows on the Device tab
     elif q.KNOB:
-        choices(d, q, (("chip", "Chip"), ("back", "Back")), q.dfoot)
+        choices(d, q, (("chip", "Chip"), ("practice", "Practice"), ("back", "Back")), q.dfoot)
     else:
         footer_press(d, q, "Back")
     d.show()
@@ -575,25 +809,28 @@ def draw_qr(d, text, x0, y0, size):
 
 
 def draw_key(q):
-    """The Feather's Key screen: this key's owner address, the address a Safe adds as an owner.
-    Page 0: its QR code (EIP-55, 29 modules at 4 px, 132 px with the margin) beside the short
-    address and its picture. Page 1: the address in full. D1 switches. It is a signer, not a
-    wallet, and the screen says so: a phone that reads the code may offer to send to it."""
+    """The Feather's Key screen. Page 0: the app's set-up link for this key as a QR code (97
+    characters, 37 modules at 3 px, 123 px with the margin) beside the short owner address and its
+    picture, to compare with the page the phone opens. Page 1: the owner address in full. D1
+    switches. The link holds only the public key; the owner address is a signer, not a wallet."""
     import txservice
     d = q.d
     d.fill(c("bg"))
     a = txservice.checksum(q.me)
     if q.kpage == 0:
-        n = qr_of(a)[0]
-        box = n * 4 + 16
-        draw_qr(d, a, W - box, (H - box) // 2, 4)
+        link = q.setup_link()
+        n = qr_of(link)[0]
+        box = n * 3 + 12
+        draw_qr(d, link, W - box, (H - box) // 2, 3)
         col = W - box - 4 - M
-        txt(d, fit("Your key", col, "bold14"), M, 0, "bold14")
-        txt(d, fit(q.me[:6], col, "mono13"), M, 20, "mono13", "muted")
-        txt(d, fit("\u2026" + q.me[-4:], col, "mono13"), M, 34, "mono13", "muted")
-        blockies.draw(d, q.me, M, 54, 3)
-        y = 84
-        for line in ("A signer,", "not a", "wallet."):
+        txt(d, fit("Set it up", col, "bold14"), M, 0, "bold14")
+        txt(d, fit("Scan with", col, "sans12"), M, 18, "sans12", "muted")
+        txt(d, fit("your phone", col, "sans12"), M, 31, "sans12", "muted")
+        blockies.draw(d, q.me, M, 50, 3)
+        txt(d, fit(q.me[:6], col, "mono13"), M + 30, 50, "mono13", "muted")
+        txt(d, fit("\u2026" + q.me[-4:], col, "mono13"), M + 30, 64, "mono13", "muted")
+        y = 86
+        for line in ("A signer,", "not a wallet."):
             txt(d, fit(line, col, "sans12"), M, y, "sans12", "warn")
             y += 14
         labels = (BACK, ("Full", "raised", "text"), None)
@@ -656,6 +893,10 @@ def draw_unconfigured(q):
         notice(q, True, "Your key is ready", ["Next, it is added to a Safe.",
                                               board.NAMES["D2"] + " shows its code, for the person setting it up.",
                                               "secrets.py: no QUORUM_SAFES yet"], None, "Code")
+    elif not q.me:
+        notice(q, False, "No key yet", ["The chip has no key. It is made in the ceremony, on a computer.",
+                                        board.NAMES["D2"] + ": practise it here. Nothing is written."],
+               "Practice", "Try")
     else:
         notice(q, False, "No Safe", ["secrets.py has no QUORUM_SAFES.", "docs/guide/SETUP.md"])
 
@@ -735,6 +976,8 @@ def draw(q):
         draw_owners(q)
     elif s == "key":
         draw_key(q)
+    elif s == "who":
+        draw_who(q)
     elif s == "working":
         draw_working(q, "Working", "")
     else:

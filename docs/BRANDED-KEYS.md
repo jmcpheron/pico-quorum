@@ -332,6 +332,17 @@ screen shows the release fingerprint, to compare with the README's build table.
 6. **U5 Your owner address**, with its blockie. The console pins the chip and restarts into the
    console.
 
+On three buttons (PicoQuorumKey, the Feather; `firmware/keypick_s.py`), U2-U4 are one flow for the
+owner. **Make** (D2, one press) shows the new key's owner address as a big blockie and its two ends.
+**New** (D0) makes another key, as many times as the owner likes; **Full** (D1) shows the whole
+address. **Keep** (D2) opens a red page: D2 held 3 s runs U3's test signatures and then U4's seal.
+There's no B+Y arm on this screen: one press for a key that can be made again, the held red page
+for the seal, and the screen arms the chip for that one call. `ALLOW_GENKEY` and `ALLOW_LOCK` still
+gate both. A new key costs nothing on counter 0: the public key is GenKey's own answer, checked by
+KeyValid (counts nothing) and then by U3's signatures, never read back (a read counts a use after
+the data lock). The brand image's spare runs its S1-S3 on the same screen.
+`test-vectors/brand_test.py` `case_three` walks it on the virtual chip.
+
 | Plug in | U1: the brand checks | U2: make your key |
 |---|---|---|
 | <img src="branded-keys/u0-welcome.png" width="240" alt="New key: the PicoQuorum mark, A PicoQuorum key, key 0042, batch 3. No key inside it yet: this console makes your key in the chip, in about a minute. A Start, Y Not now."> | <img src="branded-keys/u1-brand-ok.png" width="240" alt="Check the brand: Made by PicoQuorum. Signed by PicoQuorum key 0000, locked at the bench, never used, 0 signatures. Your label says 0042, with the brand picture. A It matches, Y It doesn't."> | <img src="branded-keys/u2-make-key.png" width="240" alt="Make your key: your key is made inside the chip. What this key is: signs your Safe's approvals; can't hold ETH, tokens or funds; can't be copied or read out. Armed, hold A for 3 s."> |

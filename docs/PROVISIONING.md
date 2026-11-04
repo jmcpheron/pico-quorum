@@ -13,6 +13,13 @@ of a Safe. The table lives in [`firmware/chipcfg.py`](../firmware/chipcfg.py). T
 writes and seals it lives in [`firmware/provision.py`](../firmware/provision.py) and runs from the
 ceremony image.
 
+To learn the steps first, the console has them as practice: **Device → Practice**, or **Try** on its
+*No key yet* screen ([`firmware/practice.py`](../firmware/practice.py), from 2026.11.2). The same ten
+screens, the arm and the holds, on the console's own buttons. C1 reads the config zone and says
+whether the chip is fresh; no step writes anything, and the arm is the practice's own, not the
+signer's. `test-vectors/console_test.py` (`case_practice`) checks with a spy on the virtual chip
+that it asks only Read and Info, and that the chip is the same after.
+
 ## Decisions (2026-09-25)
 
 - **No chip PIN.**

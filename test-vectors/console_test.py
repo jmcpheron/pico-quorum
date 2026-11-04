@@ -1246,28 +1246,39 @@ def case_three():
     Q.three("D1")
     check(Q.state == "review" and Q.page == 0, "D1 on the last page: round to the first")
 
-    Q.state, Q.sel, Q.foot = "home", 0, None
+    # Home: four tabs, D0 the next one, D1 the next row and round (held: up), D2 what the bar says
+    Q.state, Q.sel, Q.tab, Q.osel, Q.dsel = "home", 0, 0, 0, 0
     tick("D1")
-    check(Q.sel == 1, "home: D1 moves down the list (through tick)")
+    check(Q.sel == 1 and Q.tab == 0, "home: the Queue tab; D1 moves down it (through tick)")
     tick("D1")
-    tick("D1")
-    check(Q.foot == "device", "D1 past the list: the Owners and Device choices")
+    check(Q.sel == 0, "D1 on the last row: round to the first")
     tick("D1L")
+    check(Q.sel == 1, "D1 held: up, round to the last")
     tick("D2")
-    check(Q.state == "owners", "D1 held moves back; D2 opens Owners")
+    check(Q.state == "review" and Q.cur is Q.queue[1], "D2 on the Queue tab: the one in focus opens")
+    Q.three("D1L")
+    check(Q.state == "home" and Q.tab == 0, "out of it without rejecting: the Queue tab again")
     tick("D0")
-    check(Q.state == "home", "D0: back home")
-    Q.foot = "device"
+    check(Q.state == "home" and Q.tab == 1, "D0: the next tab, Owners")
+    tick("D1")
     tick("D2")
-    check(Q.state == "device", "D2 on Device opens it")
+    check(Q.state == "who" and Q.who == Q.owners()[1], "Owners: D1 then D2 shows that owner in full")
+    tick("D0")
+    check(Q.state == "home" and Q.tab == 1, "D0: back on the Owners tab")
+    tick("D0")
+    tick("D0")
+    check(Q.tab == 3, "D0, D0: Key, then Device")
     tick("D2")
-    check(Q.state == "chip", "Device: D2 on Chip opens the chip pages")
+    check(Q.state == "chip" and Q.chip_back == "home", "Device: D2 on Chip opens the chip pages")
+    tick("D0")
+    check(Q.state == "home" and Q.tab == 3, "D0: back on the Device tab")
+    for _ in range(3):
+        tick("D1")
+    tick("D2")
+    check(Q.state == "device", "Device: D1 three times, D2: About, the device's facts")
     tick("D0")
     tick("D0")
-    check(Q.state == "home", "D0, D0: back to Device, then home")
-    Q.foot = "device"
-    tick("D0")
-    check(Q.foot is None and Q.state == "home", "D0 on the choices: back onto the list")
+    check(Q.state == "home" and Q.tab == 0, "D0: back on the tab; D0 again: round to Queue")
     Q.open_entry(e)
     tick("D2")
     check(Q.state == "review" and 1 in Q.seen, "a review through tick: D2 shows the next page")
@@ -1300,8 +1311,19 @@ def case_three():
                 ok = False
                 print("      page %d: %r at (%d, %d) in %s" % (p + 1, s, x, y, f))
     check(ok, "every page of a review fits 240x135, and only the rail is drawn left of it")
-    Q.state = "home"
-    check([s for s, x, y, f in drawn() if x < rail] == ["Next", "Open"], "the rail on home: Next, Open")
+    Q.state, Q.tab = "home", 0
+    check([s for s, x, y, f in drawn() if x < rail] == ["Tab", "Next", "Open"], "the rail on home: Tab, Next, Open")
+    ok = True
+    for Q.tab in range(len(Q.TABS)):
+        t = drawn()
+        if not any(s.startswith("Queue") for s, x, y, f in t) or not any(s == "Device" for s, x, y, f in t):
+            ok = False
+        for s, x, y, f in t:
+            if y + fonts.height(f) > Q.L.H + 3 or x + fonts.width(s, f) > Q.L.W + 1 or (x < rail and s not in ("Tab", "Next", "Open")):
+                ok = False
+                print("      tab %s: %r at (%d, %d) in %s" % (Q.TABS[Q.tab], s, x, y, f))
+    Q.tab = 0
+    check(ok, "each tab fits 240x135, the tabs along its top, only the rail left of it")
     Q.state = "pinfail"
     t = [s for s, x, y, f in drawn() if x < rail]
     check(t == ["Check"], "the rail on Not pinned: Check (%r)" % t)
@@ -1314,26 +1336,27 @@ def case_three():
             print("      %s: %r" % (where, bad[:3]))
         return not bad
     import txservice
-    Q.state, Q.sel, Q.foot = "home", len(Q.queue) - 1, "device"
-    tick("D1")
-    check(Q.foot == "key", "home: D1 past Device reaches Key")
+    Q.state, Q.tab = "home", Q.TABS.index("key")
+    t = " ".join(s for s, x, y, f in drawn())
+    check(Q.fingerprint() in t and "an owner" in t, "the Key tab: this key's fingerprint, and that it is an owner")
     tick("D2")
     t = drawn()
-    check(Q.state == "key" and Q.kpage == 0 and Q.U._qr[0] == txservice.checksum(Q.me) and Q.U._qr[1] == 29,
-          "D2 on Key: the owner address, EIP-55, as a 29-module QR code")
-    check([s for s, x, y, f in t if x < rail] == ["Back", "Full"] and fits("key code"), "the code page: rail Back, Full; it fits")
+    link = "https://picoquorum.app/app/#/k/" + Q.compressed()
+    check(Q.state == "key" and Q.kpage == 0 and Q.U._qr[0] == link and len(link) == 97 and Q.U._qr[1] == 37
+          and Q.compressed()[2:] == Q.qx[2:] and int(Q.compressed()[:2]) == 2 + int(Q.qy, 16) % 2,
+          "D2 on Key: the app's set-up link (the compressed key), as a 37-module QR code")
+    t = " ".join(s for s, x, y, f in t)
+    check(Q.me[:6] in t and Q.me[-4:] in t and "not a wallet." in t, "beside it: the short owner address, and a signer, not a wallet")
+    check([s for s, x, y, f in drawn() if x < rail] == ["Back", "Full"] and fits("key code"), "the code page: rail Back, Full; it fits")
     tick("D1")
     t = " ".join(s for s, x, y, f in drawn())
     check(Q.kpage == 1 and Q.me[2:6] in t and "not a wallet" in t and fits("key full"),
           "D1: the address in full, and that it is a signer, not a wallet")
     tick("D0")
-    check(Q.state == "home", "D0 on Key: back home")
-    Q.foot = "key"
-    tick("D1L")
-    check(Q.foot == "device", "D1 held on Key: back to Device")
+    check(Q.state == "home" and Q.tab == Q.TABS.index("key"), "D0 on the code: back on the Key tab")
     owners, queue = Q.owners, Q.queue
     Q.owners = lambda w=None: [OTHER]
-    Q.queue, Q.foot = [], None
+    Q.queue, Q.tab = [], 0
     t = " ".join(s for s, x, y, f in drawn())
     Q.owners, Q.queue = owners, queue
     check("Not an owner yet" in t, "a Safe that doesn't list this key: Not an owner yet")
@@ -1561,6 +1584,22 @@ def case_link():
     check(not calls, "the link asked the chip nothing" + (": %s" % calls if calls else ""))
     Q.sig = real_sig
     usblink.send = real_send
+
+    # On the S3's own USB one long write loses its front (usblink.send): an answer goes out in
+    # writes of at most PIECE bytes, which together are the whole line.
+    pieces = []
+
+    class _Sys:
+        class stdout:
+            @staticmethod
+            def write(t):
+                pieces.append(t)
+    real_sys, usblink.sys = usblink.sys, _Sys
+    usblink.send({"id": 1, "ok": True, "pad": "x" * 600})
+    usblink.sys = real_sys
+    line = "".join(pieces)
+    check(len(pieces) > 9 and all(len(p) <= usblink.PIECE for p in pieces) and line.startswith('{"pq":1,') and line.endswith("\n")
+          and json.loads(line)["pad"] == "x" * 600, "a long answer goes out in writes of %d bytes at most, and is whole" % usblink.PIECE)
     import time
     usblink.time, usblink.host, usblink.open_ask = time, None, None
     for f in ("safes.json", "maint"):
@@ -1618,6 +1657,113 @@ def case_setup_link():
     wificfg.forget()
 
 
+def case_practice():
+    """The ceremony as practice (practice.py): from the unconfigured screen when the chip has no key,
+    and from Device. Its ten steps, the arm and the holds on this board's buttons, through the
+    console's own tick, and nothing written: a spy on the virtual chip sees only Read and Info, its
+    state is the same after, the signer's own arm stays off with ALLOW_* True, and a USB ask waits.
+    main() runs it on the Waveshare, main_three() on three buttons."""
+    import atecc_sim
+    three = THREE_BOARD[0] if LINK_THREE[0] else None
+    dial = three == "feather-knob"
+    atecc_sim.wipe("608c")
+    for f in os.listdir():
+        if f.startswith("snapshot-"):
+            os.remove(f)
+    Q = fresh(safe=False, expect=None, url=None, extra='BOARD = "%s"' % three if three else "")
+    if three:
+        DO, ARM, BACK = "D2", (("D0",) if dial else ("D0", "D1")), ("D1L" if dial else "D0")
+    else:
+        DO, ARM, BACK = "A", ("B", "Y"), "Y"
+    want = {"model": "ATECC608C", "keySealed": False, "configLocked": False, "dataLocked": False}
+    check(Q.state == "unconfigured" and not Q.me and Q.facts == want and Q.link_status()["chip"] == want,
+          "a factory 608C: unconfigured, no key, and the chip's model and locks in the link's status")
+
+    def tick(*pressed):
+        Q.keys.pressed = lambda: list(pressed)
+        Q._busy, Q.last_poll, Q.splash_until = False, Q.time.now, 0
+        Q.tick(None)
+
+    def hold(names, ms):
+        Q.keys.down = set(names)
+        for _ in range(ms // 100):
+            Q.time.now += 100
+            tick()
+        Q.keys.down = set()
+        tick()
+
+    c = atecc_sim.chip()
+    before = (bytes(c.cfg), dict(c.keys), list(c.counters), bytes(c.otp), sorted(c.data))
+    ops = []
+    real = atecc_sim.Chip.execute
+
+    def spy(self, op, p1, p2, data):
+        ops.append(op)
+        return real(self, op, p1, p2, data)
+    atecc_sim.Chip.execute = spy
+    drawn = []
+    real_text = Q.d.text
+
+    def text(t, x, y, col):
+        drawn.append(t)
+        return real_text(t, x, y, col)
+    Q.d.text = text
+    try:
+        tick(DO)
+        check(Q.state == "practice" and Q.prac_back == "unconfigured", "no key: %s opens the practice" % DO)
+        import practice, ceremony_ui
+        mods = [practice, ceremony_ui]
+        if three:
+            import setup_s
+            mods.append(setup_s)
+        for m in mods:
+            m.time = Q.time
+        P = Q.prac
+        tick()
+        check(any("Practice: writes nothing" in t for t in drawn), "every step says: practice, writes nothing")
+        seen = []
+        for st in ("C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9", "C10"):
+            if st == "C3":
+                hold([DO], 3500)
+                check(P.c.step() == "C3" and P.result is None, "C3 not armed: %s held does nothing" % DO)
+                hold(ARM, 3200)
+                check(P.armed() >= 55 and Q.S.armed() == 0, "the arm (%s 3 s): the practice's own clock; the signer's stays off" % "+".join(ARM))
+            if st in ("C3", "C4", "C6", "C9"):
+                hold([DO], 3100)
+            else:
+                tick(DO)
+            seen.append(P.result[:2] if P.result else (P.c.step(), None))
+            tick(DO)
+            tick()
+        check(seen == [(s, True) for s in ("C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9", "C10")],
+              "C1-C10 walked, each with its own result (%s)" % seen)
+        tick(BACK)
+        check(Q.state == "unconfigured" and Q.prac is None, "back: where it came from")
+        if three:
+            Q.state, Q.tab, Q.dsel = "home", Q.TABS.index("device"), 0
+            tick("D1")
+            tick("D1")
+        else:
+            Q.state, Q.dfoot = "device", "chip"
+        tick("D2" if three else "X")
+        back = "home" if three else "device"
+        check(Q.state == "practice" and Q.prac_back == back,
+              "%s: %s opens the practice" % ("the Device tab" if three else "Device", "D1 D1 D2" if three else "X"))
+        check(Q.link_ask("wifi", {"ssid": "x", "pass": ""}) and Q.incoming is None, "a USB ask waits while it is open")
+        tick(BACK)
+        check(Q.state == back, "back: " + ("the Device tab" if three else "Device"))
+    finally:
+        atecc_sim.Chip.execute = real
+        Q.d.text = real_text
+    c = atecc_sim.chip()
+    check(ops and all(op in (atecc_sim.OP_READ, atecc_sim.OP_INFO) for op in ops),
+          "the chip was asked only Read and Info (%d commands)" % len(ops))
+    check((bytes(c.cfg), dict(c.keys), list(c.counters), bytes(c.otp), sorted(c.data)) == before
+          and not any(f.startswith("snapshot-") for f in os.listdir()),
+          "the chip is as it was: config, keys, counters, OTP and data; no snapshot saved")
+    check(Q.S.armed() == 0 and Q.S._armed_until is None, "the signer was never armed")
+
+
 LINK_THREE = [False]
 THREE_BOARD = ["feather-s3"]
 
@@ -1644,6 +1790,13 @@ def main_three(board="feather-s3"):
         failed[0] += 1
         print("FAIL  case_link raised")
         sys.print_exception(e)
+    print("-- practice, " + board)
+    try:
+        case_practice()
+    except Exception as e:
+        failed[0] += 1
+        print("FAIL  case_practice raised")
+        sys.print_exception(e)
     LINK_THREE[0] = False
     print("%s: %d failed" % (board, failed[0]))
     return failed[0]
@@ -1658,7 +1811,7 @@ def main_knob():
 
 
 def main():
-    for case in (case_pin, case_owners_pages, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_safes, case_watchdog, case_home, case_saver, case_release, case_passkey, case_release_approval, case_knob, case_link, case_setup_link):
+    for case in (case_pin, case_owners_pages, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_safes, case_watchdog, case_home, case_saver, case_release, case_passkey, case_release_approval, case_knob, case_link, case_setup_link, case_practice):
         print("--", case.__name__[5:])
         try:
             case()

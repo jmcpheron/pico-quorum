@@ -139,6 +139,7 @@ Chip terms and file names move to the Device screen. Drafts for the Feather:
 |---|---|---|
 | No Wi-Fi saved | Wi-Fi setup, QR | as today (on the Feather, its fixed hotspot isn't checked on the board yet) |
 | No key in | "No chip" | **Plug in your key** · the slot it goes in · D2 Check again |
+| A chip with no key yet | **built:** "No key yet" · D2 Try: the ceremony as practice, nothing written | as today |
 | Another key | "Not the pinned key" | **This isn't Sam's key.** This console is set up for key `9ba1…`. · D0 Back |
 | Key ready, no Safe | **built:** "Your key is ready" · D2 Code | **Your key is ready.** Next, it's added to a Safe. · Show this to the person setting it up. · D2 Show the code |
 | A Safe, not an owner yet | **built:** "Not an owner yet" on home, and Key past Owners and Device | **Waiting to be added** to the Family Safe. · D2 Show the code |
@@ -150,12 +151,13 @@ Chip terms and file names move to the Device screen. Drafts for the Feather:
 
 **Practice** walks a built-in example transaction through the real review screens, then says:
 "That's how it works. Nothing was signed." Useful at the handover, and after a year in a drawer.
-It never asks the chip for anything.
+It never asks the chip for anything. Not built yet; the ceremony's practice is (Device → Practice,
+from 2026.11.2): its ten steps, the arm and the holds, writing nothing.
 
 ## The QR code
 
 The console shows a QR code only when there's a next step, and the code says only public things:
-- **The set-up link** (proposed): `https://picoquorum.app/app/#/k/03…`, the key's 33-byte compressed
+- **The set-up link** (the Feather's Key screen, from 2026.11.2): `https://picoquorum.app/app/#/k/03…`, the key's 33-byte compressed
   public key, 97 characters. That's a version-5 code, 37 modules a side, 111 px at 3 px a
   module, which fits the 135 px screen. The organizer's phone opens the app on a page that:
   - works the owner address out again and draws its picture, to compare with the console's
@@ -175,7 +177,8 @@ path for a key set up far from the organizer's laptop. The phone sees only publi
 ones a co-signer checks.
 
 **Over USB, from 2026.11.1:** plugged into a computer with Chrome or Edge, the app's **Device** page
-(`#/device`) reads the console: its board, release, key, Wi-Fi and the Safes it watches. It can send
+(`#/device`) reads the console: its board, release, key, the chip's model and locks (read at boot),
+Wi-Fi and the Safes it watches. It can send
 the console a Wi-Fi network or the Safes to watch. The console shows each on its own pages and saves
 it only when Sign is held on it. The link can't make it sign, read its key or touch its chip, and the
 REPL opens only in maintenance ([USB-LINK.md](USB-LINK.md)). The same page links to the console in
@@ -207,12 +210,13 @@ Printed by the app from the Safe's live state, so it's right on the day it's pri
 | Pin the key | laptop: `tools/fw pin` | |
 | The Safes it watches | USB: the app's Device page, or `tools/quorum live pico`, each accepted on the console; or `secrets.py` by hand | `safes.json` |
 | The owner address on the console | at C7, and the Pico's This key screen; the Feather has no key screen yet | |
-| A QR of the key | **the Feather's Key screen**: the owner address, EIP-55 (2026-10-22, emulator) | `quorum_ui_s.draw_key` |
+| A QR of the key | **the Feather's Key screen**: the set-up link, `#/k/<compressed key>` (2026-11-03, emulator; CoreImage decodes it to the link). D1 shows the owner address in full | `quorum_ui_s.draw_key`, `quorum.setup_link` |
 | Deploy the signer | laptop, or the app's deploy link or set-up link, from any wallet | `#/signer/x/y`, `#/k/<compressed key>` |
 | Add owner, replace owner | the app (prefilled: `#/safe/<chain>/<Safe>/new/add/<owner>`), or the Safe app | `web/src/propose.mjs` |
 | Execute | the app, or `tools/quorum live exec` | |
 | A use the console didn't make | flagged on home | `quorum.py` |
 | Practice | the console in the browser on three buttons (`console/?board=picoquorum-key`), and the ceremony's screens on the Device page | `emu/console/` |
+| Practise the ceremony | on the console: Device → Practice, or Try on No key yet. Nothing written; C1 reads the config zone (2026.11.2; emulator, `case_practice`) | `practice.py`, `ceremony_ui.py` |
 | Whose key it is, About, Check, the card | no | |
 
 ## What to build, in order
@@ -225,7 +229,14 @@ sealed, and it isn't an owner of anything yet.
    (CoreImage) to the address on the screen. Not yet on the board.
 2. **The set-up link** in the app (`#/k/<compressed key>`: compare, deploy, Add owner) and as the
    console's QR code. Then chip 3 joins Safe `0x5617…DC41` that way, from a phone, without a laptop.
-   The app's page is **built** (2026-11-01, `web/e2e.mjs` checks it); the console's QR is next.
+   The app's page is **built** (2026-11-01, `web/e2e.mjs` checks it), and the console's QR is the link
+   (2026-11-03, emulator). Not yet on a board. The page's **New Safe** is built (2026-11-03,
+   `web/src/newsafe.mjs`): one transaction from the scanning wallet makes a SafeL2 1.4.1, that wallet and
+   this key 2 of 2, deploys the key's signer, and turns on Candide's 7-day Social Recovery Module with a
+   recovery address as its guardian. Candide refuses a guardian that is an owner, so it's another address:
+   a second account in the same wallet will do. `web/fork-newsafe.mjs` makes one on an Anvil fork of Base
+   Sepolia and walks a recovery (not before 7 days, then the wallet alone); `web/e2e.mjs` checks the page.
+   Not yet on Base Sepolia itself. The console doesn't show a recovery in progress yet.
 3. **Whose key it is:** a keyholder's name in `secrets.py`, the About screen, and the card page in
    the app.
 4. **Check:** the four lines, with the date of the last check (the console has the date once it's
@@ -239,5 +250,5 @@ sealed, and it isn't an owner of anything yet.
    the handover (needs step 6)?
 2. **The keyholder's name on the console:** names only, phone numbers on the card (recommended)?
 3. **The "Expecting this?" page:** on every review on a keyholder's console, or only for red ones?
-4. **The QR:** the set-up link (an app change, recommended), the address only, or both?
+4. **The QR:** decided 2026-11-03: the set-up link. D1 still shows the address in full.
 5. **The helper:** a wallet owner key in the Safe, or a delegate who can propose but not approve?

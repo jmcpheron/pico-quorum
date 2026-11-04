@@ -8,7 +8,7 @@
 #       both zones locked, counter 0 = 0 while there is no key; on quorum v3, slot 1 sealed and its
 #       public key the one the brand signed
 #   U2  GenKey in slot 0, made again in every session until U4 (a key found at plug-in was not made
-#       here, so it is replaced)
+#       here, so it is replaced), and as often as the owner likes before U4 (keypick_s.py)
 #   U3  two test signatures, verified here, the counter up by exactly 2
 #   U4  lock slot 0                                                            PERMANENT
 #   U5  the owner address. tools/fw ceremony finish pins it and puts the console back.
@@ -52,6 +52,8 @@ def read_key(c):
                 return None
         except atecc.AteccError:
             return None
+        if getattr(c, "fresh", None):
+            return c.fresh      # made this session: GenKey's own answer, read back by nothing
     return P.Ceremony.read_key(c)
 
 
@@ -66,19 +68,22 @@ def read_brand(chip):
 
 
 def make_key(c):
-    """U2 (the spare's S1): GenKey in slot 0 after the data lock."""
+    """U2 (the spare's S1): GenKey in slot 0 after the data lock, as many times as the owner likes
+    before the seal (keypick_s.py). The public key is GenKey's own answer, kept as c.fresh: read
+    back, it would count a use on counter 0 each time. KeyValid counts nothing, and U3's test
+    signatures verify under this key, so a wrong one stops there. A new key is tested again."""
     x, y = c.sig.genkey(0)
-    c.made = True
-    checks = [("new key %08x" % (x >> 224), True), ("KeyValid", c.chip.info(1, 0)[0] == 1),
-              ("public key reads back", c.chip.pubkey(0) == (x, y))]
+    c.made, c.fresh, c.tested = True, (x, y), False
+    checks = [("new key %08x" % (x >> 224), True), ("KeyValid", c.chip.info(1, 0)[0] == 1)]
     return all(k for _, k in checks), checks, "made inside the chip: it can't be read out"
 
 
 def test_sigs(c):
     """U3 (the spare's S2): C5 after the data lock, where a public-key read counts as a use too: the
-    key is read once, before the count, so the counter must rise by the two signatures alone."""
+    signatures are checked under the key the session has (GenKey's answer, or read once at plug-in),
+    so the counter must rise by the two signatures alone."""
     import webauthn
-    x, y = c.chip.pubkey(0)
+    x, y = c.key
     before = c.chip.counter(0)
     digest = hashlib.sha256(b"picowallet").digest()
     plain = p256.verify(x, y, digest, *c.sig.sign(digest, 0))

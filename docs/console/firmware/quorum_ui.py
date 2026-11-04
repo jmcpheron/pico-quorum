@@ -1146,6 +1146,11 @@ def draw_pinfail(q):
 
 
 def draw_unconfigured(q):
+    if not q.me:
+        notice(q, False, "No key yet", ["The chip has no key.", "It is made in the ceremony, on a computer.",
+                                        "Practise the ceremony here: nothing is written."],
+               (("A", "Practice"),))
+        return
     notice(q, False, "No Safe", ["secrets.py has no QUORUM_SAFES.", "This console signs only for the Safes",
                                 "listed there (docs/guide/SETUP.md)."])
 
@@ -1192,9 +1197,9 @@ def draw_device(q):
         txt_r(d, image.SHORT, R, y, "mono13")
         blockies.draw(d, image.SEED, R - F.width(image.SHORT, "mono13") - 22, y - 1, 2)
     if q.KNOB:
-        knob_choices(d, q, (("chip", "Chip"), ("wifi", "Wi-Fi"), ("back", "Back")), q.dfoot, "turn \u00b7 press")
+        knob_choices(d, q, (("chip", "Chip"), ("wifi", "Wi-Fi"), ("practice", "Practice"), ("back", "Back")), q.dfoot, "turn \u00b7 press")
     else:
-        footer_hints(d, q, (("A", "Chip"), ("Y", "Wi-Fi"), ("B", "Back")))
+        footer_hints(d, q, (("A", "Chip"), ("Y", "Wi-Fi"), ("X", "Practice"), ("B", "Back")))
     d.show()
 
 

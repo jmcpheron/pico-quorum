@@ -25,7 +25,7 @@ def secrets(lock=True, genkey=True):
         os.remove("build.py")
     except OSError:
         pass
-    for m in ("secrets", "build", "image", "signer", "atecc", "chipcfg", "provision", "brand", "claim"):
+    for m in ("secrets", "build", "image", "signer", "atecc", "chipcfg", "ceremony_ui", "provision", "brand", "claim"):
         sys.modules.pop(m, None)
 
 
@@ -506,6 +506,191 @@ def case_claim():
     got, ok, bad, msg = run(cl, "U1")
     check(got == "U1" and not ok and "bench 0, no certificate" in bad and cl.step() == "U1", "a test-key spare: U1 refuses it")
     check(main_dual.which()[0] == "claim", "(dual still routes it to the claim, which refuses it at U1)")
+
+
+class Clock:
+    """time for the screens and the arm, moved by hand."""
+    now = 0
+
+    def ticks_ms(self):
+        return self.now
+
+    def ticks_diff(self, a, b):
+        return a - b
+
+    def ticks_add(self, a, b):
+        return a + b
+
+
+def case_three():
+    """The owner's key on PicoQuorumKey's three buttons (keypick_s.py): a spare branded B1-B7, then
+    Make, another key and another (counter 0 untouched, each a new key), the address in full, the
+    red Keep page let go early, then held 3 s: tested and sealed, the key on the screen the one
+    sealed. ALLOW_GENKEY or ALLOW_LOCK off: nothing. Then the claim on a key 0000 brand, the same
+    way. Every word fits 240x135 right of the rail."""
+    import board
+    check(board.BOARD == "picoquorum-key" and board.THREE and (board.W, board.H) == (240, 135), "PicoQuorumKey: three buttons, 240x135")
+    import p256, quorum_cfg, splash, fonts, quorum_ui
+    T = Clock()
+
+    class Keys:
+        down = set()
+        queue = []
+
+        def held(self, k):
+            return k in self.down
+
+        def pressed(self):
+            out, self.queue = self.queue, []
+            return out
+    keys = Keys()
+    d = splash.begin()
+    drawn, bad = [], []
+    real = quorum_ui.txt
+
+    def txt(d_, s_, x, y, font, fg="text", bg="bg"):
+        drawn.append((s_, x, y, font))
+        return real(d_, s_, x, y, font, fg, bg)
+    quorum_ui.txt = txt
+
+    def fits(where, rail):
+        for s_, x, y, font in drawn:
+            w = fonts.width(s_, font)
+            if x + w > 240 or y + fonts.height(font) > 136 or x < 0 or y < 0 or (x < rail and x + w > rail):
+                bad.append((where, s_, x, y))
+        drawn[:] = []
+
+    def setup(c):
+        for m in ("keypick_s", "setup_s", "ceremony_ui"):     # on the signer module secrets() left
+            sys.modules.pop(m, None)
+        import keypick_s, setup_s, ceremony_ui, signer
+        for m in (keypick_s, setup_s, ceremony_ui, signer):
+            m.time = T
+        ui = keypick_s.UI(d, keys, c.sig, "dark", c)
+        ui.dirty = True
+        ui.draw()
+        fits("open", keypick_s.RAIL)
+        return ui, keypick_s
+
+    def tick(ui, K, *pressed):
+        r = ui.tick(list(pressed))
+        ui.dirty = True
+        ui.draw()
+        fits(ui.c.step() + ":" + ui.page, K.RAIL)
+        return r
+
+    def press(ui, K, k):
+        keys.down.add(k)
+        tick(ui, K, *([] if k == "D1" else [k]))
+        keys.down.discard(k)
+        tick(ui, K, *(["D1"] if k == "D1" else []))
+
+    def hold(ui, K, ms):
+        keys.down.add("D2")
+        for _ in range(ms // 100):
+            T.now += 100
+            tick(ui, K)
+        keys.down.discard("D2")
+        tick(ui, K)
+
+    def pub(sim):
+        return tuple(p256.pubkey(sim.keys[0])) if 0 in sim.keys else None
+
+    def walk_keys(ui, K, sim, make, test, label):
+        check(ui.kind(ui.c.step()) == "make" and 0 not in sim.keys, "%s: Make your key, slot 0 empty" % label)
+        press(ui, K, "D2")
+        seen = [pub(sim)]
+        check(ui.c.step() == test and ui.tries == 1 and ui.c.key == seen[0] and sim.counters[0] == 0,
+              "%s: D2 makes a key: the blockie of the key in the chip; counter 0 still 0" % label)
+        for _ in range(4):
+            press(ui, K, "D0")
+            seen.append(pub(sim))
+        check(ui.tries == 5 and len(set(seen)) == 5 and ui.c.key == seen[-1] and ui.c.step() == test,
+              "%s: D0 four times: four more keys, each new, the screen's the chip's" % label)
+        check(sim.counters[0] == 0, "%s: five keys made, counter 0 still 0 (counted %d)" % (label, sim.counters[0]))
+        a = ui.addr()
+        check(a.startswith("0x") and len(a) == 42 and a.lower() == ui.c.owner(), "%s: the owner address, checksummed: %s" % (label, a))
+        press(ui, K, "D1")
+        check(ui.page == "full", "%s: D1 shows the address in full" % label)
+        press(ui, K, "D1")
+        press(ui, K, "D2")
+        check(ui.page == "keep" and not ui.c.slot0["locked"], "%s: D2 opens the red Keep page, nothing sealed" % label)
+        hold(ui, K, 2000)
+        check(not ui.c.slot0["locked"] and ui.page == "keep", "%s: Keep let go at 2 s: nothing" % label)
+        press(ui, K, "D0")
+        check(ui.page == "pic", "%s: D0 on the red page: back to the picture" % label)
+        press(ui, K, "D2")
+        hold(ui, K, 3100)
+        check(ui.c.slot0["locked"] and ui.done and pub(sim) == seen[-1] and ui.result is None,
+              "%s: Keep held 3 s: tested and sealed, the key on the screen (counter 0 %d)" % (label, sim.counters[0]))
+        check(sim.cfg[88] == 0xFC, "%s: slots 0 and 1 sealed" % label)
+        press(ui, K, "D2")
+        check(not ui.done and ui.kind(ui.c.step()) is None, "%s: D2 on Your key is ready: back to the steps (%s)" % (label, ui.c.step()))
+
+    # a spare, branded with the test key
+    secrets()
+    fresh_chip("608c")
+    c, B = ceremony()
+    sim = atecc_sim.chip()
+    for st in ("B1", "B2", "B3", "B4", "B4a", "B4b", "B5", "B6", "B7"):
+        run(c, st)
+    check(c.step() == "S1", "the spare branded: S1 next")
+    ui, K = setup(c)
+    walk_keys(ui, K, sim, "S1", "S2", "spare")
+    check(c.step() == "S4", "then the spare's S4, on setup_s's screen")
+
+    # the gates
+    secrets()
+    fresh_chip("608c")
+    c, B = ceremony()
+    sim = atecc_sim.chip()
+    for st in ("B1", "B2", "B3", "B4", "B4a", "B4b", "B5", "B6", "B7"):
+        run(c, st)
+    secrets(genkey=False)
+    ui, K = setup(c)
+    press(ui, K, "D2")
+    check(0 not in sim.keys and "ALLOW_GENKEY" in ui.why and c.step() == "S1", "ALLOW_GENKEY off: D2 makes nothing, and says why")
+    secrets(lock=False)
+    ui.why = ""
+    press(ui, K, "D2")
+    check(0 in sim.keys and c.step() == "S2", "ALLOW_GENKEY on: a key")
+    press(ui, K, "D2")
+    hold(ui, K, 3100)
+    check(not c.slot0["locked"] and "ALLOW_LOCK" in ui.why and sim.counters[0] == 0, "ALLOW_LOCK off: Keep held 3 s seals nothing, signs nothing")
+
+    # the claim, on a key 0000 brand
+    try:
+        k0 = make_key0000()
+        c0, mine, seen = brand_with_key0000(k0)
+        plug(mine)
+        cl = claim_of()
+        ui, K = setup(cl)
+        check(cl.step() == "U1" and ui.kind("U1") is None, "the claim: U1 on setup_s's screen")
+        press(ui, K, "D2")
+        check(ui.result is not None and ui.result[1], "U1: the brand checks")
+        press(ui, K, "D2")
+        walk_keys(ui, K, mine, "U2", "U3", "claim")
+        check(cl.step() == "U5", "then U5: Your key is ready")
+    finally:
+        quorum_cfg.CFG["brandKeys"] = {}
+        plug(atecc_sim.chip())
+    quorum_ui.txt = real
+    check(not bad, "every word fits 240x135, right of the rail%s" % ("" if not bad else ": %r" % bad[:4]))
+
+
+def main_three():
+    """case_three in a device of its own: secrets.py names the board before board.py is read."""
+    with open("secrets.py", "w") as f:
+        f.write('BOARD = "picoquorum-key"\n')
+    for m in ("board", "lcd", "splash", "bootmark"):
+        sys.modules.pop(m, None)
+    try:
+        case_three()
+    except Exception as e:
+        sys.print_exception(e)
+        check(False, "case_three raised %r" % e)
+    print("%d failed" % failed[0])
+    return failed[0]
 
 
 def main():

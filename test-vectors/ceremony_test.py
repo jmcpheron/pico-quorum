@@ -22,7 +22,7 @@ def secrets(lock=True, genkey=True, extra=""):
         os.remove("build.py")
     except OSError:
         pass
-    for m in ("secrets", "build", "image", "signer", "atecc", "chipcfg", "provision", "setup_s", "chipapp"):
+    for m in ("secrets", "build", "image", "signer", "atecc", "chipcfg", "ceremony_ui", "provision", "setup_s", "chipapp"):
         sys.modules.pop(m, None)
 
 
@@ -306,7 +306,8 @@ def case_arm_left():
     for st in ("C1", "C2"):
         c.run(st)
     T = Clock()
-    P.time = S.time = T
+    import ceremony_ui as CU
+    P.time = S.time = CU.time = T
     try:
         class K:
             down = set()
@@ -355,7 +356,7 @@ def case_arm_left():
         hold("press", 3100)
         check(ui.result and ui.result[:2] == ("C4", True), "the knob, armed again: the next hold makes the key")
     finally:
-        P.time = S.time = time
+        P.time = S.time = CU.time = time
 
 
 def case_three():
@@ -369,9 +370,9 @@ def case_three():
     secrets(extra='BOARD = "feather-s3"\n')
     fresh_chip("608c")
     c, S, P = ceremony()
-    import splash, setup_s, chipapp
+    import splash, setup_s, chipapp, ceremony_ui
     T = Clock()
-    for m in (P, S, setup_s):
+    for m in (P, S, setup_s, ceremony_ui):
         m.time = T
 
     class Keys:
@@ -528,9 +529,9 @@ def case_knob():
     secrets(extra='BOARD = "feather-knob"\n')
     fresh_chip("608c")
     c, S, P = ceremony()
-    import splash, setup_s, chipapp
+    import splash, setup_s, chipapp, ceremony_ui
     T = Clock()
-    for m in (P, S, setup_s):
+    for m in (P, S, setup_s, ceremony_ui):
         m.time = T
 
     class Keys:
