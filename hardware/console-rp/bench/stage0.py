@@ -29,7 +29,8 @@ turn = 0
 # ----------------------------------------------------------------------------- the screen (PINS.md)
 _bl = Pin(13, Pin.OUT, value=0)
 _cs, _dc, _rst = Pin(9, Pin.OUT, value=1), Pin(8, Pin.OUT, value=1), Pin(12, Pin.OUT, value=1)
-_spi = SPI(1, baudrate=31_250_000, sck=Pin(10), mosi=Pin(11))
+_spi = SPI(1, baudrate=31_250_000, sck=Pin(10), mosi=Pin(11), miso=None)     # no MISO: SPI1's default is GPIO8, the DC line
+_dc.init(Pin.OUT, value=1)              # and DC back as an output after the SPI, should a port take it anyway
 
 
 def _cmd(c, data=None):
@@ -76,9 +77,22 @@ NAMES = ("D0", "D1", "D2")
 keys = [Pin(n, Pin.IN, Pin.PULL_UP) for n in (2, 3, 6)]    # to GND, pressed low (no pull-downs: RP2350-E9)
 counts = [0, 0, 0]
 led = Pin(25, Pin.OUT, value=0)
-link = UART(1, 115200, tx=Pin(20), rx=Pin(21))
 sent = got = 0
 heard = ""
+
+
+def repl_on_link():
+    """Whether a bench main.py put the REPL on UART1 (os.dupterm): then the link is the REPL's, and its
+    lines (each press, the facts) reach the computer as print()s."""
+    try:
+        prev = os.dupterm(None)
+        os.dupterm(prev)
+        return prev is not None
+    except Exception:
+        return False
+
+
+link = None if repl_on_link() else UART(1, 115200, tx=Pin(20), rx=Pin(21))
 
 
 # ----------------------------------------------------------------------------- the key (read only)
@@ -180,7 +194,7 @@ def draw(facts, down):
     for line, c in facts:
         fb.text(line[:29], 4, y, c)
         y += 10
-    fb.text(("link: %d out, %d in " % (sent, got) + heard)[:29], 4, y, CYAN)
+    fb.text(("link: %d out, %d in " % (sent, got) + heard if link else "link: the REPL is on it")[:29], 4, y, CYAN)
     bw = (W - 4 * 4) // 3                              # D0 D1 D2 in a row, as on the board
     for i in range(3):
         x = 4 + i * (bw + 4)
@@ -227,12 +241,12 @@ def main():
                 dirty = True
         else:
             all_since = None
-        if time.ticks_diff(now, t_link) >= 2000:
+        if link and time.ticks_diff(now, t_link) >= 2000:
             t_link = now
             sent += 1
             link.write("console-rp bring-up %d: D0 %d D1 %d D2 %d\r\n" % (sent, counts[0], counts[1], counts[2]))
             dirty = True
-        n = link.any()
+        n = link.any() if link else 0
         if n:
             data = link.read(n)
             got += len(data)
