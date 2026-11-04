@@ -119,6 +119,17 @@ def choose_bar(d, right):
     U.txt(d, "Choose this", 28, 5, "bold14", "bg", "ok")
 
 
+def ends(d, a, x, y):
+    """The address's first four and last four under each other, in cyan, "0x" and the dots as the text,
+    the two groups lined up."""
+    lead = U.F.width("0x", "mono13")
+    hi = (0, 229, 255) if sum(U.rgb("bg")) < 384 else (0, 128, 160)     # cyan, darker on a light theme
+    U.txt(d, "0x", x, y, "mono13")
+    U.txt(d, a[2:6], x + lead, y, "mono13", hi)
+    U.txt(d, "\u2026", x + lead - U.F.width("\u2026", "mono13"), y + 16, "mono13")
+    U.txt(d, a[-4:], x + lead, y + 16, "mono13", hi)
+
+
 def groups(a):
     """0x and 40 hex as lines of four-character groups that fit TW in mono13."""
     out, line = [], ""
@@ -359,9 +370,8 @@ class UI(setup_s.UI):
             U.txt(d, U.fit("\u2026", cw, "mono13"), x, 58, "mono13", "faint")
             rail(d, (None, None, None))
         else:
-            U.txt(d, U.fit(a[:6], cw, "mono13"), x, 58, "mono13")
-            U.txt(d, U.fit("\u2026" + a[-4:], cw, "mono13"), x, 74, "mono13")
-            U.para(d, "Or press New.", x, 98, cw, "sans12", "muted", "bg", 14, 134)
+            ends(d, a, x, 58)
+            U.para(d, "Made in the chip.", x, 98, cw, "sans12", "muted", "bg", 14, 134)
             rail(d, (None, ("Full", "raised", "text"), None if why else ("New", "raised", "text")))
             choose_bar(d, M + side)
         d.show()
