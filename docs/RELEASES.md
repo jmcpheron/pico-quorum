@@ -93,6 +93,28 @@ The tag says who cut a release. The project Safe says the project stands behind 
 - the console signs it, and it executes;
 - `isValidSignature` holds, and still holds after the console's owner is removed.
 
+## 2026.11.3 (2026-11-04)
+
+**The owner picks their own key on a three-button board** (PicoQuorumKey), by its blockie. The
+console's behaviour is unchanged. 2026.11.1 and 2026.11.2 were set on `main` without entries here.
+
+- **dual:** on three buttons (not the knob Feather), a fresh ATECC608, or a quorum v1 chip whose data
+  zone is still open, goes to the owner's own key on `keypick_s.py`, over `provision.py`:
+  - Set up (D2 held) runs C1-C3. New makes a key in slot 0 with the chip's GenKey, as often as the
+    owner likes. A shuffle of random pictures, not keys, runs before each key's blockie lands.
+  - The page shows the address's first four and last four, in cyan, and "Made in the chip."
+  - Choose this (top) opens a red page. D0 held 3 s keeps the key (test signatures, then the slot
+    seal), and C7-C9 finish. D2 is Back.
+  - A welcome screen in plain words, with a blockie that changes.
+  - `signer.needs_ceremony` also counts a quorum v1 chip whose data zone is open.
+- **dual, claim / brand, spare:** the same pick screens on three buttons. `claim.make_key` keeps
+  GenKey's own answer instead of reading the key back, so new keys don't count on counter 0.
+- **dual, brand, ceremony:** the set-up screens black out and turn the backlight off after 2
+  minutes with no key. Any key wakes them, and that press does nothing else.
+
+Every permanent step still needs `ALLOW_GENKEY` / `ALLOW_LOCK` and the arm. The release
+fingerprints change because the source did.
+
 ## 2026.10.12 (2026-10-18)
 
 **An attestation key on the brand bench** ([ATTESTED-KEYS.md](ATTESTED-KEYS.md)), for the spare
