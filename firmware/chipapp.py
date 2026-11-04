@@ -24,7 +24,7 @@ TITLE, LABEL = "CEREMONY IMAGE", "PROVISION (quorum v1)"
 # The dual image's own-key path on three buttons sets this: a customer's first screen, welcome(d,
 # frame), drawn again every ANIMATE ticks, in place of the bench's banner when a chip is in.
 WELCOME = None
-ANIMATE = 8                 # 8 ticks of 50 ms: a new frame every 0.4 s
+ANIMATE = 16                # 16 ticks of 50 ms: a new frame every 0.8 s
 frame = 0
 STATE = {"factory": "FRESH: ready for PROVISION", "quorum-v1": "sealed or in progress: quorum v1",
          "quorum-v2": "branded or in progress: quorum v2", "quorum-v3": "branded or in progress: quorum v3",

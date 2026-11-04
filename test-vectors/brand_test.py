@@ -556,7 +556,8 @@ def case_three():
     def fits(where, rail):
         for s_, x, y, font in drawn:
             w = fonts.width(s_, font)
-            if x + w > 240 or y + fonts.height(font) > 136 or x < 0 or y < 0 or (x < rail and x + w > rail):
+            across = s_ == "Choose this" and y < 30         # the top bar, D0's, runs across the rail on purpose
+            if x + w > 240 or y + fonts.height(font) > 136 or x < 0 or y < 0 or (x < rail and x + w > rail and not across):
                 bad.append((where, s_, x, y))
         drawn[:] = []
 
@@ -585,12 +586,12 @@ def case_three():
         keys.down.discard(k)
         tick(ui, K, *(["D1"] if k == "D1" else []))
 
-    def hold(ui, K, ms):
-        keys.down.add("D2")
+    def hold(ui, K, ms, k="D2"):
+        keys.down.add(k)
         for _ in range(ms // 100):
             T.now += 100
             tick(ui, K)
-        keys.down.discard("D2")
+        keys.down.discard(k)
         tick(ui, K)
 
     def pub(sim):
@@ -603,24 +604,26 @@ def case_three():
         check(ui.c.step() == test and ui.tries == 1 and ui.c.key == seen[0] and sim.counters[0] == 0,
               "%s: D2 makes a key: the blockie of the key in the chip; counter 0 still 0" % label)
         for _ in range(4):
-            press(ui, K, "D0")
+            press(ui, K, "D2")
             seen.append(pub(sim))
         check(ui.tries == 5 and len(set(seen)) == 5 and ui.c.key == seen[-1] and ui.c.step() == test,
-              "%s: D0 four times: four more keys, each new, the screen's the chip's" % label)
+              "%s: New (D2, bottom) four times: four more keys, each new, the screen's the chip's" % label)
         check(sim.counters[0] == 0, "%s: five keys made, counter 0 still 0 (counted %d)" % (label, sim.counters[0]))
         a = ui.addr()
         check(a.startswith("0x") and len(a) == 42 and a.lower() == ui.c.owner(), "%s: the owner address, checksummed: %s" % (label, a))
         press(ui, K, "D1")
         check(ui.page == "full", "%s: D1 shows the address in full" % label)
         press(ui, K, "D1")
-        press(ui, K, "D2")
-        check(ui.page == "keep" and not ui.c.slot0["locked"], "%s: D2 opens the red Keep page, nothing sealed" % label)
-        hold(ui, K, 2000)
-        check(not ui.c.slot0["locked"] and ui.page == "keep", "%s: Keep let go at 2 s: nothing" % label)
         press(ui, K, "D0")
-        check(ui.page == "pic", "%s: D0 on the red page: back to the picture" % label)
+        check(ui.page == "keep" and not ui.c.slot0["locked"], "%s: Choose (D0, top) opens the red Keep page, nothing sealed" % label)
+        hold(ui, K, 3100, "D2")
+        check(not ui.c.slot0["locked"] and ui.c.key == seen[-1], "%s: D2 held 3 s on the red page seals nothing" % label)
+        hold(ui, K, 2000, "D0")
+        check(not ui.c.slot0["locked"] and ui.page == "keep", "%s: Keep let go at 2 s: nothing" % label)
         press(ui, K, "D2")
-        hold(ui, K, 3100)
+        check(ui.page == "pic", "%s: D2 on the red page: back to the picture" % label)
+        press(ui, K, "D0")
+        hold(ui, K, 3100, "D0")
         check(ui.c.slot0["locked"] and ui.done and pub(sim) == seen[-1] and ui.result is None,
               "%s: Keep held 3 s: tested and sealed, the key on the screen (counter 0 %d)" % (label, sim.counters[0]))
         check(sim.cfg[88] == sealed, "%s: slot 0 sealed (%02X)" % (label, sim.cfg[88]))
@@ -653,8 +656,8 @@ def case_three():
     secrets(lock=False)
     press(ui, K, "D2")
     check(0 in sim.keys and c.step() == "S2", "ALLOW_GENKEY on: a key")
-    press(ui, K, "D2")
-    hold(ui, K, 3100)
+    press(ui, K, "D0")
+    hold(ui, K, 3100, "D0")
     check(not c.slot0["locked"] and "ALLOW_LOCK" in ui.need("keep") and sim.counters[0] == 0, "ALLOW_LOCK off: Keep held 3 s seals nothing, signs nothing")
 
     # the owner's own key on a fresh chip, no brand: the dual image's ceremony (provision.py C1-C10)

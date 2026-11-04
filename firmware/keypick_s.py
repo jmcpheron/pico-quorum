@@ -4,10 +4,11 @@
 # S1-S3). Every other step, and every result that stopped, is setup_s.UI's.
 #   Start   (provision only) hold D2 3 s: C1-C3, the chip's table written and its config locked.
 #   Make    the chip makes a key (GenKey, slot 0). Nothing leaves it but the public half.
-#   Pick    the owner address's blockie, big, and its two ends. D0 makes another, as many times as
-#           anyone likes: until the seal, slot 0 can be made again, and no key here has signed for a
-#           Safe. D1 shows the address in full. D2 goes on to Keep.
-#   Keep    a red page: hold D2 3 s, and the test signatures run (C5/U3), then the seal (C6/U4),
+#   Pick    the owner address's blockie, big, and its two ends, landed after a short shuffle. New (D2,
+#           the bottom) makes another, as many times as anyone likes: until the seal, slot 0 can be
+#           made again, and no key here has signed for a Safe. D1 shows the address in full.
+#           Choose (D0, the top) goes on to Keep.
+#   Keep    a red page: hold D0 3 s (D2 is Back), and the test signatures run (C5/U3), then the seal (C6/U4),
 #           forever; on provision the record and the data lock follow (C7-C9).
 #   Finish  (provision, after a restart between the seal and C9) hold D2 3 s: C7-C9.
 #   Done    the key sealed, its blockie and address; D2 hands back to setup_s.UI (C10, U5, or S4).
@@ -39,6 +40,8 @@ SEAL = {"U4": "U4", "U3": "U4", "S2": "S3", "S3": "S3", "C5": "C6", "C6": "C6"}
 MAKE = {"U3": "U2", "U4": "U2", "S2": "S1", "S3": "S1", "C5": "C4", "C6": "C4"}
 START = ("C1", "C2", "C3")
 FINISH = ("C7", "C8", "C9")
+HOLD_KEY = {"keep": "D0"}                  # the red page holds on Choose's button; Start and Finish on D2
+SHUFFLE_MS = (60, 60, 70, 80, 95, 110, 130, 160, 200, 250)     # each shuffle frame, slowing to a stop
 PERM = ("C3", "C6", "C9", "U4", "S3")     # the runs that need ALLOW_LOCK; GenKey's are the MAKE steps'
 
 
@@ -62,7 +65,7 @@ def icon(d, kind, cx, cy, ink):
         d.ellipse(cx, cy, 4, 4, U.c(ink), True)
 
 
-ICONS = {"Back": "back", "Keep": "check", "OK": "check", "Full": "down", "Pic": "back", "Start": "check", "Finish": "check"}
+ICONS = {"Back": "back", "Keep": "check", "Choose": "check", "New": "dot", "OK": "check", "Full": "down", "Pic": "back", "Start": "check", "Finish": "check"}
 
 
 def rail(d, labels, hold=None, bg="surface"):
@@ -107,6 +110,13 @@ def welcome(d, frame):
     U.txt(d, U.fit("Press Start to begin", TW, "sans12"), M, 116, "sans12", "ok")
     rail(d, (None, None, ("Start", "ok", "bg")))
     d.show()
+
+
+def choose_bar(d, right):
+    """Choose this, across the top from D0's end of the rail: what the top button does, plainly."""
+    U.rrect(d, 1, 1, right - 1, 27, 7, "ok")
+    icon(d, "check", 15, 14, "bg")
+    U.txt(d, "Choose this", 28, 5, "bold14", "bg", "ok")
 
 
 def groups(a):
@@ -164,7 +174,8 @@ class UI(setup_s.UI):
         if kind is None:
             return super().tick(pressed)
         raw = self.keys.keys
-        if not raw.held("D2"):
+        hk = HOLD_KEY.get(kind, "D2")
+        if not raw.held(hk):
             self.fresh_press = True
             if self.held_since is not None:
                 self.held_since, self.dirty = None, True
@@ -173,13 +184,13 @@ class UI(setup_s.UI):
                 self.done, self.dirty = False, True
             return None
         if kind in ("start", "keep", "finish"):
-            if "D0" in pressed:
+            if ("D2" if kind == "keep" else "D0") in pressed:      # Back: the button that doesn't hold
                 self.held_since, self.dirty = None, True
                 if kind == "keep":
                     self.page = "pic"
                     return None
                 return "back"
-            if raw.held("D2") and self.fresh_press and not self.need(kind):
+            if raw.held(hk) and self.fresh_press and not self.need(kind):
                 if self.held_since is None:
                     self.held_since = time.ticks_ms()
                 elif time.ticks_diff(time.ticks_ms(), self.held_since) >= ceremony_ui.HOLD_MS:
@@ -193,11 +204,11 @@ class UI(setup_s.UI):
             if "D2" in pressed and not self.need("make"):
                 self.make(st)
             return None
-        if "D0" in pressed and not self.need("make"):
+        if "D2" in pressed and not self.need("make"):
             self.make(MAKE.get(st, st))
         elif "D1" in pressed:
             self.page, self.dirty = ("full" if self.page == "pic" else "pic"), True
-        elif "D2" in pressed:
+        elif "D0" in pressed:
             self.page, self.fresh_press, self.held_since, self.dirty = "keep", False, None, True
         return None
 
@@ -228,9 +239,20 @@ class UI(setup_s.UI):
             self.tries += 1
             self.addr()                 # under the busy page, not on the next frame
             self.page = "pic"
+            self.shuffle()
         else:
             self.result = out
         self.dirty = True
+
+    def shuffle(self):
+        """The new key lands after a shuffle that slows down, as a slot machine's reel does. The key
+        is already made: the shuffled pictures are drawn from random bytes on this board, not keys."""
+        import os
+        sleep = getattr(time, "sleep_ms", None)
+        for ms in SHUFFLE_MS:
+            self.d.frames(self._pick_page, "0x" + hexlify(os.urandom(20)).decode(), True)
+            if sleep:
+                sleep(ms)
 
     def do_start(self, st):
         self.d.frames(self._busy_page, "Setting up the chip", "its table, then its config lock")
@@ -321,29 +343,40 @@ class UI(setup_s.UI):
         d.show()
 
     def _pick(self, st):
-        d, a, why = self.d, self.addr(), self.need("make")
+        self._pick_page(self.addr(), False)
+
+    def _pick_page(self, a, spinning):
+        """The picture big, its two ends, and the rail: Choose at the top, New at the bottom.
+        spinning: a shuffle frame, the ends and the buttons not shown yet."""
+        d, why = self.d, self.need("make")
         d.fill(U.c("bg"))
-        blockies.draw(d, a, M, 11, 14)                      # 112 px
-        x = M + 112 + 8
+        side = 96
+        blockies.draw(d, a, M, 33, side // 8)               # 96 px, under the Choose bar
+        x = M + side + 8
         cw = W - 5 - x
-        U.txt(d, U.fit("Key %d" % self.tries if self.tries else "Your key", cw, "bold14"), x, 6, "bold14")
-        U.txt(d, U.fit(a[:6], cw, "mono13"), x, 32, "mono13")
-        U.txt(d, U.fit("\u2026" + a[-4:], cw, "mono13"), x, 48, "mono13")
-        U.para(d, "Like it? Keep it, or make another.", x, 74, cw, "sans12", "muted", "bg", 14, 130)
-        rail(d, (None if why else ("New", "raised", "text"), ("Full", "raised", "text"), ("Keep", "ok", "bg")))
+        U.txt(d, U.fit("Key %d" % self.tries if self.tries else "Your key", cw, "bold14"), x, 34, "bold14")
+        if spinning:
+            U.txt(d, U.fit("\u2026", cw, "mono13"), x, 58, "mono13", "faint")
+            rail(d, (None, None, None))
+        else:
+            U.txt(d, U.fit(a[:6], cw, "mono13"), x, 58, "mono13")
+            U.txt(d, U.fit("\u2026" + a[-4:], cw, "mono13"), x, 74, "mono13")
+            U.para(d, "Or press New.", x, 98, cw, "sans12", "muted", "bg", 14, 134)
+            rail(d, (None, ("Full", "raised", "text"), None if why else ("New", "raised", "text")))
+            choose_bar(d, M + side)
         d.show()
 
     def _full(self, st):
         d, a = self.d, self.addr()
         d.fill(U.c("bg"))
-        U.txt(d, "Your key's address", M, 2, "bold14")
-        y = 24
+        y = 34
         for line in groups(a):
             U.txt(d, line, M, y, "mono13")
             y += 17
         blockies.draw(d, a, W - 5 - 32, 98, 4)
         U.para(d, "A signer, not a wallet: never send funds to it.", M, y + 4, TW - 38, "sans12", "warn", "bg", 14, 134)
-        rail(d, (None, ("Pic", "raised", "text"), ("Keep", "ok", "bg")))
+        rail(d, (None, ("Pic", "raised", "text"), None))
+        choose_bar(d, W - 5)
         d.show()
 
     def _keep(self, st):
@@ -357,7 +390,7 @@ class UI(setup_s.UI):
             U.txt(d, U.fit(why, TW, "sans12"), M, 116, "sans12", "bad_text", "bad_bg")
         else:
             U.txt(d, "Hold Keep 3 s", M, max(y + 6, 104), "bold14", "bad_text", "bad_bg")
-        rail(d, (("Back", "raised", "text"), None, None if why else ("Keep", "bad_bar", "on_bad")), self._hold())
+        rail(d, (None if why else ("Keep", "bad_bar", "on_bad"), None, ("Back", "raised", "text")), self._hold())
         d.show()
 
     def _done(self, st):
