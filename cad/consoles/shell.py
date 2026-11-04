@@ -413,7 +413,7 @@ class Case:
             a, up = POCKET
             p = p.cut(box(x0 - a, x1 + a, y0 - a, y1 + a, zu - 0.5, q["h"] + up))
         # the window: the active area and a margin, never closer than GLASS_LIP to the glass's edge; chamfered
-        ax0, ay0, ax1, ay1 = b.get("window_over", b["active"])
+        ax0, ay0, ax1, ay1 = b["active"]
         gx0, gy0, gx1, gy1 = b["glass"]
         m = WINDOW_MARGIN
         wx0, wx1 = max(ax0 - m, gx0 + GLASS_LIP), min(ax1 + m, gx1 - GLASS_LIP)

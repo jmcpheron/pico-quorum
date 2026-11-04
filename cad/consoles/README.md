@@ -79,9 +79,10 @@ Both cases also share these:
   RESET's hole, cut through over the switch. The script places the mark from RESET's position and stops
   if the dot isn't over it. The mark misses BOOT's pinhole by 1.1 mm and the LED's hole by 0.4 mm; the
   LED lights just outside the triangle's left edge.
-- **The window is 1 mm wider than the active area needs.** The board's render centres the active area
-  on the glass. ER-TFT1.14-2's drawing puts it 2.0 mm from the end away from the ribbon. The window
-  shows the active area wherever it is, until a panel is measured.
+- **The window fits the active area where ER-TFT1.14-2's drawing puts it,** 2.0 mm from the glass's end
+  away from the ribbon. The first window was 1 mm wider on the right, to cover a centred active area
+  too, as the board's render draws it. A photo of the printed stick (2026-11-04) showed 0.5 mm of black
+  at the window's left and 2.2 mm at its right, which is the drawing's place within about 0.2 mm.
 - **The dock** holds it leaning back 25°. The cable comes out of a slot in the dock's left side.
 
 ![the stick's face, sliced](out/stick/stick_face.png)
@@ -104,6 +105,11 @@ Both cases also share these:
   from the board's back to a switch's top, 5.1–5.2 pressed) are 3.9 mm over its front, their
   datasheet's 3.8. The board's thickness hasn't been measured. A straddle plug for the key port needs
   a 0.8 mm board.
+- **The panel sits 0.8 mm left of DESIGN.md's place for it,** as fitted on the first board (`PANEL_DX` in
+  `badge.py`). A photo of the printed badge (2026-11-04) showed 1.3 mm of black at the window's right
+  and none at its left. The rail's divider, 22.3% across the picture, put the picture's left edge
+  0.3 mm under the window's. One board doesn't say whether that is how this panel lies on its tape or
+  where the active area sits on the glass; on another board, check the window against its panel.
 - **The caps stand 1.5 mm proud,** not the stick's 1.0, and travel about 0.35 mm. Their flanges sit in
   pockets in the face's underside, so the face is 2.5 mm thick over the glass. The window's edge is
   chamfered 1.5 mm, not 0.8, to keep the screen in view.

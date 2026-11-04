@@ -47,17 +47,16 @@ def board():
     W, H, yc = G.W, G.H, G.YC
     gx0, gy0, gx1, gy1 = G.GLASS
     aw, ah = G.PANEL["active"]
-    # The active area: centred on the glass, as the board's own render draws it; ER-TFT1.14-2's drawing (as
-    # PicoQuorumKey reads it) has it 2.0 mm from the end away from the ribbon. The window shows either.
-    cx = (gx0 + gx1) / 2
-    active = (cx - aw / 2, yc - ah / 2, cx + aw / 2, yc + ah / 2)
-    over = (min(cx - aw / 2, gx0 + 2.0), yc - ah / 2, max(cx + aw / 2, gx0 + 2.0 + aw), yc + ah / 2)
+    # The active area: 2.0 mm from the glass's end away from the ribbon, as ER-TFT1.14-2's drawing has it (as
+    # PicoQuorumKey reads it). A photo of the printed stick (2026-11-04) agrees within about 0.2 mm: 0.5 mm of
+    # black at the window's left, where the window was 1 mm wider on the right to cover a centred active area too.
+    active = (gx0 + 2.0, yc - ah / 2, gx0 + 2.0 + aw, yc + ah / 2)
     mx, my = G.MOD_AT
     module = (mx - G.MOD_L / 2, mx + G.MOD_L / 2, my - G.MOD_W / 2, my + G.MOD_W / 2)
     return dict(
         name="stick", title="The stick (console-s3)", layout="shell",
         W=W, H=H, R=G.CORNER, T=1.6, holes=[xy for _, xy in G.HOLES], hole_d=2.2, parts=P,
-        glass=G.GLASS, glass_z=(G.PANEL["foam"], G.PANEL["foam"] + G.GLASS_T), active=active, window_over=over,
+        glass=G.GLASS, glass_z=(G.PANEL["foam"], G.PANEL["foam"] + G.GLASS_T), active=active,
         fold=(gx1, gx1 + G.FOLD_R, G.FOLD_Y[0], G.FOLD_Y[1]),
         module=module, module_h=S.WROOM[2],
         buttons=[("SW1", "D0"), ("SW2", "D1"), ("SW3", "D2")], pins=[("SW4", "BOOT")],

@@ -56,6 +56,11 @@ PADDLE, SLOT_X1, NOTCH_D = (4.05, 11.95), 14.0, 4.5
 PLUG = (8.4, 9.6, 3.4)      # across, past the tip, thick (not given: a USB-C plug's usual, straddling the board)
 KEYC = (16.0, 36.0, 7.4)    # across, long, thick with its receptacle and its parts (key-c's design)
 KEYC_GAP = 3.0
+# The panel as fitted on the first board, from a photo of the printed badge (2026-11-04): the picture sits 0.8 mm left
+# of DESIGN.md's place for it. The window's right edge showed 1.3 mm of black, not its 0.5 mm margin, and the rail's
+# divider, 22.3% across the picture, put its left edge 0.3 mm under the window's. Whether that is how this panel lies on
+# its tape, or where the active area sits on the glass, one board doesn't say: the glass and the ribbon move with it.
+PANEL_DX = -0.8
 SWITCH_TOP = 5.5            # the switches' tops from the board's back: calipers, 2026-11-03 (5.1-5.2 pressed)
 SWITCHES = ("SW1", "SW2", "SW3", "SW6", "SW7")
 
@@ -92,9 +97,9 @@ def board():
         extras=[((px - PLUG[0] / 2, px + PLUG[0] / 2, H - 2.7, H + PLUG[1], pz - PLUG[2] / 2, pz + PLUG[2] / 2), S.K.STEEL, "key port plug"),
                 ((px - KEYC[0] / 2, px + KEYC[0] / 2, H + KEYC_GAP, H + KEYC_GAP + KEYC[1], pz - KEYC[2] / 2, pz + KEYC[2] / 2),
                  (0.10, 0.25, 0.60), "key-c")],
-        glass=(15.0, up(26.1), 46.0, up(8.5)), glass_z=(1.5, 3.1),     # 1.5 mm tape (DESIGN.md), 1.6 mm glass
-        active=(17.0, up(24.73), 41.9, up(9.87)),
-        fold=(46.0, 46.5, up(23.0), up(13.9)),
+        glass=(15.0 + PANEL_DX, up(26.1), 46.0 + PANEL_DX, up(8.5)), glass_z=(1.5, 3.1),     # 1.5 mm tape (DESIGN.md), 1.6 mm glass
+        active=(17.0 + PANEL_DX, up(24.73), 41.9 + PANEL_DX, up(9.87)),
+        fold=(46.0 + PANEL_DX, 46.5 + PANEL_DX, up(23.0), up(13.9)),
         module=(30.0, 48.0, up(25.5), H), module_h=S.WROOM[2],
         buttons=[("SW1", "D0"), ("SW2", "D1"), ("SW3", "D2")], pins=[("SW6", "BOOT"), ("SW7", "RESET")],
         led=["D1", "D4"], usb="J1", usb_edge="bottom", dock_depth=50.0, dock_plug=20.0,
