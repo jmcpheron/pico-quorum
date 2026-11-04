@@ -26,6 +26,11 @@ TITLE, LABEL = "CEREMONY IMAGE", "PROVISION (quorum v1)"
 WELCOME = None
 ANIMATE = 16                # 16 ticks of 50 ms: a new frame every 0.8 s
 frame = 0
+# The screensaver: no key for this long and the screen goes black, backlight off (an LCD left on one
+# picture for hours keeps a ghost of it). Any key wakes it, and that press only wakes it.
+SAVER_MS = 120 * 1000
+dark = False
+last_key = 0
 STATE = {"factory": "FRESH: ready for PROVISION", "quorum-v1": "sealed or in progress: quorum v1",
          "quorum-v2": "branded or in progress: quorum v2", "quorum-v3": "branded or in progress: quorum v3",
          "quorum-tm1": "sealed: Trust M quorum-tm1", "quorum-tm1-open": "in progress: Trust M",
@@ -157,7 +162,10 @@ def tick(t):
     _busy = True
     try:
         pressed = keys.pressed()
-        if prov is not None:
+        pressed = saver(pressed)
+        if dark:
+            pass                    # the screensaver: nothing drawn until a key wakes it
+        elif prov is not None:
             if prov.tick(pressed) == "back":
                 prov = None
                 banner()
@@ -197,13 +205,55 @@ def tick(t):
         _busy = False
 
 
+def backlight(pct):
+    try:
+        d.backlight(pct)
+    except Exception:
+        pass
+
+
+def saver(pressed):
+    """The screensaver's part of a tick -> the keys still to handle (none while it is dark, nor for
+    the press that wakes it)."""
+    global dark, last_key
+    now = time.ticks_ms()
+    if pressed:
+        last_key = now
+        if dark:
+            dark = False
+            backlight(100)
+            redraw()
+            return []
+    elif not dark and time.ticks_diff(now, last_key) >= SAVER_MS:
+        dark = True
+        d.frames(_black)
+        backlight(0)
+    return pressed
+
+
+def _black():
+    d.fill(0)
+    d.show()
+
+
+def redraw():
+    """The screen the saver covered, drawn again."""
+    if prov is not None:
+        prov.dirty = True
+        prov.draw()
+    elif ui is None:
+        banner()
+    elif ui != "map" and hasattr(ui, "draw"):
+        ui.draw()
+
+
 def start_timer():
     global timer
     timer = board.timer("tick", 50, tick)
 
 
 def start():
-    global d, keys, sig
+    global d, keys, sig, last_key
     splash.TITLE = "ceremony"
     d = splash.begin()
     keys = L.Keys()
@@ -211,6 +261,7 @@ def start():
     sig = S.load(soft=False)
     identify()
     banner()
+    last_key = time.ticks_ms()
     start_timer()
 
 

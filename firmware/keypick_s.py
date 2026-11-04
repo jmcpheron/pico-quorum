@@ -354,7 +354,7 @@ class UI(setup_s.UI):
         blockies.draw(d, a, M, 33, side // 8)               # 96 px, under the Choose bar
         x = M + side + 8
         cw = W - 5 - x
-        U.txt(d, U.fit("Key %d" % self.tries if self.tries else "Your key", cw, "bold14"), x, 34, "bold14")
+        U.txt(d, U.fit("Your key", cw, "bold14"), x, 34, "bold14")     # no number: each key is new, not one of a list
         if spinning:
             U.txt(d, U.fit("\u2026", cw, "mono13"), x, 58, "mono13", "faint")
             rail(d, (None, None, None))

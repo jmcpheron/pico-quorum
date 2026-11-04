@@ -724,6 +724,51 @@ def case_three():
     fits("welcome", keypick_s.RAIL)
     import chipapp
     check(chipapp.WELCOME is None and not main_dual.__dict__.get("_q"), "the bench's banner unless the dual image sets WELCOME")
+    # the screensaver: 2 minutes with no key and the screen goes black, backlight off; the waking press does nothing else
+    import time
+    class P:
+        dirty, drawn = False, 0
+
+        def __init__(self):
+            self.seen = []
+
+        def tick(self, pr):
+            self.seen.append(list(pr))
+
+        def draw(self):
+            self.drawn += 1
+
+    class Q:
+        q = []
+
+        def pressed(self):
+            q, self.q = self.q, []
+            return q
+
+    cl, pv, kq, lit = Clock(), P(), Q(), []
+    old_bl = d.backlight
+    d.backlight = lit.append
+    chipapp.time, chipapp.d, chipapp.keys, chipapp.prov, chipapp.last_key, chipapp.dark = cl, d, kq, pv, 0, False
+    try:
+        cl.now = chipapp.SAVER_MS - 1000
+        chipapp.tick(None)
+        check(not chipapp.dark and not lit, "saver: not before 2 minutes")
+        cl.now = chipapp.SAVER_MS
+        chipapp.tick(None)
+        check(chipapp.dark and lit == [0], "saver: 2 minutes with no key, backlight off")
+        n = len(pv.seen)
+        cl.now += 3600 * 1000
+        chipapp.tick(None)
+        check(len(pv.seen) == n, "saver: the screen under it is not ticked while dark")
+        kq.q = ["D2"]
+        chipapp.tick(None)
+        check(not chipapp.dark and lit[-1] == 100 and pv.drawn and pv.seen[-1] == [], "saver: a key wakes it, and that press does nothing else")
+        kq.q = ["D2"]
+        chipapp.tick(None)
+        check(pv.seen[-1] == ["D2"], "saver: the next press reaches the screen")
+    finally:
+        chipapp.time, chipapp.prov, chipapp.dark = time, None, False
+        d.backlight = old_bl
     quorum_ui.txt = real
     check(not bad, "every word fits 240x135, right of the rail%s" % ("" if not bad else ": %r" % bad[:4]))
 
