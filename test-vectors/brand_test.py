@@ -596,7 +596,7 @@ def case_three():
     def pub(sim):
         return tuple(p256.pubkey(sim.keys[0])) if 0 in sim.keys else None
 
-    def walk_keys(ui, K, sim, make, test, label):
+    def walk_keys(ui, K, sim, make, test, label, sealed=0xFC):
         check(ui.kind(ui.c.step()) == "make" and 0 not in sim.keys, "%s: Make your key, slot 0 empty" % label)
         press(ui, K, "D2")
         seen = [pub(sim)]
@@ -623,7 +623,7 @@ def case_three():
         hold(ui, K, 3100)
         check(ui.c.slot0["locked"] and ui.done and pub(sim) == seen[-1] and ui.result is None,
               "%s: Keep held 3 s: tested and sealed, the key on the screen (counter 0 %d)" % (label, sim.counters[0]))
-        check(sim.cfg[88] == 0xFC, "%s: slots 0 and 1 sealed" % label)
+        check(sim.cfg[88] == sealed, "%s: slot 0 sealed (%02X)" % (label, sim.cfg[88]))
         press(ui, K, "D2")
         check(not ui.done and ui.kind(ui.c.step()) is None, "%s: D2 on Your key is ready: back to the steps (%s)" % (label, ui.c.step()))
 
@@ -649,14 +649,55 @@ def case_three():
     secrets(genkey=False)
     ui, K = setup(c)
     press(ui, K, "D2")
-    check(0 not in sim.keys and "ALLOW_GENKEY" in ui.why and c.step() == "S1", "ALLOW_GENKEY off: D2 makes nothing, and says why")
+    check(0 not in sim.keys and "ALLOW_GENKEY" in ui.need("make") and c.step() == "S1", "ALLOW_GENKEY off: D2 makes nothing, and says why")
     secrets(lock=False)
-    ui.why = ""
     press(ui, K, "D2")
     check(0 in sim.keys and c.step() == "S2", "ALLOW_GENKEY on: a key")
     press(ui, K, "D2")
     hold(ui, K, 3100)
-    check(not c.slot0["locked"] and "ALLOW_LOCK" in ui.why and sim.counters[0] == 0, "ALLOW_LOCK off: Keep held 3 s seals nothing, signs nothing")
+    check(not c.slot0["locked"] and "ALLOW_LOCK" in ui.need("keep") and sim.counters[0] == 0, "ALLOW_LOCK off: Keep held 3 s seals nothing, signs nothing")
+
+    # the owner's own key on a fresh chip, no brand: the dual image's ceremony (provision.py C1-C10)
+    import signer, provision
+    sys.path.insert(0, "/")
+    import main_dual
+    secrets(lock=False)
+    import signer, provision
+    atecc_sim._chip = None
+    fresh_chip("608c")
+    sim = atecc_sim.chip()
+    check(main_dual.which()[0] == "ceremony", "dual: a fresh chip -> its owner's own key")
+    c = provision.Ceremony(signer.ChipSigner())
+    ui, K = setup(c)
+    check(ui.kind(c.step()) == "start" and "ALLOW_LOCK" in ui.need("start"), "own key: Set up your key; ALLOW_LOCK off says so")
+    hold(ui, K, 3100)
+    check(c.step() == "C1" and sim.cfg[87] == 0x55, "ALLOW_LOCK off: Start held 3 s does nothing")
+    with open("secrets.py", "w") as f:              # the flags only: the screen keeps its signer module
+        f.write("ALLOW_LOCK = True\nALLOW_GENKEY = True\n")
+    sys.modules.pop("secrets", None)
+    hold(ui, K, 2000)
+    check(c.step() == "C1" and sim.cfg[87] == 0x55, "own key: Start let go at 2 s: nothing")
+    hold(ui, K, 3100)
+    check(c.step() == "C4" and sim.cfg[87] == 0x00 and ui.result is None, "own key: Start held 3 s: C1-C3, the table written and the config locked")
+    walk_keys(ui, K, sim, "C4", "C5", "own key", 0xFE)
+    check(sim.cfg[86] == 0x00 and c.step() == "C10", "own key: Keep ran on through C7-C9: the record, the data zone locked")
+    check(main_dual.which()[0] == "console", "dual: the sealed chip goes to the console")
+
+    # a chip with a table written and nothing locked (the brand bench's B2): set up as the owner's own
+    secrets()
+    atecc_sim._chip = None
+    fresh_chip("608c")
+    sim = atecc_sim.chip()
+    c, B = ceremony()
+    run(c, "B1")
+    run(c, "B2")
+    check(main_dual.which()[0] == "ceremony" and sim.cfg[87] == 0x55, "dual: a quorum v3 table written, config open -> its owner's own key")
+    import signer, provision
+    c = provision.Ceremony(signer.ChipSigner())
+    ui, K = setup(c)
+    tick(ui, K)                         # the banner's D2 let go: only then can a hold start
+    hold(ui, K, 3100)
+    check(c.step() == "C4" and sim.cfg[87] == 0x00, "own key over B2's table: C2 writes quorum v1 over it, C3 locks it")
 
     # the claim, on a key 0000 brand
     try:

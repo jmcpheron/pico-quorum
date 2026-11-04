@@ -333,7 +333,9 @@ screen shows the release fingerprint, to compare with the README's build table.
    console.
 
 On three buttons (PicoQuorumKey, the Feather; `firmware/keypick_s.py`), U2-U4 are one flow for the
-owner. **Make** (D2, one press) shows the new key's owner address as a big blockie and its two ends.
+owner. The same screens make an owner's own key with no brand at all: the dual image sends a fresh
+chip (or one whose config zone is still open) to `provision.py`'s C1-C10, where **Start** (D2 held
+3 s) runs C1-C3, Make/New/Keep are C4-C6, and Keep goes on through C7-C9 to the data lock. **Make** (D2, one press) shows the new key's owner address as a big blockie and its two ends.
 **New** (D0) makes another key, as many times as the owner likes; **Full** (D1) shows the whole
 address. **Keep** (D2) opens a red page: D2 held 3 s runs U3's test signatures and then U4's seal.
 There's no B+Y arm on this screen: one press for a key that can be made again, the held red page

@@ -281,11 +281,12 @@ class ChipSigner:
         return self.chip.counter(0)
 
     def needs_ceremony(self):
-        """A fresh chip, or quorum v1 with its data zone still open: main_dual.py's rule."""
+        """A fresh chip, any chip whose config zone is still open (a table written, nothing locked:
+        C2 writes quorum v1 over it), or quorum v1 with its data zone still open: main_dual.py's rule."""
         import chipcfg
         cfg = self.config()
         p = chipcfg.identify(cfg)
-        return p == "factory" or (p == "quorum-v1" and cfg[86] != 0x00)
+        return p == "factory" or cfg[87] != 0x00 or (p == "quorum-v1" and cfg[86] != 0x00)
 
     def details(self, row=None, counter=None):
         """The console's Chip page for an ATECC608: the part and its sealed slot."""

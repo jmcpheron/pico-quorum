@@ -209,6 +209,7 @@ class Ceremony:
 
     def c4(self):
         x, y = self.sig.genkey(0)
+        self.tested = False         # a new key: C5 again before any seal
         valid = self.chip.info(1, 0)[0] == 1
         try:
             self.chip.genkey_new(1)
