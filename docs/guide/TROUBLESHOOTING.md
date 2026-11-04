@@ -26,6 +26,7 @@ These screens sign nothing.
 
 | Screen | Meaning | What to do |
 |---|---|---|
+| **No key yet** | The chip has no key: its ceremony hasn't run | The organizer runs it ([PROVISIONING.md](../PROVISIONING.md)). A (D2 on three buttons) practises it here, writing nothing. |
 | **No Safe** | The board's `secrets.py` has no `QUORUM_SAFES` | [SETUP step 6](SETUP.md#6-point-the-console-at-your-safes) |
 | **Not pinned** | No `QUORUM_EXPECT` | `tools/fw pin` |
 | **Not the pinned key** / **Not a pinned chip** | The chip, slot or key isn't the one pinned. It shows what it found next to what is pinned. | The right chip back in; A checks again. A new chip gets `tools/fw pin` (and is a new owner on each Safe). |

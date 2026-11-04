@@ -276,12 +276,23 @@ function deviceCard(ui, a, st) {
     st.mode === "stopped" ? h("p", {}, badge("bad", "Stopped"), " The console didn't start. Its screen and error.log say why; tools/fw logs reads it in maintenance.") : null);
 }
 
+// The chip as the console read it at boot (status "chip"): its model and locks, in a line.
+export function chipFacts(c) {
+  if (!c || !c.model) return "";
+  const lock = (v, yes, no) => (v == null ? null : v ? yes : no);
+  return [String(c.model), lock(c.configLocked, "config locked", "config open"), lock(c.dataLocked, "data locked", "data open"),
+    c.keySealed ? "key slot sealed" : "key slot open"].filter(Boolean).join(" · ");
+}
+
 function keyCard(ui, a, st) {
   const { h, badge, ident } = ui;
+  const facts = chipFacts(st.chip);
   if (!st.owner) {
     return h("section", { class: "card" }, h("h2", { text: "Key" }),
       h("p", {}, badge("warn", "No key yet"), st.serial ? ` chip ${st.serial}` : " No chip answered."),
-      h("p", { class: "muted", text: "A new chip's key is made on the console itself, in the ceremony: see the pictures below. Nobody, this page included, ever sees the key." }));
+      facts ? h("p", { class: "small muted", "data-chip": "", text: facts }) : null,
+      h("p", { class: "muted", text: "The key is made in the ceremony, before the console is handed over: the ceremony image and tools/fw ceremony start, on a computer. Nobody, this page included, ever sees the key." }),
+      h("p", { class: "small", text: "To see how it goes, practise on the device: Practice on its No key screen, or Device then Practice. The ten steps, the arm and the holds, with its own buttons. It writes nothing to the chip." }));
   }
   return h("section", { class: "card" }, h("h2", { text: "Key" }),
     h("div", { class: "addr" }, ident(st.owner, 36),
@@ -290,7 +301,7 @@ function keyCard(ui, a, st) {
           st.pinned ? badge("ok", "Pinned") : badge("warn", "Not pinned"),
           st.counter != null ? badge("muted", `used ${st.counter} times`) : null),
         h("div", { class: "addr-line" }, h("code", { class: "mono", text: st.owner })))),
-    h("p", { class: "small muted", text: `Chip ${st.serial} (${st.profile}). The console shows this picture on its Key screen; it's a signer contract, not a wallet: never send funds to it.` }),
+    h("p", { class: "small muted", text: `Chip ${st.serial} (${st.profile}${facts ? `: ${facts}` : ""}). The console shows this picture on its Key screen; it's a signer contract, not a wallet: never send funds to it.` }),
     st.pinned ? null : h("p", { class: "small" }, "Not pinned: the console signs nothing until it is. ", h("code", { text: "tools/fw pin" }), " on the computer that set it up pins this chip."),
     st.key ? h("p", {}, h("a", { class: "btn", href: `#/k/${st.key}`, text: "Make it an owner of a Safe" }),
       " ", h("span", { class: "small muted", text: "Deploy its signer, then propose adding it." })) : null);
@@ -366,10 +377,11 @@ function practice(ui, board) {
       board ? `your ${boardName(board)}.` : "your device."),
     h("p", {}, h("a", { class: "btn", href: `../console/?board=${b}`, text: "Open the console in the browser" })),
     h("h3", { text: "How a new key is made: the ceremony" }),
-    h("p", { class: "small muted", text: "On a console with a new chip, the steps go like this. These are pictures of the real screens: nothing runs here, and no chip is asked anything." }),
+    h("p", { class: "small muted", text: "The organizer makes the key before the console is handed over, on the ceremony image. The steps go like this. These are pictures of the real screens: nothing runs here, and no chip is asked anything." }),
     h("ol", { class: "shots" }, ...CEREMONY.map(([f, cap]) => h("li", {},
       h("img", { src: `../quorum-ui/feather-setup/${f}.png`, alt: cap, loading: "lazy", width: "300", height: "135" }),
-      h("span", { class: "small", text: cap })))));
+      h("span", { class: "small", text: cap })))),
+    h("p", { class: "small muted", text: "To try the steps with the buttons, open Device, then Practice, on the console: in the browser or on the device. It writes nothing." }));
 }
 
 function hotspot(ui) {

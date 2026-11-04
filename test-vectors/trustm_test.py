@@ -24,7 +24,7 @@ def secrets(lock=True, genkey=True, extra=""):
         os.remove("build.py")
     except OSError:
         pass
-    for m in ("secrets", "build", "image", "signer", "provision", "provision_tm"):
+    for m in ("secrets", "build", "image", "signer", "ceremony_ui", "provision", "provision_tm"):
         sys.modules.pop(m, None)
 
 
@@ -499,7 +499,10 @@ def case_chip_pages():
     Q.knob("down")
     check(Q.dfoot == "wifi", "knob on Device: a turn chooses Wi-Fi")
     Q.knob("down")
+    check(Q.dfoot == "practice", "and the next, Practice")
+    Q.knob("down")
     check(Q.dfoot == "back", "and the next, Back")
+    Q.knob("up")
     Q.knob("up")
     Q.knob("up")
     Q.knob("press")

@@ -1,9 +1,9 @@
 # The ceremony's screen on the Feather ESP32-S3 (board "feather-s3", 240x135, lcd.THREE): the same
-# steps, checks and gates as provision.UI, on its three buttons. D0 is Y (back), D1 is B and D2 is
+# steps, checks and gates as ceremony_ui.UI, on its three buttons. D0 is Y (back), D1 is B and D2 is
 # A, so the arm is D0+D1 held 3 s together (the B+Y arm), and a permanent or GenKey step is D2 held
-# 3 s once armed, started with provision.ARM_LEFT of the arm to go. D2 is never part of the arm:
+# 3 s once armed, started with ceremony_ui.ARM_LEFT of the arm to go. D2 is never part of the arm:
 # landing it first could run a step nobody gated (C5's test signatures raise the counter). ALLOW_*,
-# the 60 s arm and the holds are provision.UI's own.
+# the 60 s arm and the holds are ceremony_ui.UI's own.
 # A rail down the left edge names what each button does, level with it (board.RAIL_Y), and fills
 # from the bottom while the arm or a hold runs. framebuf's 8 px font: 25 characters right of it.
 # On the knob Feather (board.DIAL) Boot is D0, the push D2 and a detent D1, and a turn can't be held:
@@ -12,8 +12,7 @@
 import time
 import board
 import lcd as L
-import provision
-import signer as S
+import ceremony_ui
 
 PRESSED = {"D0": "Y", "D1": "B", "D1L": "B", "D2": "A"}
 HELD = {"A": "D2", "B": "D1", "Y": "D0"}
@@ -49,7 +48,7 @@ def wrap(s, width):
 
 
 class _Keys:
-    """keys.held by the Pico's names, for provision.UI.tick: A is D2, B is D1, Y is D0, X is none."""
+    """keys.held by the Pico's names, for ceremony_ui.UI.tick: A is D2, B is D1, Y is D0, X is none."""
 
     def __init__(self, keys):
         self.keys = keys
@@ -58,7 +57,7 @@ class _Keys:
         return k in HELD and self.keys.held(HELD[k])
 
 
-class UI(provision.UI):
+class UI(ceremony_ui.UI):
     def __init__(self, d, keys, sig, theme="dark", ceremony=None):
         super().__init__(d, _Keys(keys), sig, theme, ceremony)
         self.knob = False
@@ -135,12 +134,12 @@ class UI(provision.UI):
         now = time.ticks_ms()
         fill = None
         if self.armhold is not None:
-            fill = (time.ticks_diff(now, self.armhold) / provision.ARM_MS, p["accent"])
+            fill = (time.ticks_diff(now, self.armhold) / ceremony_ui.ARM_MS, p["accent"])
         elif self.armdone:
             fill = (1, p["ok"])
         elif self.hold is not None:
-            fill = (time.ticks_diff(now, self.hold) / provision.HOLD_MS, p["bad"])
-        left = S.armed()
+            fill = (time.ticks_diff(now, self.hold) / ceremony_ui.HOLD_MS, p["bad"])
+        left = self.armed()
         if not gated:
             labels = ("Back", None, "Do")
             lines = [(DO + (": check" if st in c.FINAL else ": do it"), p["fg"])]
@@ -156,7 +155,7 @@ class UI(provision.UI):
         elif self.armnote:
             labels = ("Back", "Arm", None)
             lines = [("Let go early: not armed", p["bad"])]
-        elif 0 < left < provision.ARM_LEFT and self.hold is None:
+        elif 0 < left < ceremony_ui.ARM_LEFT and self.hold is None:
             labels = ("Back", "Arm", None)
             lines = [("Armed %d s: too little" % left, p["accent"]), ("Arm again: %s 3 s" % ARM, p["fg"])]
         elif left:

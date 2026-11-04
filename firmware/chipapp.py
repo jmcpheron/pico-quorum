@@ -125,8 +125,10 @@ def open_choice(what):
         if sig.name == "trustm":
             import provision_tm
             prov = ui_cls(d, keys, sig, chip["theme"], provision_tm.Ceremony(sig))
+        elif make_ui:
+            prov = make_ui(d, keys, sig, chip["theme"])
         else:
-            prov = (make_ui or ui_cls)(d, keys, sig, chip["theme"])
+            prov = ui_cls(d, keys, sig, chip["theme"], provision.Ceremony(sig))
         prov.draw()
     elif what == "map":
         import provision_tm

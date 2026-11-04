@@ -28,6 +28,7 @@ import { writeConfig } from "./config.mjs";
 writeConfig();
 const S = await import("./src/safe.mjs");
 const P = await import("./src/propose.mjs");
+const NS = await import("./src/newsafe.mjs");
 const { p256Owner } = await import("../tools/mock-tx-service/sigs.mjs");
 
 const DOCS = fileURLToPath(new URL("../docs/", import.meta.url));
@@ -53,7 +54,7 @@ const USDC = P.knownTokens(CHAIN_ID)[0].address;
 const chain = { owners: [who.alice.address, who.bob.address, who.carol.address], threshold: 2, nonce: 9, balance: parseEther("0.1"),
   deployed: new Set(), sent: new Map() };     // passkey signers deployed here; transactions sent, by hash
 const FACTORY = getAddress(S.CFG.signer.factory);
-const ABI = [...S.SAFE_ABI, ...P.ERC20_ABI, ...S.SIGNER_ABI];
+const ABI = [...S.SAFE_ABI, ...P.ERC20_ABI, ...S.SIGNER_ABI, ...NS.FACTORY_ABI];
 function ethCall({ to, data }) {
   const { functionName, args } = decodeFunctionData({ abi: ABI, data });
   const out = (v) => encodeFunctionResult({ abi: ABI, functionName, result: v });
@@ -67,6 +68,7 @@ function ethCall({ to, data }) {
       return out(S.safeTxHash(CHAIN_ID, SAFE, { to: to2, value, data: data2, operation, safeTxGas, baseGas, gasPrice, gasToken, refundReceiver, nonce }));
     }
   }
+  if (getAddress(to) === getAddress(NS.NEW_SAFE.factory) && functionName === "proxyCreationCode") return out("0x6080604052");
   if (getAddress(to) === FACTORY && functionName === "getSigner") return out(p256Owner(S.CFG.signer, args[0], args[1]));
   if (getAddress(to) === USDC) {
     if (functionName === "decimals") return out(6);
@@ -151,6 +153,10 @@ async function walletRequest({ method, params }) {
   if (method === "wallet_switchEthereumChain") return null;
   if (method === "eth_sendTransaction") {         // only the passkey factory's createSigner, as the chain here knows it
     const tx = params[0];
+    if (getAddress(tx.to) === getAddress(NS.NEW_SAFE.factory)) {   // a new Safe: kept to check, then declined
+      wallet.newSafe = { from: tx.from, ...decodeFunctionData({ abi: NS.FACTORY_ABI, data: tx.data }) };
+      throw { code: 4001, message: "User rejected the request." };
+    }
     const { functionName, args } = decodeFunctionData({ abi: S.SIGNER_ABI, data: tx.data });
     if (getAddress(tx.to) !== FACTORY || functionName !== "createSigner") throw { code: -32000, message: "the test chain only takes createSigner" };
     const hash = "0x" + createHash("sha256").update(tx.data + chain.sent.size).digest("hex");
@@ -198,6 +204,7 @@ const FAKE_SERIAL = ({ release, safe }) => {
   const say = (o) => dev.ctrl?.enqueue(enc.encode('{"pq":1,' + JSON.stringify(o).slice(1) + "\n"));
   const status = () => ({ mode: "console", name: "PicoQuorum", state: "home", ready: "ok", serial: "0123e063aa", profile: "608C",
     owner: "0x5FbDB2315678afecb367f032d93F642f64180aa3", key: "02" + "ab".repeat(32), pinned: true, pinWhy: "", counter: 3,
+    chip: { model: "<i>ATECC608C</i>", keySealed: true, configLocked: true, dataLocked: true },
     wifi: dev.wifi, safes: dev.safes, safesFrom: "safes.json", ask: dev.pending?.op || null, watchdog: true, image: "console", version: "2026.11.1" });
   function handle(m) {
     dev.got.push(m);
@@ -506,6 +513,22 @@ await step("a new key's set-up link (#/k/<compressed key>): compare, deploy from
   check(chain.sent.size === before + 1 && getAddress(tx.from) === who.mallory.address && tx.args[0] === BigInt("0x" + x) && tx.args[1] === BigInt("0x" + y) && tx.args[2] === BigInt(S.CFG.signer.verifiers),
     "#/k Deploy: any wallet sends createSigner(x, y, verifiers) for the uncompressed key, and it lands");
   await shot("9-key-setup");
+  // 2. Make a new Safe: the recovery address can't be an owner; the wallet is asked for the 1.4.1 factory's
+  // createProxyWithNonce, this wallet and the key 2 of 2, the setup batch the fork test runs (fork-newsafe.mjs)
+  await page.fill("#recovery", who.mallory.address);
+  await page.getByRole("button", { name: "Make the Safe" }).click();
+  await page.getByText(/can't be an owner/).waitFor();
+  check(!wallet.newSafe, "New Safe: the connected wallet as its recovery address is refused, nothing asked of the wallet");
+  await page.fill("#recovery", DAVE);
+  await page.getByRole("button", { name: "Make the Safe" }).click();
+  await page.getByText("You declined in your wallet. Nothing was sent.").waitFor();
+  const ns = wallet.newSafe, want = NS.initializer(who.mallory.address, owner, DAVE, BigInt("0x" + x), BigInt("0x" + y));
+  check(ns && getAddress(ns.from) === who.mallory.address && ns.functionName === "createProxyWithNonce" && getAddress(ns.args[0]) === getAddress(NS.NEW_SAFE.singleton)
+    && ns.args[1] === want && ns.args[2] === NS.NEW_SAFE.saltNonce, "New Safe: the wallet is asked for createProxyWithNonce(SafeL2 1.4.1, the setup for this wallet, the key and the recovery address)");
+  const setup = decodeFunctionData({ abi: NS.SETUP_ABI, data: ns.args[1] });
+  check(setup.args[0].map((a) => getAddress(a)).join() === [who.mallory.address, owner].join() && setup.args[1] === 2n && getAddress(setup.args[2]) === getAddress(NS.NEW_SAFE.setupBatch),
+    "New Safe: its owners are the wallet and the key, 2 of 2, set up through MultiSendCallOnly 1.5.0");
+  delete wallet.newSafe;
   await page.goto(`${BASE}app/#/signer`);
   await page.fill("#signer-key", `https://picoquorum.app/app/#/k/${comp}`);
   await page.getByRole("button", { name: "Show its signer" }).click();
@@ -534,6 +557,8 @@ await step("#/device: a console on USB, its cards, a Safes ask accepted on it, a
   check(true, "#/device: the device's release fingerprint matches the console page's");
   check(await page.locator('a[href="#/k/02' + "ab".repeat(32) + '"]').count() === 1, "#/device: the key's card links to its set-up page (#/k/<key>)");
   check((await page.locator("main").innerText()).includes("<b>Ops</b>"), "#/device: a Safe's name from the device is drawn as text");
+  check((await page.locator("main").innerText()).includes("<i>ATECC608C</i> · config locked · data locked · key slot sealed"),
+    "#/device: the chip's model and locks, as the console read them at boot, drawn as text");
   await shot("device-connected");
 
   await page.locator(".checks input").first().check();

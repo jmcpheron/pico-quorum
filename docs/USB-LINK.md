@@ -33,7 +33,7 @@ printed between two pieces can land inside an answer; the host then skips that a
 | `op` | What it does | Answer |
 |---|---|---|
 | `hello` | names the console | `proto`, `mode` (`console`, `setup` or `stopped`), `board`, `image`, `version`, `release` (the fingerprint), `build` |
-| `status` | what it knows now | the console: `state`, `ready`, `serial`, `profile`, `owner`, `key` (compressed), `pinned`, `pinWhy`, `counter`, `watchdog`, `wifi` {`up`, `ssid`, `saved`}, `safes` [{`chainId`, `address`, `name`, `ok`, `threshold`, `owners`, `nonce`, `isOwner`, `queued`, `waiting`}], `safesFrom`. In Wi-Fi setup: `hotspot`, `view`, `joining`, `result`, `msg`, `wifi` |
+| `status` | what it knows now | the console: `state`, `ready`, `serial`, `profile`, `owner`, `key` (compressed), `pinned`, `pinWhy`, `counter`, `chip` {`model`, `configLocked`, `dataLocked`, `keySealed`, as read at boot}, `watchdog`, `wifi` {`up`, `ssid`, `saved`}, `safes` [{`chainId`, `address`, `name`, `ok`, `threshold`, `owners`, `nonce`, `isOwner`, `queued`, `waiting`}], `safesFrom`. In Wi-Fi setup: `hotspot`, `view`, `joining`, `result`, `msg`, `wifi` |
 | `wifi` | asks to save a network: `ssid`, `pass` (`wificfg.check`'s rules) | after the person decides |
 | `safes` | asks to watch 1 to 4 Safes: `safes` [{`chainId`, `address`, `name`}] | after the person decides |
 | `maint` | asks to restart into maintenance | after the person decides |

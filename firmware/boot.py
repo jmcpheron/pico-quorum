@@ -77,7 +77,7 @@ def _normal_boot():
         _ssid = net.ssid()
 
         def _spin(ms):
-            splash.spin("wifi", ("join " + _ssid)[:12] + (" press skips" if lcd.KNOB else " A skips") if _ssid else "no Wi-Fi saved")
+            splash.spin("wifi", ("join " + _ssid)[:12] + (" press skips" if lcd.KNOB else " any button skips") if _ssid else "no Wi-Fi saved")
             return bool(_keys.pressed())
     except Exception as e:
         print("boot screen:", e)
