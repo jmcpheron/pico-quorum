@@ -4,8 +4,9 @@
 and the board, routed (DRC). The fab files for JLCPCB are in [console-rp/fab/](console-rp/fab/) and
 pass `tools/keypcb jlc console-rp`. Two real panels were checked against J2 ([The panel](#the-panel)).
 Five ordered from JLCPCB on 2026-10-29, fully assembled
-([the order](../../buildlog/2026-10-29-console-rp-order.md)). Not built yet, and the firmware it
-needs is not written.*
+([the order](../../buildlog/2026-10-29-console-rp-order.md)), and received on 2026-11-04. The first
+one is up on a bench script ([bench/BRINGUP.md](bench/BRINGUP.md)); the console's firmware for it is
+not written yet.*
 
 ![console-rp from above: a warning triangle and EXPERIMENTAL HARDWARE COSIGNER over the 1.14-inch screen at the top left, PicoQuorum console-rp under it, and D0, D1 and D2 in a row below that; the flash, the RP2350, the crystal, the CH343P, and the key chip with an 8-bit key pointing at it, to its right; the USB-C on the right edge, RESET and BOOTSEL at the bottom right, and the bench header's holes along the top](renders/console-rp-top.jpg)
 
@@ -261,8 +262,9 @@ An outside review on 2026-10-29 found these, all left as they are for the first 
    JLCPCB's RP2350 design guide asks for Raspberry Pi's layout, the AOTA inductor with a silkscreen
    mark for its way round, and the ABM8-272-T3: the board has all three. Its offer of a review
    with Raspberry Pi means sending them the files; we don't.
-3. **Bring one up:** 3.3 V first. Hold BOOTSEL, press RESET, and copy the Pico 2 MicroPython image
-   over J3's USB (or use SWD). Then bench scripts for the screen, buttons and key.
+3. **Bring one up.** Done for the first board on 2026-11-04, over SWD: J3's USB wasn't seen by the
+   Mac. Everything checked out, J3's USB aside. [bench/BRINGUP.md](bench/BRINGUP.md) has how it was
+   loaded, what was checked, and the ways to load boards in numbers.
 4. **The firmware and the relay.** A `console-rp` profile: the QT Py's footer screens at 240 × 135
    (`claude/qtpy-cosigner`, PR #91), these pins, and the link on UART1. The relay is a new network
    path and part of the app, so it needs a yes before it's built.

@@ -217,6 +217,8 @@ def main():
     print("console-rp bring-up")
     for l in b + k:
         print("  " + l)
+        if link:
+            link.write("fact: %s\r\n" % l)    # a fixture on the USB-C logs each board's chip and key
     prev = [False] * 3
     all_since = None
     t_link = time.ticks_ms()
