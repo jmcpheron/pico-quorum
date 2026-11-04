@@ -43,10 +43,12 @@ def identify():
 
 def choices():
     """The banner's entries: (label, what). The ATECC's chip map is button-driven, so on the knob
-    and the Feather only a Trust M's read-only object map is offered next to PROVISION. The brand
-    bench and the claim (make_ui, brand_ui.py) aren't on three buttons yet."""
+    and the Feather only a Trust M's read-only object map is offered next to PROVISION. On three
+    buttons the brand bench and the claim (make_ui) run on setup_s's screen, the owner's key on
+    keypick_s's; not on the knob Feather yet."""
     if L.THREE and make_ui:
-        return []
+        import board
+        return [] if board.DIAL else [(LABEL, "prov")]
     tm = sig is not None and sig.name == "trustm"
     out = [("PROVISION (Trust M)" if tm else LABEL, "prov")]
     if tm:

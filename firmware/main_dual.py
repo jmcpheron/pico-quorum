@@ -84,6 +84,9 @@ def run():
         import claim
         import brand_ui
         chipapp.make_ui = lambda d, keys, sig, theme: brand_ui.UI(d, keys, sig, theme, claim.Ceremony(sig))
+        if lcd.THREE and lcd.BOARD != "feather-knob":   # three buttons: U1 and U5 on setup_s's screen, the key on keypick_s's
+            import keypick_s
+            chipapp.make_ui = lambda d, keys, sig, theme: keypick_s.UI(d, keys, sig, theme, claim.Ceremony(sig))
         chipapp.TITLE, chipapp.LABEL = "NEW KEY", "CLAIM (make your key)"
         chipapp.start()
     else:

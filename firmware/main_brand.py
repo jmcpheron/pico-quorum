@@ -29,6 +29,9 @@ try:
         import brand
         import brand_ui
         chipapp.make_ui = lambda d, keys, sig, theme: brand_ui.UI(d, keys, sig, theme, brand.Ceremony(sig))
+        if lcd.THREE and lcd.BOARD != "feather-knob":   # three buttons: setup_s's steps, the spare's key on keypick_s's
+            import keypick_s
+            chipapp.make_ui = lambda d, keys, sig, theme: keypick_s.UI(d, keys, sig, theme, brand.Ceremony(sig))
         chipapp.TITLE, chipapp.LABEL = "BRAND BENCH", "BRAND (quorum v3, spare)"
         chipapp.start()
 except Exception as e:
