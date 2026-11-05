@@ -15,6 +15,7 @@ before relying on it. The design is in [KICKOFF.md](KICKOFF.md), the per-chain t
 | **picoquorum.app** | Jason | The site, on GitHub Pages (`docs/CNAME`; DNS at Porkbun). The old address, https://jmcpheron.github.io/pico-quorum/, redirects to it. |
 | **picoquorum.com, .org, .dev** | Jason | Redirects to picoquorum.app only. They never serve the site: a passkey belongs to the domain that made it, so a console served from two domains would split its passkeys. |
 | **GitHub** | [jmcpheron/pico-quorum](https://github.com/jmcpheron/pico-quorum) | Public from 2026-10. Releases are SSH-signed tags ([RELEASES.md](RELEASES.md)). |
+| **X** | [@picoquorum](https://x.com/picoquorum) | The project's account, from 2026-11. Linked from the site's header and footer. |
 
 The plan for the name ([GOVERNANCE.md](GOVERNANCE.md#ens)): once the project Safe exists, make it
 the name's owner and manager, and set `addr` (Ethereum and Base) to the Safe and `url` to

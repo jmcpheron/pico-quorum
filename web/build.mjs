@@ -50,7 +50,7 @@ writeFileSync(join(OUT, "index.html"), readFileSync(join(HERE, "src/index.html")
 copyFileSync(join(HERE, "src/home.css"), join(OUT, "../home.css"));
 writeFileSync(join(OUT, "../index.html"), readFileSync(join(HERE, "src/home.html"), "utf8").replace("%%HOME_CSS_SRI%%", sri("../home.css")));
 
-// The handheld's page (docs/handheld/), for links from social posts: static like the front page, with
+// The handheld's page (docs/handheld/), kept for links already shared: static like the front page, with
 // the case's own assembly pictures and its share card (web/handheld-card.py), and the front page's
 // pictures of the other hardware. All copied as they are, so a picture's source is its only copy.
 const CASE = "../hardware/builds/pico-sign-handheld/case/out/assembly/";
@@ -61,7 +61,7 @@ const pictures = {
   "../handheld/card.png": "src/handheld-card.png",
   ...Object.fromEntries(steps.map((s) => [`../handheld/img/${s}.png`, `${CASE}${s}.png`])),
   "../img/key-c.jpg": "../hardware/key-pcb/key-c-usbc/renders/key-c-P2-3q-top.jpg",
-  "../img/console-s3.jpg": "../hardware/console-s3/renders/console-s3-3q-top.jpg",
+  "../img/console-rp.jpg": "../hardware/console-rp/renders/console-rp-3q.jpg",
 };
 mkdirSync(join(OUT, "../handheld/img"), { recursive: true });
 mkdirSync(join(OUT, "../img"), { recursive: true });

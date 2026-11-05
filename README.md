@@ -13,6 +13,7 @@
 
 <p align="center">
   <a href="https://picoquorum.app/"><img alt="Website" src="https://img.shields.io/website?url=https%3A%2F%2Fpicoquorum.app%2F&label=site&up_message=live&up_color=34C759&labelColor=0B0D11"></a>
+  <a href="https://x.com/picoquorum"><img alt="Follow @picoquorum on X" src="https://img.shields.io/badge/X-%40picoquorum-F2F4F7?logo=x&logoColor=F2F4F7&labelColor=0B0D11"></a>
   <a href="https://picoquorum.app/console/"><img alt="Try the console in your browser" src="https://img.shields.io/badge/console-try%20it%20in%20your%20browser-7A92FF?labelColor=0B0D11"></a>
   <a href="https://github.com/jmcpheron/pico-quorum/actions/workflows/site-check.yml"><img alt="Site check: GitHub Pages serves exactly this source" src="https://github.com/jmcpheron/pico-quorum/actions/workflows/site-check.yml/badge.svg"></a>
   <a href="https://github.com/jmcpheron/pico-quorum/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/jmcpheron/pico-quorum/actions/workflows/ci.yml/badge.svg"></a>
