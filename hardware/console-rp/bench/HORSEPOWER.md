@@ -1,11 +1,12 @@
 # console-rp: how much there is to work with
 
 Measured on the first board on 2026-11-04, on the stock Pico 2 MicroPython 1.26.1 at the RP2350's
-default 150 MHz. Two bench scripts in this folder did it. Neither opens the key's bus.
+default 150 MHz. Bench scripts in this folder did it. None opens the key's bus.
 - `horsepower.py`: the CPU, the heap, the Safe hash, drawing, SPI1, DMA, and five kinds of animation.
 - `pio_screen.py`: the screen driven by PIO instead of SPI1.
+- `linkbench.py`, with `linkhost.py` on the computer: the link on UART1 at 460800 (below).
 
-Both ran through `rawrepl.py`. `put.py` copied `keccak.py`, `safe_tx.py`, `qf_bold18.bin` and
+All ran through `rawrepl.py`. `put.py` copied `keccak.py`, `safe_tx.py`, `qf_bold18.bin` and
 `qf_sans14.bin` from `firmware/` onto the board first. Each number is a mean of 3 to 20 runs.
 
 ## In short
@@ -140,6 +141,48 @@ The person at the bench kept FX1 and FX3, and `hackui.py` uses them as two meani
   intro, and Rejected. Harder for a red page. Page turns get a short one.
 - **FX3 lock: worked out here, and checked.** The verify code, a key's owner address, Signed and
   Sealed.
+
+## The link on UART1, at 460800
+
+Measured on 2026-11-04 with `linkbench.py` on the board and `linkhost.py` on the Mac, before
+`link.py` was written. UART1 ran 8N1 at 460800 through the CH343P, with no flow control: its RTS and
+CTS go nowhere. The computer sent lines of 1, 16 and 40 KB, each holding its own CRC-32. Each size was
+sent three times, while the board was doing one of three things.
+
+| while the line arrived | rxbuf 4 KB | rxbuf 16 KB | rxbuf 24 or 32 KB |
+|---|---|---|---|
+| reading it (`any`, `readinto`) | every line whole, 40 KB too | every line whole | every line whole |
+| hashing (`safe_tx_hash` in a loop, never reading) | whole up to 4 KB; the rest lost | whole up to 16 KB | whole up to the rxbuf |
+| writing flash (littlefs, 4 KB at a time) | 32-124 bytes of any line | 32-170 bytes | not tried |
+
+- **Reading keeps up.** A Python loop on `readinto` takes 460800 with no loss, so a line can be
+  far longer than the rxbuf as long as the board is reading it.
+- **What arrives while the board is busy waits in the rxbuf.** The ring buffer keeps its first rxbuf
+  bytes plus the FIFO's 32, and loses the rest. MicroPython 1.26.1 on the RP2350 refuses more than
+  32766 bytes ("rxbuf too large").
+- **Writing flash loses the line.** The RP2350 stops interrupts while it erases and programs, and
+  then only the UART's 32-byte FIFO catches what comes. A 1 KB line kept 32 bytes, even with a 16 KB
+  rxbuf.
+- **The other way is clean.** The board wrote lines of 1, 16 and 40 KB, all whole. A 40 KB line took
+  804 ms; a 4 KB txbuf holds the tail.
+
+**The double parse.** A 40 KB Safe queue answer (32 transactions) wrapped as the relay sends it, a
+43.6 KB line:
+- the envelope parses in 241 ms;
+- its body in 108 ms;
+- 90 KB of heap goes while both exist;
+- the parsed queue that stays is 12 KB.
+
+**What `link.py` takes from this:**
+- 460800 is fine.
+- rxbuf 16 KB: an ask that comes in while the board is hashing is kept.
+- Lines up to 48 KB, read into one buffer allocated at start.
+- **Nothing writes flash while a request waits for its answer.**
+- The computer must ask again when an ask gets no answer: one that lands while the board writes its
+  log is lost.
+
+The heap with the whole console imported waits for the console-rp profile: today's console imports
+`network`, and this MicroPython has none.
 
 ## What this means for the console
 
