@@ -14,9 +14,11 @@
 <meta property="og:description" content="A small console that is one owner of a Safe multisig. It shows what a transaction does, works out the hash itself, and signs with a key that never leaves its chip.">
 <meta property="og:image" content="https://picoquorum.app/quorum-ui/shots/51-trustm-home.png">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:site" content="@picoquorum">
 <title>PicoQuorum · Hardware approvals for Safe</title>
 <link rel="icon" href="brand/mark-dark.svg" type="image/svg+xml">
-<link rel="stylesheet" href="home.css" integrity="sha384-e1cBXxu99xgHuEqlJQXyiO3WVju4Ei4YxjnwG5b0TRCQq6o/2GzIN2IvcLg7rZSR">
+<link rel="me" href="https://x.com/picoquorum">
+<link rel="stylesheet" href="home.css" integrity="sha384-H85EAoT9EUTGCgvA3hA1Vs+wUATy/sie9sVEpDfap1BqzzC/crPqKdqjK281egos">
 </head>
 <body>
 <header class="top">
@@ -28,11 +30,11 @@
     <span>PicoQuorum</span>
   </a>
   <nav aria-label="Main">
-    <a href="guide/">Guide</a>
-    <a href="app/#/keys">Keys</a>
+    <a href="https://github.com/jmcpheron/pico-quorum/blob/main/docs/guide/README.md">Guide</a>
+    <a href="#hardware">Hardware</a>
     <a href="console/">Console</a>
-    <a href="handheld/">Handheld</a>
     <a href="https://github.com/jmcpheron/pico-quorum">Source</a>
+    <a href="https://x.com/picoquorum" aria-label="PicoQuorum on X">X</a>
   </nav>
   <a class="btn go" href="app/">Launch app</a>
 </header>
@@ -40,13 +42,13 @@
 <main>
   <section class="hero">
     <div class="hero-text">
-      <a class="announce" href="handheld/"><span class="tag">New</span> The PicoQuorum Handheld, and how to build it <span aria-hidden="true">→</span></a>
+      <a class="announce" href="#hardware"><span class="tag">New</span> console-rp, the first board is up <span aria-hidden="true">↓</span></a>
       <p class="eyebrow">Hardware approvals for Safe</p>
       <h1>Several people, several keys, one&nbsp;Safe.</h1>
       <p class="lede">PicoQuorum is a small approval console for Safe multisig wallets. It shows what a transaction does on its own screen, works out the hash itself, and signs with a key that never leaves its chip, only when you hold Sign.</p>
       <div class="cta">
         <a class="btn go big" href="app/">Launch app <span aria-hidden="true">→</span></a>
-        <a class="btn big" href="guide/">Read the owner's guide</a>
+        <a class="btn big" href="https://github.com/jmcpheron/pico-quorum/blob/main/docs/guide/README.md">Read the owner's guide</a>
         <a class="btn big" href="console/">Try the console in your browser</a>
       </div>
       <p class="muted small">The app runs in your browser: open any Safe, check every confirmation, and execute. It holds no key.</p>
@@ -61,7 +63,7 @@
     <ol class="steps">
       <li><span class="n">1</span><h3>Someone proposes</h3><p>In Safe{Wallet} or anywhere else. The transaction waits in Safe's queue for the owners.</p></li>
       <li><span class="n">2</span><h3>The console reads it</h3><p>It decodes the call into plain language, with red pages for anything that changes who controls the Safe, and computes the Safe transaction hash from the fields it shows.</p></li>
-      <li><span class="n">3</span><h3>You hold Sign</h3><p>The plug-in key, a secure element on a small USB-C board, signs the hash the console computed. It owns the Safe through Safe's audited passkey signer. No seed phrase exists.</p></li>
+      <li><span class="n">3</span><h3>You hold Sign</h3><p>The key, a secure element on the console's board or plugged in over USB-C, signs the hash the console computed. It owns the Safe through Safe's audited passkey signer. No seed phrase exists.</p></li>
       <li><span class="n">4</span><h3>Execute in the app</h3><p>Every confirmation is checked in your browser, the signatures are laid out the way the Safe expects, and your wallet sends it.</p></li>
     </ol>
   </section>
@@ -76,27 +78,19 @@
     </div>
   </section>
 
-  <section>
+  <section id="hardware">
     <h2>What we're building</h2>
     <ul class="hw">
       <li>
-        <a href="handheld/"><img src="handheld/card.png" width="1200" height="630" loading="lazy" alt="The handheld's four-colour front plate, and the back of the case with the key's cartridge sliding into its bay."></a>
-        <div><span class="state">New · designed, not printed yet</span><h3><a href="handheld/">PicoQuorum Handheld</a></h3><p>A Pico 2 W, a 2.4″ screen, a knob and a covered Sign button in a printed case. The key is a cartridge that slides into the back. Sixteen steps to build it.</p></div>
+        <img src="img/console-rp.jpg" width="1568" height="872" loading="lazy" alt="console-rp: a 1.14-inch screen at one end, D0, D1 and D2 in a row under it, the RP2350 and the key chip beside it, and a USB-C at the other end.">
+        <div><span class="state ok">First board up, 2026-11-04</span><h3><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/console-rp/README.md">console-rp, the console to build on</a></h3><p>An RP2350 with no radio, a 1.14″ screen, three buttons and the ATECC608C on the board. Its USB-C reaches only a serial chip: the computer passes on Safe's queue and can't reach the firmware. Five boards from JLCPCB; the first answered on every part. The console's firmware for it is next, then rev B, a square board for a run.</p></div>
       </li>
       <li>
         <img src="img/key-c.jpg" width="1000" height="768" loading="lazy" alt="key-c P2: a small board with a USB-C receptacle at one end and the secure element in the middle.">
-        <div><span class="state ok">Built, on the bench</span><h3><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/key-pcb/key-c-usbc/README.md">key-c, the USB-C key</a></h3><p>An ATECC608C behind a USB-C receptacle, 16 × 36 mm. Boards from JLCPCB; the first one sealed through the key ceremony on 2026-10-22.</p></div>
-      </li>
-      <li>
-        <img src="img/console-s3.jpg" width="1600" height="844" loading="lazy" alt="console-s3: a long thin board with a small screen in the middle and buttons at each end.">
-        <div><span class="state">Ordered 2026-10-24</span><h3><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/console-s3/DESIGN.md">console-s3, the first console board</a></h3><p>An ESP32-S3 module, a 1.14″ screen, five buttons and the secure element soldered on, 64 × 23 mm. Five boards on the way.</p></div>
-      </li>
-      <li>
-        <img class="px" src="quorum-ui/feather/01-home.png" width="786" height="405" loading="lazy" alt="The console's home screen on the Feather's small landscape screen.">
-        <div><span class="state ok">Runs today</span><h3><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/wiring/FEATHER-S3.md">The console on ESP32-S3</a></h3><p>The same console image on an Adafruit Feather ESP32-S3 Reverse TFT, with Wi-Fi setup on the device and a key-c on its pins.</p></div>
+        <div><span class="state ok">Built, on the bench</span><h3><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/key-pcb/key-c-usbc/README.md">key-c, the USB-C key</a></h3><p>An ATECC608C behind a USB-C receptacle, 16 × 36 mm: a key you carry and plug in. Boards from JLCPCB; the first one sealed through the key ceremony on 2026-10-22.</p></div>
       </li>
     </ul>
-    <p class="small muted">Every build and board, and where each stands: <a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/README.md#every-configuration">hardware/README.md</a>.</p>
+    <p class="small muted">The console also runs on a Raspberry Pi Pico 2 W and on ESP32-S3 boards, with their own Wi-Fi. Every build and board, and where each stands: <a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/README.md#every-configuration">hardware/README.md</a>.</p>
   </section>
 
   <section class="split">
@@ -141,14 +135,14 @@
         <li>Next: Ethereum mainnet, with a fresh Trust M as one owner of a 3-of-5</li>
       </ul>
       <p class="warn-note"><strong>Experimental.</strong> Early design. Use a testnet first and small amounts on mainnet. The Safe's threshold is the real control.</p>
-      <p class="small"><a href="https://github.com/jmcpheron/pico-quorum/blob/main/docs/LADDER.md">The test ladder</a> · <a href="mainnet/">Mainnet notes</a> · <a href="https://github.com/jmcpheron/pico-quorum/blob/main/docs/SECURITY.md">Security model</a> · <a href="BRAND.html">Brand</a></p>
+      <p class="small"><a href="https://github.com/jmcpheron/pico-quorum/blob/main/docs/LADDER.md">The test ladder</a> · <a href="https://github.com/jmcpheron/pico-quorum/blob/main/docs/mainnet/README.md">Mainnet notes</a> · <a href="https://github.com/jmcpheron/pico-quorum/blob/main/docs/SECURITY.md">Security model</a> · <a href="BRAND.html">Brand</a></p>
     </div>
   </section>
 </main>
 
 <footer>
-  <p>PicoQuorum is inspired by and built on <a href="https://github.com/austintgriffith/picowallet">picowallet</a> by Austin Griffith (MIT). Runs on Raspberry Pi Pico 2 W and ESP32-S3.</p>
-  <p class="muted">Hardware approvals for Safe · <a href="https://github.com/jmcpheron/pico-quorum">Source</a> · <a href="https://github.com/jmcpheron/pico-quorum/blob/main/docs/README.md">All the docs</a></p>
+  <p>PicoQuorum is inspired by and built on <a href="https://github.com/austintgriffith/picowallet">picowallet</a> by Austin Griffith (MIT). Runs on Raspberry Pi Pico 2 W and ESP32-S3, and next on console-rp (RP2350).</p>
+  <p class="muted">Hardware approvals for Safe · <a href="https://github.com/jmcpheron/pico-quorum">Source</a> · <a href="https://github.com/jmcpheron/pico-quorum/blob/main/docs/README.md">All the docs</a> · <a href="https://x.com/picoquorum">@picoquorum on X</a></p>
 </footer>
 </body>
 </html>

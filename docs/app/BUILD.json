@@ -2,16 +2,16 @@
   "note": "SHA-256 of every file web/build.mjs wrote (../ is docs/, the front page). Rebuild from the same commit (cd web && npm ci && npm run build) and compare.",
   "build": "dd91982b",
   "files": {
-    "index.html": "891e360dbe2147f110d1ddb23f0d64c84e0a2c73bcce2311c0cd2d757430da8e",
+    "index.html": "e76109efe3639084aa8f15470b6a8126e4f96ec41a14d7eba3d54121c74e01a3",
     "app.js": "dd91982bf69205091faab3b2e05e4343e02a5098657150c27b75208aa7fe7557",
     "app.css": "6664252165308dc0339205b0409f8bf3751e48c328005cfc224a57257421a4b5",
     "fonts/next-400.woff2": "5cb240a4d99ab7e6fc3a4d4e6d11d89789fdffe9c86a8384000d662c53283f6f",
     "fonts/next-700.woff2": "0dbe07ed7679407db9d90f747d5ca3bd1b2bb7ccbcbe41c8246cfc6d2c7bc3bc",
     "fonts/mono-500.woff2": "49efe8526ea1da079582132fcb83555b975ef79129bbf0ff669e103ed162f81f",
     "fonts/mono-700.woff2": "f30319aa2ab224c5a19d177617e2141b002fcb95c1afe233214f9d342e47687d",
-    "../index.html": "221e495d5945314f84af4cb219aa3d3d91982d4625278d6f03822b9a6d4f1945",
-    "../home.css": "d199ab6f99f7b3721216ea6736799a03a2030b9e2d741e7bdadecab7ee3c2757",
-    "../handheld/index.html": "c2415e03d4f6f7933d95a32c6b078fe65d9a57d26f3f3b0008fd588f900c7473",
+    "../index.html": "d848b2d23897952fd1dba5b5d5898d787e713095dfe22b88ceaad3341a660824",
+    "../home.css": "472b93026af165c406b3ec154e247635fc6a11c08675e091a095e7f513c99b2d",
+    "../handheld/index.html": "0754d696bd826b99c9e425148e55d027e358ad57ac48c32ece413fa2d78618fe",
     "../handheld/card.png": "7915ad10d1ee12b9b6f8e7c6944aca10b3563b833cdbbc86190d7351a696e3f1",
     "../handheld/img/00-colours.png": "718b8e6bce3b7f5f757a24acf8145804883a39cdf59d148e4da6a5a76be2ba64",
     "../handheld/img/00-exploded.png": "78aa1e8e65214656a43d6b6a7dc483b877706c2e6a74f03b76cd271bde877081",
@@ -34,6 +34,6 @@
     "../handheld/img/15-key.png": "6361ceedc5f910313a8e3621bba9627d864e1e36ecec291fbfaf8250fd20bffe",
     "../handheld/img/16-done.png": "2677b734321ffc70ca7e39dc2f1e638de491e07fb9d7a377a65c89664dd6f2c5",
     "../img/key-c.jpg": "0a86ec6af9644857dcb9aa06dd04b1c480ee3c607f4fff6ca5bd2c4552b74980",
-    "../img/console-s3.jpg": "7355015fbb5707decfbb14f065bd4f13af736f0378ecbccf0a61e3f173b10dc5"
+    "../img/console-rp.jpg": "67387cf73f9de6fb2068b64ff62ebcfb04b1fd965152a094b001ecf981ac53f3"
   }
 }

@@ -135,4 +135,4 @@ checked against the roots built into the image.
 - [ ] `tools/fw backup`, then copy the backup somewhere outside the repo (it holds `secrets.py`).
 - [ ] The Safe has another owner besides the console.
 - [ ] One small approval end to end on each chain: propose it in the web app, approve it on the
-      console, then `tools/quorum live exec`.
+      console, then execute it in [the PicoQuorum app](https://picoquorum.app/app/).

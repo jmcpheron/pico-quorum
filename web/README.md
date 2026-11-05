@@ -3,11 +3,13 @@
 Three static pages, served by GitHub Pages from `docs/`:
 
 - **The front page**, `docs/index.html` (from `src/home.html` and `src/home.css`): what PicoQuorum is,
-  how an approval goes, the console's screens, where it stands, and a big green **Launch app**.
-  No script.
+  how an approval goes, the console's screens, the hardware being built, where it stands, and a big
+  green **Launch app**. No script. Its header (Guide, Hardware, Console, Source, X) is the same on
+  the handheld's page and the console page (`emu/console/index.html`); Guide goes to the guide on
+  GitHub, since Pages would draw `docs/guide/` with Jekyll's default theme.
 - **The handheld's page**, `docs/handheld/` (from `src/handheld.html` and the same `home.css`): the
-  [PicoQuorum Handheld](../hardware/builds/pico-sign-handheld/README.md) and its 16 assembly steps, for
-  links from social posts. No script. Its pictures are copied from the case's `out/assembly/`, and its
+  [PicoQuorum Handheld](../hardware/builds/pico-sign-handheld/README.md) and its 16 assembly steps, kept
+  for links already shared. An earlier design: the front page no longer links it. No script. Its pictures are copied from the case's `out/assembly/`, and its
   share card (`src/handheld-card.png`, 1200 × 630) is cut from two of them by `handheld-card.py`:
   `uv run --no-project --with pillow==12.3.0 python3 web/handheld-card.py`. The video box is a
   placeholder; a link to the video can replace it, but an embedded player needs the page's CSP changed.
