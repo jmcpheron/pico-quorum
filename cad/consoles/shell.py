@@ -416,7 +416,7 @@ class Case:
         for words, (cx, cy), (w, h), kind in b["back_text"]:
             size = fit_text(words, w, h, kind)
             pl = cq.Plane(origin=(cx, cy, self.z0), xDir=xdir, normal=(0, 0, -1))
-            c = engrave_text(pl, words, size, ENGRAVE, kind)
+            c = engrave_text(pl, words, size, b.get("engrave", ENGRAVE), kind)
             cut = c if cut is None else cut.union(c)
         return cut
 
