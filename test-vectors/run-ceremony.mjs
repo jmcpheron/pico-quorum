@@ -25,6 +25,7 @@ async function run(main) {
 }
 // The Feather's three buttons in a device of their own: board.py reads secrets.BOARD once.
 // Then the knob Feather, whose Boot and knob stand in for them.
-const failed = (await run("main")) + (await run("main_three")) + (await run("main_knob"));
+// Then console-rp, whose owner makes the key on the device (keyflow.OwnKey, signer.own_key_step).
+const failed = (await run("main")) + (await run("main_three")) + (await run("main_knob")) + (await run("main_rp"));
 if (quiet) console.log(out.filter((l) => /^pass/.test(l)).length + " pass, " + failed + " failed");
 process.exit(failed ? 1 : 0);

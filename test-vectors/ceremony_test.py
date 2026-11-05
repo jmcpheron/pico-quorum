@@ -22,7 +22,7 @@ def secrets(lock=True, genkey=True, extra=""):
         os.remove("build.py")
     except OSError:
         pass
-    for m in ("secrets", "build", "image", "signer", "atecc", "chipcfg", "ceremony_ui", "provision", "setup_s", "chipapp"):
+    for m in ("secrets", "build", "image", "signer", "atecc", "chipcfg", "ceremony_ui", "keyflow", "provision", "setup_s", "chipapp"):
         sys.modules.pop(m, None)
 
 
@@ -687,6 +687,274 @@ def main_knob():
         print("FAIL  case_knob raised")
         sys.print_exception(e)
     print("knob: %d failed" % failed[0])
+    return failed[0]
+
+
+# ----------------------------------------------------------------------------- console-rp's own key
+def prepared(rev="608c"):
+    """A chip as console-rp's bench leaves it: C1-C3 by provision (ALLOW_LOCK and the arm, on a dev
+    board), then nothing. quorum v1, config locked, data zone open, no key."""
+    secrets()
+    fresh_chip(rev)
+    c, S, P = ceremony()
+    for st in ("C1", "C2", "C3"):
+        got, ok, bad, msg = run(c, st)
+        if got != st or not ok:
+            raise Exception("prepare %s: %s %s" % (st, bad, msg))
+    S.disarm()
+    return atecc_sim.chip()
+
+
+def as_image(name):
+    """This board as tools/fw build makes the image: build.py names it, secrets.py has no ALLOW_*.
+    -> (ChipSigner, signer, keyflow)."""
+    with open("secrets.py", "w") as f:
+        f.write('BOARD = "console-rp"\n')
+    with open("build.py", "w") as f:
+        f.write('IMAGE = "%s"\nBUILD = "test"\nDATE = 1793000000\n' % name)
+    for m in ("secrets", "build", "image", "signer", "atecc", "chipcfg", "ceremony_ui", "keyflow", "provision", "policy", "chips"):
+        sys.modules.pop(m, None)
+    import signer, keyflow
+    return signer.ChipSigner(), signer, keyflow
+
+
+def no_files():
+    for f in ("pin.json", "keyflow.json"):
+        try:
+            os.remove(f)
+        except OSError:
+            pass
+
+
+def refused(fn):
+    try:
+        fn()
+    except Exception as e:
+        return "refused" in str(e)
+    return False
+
+
+def rp_route():
+    """main_rp.route() on the chip as it is: "key" or "console"."""
+    src = open("main_rp.py").read()
+    ns = {"__name__": "main_rp_route"}
+    exec(src[:src.index("_quorum = None")], ns)
+    return ns["route"]()[0]
+
+
+def case_own_key_gate():
+    """signer.own_key_step: on console-rp, the screen's arm alone may make the owner's key, seal it and
+    lock the data zone, in that order, on a chip the bench prepared, and nothing else ever."""
+    no_files()
+    fresh_chip("608c")
+    s, S, K = as_image("console-rp")
+    S.arm()
+    check(refused(lambda: s.genkey(0)), "console-rp, a factory chip, armed: GenKey refused")
+    check(rp_route() == "key", "a factory chip and no pin: the key flow, which says Not prepared")
+    check(K.OwnKey(s).step() == "unprepared", "the key flow on a factory chip: unprepared, nothing to do")
+    sim = prepared()
+    s, S, K = as_image("console-rp")
+    check(rp_route() == "key", "a prepared chip and no pin: the key flow")
+    S.disarm()
+    check(refused(lambda: s.genkey(0)), "console-rp, a prepared chip, not armed: GenKey refused")
+    S.arm(10)
+    try:
+        s.genkey(0)
+        made = 0 in sim.keys
+    except Exception as e:
+        made = False
+        print("   genkey:", e)
+    check(made, "console-rp, a prepared chip, armed: GenKey in slot 0")
+    check(refused(lambda: s.genkey(1)) and refused(lambda: s.lock_slot(1)) and refused(lambda: s.lock_config())
+          and refused(lambda: s.lock_data()), "armed: GenKey in slot 1, slot 1's lock, the config lock, the plain data lock: refused")
+    check(refused(lambda: K.lock_data_crc(s, 0x1234)) and sim.cfg[86] == 0x55, "armed: the data lock refused while slot 0 is open")
+    S.disarm()
+    check(refused(lambda: s.lock_slot(0)), "not armed: the seal refused")
+    S.arm(10)
+    try:
+        s.lock_slot(0)
+    except Exception as e:
+        print("   seal:", e)
+    check(sim.slot_locked(0), "armed: slot 0 sealed")
+    S.arm(10)
+    check(refused(lambda: s.genkey(0)) and refused(lambda: s.lock_slot(0)), "sealed: GenKey and the seal again refused, armed")
+    c = K.Ceremony(s)
+    c.run("C7")
+    c.run("C8")
+    got, ok, bad, msg = run(c, "C9", arm=False)
+    check(got == "C9" and not ok and sim.cfg[86] == 0x55, "sealed, not armed: the data lock refused")
+    got, ok, bad, msg = run(c, "C9")
+    check(ok and sim.cfg[86] == 0x00, "sealed, armed: the data lock, the chip checking its CRC" + ("" if ok else " (%s %s)" % (bad, msg)))
+    S.arm(10)
+    check(refused(lambda: s.genkey(0)) and refused(lambda: s.lock_slot(0)) and refused(lambda: K.lock_data_crc(s, c.summary)),
+          "locked: everything refused, armed")
+    for img in ("console", "dual", "ceremony"):
+        sim = prepared()
+        s, S, K = as_image(img)
+        S.arm(10)
+        check(refused(lambda: s.genkey(0)) and 0 not in sim.keys, "the %s image, a prepared chip, armed: GenKey refused" % img)
+    secrets()
+    fresh_chip("608c")
+    import signer, provision, chipcfg
+    s0 = signer.ChipSigner()
+    provision.write_table(s0, chipcfg.QUORUM_V3)
+    signer.arm()
+    provision.lock_config_crc(s0, chipcfg.QUORUM_V3)
+    s, S, K = as_image("console-rp")
+    S.arm(10)
+    check(refused(lambda: s.genkey(0)) and refused(lambda: s.lock_slot(0)), "console-rp, a chip locked as quorum v3 (data open), armed: refused")
+    check(rp_route() == "console", "a chip locked as something else: the console, not the key flow")
+    no_files()
+
+
+class Keys:
+    """lcd.Keys by hand: what is down, and the presses since the last look."""
+
+    def __init__(self):
+        self.down, self.queue = set(), []
+
+    def held(self, k):
+        return k in self.down
+
+    def pressed(self):
+        out, self.queue = self.queue, []
+        return out
+
+
+def case_own_key():
+    """The owner makes the key on console-rp (keyflow.OwnKey on keypick_rp.UI), through tick alone on
+    a fake clock: K0, Make (replacing a key written in before), New, Full, Choose, the hold that
+    seals and locks, the pin, and the console on that pin. Then what a restart in between finds."""
+    no_files()
+    sim = prepared()
+    planted = p256.rand_scalar()
+    sim.keys[0] = planted                   # written in while the data zone was open
+    sim.save()
+    s, S, K = as_image("console-rp")
+    import crt, keypick_s, keypick_rp, splash
+    crt.FX = False
+    T = Clock()
+    keypick_s.time = T
+    keys = Keys()
+    c = K.OwnKey(s)
+    ui = keypick_rp.UI(splash.begin(), keys, s, c)
+
+    def tick(*pressed):
+        r = ui.tick(list(pressed))
+        ui.draw()
+        return r
+
+    def hold(ms=3100):
+        keys.down.add("D2")
+        for _ in range(ms // 100 + 1):
+            tick()
+            T.now += 100
+        keys.down.discard("D2")
+        tick()
+
+    check(c.step() == "K0", "first: K0, read only")
+    tick()
+    check(c.step() == "C4" and c.had_key and c.checked and not all(k for _, k in c.checked),
+          "K0 says a key is in slot 0 already, and Make comes before anything else")
+    hold()
+    check(sim.cfg[88] & 1 and c.step() == "C4", "a hold on Make does nothing: Make is one press")
+    tick("D2")
+    k1 = sim.keys.get(0)
+    check(k1 not in (None, planted) and c.step() == "C5" and ui.tries == 1, "Make (D2): GenKey replaced the key that was there")
+    tick("D0")
+    check(sim.keys.get(0) not in (None, k1, planted) and ui.tries == 2, "New (D0): another key")
+    tick("D1")
+    full = ui.page
+    tick("D1")
+    check(full == "full" and ui.page == "pic", "Full (D1) and back")
+    keys.down.add("D2")
+    tick("D2")
+    check(ui.page == "keep", "Choose (D2): the red Keep page")
+    for _ in range(40):
+        T.now += 100
+        tick()
+    check(sim.cfg[88] & 1 and ui.held_since is None, "the press that chose doesn't roll into Keep's hold: let go first")
+    keys.down.discard("D2")
+    tick("D0")
+    check(ui.page == "pic" and sim.cfg[88] & 1, "Back (D0) on Keep: the picture again, nothing sealed")
+    tick("D2")
+    keys.down.add("D2")
+    tick()
+    T.now += 1500
+    tick()
+    keys.down.discard("D2")
+    tick()
+    T.now += 2000
+    tick()
+    check(sim.cfg[88] & 1, "Keep let go at 1.5 s: nothing sealed")
+    before = sim.counters[0]
+    import board
+    unix = board.unix
+    board.unix = lambda: 1609459200         # an RP2350's clock at start: 2021, no RTC and no network
+    hold()
+    board.unix = unix
+    check(not sim.cfg[88] & 1 and sim.cfg[86] == 0x00 and c.step() == "done" and ui.result is None,
+          "Keep held 3 s: test signatures, the seal, the record and the data lock, then the pin")
+    import policy, chipcfg
+    pin = policy.pin_file()
+    x, y = p256.pubkey(sim.keys[0])
+    rec = chipcfg.record_decode(bytes(sim.otp))
+    check(pin == {"serial": c.serial, "slot": 0, "owner": c.owner(), "locked": True} and chipcfg.record_matches(rec, x, y),
+          "pin.json names this chip, slot 0 and the key's owner; the OTP record names the key")
+    check(rec["date"] == 1793000000, "a clock still in 2021: the record is dated from the build (image.DATE)")
+    check(sim.counters[0] >= before + 4, "counter 0 went up %d: C5's two, C6's two, C9's" % (sim.counters[0] - before))
+    check(tick("D2") == "console", "Done: D2 starts the console")
+    check(rp_route() == "console", "pinned: the console from now on")
+    sys.path.insert(0, "/")
+    import console_test as CT
+    Q = CT.fresh(expect=None)
+    check(Q.pin_ok and Q.state == "home" and Q.EXPECT and Q.EXPECT["owner"] == pin["owner"], "the console starts on the pin the key flow wrote")
+    with open("pin.json", "w") as f:
+        f.write('{"serial": "0123ffffffffffffff", "slot": 0, "owner": "%s", "locked": true}' % pin["owner"])
+    Q = CT.fresh(expect=None, keep=True)
+    check(Q.state == "pinfail" and not Q.pin_ok, "a pin for another chip: pinfail")
+    check(rp_route() == "console", "a pin for another chip: the console (pinfail), never the key flow again")
+    no_files()
+
+    # a restart between the seal and the data lock, and the chip sealed by something else
+    sim = prepared()
+    s, S, K = as_image("console-rp")
+    c = K.OwnKey(s)
+    c.run("K0")
+    S.arm(10)
+    c.run("C4")
+    c.run("C5")
+    S.arm(10)
+    c.run("C6")
+    check(not sim.cfg[88] & 1 and K.read_json(K.STATE_FILE) and c.step() == "C7", "sealed here: keyflow.json names it, C7 next")
+    s, S, K = as_image("console-rp")
+    c = K.OwnKey(s)
+    check(c.step() == "C7", "after a restart: Finish (C7-C9), keyflow.json matches")
+    no_files()
+    s, S, K = as_image("console-rp")
+    check(K.OwnKey(s).step() == "elsewhere", "the same chip, keyflow.json gone: sealed elsewhere, nothing locks it here")
+    with open("keyflow.json", "w") as f:
+        f.write('{"serial": "%s", "key": "%s"}' % (c.serial, "00" * 32))
+    s, S, K = as_image("console-rp")
+    check(K.OwnKey(s).step() == "elsewhere", "keyflow.json for another key: elsewhere")
+    no_files()
+
+
+def main_rp():
+    """console-rp's own key, in a device of its own: board.py read as console-rp."""
+    with open("secrets.py", "w") as f:
+        f.write('BOARD = "console-rp"\n')
+    for m in ("board", "lcd", "splash", "bootmark"):
+        sys.modules.pop(m, None)
+    for case in (case_own_key_gate, case_own_key):
+        print("--", case.__name__[5:])
+        try:
+            case()
+        except Exception as e:
+            failed[0] += 1
+            print("FAIL  %s raised" % case.__name__)
+            sys.print_exception(e)
+    print("rp: %d failed" % failed[0])
     return failed[0]
 
 

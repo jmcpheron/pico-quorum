@@ -195,11 +195,11 @@ console up to the README:
 
 | | image | release fingerprint |
 |---|---|---|
-| <img src="docs/releases/badges/console-blockie.svg" width="32" height="32" alt=""> | **console** | `cac86e300b8bc476865f1e9fccb1cb7a054b8fbfcc106772072097af1e482884` |
-| <img src="docs/releases/badges/ceremony-blockie.svg" width="32" height="32" alt=""> | **ceremony** | `f691ac2fdab51cd137c16ce9c123461f601de5c62b6b76acb44ac5bc0d469775` |
-| <img src="docs/releases/badges/brand-blockie.svg" width="32" height="32" alt=""> | **brand** | `ddbcfca343f740e8909de54ddd3a43b7e56e865b617d6c69c27ca86c896a80b5` |
-| <img src="docs/releases/badges/dual-blockie.svg" width="32" height="32" alt=""> | **dual** | `6bdd2596c2eb70402c9aaf61f65bc57f7de2cbe8c3f5b72b892c61226c6570a5` |
-| <img src="docs/releases/badges/console-rp-blockie.svg" width="32" height="32" alt=""> | **console-rp** | `e9012303b714b00ae9b742468d3f584212623591446dbb05dd88fe1b0bad2c20` |
+| <img src="docs/releases/badges/console-blockie.svg" width="32" height="32" alt=""> | **console** | `8217e24b470b100645845cc615559ce5f849fa88d532f700e1bd0a7decc655b0` |
+| <img src="docs/releases/badges/ceremony-blockie.svg" width="32" height="32" alt=""> | **ceremony** | `dc88adb12ac97399d46f2908cfacf465b690123f6473bb8b11f40727f6622a6e` |
+| <img src="docs/releases/badges/brand-blockie.svg" width="32" height="32" alt=""> | **brand** | `83adb1a02b4360650bd2eec3b1a5a3418145869f4d2fce8cfe763ffe6b27382a` |
+| <img src="docs/releases/badges/dual-blockie.svg" width="32" height="32" alt=""> | **dual** | `cb4798e6491ea986f6e1d51cb288e5e8c09d8eabe75ef8d6b73d33c820b37a35` |
+| <img src="docs/releases/badges/console-rp-blockie.svg" width="32" height="32" alt=""> | **console-rp** | `3fb91089520d56cf469bcadc32fa71f0f024a7318bbf5c9a89b67ed8d0a918a6` |
 
 <!-- build:end -->
 

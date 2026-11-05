@@ -10,7 +10,8 @@ is the page once its effect has played. The effects are on the board only:
 - None on a redraw, and none while Sign is held. Any press stops an effect and still counts.
 
 The board is [hardware/console-rp](../../../hardware/console-rp/). Its way out is the relay on the
-computer ([tools/relay](../../../tools/relay/README.md)).
+computer ([tools/relay](../../../tools/relay/README.md)). The key pages (`key-`, from `key-make` on)
+are the owner making the key on the device: `firmware/keyflow.py`'s OwnKey on `firmware/keypick_rp.py`.
 
 ### home
 
@@ -125,3 +126,63 @@ Key: the app's set-up link as a QR code, over the footer's left. It locks in.
 The owner address in full.
 
 ![19-key-full](19-key-full.png)
+
+### key make
+
+The key, at the first start: K0 has read the chip (no key in slot 0, counter 0 at 0) and that locks in. D2 ▲ Make: the chip makes a key inside itself. The picture is random bytes, not a key.
+
+![20-key-make](20-key-make.png)
+
+### key pick
+
+A key: its owner address's blockie and two ends, landed after a shuffle, locking in. D0 ■ New makes another, as many as anyone likes; D1 ● Full; D2 ▲ Choose.
+
+![21-key-pick](21-key-pick.png)
+
+### key pick full
+
+Full: the whole owner address.
+
+![22-key-pick-full](22-key-pick-full.png)
+
+### key keep
+
+Keep: red, it arrives torn. D2 ▲ held 3 s seals the key and locks the chip, for good. D0 ■ goes back.
+
+![23-key-keep](23-key-keep.png)
+
+### key keep hold
+
+Keep, held: its slot fills. Let go before 3 s and nothing happens.
+
+![24-key-keep-hold](24-key-keep-hold.png)
+
+### key done
+
+Sealed and pinned: C5's test signatures, the seal, the record, the data lock, then pin.json. It locks in. D2 ▲ restarts into the console, on that pin.
+
+![25-key-done](25-key-done.png)
+
+### key make before
+
+A chip with a key in slot 0 already (made at an earlier start, or written in at the bench): K0 says so, and Make replaces it before anything else.
+
+![26-key-make-before](26-key-make-before.png)
+
+### key finish
+
+A restart between the seal and the data lock: keyflow.json says this console sealed it, so Finish, held 3 s.
+
+![27-key-finish](27-key-finish.png)
+
+### key elsewhere
+
+The same chip with no keyflow.json: sealed elsewhere. Nothing here locks or pins it.
+
+![28-key-elsewhere](28-key-elsewhere.png)
+
+### key not prepared
+
+A factory chip: never prepared at the bench. Nothing here can change it.
+
+![29-key-not-prepared](29-key-not-prepared.png)

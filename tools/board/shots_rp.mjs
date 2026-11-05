@@ -16,11 +16,12 @@ const out = process.argv[2] || join(ROOT, "docs/quorum-ui/console-rp");
 mkdirSync(out, { recursive: true });
 const W = 240, H = 135, S = 3, EDGE = 18 * S;     // the case below the screen, at 3x
 const t = (f) => readFileSync(join(ROOT, "test-vectors", f), "utf8");
-const dev = await createDevice({
+const device = () => createDevice({
   loadMicroPython, keys: new Int32Array(16), heapsize: 2 * 1024 * 1024,
-  files: { ...readWorkspace(), "console_test.py": t("console_test.py") }, shims: readShims(),
-  onStdout: (l) => { if (/Traceback|Error/.test(l)) console.log(l); },
+  files: { ...readWorkspace(), "console_test.py": t("console_test.py"), "ceremony_test.py": t("ceremony_test.py") }, shims: readShims(),
+  onStdout: (l) => { if (/Traceback|Error|FAIL/.test(l)) console.log(l); },
 });
+let dev = await device();
 const py = (code) => dev.mp.runPython(code);
 const shots = [];
 
@@ -124,6 +125,94 @@ py(`Q.kpage = 1\ndraw()`);
 shot("key-full", "The owner address in full.");
 dev.dispose();
 
+// The owner's key, made on the device (keyflow.OwnKey on keypick_rp.py), on a chip as the bench
+// leaves it: quorum v1, config locked, no key. The real signer gate (signer.own_key_step).
+dev = await device();
+py(`with open("secrets.py", "w") as f:
+    f.write('BOARD = "console-rp"\\n')
+import sys
+for m in ("board", "lcd", "splash", "bootmark"):
+    sys.modules.pop(m, None)
+import ceremony_test as CT, p256
+import lcd as L
+CT.no_files()
+sim = CT.prepared()
+s, S, K = CT.as_image("console-rp")
+import crt, keypick_s, keypick_rp, splash
+crt.FX = False
+clock = CT.Clock()
+keypick_s.time = clock
+keys = CT.Keys()
+d = splash.begin()
+FULL = bytearray(L.W * L.H * 2)
+def _show():
+    n = len(d.buffer) // (2 * L.W)
+    FULL[d.y0 * L.W * 2:(d.y0 + n) * L.W * 2] = d.buffer
+d.show = _show
+def start():
+    """A restart: the signer and the key's screens imported afresh, so they share one signer (its arm)."""
+    global c, ui, S
+    s, S, K = CT.as_image("console-rp")
+    for m in ("setup_s", "keypick_s", "keypick_rp"):
+        sys.modules.pop(m, None)
+    import keypick_s, keypick_rp
+    keypick_s.time = clock
+    c = K.OwnKey(s)
+    ui = keypick_rp.UI(d, keys, s, c)
+def tick(*p):
+    r = ui.tick(list(p))
+    ui.dirty = True
+    ui.draw()
+    return r
+start()
+tick()
+tick()`);
+shot("key-make", "The key, at the first start: K0 has read the chip (no key in slot 0, counter 0 at 0) and that locks in. D2 ▲ Make: the chip makes a key inside itself. The picture is random bytes, not a key.");
+py(`tick("D2")`);
+shot("key-pick", "A key: its owner address's blockie and two ends, landed after a shuffle, locking in. D0 ■ New makes another, as many as anyone likes; D1 ● Full; D2 ▲ Choose.");
+py(`tick("D1")`);
+shot("key-pick-full", "Full: the whole owner address.");
+py(`tick("D1")\ntick("D2")`);
+shot("key-keep", "Keep: red, it arrives torn. D2 ▲ held 3 s seals the key and locks the chip, for good. D0 ■ goes back.");
+py(`tick()                      # D2 let go after Choose: only a new press can start the hold
+keys.down.add("D2")
+tick()
+clock.now += 1600
+tick()`);
+shot("key-keep-hold", "Keep, held: its slot fills. Let go before 3 s and nothing happens.");
+py(`import board
+board.unix = lambda: 1609459200
+clock.now += 1600
+tick()
+keys.down.discard("D2")
+tick()`);
+shot("key-done", "Sealed and pinned: C5's test signatures, the seal, the record, the data lock, then pin.json. It locks in. D2 ▲ restarts into the console, on that pin.");
+py(`CT.no_files()
+sim = CT.prepared()
+sim.keys[0] = p256.rand_scalar()
+sim.save()
+start()
+tick()
+tick()`);
+shot("key-make-before", "A chip with a key in slot 0 already (made at an earlier start, or written in at the bench): K0 says so, and Make replaces it before anything else.");
+py(`S.arm(10)
+c.run("C4")
+c.run("C5")
+S.arm(10)
+c.run("C6")
+start()
+tick()`);
+shot("key-finish", "A restart between the seal and the data lock: keyflow.json says this console sealed it, so Finish, held 3 s.");
+py(`CT.no_files()
+start()
+tick()`);
+shot("key-elsewhere", "The same chip with no keyflow.json: sealed elsewhere. Nothing here locks or pins it.");
+py(`CT.fresh_chip("608c")
+start()
+tick()`);
+shot("key-not-prepared", "A factory chip: never prepared at the bench. Nothing here can change it.");
+dev.dispose();
+
 const md = ["# The console on console-rp", "",
   "Written by `node tools/board/shots_rp.mjs`: the real firmware on the emulator, 240 × 135, its three",
   "buttons under the screen (the grey caps below it: D0 ■, D1 ●, D2 ▲, as on the case). The screens",
@@ -134,7 +223,8 @@ const md = ["# The console on console-rp", "",
   "- **lock** (FX3): worked out here and checked. The verify code, the key's code, Signed.",
   "- None on a redraw, and none while Sign is held. Any press stops an effect and still counts.", "",
   "The board is [hardware/console-rp](../../../hardware/console-rp/). Its way out is the relay on the",
-  "computer ([tools/relay](../../../tools/relay/README.md)).", ""];
+  "computer ([tools/relay](../../../tools/relay/README.md)). The key pages (`key-`, from `key-make` on)",
+  "are the owner making the key on the device: `firmware/keyflow.py`'s OwnKey on `firmware/keypick_rp.py`.", ""];
 for (const [n, c] of shots) md.push(`### ${n.replace(/^\d+-/, "").replace(/-/g, " ")}`, "", c, "", `![${n}](${n}.png)`, "");
 writeFileSync(join(out, "README.md"), md.join("\n"));
 console.log(`${shots.length} shots in ${out}`);

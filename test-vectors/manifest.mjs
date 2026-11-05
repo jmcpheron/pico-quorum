@@ -39,15 +39,17 @@ for (const [name, img] of Object.entries(M.images)) {
 const con = M.images.console.files;
 const q = src("quorum.py").split("\n");
 const inSignIt = (i) => { for (let j = i; j >= 0; j--) if (/^def /.test(q[j])) return q[j].startsWith("def sign_it("); return false; };
-// The console's rules hold on console-rp's image too: it is the same console, over the link.
+// The console's rules hold on console-rp's image too: it is the same console, over the link. Its one
+// other thing, the owner's key made on the device (keyflow.py), is checked on its own below.
+const KEYFLOW = ["keyflow.py"];
 for (const [name, files] of [["console", con], ["console-rp", M.images["console-rp"].files]]) {
   const bad = files.filter((f) => NOT_IN_CONSOLE.includes(f));
   check(!bad.length, `${name}: none of the legacy apps, the chip map or the ceremony` + (bad.length ? ` (found ${bad})` : ""));
-  for (const f of files.filter((f) => f.endsWith(".py") && !DRIVERS.includes(f))) {
+  for (const f of files.filter((f) => f.endsWith(".py") && !DRIVERS.includes(f) && !(name === "console-rp" && KEYFLOW.includes(f)))) {
     const hits = src(f).split("\n").filter((l) => PERMANENT.test(l) && !/^\s*#/.test(l));
     check(!hits.length, `${name}: ${f} calls nothing that changes the chip` + (hits.length ? `: ${hits[0].trim()}` : ""));
   }
-  const signs = files.filter((f) => f.endsWith(".py") && !DRIVERS.includes(f))
+  const signs = files.filter((f) => f.endsWith(".py") && !DRIVERS.includes(f) && !(name === "console-rp" && KEYFLOW.includes(f)))
     .flatMap((f) => src(f).split("\n").map((l, i) => [f, i, l])).filter(([, , l]) => /\bsig\.sign\(|\.chip\.sign\(/.test(l));
   check(signs.length === 1 && signs[0][0] === "quorum.py" && inSignIt(signs[0][1]), `${name}: the chip signs from one place only, quorum.sign_it`);
   // The browser emulator's passkey makes whole assertions (sig.assertion): from sign_it too, and only there.
@@ -104,6 +106,46 @@ check(/^usblink\.run\(_quorum\)$/.test(rpLines.at(-1)) && /kbd_intr\(-1\)/.test(
   "console-rp: main.py turns Ctrl-C off first and ends in the link's loop, so it never returns to the REPL");
 check(/kbd_intr\(-1\)/.test(src("boot_rp.py").split("\n").slice(0, 8).join("\n")) && !/dupterm/.test(src("boot_rp.py") + src("main_rp.py") + lk),
   "console-rp: boot.py turns Ctrl-C off first, and nothing puts the REPL on the link");
+// console-rp's own key (keyflow.OwnKey on keypick_rp.py; signer.own_key_step): the customer makes it
+// on the device, so this image carries GenKey, the seal and the data lock, and nothing else that changes
+// a chip. No config write or lock (that is provision.py's, on the bench), no free digest signed.
+const kf = code("keyflow.py");
+const kfPerm = kf.split("\n").filter((l) => PERMANENT.test(l)).map((l) => l.trim().match(PERMANENT)[0]);
+check(JSON.stringify([...new Set(kfPerm)].sort()) === JSON.stringify([".genkey(", ".genkey_new(", ".lock_data(", ".lock_slot(", ".write_data(", ".write_otp("]),
+  "keyflow: GenKey (and the slot-1 refusal), the seal, the record and the data lock, and nothing else that changes a chip" + ` (${[...new Set(kfPerm)]})`);
+check(!/\.(lock_config\w*|write_config|write_table|restore_snapshot|provision\w*)\(|import provision/.test(kf), "keyflow: never writes or locks a config zone");
+const kfSigns = kf.split("\n").filter((l) => /\.sign\(/.test(l)).map((l) => l.trim());
+check(kfSigns.length === 2 && kfSigns.includes("r, s = self.sig.sign(digest, 0)") && kfSigns.includes("self.chip.sign(bytes(32), 1)"),
+  "keyflow: signs in _sign_ok, and once on slot 1 to see it refused");
+const argsOf = (text, fn) => [...text.matchAll(new RegExp("\\b" + fn + "\\(", "g"))].map((m) => {
+  let i = m.index + m[0].length, depth = 1;
+  const start = i;
+  while (depth && i < text.length) depth += { "(": 1, ")": -1 }[text[i++]] || 0;
+  return text.slice(start, i - 1);
+});
+const signedWhat = argsOf(kf, "self\\._sign_ok");
+check(signedWhat.length === 5 && signedWhat.every((x) => /^hashlib\.sha256\(b"[^"]*"\)\.digest\(\)$|^digest$/.test(x)) &&
+  [...kf.matchAll(/^\s*\w+, \w+, digest = (.*)$/gm)].every((m) => m[1] === "webauthn.assertion(bytes(32))"),
+  "keyflow: the digests it signs are fixed (SHA-256 of its own words, and a WebAuthn assertion over 32 zero bytes)");
+const rpPy = rp.files.filter((f) => f.endsWith(".py"));
+const arms = rpPy.flatMap((f) => code(f).split("\n").map((l) => [f, l])).filter(([, l]) => /\b(S|signer)\.arm\(/.test(l));
+check(arms.length === 2 && arms.some(([f]) => f === "keypick_s.py") && arms.some(([f, l]) => f === "ceremony_ui.py" && l.trim() === "S.arm()") &&
+  /def arm\(self\):\s+pass/.test(code("keypick_rp.py")) && /def step_run\(self, step\):[^]*?S\.arm\(10\)\n\s+try:\n[^\n]*\n\s+finally:\n\s+S\.disarm\(\)/.test(code("keypick_s.py")),
+  "console-rp: only the key's screen arms the signer, for one call at a time (keypick_s.step_run); the ceremony screen's arm is off there");
+const sg = src("signer.py");
+const oks = sg.slice(sg.indexOf("def own_key_step("), sg.indexOf("\ndef _may("));
+check(/image\.IMAGE != "console-rp"/.test(oks) && /cfg\[87\] != 0x00 or cfg\[86\] != 0x55/.test(oks) && /identify\(cfg\) != "quorum-v1"/.test(oks) &&
+  /if cfg\[88\] & 1:\s+return op in \("genkey0", "lock_slot0"\)\s+return op == "lock_data"/.test(oks) &&
+  (sg.match(/"console-rp"/g) || []).length === 1 && (oks.match(/"console-rp"/g) || []).length === 1,
+  "signer: the own-key gate is console-rp only, a prepared quorum v1 chip only, GenKey and the seal of slot 0 then the data lock");
+check((sg.match(/_may\(/g) || []).length === 3 && /def lock_config\(self\):[^]*?if not _allowed\("ALLOW_LOCK"\)/.test(sg) &&
+  /def genkey\(self, slot=None\):[^]*?_may\("ALLOW_GENKEY", "genkey%d" % slot, self\.chip\)/.test(sg) && /S\._may\("ALLOW_LOCK", "lock_data", sig\.chip\)/.test(kf),
+  "signer: the gate opens ChipSigner's genkey and lock_slot and keyflow's data lock, never a config lock");
+const pinNamed = rpPy.filter((f) => /PIN_FILE|"pin\.json"/.test(code(f)));
+check(JSON.stringify(pinNamed) === JSON.stringify(["keyflow.py", "policy.py"]) && /write_json\(policy\.PIN_FILE/.test(kf) &&
+  !/open\(PIN_FILE, "w/.test(code("policy.py")), "console-rp: only the key flow writes pin.json; the console only reads it (policy.pin_file)");
+const qc = closure("quorum");
+check(!["keyflow.py", "keypick_rp.py", "keypick_s.py", "provision.py"].some((f) => qc.includes(f)), "quorum's closure has no key flow and no ceremony");
 const crtIn = Object.entries(M.images).filter(([, img]) => img.files.some((f) => f === "crt.py" || f === "quorum_ui_crt.py"));
 check(crtIn.length === 1 && crtIn[0][0] === "console-rp" && rp.files.includes("crt.py") && rp.files.includes("quorum_ui_crt.py"),
   "the CRT screens (crt.py, quorum_ui_crt.py) are on the console-rp image only" + (crtIn.length ? ` (${crtIn.map((e) => e[0])})` : ""));

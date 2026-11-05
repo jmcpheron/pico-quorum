@@ -9,7 +9,8 @@
 #
 # Pinned: secrets.QUORUM_EXPECT names each chip this board may use (one, or a list): its serial,
 # the slot and the owner address its key must produce. At boot the chip on the bus picks its entry. The production image (image.PRODUCTION) signs nothing until they all match, and
-# the check runs again right before every signature.
+# the check runs again right before every signature. On console-rp, which has no secrets.py, the pin
+# is pin.json (policy.pin_file), written by its key flow (keyflow.py) when the owner's key is sealed.
 #
 # Safes: secrets.QUORUM_SAFES lists the Safes this console signs for (up to 4, any mix of chains;
 # QUORUM_SAFE, one, still works). Each is asked about at its own chain's service (quorum_cfg.py
@@ -100,7 +101,7 @@ WATCH = [new_watch(s) for s in SAFES]
 W = WATCH[0]
 SAFE, CHAIN, SAFE_ADDR, BASE = W["safe"], W["chain"], W["addr"], W["base"]
 API_KEY = getattr(secrets, "QUORUM_API_KEY", None) if secrets else None
-EXPECTS = policy.pins(getattr(secrets, "QUORUM_EXPECT", None) if secrets else None)
+EXPECTS = policy.pins(getattr(secrets, "QUORUM_EXPECT", None) if secrets else None) or policy.pins(policy.pin_file())
 EXPECT = None       # the entry for the chip on the bus (probe_chip), from EXPECTS
 NAME = getattr(secrets, "DEVICE_NAME", "picoquorum") if secrets else "picoquorum"
 SOFT_OK = not PROD and bool(getattr(secrets, "ALLOW_SOFT_KEY", False) if secrets else False)
@@ -530,7 +531,7 @@ def check_pin():
     elif EXPECTS:
         pin_ok, pin_why = False, "this chip is not one of the %d pinned" % len(EXPECTS)
     elif PROD:
-        pin_ok, pin_why = False, "secrets.py has no QUORUM_EXPECT"
+        pin_ok, pin_why = False, "no pin yet: the key is made on this device" if image.IMAGE == "console-rp" else "secrets.py has no QUORUM_EXPECT"
     else:
         pin_ok, pin_why = True, ""      # a development board without a pin signs as before
     qlog.write("pin %s: chip %s slot %d owner %s%s" % ("ok" if pin_ok else "FAIL", serial or sig.name, sig.slot, me or "none",

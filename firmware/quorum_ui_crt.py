@@ -8,7 +8,8 @@
 #   lock    worked out here and checked: the verify code, the key's code, Signed
 # None on a redraw of what is already there (a poll that changed nothing, a message, the hold
 # filling): nothing moves on a page that asks for a decision.
-# main_rp.py hands quorum this module as quorum.U; no other image carries it.
+# main_rp.py hands quorum this module as quorum.U, and keypick_rp.py draws the key's pages with it;
+# no other image carries it.
 import board
 import quorum_ui as B
 import quorum_ui_s as S
@@ -69,6 +70,15 @@ def wrap(d):
 
 _bg = 0
 _keys = None
+
+
+def show(d, fx=None, red=False, keys=None):
+    """Send what d holds, playing fx (crt.play) between the header and the footer: for screens that
+    are not quorum's (keypick_rp.py). wrap(d) first, so its fill draws the scanlines."""
+    global _fx, _bg, _keys
+    wrap(d)
+    _fx, _bg, _keys = fx, B.c("bad_bg" if red else "bg"), keys
+    d.show()
 
 
 def view(q):
