@@ -5,6 +5,7 @@ a CH343P serial bridge to the RP2350's UART1. See README.md.
 
     tools/keypcb gen-console-rp [render]         writes the project, the board placed, not routed
     tools/keypcb route console-rp                routes it (Freerouting)
+    tools/keypcb gen-console-rp tidy [render]    after the route: the route-only keep-outs off, then checks it
     tools/keypcb gen-console-rp check [render]   checks the routed board, writing nothing but renders
         (KiCad 10: kicad-cli, its Python with pcbnew, its stock libraries and, to render, its 3D
         models; on Linux the system Python's pcbnew)
@@ -835,13 +836,19 @@ BENCH = [
     ("/DEV_D+", [u1(-1.1, -7.875), u1(-1.1, -8.4), u1(0.35, -8.4), u1(0.35, -10.7)]),
     ("/DEV_D-", [u1(-0.1, -7.875), u1(0.4, -7.875), u1(0.7, -8.385), u1(1.7, -8.385), u1(2.0, -8.7)]),
 ]
+# D+ ends on a via (HAND_VIAS): on rev B the router came to it on the back and never dropped a via.
 # The key's bus, from pins 7 and 8 past Raspberry Pi's C10 and C5 to a via each, one above the other:
 # the router left pin 8 shut in between its SDA and D2 every time. It takes them on to J3 and U5.
-BUS = [("/SDA", [u1(-3.45, -0.4), u1(-7.5, -0.4), u1(-7.8, -0.25)]), ("/SCL", [u1(-3.45, 0.0), u1(-7.2, 0.0), u1(-7.8, 0.6)])]
+# Then D2 from pin 9, shut in the same way on rev B between SCL and pin 11's 3V3: out to a via between them.
+BUS = [("/SDA", [u1(-3.45, -0.4), u1(-7.5, -0.4), u1(-7.8, -0.25)]), ("/SCL", [u1(-3.45, 0.0), u1(-7.2, 0.0), u1(-7.8, 0.6)]),
+       ("/BTN_D2", [u1(-3.45, 0.4), u1(-4.6, 0.4), u1(-4.775, 0.575)])]
 # Three more: the backlight switch's collector straight up to a via, which the router took round R10
 # at 0.1 mm; C9's 3V3 to C13's, beside it, which the router left off; and C14's ground, shut in by
 # the 3V3 track and D+, up to a via.
-TIES = [("/BL_GATE", [(9.938, 21.3), (9.938, 20.1)]), (V33, [u1(6.005, -1.8), u1(6.01, -3.0)]), (GND, [u1(-0.95, -11.88), u1(-0.95, -12.8)])]
+# On rev B a fourth: C12's and C8's ground (Raspberry Pi's C11 and C14), which the router's LED line
+# shut in with TP4 under them, up past C9's (on a stub) to Raspberry Pi's ground via.
+TIES = [("/BL_GATE", [(9.938, 21.3), (9.938, 20.1)]), (V33, [u1(6.005, -1.8), u1(6.01, -3.0)]), (GND, [u1(-0.95, -11.88), u1(-0.95, -12.8)]),
+        (GND, [u1(7.56, -0.6), u1(7.56, -3.1), u1(7.6, -3.5)]), (GND, [u1(6.965, -1.8), u1(7.56, -1.8)])]
 # SWCLK, SWDIO and RUN out from pins 24-26 past the DVDD copper, as Raspberry Pi's: three 45-degree
 # lines down and right. RUN then drops to a via for the back, to RESET; the router takes SWD on to the jig's pads and J3.
 SWD = [("/RUN", [u1(1.2, 3.45), u1(1.2, 4.5), u1(3.1, 6.4), u1(3.6, 6.4)]),
@@ -852,7 +859,8 @@ SWD = [("/RUN", [u1(1.2, 3.45), u1(1.2, 4.5), u1(3.1, 6.4), u1(3.6, 6.4)]),
 # it; and the CH343P's, its exposed pad and pin 2 shut in by its pins, in the exposed pad (jlc_spec says so)
 HAND_VIAS = [(GND, u1(-9.3, -8.895), True), ("/SDA", u1(-7.8, -0.25), True), ("/SCL", u1(-7.8, 0.6), True),
              ("/BL_GATE", (9.938, 20.1), False), (GND, u1(-0.95, -12.8), True), ("/RUN", u1(3.6, 6.4), True),
-             (GND, u1(-0.2, -9.4), True), (GND, (AT["U4"][0], AT["U4"][1] + 0.55), True)]
+             (GND, u1(-0.2, -9.4), True), (GND, (AT["U4"][0], AT["U4"][1] + 0.55), True),
+             ("/BTN_D2", u1(-4.775, 0.575), True), ("/DEV_D+", u1(0.35, -10.7), True)]
 
 # Pads joined to the ground pours solid, not by thermal spokes: C1's and C2's, inside Raspberry Pi's
 # pours as theirs are, and J1's and C17's, between other copper, where spokes don't fit
@@ -884,6 +892,7 @@ UNDER_U1 = [(-2.95, -2.95), (0.0, -2.95), (0.0, -1.65), (1.0, -1.65), (1.0, -2.9
 # vias round them
 UNDER_Y1 = RPI_AREAS[3][3]
 
+ROUTE_ONLY = "route only: "      # rule areas the router obeys that the routed board drops (tidy)
 HOLE_RING = 2.6           # no track and no via this close to a hole's centre: an M2.5 screw's washer is 5 mm across
 
 # Stock footprints whose 3D model KiCad's library doesn't ship: a part of the same size and pads
@@ -1084,7 +1093,7 @@ def census_lines(width=34):
         else:
             line = f"{line} {item}" if line else item
     lines.append(line)
-    return lines + ["and the panel, fitted by hand"]
+    return lines + ["and the screen, fitted by hand"]
 
 
 def current_lines():
@@ -1243,6 +1252,9 @@ def write_board(sh, nets):
         b.Add(via)
     zone(UNDER_U1, ("B.Cu",), rule="U1: no tracks under it")
     zone(UNDER_Y1, ("B.Cu",), rule="Y1: no tracks under it")
+    # for the route only, as rev A's last route: the router kept out of the crystal's corner on the
+    # front. `gen-console-rp tidy` takes it off the routed board (its own copper is inside it).
+    zone(RPI_AREAS[2][3], ("F.Cu",), rule=ROUTE_ONLY + "the crystal's corner")
     for h in ("H1", "H2", "H3", "H4"):              # the screws' washers: the pours may run under, behind the mask
         x, y, _ = AT[h]
         zone([(x - u0 + HOLE_RING * math.cos(k * math.pi / 16), y - v0 + HOLE_RING * math.sin(k * math.pi / 16)) for k in range(32)],
@@ -1325,6 +1337,19 @@ def write_board(sh, nets):
     pcbnew.SaveBoard(os.path.join(OUT, NAME + ".kicad_pcb"), b)
 
 
+def tidy():
+    """After `tools/keypcb route console-rp`: the route-only rule areas off the routed board.
+    Nothing else is touched: they let the pours fill, so the fill stands."""
+    import pcbnew
+    path = os.path.join(OUT, NAME + ".kicad_pcb")
+    b = pcbnew.LoadBoard(path)
+    gone = [z for z in b.Zones() if z.GetIsRuleArea() and z.GetZoneName().startswith(ROUTE_ONLY)]
+    for z in gone:
+        b.Delete(z)
+    pcbnew.SaveBoard(path, b)
+    print(f"  took {len(gone)} route-only rule area(s) off {os.path.relpath(path, REPO)}")
+
+
 def is_routed():
     """Whether the board on disk has tracks the router put there: every track this script draws is locked."""
     path = os.path.join(OUT, NAME + ".kicad_pcb")
@@ -1344,7 +1369,10 @@ def check_placement(bad, routed=False):
         rep = json.load(open(out))
     seen = {}
     ok = ("lib_footprint_issues", "lib_footprint_mismatch", "silk_over_copper", "silk_overlap",
-          "silk_edge_clearance", "text_height", "text_thickness") + (() if routed else ("unconnected_items", "via_dangling", "track_dangling"))
+          "silk_edge_clearance", "text_height", "text_thickness") + (() if routed else (
+              "unconnected_items", "via_dangling", "track_dangling",
+              "items_not_allowed",      # Raspberry Pi's crystal copper inside the route-only keep-out, till tidy
+              "starved_thermal"))       # the placed board's pours, before the route's ground vias (rev A's too)
     for v in rep.get("violations", []) + rep.get("unconnected_items", []) + rep.get("schematic_parity", []):
         seen[v["type"]] = seen.get(v["type"], 0) + 1
         if v["type"] not in ok:
@@ -1379,10 +1407,10 @@ def check_rpi(bad):
 
 
 RENDERS = [  # name, kicad-cli pcb render options
-    ("top", ["--side", "top", "--zoom", "1.6", "--width", "1400", "--height", "1300"]),
-    ("3q", ["--side", "top", "--rotate", "-38,0,-24", "--perspective", "--zoom", "1.45", "--width", "1500", "--height", "1300"]),
-    ("bottom", ["--side", "bottom", "--zoom", "1.6", "--width", "1400", "--height", "1300"]),
-    ("under-glass", ["--side", "top", "--zoom", "1.6", "--width", "1400", "--height", "1300"]),
+    ("top", ["--side", "top", "--zoom", "1.0", "--width", "1400", "--height", "1300"]),
+    ("3q", ["--side", "top", "--rotate", "-38,0,-24", "--perspective", "--zoom", "0.8", "--width", "1500", "--height", "1300"]),
+    ("bottom", ["--side", "bottom", "--zoom", "1.0", "--width", "1400", "--height", "1300"]),
+    ("under-glass", ["--side", "top", "--zoom", "1.0", "--width", "1400", "--height", "1300"]),
 ]
 
 
@@ -1437,7 +1465,8 @@ def jlc_spec():
                         {"type": "lib_footprint_mismatch", "ref": "J3", "why": "not fitted: its outline and courtyard left out, the holes only"},
                         {"type": "missing_courtyard", "ref": "J3", "why": "not fitted: the holes only"},
                         {"type": "missing_courtyard", "ref": "LCD1", "why": "the panel on tape over the parts: the fit check's glass stands in"},
-                        {"type": "silk_over_copper", "ref": "LCD1", "why": "the glass's outline crosses U6's pads, and KiCad cuts it at their openings"}],
+                        {"type": "silk_over_copper", "ref": "LCD1", "why": "the glass's outline crosses U6's pads, and KiCad cuts it at their openings"}]
+                     + [{"type": "silk_overlap", "ref": r, "why": "the mark's sides end on the switch's outline, on purpose"} for r in ("SW4", "SW5")],
         "regulator": {"ref": "U3", "part": "XC6206P332MR", "vin": 5.0, "vout": 3.3, "amps": [0.05, 0.12], "theta_ja": 400,
                       "theta_note": "250 mW at 25 C in its datasheet's SOT-23 rating, so about 400 C/W"},
         "return_nets": ["/USB_D+", "/USB_D-", "/RP_DP", "/RP_DM", "/LCD_SCK", "/LCD_MOSI", "/QSPI_SCLK", "/XIN"],
@@ -1459,7 +1488,9 @@ def jlc_spec():
 def main():
     bad = []
     check_firmware(bad)
-    checking = "check" in sys.argv[1:]
+    checking = "check" in sys.argv[1:] or "tidy" in sys.argv[1:]
+    if "tidy" in sys.argv[1:]:
+        tidy()
     if not checking:
         if is_routed():
             sys.exit(f"{NAME}: {NAME}.kicad_pcb is routed, and a new schematic wouldn't match it. "

@@ -8,12 +8,13 @@ Five ordered from JLCPCB on 2026-10-29, fully assembled
 one is up on a bench script ([bench/BRINGUP.md](bench/BRINGUP.md)); the console's firmware for it is
 not written yet.*
 
-## Rev B: placed in the generator, not yet in KiCad (2026-11-05)
+## Rev B: routed, its fab files written (2026-11-05)
 
 `gen_console_rp.py` now describes rev B, the square board of
-[the rev B plan](../../CONSOLE-RP-REV-B-PLAN-2026-11-05.md). It hasn't been run through KiCad yet.
-Everything else in this folder (the board, its fab files, the renders and the rest of this README)
-is still rev A's, as ordered. Rev A's generator is commit `4a349cc`.
+[the rev B plan](../../CONSOLE-RP-REV-B-PLAN-2026-11-05.md). The board, its fab files, the golden
+pictures, the renders and PINS.md in this folder are rev B's. The rest of this README, from the
+first picture down, is still rev A's, as ordered. Rev A's generator, board and fab files are commit
+`4a349cc`.
 
 What the generator now places:
 - **the board:** 58 × 54 mm, the top-right corner cut 6 mm, a hole near each corner but the top-left,
@@ -59,23 +60,53 @@ and nothing else. `write_pins` and `write_bom` were run: only PINS.md's note cha
   T = 0.80 mm). Rev A is 1.6 mm. The zone is kept, but a port variant of this board is a question
   of thickness first.
 
-**Still to do, with KiCad 10 (on the Mac):**
-1. Move rev A's routed `console-rp/console-rp.kicad_pcb` aside. The generator won't overwrite a
-   routed board.
-2. `tools/keypcb gen-console-rp`: the schematic, ERC, the netlist against the table, the
-   footprints, and DRC on the placed board.
-3. `tools/keypcb route console-rp`, then put it right by hand as rev A was. The bench USB's two lines
-   stop where they leave U1's block, and the router takes them on.
-4. `tools/keypcb gen-console-rp check render`, `tools/keypcb fab console-rp` and
-   `tools/keypcb jlc console-rp`. The renders' frame was guessed for the new shape.
-5. The case: `cad/consoles/rp.py` checks the generator against `fab/cpl.csv`, so it fails until
-   step 4 has written rev B's. It also needs the USB-C at the bottom and the 17.6 mm glass.
-6. The concept's outlines round parts that have none (`outlines()` on `claude/console-rp-concept`)
+**Routed and checked on the Mac** (KiCad 10.0.6, Freerouting 2.5, 2026-11-05):
+- `tools/keypcb gen-console-rp`: ERC 0, KiCad's netlist matches the table, PINS.md unchanged. The
+  placed board's one starved thermal (C3's ground, in Raspberry Pi's corner) is rev A's too, and
+  the route clears it. The placed board's check now lets it pass.
+- The route needed four changes to the generator. One is a keep-out; the other three are locked
+  lines the router starts from:
+  - **the crystal's corner kept out** on the front for the route only, then taken off
+    (`gen-console-rp tidy`), as rev A's last route did. Without it the router ran SWCLK and SWDIO
+    through it;
+  - **D2 out of pin 9 to a via.** The router left it shut in between SCL and pin 11's 3V3, as it
+    left rev A's pin 8;
+  - **the bench D+ ends on a via.** The router came to its end on the back and never put one down;
+  - **C12's and C8's ground up past C9's to Raspberry Pi's ground via.** The router's LED line shut
+    them in, and TP4 is under them on the back.
+- Freerouting gives the same route for the same placed board each time (three runs, and 40 to 250
+  passes, all alike), but any change moves the whole route. With the C12/C8 tie placed before the
+  route, it left LCD_CS and SWCLK open. So the board was made in this order:
+  1. placed without that tie and routed: only that ground, and four necked tracks, were wrong;
+  2. the router's LED line taken off, the tie drawn on, locked, and the route run again: it
+     routed the LED alone;
+  3. `tools/keypcb gen-console-rp tidy`;
+  4. by hand: Freerouting's four 0.12 mm necks (LCD_SCK and CH_V3) widened to 0.15 mm, and
+     LCD_SCK's moved 0.015 mm off LCD_CS for a 0.15 mm gap; one ground via at (51.61, 30.5) in the
+     pour's strip right of the crystal's corner, which the route's island step skipped while the
+     keep-out was on.
+
+  **Don't reroute.** The generator draws the tie, so a new route won't come out as this one did.
+- `tools/keypcb gen-console-rp check`: DRC with schematic parity is clean but for J1's and J3's
+  footprints (as rev A) and the mark's sides, which end on RESET's and BOOTSEL's outlines. Nothing
+  else is in Raspberry Pi's areas.
+- `tools/keypcb jlc console-rp`: every check passes. The mark's two silkscreen overlaps are allowed
+  in `jlc_spec()`. Warnings: U3's heat, as on rev A (about 82 °C over the air at 0.12 A, by the
+  datasheet's 400 °C/W: the plan measures it on rev A); J3's ground pad is joined to the pour
+  solid (J3 isn't fitted). The golden pictures are rev B's. `--selftest` catches 10 of 10.
+- The renders: zoom 1.0, and 0.8 for the angled view, for the square board.
+
+**Still to do:**
+1. Before the order: JLCPCB's stock of L1 (C42411119; rev A's order took the 6 it had), and the
+   plan's choices: how many and which assembly, the mask colour, and the value swaps.
+2. The case: `cad/consoles/rp.py` hasn't been run on rev B. It needs the USB-C at the bottom and
+   the 17.6 mm glass. The plan prints its face and lays it on a 1:1 print before the order.
+3. The concept's outlines round parts that have none (`outlines()` on `claude/console-rp-concept`)
    need pcbnew to check, so they haven't been brought over.
 
-![console-rp from above: a warning triangle and EXPERIMENTAL HARDWARE COSIGNER over the 1.14-inch screen at the top left, PicoQuorum console-rp under it, and D0, D1 and D2 in a row below that; the flash, the RP2350, the crystal, the CH343P, and the key chip with an 8-bit key pointing at it, to its right; the USB-C on the right edge, RESET and BOOTSEL at the bottom right, and the bench header's holes along the top](renders/console-rp-top.jpg)
+![console-rp rev B from above: a near-square board with its top-right corner cut; a warning triangle and EXPERIMENTAL HARDWARE COSIGNER along the top, the 1.14-inch screen at the left, PicoQuorum console-rp under it and D0, D1 and D2 in a row below that; the flash, the RP2350 and the crystal right of the screen; the mark below the buttons, its two lower dots RESET and BOOTSEL; the key chip with an 8-bit key pointing at it, the CH343P, and the USB-C on the bottom edge; the bench header's holes down the left edge](renders/console-rp-top.jpg)
 
-*KiCad's 3D render of the routed board. The panel is drawn as a box. More views are in
+*KiCad's 3D render of rev B, routed. The panel is drawn as a box. More views are in
 [renders/](renders/).*
 
 [console-usb](../console-usb/README.md) took the radio out of use on an ESP32-S3. This board takes
