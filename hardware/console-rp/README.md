@@ -5,7 +5,8 @@ and the board, routed (DRC). The fab files for JLCPCB are in [console-rp/fab/](c
 pass `tools/keypcb jlc console-rp`. Two real panels were checked against J2 ([The panel](#the-panel)).
 Five ordered from JLCPCB on 2026-10-29, fully assembled
 ([the order](../../buildlog/2026-10-29-console-rp-order.md)), and received on 2026-11-04. The first
-one is up on a bench script ([bench/BRINGUP.md](bench/BRINGUP.md)); the console's firmware for it is
+one is up on a bench script ([bench/BRINGUP.md](bench/BRINGUP.md)), and what it can do is measured
+([bench/HORSEPOWER.md](bench/HORSEPOWER.md)); the console's firmware for it is
 not written yet.*
 
 ![console-rp from above: a warning triangle and EXPERIMENTAL HARDWARE COSIGNER over the 1.14-inch screen at the top left, PicoQuorum console-rp under it, and D0, D1 and D2 in a row below that; the flash, the RP2350, the crystal, the CH343P, and the key chip with an 8-bit key pointing at it, to its right; the USB-C on the right edge, RESET and BOOTSEL at the bottom right, and the bench header's holes along the top](renders/console-rp-top.jpg)
