@@ -70,6 +70,14 @@ class UI(ceremony_ui.UI):
         d, p = self.d, self.p
         if board.DIAL:                  # Boot arms, the turn (D1's row) goes back
             labels = ("Arm" if "Arm" in labels[:2] else None, "Back" if labels[0] == "Back" else None, labels[2])
+        if board.RAIL_Y is None:        # console-rp: its buttons under the screen, their words along the bottom
+            d.fill_rect(0, H - 10, board.W, 10, p["dim"])
+            if fill:
+                d.fill_rect(0, H - 10, int(board.W * min(1, max(0, fill[0]))), 10, fill[1])
+            for i, lab in enumerate(labels):
+                if lab:
+                    d.text(lab, i * board.W // 3 + (board.W // 3 - 8 * len(lab)) // 2, H - 9, p["fg"])
+            return
         d.fill_rect(0, 0, RAIL, H, p["dim"])
         if fill:
             h = int(H * min(1, max(0, fill[0])))

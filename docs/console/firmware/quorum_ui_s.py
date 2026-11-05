@@ -13,6 +13,10 @@
 # an icon over a word. On a review: Reject, Next, and Sign, which fills the strip while it is held.
 # Home is four tabs (draw_tabs), each button working the strip level with it: D0 the tabs along the
 # top, D1 the list in the middle, D2 the bar along the bottom, which says what it does.
+#
+# console-rp (240x135, THREE without RAIL_Y) has its three buttons under the screen: no rail, and an
+# 18 px footer names them instead, D0 D1 D2 left to right (slots, from PR #91's QT Py footer). Sign's
+# slot fills while it is held. These are its screens with no effects, for bring-up and the tests.
 import time
 import board
 import lcd as L
@@ -22,14 +26,15 @@ import quorum_ui as B
 from quorum_ui import c, txt, txt_r, fit, para, rrect, pill, mark, warn_sign, logo, ident, short, page_colors, thick_line
 
 W, H = L.W, L.H
-RAIL = 36 if L.THREE else 0     # the Feather's rail; the screens start right of it
+SLOTS = L.THREE and not board.RAIL_Y     # three buttons, named in a footer (console-rp)
+RAIL = 36 if L.THREE and not SLOTS else 0     # the Feather's rail; the screens start right of it
 X0 = RAIL
 M = X0 + 5                      # side margin
 R = W - 5
 TW = R - M
 CX = (X0 + W) // 2              # the middle of what the screens draw on
 HEAD = 16                       # header strip
-FOOT = H if L.THREE else H - 18     # footer from here down (the Feather has none)
+FOOT = H if RAIL else H - 18    # footer from here down (the Feather has none)
 PER = 4 if L.THREE else 3       # four-character chunks a line, in an address or a hash
 use = B.use
 
@@ -84,8 +89,8 @@ def footer_msg(d, q, bg="bg"):
     when it drew."""
     if not q.msg:
         return False
-    y = H - 17 if L.THREE else FOOT
-    d.fill_rect(X0, y, W - X0, H - y, c(bg))
+    y = FOOT - 17 if L.THREE else FOOT
+    d.fill_rect(X0, y, W - X0, FOOT - y if L.THREE else H - y, c(bg))
     txt_c(d, fit(q.msg, TW, "sans12"), y + 1, "sans12", "warn", bg)
     return True
 
@@ -125,12 +130,15 @@ def icon(d, kind, cx, cy, ink):
         d.ellipse(cx, cy, 1, 1, col, True)
 
 
-def rail(d, q, labels=(None, None, None), bg="bg", hold=None):
+def rail(d, q, labels=(None, None, None), bg="bg", hold=None, span=W):
     """The Feather: what D0, D1 and D2 do here, each label level with its button (an icon over a
     word, ICONS), and the last message along the bottom. labels: three (text, fill, ink), or None
     where a button does nothing. hold: (fraction, red) while Sign is held, the strip filling from
-    the bottom."""
+    the bottom. console-rp: the same in its footer (slots), across the left span px."""
     footer_msg(d, q, bg)
+    if SLOTS:
+        slots(d, labels, bg, hold, span)
+        return
     d.fill_rect(0, 0, RAIL, H, c("surface"))
     if hold:
         h = int(H * min(1, hold[0]))
@@ -149,6 +157,27 @@ def rail(d, q, labels=(None, None, None), bg="bg", hold=None):
             txt(d, s, 1 + (RAIL - 2 - F.width(s, "sans12")) // 2, top + (14 if ic else 0), "sans12", ink, fill)
 
 
+def slots(d, labels, bg, hold, span=W):
+    """console-rp's footer: D0, D1 and D2 left to right, a slot each, empty where a button does
+    nothing here. While Sign is held its slot fills from the left."""
+    d.fill_rect(0, FOOT, span, H - FOOT, c(bg))
+    sw = (span - 8) // 3
+    for i, lab in enumerate(labels):
+        if not lab:
+            continue
+        s, fill, ink = lab
+        x = 2 + i * (sw + 2)
+        rrect(d, x, FOOT + 1, sw, H - FOOT - 2, 4, "surface" if hold and i == 2 else fill)
+        if hold and i == 2:
+            w = int(sw * min(1, hold[0]))
+            on = "bad_bar" if hold[1] else "ok"
+            if w >= 8:
+                rrect(d, x, FOOT + 1, w, H - FOOT - 2, 4, on)
+            fill, ink = (on if 2 * w >= sw else "surface"), "text"     # light on both: it straddles the edge
+        s = fit(s, sw - 4, "sans12")
+        txt(d, s, x + (sw - F.width(s, "sans12")) // 2, FOOT + 1, "sans12", ink, fill)
+
+
 def footer_press(d, q, what, bg="bg"):
     """What a press does, after the knob's mark."""
     if footer_msg(d, q, bg):
@@ -160,7 +189,7 @@ def footer_press(d, q, what, bg="bg"):
 
 def choices(d, q, items, focus, bg="bg"):
     """Pills the knob (D1 on the Feather) moves onto, right-aligned, the one in focus lit."""
-    y = H - 18 if L.THREE else FOOT + 1
+    y = FOOT - 18 if L.THREE else FOOT + 1
     if not L.THREE:
         if footer_msg(d, q, bg):
             return
@@ -317,9 +346,10 @@ def bar(d, q, what):
     """Along the bottom, level with D2: what it does here, after its dot."""
     if not what or q.msg:
         return
-    d.fill_rect(X0 + 1, H - 18, W - X0 - 1, 18, c("raised"))
-    icon(d, "dot", M + 2, H - 9, "text")
-    txt(d, fit(what, R - M - 12, "sans12"), M + 12, H - 17, "sans12", "text", "raised")
+    y = H - 18 if RAIL else FOOT - 18   # console-rp: over its footer
+    d.fill_rect(X0 + 1, y, W - X0 - 1, 18, c("raised"))
+    icon(d, "dot", M + 2, y + 9, "text")
+    txt(d, fit(what, R - M - 12, "sans12"), M + 12, y + 1, "sans12", "text", "raised")
 
 
 def draw_tabs(q):
@@ -327,7 +357,7 @@ def draw_tabs(q):
     d.fill(c("bg"))
     tab_strip(d, q)
     t = q.TABS[q.tab]
-    y0, y1 = HEAD + 20, H - 18
+    y0, y1 = HEAD + 20, (H if RAIL else FOOT) - 18
     what = None
     if t == "queue":
         ok = q.net_ok
@@ -427,7 +457,7 @@ def draw_who(q):
     for line in addr_lines(a):
         txt(d, line, M, y, "mono13", "stake")
         y += 16
-    blockies.draw(d, a.lower(), R - 40, H - 44, 5)
+    blockies.draw(d, a.lower(), R - 40, FOOT - 44 if SLOTS else H - 44, 5)
     rail(d, q, (BACK, None, None))
     d.show()
 
@@ -821,7 +851,7 @@ def draw_key(q):
         link = q.setup_link()
         n = qr_of(link)[0]
         box = n * 3 + 12
-        draw_qr(d, link, W - box, (H - box) // 2, 3)
+        draw_qr(d, link, W - box, 0 if SLOTS else (H - box) // 2, 3)     # console-rp: over the footer's left
         col = W - box - 4 - M
         txt(d, fit("Set it up", col, "bold14"), M, 0, "bold14")
         txt(d, fit("Scan with", col, "sans12"), M, 18, "sans12", "muted")
@@ -850,7 +880,7 @@ def draw_key(q):
             txt(d, line, M, y, "sans12", "warn")
             y += 14
         labels = (BACK, ("Code", "raised", "text"), None)
-    rail(d, q, labels)
+    rail(d, q, labels, span=W - box - 2 if SLOTS and q.kpage == 0 else W)
     d.show()
 
 

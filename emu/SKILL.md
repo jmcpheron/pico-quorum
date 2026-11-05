@@ -86,7 +86,7 @@ reset leaves the console's watchdog unfed. `tools/usb push` refuses it too, and 
 - MicroPython, not CPython: no typing module, small stdlib (`math`, `random`, `struct`, `json`,
   `time`, `array`, `collections`), integer-first, f-strings ok. `@micropython.viper` speeds up
   per-pixel loops on the board (runs as plain bytecode in the emulator, slower).
-- Firmware you can import: `quorum` (the console; `quorum.start()`), `chipapp` (the ceremony
+- Firmware you can import: `quorum` (the console; `import net; quorum.NET = net; quorum.start()`), `chipapp` (the ceremony
   image's app: A provisions a fresh chip, X opens the chip map), `slots`, `chipmap`, `learn` and
   `snakelab` (the chip map's screens), `splash` (the boot screen), `icons` (16 px bitmaps,
   `icons.draw(d, "key", x, y, color, scale)`), `qrcode` (`qrcode.encode(text) -> (n, rows)`),

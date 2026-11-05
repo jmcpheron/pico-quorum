@@ -37,6 +37,7 @@ export const SCREENS = {
   waveshare: { w: W, h: H, x: 0, y: 0, dc: 8, pins: KEY_PINS },
   "feather-s3": { w: 240, h: 135, x: 40, y: 53, dc: 40, pins: { 0: "D0", 1: "D1", 2: "D2" } },
   "picoquorum-key": { w: 240, h: 135, x: 40, y: 53, dc: 9, pins: { 42: "D0", 41: "D1", 40: "D2" } },
+  "console-rp": { w: 240, h: 135, x: 40, y: 53, dc: 8, pins: { 2: "D0", 3: "D1", 6: "D2" } },
 };
 export const DEFAULT_HEAP = 448 * 1024;
 

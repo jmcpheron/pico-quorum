@@ -1,6 +1,6 @@
 # PicoQuorum's console: the Safe's queue, each transaction in plain language, and a signature from
 # the chip only after the person has seen every page and held A. Polls Safe's transaction service
-# over WiFi (for now tools/quorum's simulated Safe on the laptop).
+# over Wi-Fi, or on console-rp through the computer on its UART1 (NET, below).
 #
 # The loop is picowallet's (its wallet.py): one 50 ms Timer, keys every tick, redraw only when something changed,
 # and the timer stopped around anything that blocks (HTTP, hashing, the chip). X shows the device:
@@ -21,11 +21,10 @@
 # signs the hash computed here, never a string the service sent: wrapped as a WebAuthn assertion
 # (webauthn.py), because onchain this key owns the Safe through Safe's passkey signer.
 #
-#   import lcd; import quorum; quorum.start()      (main_console.py does this)
-import sys, time, machine, network, gc, json
+#   import lcd; import quorum; quorum.NET, quorum.VIA = net, vhttp; quorum.start()      (main_console.py does this)
+import sys, time, machine, gc, json
 import board
 import lcd as L
-import net
 import image
 import policy
 import qlog
@@ -48,6 +47,13 @@ except ImportError:
     secrets = None
 
 CFG = quorum_cfg.CFG
+# The way out to Safe's service, set by the image's main file before start(): net (Wi-Fi, net.py) or
+# link (console-rp: UART1 to the computer, which relays to the pinned services, link.py). Both answer
+# the same few calls: KIND, up, led, boot_at, begun_at, short_err, ready, status, poll_accept and
+# boot_join. VIA is the transport txservice.Service calls: vhttp on a board with Wi-Fi, link on
+# console-rp, None where `requests` does (the LAN, the emulator).
+NET = None
+VIA = None
 PROD = image.PRODUCTION
 SAFES_FILE = "safes.json"   # written only by a safes ask over USB that the person accepted here (usblink.py)
 
@@ -178,7 +184,7 @@ chip_pages = []     # the Chip pages (sig.details), read off the chip when they 
 chip_page = 0
 opage = 0           # the Owners page in view: OWNERS_PER_PAGE owners a page, so a 3-of-5 or longer scrolls
 dfoot = "chip"      # knob, on the Device screen: "chip", "wifi", "practice" or "back"
-DFOOT = ("chip", "wifi", "practice", "back")
+DFOOT = ("chip", "wifi", "practice", "back") if board.RADIO else ("chip", "practice", "back")
 work_info = []      # short facts from the chip, shown under the Signing and Sending screens (sig.info)
 truncated = False   # the queue did not fit in memory: only the first few are shown
 fails = 0           # ticks in a row that raised
@@ -214,13 +220,15 @@ rpage = 0           # the Recent screen's page
 # Home on three buttons: four tabs along the top (quorum_ui_s.draw_tabs). D0 is level with them and
 # moves to the next, D1 moves in the list below, D2 does what the bar along the bottom says.
 TABS = ("queue", "owners", "key", "device")
-DTAB = ("chip", "wifi", "practice", "about")     # the Device tab's rows; About is the Device screen
+DTAB = ("chip", "wifi", "practice", "about") if board.RADIO else ("chip", "practice", "about")     # the Device tab's rows; About is the Device screen
 tab = 0             # the tab in view (an index into TABS)
 osel = 0            # the Owners tab: the owner in focus
 dsel = 0            # the Device tab: the row in focus (DTAB)
 who = ""            # the owner the Owner screen (state "who") shows in full
 # An ask from the USB link (usblink.py): Wi-Fi, the Safes, or maintenance, on screen page by page.
-LINK_ASKS = ("wifi", "safes", "maint")
+# No radio, no REPL the USB-C can reach (console-rp): only the Safes. A maint ask there would leave
+# the board in a REPL nobody could open.
+LINK_ASKS = ("wifi", "safes", "maint") if board.RADIO else ("safes",)
 ASK_FROM = ("home", "boot", "saver", "unconfigured", "nochip", "pinfail", "owners", "device", "recent", "key", "chip")
 ask = None          # {"kind", "item", "pages": [{"title", "lines", "addr"?, "red"?}], "back": the state it came over}
 apage = 0           # its page in view
@@ -828,7 +836,7 @@ def poll(w):
         if not saved_checked:
             send_saved(w)
     except Exception as ex:
-        w["ok"], w["err"] = False, net.short_err(ex)
+        w["ok"], w["err"] = False, NET.short_err(ex)
         _log("service %s: %r" % (w["name"], ex))
         qlog.once("service %s: %s" % (w["name"], w["err"]))
 
@@ -846,17 +854,12 @@ def net_work():
     fresh = [w for w in WATCH if not w["tried"]]
     w = fresh[0] if fresh else WATCH[rr % len(WATCH)]
     rr = (WATCH.index(w) + 1) % len(WATCH)
-    wlan = network.WLAN(network.STA_IF)
-    if not wlan.isconnected():
-        if time.ticks_diff(time.ticks_ms(), net.last_try) > 30000:
-            net.retry()
-            _log("wifi: retrying " + net.ssid())
-        net_ok, net_err = False, "no wifi"
-        for x in WATCH:                     # no wifi: every Safe is offline, and waits the poll period
-            x["tried"], x["ok"], x["err"] = True, False, "no wifi"
+    ok, why = NET.ready(_log)
+    if not ok:
+        net_ok, net_err = False, why
+        for x in WATCH:                     # no way out: every Safe is offline, and waits the poll period
+            x["tried"], x["ok"], x["err"] = True, False, why
     else:
-        if not net.up:
-            net.joined()
         poll(w)
         down = [x for x in WATCH if not x["ok"] and x["tried"]]
         net_ok = not down
@@ -1162,7 +1165,7 @@ def send_saved(w):
     try:
         ok, detail = svc.confirm(s["h"], s["sig"])
     except Exception as ex:
-        ok, detail = False, net.short_err(ex)
+        ok, detail = False, NET.short_err(ex)
     if ok:
         qlog.write("confirmed #%s (the saved signature, after a restart)" % s.get("n"))
         say("Sent the saved signature for #%s" % s.get("n"), 6)
@@ -1180,7 +1183,7 @@ def post(e, signature):
         aim(e["w"])
         ok, detail = svc.confirm(e["h"], signature)
     except Exception as ex:
-        ok, detail = False, net.short_err(ex)
+        ok, detail = False, NET.short_err(ex)
     if ok:
         unsent = None
         clear_unsent(e["h"])
@@ -1626,9 +1629,9 @@ def check_mark(on):
 def led_tick():
     if any(waiting(e) for e in queue):
         if _n % 10 == 0:
-            net.led.toggle()        # blinks while something waits for this key
+            NET.led.toggle()        # blinks while something waits for this key
     elif _n % 20 == 0:
-        net.led.value(1 if net.up else 0)
+        NET.led.value(1 if NET.up else 0)
 
 
 # ----------------------------------------------------------------------------- the USB link's asks
@@ -1657,11 +1660,12 @@ def link_status():
                     "threshold": threshold(w) if info else None, "owners": len(owners(w)) if info else None,
                     "nonce": info.get("nonce"), "isOwner": (bool(me) and me in owners(w)) if info else None,
                     "queued": n, "waiting": mine})
-    return {"mode": "console", "name": NAME, "state": state, "ready": readiness(), "serial": serial, "profile": profile,
-            "chip": facts, "owner": me, "key": compressed(), "pinned": bool(EXPECT) and pin_ok, "pinWhy": pin_why, "counter": counter,
-            "wifi": {"up": net.up, "ssid": net.ssid() if net.up else "", "saved": [x[0] for x in net.networks()]},
-            "safes": out, "safesFrom": "" if UNCONFIGURED else SAFES_FROM, "ask": ask["kind"] if ask else None,
-            "watchdog": watch.running(), "image": image.IMAGE, "version": image.VERSION}
+    st = {"mode": "console", "name": NAME, "state": state, "ready": readiness(), "serial": serial, "profile": profile,
+          "chip": facts, "owner": me, "key": compressed(), "pinned": bool(EXPECT) and pin_ok, "pinWhy": pin_why, "counter": counter,
+          "safes": out, "safesFrom": "" if UNCONFIGURED else SAFES_FROM, "ask": ask["kind"] if ask else None,
+          "watchdog": watch.running(), "image": image.IMAGE, "version": image.VERSION}
+    st.update(NET.status())         # "wifi" {up, ssid, saved}, or "link" on console-rp
+    return st
 
 
 def link_ask(kind, item):
@@ -1808,7 +1812,7 @@ def tick(t):
     try:
         _n += 1
         watch.extend(5000)
-        net.poll_accept()
+        NET.poll_accept()
         if reset_at and time.ticks_diff(time.ticks_ms(), reset_at) >= 0:
             machine.reset()
         ask_tick()
@@ -1949,7 +1953,7 @@ def start():
     # Where the boot goes, one line in log.txt at the end: "boot ms: boot 900 radio 1200 art 2100 wifi
     # 4800 start 6012 fonts 40 probe 310 ...": when boot.py started, the radio was asked to join,
     # the boot art started, WiFi was up and this began, in ms since reset, then each step's own time.
-    marks, last = ["boot %d radio %d art %d wifi %d start %d" % (net.boot_at, net.begun_at, splash._t0, getattr(splash, "wifi_at", 0),
+    marks, last = ["boot %d radio %d art %d wifi %d start %d" % (NET.boot_at, NET.begun_at, splash._t0, getattr(splash, "wifi_at", 0),
                                                                time.ticks_ms())], [time.ticks_ms()]
 
     def mark(what):
@@ -1984,16 +1988,9 @@ def start():
             splash.chip(me, "%s%s\u2026%s" % (name, me[:6], me[-4:]), pin_ok)
         check_counter()
     mark("counter")
-    w = network.WLAN(network.STA_IF)
-    if net.networks() and not w.isconnected() and not net.tried:
-        try:
-            skip = " press skips" if KNOB else " any button skips"
-            net.connect(progress=lambda ms: splash.spin("wifi", ("join " + net.ssid())[:12] + skip) or bool(keys.pressed()))
-        except Exception as e:
-            print("wifi:", e)
-    splash.wifi_row(w, net.ssid())
+    up_at = NET.boot_join(splash, keys, KNOB)
     mark("wifi")
-    marks.append("up %d" % (time.ticks_ms() if w.isconnected() else 0))   # WiFi joined, ms since reset
+    marks.append("up %d" % up_at)   # WiFi joined (or the relay heard), ms since reset
     served = [x for x in WATCH if x["base"]]
     first = ([x for x in served if x["base"].startswith("https")] or served or [None])[0]
     if len(WATCH) > 1:
@@ -2007,7 +2004,9 @@ def start():
         state = "unconfigured"
     elif first:
         verify = PROD or bool(getattr(secrets, "QUORUM_TLS_VERIFY", True))
-        svc = txservice.Service(first["base"], txservice.checksum(first["addr"]), API_KEY, verify=verify, floor=image.DATE)
+        # The API key goes only over this board's own HTTPS. Through the link, the computer's relay adds its own.
+        svc = txservice.Service(first["base"], txservice.checksum(first["addr"]), API_KEY if NET.KIND == "wifi" else None,
+                                verify=verify, floor=image.DATE, via=VIA)
     mark("service")
     if state == "boot":
         splash.step("app", "Starting console", L.GREY)

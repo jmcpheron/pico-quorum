@@ -250,6 +250,9 @@ class UART:
     def read(self, n=-1):
         return None
 
+    def readinto(self, buf, n=-1):
+        return None
+
     def any(self):
         return 0
 

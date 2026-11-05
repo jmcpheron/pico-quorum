@@ -4,10 +4,15 @@
 #
 #   uv run --no-project --with littlefs-python==0.19.0 python hardware/console-rp/bench/swdload.py \
 #       RPI_PICO2-20250911-v1.26.1.uf2 main.py=hardware/console-rp/bench/stage0.py [--no-micropython] [--dry-run]
+#   ... swdload.py --no-micropython --image build/console-rp-<sha> [--dirty-ok] [--dev] [--secrets PATH]
 #
-# Each NAME=PATH goes into the filesystem as /NAME. Needs probe-rs on the PATH (brew install
-# probe-rs-tools) and a CMSIS-DAP probe on J3's CLK, DIO and GND. It writes the RP2350's flash only:
-# nothing here talks to the key.
+# Each NAME=PATH goes into the filesystem as /NAME. --image DIR puts in a `tools/fw build console-rp`
+# directory, each file first checked against its build.py's FILES. It refuses a build of uncommitted
+# firmware unless --dirty-ok. --dev leaves build.py out (a development board: PRODUCTION off, and
+# the board named by secrets.BOARD); --secrets PATH adds a bench secrets.py, which stays out of the
+# repository. Needs probe-rs on the PATH (brew install probe-rs-tools) and a CMSIS-DAP probe on J3's
+# CLK, DIO and GND. It writes the RP2350's flash only: nothing here talks to the key. The whole
+# filesystem is new each time: what was on the board before is gone.
 import hashlib
 import os
 import struct
@@ -72,6 +77,34 @@ def filesystem(files):
     return [(FS_BASE + a * BLOCK, data[a * BLOCK:b * BLOCK]) for a, b in runs]
 
 
+def image_files(d, dirty_ok=False, dev=False, secrets=None):
+    """A tools/fw build directory as (name, path) pairs, every file checked against build.py's FILES
+    (each one's SHA-256, first 12 hex digits) and none missing or extra."""
+    import ast
+    vals = {}
+    for line in open(os.path.join(d, "build.py")).read().splitlines():
+        k, sep, v = line.partition(" = ")
+        if sep and k.isupper():
+            vals[k] = ast.literal_eval(v)
+    want = vals.get("FILES") or sys.exit("%s/build.py has no FILES" % d)
+    if vals.get("BUILD", "").endswith("+dirty") and not dirty_ok:
+        sys.exit("%s is a build of uncommitted firmware (%s): commit, build again, or pass --dirty-ok" % (d, vals["BUILD"]))
+    names = sorted(n for n in os.listdir(d) if n != "build.py")
+    if set(names) != set(want):
+        sys.exit("%s differs from its build.py: extra %s, missing %s" % (d, sorted(set(names) - set(want)), sorted(set(want) - set(names))))
+    for n in names:
+        if hashlib.sha256(open(os.path.join(d, n), "rb").read()).hexdigest()[:12] != want[n]:
+            sys.exit("%s/%s no longer matches build.py" % (d, n))
+    print("image %s %s, build %s, release %s, %d files%s" % (vals.get("IMAGE"), vals.get("VERSION"), vals.get("BUILD"),
+                                                             vals.get("RELEASE", "")[:8], len(names), ", dev: no build.py" if dev else ""))
+    out = [(n, os.path.join(d, n)) for n in names]
+    if not dev:
+        out.append(("build.py", os.path.join(d, "build.py")))
+    if secrets:
+        out.append(("secrets.py", secrets))
+    return out
+
+
 def download(addr, blob, dry):
     with tempfile.NamedTemporaryFile(suffix=".bin", delete=False) as f:
         f.write(blob)
@@ -84,15 +117,38 @@ def download(addr, blob, dry):
         os.unlink(f.name)
 
 
+def option(argv, name):
+    """The value after --name, taken out of argv; None when it isn't there."""
+    if name not in argv:
+        return None
+    i = argv.index(name)
+    if i + 1 >= len(argv):
+        sys.exit("%s needs a value" % name)
+    v = argv[i + 1]
+    del argv[i:i + 2]
+    return v
+
+
 def main(argv):
+    argv = list(argv)
+    image, secrets = option(argv, "--image"), option(argv, "--secrets")
     dry = "--dry-run" in argv
     skip_mp = "--no-micropython" in argv
     args = [a for a in argv if not a.startswith("--")]
-    if not args:
-        sys.exit(__doc__ or "usage: swdload.py UF2 NAME=PATH ...")
-    uf2, files = args[0], [tuple(a.split("=", 1)) for a in args[1:]]
+    if skip_mp and args and "=" not in args[0]:
+        args = args[1:]                 # a UF2 named but not loaded
+    if not skip_mp and not args:
+        sys.exit("usage: swdload.py UF2 NAME=PATH ... (or --no-micropython --image DIR)")
+    uf2 = None if skip_mp else args[0]
+    files = [tuple(a.split("=", 1)) for a in (args if skip_mp else args[1:])]
     if any(len(f) != 2 for f in files):
         sys.exit("files are NAME=PATH")
+    if image:
+        files = image_files(image, "--dirty-ok" in argv, "--dev" in argv, secrets) + files
+    elif secrets:
+        files.append(("secrets.py", secrets))
+    if len(set(n for n, _ in files)) != len(files):
+        sys.exit("a name twice: %s" % [n for n, _ in files])
     if not dry:
         subprocess.run(PROBE + ["info", "--protocol", "swd"], check=False, capture_output=True)
     if not skip_mp:

@@ -131,6 +131,73 @@ class Timer:
 SVC = Service()
 
 
+class Relay:
+    """The computer on console-rp's UART1 (link.py), as the port link.start takes: it answers each
+    request from SVC as tools/relay would, and does to the next answers whatever a test puts in
+    faults (each a function of the request -> the raw lines to send instead). Every line the
+    console wrote is kept, as text."""
+
+    def __init__(self):
+        self.inq = b""
+        self.wrote = []
+        self.reqs = []
+        self.faults = []
+
+    def any(self):
+        return len(self.inq)
+
+    def readinto(self, mv):
+        n = min(len(mv), len(self.inq))
+        mv[0:n] = self.inq[:n]
+        self.inq = self.inq[n:]
+        return n
+
+    def raw(self, b):
+        self.inq += (b.encode() if isinstance(b, str) else b) + b"\n"
+
+    def hi(self):
+        self.raw('{"t":"hi"}')
+
+    def write(self, b):
+        b = bytes(b)
+        self.wrote.append(b.decode())
+        for line in b.split(b"\n"):
+            try:
+                m = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(m, dict) and m.get("t") == "req":
+                self.reqs.append(m)
+                for out in (self.faults.pop(0)(m) if self.faults else [self.res(m)]):
+                    self.raw(out)
+        return len(b)
+
+    def res(self, m, body=None, status=None):
+        """The answer SVC gives to m, as the relay sends it."""
+        if body is None:
+            try:
+                r = SVC.get(m["url"]) if m["m"] == "GET" else SVC.post(m["url"], json=json.loads(m.get("body", "null")))
+            except Exception as e:
+                return json.dumps({"t": "res", "id": m["id"], "status": 0, "err": repr(e)})
+            status, body = r.status_code, r.content.decode()
+        return json.dumps({"t": "res", "id": m["id"], "status": 200 if status is None else status, "body": body})
+
+    def sent(self, t):
+        """The lines of kind t ("req", "log", or "pq" for usblink's answers) the console wrote."""
+        out = []
+        for w in self.wrote:
+            try:
+                m = json.loads(w)
+            except ValueError:
+                continue
+            if m.get("t") == t or (t == "pq" and "pq" in m):
+                out.append(m)
+        return out
+
+
+RELAY = [None]          # fresh's Relay on console-rp: serve() has it say hi before each poll
+
+
 # ----------------------------------------------------------------------------- setup
 def chip(legacy=True, lock0=True, counter=0):
     """The virtual chip: chip #1's test table with a fresh key in slot 0 (and slot 2), slot 0 locked."""
@@ -151,8 +218,9 @@ def owner_of(slot):
     return webauthn.owner_address("0x%064x" % x, "0x%064x" % y, quorum_cfg.CFG["signer"])
 
 
-def fresh(prod=True, url="https://api.safe.global/tx-service/basesep", expect="auto", extra="", safe=True, keep=False):
-    """A newly imported console with this secrets.py (and build.py when prod), started, not polled."""
+def fresh(prod=True, url="https://api.safe.global/tx-service/basesep", expect="auto", extra="", safe=True, keep=False, relay=None):
+    """A newly imported console with this secrets.py (and build.py when prod), started, not polled.
+    On console-rp its way out is link.py, on a Relay (relay, or a new one): RELAY[0]."""
     lines = ['WIFI_SSID = "emulator"', 'WIFI_PASS = ""', 'HOSTNAME = "emu"',
              'QUORUM_API_KEY = "test-key"', "ALLOW_LOCK = True", "ALLOW_GENKEY = True", "ALLOW_SOFT_KEY = True"]
     if url:
@@ -165,15 +233,17 @@ def fresh(prod=True, url="https://api.safe.global/tx-service/basesep", expect="a
         lines.append("QUORUM_EXPECT = " + json.dumps(expect).replace("true", "True").replace("false", "False"))
     with open("secrets.py", "w") as f:
         f.write("\n".join(lines) + "\n" + extra + "\n")
+    import board
+    rp = board.BOARD == "console-rp"
     if prod:
         with open("build.py", "w") as f:
-            f.write('IMAGE = "console"\nBUILD = "test"\nDATE = 1790000000\n')
+            f.write('IMAGE = "%s"\nBUILD = "test"\nDATE = 1790000000\n' % ("console-rp" if rp else "console"))
     else:
         try:
             os.remove("build.py")
         except OSError:
             pass
-    for m in ("secrets", "build", "image", "quorum", "signer", "net", "txservice", "atecc", "qlog", "watch"):
+    for m in ("secrets", "build", "image", "quorum", "signer", "net", "link", "txservice", "atecc", "qlog", "watch"):
         sys.modules.pop(m, None)
     for f in os.listdir():
         if not keep and (f.startswith("counter-") or f in ("slot.txt", "safes.json")):
@@ -183,6 +253,19 @@ def fresh(prod=True, url="https://api.safe.global/tx-service/basesep", expect="a
     import quorum as Q
     Q.start_timer = lambda: None
     Q.time = Clock()
+    RELAY[0] = None
+    if rp:
+        import link
+        import qlog
+        RELAY[0] = relay = relay or Relay()
+        link.time = Q.time
+        link.start(port=relay)
+        qlog.TAP = link.log
+        relay.hi()                      # a relay already running: start() hears it
+        Q.NET = Q.VIA = link
+    else:
+        import net
+        Q.NET = net
     Q.start()
     Q.keys = Keys()
     Q.timer = Timer()
@@ -211,6 +294,8 @@ def serve(Q, txs, owners=None, threshold=2, version="1.4.1"):
     SVC.info = {"address": SAFE, "nonce": 0, "threshold": threshold, "version": version,
                 "owners": owners if owners is not None else [Q.me, ALICE, BOB]}
     SVC.txs = txs
+    if RELAY[0]:
+        RELAY[0].hi()
     Q.last_poll = 0
     Q.WATCH[0]["need_info"] = True
     Q.net_work()
@@ -1151,13 +1236,20 @@ def case_three():
     moves on and, held (D1L), moves back; D2 opens, walks the pages not yet seen, and held signs:
     2 s, 3 s when a page is red. Run in a device of its own (main_three): board.py is read once.
     The same for PicoQuorumKey (main_pqk): the Feather's buttons and screen on other pins. And for
-    the knob Feather (main_knob), where Boot is D0 and the knob's detents and push are D1, D1L, D2."""
+    the knob Feather (main_knob), where Boot is D0 and the knob's detents and push are D1, D1L, D2.
+    And for console-rp (main_rp): its buttons under the screen, named in a footer, and every call
+    to the service through the relay on UART1."""
     chip()
     Q = fresh(extra='BOARD = "%s"' % THREE_BOARD[0])
     if THREE_BOARD[0] == "feather-knob":
         import board
         check(board.DIAL and board.NAMES["D2"] == "push" and (board.SDA, board.SCL) == (42, 41),
               "the knob Feather: Boot and the knob as D0-D2, the key on 42/41")
+    if THREE_BOARD[0] == "console-rp":
+        import board
+        check(Q.U.SLOTS and not Q.U.RAIL and board.KEYS == {"D0": 2, "D1": 3, "D2": 6} and not board.HIGH
+              and (board.SDA, board.SCL, board.LINK) == (4, 5, (1, 20, 21)) and not board.RADIO and Q.NET.KIND == "link",
+              "console-rp: D0 D1 D2 on 2/3/6 pressed low, the key on 4/5, a footer, no rail, no radio, the link on UART1")
     check(Q.L.BOARD == THREE_BOARD[0] and Q.THREE and (Q.L.W, Q.L.H) == (240, 135) and Q.U.__name__ == "quorum_ui_s" and Q.PRESS == "D2",
           THREE_BOARD[0] + ": three buttons, 240x135, the small screens' UI")
     good, red = tx(Q, 0), tx(Q, 1, to=OTHER, data="0xdeadbeef")
@@ -1272,10 +1364,10 @@ def case_three():
     check(Q.state == "chip" and Q.chip_back == "home", "Device: D2 on Chip opens the chip pages")
     tick("D0")
     check(Q.state == "home" and Q.tab == 3, "D0: back on the Device tab")
-    for _ in range(3):
+    for _ in range(len(Q.DTAB) - 1):
         tick("D1")
     tick("D2")
-    check(Q.state == "device", "Device: D1 three times, D2: About, the device's facts")
+    check(Q.state == "device", "Device: D1 to the last row, D2: About, the device's facts")
     tick("D0")
     tick("D0")
     check(Q.state == "home" and Q.tab == 0, "D0: back on the tab; D0 again: round to Queue")
@@ -1294,44 +1386,49 @@ def case_three():
             fonts.text = real
         return out
 
-    rail = Q.U.RAIL
+    rail, foot = Q.U.RAIL, Q.U.FOOT if Q.U.SLOTS else Q.L.H
+
+    def edge(x, y):
+        """Where the buttons are named: left of the Feather's rail, or in console-rp's footer."""
+        return x < rail or y >= foot
+
     Q.msg = ""
     Q.open_entry(e)
     t = drawn()
-    left = [s for s, x, y, f in t if x < rail]
+    left = [s for s, x, y, f in t if edge(x, y)]
     check(left == ["Reject", "Next", "See %d" % len(Q.unseen())], "the rail on a review: Reject, Next, See %d" % len(Q.unseen()))
     while Q.unseen():
         Q.three("D1")
-    check([s for s, x, y, f in drawn() if x < rail] == ["Reject", "Next", "Sign"], "every page seen: Sign")
+    check([s for s, x, y, f in drawn() if edge(x, y)] == ["Reject", "Next", "Sign"], "every page seen: Sign")
     ok = True
     for p in range(len(Q.pages)):
         Q.page = p
         for s, x, y, f in drawn():
-            if y + fonts.height(f) > Q.L.H + 3 or (x < rail and s not in ("Reject", "Next", "Sign")):
+            if y + fonts.height(f) > Q.L.H + 3 or (edge(x, y) and s not in ("Reject", "Next", "Sign")):
                 ok = False
                 print("      page %d: %r at (%d, %d) in %s" % (p + 1, s, x, y, f))
-    check(ok, "every page of a review fits 240x135, and only the rail is drawn left of it")
+    check(ok, "every page of a review fits 240x135, and only the buttons' names are drawn by them")
     Q.state, Q.tab = "home", 0
-    check([s for s, x, y, f in drawn() if x < rail] == ["Tab", "Next", "Open"], "the rail on home: Tab, Next, Open")
+    check([s for s, x, y, f in drawn() if edge(x, y)] == ["Tab", "Next", "Open"], "the rail on home: Tab, Next, Open")
     ok = True
     for Q.tab in range(len(Q.TABS)):
         t = drawn()
         if not any(s.startswith("Queue") for s, x, y, f in t) or not any(s == "Device" for s, x, y, f in t):
             ok = False
         for s, x, y, f in t:
-            if y + fonts.height(f) > Q.L.H + 3 or x + fonts.width(s, f) > Q.L.W + 1 or (x < rail and s not in ("Tab", "Next", "Open")):
+            if y + fonts.height(f) > Q.L.H + 3 or x + fonts.width(s, f) > Q.L.W + 1 or (edge(x, y) and s not in ("Tab", "Next", "Open")):
                 ok = False
                 print("      tab %s: %r at (%d, %d) in %s" % (Q.TABS[Q.tab], s, x, y, f))
     Q.tab = 0
     check(ok, "each tab fits 240x135, the tabs along its top, only the rail left of it")
     Q.state = "pinfail"
-    t = [s for s, x, y, f in drawn() if x < rail]
+    t = [s for s, x, y, f in drawn() if edge(x, y)]
     check(t == ["Check"], "the rail on Not pinned: Check (%r)" % t)
 
     # The Key screen (docs/ONBOARDING.md): this key's owner address as a QR code, then in full
     def fits(where):
         bad = [(s, x, y) for s, x, y, f in drawn() if y + fonts.height(f) > Q.L.H + 3 or x + fonts.width(s, f) > Q.L.W
-               or (x < rail and s not in ("Back", "Full", "Code", "Next", "Open"))]
+               or (edge(x, y) and s not in ("Back", "Full", "Code", "Next", "Open"))]
         if bad:
             print("      %s: %r" % (where, bad[:3]))
         return not bad
@@ -1347,7 +1444,7 @@ def case_three():
           "D2 on Key: the app's set-up link (the compressed key), as a 37-module QR code")
     t = " ".join(s for s, x, y, f in t)
     check(Q.me[:6] in t and Q.me[-4:] in t and "not a wallet." in t, "beside it: the short owner address, and a signer, not a wallet")
-    check([s for s, x, y, f in drawn() if x < rail] == ["Back", "Full"] and fits("key code"), "the code page: rail Back, Full; it fits")
+    check([s for s, x, y, f in drawn() if edge(x, y)] == ["Back", "Full"] and fits("key code"), "the code page: rail Back, Full; it fits")
     tick("D1")
     t = " ".join(s for s, x, y, f in drawn())
     check(Q.kpage == 1 and Q.me[2:6] in t and "not a wallet" in t and fits("key full"),
@@ -1392,7 +1489,7 @@ def case_three():
         return out, t
 
     def clear(pics, t):
-        bad = [p for p in pics if p[1] < rail or p[1] + p[3] > Q.L.W or p[2] < Q.U.HEAD or p[2] + p[3] > Q.L.H]
+        bad = [p for p in pics if p[1] < rail or p[1] + p[3] > Q.L.W or p[2] < Q.U.HEAD or p[2] + p[3] > foot]
         for s, x, y, f in t:
             bad += [(s, p) for p in pics if x < p[1] + p[3] and p[1] < x + fonts.width(s, f) and y < p[2] + p[3] and p[2] < y + fonts.height(f)]
         return bad
@@ -1741,14 +1838,14 @@ def case_practice():
         check(Q.state == "unconfigured" and Q.prac is None, "back: where it came from")
         if three:
             Q.state, Q.tab, Q.dsel = "home", Q.TABS.index("device"), 0
-            tick("D1")
-            tick("D1")
+            for _ in range(Q.DTAB.index("practice")):      # its row: no Wi-Fi row on console-rp
+                tick("D1")
         else:
             Q.state, Q.dfoot = "device", "chip"
         tick("D2" if three else "X")
         back = "home" if three else "device"
         check(Q.state == "practice" and Q.prac_back == back,
-              "%s: %s opens the practice" % ("the Device tab" if three else "Device", "D1 D1 D2" if three else "X"))
+              "%s: %s opens the practice" % ("the Device tab" if three else "Device", "D1 to it, D2" if three else "X"))
         check(Q.link_ask("wifi", {"ssid": "x", "pass": ""}) and Q.incoming is None, "a USB ask waits while it is open")
         tick(BACK)
         check(Q.state == back, "back: " + ("the Device tab" if three else "Device"))
@@ -1762,6 +1859,225 @@ def case_practice():
           and not any(f.startswith("snapshot-") for f in os.listdir()),
           "the chip is as it was: config, keys, counters, OTP and data; no snapshot saved")
     check(Q.S.armed() == 0 and Q.S._armed_until is None, "the signer was never armed")
+
+
+def case_relay():
+    """console-rp's way out (link.py): every call to Safe's service goes as a line on UART1 to the
+    computer, which relays it to a pinned service and adds its own API key. What comes back is
+    untrusted, as the service is: each hostile answer ends refused or dropped, never signed, and
+    the console goes on. Nothing goes out but to a pinned service, and never the API key."""
+    import usblink
+    chip()
+    relay = Relay()
+    Q = fresh(relay=relay)
+    import link                         # fresh's own, imported anew
+    import qlog
+    base = "https://api.safe.global/tx-service/basesep"
+    check(Q.NET is link and Q.VIA is link and Q.svc.link and Q.svc.api_key is None and Q.svc.headers == {} and Q.svc.tls == "relay"
+          and link.up, "the console's way out is the link: no API key, no headers, no TLS here; the relay said hi at start")
+    check("network" not in sys.modules and "net" not in sys.modules and "vhttp" not in sys.modules and "wifisetup" not in sys.modules,
+          "no network, net, vhttp or wifisetup module was imported")
+    good, red = tx(Q, 0), tx(Q, 1, to=OTHER, data="0xdeadbeef")
+    serve(Q, [good, red])
+    reqs = relay.sent("req")
+    check(len(Q.queue) == 2 and Q.net_ok and len(reqs) >= 2 and all(r["url"].startswith(base + "/api/") and r["m"] == "GET" for r in reqs)
+          and any("/safes/" in r["url"] for r in reqs) and any("/multisig-transactions/" in r["url"] for r in reqs),
+          "polled through the relay: the Safe and its queue, GETs under the pinned base only")
+
+    # Signing: the confirmation is a POST through the relay, with the signature and nothing else
+    usblink.PORT, usblink.host, usblink.mode, usblink.time = link, Q, "console", Q.time
+    by = {e["n"]: e for e in Q.queue}
+    Q.open_entry(by[0])
+    for _ in range(40):
+        Q.three("D2")
+        if Q.state == "hold":
+            break
+    Q.keys.down.add("D2")
+    Q.time.now += 2000
+    Q.hold_tick()
+    Q.keys.down.discard("D2")
+    if Q.state == "hold":
+        Q.hold_tick()
+    post = [r for r in relay.sent("req") if r["m"] == "POST"]
+    check(len(SVC.posted) == 1 and len(post) == 1 and post[0]["url"] == base + "/api/v1/multisig-transactions/%s/confirmations/" % by[0]["h"]
+          and list(json.loads(post[0]["body"])) == ["signature"], "signed with D2 held: one POST through the relay, the signature only")
+    every = "\n".join(relay.wrote)
+    check("test-key" not in every and "Authorization" not in every and "Bearer" not in every,
+          "secrets.py's API key never goes down the link: the relay adds its own")
+    logs = relay.sent("log")
+    check(any("confirmed" in m["m"] or "signed" in m["m"] for m in logs) and all(len(m["m"]) <= link.LOG_LEN for m in logs),
+          "the log's lines go to the computer too, %d so far, each at most %d characters" % (len(logs), link.LOG_LEN))
+
+    def poll_with(*faults):
+        """One poll, the relay doing faults to the next answers. -> the requests it saw."""
+        n = len(relay.reqs)
+        relay.faults = list(faults)
+        relay.hi()
+        Q.last_poll = 0
+        Q.WATCH[0]["need_info"] = True
+        Q.net_work()
+        relay.faults = []
+        return relay.reqs[n:]
+
+    def stats():
+        return dict(link._stats)
+
+    # Garbage, NUL, bytes that aren't UTF-8, JSON that isn't ours: each dropped and counted
+    s0 = stats()
+    for junk in (b"\x00\x00\x00", b"\xff\xfe\x80{", b"hello there", b"[1, 2, 3]", b'{"t":"zzz"}', b"{not json", b'"a string"', b"\r"):
+        relay.raw(junk)
+    serve(Q, [good, red])
+    check(stats()["garbage"] - s0["garbage"] == 7 and len(Q.queue) == 2 and Q.net_ok,
+          "garbage, NULs, non-UTF-8 and foreign JSON: dropped and counted, the poll still good")
+
+    # A line longer than the buffer: dropped to its newline, the next line read whole
+    s0 = stats()
+    relay.raw(b'{"t":"hi","pad":"' + b"a" * (link.MAX_LINE + 5000) + b'"}')
+    serve(Q, [good, red])
+    check(stats()["overlong"] - s0["overlong"] == 1 and len(Q.queue) == 2 and Q.net_ok, "a line longer than %d bytes: dropped whole, the next read" % link.MAX_LINE)
+
+    # An answer nobody asked for, and a wrong id first: neither is taken
+    s0 = stats()
+    relay.raw(json.dumps({"t": "res", "id": 9999, "status": 200, "body": "{}"}))
+    link.pump()
+    forged = json.dumps({"count": 1, "results": [tx(Q, 0, to=OTHER, value=10**18)]})
+    wrong = lambda m: [json.dumps({"t": "res", "id": m["id"] + 7, "status": 200, "body": forged}), relay.res(m)]
+    poll_with(wrong, wrong)
+    check(stats()["unsolicited"] - s0["unsolicited"] == 1 and stats()["wrong_id"] - s0["wrong_id"] == 2 and len(Q.queue) == 2
+          and Q.queue[0]["h"] == good["safeTxHash"], "an unsolicited answer and a wrong id: dropped, the right answer used")
+
+    # The same id twice: the first stands, and the second, arriving late, is dropped
+    s0 = stats()
+    dup = lambda m: [relay.res(m), json.dumps({"t": "res", "id": m["id"], "status": 200, "body": forged})]
+    poll_with(dup, dup)
+    check(stats()["dup"] - s0["dup"] == 2 and len(Q.queue) == 2 and Q.queue[0]["h"] == good["safeTxHash"],
+          "an answer sent twice: the first stands")
+
+    # A truncated body, a deeply nested one, a status 0, a body that isn't text: the poll fails, nothing breaks
+    for name, f in (("truncated", lambda m: [relay.res(m, body='{"count": 1, "results": [{"safe": "0x5a')]),
+                    ("nested", lambda m: [relay.res(m, body="[" * 3000)]),
+                    ("status 0", lambda m: [json.dumps({"t": "res", "id": m["id"], "status": 0, "err": "upstream timeout"})]),
+                    ("not text", lambda m: [json.dumps({"t": "res", "id": m["id"], "status": 200, "body": 5})]),
+                    ("status as text", lambda m: [json.dumps({"t": "res", "id": m["id"], "status": "200", "body": "{}"})])):
+        n = len(SVC.posted)
+        poll_with(f, f)
+        st = Q.state
+        check(not Q.WATCH[0]["ok"] and Q.WATCH[0]["err"] and st not in ("crashed",) and len(SVC.posted) == n,
+              "%s: the poll fails (%s), the console goes on" % (name, Q.WATCH[0]["err"]))
+    poll_with()
+    check(Q.WATCH[0]["ok"] and len(Q.queue) == 2, "then a good answer: the Safe is back")
+
+    # A relay that stops answering: the request gives up at the timeout, the watchdog fed past it
+    import watch
+    fed, real_extend = [], watch.extend
+    watch.extend = lambda ms: (fed.append(ms), real_extend(ms))
+    s0 = stats()
+    t0 = Q.time.now
+    poll_with(lambda m: [])
+    watch.extend = real_extend
+    check(stats()["timeouts"] - s0["timeouts"] == 1 and Q.time.now - t0 >= link.TIMEOUT_MS and not Q.WATCH[0]["ok"]
+          and link.TIMEOUT_MS + 5000 in fed and not link.up, "a relay that stops: the request gives up after %d ms, the watchdog extended "
+          "past it, and the link is down until it says hi" % link.TIMEOUT_MS)
+    n = len(relay.reqs)
+    Q.last_poll = 0
+    Q.net_work()
+    check(len(relay.reqs) == n and not Q.net_ok and "relay" in Q.net_err, "down: no request waits on nobody (%s)" % Q.net_err)
+    poll_with()
+    check(Q.net_ok and len(Q.queue) == 2, "it says hi again: polled")
+
+    # A forged queue through the relay: refused here, as from the service, and nothing posted. Through
+    # the console's own tick: D2 pressed, then held 5 s.
+    def tick(*pressed):
+        Q.keys.pressed = lambda: list(pressed)
+        Q._busy, Q.last_poll, Q.splash_until = False, Q.time.now, 0
+        Q.tick(None)
+    n = len(SVC.posted)
+    serve(Q, [tx(Q, 0, tamper=True), tx(Q, 1, safe=OTHER)])
+    refused = all(e["why"] for e in Q.queue)
+    states = set()
+    for e in Q.queue:
+        Q.open_entry(e)
+        for _ in range(10):
+            tick("D2")
+            states.add(Q.state)
+        Q.keys.down.add("D2")
+        for _ in range(50):
+            Q.time.now += 100
+            tick()
+            states.add(Q.state)
+        Q.keys.down.discard("D2")
+        Q.state = "home"
+    check(refused and len(Q.queue) == 2 and len(SVC.posted) == n and states == {"review"},
+          "a forged hash and another Safe's transaction through the relay: refused, D2 never starts a hold, nothing posted")
+
+    # Only a pinned service, in plain ASCII: anything else raises before a byte goes out
+    n = len(relay.wrote)
+    bad = [base + "olia/api/v1/safes/", base, "https://api.safe.global/tx-service/basesep@evil.example/api/",
+           base + "/../eth/api/v1/safes/", base + "/api/v1/safes/#x", base + "/api/v1/safes/ x", base + "/api\\v1",
+           base + "/api/v1/safes/\u00e9", base + "/api/" + "a" * link.MAX_URL, "https://evil.example/api/v1/safes/",
+           "http://api.safe.global/tx-service/basesep/api/v1/safes/", 5, None]
+    raised = 0
+    for u in bad:
+        try:
+            link.request("GET", u)
+        except link.LinkError:
+            raised += 1
+    try:
+        link.request("DELETE", base + "/api/v1/safes/")
+    except link.LinkError:
+        raised += 1
+    check(raised == len(bad) + 1 and len(relay.wrote) == n,
+          "off-pin, prefix tricks (basesepolia, @, ..), #, spaces, \\, non-ASCII, too long, plain http, DELETE: %d refused, nothing sent" % raised)
+    check(link.pinned(base + "/api/v1/safes/") and link.pinned("https://api.safe.global/tx-service/eth/api/v1/safes/"),
+          "the pinned bases themselves pass")
+
+    # The link's asks while a request waits: queued, then answered once it is done
+    def op_in(m):
+        return [json.dumps({"id": 41, "op": "hello"}), json.dumps({"id": 42, "op": "status"}), relay.res(m)]
+    poll_with(op_in)
+    usblink.poll()
+    link.pump()
+    pq = {m["id"]: m for m in relay.sent("pq") if m.get("id") in (41, 42)}
+    check(set(pq) == {41, 42} and pq[41]["link"]["max"] == link.MAX_LINE and pq[41]["image"] == "console-rp"
+          and "link" in pq[42] and "wifi" not in pq[42] and pq[42]["link"]["requests"] > 0,
+          "hello and status sent mid-request: queued, answered after; hello says the longest line, status the link's counts")
+
+    def op(d):
+        n = len(relay.wrote)
+        relay.raw(json.dumps(d))
+        link.pump()
+        usblink.poll()
+        link.pump()
+        out = [m for m in relay.sent("pq") if m.get("id") == d["id"]]
+        return out[-1] if out else None
+
+    a = op({"id": 51, "op": "wifi", "ssid": "x", "password": "hunter2hunter2"})
+    b = op({"id": 52, "op": "maint"})
+    check(a and not a["ok"] and b and not b["ok"] and "wifi.json" not in os.listdir() and "maint" not in os.listdir() and Q.ask is None,
+          "the wifi and maint asks: refused on console-rp, nothing written")
+    Q.open_entry(Q.queue[0])
+    c = op({"id": 53, "op": "safes", "safes": [{"chainId": CHAIN, "address": SAFE, "name": "x"}]})
+    Q.tick(None)
+    check(c and not c["ok"] and "busy" in c.get("why", "") and Q.state == "review", "a safes ask during a review: busy, the review stays")
+    Q.state = "home"
+    usblink.open_ask = None
+
+    # The log copy never blocks: past LOGS waiting, the oldest goes
+    s0 = stats()
+    for i in range(link.LOGS + 5):
+        qlog.write("line %d" % i)
+    link.pump()
+    check(stats()["dropped_logs"] - s0["dropped_logs"] == 5 and relay.sent("log")[-1]["m"].endswith("line %d" % (link.LOGS + 4)),
+          "%d log lines at once: the last %d go out, the oldest 5 dropped and counted" % (link.LOGS + 5, link.LOGS))
+    every = "\n".join(relay.wrote)
+    check("test-key" not in every and "hunter2" not in every, "no API key, and not the password the wifi ask carried, in any line out")
+
+    # A base that isn't pinned (secrets.QUORUM_URL): the console polls nothing, and nothing goes out
+    relay = Relay()
+    Q = fresh(url="https://evil.example/tx-service", relay=relay)
+    serve(Q, [tx(Q, 0)])
+    check(not relay.sent("req") and not Q.net_ok and "pinned" in Q.WATCH[0]["err"],
+          "a QUORUM_URL off the pin: no request goes out (%s)" % Q.WATCH[0]["err"])
 
 
 LINK_THREE = [False]
@@ -1804,6 +2120,29 @@ def main_three(board="feather-s3"):
 
 def main_pqk():
     return main_three("picoquorum-key")
+
+
+def main_rp():
+    """console-rp alone in a device: the three-button case on its footer and over the relay, the
+    relay's own case, and the practice on its bottom row. Not case_link: its Wi-Fi and maint asks
+    are the radio boards'; case_relay checks they are refused here."""
+    THREE_BOARD[0] = "console-rp"
+    with open("secrets.py", "w") as f:
+        f.write('BOARD = "console-rp"\n')
+    for m in ("board", "lcd", "fonts", "quorum_ui", "quorum_ui_s", "splash", "bootmark"):
+        sys.modules.pop(m, None)
+    LINK_THREE[0] = True                # case_practice: on this board's three buttons
+    for case in (case_three, case_relay, case_practice):
+        print("-- %s, console-rp" % case.__name__[5:])
+        try:
+            case()
+        except Exception as e:
+            failed[0] += 1
+            print("FAIL  %s raised" % case.__name__)
+            sys.print_exception(e)
+    LINK_THREE[0] = False
+    print("console-rp: %d failed" % failed[0])
+    return failed[0]
 
 
 def main_knob():
