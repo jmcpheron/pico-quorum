@@ -73,6 +73,15 @@ def run():
         image.PRODUCTION = False        # the ceremony honours ALLOW_* (and still needs the arm and a hold)
         import lcd
         import chipapp
+        if lcd.THREE and lcd.BOARD != "feather-knob" and not profile.startswith("quorum-tm"):
+            import fonts                # keypick_s draws in the console's fonts
+            for _f in fonts.FILES:
+                fonts.get(_f)
+            import provision
+            import keypick_s            # the owner's own key, on the customer's screens (no B+Y arm)
+            chipapp.make_ui = lambda d, keys, sig, theme: keypick_s.UI(d, keys, sig, theme, provision.Ceremony(sig))
+            chipapp.TITLE, chipapp.LABEL = "NEW KEY", "SET UP (make your key)"
+            chipapp.WELCOME = keypick_s.welcome
         chipapp.start()
     elif path == "claim":
         image.PRODUCTION = False        # as the ceremony: ALLOW_*, the arm and a hold
