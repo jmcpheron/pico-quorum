@@ -1,4 +1,4 @@
-# PicoQuorum's commands for the OPTIGA Trust M, on top of upstream's firmware/trustm.py (kept as it
+# Picoquorum's commands for the OPTIGA Trust M, on top of upstream's firmware/trustm.py (kept as it
 # came: docs/UPSTREAM-TRACKING.md). trustm.py has the physical and data-link layers, GetDataObject,
 # CalcSign and GetRandom; this adds what the console and the ceremony need:
 #   present()                    is a Trust M at 0x30 (it NACKs while asleep, so i2c.scan() misses it)

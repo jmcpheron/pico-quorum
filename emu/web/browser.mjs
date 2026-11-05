@@ -178,8 +178,8 @@ export const passkeyCred = () => { try { return JSON.parse(local.get("emu.passke
 export async function makePasskey() {
   if (!window.PublicKeyCredential) throw new Error("this browser has no WebAuthn");
   const c = await navigator.credentials.create({ publicKey: {
-    rp: { name: "PicoQuorum console", id: location.hostname },
-    user: { id: crypto.getRandomValues(new Uint8Array(16)), name: "PicoQuorum console key", displayName: "PicoQuorum console key" },
+    rp: { name: "Picoquorum console", id: location.hostname },
+    user: { id: crypto.getRandomValues(new Uint8Array(16)), name: "Picoquorum console key", displayName: "Picoquorum console key" },
     challenge: crypto.getRandomValues(new Uint8Array(32)),
     pubKeyCredParams: [{ type: "public-key", alg: -7 }],        // ES256: P-256, what Safe's passkey signer verifies
     authenticatorSelection: { userVerification: "required", residentKey: "preferred" },

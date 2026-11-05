@@ -2,7 +2,7 @@
 at (40, 53) in the panel's RAM, its three buttons (D0 pulled up, D1 and D2 pulled down; D1 held is
 "D1L"), and the battery gauge at 0x36 never taken for the key. MicroPython is a stand-in, as in
 esp32_test.py, with the S3's pins (0-21, 26-48) and os.uname() naming the S3. Then the same for
-PicoQuorumKey ("picoquorum-key"), the S3 with pull-ups on GPIO16/17, and for the ESP32-S3 TFT
+PicoquorumKey ("picoquorum-key"), the S3 with pull-ups on GPIO16/17, and for the ESP32-S3 TFT
 Feather with a knob ("feather-knob", hardware/builds/feather-knob): Boot and the knob as the three
 keys. Not a board: hardware/wiring/FEATHER-S3.md says what has run on one.
     python3 test-vectors/feather_s3_test.py"""
@@ -223,7 +223,7 @@ finally:
     sys.path.remove(str(FW))
     sys.modules.pop("image", None)
 
-# PicoQuorumKey: the same S3 with 4.7k pull-ups on GPIO16/17, its key's bus. The Feather's screen,
+# PicoquorumKey: the same S3 with 4.7k pull-ups on GPIO16/17, its key's bus. The Feather's screen,
 # buttons and rail on its own pins, every button pulled up and pressed low, nothing to power up.
 del log[:]
 Pin.levels.clear()
@@ -237,7 +237,7 @@ try:
          patch("os.uname", lambda: types.SimpleNamespace(machine="Generic ESP32S3 module with ESP32S3")):
         import board
         check(board.BOARD == "picoquorum-key" and board.THREE and not board.KNOB,
-              "an S3 with 16/17 pulled up is PicoQuorumKey: three buttons, no knob")
+              "an S3 with 16/17 pulled up is PicoquorumKey: three buttons, no knob")
         check(Pin.pulls[16] is None and Pin.pulls[17] is None, "16/17 left with no pull after the look")
         check((board.DC, board.CS, board.SCK, board.MOSI, board.RST, board.BL) == (9, 10, 12, 11, 14, 21),
               "the screen's pins")
@@ -281,7 +281,7 @@ for name in ("board", "lcd", "knob", "atecc", "signer"):
     sys.modules.pop(name, None)
 Pin.levels.clear()
 Pin.pulls.clear()
-Pin.levels.update({16: 1, 17: 1})           # its knob's B and A at rest, pulled up: not PicoQuorumKey's bus
+Pin.levels.update({16: 1, 17: 1})           # its knob's B and A at rest, pulled up: not PicoquorumKey's bus
 del log[:]
 sys.path.insert(0, str(FW))
 os.chdir(FW)
@@ -293,7 +293,7 @@ try:
         check(board.BOARD == "feather-knob" and board.THREE and board.DIAL and not board.KNOB,
               "knob: secrets.BOARD picks it on an S3; the Feather's screens, no big-screen knob")
         check(16 not in Pin.pulls and 17 not in Pin.pulls,
-              "knob: the secret comes first, so 16/17 (its knob) are never probed for PicoQuorumKey")
+              "knob: the secret comes first, so 16/17 (its knob) are never probed for PicoquorumKey")
         check((board.DC, board.CS, board.SCK, board.MOSI, board.RST, board.BL) == (39, 7, 36, 35, 40, 45),
               "knob: the 5483's screen pins")
         check((board.SDA, board.SCL, board.LED, board.POWER) == (42, 41, 13, 21),

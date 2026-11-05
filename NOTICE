@@ -1,4 +1,4 @@
-PicoQuorum
+Picoquorum
 https://github.com/jmcpheron/pico-quorum
 Copyright (c) 2026 Jason McPheron, and the contributors named in each file and in the git history.
 
@@ -17,13 +17,13 @@ LICENSES, BY PATH
     README.md, docs/ (everything but the built site above and docs/brand/), buildlog/, and the
     photos and screenshots in them.
 
-  The name "PicoQuorum" and its mark are not licensed by any of these: see TRADEMARK.md.
+  The name "Picoquorum" and its mark are not licensed by any of these: see TRADEMARK.md.
 
 WHERE IT COMES FROM
 
 picowallet, by Austin Griffith (https://github.com/austintgriffith/picowallet), MIT,
 Copyright (c) 2026 Austin Griffith.
-  PicoQuorum began as a fork of picowallet and is inspired by it: picowallet showed that a
+  Picoquorum began as a fork of picowallet and is inspired by it: picowallet showed that a
   Raspberry Pi Pico can drive a secure element from MicroPython, rebuild an EIP-712 digest on the
   device, show it, and sign with a key that never leaves the chip. These files started there, and
   each says so on its first line:

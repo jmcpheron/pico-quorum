@@ -218,7 +218,7 @@ Schematic" keeps them.
 
 | the panel lifted off | the back |
 |---|---|
-| ![The board without the panel: the S3, its crystal and capacitors, the ZIF, the backlight switch and the ATECC608C sit where the glass goes](renders/console-usb-under-glass.jpg) | ![The back: the version, the Source Location, the licence and the PicoQuorum mark](renders/console-usb-bottom.jpg) |
+| ![The board without the panel: the S3, its crystal and capacitors, the ZIF, the backlight switch and the ATECC608C sit where the glass goes](renders/console-usb-under-glass.jpg) | ![The back: the version, the Source Location, the licence and the Picoquorum mark](renders/console-usb-bottom.jpg) |
 
 ![console-usb from the top](renders/console-usb-top.jpg)
 

@@ -1,4 +1,4 @@
 (sym_lib_table
   (version 7)
-  (lib (name "pqconsole")(type "KiCad")(uri "${KIPRJMOD}/../lib/pqconsole.kicad_sym")(options "")(descr "PicoQuorum console parts"))
+  (lib (name "pqconsole")(type "KiCad")(uri "${KIPRJMOD}/../lib/pqconsole.kicad_sym")(options "")(descr "Picoquorum console parts"))
 )

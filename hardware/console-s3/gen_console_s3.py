@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PicoQuorum console-s3, rev A: an ESP32-S3-WROOM-1 on the back, the Feather's 1.14" 240x135
+"""Picoquorum console-s3, rev A: an ESP32-S3-WROOM-1 on the back, the Feather's 1.14" 240x135
 panel in a ZIF on the front, five buttons, the ATECC608C soldered on and USB-C for power and the
 serial port. Writes the KiCad 9 project as text, placed but not routed:
 
@@ -34,9 +34,9 @@ L = "pqs3"                                     # the library name, in sym-lib-ta
 LIB = os.path.join(HERE, "lib")
 OUT = os.path.join(HERE, NAME)
 DATE = "2026-10-24"
-TITLE = "PicoQuorum console-s3, rev A: ESP32-S3-WROOM-1 on the back, 1.14in ST7789 in a ZIF, 5 buttons, ATECC608C on board"
+TITLE = "Picoquorum console-s3, rev A: ESP32-S3-WROOM-1 on the back, 1.14in ST7789 in a ZIF, 5 buttons, ATECC608C on board"
 NOTE = "The S3 console on one board: see hardware/console-s3/DESIGN.md"
-SRC = "PicoQuorum.app"        # the Source Location (CERN-OHL-W v2, section 4.1): the site links to the source
+SRC = "Picoquorum.app"        # the Source Location (CERN-OHL-W v2, section 4.1): the site links to the source
 WROOM_DS = "https://www.espressif.com/sites/default/files/documentation/esp32-s3-wroom-1_wroom-1u_datasheet_en.pdf"
 ATECC_DS = gen.ATECC_DS
 
@@ -67,7 +67,7 @@ KEEPOUT = (W - MOD_ANT - 0.5, 0.0, W, H)   # x0, y0, x1, y1: the antenna area an
 # Reverse TFT carries. glass is one seller's listing (31 x 17 mm), active is Waveshare's 1.14"
 # figure (24.912 x 14.864 mm). The glass lies on foam tape over the ZIF; the tail leaves the glass's
 # right end, folds under it and comes back into the ZIF. How far it comes back is EastRising's
-# ER-TFT1.14-2 drawing (datasheet rev 1.0, as PicoQuorumKey reads it): the folded tail ends 21.0 +-
+# ER-TFT1.14-2 drawing (datasheet rev 1.0, as PicoquorumKey reads it): the folded tail ends 21.0 +-
 # 0.5 mm in from the glass's edge. Until 2026-10-24 this was one seller's 23 mm tail less a guessed
 # 5.7 mm fold, which put the end 4.7 mm short of the drawing's. Measure a panel before ordering:
 # DESIGN.md, "The panel".
@@ -488,7 +488,7 @@ PAD_IRON = 1.0           # the module's pads reach this much further out than Es
 def fp_module():
     """Espressif's land pattern (datasheet v1.8, Figure 11-1), antenna up (-y): pads 1.5 x 0.9 at
     1.27 mm, reaching 0.5 mm past the module's edge, each made PAD_IRON longer outward so an iron's
-    tip has copper beside every castellation (as PicoQuorumKey's are); pin 1 7.49 mm below the antenna end, the
+    tip has copper beside every castellation (as PicoquorumKey's are); pin 1 7.49 mm below the antenna end, the
     bottom row from 2.015 mm in. The exposed pad is the 3.7 mm block of nine, its centre 7.5 mm from
     the pin-1 side and 10.29 mm from the bottom edge, where KiCad's own RF_Module footprint has it
     (until 2026-10-23 these were read as distances to its near sides, 1.85 mm off); one pad here,
@@ -1098,7 +1098,7 @@ def write_board(uids):
     layers, setup = _template_blocks()
     out = ["(kicad_pcb", "\t(version 20241229)", '\t(generator "picoquorum_gen")', '\t(generator_version "9.0")',
            "\t(general (thickness 1.6) (legacy_teardrops no))", '\t(paper "A4")',
-           f'\t(title_block (title "{TITLE}") (date "{DATE}") (rev "A") (company "PicoQuorum") (comment 1 "{NOTE}"))',
+           f'\t(title_block (title "{TITLE}") (date "{DATE}") (rev "A") (company "Picoquorum") (comment 1 "{NOTE}"))',
            layers, setup, '\t(net 0 "")']
     out += [f'\t(net {i} "{n}")' for n, i in nets.items()]
     for ref, p in all_parts().items():
@@ -1168,12 +1168,12 @@ def write_project(sheet_uuid):
 def write_lib_tables():
     with open(os.path.join(OUT, "sym-lib-table"), "w") as fh:
         fh.write(f'(sym_lib_table\n  (version 7)\n  (lib (name "{L}")(type "KiCad")(uri "${{KIPRJMOD}}/../lib/{L}.kicad_sym")'
-                 f'(options "")(descr "PicoQuorum console-s3 parts"))\n)\n')
+                 f'(options "")(descr "Picoquorum console-s3 parts"))\n)\n')
     with open(os.path.join(OUT, "fp-lib-table"), "w") as fh:
         fh.write(f'(fp_lib_table\n  (version 7)\n  (lib (name "{L}")(type "KiCad")(uri "${{KIPRJMOD}}/../lib/{L}.pretty")'
-                 f'(options "")(descr "PicoQuorum console-s3 footprints"))\n'
+                 f'(options "")(descr "Picoquorum console-s3 footprints"))\n'
                  f'  (lib (name "picoquorum")(type "KiCad")(uri "${{KIPRJMOD}}/../lib/picoquorum.pretty")'
-                 f'(options "")(descr "The PicoQuorum mark"))\n)\n')
+                 f'(options "")(descr "The Picoquorum mark"))\n)\n')
 
 
 # =================================================================================================

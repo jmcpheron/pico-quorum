@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PicoQuorum console, proposal A (console-a): one board that holds everything Build 1 wires by hand,
+"""Picoquorum console, proposal A (console-a): one board that holds everything Build 1 wires by hand,
 and runs today's console image unchanged. Writes the KiCad 10 project in console-a/ from scratch.
 
     tools/keypcb gen-console      (runs this with the Python that has KiCad's pcbnew module)
@@ -32,7 +32,7 @@ import gen      # noqa: E402  the key boards' helpers: symbols, schematic sheet,
 import gen_cd   # noqa: E402  (also points gen at KiCad's libraries on macOS)
 
 NAME, REV, DATE = "console-a", "P1", "2026-10-07"
-TITLE = "PicoQuorum console, proposal A: Pico 2 W carrier"
+TITLE = "Picoquorum console, proposal A: Pico 2 W carrier"
 LIB = os.path.join(HERE, "lib")
 KEYLIB = os.path.join(REPO, "hardware", "key-pcb", "lib")
 
@@ -240,7 +240,7 @@ def write_pico_footprint():
         keep.append(z)
     head = head.replace('(footprint "RaspberryPi_Pico_W_SMD"', '(footprint "RaspberryPi_Pico_2_W_SMD_PQ"', 1)
     text = head + "\t" + "\n\t".join(keep) + "\n)\n"
-    text = re.sub(r'\(descr "', '(descr "PicoQuorum copy (gen_console.py): no Edge.Cuts zone, no test-point or '
+    text = re.sub(r'\(descr "', '(descr "Picoquorum copy (gen_console.py): no Edge.Cuts zone, no test-point or '
                   'debug pads, copper kept off the top layer under them. ', text, count=1)
     with open(os.path.join(LIB, "pqconsole.pretty", "RaspberryPi_Pico_2_W_SMD_PQ.kicad_mod"), "w") as f:
         f.write(text)
@@ -508,11 +508,11 @@ def write_schematic(syms):
 def write_lib_tables(d):
     with open(os.path.join(d, "sym-lib-table"), "w") as f:
         f.write('(sym_lib_table\n  (version 7)\n  (lib (name "pqconsole")(type "KiCad")'
-                '(uri "${KIPRJMOD}/../lib/pqconsole.kicad_sym")(options "")(descr "PicoQuorum console parts"))\n)\n')
+                '(uri "${KIPRJMOD}/../lib/pqconsole.kicad_sym")(options "")(descr "Picoquorum console parts"))\n)\n')
     with open(os.path.join(d, "fp-lib-table"), "w") as f:
         f.write('(fp_lib_table\n  (version 7)\n'
-                '  (lib (name "pqconsole")(type "KiCad")(uri "${KIPRJMOD}/../lib/pqconsole.pretty")(options "")(descr "PicoQuorum console footprints"))\n'
-                '  (lib (name "picoquorum")(type "KiCad")(uri "${KIPRJMOD}/../../key-pcb/lib/picoquorum.pretty")(options "")(descr "PicoQuorum key footprints: the mark"))\n)\n')
+                '  (lib (name "pqconsole")(type "KiCad")(uri "${KIPRJMOD}/../lib/pqconsole.pretty")(options "")(descr "Picoquorum console footprints"))\n'
+                '  (lib (name "picoquorum")(type "KiCad")(uri "${KIPRJMOD}/../../key-pcb/lib/picoquorum.pretty")(options "")(descr "Picoquorum key footprints: the mark"))\n)\n')
 
 
 # =================================================================================================
@@ -604,8 +604,8 @@ def _silk(board):
         x, y, _, _ = PARTS[ref]
         gen._text(board, label, x, y + 4.6, F, 1.0)
     gen._text(board, "KEY", PARTS["J1"][0], 35.4, F, 1.0)
-    gen._text(board, "PICOQUORUM", 144.0, 49.4, F, 1.0)
-    for i, s in enumerate((f"PicoQuorum console-a {REV} {DATE[:7]}",
+    gen._text(board, "Picoquorum", 144.0, 49.4, F, 1.0)
+    for i, s in enumerate((f"Picoquorum console-a {REV} {DATE[:7]}",
                            "BOARD=build1 SCREEN=2.8 (firmware/board.py)",
                            "hold Y at power-up: Wi-Fi setup; hold the knob: maintenance",
                            "github.com/jmcpheron/pico-quorum  CERN-OHL-W")):
@@ -650,7 +650,7 @@ def write_board(netlist):
     ds.m_CopperEdgeClearance = pcbnew.FromMM(0.3)
     ds.SetAuxOrigin(gen._mm(0, H))      # Gerbers, drill and CPL measure from the bottom-left corner
     tb = board.GetTitleBlock()
-    tb.SetTitle(TITLE); tb.SetDate(DATE); tb.SetRevision(REV); tb.SetCompany("PicoQuorum")
+    tb.SetTitle(TITLE); tb.SetDate(DATE); tb.SetRevision(REV); tb.SetCompany("Picoquorum")
 
     nets = {}
     for n in sorted({net for comp in netlist.values() for net in comp["pads"].values()}):

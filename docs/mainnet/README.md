@@ -1,6 +1,6 @@
 # A Trust M signer for a mainnet Safe
 
-PicoQuorum's OPTIGA Trust M signer is one owner of a 3-of-5 Safe on Ethereum. These pages are
+Picoquorum's OPTIGA Trust M signer is one owner of a 3-of-5 Safe on Ethereum. These pages are
 the shareable part. The chip profile and its ceremony are in [../TRUSTM.md](../TRUSTM.md).
 
 | Page | For |

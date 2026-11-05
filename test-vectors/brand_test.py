@@ -523,13 +523,13 @@ class Clock:
 
 
 def case_three():
-    """The owner's key on PicoQuorumKey's three buttons (keypick_s.py): a spare branded B1-B7, then
+    """The owner's key on PicoquorumKey's three buttons (keypick_s.py): a spare branded B1-B7, then
     Make, another key and another (counter 0 untouched, each a new key), the address in full, the
     red Keep page let go early, then held 3 s: tested and sealed, the key on the screen the one
     sealed. ALLOW_GENKEY or ALLOW_LOCK off: nothing. Then the claim on a key 0000 brand, the same
     way. Every word fits 240x135 right of the rail."""
     import board
-    check(board.BOARD == "picoquorum-key" and board.THREE and (board.W, board.H) == (240, 135), "PicoQuorumKey: three buttons, 240x135")
+    check(board.BOARD == "picoquorum-key" and board.THREE and (board.W, board.H) == (240, 135), "PicoquorumKey: three buttons, 240x135")
     import p256, quorum_cfg, splash, fonts, quorum_ui
     T = Clock()
 

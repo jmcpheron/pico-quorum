@@ -1,7 +1,7 @@
 (kicad_sch (version 20250114) (generator "picoquorum_gen") (generator_version "9.0")
 (uuid "0a3ff382-cb8f-4db6-b964-8a3b61e0d0d0")
 (paper "A4")
-(title_block (title "PicoQuorum console-pocket, rev A: Pico 2 W on the back, 1.54in ST7789, 7 buttons, key pads") (date "2026-10-07") (rev "A") (company "PicoQuorum")
+(title_block (title "Picoquorum console-pocket, rev A: Pico 2 W on the back, 1.54in ST7789, 7 buttons, key pads") (date "2026-10-07") (rev "A") (company "Picoquorum")
   (comment 1 "The pocket console on one board: see hardware/console-pocket/README.md"))
 (lib_symbols
 (symbol "picoquorum-pocket:Pico2W_SMD" (pin_names (offset 1.016)) (exclude_from_sim no) (in_bom yes) (on_board yes)

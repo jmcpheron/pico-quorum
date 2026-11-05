@@ -1,4 +1,4 @@
-// tools/release: make a PicoQuorum release from this checkout, and the checks CI makes on one.
+// tools/release: make a Picoquorum release from this checkout, and the checks CI makes on one.
 //
 // A release is a commit tagged fw-<version>, the tag SSH-signed by a key in .github/allowed_signers,
 // with docs/releases/<version>.json committed in it: each image's release fingerprint and source
@@ -83,7 +83,7 @@ function writeManifest() {
   if (old.version && git("ls-remote", "--tags", "origin", `refs/tags/${tagOf(c.version)}`).out)
     die(`${tagOf(c.version)} is already released: docs/releases/${c.version}.json stays as it is. Set a new version.`);
   writeJson(p, {
-    note: "A PicoQuorum release, written by tools/release manifest and never changed after its tag. fingerprints: each image's release fingerprint (tools/releases/fingerprint.mjs). images: the SHA-256 of every source file. web: the SHA-256 of each web build's BUILD.json. The project Safe approves sha256(this file) with the console fingerprint (docs/GOVERNANCE.md).",
+    note: "A Picoquorum release, written by tools/release manifest and never changed after its tag. fingerprints: each image's release fingerprint (tools/releases/fingerprint.mjs). images: the SHA-256 of every source file. web: the SHA-256 of each web build's BUILD.json. The project Safe approves sha256(this file) with the console fingerprint (docs/GOVERNANCE.md).",
     version: c.version, date: old.date || new Date().toISOString().slice(0, 10),
     fingerprints: c.fingerprints, web: c.web, images: c.images,
   });
@@ -181,7 +181,7 @@ function tag() {
   if (!existsSync(SIGNERS) || !readFileSync(SIGNERS, "utf8").split("\n").some((l) => l.trim() && !l.startsWith("#")))
     die(".github/allowed_signers lists no key: CI would refuse the tag (docs/RELEASES.md, Signing)");
   const c = computed();
-  const msg = [`PicoQuorum ${v}`, "", ...Object.entries(c.fingerprints).map(([k, f]) => `${k} ${f}`),
+  const msg = [`Picoquorum ${v}`, "", ...Object.entries(c.fingerprints).map(([k, f]) => `${k} ${f}`),
     `manifest docs/releases/${v}.json sha256 ${sha256(readFileSync(manifestPath(v)))}`, ""].join("\n");
   const dir = mkdtempSync(join(tmpdir(), "pq-tag-"));
   writeFileSync(join(dir, "msg"), msg);

@@ -1,4 +1,4 @@
-# PicoQuorum brand guide
+# Picoquorum brand guide
 
 A physical approval device for Safe multisig wallets. Several people, several keys, one Safe.
 
@@ -9,19 +9,31 @@ from that one picture.
 The same guide as a page, with the boot screen running live, is [BRAND.html](BRAND.html). Open it
 in a browser.
 
-<img src="quorum-ui/v2/boot/orbit-lite.gif" width="240" alt="The PicoQuorum boot screen">
+<img src="quorum-ui/v2/boot/orbit-lite.gif" width="240" alt="The Picoquorum boot screen">
 
 ## Name
 
-**PicoQuorum** is one word with two capitals. **Pico** is for the Raspberry Pi Pico it runs on.
-**Quorum** is for the idea at its centre: a Safe needs a set number of owners to agree before
-anything moves. The multisig is the star, and the name says so.
+**Picoquorum** is one word, on one line, with one capital: the P. Every other letter is lower case.
+**Pico** is for the Raspberry Pi Pico it runs on. **quorum** is for the idea at its centre: a Safe
+needs a set number of owners to agree before anything moves. The multisig is the star, and the name
+says so.
 
 | Write | Never |
 |---|---|
-| PicoQuorum | ~~Pico Quorum~~ |
-| the PicoQuorum console (the box with the screen) | ~~Picoquorum~~ |
-| a PicoQuorum key (the plug-in secure element) | ~~PICOQUORUM~~, ~~PQ~~ |
+| Picoquorum | ~~PicoQuorum~~, ~~PICOQUORUM~~, ~~picoQuorum~~ |
+| the Picoquorum console (the box with the screen) | ~~Pico Quorum~~, ~~Pico-Quorum~~, ~~Pico quorum~~ |
+| a Picoquorum key (the plug-in secure element) | ~~Pico~~ on one line and ~~quorum~~ on the next, ~~PQ~~ |
+
+- **One line.** The name never breaks: not across two lines of a heading, a case or a board. If it
+  doesn't fit, make it smaller or move it.
+- **Capital P, even in capitals.** A label set in capitals elsewhere (a button, a pill) still writes
+  Picoquorum. Don't set the name with `text-transform: uppercase`.
+- **Addresses stay lower case:** picoquorum.app, @picoquorum on X, and the repository's name. They are
+  addresses, not the name.
+- **Strings that are hashed or signed stay as they were.** A few byte strings from before this
+  guide, such as `"PicoQuorum brand v1"` and the EIP-712 `"PicoQuorum Release"`, are part of what
+  keys sign and what chips hold. Changing them would break every signature made with them. They are
+  never shown as the name.
 
 When naming the board, use compatibility wording such as "runs on Raspberry Pi Pico 2 W". Never use
 the Raspberry Pi logo or raspberry imagery.
@@ -30,7 +42,7 @@ the Raspberry Pi logo or raspberry imagery.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="brand/mark-dark.svg">
-  <img src="brand/mark-light.svg" width="128" alt="The PicoQuorum mark">
+  <img src="brand/mark-light.svg" width="128" alt="The Picoquorum mark">
 </picture>
 
 The boot screen in miniature. Five owners sit evenly on a circle. The top owner and the two at the
@@ -52,7 +64,7 @@ Files: [mark-dark.svg](brand/mark-dark.svg) for dark backgrounds,
 
 ### Lockup
 
-The mark goes on the left of the name, centred on it. On the panel the name is 26 px bold, the ring
+The mark goes on the left of the name, centred on it, and the name stays on one line. On the panel the name is 26 px bold, the ring
 radius is 12 px, the mark's centre is 13 px in from the lockup's left edge, and the word starts at
 34 px. Scale those proportions.
 

@@ -1,4 +1,4 @@
-# A new ESP32-S3 board on the bench (PicoQuorumKey, console-s3), checked from the Mac in four steps:
+# A new ESP32-S3 board on the bench (PicoquorumKey, console-s3), checked from the Mac in four steps:
 #   1. USB: does it stay on, or leave and come back (an empty flash does that every few seconds)
 #   2. what it prints: the ROM's boot lines, MicroPython's prompt, or the console's USB link
 #   3. the module, read by esptool: chip, flash size, PSRAM, MAC (only with no MicroPython yet)
@@ -239,7 +239,7 @@ def parts(dev, board, buttons_s, soak_s):
     s = opened(dev)
     try:
         raw_paste(s, code)
-        say("  running. Press D0, D1 and D2 (and BOOT on a PicoQuorumKey) one at a time within %d s;" % buttons_s)
+        say("  running. Press D0, D1 and D2 (and BOOT on a PicoquorumKey) one at a time within %d s;" % buttons_s)
         say("  then %d s more watching for restarts: hold the board, flex it gently, press the buttons." % soak_s)
         line, end = b"", time.time() + buttons_s + soak_s + 40
         while time.time() < end:

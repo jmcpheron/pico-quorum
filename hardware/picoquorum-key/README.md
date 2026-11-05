@@ -1,4 +1,4 @@
-# PicoQuorumKey: a one-owner signing device
+# PicoquorumKey: a one-owner signing device
 
 A small board that is one owner of a Safe multisig. It fetches a pending transaction over its
 own Wi-Fi, shows what it does on a 1.14" screen, rebuilds the Safe transaction hash from the
@@ -28,7 +28,7 @@ Layout of the repo:
 ```
 docs/                  the documents above
 hardware/picoquorum-key/   KiCad 10 project (schematic, board)
-hardware/lib/          footprints pulled from LCSC, project footprint copies and symbols, PicoQuorum's logos
+hardware/lib/          footprints pulled from LCSC, project footprint copies and symbols, Picoquorum's logos
                        (the 3D models are not committed: see below)
 hardware/out/<rev>/    Gerbers, BOM and CPL as uploaded, per tagged release
 firmware/smoke/        MicroPython smoke test: screen, buttons, LED, key bus, the key port
@@ -57,22 +57,22 @@ Renders of the finished device, with the panel showing a mock transaction screen
   first is not stocked at LCSC, DigiKey or Mouser as the plain PCB-antenna part; N8R2 is on the
   spec's known-good list.
 - **ATECC608C-MAHDA-S** (UDFN-8), placed by JLCPCB: LCSC C23291019, an extended part, the key chip
-  PicoQuorum's console-s3 uses (the SOIC-8 C28975195 until 2026-10-24).
+  Picoquorum's console-s3 uses (the SOIC-8 C28975195 until 2026-10-24).
 - A **new pin profile**, `picoquorum-key`: every button active-low on a non-strap GPIO, the screen on
   the S3's IO_MUX SPI pins, the buttons on GPIO42–40, the key on GPIO16/17. This is a firmware change and a new release
   fingerprint, chosen on purpose.
 - Backlight switched on the high side from the 5 V rail, so the LED current is set by a resistor
   and does not load the 3.3 V regulator.
 
-## In PicoQuorum
+## In Picoquorum
 
-PicoQuorumKey was designed on its own, apart from this repository, as a second answer to the same
+PicoquorumKey was designed on its own, apart from this repository, as a second answer to the same
 spec as `hardware/console-s3`; the two are ordered side by side to compare. It came in on
 2026-10-24 with these changes, and no others:
 
 - The name: `console-s3` became `picoquorum-key` in every file, path and test (it clashed with
   `hardware/console-s3`). The firmware profile's name is now `picoquorum-key` too.
-- The silkscreen (`tools/gen/silk_art.py`): PicoQuorum's mark and name and `PicoQuorum.app` on
+- The silkscreen (`tools/gen/silk_art.py`): Picoquorum's mark and name and `Picoquorum.app` on
   both faces, and the 8-bit key and dragon by U2 in place of the padlock.
 - U2 is the UDFN-8 ATECC608C-MAHDA-S that console-s3 uses, not the SOIC-8. The board kept its
   routing; only U2's own tracks were redrawn ([docs/DESIGN.md](docs/DESIGN.md#key)).
@@ -80,7 +80,7 @@ spec as `hardware/console-s3`; the two are ordered side by side to compare. It c
 - Tests: paste-only window panes on an exposed pad count as that pad's paste, and filled silk shapes
   aren't held to the line-width minimum.
 
-`tools/test.sh` passes, 125 tests, after the changes (2026-10-24). PicoQuorum's own
+`tools/test.sh` passes, 125 tests, after the changes (2026-10-24). Picoquorum's own
 `tools/keypcb jlc` was run on it once, not wired in: its strict DRC passes but for J2's footprint
 filter check, which this project turns off on purpose.
 

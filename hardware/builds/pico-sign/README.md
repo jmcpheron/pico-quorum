@@ -219,8 +219,8 @@ along the top, and the back falls at 70°. 78 mm tall, 107 mm front to back.
     because it's pressed hard
   - the knob under that
   - under each, a 30 × 8 mm frame, a 0.6 mm line cut 0.6 mm deep, for a sticker or a printed label
-- PICOQUORUM cut under the screen, as big as fits between the bottom screws, the window and the
-  colour channel: 9.3 mm letters, 81 mm long (the script works it out and prints it)
+- Picoquorum cut under the screen, as big as fits between the bottom screws, the window and the
+  colour channel: 12.0 mm letters, 64 mm long (the script works it out and prints it)
 
 ![the plate, front and back](case/out/prism/prism_plate.png)
 

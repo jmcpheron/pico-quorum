@@ -95,7 +95,7 @@ The tag says who cut a release. The project Safe says the project stands behind 
 
 ## 2026.11.3 (2026-11-04)
 
-**The owner picks their own key on a three-button board** (PicoQuorumKey), by its blockie. The
+**The owner picks their own key on a three-button board** (PicoquorumKey), by its blockie. The
 console's behaviour is unchanged. 2026.11.1 and 2026.11.2 were set on `main` without entries here.
 
 - **dual:** on three buttons (not the knob Feather), a fresh ATECC608, or a quorum v1 chip whose data
@@ -111,6 +111,10 @@ console's behaviour is unchanged. 2026.11.1 and 2026.11.2 were set on `main` wit
   GenKey's own answer instead of reading the key back, so new keys don't count on counter 0.
 - **dual, brand, ceremony:** the set-up screens black out and turn the backlight off after 2
   minutes with no key. Any key wakes them, and that press does nothing else.
+- **every image:** the name is written Picoquorum ([BRAND.md](BRAND.md)): on the boot screens, the
+  set-up hotspot (`Picoquorum-XXXX`), the Wi-Fi page, and the brand and release messages. The
+  strings that are hashed or signed (the brand prefixes, the release's EIP-712 domain, the Trust M
+  domains) don't change.
 
 Every permanent step still needs `ALLOW_GENKEY` / `ALLOW_LOCK` and the arm. The release
 fingerprints change because the source did.

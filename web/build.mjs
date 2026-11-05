@@ -28,7 +28,7 @@ const pinned = { viem: "viem", "@noble/curves": "@noble/curves", "@noble/hashes"
 const meta = await build({
   entryPoints: [join(HERE, "src/main.mjs")], bundle: true, minify: true, format: "esm", target: "es2022",
   outfile: join(OUT, "app.js"), legalComments: "eof", alias: pinned, logLevel: "warning", absWorkingDir: HERE,
-  banner: { js: "// PicoQuorum Execute page. Source: web/ in github.com/jmcpheron/pico-quorum" }, metafile: true,
+  banner: { js: "// Picoquorum Execute page. Source: web/ in github.com/jmcpheron/pico-quorum" }, metafile: true,
 });
 const outside = Object.keys(meta.metafile.inputs).filter((f) => /node_modules/.test(f) && !f.startsWith("node_modules/"));
 if (outside.length) throw new Error(`dependencies bundled from outside web/node_modules: ${outside.slice(0, 3).join(", ")}`);

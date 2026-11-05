@@ -251,8 +251,8 @@ export function consoleRefuses(chainId, t) {
   if (op !== 1) return "";
   const a = String(t.to).toLowerCase();
   if (forChain("delegates", chainId)[a]) return "";
-  // SignMessageLib: only a PicoQuorum release whose origin note gives exactly the calldata's digest
-  if (forChain("messages", chainId)[a]) { const why = checkApproval(t); return why ? `The console signs only PicoQuorum releases here: ${why}.` : ""; }
+  // SignMessageLib: only a Picoquorum release whose origin note gives exactly the calldata's digest
+  if (forChain("messages", chainId)[a]) { const why = checkApproval(t); return why ? `The console signs only Picoquorum releases here: ${why}.` : ""; }
   if (forChain("batchers", chainId)[a] && String(t.data || "").toLowerCase().startsWith("0x8d80ff0a")) return "";
   return "A delegatecall to a contract the console hasn't pinned. The console will refuse to sign it.";
 }

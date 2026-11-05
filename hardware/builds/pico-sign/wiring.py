@@ -91,7 +91,7 @@ def svg():
     o = ['<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d" '
          'font-family="Helvetica, Arial, sans-serif" font-size="12">' % (W, H, W, H),
          '<rect width="%d" height="%d" fill="#ffffff"/>' % (W, H),
-         '<text x="24" y="34" font-size="19" font-weight="bold">PicoQuorum pico-sign: Pico 2 W, 2.8" screen, '
+         '<text x="24" y="34" font-size="19" font-weight="bold">Picoquorum pico-sign: Pico 2 W, 2.8" screen, '
          'EC11 knob, hold-to-sign switch, key-c</text>',
          '<text x="24" y="56" fill="#555">Pico seen from the top, USB on the left. Firmware: the console image, '
          'BOARD = "build1", SCREEN = "2.8". Go by the names printed on each part.</text>']

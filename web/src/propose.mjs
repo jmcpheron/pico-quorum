@@ -33,7 +33,7 @@ export const KINDS = [
   { id: "threshold", label: "Change threshold", red: true },
   { id: "reject", label: "Rejection" },
   { id: "custom", label: "Contract call" },
-  // The project Safe approving a PicoQuorum release (docs/GOVERNANCE.md): offered from the Releases page.
+  // The project Safe approving a Picoquorum release (docs/GOVERNANCE.md): offered from the Releases page.
   { id: "release", label: "Approve a release", gov: true },
 ];
 
@@ -202,6 +202,6 @@ export function proposalBody(safe, t, hash, sender, signature) {
   return {
     safe: getAddress(safe), to: f.to, value: f.value.toString(), data: f.data === "0x" ? null : f.data, operation: f.operation,
     safeTxGas: "0", baseGas: "0", gasPrice: "0", gasToken: ZERO, refundReceiver: ZERO, nonce: Number(f.nonce),
-    contractTransactionHash: hash, sender: getAddress(sender), signature, origin: t.origin || "PicoQuorum app",
+    contractTransactionHash: hash, sender: getAddress(sender), signature, origin: t.origin || "Picoquorum app",
   };
 }

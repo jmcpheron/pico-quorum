@@ -1,6 +1,6 @@
 # Tracking upstream picowallet
 
-PicoQuorum keeps picowallet's secure-element drivers and changes them as little as possible, so
+Picoquorum keeps picowallet's secure-element drivers and changes them as little as possible, so
 their fixes can come across cleanly. This file is where the fork point, merges, and the files worth
 watching get recorded.
 
@@ -50,7 +50,7 @@ These files started in picowallet, by Austin Griffith (MIT), and each says so at
 | The emulator | `emu/core/runtime.mjs`, `png.mjs`, `workspace.mjs`, `ship.mjs`, `devices.mjs`, `usbinfo.py`; the shims `machine.py`, `_bootstrap.py`, `network.py`, `requests.py`, `socket.py`, `rp2.py`; `emu/headless.mjs`, `emu/cli.mjs`, `emu/server.mjs`, the dev page in `emu/web/` (not `browser.mjs`) |
 | Tools | `tools/emu`, the start of `tools/check_config` |
 
-Removed on 2026-10-06, before the repository went public, because PicoQuorum doesn't use them:
+Removed on 2026-10-06, before the repository went public, because Picoquorum doesn't use them:
 the single-owner vault app (`app/`: Scaffold-ETH 2, `ChipAccount`, `TrustMAttest`), the case
 (`cad/console/`, with the Plass and Zez0000 parts), the Pi signer and SeedSigner parts
 (`reference/`), the wallet firmware (`wallet.py`, `usbwallet.py`, `mock.py`, `demo.py`,
@@ -77,7 +77,7 @@ A change to a console-image file changes the release fingerprint: rebuild the pa
 ([RELEASES.md](RELEASES.md)). Then update the table above and add a line to the log below.
 
 - `firmware/atecc.py`, `firmware/trustm.py`: change them as little as possible, so upstream's
-  fixes apply cleanly; put PicoQuorum's needs in new modules (`trustm_q.py`, `chipcfg.py`).
+  fixes apply cleanly; put Picoquorum's needs in new modules (`trustm_q.py`, `chipcfg.py`).
 
 ## Files to watch
 
@@ -86,9 +86,9 @@ A change to a console-image file changes the release fingerprint: rebuild the pa
 
 ## Log
 
-- 2026-09-24: forked as PicoQuorum. Upstream checked at `72539d5`, nothing merged yet.
+- 2026-09-24: forked as Picoquorum. Upstream checked at `72539d5`, nothing merged yet.
 - 2026-09-24: merged upstream through `72539d5` (20 commits); conflicts resolved as above.
-- 2026-09-24: merged the PicoQuorum restructure (`picoquorum-rung1`: `docs/`, `hardware/wiring/`,
+- 2026-09-24: merged the Picoquorum restructure (`picoquorum-rung1`: `docs/`, `hardware/wiring/`,
   `cad/console/`). `USB.md` and `CLEARSIGNING.md` moved into `docs/`; upstream's README changes
   carried into `docs/picowallet.md`.
 - 2026-10-06: before going public, removed the picowallet-only files listed above, and credited

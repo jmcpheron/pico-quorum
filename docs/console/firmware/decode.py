@@ -280,7 +280,7 @@ def _call(to, value, data, ctx):
 # ----------------------------------------------------------------------------- a release
 def _release(tx, data):
     """A delegatecall to the pinned SignMessageLib that has the Safe sign a message. The console
-    signs only one kind: a PicoQuorum release (release.py), and only when the release its origin
+    signs only one kind: a Picoquorum release (release.py), and only when the release its origin
     note names gives exactly the D in the calldata. Any other message is refused: a Safe's
     signature on someone's message can authorize spending (a Permit2 permit, an order).
     -> (item, why refused or "")"""
@@ -290,10 +290,10 @@ def _release(tx, data):
         msg = data[68:100]
     head = {"title": "SAFE MESSAGE", "level": "red", "what": "Sign a message as the Safe"}
     if msg is None:
-        return dict(head, text="A message that isn't a single 32-byte digest."), "A message for the Safe to sign that this console can't read. It signs only PicoQuorum releases."
+        return dict(head, text="A message that isn't a single 32-byte digest."), "A message for the Safe to sign that this console can't read. It signs only Picoquorum releases."
     named = release.from_origin(tx.get("origin"))
     if not named:
-        return dict(head, text="Digest %s, with nothing that says what it is." % hx(msg)), "A message for the Safe to sign, with no PicoQuorum release named for it. The console signs only releases it can check."
+        return dict(head, text="Digest %s, with nothing that says what it is." % hx(msg)), "A message for the Safe to sign, with no Picoquorum release named for it. The console signs only releases it can check."
     v, f, m = named
     try:
         if not release.valid_version(v):
@@ -306,7 +306,7 @@ def _release(tx, data):
     f = hx(_bytes(f))
     return {"title": "RELEASE", "level": "warn", "what": "Approve release %s" % v, "amount": "Release %s" % v,
             "release": {"version": v, "firmware": f, "manifest": hx(_bytes(m)), "digest": hx(d)},
-            "text": "The Safe approves this PicoQuorum release for everyone who runs it: firmware %s\u00b7%s, manifest %s\u2026%s. Nothing is sent." % (
+            "text": "The Safe approves this Picoquorum release for everyone who runs it: firmware %s\u00b7%s, manifest %s\u2026%s. Nothing is sent." % (
                 f[2:6], f[6:10], hx(_bytes(m))[2:8], hx(_bytes(m))[-6:])}, ""
 
 

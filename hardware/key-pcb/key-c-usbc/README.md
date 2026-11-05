@@ -91,7 +91,7 @@ receptacle is used as plain wires, not USB:
 - D+ carries SDA, D− carries SCL and VBUS is key power.
 - A 5.1 kΩ resistor on each CC pin tells the console a key is in.
 - A USBLC6 ESD array sits between the connector and the chip.
-- Four test pads on the back, and the PicoQuorum mark.
+- Four test pads on the back, and the Picoquorum mark.
 
 The design is in [../PROPOSALS.md](../PROPOSALS.md), and the full order record is
 [buildlog/2026-10-02-key-c-order.md](../../../buildlog/2026-10-02-key-c-order.md).
@@ -178,7 +178,7 @@ The design is in [../PROPOSALS.md](../PROPOSALS.md), and the full order record i
   - J1's yellow flag was only a $0.03 special-handling fee.
   - Economic assembly wasn't offered with ENIG but was with HASL. Standard would have forced a
     70 × 70 mm board.
-- **2026-10-02:** the PicoQuorum mark added to the back.
+- **2026-10-02:** the Picoquorum mark added to the back.
 - **2026-10-02:** **P1** drawn, with key-d (pogo) beside it. The receptacle goes on the key rather
   than a plug: 16 pins on one side, cheap, assembled at JLCPCB.
 - **2026-10-02:** rev A (the PCB is the plug) arrived on `main`. The spring-contact C1 concept was
