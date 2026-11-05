@@ -5,17 +5,18 @@ has no radio, so no end is kept free of metal, and no tab.
 
 The face has the window, caps on D0, D1 and D2 in a row under it, a hole over the LED, and the mark, at the
 right: its two lower dots are the holes for RESET and BOOTSEL, 7.5 mm apart on the board, so the mark is drawn
-from them. Its pocket is 1.0 mm deep, for printed inserts glued into it: the triangle in orange, the two
-waiting dots in green. The USB-C is open at the right end; a lanyard lug at the left. The back has the name and
-the Source Location, since the case covers the board's own. A dock holds it leaning back, its cable out of the
-right side. (cad/consoles/README.md)
+from them. The mark is a badge, its pieces printed in colour and glued into a pocket 1.0 mm deep, standing
+0.6 mm proud: the triangle green, the three signed dots blue, the two waiting dots orange. The lower two blue
+dots are rings round 1.4 mm pinholes for RESET and BOOTSEL. The USB-C is open at the right end; a lanyard lug
+at the left. The back has the name and the Source Location, since the case covers the board's own. A dock
+holds it leaning back, its cable out of the right side. (cad/consoles/README.md)
 
 Run: uv run --python 3.11 --with cadquery --with matplotlib --with pillow \\
          python cad/consoles/rp.py [screen.png]
 (or tools/case build rp)
 
 Writes out/rp/: rp_shell.stl (face down, as it prints), rp_back.stl (outside down), rp_cap_D0/D1/D2.stl (flange
-down), rp_insert_signed.stl and rp_insert_waiting_1/4.stl (face down), rp_dock.stl, rp_assembly.step,
+down), rp_badge_*.stl (the badge's six pieces, face down), rp_dock.stl, rp_assembly.step,
 rp_front.png, rp_face.png, rp_apart.png, rp_dock.png.
 
 The board's numbers are its generator's (hardware/console-rp/gen_console_rp.py) and the placement file JLCPCB
@@ -44,31 +45,45 @@ SCREEN = os.path.join(S.REPO, "docs", "quorum-ui", "feather", "06-review-head.pn
 GLASS_H = 17.6              # the datasheet's glass, 0.3 mm more each side than the generator's 17.0
 OFF = 1.4                   # the active area's centre from the glass's, away from the ribbon (the datasheet's)
 BACK_ROOM = 1.6             # under the board: the USB-C's shell legs, and the bosses' height for the M2 x 8's thread
-ORANGE, GREEN = (1.0, 0.42, 0.07), (0.20, 0.78, 0.35)    # the inserts' colours: an orange PLA, and Signed green
-INSERT = (1.0, 0.1, 0.05)   # the mark's pocket deep; the inserts 0.1 mm in all round, and 0.05 mm short for the glue
+GREEN, BLUE, ORANGE = (0.18, 0.75, 0.33), (0.17, 0.42, 0.85), (1.0, 0.42, 0.07)     # PLA: the triangle, its dots, the others
+BADGE = dict(depth=1.0, proud=0.6, gap=0.1, short=0.05, edge=0.2)
+# the mark's pocket deep, the badge's pieces proud of the face; each piece 0.1 mm in from its neighbours and the
+# pocket's walls, 0.05 mm off the pocket's floor for the glue; their top edges chamfered
+PIN = 0.7                   # RESET's and BOOTSEL's pinholes, inside the blue rings: a paperclip, not a thumb
 
 
 def decor(c, shell, back):
-    """The mark's pocket 1.0 mm deep, and inserts to print in colour and glue into it: the triangle and its top
-    dot as one piece, in orange; the two waiting dots, in green. Each STL lies face down, its own colour.
-    RESET's and BOOTSEL's holes stay open."""
+    """The mark as a badge glued into a pocket in the face, its pieces standing proud: the triangle in green, the
+    three signed dots in blue, the two waiting dots in orange. The lower two signed dots are rings round the
+    pinholes for RESET and BOOTSEL. Each piece its own STL, face down."""
     b, P = c.b, c.b["parts"]
-    _, (cx, cy, r, *under) = b["face"][0]
-    depth, gap, short = INSERT
+    cx, cy, r, *under = b["mark"]
     pts = [(cx + r * math.cos(math.radians(90 - 72 * k)), cy + r * math.sin(math.radians(90 - 72 * k))) for k in range(5)]
-    # the pocket: the mark without its lower dots, which are holes already (cutting their cylinders again fails)
-    pocket = cq.Workplane("XY").workplane(offset=c.zt - depth).polyline([pts[0], pts[2], pts[3]]).close().extrude(depth + 1)
-    for k, rk in ((0, r / 4), (1, r / 6), (4, r / 6)):
-        pocket = pocket.union(S.cyl(*pts[k], rk, c.zt - depth, c.zt + 1))
+    for k, ref in zip((3, 2), under):           # the lower dots, left and right: over RESET and BOOTSEL
+        assert abs(pts[k][0] - P[ref]["x"]) < 0.01 and abs(pts[k][1] - P[ref]["y"]) < 0.01, "the mark's dot isn't over " + ref
+    d, g = BADGE["depth"], BADGE["gap"]
+    z0, z1 = c.zt - d + BADGE["short"], c.zt + BADGE["proud"]
+    rad = {0: r / 4, 1: r / 6, 2: r / 4, 3: r / 4, 4: r / 6}
+    tri = lambda grow, a, e: (cq.Workplane("XY").workplane(offset=a).polyline([pts[0], pts[2], pts[3]]).close()
+                              .offset2D(grow).extrude(e - a))
+    pocket = tri(0, c.zt - d, c.zt + 1)
+    for k in range(5):
+        pocket = pocket.union(S.cyl(*pts[k], rad[k], c.zt - d, c.zt + 1))
     shell = shell.cut(pocket)
-    z0, z1 = c.zt - depth, c.zt - short
-    tri = cq.Workplane("XY").workplane(offset=z0).polyline([pts[0], pts[2], pts[3]]).close().offset2D(-gap).extrude(z1 - z0)
-    signed = tri.union(S.cyl(*pts[0], r / 4 - gap, z0, z1))
-    for ref in under:
-        signed = signed.cut(S.cyl(P[ref]["x"], P[ref]["y"], r / 4 + gap, z0 - 1, z1 + 1))
-    out = [("insert signed", signed, ORANGE, S.flip)]
+    for k, ref in zip((3, 2), under):
+        shell = shell.cut(S.cyl(P[ref]["x"], P[ref]["y"], PIN, c.zt - 5, c.zt + 1))
+    top = lambda w: w.faces(">Z").edges().chamfer(BADGE["edge"])
+    triangle = tri(-g, z0, z1)
+    for k in (0, 2, 3):
+        triangle = triangle.cut(S.cyl(*pts[k], rad[k] + g, z0 - 1, z1 + 1))
+    out = [("badge triangle", top(triangle), GREEN, S.flip)]
+    for k in (0, 2, 3):
+        dot = S.cyl(*pts[k], rad[k] - g, z0, z1)
+        if k != 0:
+            dot = dot.cut(S.cyl(*pts[k], PIN + g, z0 - 1, z1 + 1))
+        out.append(("badge signed %d" % k, top(dot), BLUE, S.flip))
     for k in (1, 4):
-        out.append(("insert waiting %d" % k, S.cyl(*pts[k], r / 6 - gap, z0, z1), GREEN, S.flip))
+        out.append(("badge waiting %d" % k, top(S.cyl(*pts[k], rad[k] - g, z0, z1)), ORANGE, S.flip))
     return shell, back, out
 
 
@@ -111,7 +126,8 @@ def board():
         support=[(P["SW1"]["x"] - 3.0, P["SW3"]["x"] + 3.0, P["SW1"]["y"] - S.REST_W / 2, P["SW1"]["y"] + S.REST_W / 2),
                  (rs["x"] - 3.0, bs["x"] + 3.0, rs["y"] - S.REST_W / 2, rs["y"] + S.REST_W / 2)],
         press=[], decor=decor,
-        face=[("mark", (rs["x"] + r * math.cos(math.radians(54)), rs["y"] + r * math.sin(math.radians(54)), r, "SW4", "SW5"))],
+        face=[],                    # the mark is decor's: a badge in a pocket
+        mark=(rs["x"] + r * math.cos(math.radians(54)), rs["y"] + r * math.sin(math.radians(54)), r, "SW4", "SW5"),
         flip="x",
         # turned over about x, the back's lower y is its top: the name, and the Source Location under it
         back_text=[("PicoQuorum", (W / 2, H / 2 - 3.0), (44.0, 8.0), "bold"),
