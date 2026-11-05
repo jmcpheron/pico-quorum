@@ -10,6 +10,7 @@
 #   put.py PORT firmware/qf_mono13.bin (with what bootanim.py and loaders.py need), then
 #   rawrepl.py PORT hackui.py --follow 5      (RESET stops it)
 import gc
+import os
 import math
 import time
 import random
@@ -71,6 +72,117 @@ def glitch(frames=5, amp=10, y0=0, y1=H):
             y = e
         time.sleep_ms(GLITCH_MS)
     push_rows(y0, y1)
+
+
+# ----------------------------------------------------------------------------- the two effects
+# The UI's glitch has two meanings (glitchfx.py compared three; FX1 and FX3 stayed):
+#   tear_in  FX1: something arrives or changes. Torn slices of the new page (PAGE) and what is on the
+#            screen (BUF, usually noise) trade places and jump sideways, calming until the page holds.
+#            Harder for a red page.
+#   lock_in  FX3: worked out here, and checked. The page rolls like a set losing vertical hold, a noise
+#            bar at the seam, overshoots, and locks: the verify code, a key's address, Signed.
+# Both start from PAGE (the page, drawn whole) and BUF (what is on the screen), and leave BUF = PAGE.
+# refresh() redraws the noise in BUF now and then, so it keeps moving underneath.
+def push_buf(src, sy, h, y, dx=0):
+    d._window(dx, y, W, h)
+    d.dc(1); d.cs(0); d.spi.write(memoryview(src)[sy * W * 2:(sy + h) * W * 2]); d.cs(1)
+
+
+def tear_in(refresh=None, n=10, amp=22, y0=BODY0, y1=FOOT, ms=40):
+    span_h = y1 - y0
+    for f in range(n):
+        p = f / (n - 1)
+        if refresh and f % 4 == 0:
+            refresh()
+        a = int(amp * (1 - p))
+        y = y0
+        while y < y1:
+            e = min(y1, y + random.randint(2, 11))
+            r = random.random()
+            if r < p ** 0.6:
+                src, sy = PAGE, y
+            elif r < p ** 0.6 + 0.15 * (1 - p):
+                src, sy = PAGE, y0 + random.randint(0, span_h - (e - y))   # a slice from the wrong row
+            else:
+                src, sy = BUF, y
+            push_buf(src, sy, e - y, y, random.randint(-a, a) if a and random.random() < 0.55 * (1 - p) + 0.05 else 0)
+            y = e
+        time.sleep_ms(ms)
+    BUF[:] = PAGE
+    push_rows(y0, y1)
+
+
+def lock_in(refresh=None, dur=1400, y0=BODY0, y1=FOOT):
+    span_h = y1 - y0
+    t0, k = time.ticks_ms(), 0
+    while True:
+        t = time.ticks_diff(time.ticks_ms(), t0)
+        if t >= dur:
+            break
+        u = t / dur
+        roll = int(span_h * 0.9 * math.exp(-3.2 * u) * math.cos(9 * u))    # damped: overshoots, then holds
+        jit = int(14 * (1 - u) ** 2)
+        bar = max(0, int(10 * (1 - u)))
+        y = y0
+        while y < y1:
+            sy = y0 + (y - y0 + roll) % span_h
+            run = min(y1 - y, y0 + span_h - sy, random.randint(3, 9))
+            dx = random.randint(-jit, jit) if jit and random.random() < 0.6 else 0
+            if sy - y0 < bar:
+                push_buf(BUF, y, run, y, dx)        # the bar at the seam: noise
+            else:
+                push_buf(PAGE, sy, run, y, dx)
+            y += run
+        k += 1
+        if refresh and k % 5 == 0:
+            refresh()
+        time.sleep_ms(30)
+    BUF[:] = PAGE
+    push_rows(y0, y1)
+    for dx in (3, -2, 1):               # one last twitch as it locks
+        push_rows(y0, y1, dx)
+        time.sleep_ms(50)
+    push_rows(y0, y1)
+
+
+def noise(pub=None, shown=0, y_from=0):
+    """The body as a 30x12 grid of hex from os.urandom, read now, each digit shaded by its value; the
+    first `shown` cells are pub's digits instead, in blue."""
+    raw = binascii.hexlify(os.urandom(COLS * ROWS // 2)).decode()
+    bg(max(BODY0, y_from), FOOT)
+    for r in range(ROWS):
+        y = ROW0 + 8 * r
+        if y < y_from:
+            continue
+        rows = ["", "", "", "", ""]
+        for col in range(COLS):
+            i = r * COLS + col
+            if i < shown:
+                ch, k = pub[i], 4 if i >= shown - 6 else 3
+            else:
+                ch = raw[i]
+                v = int(ch, 16)
+                k = 0 if v < 6 else 1 if v < 11 else 2
+            for j in range(5):
+                rows[j] += ch if j == k else " "
+        for j, rgb in enumerate(GREYS + (BLUE, BLUE_HI)):
+            if rows[j].strip():
+                d.text(rows[j], 0, y, L.color(*rgb))
+
+
+def arrive(draw, *args, fx="tear", strong=False):
+    """draw(*args) as a whole page, arriving out of fresh noise: torn in (FX1) or locked in (FX3)."""
+    draw(*args)
+    PAGE[:] = BUF
+    push_rows(0, BODY0)
+    push_rows(FOOT, H)
+    noise()
+    push_rows(BODY0, FOOT)
+    time.sleep_ms(120)
+    if fx == "lock":
+        lock_in(noise)
+    else:
+        tear_in(noise, n=12 if strong else 9, amp=34 if strong else 22)
 
 
 def bg(y0=0, y1=H):
@@ -281,7 +393,7 @@ def draw_queue(sel):
             for j in range(3):
                 d.ellipse(160 + 10 * j, y + 23, 3, 3, c("ok") if j < tx["have"] else c("dim"), j < tx["have"])
     t8("SAFE 0x7a3f..9f02  2 OF 3", 8, 100, "dim")
-    footer((None, ("NEXT", "ink"), ("OPEN", "acc")))
+    footer((("MENU", "ink"), ("NEXT", "ink"), ("OPEN", "acc")))
 
 
 def cursor(on, x=3 + 8 * 8, y=3):
@@ -357,9 +469,9 @@ def draw_end(tx, ok):
 
 
 # ----------------------------------------------------------------------------- the verify page's entrance
-# Grey hex noise; cells turning blue, each showing a character of the real hash; then a CRT beam
-# drawing the page (the green code and the blockie) down the screen; a green fringe; a small glitch.
-PAGE = bytearray(W * H * 2)             # the finished page, drawn once, copied in as the beam passes
+# Grey hex noise; cells turning blue, each showing a character of the real hash; then the page (the
+# green code and the blockie) locking in over them (FX3, lock_in); a green fringe.
+PAGE = bytearray(W * H * 2)             # the finished page, drawn whole, for tear_in and lock_in
 GREYS = ((34, 38, 46), (58, 64, 76), (88, 94, 108))
 BLUE, BLUE_HI = (70, 92, 200), (190, 205, 255)
 COLS, ROW0, ROWS = 30, BODY0 + 3, 12    # the 8x8 grid over the body
@@ -419,22 +531,8 @@ def verify_in(tx, seen, full):
             cells[i] = time.ticks_add(now, -1000)
         field(cells, hx, now)
         push_rows(BODY0, FOOT)
-    # The beam: rows above it are the page, the row it is on glows, the noise goes on below.
-    y, step, k = BODY0, 3, 0
-    while y < FOOT:
-        y1 = min(FOOT, y + step)
-        BUF[y * W * 2:y1 * W * 2] = PAGE[y * W * 2:y1 * W * 2]
-        k += 1
-        if k % 3 == 0 and y1 + 3 < FOOT:
-            field(cells, hx, time.ticks_ms(), y1 + 3)
-        for i, rgb in enumerate(((235, 255, 240), (90, 210, 130), (30, 90, 50))):
-            if y1 + i < FOOT:
-                d.hline(0, y1 + i, W, L.color(*rgb))
-        push_rows(y, FOOT if k % 3 == 0 else min(FOOT, y1 + 3))
-        y = y1
-        time.sleep_ms(14)
-    BUF[:] = PAGE
-    push_rows(BODY0, FOOT)
+    # FX3: the page locks in over the blue field, the field the bar at its seam.
+    lock_in(lambda: field(cells, hx, time.ticks_ms()))
     # The code fringes green and settles.
     code = hx[-8:-4] + " " + hx[-4:]
     for dx in (3, 2, 1):
@@ -444,7 +542,7 @@ def verify_in(tx, seen, full):
         push_rows(36, 84)
         time.sleep_ms(70)
         BUF[:] = PAGE
-    glitch(5, 6, BODY0, FOOT)
+    push_rows(36, 84)
 
 
 # ----------------------------------------------------------------------------- keys
@@ -487,8 +585,7 @@ def hold_sign(tx, p, seen):
 # ----------------------------------------------------------------------------- the loop
 def review(tx):
     p, seen = 0, False
-    draw_page(tx, p, seen)
-    glitch(6, 10)
+    arrive(draw_page, tx, p, seen, strong=tx["red"])
     while True:
         k = pressed()
         if k is None:
@@ -497,8 +594,7 @@ def review(tx):
         print("key D%d on #%d page %d" % (k, tx["n"], p + 1))
         if k == 0:
             tx["state"] = "rejected"
-            draw_end(tx, False)
-            glitch(10, 18)
+            arrive(draw_end, tx, False, strong=True)
             return
         if k == 1:
             p = (p + 1) % 4
@@ -517,20 +613,23 @@ def review(tx):
         elif k == 2 and seen:
             if hold_sign(tx, p, seen):
                 tx["state"] = "signed"
-                draw_end(tx, True)
-                glitch(10, 18)
+                arrive(draw_end, tx, True, fx="lock")
                 return
             draw_page(tx, p, seen)
             push_rows(0, H)
 
 
 def main():
+    """The queue until D0 (Menu)."""
+    for t in TXS:
+        t["state"] = None
     sel = 0
-    draw_queue(sel)
-    glitch(7, 12)
+    arrive(draw_queue, sel)
     blink, t_blink = True, time.ticks_ms()
     while True:
         k = pressed()
+        if k == 0:
+            return
         if k == 1:
             sel = (sel + 1) % len(TXS)
             draw_queue(sel)
@@ -542,14 +641,14 @@ def main():
             review(tx)
             while pressed() is None:
                 time.sleep_ms(10)
-            draw_queue(sel)
-            glitch(6, 10)
+            arrive(draw_queue, sel)
         if time.ticks_diff(time.ticks_ms(), t_blink) > 500:
             t_blink, blink = time.ticks_ms(), not blink
             cursor(blink)
         time.sleep_ms(10)
 
 
-gc.collect()
-print("hackui: D0 stop/reject, D1 play/next, D2 rec/sign (held); heap %d KB" % (gc.mem_free() // 1024))
-main()
+if __name__ == "__main__":                 # run, not imported (keypick_crt.py borrows the kit)
+    gc.collect()
+    print("hackui: D0 stop/reject, D1 play/next, D2 rec/sign (held); heap %d KB" % (gc.mem_free() // 1024))
+    main()

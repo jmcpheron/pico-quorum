@@ -111,8 +111,8 @@ left is compiling, and that can move to before the first frame, or be done once 
 
 ## Screens tried on the bench
 
-Two prototypes, run on the first board with its buttons. Neither is the console's firmware, and
-neither asks the key for anything.
+Prototypes run on the first board with its buttons. None is the console's firmware, and none asks
+the key for anything. `demo.py` puts the last three behind one menu.
 - **`loaders.py`**: four loading screens after the boot mark, laid out for 240 × 135, looping until
   RESET. A quorum ring, the chip waking, the Ethereum logo turning, and a verify code with its
   blockie. 22 to 40 fps on SPI1, each sending only the regions that changed.
@@ -122,9 +122,24 @@ neither asks the key for anything.
   - **The hash page.** While `firmware/safe_tx.py` works out the Safe hash, the screen shows the
     Keccak state live. Its first four lanes become the hash when the last pass ends. #7's hash on the
     board matched CPython's.
-  - **The verify page.** Grey hex noise, then cells turning blue with the hash's characters, then a
-    CRT beam drawing the green code and the blockie.
+  - **The verify page.** Grey hex noise, then cells turning blue with the hash's characters, then the
+    green code and the blockie locking in (FX3, below).
   - **What is a demo.** "Signed" is a demo screen, and the service match is a placeholder.
+- **`keypick_crt.py`**: the key pick (`firmware/keypick_s.py`'s Make, Pick, Keep) in the same look.
+  **No key is made.** This chip's config zone is open, so it can't run GenKey, and locking can't be
+  undone.
+  - **What is real.** The noise is `os.urandom`, read fresh each frame. 64 of those bytes stand where
+    GenKey's public key would be. `webauthn.owner_address` works out the Safe owner they would have
+    (about 1.8 s), with the Keccak state on screen, and the blockie is that address's.
+  - **What is a demo.** "Sealed" is a demo screen: nothing is written.
+- **`glitchfx.py`**: three ways a page can arrive out of the noise, compared by number on the
+  board: FX1 tear & settle, FX2 block decode, FX3 signal lock.
+
+The person at the bench kept FX1 and FX3, and `hackui.py` uses them as two meanings (`arrive`):
+- **FX1 tear: something arrives or changes.** The menu, the queue, opening a transaction, the key's
+  intro, and Rejected. Harder for a red page. Page turns get a short one.
+- **FX3 lock: worked out here, and checked.** The verify code, a key's owner address, Signed and
+  Sealed.
 
 ## What this means for the console
 
