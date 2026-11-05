@@ -351,6 +351,14 @@ class Case:
         for x, y in b["holes"]:
             t = t.cut(cyl(x, y, M2_CLEAR / 2, -1, self.zt + 1))
             t = t.cut(cyl(x, y, M2_HEAD[0] / 2 + 0.2, self.seat, self.zt + 1))
+            if b.get("bore_bridge"):
+                # printed face down, the counterbore's ceiling is a bridge. One layer over it, a slot the screw's
+                # hole wide across the counterbore: its two sides bridge along it. The next, a square the hole wide:
+                # its other two sides bridge across the first. The round hole starts on solid layers.
+                lh, hr, cr = b["bore_bridge"], M2_CLEAR / 2, M2_HEAD[0] / 2 + 0.2
+                t = t.cut(box(x - cr, x + cr, y - hr, y + hr, self.seat - lh, self.seat + 0.01)
+                          .intersect(cyl(x, y, cr, self.seat - lh - 1, self.seat + 1)))
+                t = t.cut(box(x - hr, x + hr, y - hr, y + hr, self.seat - 2 * lh, self.seat - lh + 0.01))
         t = t.cut(self.usb_hole())
         t = self.notch(self.lug_slot(t))
         if b.get("tab", True):
@@ -466,7 +474,7 @@ class Case:
         for ref, name in b["buttons"]:
             q = P[ref]
             kind = b.get("cap_shapes", {}).get(name, "circle")
-            p = p.cut(cap_shape(q["x"], q["y"], kind, (CAP_HOLE - CAP_D) / 2, zu - 1, zt + 1))
+            p = p.cut(cap_shape(q["x"], q["y"], kind, b.get("cap_clear", (CAP_HOLE - CAP_D) / 2), zu - 1, zt + 1))
             if self.zft + CAP_GAP > zu:
                 f = self.flange_w() / 2 + 0.3
                 p = p.cut(box(q["x"] - f, q["x"] + f, q["y"] - f, q["y"] + f, zu - 0.5, self.zft + CAP_GAP))
