@@ -100,6 +100,9 @@ def board():
         fold=(glass[2], glass[2] + 2.0, yc - rw / 2, yc + rw / 2),
         module=None, module_h=BACK_ROOM,
         buttons=[("SW1", "D0"), ("SW2", "D1"), ("SW3", "D2")], pins=[],
+        # each button's job on every screen, as its shape: D0 out (Reject, No, Back), a square, stop; D1 on (Next),
+        # a circle; D2 do (Sign, OK, Open), the mark's triangle
+        cap_shapes={"D0": "square", "D1": "circle", "D2": "triangle"},
         led="D1", usb="J1", usb_edge="right", dock_depth=40.0, dock_plug=0.0,
         lug=("left", 6.0), tab=False,
         post_r=2.6,                 # the board's own keep-out round each hole (HOLE_RING in the generator)

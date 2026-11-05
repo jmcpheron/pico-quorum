@@ -47,6 +47,10 @@ POST_R = 2.2                # on the board's front: inside the 2.5 mm keep-out r
 BOSS_R, BOSS_BASE = 2.3, (3.4, 1.2)     # under the board; a wider foot on the floor round the counterbore
 # The caps on D0, D1, D2: a round stem through the plate and a square flange under it that keeps it in.
 CAP_D, CAP_HOLE = 4.2, 4.6
+# Shaped caps (b["cap_shapes"]: name -> shape), each about a round cap's area (14 mm2), so none is harder to hit:
+# a square of 3.8 mm, corners rounded 0.6; an equilateral triangle of 6.0 mm, point up, corners rounded 0.8,
+# centred on its height. A shaped stem in its own shaped hole can't turn.
+CAP_SQUARE, CAP_TRI = (3.8, 0.6), (6.0, 0.8)
 CAP_PROUD = 1.0             # over the plate
 CAP_FLANGE_T = 0.8
 CAP_GAP = 0.2               # the flange under the plate (or its pocket) at rest: the cap's free play
@@ -125,6 +129,23 @@ def parts(cpl, bom):
         out[ref] = dict(fp=f, x=x, y=y, rot=rot, side=row["Layer"], box=(x - lx / 2, x + lx / 2, y - ly / 2, y + ly / 2),
                         h=size[2])
     return out
+
+
+def cap_shape(x, y, kind, grow, z0, z1):
+    """A cap's stem (grow 0) or its hole in the face (grow the clearance), as a solid from z0 to z1."""
+    if kind == "square":
+        s, r = CAP_SQUARE
+        return box(x - s / 2 - grow, x + s / 2 + grow, y - s / 2 - grow, y + s / 2 + grow, z0, z1).edges("|Z").fillet(r + grow)
+    if kind == "triangle":
+        s, r = CAP_TRI
+        h = s * math.sqrt(3) / 2
+        cy = y - h / 6                      # the centroid, so the triangle's height is centred on the switch
+        s += 2 * math.sqrt(3) * grow        # the same triangle moved out by grow, about its centroid
+        ri = s * math.sqrt(3) / 6
+        pts = [(x - s / 2, cy - ri), (x + s / 2, cy - ri), (x, cy + 2 * ri)]
+        w = cq.Workplane("XY").workplane(offset=z0).polyline(pts).close().extrude(z1 - z0)
+        return w.edges("|Z").fillet(r + grow)
+    return cyl(x, y, CAP_D / 2 + grow, z0, z1)
 
 
 def mark(cx, cy, r, z0, z1):
@@ -442,9 +463,10 @@ class Case:
                .workplane(offset=ch + 0.01).rect(wx1 - wx0 + 2 * ch + 0.02, wy1 - wy0 + 2 * ch + 0.02).loft())
         p = p.cut(bev)
         # the caps' holes, and a pocket for each flange where it stands higher than the underside
-        for ref, _ in b["buttons"]:
+        for ref, name in b["buttons"]:
             q = P[ref]
-            p = p.cut(cyl(q["x"], q["y"], CAP_HOLE / 2, zu - 1, zt + 1))
+            kind = b.get("cap_shapes", {}).get(name, "circle")
+            p = p.cut(cap_shape(q["x"], q["y"], kind, (CAP_HOLE - CAP_D) / 2, zu - 1, zt + 1))
             if self.zft + CAP_GAP > zu:
                 f = self.flange_w() / 2 + 0.3
                 p = p.cut(box(q["x"] - f, q["x"] + f, q["y"] - f, q["y"] + f, zu - 0.5, self.zft + CAP_GAP))
@@ -486,8 +508,9 @@ class Case:
         for ref, name in self.b["buttons"]:
             q = self.b["parts"][ref]
             c = box(q["x"] - f, q["x"] + f, q["y"] - f, q["y"] + f, self.zcap, self.zft).edges("|Z").fillet(0.6)
-            stem = cyl(q["x"], q["y"], CAP_D / 2, self.zft - 0.01, self.zt + CAP_PROUD)
-            stem = stem.faces(">Z").edges().fillet(0.6)
+            kind = self.b.get("cap_shapes", {}).get(name, "circle")
+            stem = cap_shape(q["x"], q["y"], kind, 0.0, self.zft - 0.01, self.zt + CAP_PROUD)
+            stem = stem.faces(">Z").edges().fillet(0.6 if kind == "circle" else 0.4)
             out.append((c.union(stem), CAP_C.get(name, PAPER), "cap " + name))
         return out
 
