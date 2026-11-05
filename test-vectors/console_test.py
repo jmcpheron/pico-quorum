@@ -2078,6 +2078,15 @@ def case_relay():
     serve(Q, [tx(Q, 0)])
     check(not relay.sent("req") and not Q.net_ok and "pinned" in Q.WATCH[0]["err"],
           "a QUORUM_URL off the pin: no request goes out (%s)" % Q.WATCH[0]["err"])
+    relay = Relay()
+    Q = fresh(url="http://127.0.0.1:8787", relay=relay)
+    serve(Q, [tx(Q, 0)])
+    check(not relay.sent("req") and not Q.net_ok, "the laptop's mock in QUORUM_URL, on a production image: refused too")
+    relay = Relay()
+    Q = fresh(prod=False, url="http://127.0.0.1:8787", relay=relay)
+    serve(Q, [tx(Q, 0)])
+    check(Q.net_ok and len(Q.queue) == 1 and all(r["url"].startswith("http://127.0.0.1:8787/") for r in relay.sent("req")),
+          "a development load (no build.py): secrets.QUORUM_URL is pinned too, for the bench soak on the mock")
 
 
 LINK_THREE = [False]

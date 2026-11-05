@@ -88,8 +88,19 @@ def start(port=None):
 
 # ----------------------------------------------------------------------------- the pin
 def bases():
-    """The services the console may ask through the computer: quorum_cfg's, nothing else."""
-    return [b.rstrip("/") for b in quorum_cfg.CFG.get("services", {}).values()]
+    """The services the console may ask through the computer: quorum_cfg's. A development load (no
+    build.py: image.PRODUCTION off) adds secrets.QUORUM_URL, the laptop's tools/mock-tx-service for
+    the bench soak. A production image never does."""
+    out = [b.rstrip("/") for b in quorum_cfg.CFG.get("services", {}).values()]
+    import image
+    if not image.PRODUCTION:
+        try:
+            import secrets
+            if getattr(secrets, "QUORUM_URL", ""):
+                out.append(secrets.QUORUM_URL.rstrip("/"))
+        except ImportError:
+            pass
+    return out
 
 
 def pinned(url):
