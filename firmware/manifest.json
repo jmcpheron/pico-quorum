@@ -44,11 +44,11 @@
       "boot": "boot_rp.py",
       "main": "main_rp.py",
       "files": ["atecc.py", "blockies.py", "board.py", "boot_rp.py", "bootart.py", "bootmark.py", "ceremony_ui.py", "chipcfg.py",
-                "chips.py", "decode.py", "fonts.py", "icons.py", "image.py", "keccak.py", "knob.py", "lcd.py", "link.py", "main_rp.py",
+                "chips.py", "crt.py", "decode.py", "fonts.py", "icons.py", "image.py", "keccak.py", "knob.py", "lcd.py", "link.py", "main_rp.py",
                 "p256.py", "policy.py", "practice.py", "qf_bold14.bin", "qf_bold18.bin", "qf_bold26.bin", "qf_mono13.bin",
                 "qf_monob28.bin", "qf_sans12.bin", "qf_sans14.bin", "qlog.py", "qrcode.py", "quorum.py", "quorum_cfg.py",
-                "quorum_ui.py", "quorum_ui_s.py", "release.py", "safe_tx.py", "setup_s.py", "signer.py", "splash.py", "taglines.py",
-                "theme.py", "tmcfg.py", "trustm.py", "trustm_q.py", "txservice.py", "usblink.py", "watch.py", "webauthn.py",
+                "quorum_ui.py", "quorum_ui_crt.py", "quorum_ui_s.py", "release.py", "safe_tx.py", "setup_s.py", "signer.py", "splash.py",
+                "taglines.py", "theme.py", "tmcfg.py", "trustm.py", "trustm_q.py", "txservice.py", "usblink.py", "watch.py", "webauthn.py",
                 "wificfg.py"]
     }
   },

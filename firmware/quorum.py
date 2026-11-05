@@ -1827,7 +1827,7 @@ def tick(t):
                 check_mark(False)
                 start_timer()
             polled = True
-        pressed = keys.pressed()
+        pressed = getattr(U, "take_pressed", list)() + keys.pressed()    # console-rp: presses that stopped an effect first
         if pressed:
             last_activity = last_key = time.ticks_ms()
             if polled:

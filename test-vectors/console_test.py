@@ -2089,6 +2089,103 @@ def case_relay():
           "a development load (no build.py): secrets.QUORUM_URL is pinned too, for the bench soak on the mock")
 
 
+def case_crt():
+    """console-rp's CRT screens (quorum_ui_crt.py, crt.py): quorum_ui_s's pages, an effect only when
+    something arrives, none on a redraw or during the hold, and any press stops an effect and still
+    reaches the console: D0 during a red page's tear rejects it, with one press."""
+    import fonts
+    chip()
+    Q = fresh(relay=Relay())
+    import quorum_ui_crt, quorum_ui_s, crt
+    Q.U = quorum_ui_crt
+    Q.U.use("dark")
+    crt.time = Q.time
+    played, real_play = [], crt.play
+    crt.play = lambda d, fx, *a, **k: (played.append(fx), real_play(d, fx, *a, **k))[1]
+    good, red = tx(Q, 0), tx(Q, 1, to=OTHER, data="0xdeadbeef")
+    serve(Q, [good, red])
+    by = {e["n"]: e for e in Q.queue}
+
+    def fx(do=None):
+        del played[:]
+        if do:
+            do()
+        Q.U.draw(Q)
+        return played[-1] if played else None
+    Q.state, Q.tab = "home", 0
+    fx()
+    check(fx() is None, "home drawn again, nothing changed: no effect")
+    check(fx(lambda: Q.open_entry(by[0])) == "tear", "a transaction opens: tear")
+    check(fx(lambda: Q.three("D1")) == "short", "a page turn: a short tear")
+    check(fx() is None, "the same page again: still")
+    v = [k for k, i in Q.pages].index("verify")
+    check(fx(lambda: setattr(Q, "page", v)) == "lock", "the verify code, worked out here: lock")
+    Q.seen.update(range(len(Q.pages)))
+    Q.press_sign()
+    check(Q.state == "hold" and fx() is None and fx() is None, "the hold: no effect while it fills")
+    Q.state = "home"
+    Q.declined.discard(by[1]["h"])
+    check(fx(lambda: Q.open_entry(by[1])) == "strong" and Q.U._bg == Q.U.B.c("bad_bg"), "a red transaction: a strong tear, on red")
+    Q.state, Q.kpage = "key", 0
+    check(fx() == "lock", "the key's code: lock")
+    Q.state, Q.result = "result", (True, "Signed", ["#0"])
+    check(fx() == "lock", "Signed: lock")
+    Q.state, Q.tab = "home", 0
+    fx()
+    check(fx(lambda: setattr(Q, "tab", 1)) == "short", "another tab: a short tear")
+    Q.tab = 0
+    fx()
+    serve(Q, [good, red, tx(Q, 2)])
+    check(fx() == "tear", "a new transaction on home: tear")
+
+    # D0 during a red page's tear: the tear stops, the page goes out whole, and the press rejects it
+    Q.state = "home"
+    Q.U.draw(Q)
+    r = [e for e in Q.queue if e["n"] == 1][0]
+    Q.declined.discard(r["h"])
+    calls = [0]
+
+    def pressed():
+        calls[0] += 1
+        return ["D0"] if calls[0] == 2 else []
+    Q.keys.pressed = pressed
+    t0 = Q.time.now
+    Q.open_entry(r)
+    Q.U.draw(Q)
+    took = Q.time.now - t0
+    held = crt.take_pressed()
+    crt._taken.extend(held)
+    check(held == ["D0"] and took < 200, "D0 during the tear: it stops after %d ms, the press kept" % took)
+    Q.keys.pressed = lambda: []
+    Q._busy, Q.last_poll, Q.splash_until = False, Q.time.now, 0
+    Q.tick(None)
+    check(Q.state == "home" and r["h"] in Q.declined and not crt.take_pressed(), "and the tick takes it: rejected, with that one press")
+
+    # Every screen draws in the CRT look, its footer with the caps
+    caps, real_cap = [], quorum_ui_s.cap
+    quorum_ui_s.cap = lambda d, i, x, y, ink: (caps.append(i), real_cap(d, i, x, y, ink))[1]
+    crt.FX = False
+    ok = True
+    for st in ("home", "owners", "device", "chip", "key", "who", "result", "pinfail", "nochip", "unconfigured", "review"):
+        Q.state = st
+        if st == "review":
+            Q.open_entry(Q.queue[0])
+        if st == "chip":
+            Q.open_chip()
+        if st == "who":
+            Q.who = Q.owners()[0]
+        try:
+            Q.U.draw(Q)
+        except Exception as e:
+            ok = False
+            print("      %s: %r" % (st, e))
+    check(ok and set(caps) == {0, 1, 2}, "every screen draws in the CRT look; the footer's caps ■ ● ▲ on D0 D1 D2")
+    quorum_ui_s.cap = real_cap
+    crt.FX = True
+    crt.play = real_play
+    Q.state = "home"
+
+
 LINK_THREE = [False]
 THREE_BOARD = ["feather-s3"]
 
@@ -2141,7 +2238,7 @@ def main_rp():
     for m in ("board", "lcd", "fonts", "quorum_ui", "quorum_ui_s", "splash", "bootmark"):
         sys.modules.pop(m, None)
     LINK_THREE[0] = True                # case_practice: on this board's three buttons
-    for case in (case_three, case_relay, case_practice):
+    for case in (case_three, case_relay, case_practice, case_crt):
         print("-- %s, console-rp" % case.__name__[5:])
         try:
             case()

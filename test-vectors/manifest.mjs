@@ -104,6 +104,12 @@ check(/^usblink\.run\(_quorum\)$/.test(rpLines.at(-1)) && /kbd_intr\(-1\)/.test(
   "console-rp: main.py turns Ctrl-C off first and ends in the link's loop, so it never returns to the REPL");
 check(/kbd_intr\(-1\)/.test(src("boot_rp.py").split("\n").slice(0, 8).join("\n")) && !/dupterm/.test(src("boot_rp.py") + src("main_rp.py") + lk),
   "console-rp: boot.py turns Ctrl-C off first, and nothing puts the REPL on the link");
+const crtIn = Object.entries(M.images).filter(([, img]) => img.files.some((f) => f === "crt.py" || f === "quorum_ui_crt.py"));
+check(crtIn.length === 1 && crtIn[0][0] === "console-rp" && rp.files.includes("crt.py") && rp.files.includes("quorum_ui_crt.py"),
+  "the CRT screens (crt.py, quorum_ui_crt.py) are on the console-rp image only" + (crtIn.length ? ` (${crtIn.map((e) => e[0])})` : ""));
+const crtSrc = src("crt.py") + src("quorum_ui_crt.py");
+check(!/import (signer|atecc|trustm\w*|safe_tx|txservice|link)\b/.test(crtSrc) && !/\bopen\(/.test(crtSrc),
+  "the CRT screens draw only: no signer, chip, hash, service or link, and no file");
 
 // tools/fw build compiles every module but boot.py and main.py with plain mpy-cross (no -march):
 // a native or viper function in them would not survive that.

@@ -34,7 +34,9 @@ def run():
     for _f in fonts.FILES:
         fonts.get(_f)
     import quorum
+    import quorum_ui_crt
     quorum.NET, quorum.VIA = link, link     # the way out, and the transport txservice calls
+    quorum.U = quorum_ui_crt                # its screens: quorum_ui_s's pages in the CRT look
     splash.pause(False)
     quorum.start()
     return quorum

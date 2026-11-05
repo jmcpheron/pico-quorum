@@ -157,11 +157,28 @@ def rail(d, q, labels=(None, None, None), bg="bg", hold=None, span=W):
             txt(d, s, 1 + (RAIL - 2 - F.width(s, "sans12")) // 2, top + (14 if ic else 0), "sans12", ink, fill)
 
 
+CAPS = False                    # quorum_ui_crt: each slot starts with its button's cap, as on the case
+
+
+def cap(d, i, x, y, ink):
+    """The case's cap on D0, D1, D2 (cad/consoles/rp.py): a square, a circle, a triangle, 8 px."""
+    col = c(ink)
+    if i == 0:
+        d.fill_rect(x, y + 1, 7, 7, col)
+    elif i == 1:
+        d.ellipse(x + 3, y + 4, 3, 3, col, True)
+    else:
+        for k in range(7):
+            d.hline(x + 3 - k // 2, y + 1 + k, k // 2 * 2 + 1, col)
+
+
 def slots(d, labels, bg, hold, span=W):
     """console-rp's footer: D0, D1 and D2 left to right, a slot each, empty where a button does
-    nothing here. While Sign is held its slot fills from the left."""
+    nothing here. While Sign is held its slot fills from the left. A narrower span (the key's QR
+    code beside it) is shared by the slots up to the last one in use."""
     d.fill_rect(0, FOOT, span, H - FOOT, c(bg))
-    sw = (span - 8) // 3
+    n = 3 if span >= W else 1 + max([i for i, lab in enumerate(labels) if lab] or [0])
+    sw = (span - 2 - 2 * n) // n
     for i, lab in enumerate(labels):
         if not lab:
             continue
@@ -174,8 +191,12 @@ def slots(d, labels, bg, hold, span=W):
             if w >= 8:
                 rrect(d, x, FOOT + 1, w, H - FOOT - 2, 4, on)
             fill, ink = (on if 2 * w >= sw else "surface"), "text"     # light on both: it straddles the edge
-        s = fit(s, sw - 4, "sans12")
-        txt(d, s, x + (sw - F.width(s, "sans12")) // 2, FOOT + 1, "sans12", ink, fill)
+        g = 11 if CAPS else 0
+        s = fit(s, sw - 4 - g, "sans12")
+        x1 = x + (sw - F.width(s, "sans12") - g) // 2
+        if CAPS:
+            cap(d, i, x1, FOOT + 4, ink)
+        txt(d, s, x1 + g, FOOT + 1, "sans12", ink, fill)
 
 
 def footer_press(d, q, what, bg="bg"):

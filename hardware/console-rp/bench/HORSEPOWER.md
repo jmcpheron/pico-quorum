@@ -204,6 +204,9 @@ What it means:
 - More room would come from a smaller line buffer (24 KB still holds a queue of 10), or from
   freezing the modules into the MicroPython image so their bytecode runs from flash. Freezing means
   building our own MicroPython. It is not done.
+- The line buffer is now 24 KB (`link.MAX_LINE`), so hello's `max` is 24 KB. That should give back
+  about 24 KB, but the CRT screens (`crt.py`, `quorum_ui_crt.py`) came in with it, and the two
+  together are not yet measured on the board.
 
 ## What this means for the console
 
