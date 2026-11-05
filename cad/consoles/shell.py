@@ -312,7 +312,9 @@ class Case:
         b = self.b
         x0, x1, y0, y1 = self.outer
         t = rrect(x0, x1, y0, y1, self.r_out, self.z0, self.zt)
-        t = t.faces(">Z").edges().fillet(SHELL_EDGE[0]).faces("<Z").edges().fillet(SHELL_EDGE[1])
+        kind, size = b.get("face_edge", ("fillet", SHELL_EDGE[0]))     # the face's edge: rounded, or a chamfer
+        t = t.faces(">Z").edges()
+        t = (t.chamfer(size) if kind == "chamfer" else t.fillet(size)).faces("<Z").edges().fillet(SHELL_EDGE[1])
         ix0, ix1, iy0, iy1 = self.inner
         t = t.cut(rrect(ix0, ix1, iy0, iy1, self.r_in, self.z0 - 1, self.zu))
         # posts on the board round its holes (they run into the walls at the corners), ribs on its antenna end
