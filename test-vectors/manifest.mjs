@@ -146,6 +146,20 @@ check(JSON.stringify(pinNamed) === JSON.stringify(["keyflow.py", "policy.py"]) &
   !/open\(PIN_FILE, "w/.test(code("policy.py")), "console-rp: only the key flow writes pin.json; the console only reads it (policy.pin_file)");
 const qc = closure("quorum");
 check(!["keyflow.py", "keypick_rp.py", "keypick_s.py", "provision.py"].some((f) => qc.includes(f)), "quorum's closure has no key flow and no ceremony");
+// prepare-rp (prepare.py, main_prep_rp.py): the bench half of console-rp's key. C1-C3 and a read-only
+// check, never a key: no GenKey, no public-key read (on an empty slot that is a GenKey command), no seal.
+const pr = M.images["prepare-rp"];
+// provision.py's one radio line is C8's clock (an ntptime tried in date()): prepare-rp stops at P4.
+const provRadio = src("provision.py").split("\n").filter((l) => RADIO.test(l)).map((l) => l.trim());
+const prRadio = pr.files.filter((f) => f.endsWith(".py") && f !== "txservice.py" && RADIO.test(src(f)) &&
+  !(f === "provision.py" && JSON.stringify(provRadio) === JSON.stringify(["import ntptime      # the record's date; boot.py joined the WiFi"])));
+check(pr.board === "console-rp" && pr.boot === "boot_rp.py" && !prRadio.length && !pr.files.some((f) => /^ca_.*\.bin$|^(net|vhttp|quorum|txservice)\.py$/.test(f)),
+  "prepare-rp: one board, no radio, no Safe console" + (prRadio.length ? ` (${prRadio})` : ""));
+const prep = code("prepare.py");
+check(/GENKEY = \(\)/.test(prep) && /PERMANENT = \("C3",\)/.test(prep) && /def read_key\(self\):\s+return None/.test(prep) &&
+  /elif step in \("C1", "C2", "C3"\):\s+out = super\(\)\.run\(step\)\s+else:\s+out = self\.cother\(\)/.test(prep) &&
+  !/ALLOW_GENKEY|\.genkey|\.lock_slot|\.lock_data|\.sign\(/.test(prep + code("main_prep_rp.py")),
+  "prepare-rp: runs C1-C3 and its read-only check only; never GenKey, a public-key read, a seal or a signature");
 const crtIn = Object.entries(M.images).filter(([, img]) => img.files.some((f) => f === "crt.py" || f === "quorum_ui_crt.py"));
 check(crtIn.length === 1 && crtIn[0][0] === "console-rp" && rp.files.includes("crt.py") && rp.files.includes("quorum_ui_crt.py"),
   "the CRT screens (crt.py, quorum_ui_crt.py) are on the console-rp image only" + (crtIn.length ? ` (${crtIn.map((e) => e[0])})` : ""));

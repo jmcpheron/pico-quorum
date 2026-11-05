@@ -940,13 +940,157 @@ def case_own_key():
     no_files()
 
 
+def bench_image(lock=True):
+    """prepare-rp as swdload.py loads it on the bench: build.py names the image, and the bench secrets.py
+    holds ALLOW_LOCK and nothing else. -> (ChipSigner, signer, prepare)."""
+    with open("secrets.py", "w") as f:
+        f.write('BOARD = "console-rp"\n' + ("ALLOW_LOCK = True\n" if lock else ""))
+    with open("build.py", "w") as f:
+        f.write('IMAGE = "prepare-rp"\nBUILD = "test"\nDATE = 1793000000\n')
+    for m in ("secrets", "build", "image", "signer", "atecc", "chipcfg", "ceremony_ui", "keyflow", "provision", "prepare",
+              "setup_s", "policy", "chips"):
+        sys.modules.pop(m, None)
+    import signer, prepare
+    return signer.ChipSigner(), signer, prepare
+
+
+def case_prepare():
+    """prepare-rp on a factory 608C, through setup_s's screen on console-rp alone, as on the bench: C1 and
+    C2 a D2 press each, C3 the D0+D1 arm and D2 held 3 s, then P4 reads the chip. No key is made, the
+    public key is never asked for, and the customer image takes the chip from there."""
+    no_files()
+    for f in ("prep-log.txt",):
+        try:
+            os.remove(f)
+        except OSError:
+            pass
+    fresh_chip("608c")
+    sim = atecc_sim.chip()
+    s, S, PR = bench_image()
+    import setup_s, ceremony_ui, splash
+    T = Clock()
+    for m in (setup_s, ceremony_ui, S):
+        m.time = T
+    keys = Keys()
+    c = PR.Ceremony(s)
+    d = splash.begin()
+    ui = setup_s.UI(d, keys, s, "dark", c)
+    bad, real = [], d.text
+
+    def text(t, x, y, col):
+        row = y == 135 - 9              # the buttons' words along the bottom
+        if x < 0 or x + 8 * len(t) > 240 or y < 0 or (not row and y + 8 > setup_s.FOOT):
+            bad.append((c.step(), t, x, y))
+        return real(t, x, y, col)
+    d.text = text
+
+    def tick(*pressed):
+        r = ui.tick(list(pressed))
+        ui.dirty = True
+        ui.draw()
+        return r
+
+    def down(k):
+        keys.down.add(k)
+        return tick(*([] if k == "D1" else [k]))
+
+    def up(k):
+        keys.down.discard(k)
+        return tick(*(["D1"] if k == "D1" else []))
+
+    def wait(ms):
+        for _ in range(ms // 100):
+            T.now += 100
+            tick(*(["D1L"] if "D1" in keys.down else []))
+
+    def press_d2():
+        down("D2")
+        up("D2")
+
+    def dismiss():
+        press_d2()
+
+    check(c.step() == "C1", "a factory chip: C1 first")
+    press_d2()
+    check(ui.result and ui.result[0] == "C1" and ui.result[1], "C1, D2: pre-flight passes, the factory config saved")
+    dismiss()
+    press_d2()
+    check(ui.result and ui.result[0] == "C2" and ui.result[1] and sim.cfg[87] == 0x55, "C2, D2: quorum v1 written, still open")
+    dismiss()
+    check(c.step() == "C3", "then C3")
+    press_d2()
+    down("D2")
+    wait(3500)
+    up("D2")
+    check(sim.cfg[87] == 0x55 and not ui.result, "C3, D2 held 3.5 s, not armed: nothing locked")
+    down("D0")
+    down("D1")
+    wait(3100)
+    up("D1")
+    up("D0")
+    check(S.armed() > 0, "D0+D1 held 3 s: armed")
+    down("D2")
+    wait(1500)
+    up("D2")
+    check(sim.cfg[87] == 0x55, "C3, D2 let go at 1.5 s: nothing locked")
+    down("D2")
+    wait(3200)
+    up("D2")
+    check(ui.result and ui.result[0] == "C3" and ui.result[1] and sim.cfg[87] == 0x00, "C3, armed, D2 held 3 s: the config locked")
+    dismiss()
+    check(c.step() == "P4", "then P4, the no-key check")
+    press_d2()
+    ok = ui.result and ui.result[0] == "P4" and ui.result[1]
+    check(ok and c.step() == "ready", "P4, D2: config locked as quorum v1, data open, slot 0 open, KeyValid 0, counter 0 at 0" +
+          ("" if ok else " (%s)" % (ui.result,)))
+    dismiss()
+    press_d2()
+    check(ui.result and ui.result[0] == "ready" and ui.result[1] and c.step() == "ready", "ready, D2: the same check again")
+    dismiss()
+    S.arm()
+    for _ in range(3):
+        press_d2()
+        dismiss()
+    check(not sim.keys and sim.cfg[86] == 0x55 and sim.cfg[88] == 0xFF and sim.counters[0] == 0,
+          "after it all, armed and pressed again: no key, data zone open, no slot sealed, counter 0 at 0")
+    check(not bad, "every line on the screen, none under the buttons' row" + (" (%s)" % bad[:3] if bad else ""))
+    d.text = real
+    log = open("prep-log.txt").read().splitlines()
+    check(len(log) >= 5 and [l.split()[2] for l in log[:4]] == ["C1", "C2", "C3", "P4"] and all(" ok: " in l for l in log),
+          "prep-log.txt: a line for each step, every one ok")
+    s2, S2, K = as_image("console-rp")
+    o = K.OwnKey(s2)
+    check(o.step() == "K0" and rp_route() == "key", "the customer image takes it: the key flow, K0 first")
+    o.run("K0")
+    check(o.checked and all(k for _, k in o.checked), "and K0 finds it as P4 left it")
+
+    # P4 on a chip with a key in slot 0 (written in while the data zone was open): not ready
+    sim = prepared()
+    sim.keys[0] = p256.rand_scalar()
+    sim.save()
+    s, S, PR = bench_image()
+    c = PR.Ceremony(s)
+    ok, checks, msg = c.run("P4")
+    check(not ok and c.step() == "P4" and [l for l, k in checks if not k] == ["slot 0 empty (KeyValid 1)"],
+          "P4 on a chip with a key in slot 0: not ready, and it says why")
+    fresh_chip("608c")
+    s, S, PR = bench_image(lock=False)
+    c = PR.Ceremony(s)
+    for st in ("C1", "C2"):
+        c.run(st)
+    S.arm()
+    ok, checks, msg = c.run("C3")
+    check(not ok and atecc_sim.chip().cfg[87] == 0x55, "no ALLOW_LOCK in the bench secrets.py: C3 refused, armed")
+    no_files()
+
+
 def main_rp():
     """console-rp's own key, in a device of its own: board.py read as console-rp."""
     with open("secrets.py", "w") as f:
         f.write('BOARD = "console-rp"\n')
     for m in ("board", "lcd", "splash", "bootmark"):
         sys.modules.pop(m, None)
-    for case in (case_own_key_gate, case_own_key):
+    for case in (case_own_key_gate, case_own_key, case_prepare):
         print("--", case.__name__[5:])
         try:
             case()
