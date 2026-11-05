@@ -19,6 +19,6 @@
 | 21 | 33 | `LINK_RX` | UART1 RX from the CH343P's TXD |  |
 | 25 | 37 | `LED` | red LED, high is on |  |
 
-Also: QSPI to the flash (pins 55–60), XIN/XOUT to the crystal, RUN to RESET and the jig's pad,
-SWCLK/SWDIO and USB_DP/DM (through 27 R) to J3 and the jig's pads only. Not connected: GPIO 0, 1, 7,
+Also: QSPI to the flash (pins 55–60), XIN/XOUT to the crystal, RUN to RESET and J3,
+SWCLK/SWDIO and USB_DP/DM (through 27 R) to J3 only. Not connected: GPIO 0, 1, 7,
 14–19, 22–24 and 26–29.
