@@ -47,6 +47,10 @@ POST_R = 2.2                # on the board's front: inside the 2.5 mm keep-out r
 BOSS_R, BOSS_BASE = 2.3, (3.4, 1.2)     # under the board; a wider foot on the floor round the counterbore
 # The caps on D0, D1, D2: a round stem through the plate and a square flange under it that keeps it in.
 CAP_D, CAP_HOLE = 4.2, 4.6
+# Shaped caps (b["cap_shapes"]: name -> shape), each about a round cap's area (14 mm2), so none is harder to hit:
+# a square of 3.8 mm, corners rounded 0.6; an equilateral triangle of 6.0 mm, point up, corners rounded 0.8,
+# centred on its height. A shaped stem in its own shaped hole can't turn.
+CAP_SQUARE, CAP_TRI = (3.8, 0.6), (6.0, 0.8)
 CAP_PROUD = 1.0             # over the plate
 CAP_FLANGE_T = 0.8
 CAP_GAP = 0.2               # the flange under the plate (or its pocket) at rest: the cap's free play
@@ -68,11 +72,17 @@ TAB = (2.0, 1.2, 0.2)       # the back panel's tab into the end wall: long, thic
 PACKAGES = [
     ("USB_C_Receptacle_HCTL", (8.94, 7.35, 3.3)),       # HC-TYPE-C-16P-01A (console-s3's generator: 3.3)
     ("USB_C_Receptacle_HRO", (8.94, 7.35, 3.2)),        # TYPE-C-31-M-12 (PicoQuorumKey's DESIGN.md: 3.2)
-    ("FPC", (3.6, 8.0, 1.0)), ("SW_TS-1187A", (5.1, 5.1, 1.5)), ("SW_Tact_4.5x4.5", (4.5, 4.5, 3.8)),
+    ("FPC", (3.6, 8.0, 1.0)), ("SW_TS-1187A", (5.1, 5.1, 1.5)), ("SW_Push_1P1T_XKB_TS-1187A", (5.1, 5.1, 1.5)),
+    ("SW_Tact_4.5x4.5", (4.5, 4.5, 3.8)),
     ("SOT-223", (6.5, 7.0, 1.8)), ("SOT-23-6", (2.9, 2.8, 1.45)), ("SOT-23-5", (2.9, 2.8, 1.25)),
     ("SOT-23", (2.9, 2.4, 1.2)), ("DFN-8", (3.0, 3.0, 0.6)),
     ("C_0805", (2.0, 1.25, 1.25)), ("C_0603", (1.6, 0.8, 0.9)), ("R_0603", (1.6, 0.8, 0.55)),
     ("LED_0603", (1.6, 0.8, 0.8)), ("D_SOD-523", (1.6, 0.8, 0.7)), ("D_SOD-323", (2.5, 1.3, 1.1)),
+    # console-rp's: Raspberry Pi's footprints (hardware/console-rp/lib/pqrp.pretty) and the stock ones
+    ("C_0402", (1.0, 0.5, 0.55)), ("R_0402", (1.0, 0.5, 0.4)), ("RPi_C_0402", (1.0, 0.5, 0.55)),
+    ("RPi_R_0402", (1.0, 0.5, 0.4)), ("RPi_Crystal_SMD_3225", (3.2, 2.5, 0.8)), ("RPi_L_Abracon_AOTA-B201610", (2.0, 1.6, 1.0)),
+    ("RPi_RP2350A_QFN-60", (7.0, 7.0, 0.9)), ("WCH_QFN-16", (3.0, 3.0, 0.75)),
+    ("SOIC-8_3.9x4.9", (4.9, 6.0, 1.75)), ("SOIC-8_5.3x5.3", (5.3, 8.0, 2.16)),
 ]
 WROOM = (25.5, 18.0, 3.1)   # ESP32-S3-WROOM-1: long, across, thick (Espressif's datasheet)
 
@@ -119,6 +129,23 @@ def parts(cpl, bom):
         out[ref] = dict(fp=f, x=x, y=y, rot=rot, side=row["Layer"], box=(x - lx / 2, x + lx / 2, y - ly / 2, y + ly / 2),
                         h=size[2])
     return out
+
+
+def cap_shape(x, y, kind, grow, z0, z1):
+    """A cap's stem (grow 0) or its hole in the face (grow the clearance), as a solid from z0 to z1."""
+    if kind == "square":
+        s, r = CAP_SQUARE
+        return box(x - s / 2 - grow, x + s / 2 + grow, y - s / 2 - grow, y + s / 2 + grow, z0, z1).edges("|Z").fillet(r + grow)
+    if kind == "triangle":
+        s, r = CAP_TRI
+        h = s * math.sqrt(3) / 2
+        cy = y - h / 6                      # the centroid, so the triangle's height is centred on the switch
+        s += 2 * math.sqrt(3) * grow        # the same triangle moved out by grow, about its centroid
+        ri = s * math.sqrt(3) / 6
+        pts = [(x - s / 2, cy - ri), (x + s / 2, cy - ri), (x, cy + 2 * ri)]
+        w = cq.Workplane("XY").workplane(offset=z0).polyline(pts).close().extrude(z1 - z0)
+        return w.edges("|Z").fillet(r + grow)
+    return cyl(x, y, CAP_D / 2 + grow, z0, z1)
 
 
 def mark(cx, cy, r, z0, z1):
@@ -173,6 +200,8 @@ class Case:
         side, self.lug = b["lug"]
         if side == "right":
             x1 += self.lug
+        elif side == "left":
+            x0 -= self.lug
         elif side == "top":
             y1 += self.lug
         self.outer = (x0, x1, y0, y1)
@@ -215,8 +244,9 @@ class Case:
         out.append((box(gx0, gx1, gy0, gy1, g0, g1), GLASS_C, "glass"))
         fx0, fx1, fy0, fy1 = b["fold"]
         out.append((box(fx0, fx1, fy0, fy1, 0.0, g1), GLASS_C, "ribbon fold"))
-        mx0, mx1, my0, my1 = b["module"]
-        out.append((box(mx0, mx1, my0, my1, self.zmod, -T), MOD_C, "module"))
+        if b["module"]:
+            mx0, mx1, my0, my1 = b["module"]
+            out.append((box(mx0, mx1, my0, my1, self.zmod, -T), MOD_C, "module"))
         return out
 
     def plug(self):
@@ -229,6 +259,10 @@ class Case:
             yc = (p["box"][2] + p["box"][3]) / 2
             shell = box(-0.01, sl - 0.5, yc - sw / 2 + 0.3, yc + sw / 2 - 0.3, z - sh / 2 + 0.2, z + sh / 2 - 0.2)
             over = box(-ol, -0.01, yc - ow / 2, yc + ow / 2, z - oh / 2, z + oh / 2).edges("|X").fillet(1.0)
+        elif b["usb_edge"] == "right":
+            yc, W = (p["box"][2] + p["box"][3]) / 2, b["W"]
+            shell = box(W - sl + 0.5, W + 0.01, yc - sw / 2 + 0.3, yc + sw / 2 - 0.3, z - sh / 2 + 0.2, z + sh / 2 - 0.2)
+            over = box(W + 0.01, W + ol, yc - ow / 2, yc + ow / 2, z - oh / 2, z + oh / 2).edges("|X").fillet(1.0)
         else:
             xc = (p["box"][0] + p["box"][1]) / 2
             shell = box(xc - sw / 2 + 0.3, xc + sw / 2 - 0.3, -0.01, sl - 0.5, z - sh / 2 + 0.2, z + sh / 2 - 0.2)
@@ -269,6 +303,9 @@ class Case:
         if side == "right":
             return t.cut(slot(b["W"] + CLEAR + WALL + lug / 2 - 0.3, b.get("lug_at", b["H"] / 2), LUG_HOLE[0], LUG_HOLE[1],
                               self.z0 - 1, self.zt + 1, along_x=False))
+        if side == "left":
+            return t.cut(slot(-CLEAR - WALL - lug / 2 + 0.3, b.get("lug_at", b["H"] / 2), LUG_HOLE[0], LUG_HOLE[1],
+                              self.z0 - 1, self.zt + 1, along_x=False))
         return t.cut(slot(b.get("lug_at", b["W"] / 2), b["H"] + CLEAR + WALL + lug / 2 - 0.3, LUG_HOLE[0], LUG_HOLE[1],
                           self.z0 - 1, self.zt + 1))
 
@@ -296,12 +333,19 @@ class Case:
         b = self.b
         x0, x1, y0, y1 = self.outer
         t = rrect(x0, x1, y0, y1, self.r_out, self.z0, self.zt)
-        t = t.faces(">Z").edges().fillet(SHELL_EDGE[0]).faces("<Z").edges().fillet(SHELL_EDGE[1])
+        kind, size = b.get("face_edge", ("fillet", SHELL_EDGE[0]))     # the face's edge: rounded, or a chamfer
+        t = t.faces(">Z").edges()
+        t = (t.chamfer(size) if kind == "chamfer" else t.fillet(size)).faces("<Z").edges().fillet(SHELL_EDGE[1])
         ix0, ix1, iy0, iy1 = self.inner
         t = t.cut(rrect(ix0, ix1, iy0, iy1, self.r_in, self.z0 - 1, self.zu))
         # posts on the board round its holes (they run into the walls at the corners), ribs on its antenna end
+        gx0, gy0, gx1, gy1 = b["glass"]
+        pr = b.get("post_r", SHELL_POST_R)
         for x, y in b["holes"]:
-            t = t.union(cyl(x, y, SHELL_POST_R, 0.0, self.zu + 0.01))
+            c = cyl(x, y, pr, 0.0, self.zu + 0.01)
+            if gx0 - pr - 0.3 < x < gx1 + pr + 0.3 and gy0 - pr - 0.3 < y < gy1 + pr + 0.3:
+                c = c.cut(box(gx0 - 0.3, gx1 + 0.3, gy0 - 0.3, gy1 + 0.3, -1, self.zu))   # by the glass: 0.3 mm off it
+            t = t.union(c)
         for rx0, rx1, ry0, ry1 in b["press"]:
             t = t.union(box(rx0, rx1, ry0, ry1, 0.0, self.zu + 0.01))
         for x, y in b["holes"]:
@@ -309,7 +353,8 @@ class Case:
             t = t.cut(cyl(x, y, M2_HEAD[0] / 2 + 0.2, self.seat, self.zt + 1))
         t = t.cut(self.usb_hole())
         t = self.notch(self.lug_slot(t))
-        t = t.cut(self.tab(TAB[2]))
+        if b.get("tab", True):
+            t = t.cut(self.tab(TAB[2]))
         return self.face(t)
 
     def back(self):
@@ -328,7 +373,9 @@ class Case:
             add = add.union(box(rx0, rx1, ry0, ry1, self.zf - 0.01, self.zmod - REST_GAP))
         for rx0, rx1, ry0, ry1 in b.get("support", []):
             add = add.union(box(rx0, rx1, ry0, ry1, self.zf - 0.01, self.zb - REST_GAP))
-        p = p.union(add.intersect(outline(self.zf - 0.01, self.zb + 0.01))).union(self.tab())
+        p = p.union(add.intersect(outline(self.zf - 0.01, self.zb + 0.01)))
+        if b.get("tab", True):
+            p = p.union(self.tab())
         for x, y in b["holes"]:
             p = p.cut(cyl(x, y, M2_PILOT / 2, self.z0 + 0.6, self.zb + 0.1))
         return p.cut(self.back_text())
@@ -339,8 +386,11 @@ class Case:
         if self.layout == "plate":
             return [("tub", self.tub(), TUB_C, lambda s: s), ("plate", self.plate(), PLATE_C, flip)] + \
                 [(n, s, col, lambda s: s) for n, s, col in caps]
-        return [("shell", self.front(), TUB_C, flip), ("back", self.back(), PLATE_C, lambda s: s)] + \
-            [(n, s, col, lambda s: s) for n, s, col in caps]
+        front, back, extra = self.front(), self.back(), []
+        if self.b.get("decor"):     # the board's own touches: (shell, back) -> (shell, back, [(name, shape, colour, lie)])
+            front, back, extra = self.b["decor"](self, front, back)
+        return [("shell", front, TUB_C, flip), ("back", back, PLATE_C, lambda s: s)] + \
+            [(n, s, col, lambda s: s) for n, s, col in caps] + extra
 
     def usb_hole(self):
         """The USB opening: through the wall, and on to the receptacle's face at the board's edge."""
@@ -352,6 +402,9 @@ class Case:
         if b["usb_edge"] == "left":
             yc = (p["box"][2] + p["box"][3]) / 2
             return box(x0 - 1, 0.0, yc - w / 2, yc + w / 2, z - h / 2, z + h / 2).edges("|X").fillet(r)
+        if b["usb_edge"] == "right":
+            yc = (p["box"][2] + p["box"][3]) / 2
+            return box(b["W"], self.outer[1] + 1, yc - w / 2, yc + w / 2, z - h / 2, z + h / 2).edges("|X").fillet(r)
         xc = (p["box"][0] + p["box"][1]) / 2
         return box(xc - w / 2, xc + w / 2, y0 - 1, 0.0, z - h / 2, z + h / 2).edges("|Y").fillet(r)
 
@@ -363,7 +416,7 @@ class Case:
         for words, (cx, cy), (w, h), kind in b["back_text"]:
             size = fit_text(words, w, h, kind)
             pl = cq.Plane(origin=(cx, cy, self.z0), xDir=xdir, normal=(0, 0, -1))
-            c = engrave_text(pl, words, size, ENGRAVE, kind)
+            c = engrave_text(pl, words, size, b.get("engrave", ENGRAVE), kind)
             cut = c if cut is None else cut.union(c)
         return cut
 
@@ -410,9 +463,10 @@ class Case:
                .workplane(offset=ch + 0.01).rect(wx1 - wx0 + 2 * ch + 0.02, wy1 - wy0 + 2 * ch + 0.02).loft())
         p = p.cut(bev)
         # the caps' holes, and a pocket for each flange where it stands higher than the underside
-        for ref, _ in b["buttons"]:
+        for ref, name in b["buttons"]:
             q = P[ref]
-            p = p.cut(cyl(q["x"], q["y"], CAP_HOLE / 2, zu - 1, zt + 1))
+            kind = b.get("cap_shapes", {}).get(name, "circle")
+            p = p.cut(cap_shape(q["x"], q["y"], kind, (CAP_HOLE - CAP_D) / 2, zu - 1, zt + 1))
             if self.zft + CAP_GAP > zu:
                 f = self.flange_w() / 2 + 0.3
                 p = p.cut(box(q["x"] - f, q["x"] + f, q["y"] - f, q["y"] + f, zu - 0.5, self.zft + CAP_GAP))
@@ -428,10 +482,11 @@ class Case:
             if kind == "mark":
                 cx, cy, r = args[:3]
                 p = p.cut(mark(cx, cy, r, zt - ENGRAVE, zt + 1))
-                if len(args) > 3:           # a switch under the mark's lower-left dot: the dot is its hole, through
-                    q = P[args[3]]
-                    dx, dy = cx + r * math.cos(math.radians(-126)), cy + r * math.sin(math.radians(-126))
-                    assert abs(dx - q["x"]) < 0.01 and abs(dy - q["y"]) < 0.01, "the mark's dot isn't over " + args[3]
+                # a switch under the mark's lower-left dot (and its lower-right): the dot is its hole, through
+                for ref, ang in zip(args[3:], (-126, -54)):
+                    q = P[ref]
+                    dx, dy = cx + r * math.cos(math.radians(ang)), cy + r * math.sin(math.radians(ang))
+                    assert abs(dx - q["x"]) < 0.01 and abs(dy - q["y"]) < 0.01, "the mark's dot isn't over " + ref
                     p = p.cut(cyl(dx, dy, r / 4, zu - 1, zt + 1))
             else:
                 words, (cx, cy), (w, h) = args
@@ -441,8 +496,8 @@ class Case:
 
     def flange_w(self):
         b, P = self.b, self.b["parts"]
-        ys = sorted(P[r]["y"] for r, _ in b["buttons"])
-        pitch = min(abs(a - c) for a, c in zip(ys, ys[1:]))
+        at = [(P[r]["x"], P[r]["y"]) for r, _ in b["buttons"]]
+        pitch = min(max(abs(a[0] - c[0]), abs(a[1] - c[1])) for i, a in enumerate(at) for c in at[i + 1:])
         sw = P[b["buttons"][0][0]]["box"]
         return min(pitch - 0.6, (sw[1] - sw[0]) + 1.0)
 
@@ -453,8 +508,9 @@ class Case:
         for ref, name in self.b["buttons"]:
             q = self.b["parts"][ref]
             c = box(q["x"] - f, q["x"] + f, q["y"] - f, q["y"] + f, self.zcap, self.zft).edges("|Z").fillet(0.6)
-            stem = cyl(q["x"], q["y"], CAP_D / 2, self.zft - 0.01, self.zt + CAP_PROUD)
-            stem = stem.faces(">Z").edges().fillet(0.6)
+            kind = self.b.get("cap_shapes", {}).get(name, "circle")
+            stem = cap_shape(q["x"], q["y"], kind, 0.0, self.zft - 0.01, self.zt + CAP_PROUD)
+            stem = stem.faces(">Z").edges().fillet(0.6 if kind == "circle" else 0.4)
             out.append((c.union(stem), CAP_C.get(name, PAPER), "cap " + name))
         return out
 
@@ -497,6 +553,9 @@ class Case:
         if b["usb_edge"] == "left":
             yc = (p["box"][2] + p["box"][3]) / 2
             chan = box(x0 - 60, x0 + 1, yc - 7.5, yc + 7.5, z - 3.8, self.zt + 20)
+        elif b["usb_edge"] == "right":
+            yc = (p["box"][2] + p["box"][3]) / 2
+            chan = box(x1 - 1, x1 + 60, yc - 7.5, yc + 7.5, z - 3.8, self.zt + 20)
         else:
             xc = (p["box"][0] + p["box"][1]) / 2
             chan = box(xc - 7.5, xc + 7.5, ya - 60, y0 + 1, z - 3.8, self.zt + 20)
