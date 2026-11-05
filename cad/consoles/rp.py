@@ -3,9 +3,9 @@ layout: the face and the walls are one front shell, and a flat panel closes the 
 the front, through the shell's posts and the board's four M2.5 holes, into bosses on the back panel. The board
 has no radio, so no end is kept free of metal, and no tab.
 
-The face has the window, caps on D0, D1 and D2 in a row under it, a hole over the LED, and the mark, at the
+The face has the window, caps on D0, D1 and D2 in a row under it (a low collar round D2, Sign), a hole over the LED, and the mark, at the
 right: its two lower dots are the holes for RESET and BOOTSEL, 7.5 mm apart on the board, so the mark is drawn
-from them. The USB-C is open at the right end; a lanyard lug at the left. The back has the name and the Source
+from them. The mark, and the name on the back, are filled flush in orange: a second colour in the same print. The USB-C is open at the right end; a lanyard lug at the left. The back has the name and the Source
 Location, since the case covers the board's own. A dock holds it leaning back, its cable out of the right side.
 (cad/consoles/README.md)
 
@@ -14,7 +14,7 @@ Run: uv run --python 3.11 --with cadquery --with matplotlib --with pillow \\
 (or tools/case build rp)
 
 Writes out/rp/: rp_shell.stl (face down, as it prints), rp_back.stl (outside down), rp_cap_D0/D1/D2.stl (flange
-down), rp_dock.stl, rp_assembly.step, rp_front.png, rp_face.png, rp_apart.png, rp_dock.png.
+down), rp_inlay_mark.stl and rp_inlay_name.stl (in the shell's and the back's frame, for the second colour), rp_dock.stl, rp_assembly.step, rp_front.png, rp_face.png, rp_apart.png, rp_dock.png.
 
 The board's numbers are its generator's (hardware/console-rp/gen_console_rp.py) and the placement file JLCPCB
 built it from (console-rp/fab/cpl.csv), checked against each other. The glass is the panel's datasheet's,
@@ -40,6 +40,26 @@ SCREEN = os.path.join(S.REPO, "docs", "quorum-ui", "feather", "06-review-head.pn
 GLASS_H = 17.6              # the datasheet's glass, 0.3 mm more each side than the generator's 17.0
 OFF = 1.4                   # the active area's centre from the glass's, away from the ribbon (the datasheet's)
 BACK_ROOM = 1.6             # under the board: the USB-C's shell legs, and the bosses' height for the M2 x 8's thread
+ACCENT = (1.0, 0.42, 0.07)  # the inlays' colour: an orange PLA, to match the caps
+GUARD = (3.6, 4.8, 1.3)     # the collar round Sign's cap: inside and outside radius, height over the face
+
+
+def decor(c, shell, back):
+    """The slate's touches. The mark and the back's name filled flush in the accent colour, each its own
+    STL in the shell's or the back's frame, to print as a second colour in the same job (or press in). A
+    low collar round D2, Sign, its top 0.3 mm over the cap's: Sign takes a deliberate press, and Reject
+    stays one easy press."""
+    b, P = c.b, c.b["parts"]
+    _, (cx, cy, r, *under) = b["face"][0]
+    mark = S.mark(cx, cy, r, c.zt - S.ENGRAVE, c.zt)
+    for ref in under:                       # RESET's and BOOTSEL's holes stay open
+        mark = mark.cut(S.cyl(P[ref]["x"], P[ref]["y"], r / 4 + 0.01, c.zt - 1, c.zt + 1))
+    q = P["SW3"]
+    ri, ro, h = GUARD
+    collar = S.cyl(q["x"], q["y"], ro, c.zt - 0.01, c.zt + h).cut(S.cyl(q["x"], q["y"], ri, c.zt - 1, c.zt + h + 1))
+    shell = shell.union(collar.faces(">Z").edges().fillet(0.45))
+    name = c.back_text()
+    return shell, back, [("inlay mark", mark, ACCENT, S.flip), ("inlay name", name, ACCENT, lambda s: s)]
 
 
 def board():
@@ -77,7 +97,7 @@ def board():
         # ribs under the back where it's pressed: the three buttons, and RESET and BOOTSEL
         support=[(P["SW1"]["x"] - 3.0, P["SW3"]["x"] + 3.0, P["SW1"]["y"] - S.REST_W / 2, P["SW1"]["y"] + S.REST_W / 2),
                  (rs["x"] - 3.0, bs["x"] + 3.0, rs["y"] - S.REST_W / 2, rs["y"] + S.REST_W / 2)],
-        press=[],
+        press=[], decor=decor,
         face=[("mark", (rs["x"] + r * math.cos(math.radians(54)), rs["y"] + r * math.sin(math.radians(54)), r, "SW4", "SW5"))],
         flip="x",
         # turned over about x, the back's lower y is its top: the name, and the Source Location under it

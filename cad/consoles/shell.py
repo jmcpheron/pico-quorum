@@ -363,8 +363,11 @@ class Case:
         if self.layout == "plate":
             return [("tub", self.tub(), TUB_C, lambda s: s), ("plate", self.plate(), PLATE_C, flip)] + \
                 [(n, s, col, lambda s: s) for n, s, col in caps]
-        return [("shell", self.front(), TUB_C, flip), ("back", self.back(), PLATE_C, lambda s: s)] + \
-            [(n, s, col, lambda s: s) for n, s, col in caps]
+        front, back, extra = self.front(), self.back(), []
+        if self.b.get("decor"):     # the board's own touches: (shell, back) -> (shell, back, [(name, shape, colour, lie)])
+            front, back, extra = self.b["decor"](self, front, back)
+        return [("shell", front, TUB_C, flip), ("back", back, PLATE_C, lambda s: s)] + \
+            [(n, s, col, lambda s: s) for n, s, col in caps] + extra
 
     def usb_hole(self):
         """The USB opening: through the wall, and on to the receptacle's face at the board's edge."""
