@@ -8,6 +8,71 @@ Five ordered from JLCPCB on 2026-10-29, fully assembled
 one is up on a bench script ([bench/BRINGUP.md](bench/BRINGUP.md)); the console's firmware for it is
 not written yet.*
 
+## Rev B: placed in the generator, not yet in KiCad (2026-11-05)
+
+`gen_console_rp.py` now describes rev B, the square board of
+[the rev B plan](../../CONSOLE-RP-REV-B-PLAN-2026-11-05.md). It hasn't been run through KiCad yet.
+Everything else in this folder (the board, its fab files, the renders and the rest of this README)
+is still rev A's, as ordered. Rev A's generator is commit `4a349cc`.
+
+What the generator now places:
+- **the board:** 58 × 54 mm, the top-right corner cut 6 mm, a hole near each corner but the top-left,
+  and three fiducials;
+- **the glass** at (3.5, 7), 31.0 × 17.6 (the datasheet's). The top-left 16 × 7 mm is kept empty for
+  a key port;
+- **U1** at (48, 19.5). Raspberry Pi's block, the flash and every line drawn by hand round them are
+  now written as offsets from U1, so they move with it. The flash's leads are 2.3 mm clear of the
+  glass; on rev A they were under its corner;
+- **the USB-C** on the bottom edge under U1, with U2 and U4 stacked over it, so D+ and D− run
+  straight up;
+- **RESET and BOOTSEL** 7.5 mm apart, as the mark's two lower dots, with the mark drawn round them in
+  silkscreen;
+- **the jig's seven pads** (TP1–TP7) on the back down the right edge, and **J3** down the left edge;
+- **the silkscreen:** the warning right of the port's zone, the census and the current on the back,
+  and picoquorum.app;
+- **the dragon,** redrawn as the game's goofy one: a duck's head, an open belly and a curled tail.
+
+The netlist is rev A's plus TP1–TP7 and FID1–FID3. The BOM is unchanged (57 parts). PINS.md's table
+is unchanged; its note now names the jig's pads, and so does `check_link`.
+
+**How it was checked, without KiCad.** A script (not in the repo) read each footprint's pads and
+courtyard from rev A's routed board, placed them at rev B's `AT`, and checked:
+- courtyards against each other and the edge;
+- the holes' rings, the glass and its foam pads, the ribbon's path and loop, and the port's zone;
+- the buttons against `slot()`, and the mark against RESET and BOOTSEL;
+- the hand-drawn copper against other nets' pads, and Raspberry Pi's areas;
+- the jig's pads, and the silkscreen text against pads and the edge.
+
+All pass. The script was tried on rev A first: it found rev A's known crowding (U6 under the glass)
+and nothing else. `write_pins` and `write_bom` were run: only PINS.md's note changed.
+
+**Where it differs from the plan:**
+- **The jig's pads are down the right edge, not at the bottom-left.** The bench USB's lines leave
+  U1's block at its top right, and SWD and RUN leave at its bottom right. At the bottom-left each
+  would have been a 45–75 mm run; at the right edge each is under 10 mm.
+- **H1 is at (19.5, 3.5),** beside the port's zone, since the zone is that corner.
+- **The flash is 2.3 mm from the glass, not 3.4:** U6's courtyard reaches 11.75 mm left of U1, not 10.
+- **The buttons are at `slot()`: x 10.75, 18.95 and 27.15.** The plan's 9.35, 17.55 and 25.75 are
+  1.4 mm further left.
+- **The mark is centred at x 23,** not 28, so its top dot sits between the D1 and D2 labels.
+- **The key port's plug needs a 0.8 mm board** (the PicoQuorumKey's DESIGN.md: the straddle plug's
+  T = 0.80 mm). Rev A is 1.6 mm. The zone is kept, but a port variant of this board is a question
+  of thickness first.
+
+**Still to do, with KiCad 10 (on the Mac):**
+1. Move rev A's routed `console-rp/console-rp.kicad_pcb` aside. The generator won't overwrite a
+   routed board.
+2. `tools/keypcb gen-console-rp`: the schematic, ERC, the netlist against the table, the
+   footprints, and DRC on the placed board.
+3. `tools/keypcb route console-rp`, then put it right by hand as rev A was. The bench USB's two lines
+   stop where they leave U1's block, and the router takes them on.
+4. `tools/keypcb gen-console-rp check render`, `tools/keypcb fab console-rp` and
+   `tools/keypcb jlc console-rp`. The renders' frame was guessed for the new shape.
+5. The case: `cad/consoles/rp.py` checks the generator against `fab/cpl.csv`, so it fails until
+   step 4 has written rev B's. It also needs the USB-C at the bottom and the 17.6 mm glass.
+6. The concept's outlines round parts that have none (`outlines()` on `claude/console-rp-concept`)
+   need pcbnew to check, so they haven't been brought over.
+
 ![console-rp from above: a warning triangle and EXPERIMENTAL HARDWARE COSIGNER over the 1.14-inch screen at the top left, PicoQuorum console-rp under it, and D0, D1 and D2 in a row below that; the flash, the RP2350, the crystal, the CH343P, and the key chip with an 8-bit key pointing at it, to its right; the USB-C on the right edge, RESET and BOOTSEL at the bottom right, and the bench header's holes along the top](renders/console-rp-top.jpg)
 
 *KiCad's 3D render of the routed board. The panel is drawn as a box. More views are in

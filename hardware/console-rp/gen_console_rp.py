@@ -41,7 +41,7 @@ APP = "/Applications/KiCad/KiCad.app/Contents"       # macOS keeps KiCad's libra
 SHARE = os.path.join(APP, "SharedSupport") if os.path.isdir(APP) else "/usr/share/kicad"
 KISYM, KIFP, KI3D, KITPL = (os.path.join(SHARE, d) for d in ("symbols", "footprints", "3dmodels", "template"))
 CLI = shutil.which("kicad-cli") or os.path.join(APP, "MacOS", "kicad-cli")
-DATE = "2026-10-28"
+DATE, REV = "2026-11-05", "B"          # rev A (2026-10-28, ordered) is commit 4a349cc
 sys.path.insert(0, os.path.join(REPO, "hardware", "key-pcb"))
 import gen        # noqa: E402  JLC_RULES
 
@@ -203,8 +203,17 @@ PARTS = [
          dnp=True, bom=False),
     res("R13", "RP_DM", "DEV_D-", R27, "USB's 27 R, close to the chip"),
     res("R14", "RP_DP", "DEV_D+", R27),
+    # --- the jig's pads, on the back: pogo pins for SWD, RUN (so the jig can reset a board without SWD),
+    # the bench USB and power, 1.5 mm at 2.54 in a row (bench/BRINGUP.md, "Loading boards in numbers"),
+    # in their order down the board's right edge. Copper only, reached only with the board in hand, as J3
+    *[dict(ref=f"TP{i + 1}", sym="Connector:TestPoint", value=v, fp="TestPoint:TestPoint_Pad_D1.5mm", nets={"1": n},
+           bom=False, back=True)
+      for i, (v, n) in enumerate((("D+", "DEV_D+"), ("D-", "DEV_D-"), ("GND", GND), ("3V3", V33), ("RUN", "RUN"),
+                                  ("DIO", "SWDIO"), ("CLK", "SWCLK")))],
 ] + [dict(ref=f"H{i}", sym="Mechanical:MountingHole", value="M2.5", fp="MountingHole:MountingHole_2.7mm_M2.5",
-          nets={}, bom=False) for i in range(1, 5)]
+          nets={}, bom=False) for i in range(1, 5)] \
+  + [dict(ref=f"FID{i}", sym="Mechanical:Fiducial", value="Fiducial", fp="Fiducial:Fiducial_1mm_Mask2mm",
+          nets={}, bom=False) for i in range(1, 4)]     # for JLCPCB's Standard assembly and its panel
 
 # Nets KiCad would call undriven: VBUS comes in on a passive pin, DVDD through L1, VREG_AVDD through
 # R1. Each gets a PWR_FLAG.
@@ -334,6 +343,8 @@ PLACE = {
     "R12": (g(148), g(80)), "D1": (g(148), g(88)),
     "J3": (g(156), g(16)),
     "H1": (g(146), g(100)), "H2": (g(150), g(100)), "H3": (g(154), g(100)), "H4": (g(158), g(100)),
+    **{f"TP{i + 1}": (g(104 + 4 * i), g(98)) for i in range(7)},
+    **{f"FID{i + 1}": (g(146 + 4 * i), g(106)) for i in range(3)},
 }
 FLAG_AT = {GND: (g(6), g(100)), VBUS: (g(10), g(100)), "DVDD": (g(14), g(100)), "VREG_AVDD": (g(18), g(100))}
 NOTES = [
@@ -348,7 +359,8 @@ NOTES = [
     (g(104), g(36), "J2: pin order from the seller's listing. Check it on the panel before the layout."),
     (g(140), g(36), "J3 is not fitted: holes for a header at the bench.\n"
                     "SWD, and the RP2350's own USB: its REPL, and USB boot\n"
-                    "(hold BOOTSEL, press RESET). Nothing reaches them through the USB-C."),
+                    "(hold BOOTSEL, press RESET). Nothing reaches them through the USB-C.\n"
+                    "TP1-TP7 are the same lines and RUN, as pads on the back for a jig."),
 ]
 
 
@@ -434,7 +446,7 @@ class Sheet:
             f.write(f"""(kicad_sch (version 20250114) (generator "picoquorum_gen") (generator_version "9.0")
 (uuid "{self.root}")
 (paper "A3")
-(title_block (title "PicoQuorum console-rp: an RP2350, no radio, USB serial to the host") (date "{DATE}") (rev "A")
+(title_block (title "PicoQuorum console-rp: an RP2350, no radio, USB serial to the host") (date "{DATE}") (rev "{REV}")
   (company "PicoQuorum") (comment 1 "Written by hardware/console-rp/gen_console_rp.py. CERN-OHL-W v2")
   (comment 2 "Source Location: https://github.com/jmcpheron/pico-quorum"))
 (lib_symbols
@@ -535,8 +547,9 @@ def write_pins():
     pico = pico_pins()
     for net, gp in sorted(GPIO.items(), key=lambda kv: kv[1]):
         lines.append(f"| {gp} | {pin_of[gp]} | `{net}` | {what[net]} | {pico.get(gp, '')} |")
-    lines += ["", "Also: QSPI to the flash (pins 55–60), XIN/XOUT to the crystal, RUN to RESET, SWCLK/SWDIO and",
-              "USB_DP/DM (through 27 R) to J3 only. Not connected: GPIO 0, 1, 7, 14–19, 22–24 and 26–29.", ""]
+    lines += ["", "Also: QSPI to the flash (pins 55–60), XIN/XOUT to the crystal, RUN to RESET and the jig's pad,",
+              "SWCLK/SWDIO and USB_DP/DM (through 27 R) to J3 and the jig's pads only. Not connected: GPIO 0, 1, 7,",
+              "14–19, 22–24 and 26–29.", ""]
     with open(os.path.join(HERE, "PINS.md"), "w") as f:
         f.write("\n".join(lines))
 
@@ -573,10 +586,11 @@ def check_firmware(bad):
 
 def check_link(bad, nets):
     """What the computer can reach, from the netlist: the USB-C's data lines only the CH343P, the
-    CH343P's DTR and RTS nothing, the RP2350's own USB and SWD only J3, BOOTSEL and RUN only their
-    buttons."""
+    CH343P's DTR and RTS nothing, the RP2350's own USB and SWD only J3 and the jig's pads on the back,
+    BOOTSEL only its button, RUN only its button and the jig's pad."""
     def on(net):
         return {r for r, _ in nets.get("/" + net, ())}
+    jig = {p["nets"]["1"]: p["ref"] for p in PARTS if p.get("back")}
     for n, s in nets.items():
         if any(r == "U4" and pin in ("12", "13") for r, pin in s) and not n.startswith("unconnected-"):
             bad.append(f"the CH343P's DTR or RTS is connected ({n}): the computer could reset the RP2350 or hold BOOTSEL")
@@ -585,8 +599,9 @@ def check_link(bad, nets):
     for net in ("USB_D+", "USB_D-"):
         if on(net) != {"J1", "U2", "U4"}:
             bad.append(f"{net} reaches {sorted(on(net))}; it should be the USB-C, its ESD diodes and the CH343P only")
-    for net, want in (("RP_DP", {"U1", "R14"}), ("RP_DM", {"U1", "R13"}), ("DEV_D+", {"R14", "J3"}), ("DEV_D-", {"R13", "J3"}),
-                      ("SWCLK", {"U1", "J3"}), ("SWDIO", {"U1", "J3"}), ("RUN", {"U1", "SW4"}),
+    for net, want in (("RP_DP", {"U1", "R14"}), ("RP_DM", {"U1", "R13"}), ("DEV_D+", {"R14", "J3", jig["DEV_D+"]}),
+                      ("DEV_D-", {"R13", "J3", jig["DEV_D-"]}), ("SWCLK", {"U1", "J3", jig["SWCLK"]}),
+                      ("SWDIO", {"U1", "J3", jig["SWDIO"]}), ("RUN", {"U1", "SW4", jig["RUN"]}),
                       ("QSPI_SS", {"U1", "U6", "R3"}), ("BOOT_SW", {"R3", "SW5"}), ("LINK_TX", {"U1", "U4"}),
                       ("LINK_RX", {"U1", "U4"})):
         if on(net) != want:
@@ -674,22 +689,27 @@ def kicad_env(tmp):
 # =================================================================================================
 # The board: every part placed, not routed. Board coordinates in mm from the top-left corner, y
 # down; the page puts that corner at (OX, OY).
+# Rev B (CONSOLE-RP-REV-B-PLAN-2026-11-05.md): rev A's circuit on a square-ish board, the USB-C at the
+# bottom, the top-left kept for a key port, the flash clear of the glass, and pads for a jig.
 # =================================================================================================
-W, H = 72.0, 36.0
+W, H = 58.0, 54.0
 OX, OY = 100.0, 100.0
 CORNER = 2.0
+CUT = 6.0                                # the top-right corner cut off: the board goes into the jig and the case one way
+PORT_ZONE = (0.0, 0.0, 16.0, 7.0)        # x0, y0, x1, y1: kept empty for a key port's plug and a key on it (the plan)
 LIB = os.path.join(HERE, "lib")
 CLEAR = 0.15                             # the Default and Power classes' clearance (write_project)
 SHAPES = os.path.join(LIB, "pqrp.3dshapes")
 MARK = os.path.join(LIB, "picoquorum.pretty")     # a copy of console-pocket's, so a copy of the project finds it
 
-# The panel, console-usb's (and console-s3's) numbers: glass 31 x 17 mm and a 23 mm tail from one
-# seller's listing, the active area from Waveshare's 1.14" module, 1.6 mm thick. The glass lies on
-# 2 mm foam pads at its corners; the tail leaves its right end, folds under it and comes back into
-# J2, using about 5.7 mm in the fold. Measure a panel before ordering.
-PANEL = dict(glass=(31.0, 17.0), active=(24.912, 14.864), rows=135, cols=240, thick=1.6, foam=2.0,
+# The panel, console-usb's (and console-s3's) numbers: a 23 mm tail from one seller's listing, the
+# active area from Waveshare's 1.14" module, 1.6 mm thick; the glass 31.0 x 17.6, YIYANG's datasheet
+# (README.md, "The panel"; rev A had the listing's 17.0). The glass lies on 2 mm foam pads at its
+# corners; the tail leaves its right end, folds under it and comes back into J2, using about 5.7 mm
+# in the fold. Measure a panel before ordering.
+PANEL = dict(glass=(31.0, 17.6), active=(24.912, 14.864), rows=135, cols=240, thick=1.6, foam=2.0,
              pad=2.0, tail=23.0, fold=5.7, ribbon=4.5)
-GX0, GY0 = 5.0, 4.5                      # the glass's top-left corner on the board
+GX0, GY0 = 3.5, 7.0                      # the glass's top-left corner on the board: under the key port's zone
 GX1, GY1 = GX0 + PANEL["glass"][0], GY0 + PANEL["glass"][1]
 XC, YC = (GX0 + GX1) / 2, (GY0 + GY1) / 2
 ZIF_IN = GX1 + 1.0 - (PANEL["tail"] - PANEL["fold"]) + 1.0   # where the ribbon's end reaches, as console-s3
@@ -706,31 +726,49 @@ def slot(i):
     return round(XC - PANEL["active"][0] / 2 + px * PANEL["active"][0] / PANEL["cols"], 3)
 
 
-BY = 28.5                                # the buttons' row, under the glass
+BY = 31.0                                # the buttons' row, under the glass
+U1 = (48.0, 19.5)                        # the RP2350's centre: Raspberry Pi's block round it moves with it, not turned
+
+
+def u1(x, y):
+    """A point given from U1's centre, on the board: the flash, the copper drawn round U1 and the
+    parts beside it keep their places to U1 (rev A had U1 at 46.5, 15.0)."""
+    return round(U1[0] + x, 4), round(U1[1] + y, 4)
+
+
 # ref -> (x, y, rotation in degrees). Under the glass: only parts lower than the tape, none in the
-# foam pads' corners, none in the ribbon's path (y 10.75-15.25 right of J2).
+# foam pads' corners, none in the ribbon's path (y 13.55-18.05 right of J2).
 AT = {
     "SW1": (slot(0), BY, 0), "SW2": (slot(1), BY, 0), "SW3": (slot(2), BY, 0),
-    "H1": (3.0, 3.0, 0), "H2": (3.0, H - 3.0, 0), "H3": (W - 3.0, 9.0, 0), "H4": (W - 3.0, H - 3.0, 0),
-    # under the glass: the screen's connector, its decoupling and the backlight switch
-    "J2": (round(ZIF_IN - 1.9, 3), YC, 90), "C24": (23.0, 8.0, 0), "C25": (23.0, 18.0, 0),
-    "R9": (8.0, 7.5, 90), "Q1": (10.5, 7.5, 0), "R8": (13.0, 7.5, 90),
-    "Q2": (10.5, 18.5, 0), "R10": (8.0, 18.5, 90), "R11": (13.0, 18.5, 90),
+    # one hole near each corner but the key port's: H1 beside its zone, H3 tucked in under the cut
+    "H1": (19.5, 3.5, 0), "H2": (3.5, H - 3.5, 0), "H3": (W - 3.5, 7.5, 0), "H4": (W - 3.5, H - 3.5, 0),
+    # under the glass, as rev A's to the glass: the screen's connector, its decoupling and the backlight switch
+    "J2": (round(ZIF_IN - 1.9, 3), YC, 90), "C24": (21.5, 10.8, 0), "C25": (21.5, 20.8, 0),
+    "R9": (6.5, 10.3, 90), "Q1": (9.0, 10.3, 0), "R8": (11.5, 10.3, 90),
+    "Q2": (9.0, 21.3, 0), "R10": (6.5, 21.3, 90), "R11": (11.5, 21.3, 90),
     # right of the glass: the RP2350 with Raspberry Pi's parts round it (RPI, below: the regulator
     # above-right, where VREG is, a 100n at each power pin, the USB resistors above, the crystal
-    # below), the flash above-left of it (QSPI is its top-left side)
-    "U1": (46.5, 15.0, 0),
-    "U6": (39.4, 4.2, 0), "C17": (45.55, 5.6, -90), "R3": (37.8, 8.4, -90),
-    "C9": (52.985, 13.2, 0),                     # pin 45's: Raspberry Pi's C17 serves pins 44 and 45 together
-    # the link and power in
-    "U4": (57.0, 18.0, 0), "C20": (57.0, 14.6, 0), "C21": (57.0, 21.6, 0), "C22": (54.5, 21.6, 90),
-    "J1": (W - 3.6, 21.0, 90), "U2": (60.6, 22.0, 0), "R4": (61.0, 18.2, 0), "R5": (61.0, 25.6, 0),
-    "U3": (63.5, 9.0, 0), "C19": (59.5, 9.0, 90), "C18": (63.5, 12.8, 0),
-    # the key (below the crystal's corner, its 100n up-left of pin 8), RESET, BOOTSEL and the LED
-    # along the bottom; the bench header along the top
-    "U5": (42.0, 32.0, 0), "C23": (42.2, 28.7, 180), "R6": (47.0, 31.2, -90), "R7": (48.4, 31.2, -90),
-    "SW4": (54.0, 30.0, 0), "SW5": (61.5, 30.0, 0), "D1": (53.5, 25.5, 0), "R12": (51.0, 25.5, 0),
-    "J3": (64.98, 2.8, -90),                      # pin 1 at the right: SDA and SCL nearest U1, D+ and D- in their order
+    # below), the flash above-left of it (QSPI is its top-left side), 2.3 mm clear of the glass
+    "U1": (*U1, 0),
+    "U6": (*u1(-7.1, -10.8), 0), "C17": (*u1(-0.95, -9.4), -90), "R3": (*u1(-8.7, -6.6), -90),
+    "C9": (*u1(6.485, -1.8), 0),                 # pin 45's: Raspberry Pi's C17 serves pins 44 and 45 together
+    # the LED by the screen, off pin 37 on U1's right side
+    "D1": (55.5, 12.5, -90), "R12": (56.5, 15.5, 90),
+    # power in and the link, under U1: the USB-C on the bottom edge, its ESD diodes and the CH343P
+    # stacked over it so D+ and D- run straight up
+    "J1": (46.0, H - 3.6, 0), "U2": (46.0, 42.9, 90), "R4": (42.0, 44.2, 0), "R5": (50.0, 44.2, 0),
+    "U4": (45.5, 38.6, 0), "C20": (49.0, 39.3, 90), "C21": (42.5, 41.4, 180), "C22": (42.6, 36.0, 90),
+    "U3": (54.0, 42.0, 0), "C19": (54.0, 38.6, 0), "C18": (53.6, 45.2, 0),
+    # the key, left of the link, its 100n above pin 8 and the pull-ups on its right
+    "U5": (35.0, 40.0, 0), "C23": (35.2, 36.7, 180), "R6": (40.0, 39.2, -90), "R7": (41.4, 39.2, -90),
+    # RESET and BOOTSEL: the mark's two lower dots, 7.5 mm apart (cad/consoles/rp.py draws the case's from them)
+    "SW4": (19.25, 48.0, 0), "SW5": (26.75, 48.0, 0),
+    # the bench header down the left edge, not fitted. The jig's pads on the back down the right edge,
+    # beside U1: the bench USB's lines leave its block at the top right, SWD and RUN at the bottom right
+    "J3": (2.5, 28.0, 0),
+    **{f"TP{i + 1}": (56.0, 12.0 + 2.54 * i, 0) for i in range(7)},
+    # fiducials in three corners, none in the cut one
+    "FID1": (2.0, 9.5, 0), "FID2": (8.0, 52.3, 0), "FID3": (56.6, 45.6, 0),
 }
 # Raspberry Pi's minimal board round the chip (rpi_minimal.py wrote it from their MIT KiCad files):
 # their footprints and where each part sits from U1's centre, and their power copper, which
@@ -742,7 +780,7 @@ for _ref, _q in RPI["parts"].items():
 # The one place ours differs: their C12 (our C14, pins 53-54's) sits up-left, where our flash's
 # lines run (it is 1.9 mm nearer the chip than theirs). Its track (DROP) is left out; ours from pin
 # 54 runs up beside the flash's lines to C14 and C17 above the USB resistors, and on to the flash.
-AT["C14"] = (45.55, 3.6, 90)
+AT["C14"] = (*u1(-0.95, -11.4), 90)
 DROP = {((0.0, -3.4375), (0.0, -3.9)), ((0.0, -3.9), (-0.4, -4.3)), ((-0.4, -3.4375), (-0.4, -4.3)),
         ((-0.4, -4.3), (-2.1, -6.0)), ((-2.1, -6.0), (-2.1, -6.92))}
 # And their two ground vias beside C1's and C2's ground pads, 0.05 mm from the pads' mask openings,
@@ -776,42 +814,45 @@ LINKS = [
 # SS round its left into 2 and 1, SS by R3. Then 3V3 from pin 54, between SD3 and RP_DP as theirs
 # to C12, up to C17 and C14 and into the flash's pin 8; and the flash's ground pin to a via.
 FLASH = [
-    ("/QSPI_SD3", [(45.7, 11.55), (45.7, 10.8), (44.4, 9.5), (44.4, 3.565), (42.988, 3.565)]),
-    ("/QSPI_SCLK", [(45.3, 11.55), (45.3, 10.9), (44.05, 9.65), (44.05, 4.835), (42.988, 4.835)]),
-    ("/QSPI_SD0", [(44.9, 11.55), (44.9, 11.0), (43.5, 9.6), (43.5, 6.105)]),
-    ("/QSPI_SD2", [(44.5, 11.55), (44.5, 11.1), (38.235, 4.835), (35.812, 4.835)]),
-    ("/QSPI_SD1", [(44.1, 11.55), (44.1, 11.136), (39.864, 6.9), (34.85, 6.9), (34.5, 6.55), (34.5, 3.565), (35.812, 3.565)]),
-    ("/QSPI_SS", [(43.7, 11.55), (43.7, 11.3), (39.65, 7.25), (37.8, 7.25), (34.5, 7.25), (34.15, 6.9), (34.15, 2.295), (35.812, 2.295)]),
-    ("/QSPI_SS", [(37.8, 7.25), (37.8, 7.89)]),
-    (GND, [(35.812, 6.105), (37.2, 6.105)]),
+    ("/QSPI_SD3", [u1(-0.8, -3.45), u1(-0.8, -4.2), u1(-2.1, -5.5), u1(-2.1, -11.435), u1(-3.512, -11.435)]),
+    ("/QSPI_SCLK", [u1(-1.2, -3.45), u1(-1.2, -4.1), u1(-2.45, -5.35), u1(-2.45, -10.165), u1(-3.512, -10.165)]),
+    ("/QSPI_SD0", [u1(-1.6, -3.45), u1(-1.6, -4.0), u1(-3.0, -5.4), u1(-3.0, -8.895)]),
+    ("/QSPI_SD2", [u1(-2.0, -3.45), u1(-2.0, -3.9), u1(-8.265, -10.165), u1(-10.688, -10.165)]),
+    ("/QSPI_SD1", [u1(-2.4, -3.45), u1(-2.4, -3.864), u1(-6.636, -8.1), u1(-11.65, -8.1), u1(-12.0, -8.45), u1(-12.0, -11.435),
+                   u1(-10.688, -11.435)]),
+    ("/QSPI_SS", [u1(-2.8, -3.45), u1(-2.8, -3.7), u1(-6.85, -7.75), u1(-8.7, -7.75), u1(-12.0, -7.75), u1(-12.35, -8.1),
+                  u1(-12.35, -12.705), u1(-10.688, -12.705)]),
+    ("/QSPI_SS", [u1(-8.7, -7.75), u1(-8.7, -7.11)]),
+    (GND, [u1(-10.688, -8.895), u1(-9.3, -8.895)]),
 ]
-SPINE = [(V33, [(46.1, 11.55), (46.1, 10.7), (44.775, 9.375), (44.775, 5.12), (44.775, 4.08), (44.775, 2.295), (42.988, 2.295)]),
-         (V33, [(44.775, 5.12), (45.55, 5.12)]), (V33, [(44.775, 4.08), (45.55, 4.08)])]
-# The bench USB, from between R14, C17, R13 and C14 to J3: D+ between C17 and R13, up right of C17,
-# far enough out for C17's ground via, and along under J3's SCL and SDA; D- under C14 and along above L1.
+SPINE = [(V33, [u1(-0.4, -3.45), u1(-0.4, -4.3), u1(-1.725, -5.625), u1(-1.725, -9.88), u1(-1.725, -10.92), u1(-1.725, -12.705),
+                u1(-3.512, -12.705)]),
+         (V33, [u1(-1.725, -9.88), u1(-0.95, -9.88)]), (V33, [u1(-1.725, -10.92), u1(-0.95, -10.92)])]
+# The bench USB out from between R14, C17, R13 and C14, as rev A's: D+ between C17 and R13 and up right
+# of C17, far enough out for C17's ground via; D- under C14 and along above L1. Rev A's went on to J3 on
+# the top edge; on rev B the router takes them on from here, to the jig's pads at the right edge and J3 at the left.
 BENCH = [
-    ("/DEV_D+", [(45.4, 7.125), (45.4, 6.6), (46.85, 6.6), (46.85, 4.3), (51.98, 4.3), (52.28, 4.0), (52.28, 2.8)]),
-    ("/DEV_D-", [(46.4, 7.125), (46.9, 7.125), (47.2, 6.615), (48.2, 6.615), (48.5, 6.3), (54.52, 6.3), (54.82, 6.0),
-                 (54.82, 2.8)]),
+    ("/DEV_D+", [u1(-1.1, -7.875), u1(-1.1, -8.4), u1(0.35, -8.4), u1(0.35, -10.7)]),
+    ("/DEV_D-", [u1(-0.1, -7.875), u1(0.4, -7.875), u1(0.7, -8.385), u1(1.7, -8.385), u1(2.0, -8.7)]),
 ]
 # The key's bus, from pins 7 and 8 past Raspberry Pi's C10 and C5 to a via each, one above the other:
 # the router left pin 8 shut in between its SDA and D2 every time. It takes them on to J3 and U5.
-BUS = [("/SDA", [(43.05, 14.6), (39.0, 14.6), (38.7, 14.75)]), ("/SCL", [(43.05, 15.0), (39.3, 15.0), (38.7, 15.6)])]
+BUS = [("/SDA", [u1(-3.45, -0.4), u1(-7.5, -0.4), u1(-7.8, -0.25)]), ("/SCL", [u1(-3.45, 0.0), u1(-7.2, 0.0), u1(-7.8, 0.6)])]
 # Three more: the backlight switch's collector straight up to a via, which the router took round R10
 # at 0.1 mm; C9's 3V3 to C13's, beside it, which the router left off; and C14's ground, shut in by
 # the 3V3 track and D+, up to a via.
-TIES = [("/BL_GATE", [(11.438, 18.5), (11.438, 17.3)]), (V33, [(52.505, 13.2), (52.51, 12.0)]), (GND, [(45.55, 3.12), (45.55, 2.2)])]
+TIES = [("/BL_GATE", [(9.938, 21.3), (9.938, 20.1)]), (V33, [u1(6.005, -1.8), u1(6.01, -3.0)]), (GND, [u1(-0.95, -11.88), u1(-0.95, -12.8)])]
 # SWCLK, SWDIO and RUN out from pins 24-26 past the DVDD copper, as Raspberry Pi's: three 45-degree
-# lines down and right. RUN then drops to a via for the back, to RESET; the router takes SWD on to J3.
-SWD = [("/RUN", [(47.7, 18.45), (47.7, 19.5), (49.6, 21.4), (50.1, 21.4)]),
-       ("/SWDIO", [(47.3, 18.45), (47.3, 19.7), (49.6, 22.0), (50.5, 22.0)]),
-       ("/SWCLK", [(46.9, 18.45), (46.9, 19.9), (49.6, 22.6), (50.5, 22.6)])]
+# lines down and right. RUN then drops to a via for the back, to RESET; the router takes SWD on to the jig's pads and J3.
+SWD = [("/RUN", [u1(1.2, 3.45), u1(1.2, 4.5), u1(3.1, 6.4), u1(3.6, 6.4)]),
+       ("/SWDIO", [u1(0.8, 3.45), u1(0.8, 4.7), u1(3.1, 7.0), u1(4.0, 7.0)]),
+       ("/SWCLK", [u1(0.4, 3.45), u1(0.4, 4.9), u1(3.1, 7.6), u1(4.0, 7.6)])]
 # (net, where, locked): BL_GATE's via unlocked, so the route's tidy-up drops it if the router stays on the front.
 # Two ground vias for pads the pour can't reach otherwise: C17's, shut in by the 3V3 spine and D+, beside
 # it; and the CH343P's, its exposed pad and pin 2 shut in by its pins, in the exposed pad (jlc_spec says so)
-HAND_VIAS = [(GND, (37.2, 6.105), True), ("/SDA", (38.7, 14.75), True), ("/SCL", (38.7, 15.6), True),
-             ("/BL_GATE", (11.438, 17.3), False), (GND, (45.55, 2.2), True), ("/RUN", (50.1, 21.4), True),
-             (GND, (46.3, 5.6), True), (GND, (57.0, 18.55), True)]
+HAND_VIAS = [(GND, u1(-9.3, -8.895), True), ("/SDA", u1(-7.8, -0.25), True), ("/SCL", u1(-7.8, 0.6), True),
+             ("/BL_GATE", (9.938, 20.1), False), (GND, u1(-0.95, -12.8), True), ("/RUN", u1(3.6, 6.4), True),
+             (GND, u1(-0.2, -9.4), True), (GND, (AT["U4"][0], AT["U4"][1] + 0.55), True)]
 
 # Pads joined to the ground pours solid, not by thermal spokes: C1's and C2's, inside Raspberry Pi's
 # pours as theirs are, and J1's and C17's, between other copper, where spokes don't fit
@@ -855,40 +896,41 @@ STANDIN = {
 ROUTE_NOTE = "Routed by tools/keypcb route; the copper round U1 is Raspberry Pi's (README.md)."
 
 # The warning in the top strip: the triangle's centre and side (mm), then WARN_TEXT beside it
-WARN = (8.4, 2.4, 2.4)
+WARN = (23.5, 2.4, 2.4)                  # right of the key port's zone and H1
 WARN_TEXT = "EXPERIMENTAL HARDWARE COSIGNER"
 
 # console-s3's nod to Adventure (Atari 2600, 1980): the 8-bit key and the dragon guarding it, drawn
 # in the game's manner, not copied from it. The key is out in the open beside U5, the key that
 # signs, its shaft pointing at it. The dragon is the Easter egg: under the glass, below the ribbon's
-# path, turned to face the key. Rows top first; pixels of 0.4 and 0.3 mm keep every gap at least
-# twice JLCPCB's 0.15 mm.
+# path, turned to face the key. Rev B's dragon is the game's goofy one: a duck's head with its eye
+# and beak, a thin neck, an open belly and a curled tail. Rows top first; pixels of 0.4 and 0.3 mm
+# keep every gap at least twice JLCPCB's 0.15 mm.
 DRAGON = ("....###.",
-          "#####.#.",
+          "....####",
+          "#####.##",
+          "########",
           "....###.",
           ".....#..",
           ".....#..",
-          "....##..",
-          "...###..",
+          "...####.",
+          "..######",
+          ".#######",
+          "##....##",
+          "##....##",
+          "##....##",
+          "##...###",
+          ".######.",
           "..####..",
-          ".#####..",
-          ".#####..",
-          ".#####..",
-          "..####..",
-          "...###..",
-          "....##..",
-          ".....#..",
-          ".....#..",
-          ".....#..",
-          ".....#..",
-          ".....#.#",
-          ".....###")
+          "....#...",
+          "#...###.",
+          "#.....#.",
+          "######..")
 KEY = (".##......",
        "#..######",
        "#..#..#.#",
        ".##......")
-ART = [(KEY, 33.9, 31.2, 0.4),                       # board (x, y) of each one's top left, and its pixel
-       (tuple(r[::-1] for r in DRAGON), 27.0, 15.45, 0.3)]     # mirrored, to face the key
+ART = [(KEY, AT["U5"][0] - 8.1, 37.4, 0.4),          # board (x, y) of each one's top left, and its pixel
+       (tuple(r[::-1] for r in DRAGON), 25.5, 18.25, 0.3)]     # mirrored, to face the key
 
 
 def silk_pixels():
@@ -1000,6 +1042,56 @@ def write_footprints():
                  '  (lib (name "picoquorum")(type "KiCad")(uri "${KIPRJMOD}/../lib/picoquorum.pretty")(options "")(descr "the mark"))\n)\n')
 
 
+def mark():
+    """The mark drawn from RESET and BOOTSEL, its two lower dots 7.5 mm apart, as the slate's badge
+    (cad/consoles/rp.py): its centre, radius, and five dots from the top, clockwise (board mm, y down)."""
+    (rx, ry), (bx, _) = AT["SW4"][:2], AT["SW5"][:2]
+    r = (bx - rx) / (2 * math.cos(math.radians(54)))
+    cx, cy = rx + r * math.cos(math.radians(54)), ry - r * math.sin(math.radians(54))
+    return (cx, cy), r, [(cx + r * math.sin(math.radians(72 * k)), cy - r * math.cos(math.radians(72 * k))) for k in range(5)]
+
+
+# What an owner can count on the back (the concept's round 1, claude/console-rp-concept): each fitted
+# part's group, from its footprint's name, the first group whose key is in it
+CENSUS = [("QFN", "QFN"), ("SOIC-8", "SOIC-8"), ("SOT-23", "SOT-23"), ("crystal", "Crystal"), ("inductor", "_L_"),
+          ("USB-C", "USB_C"), ("ZIF", "FPC_ZIF"), ("buttons", "SW_Push"), ("LED", "LED_"), ("0805", "_0805"),
+          ("0402", "0402")]
+
+
+def census():
+    """The parts JLCPCB fits (not J3, the jig's pads, the panel, the holes or the mark), grouped: [(group, count)]."""
+    n = {}
+    for p in PARTS:
+        if p.get("dnp") or not p.get("bom", True):
+            continue
+        fp = p["fp"].split(":")[1]
+        group = next((g for g, key in CENSUS if key in fp), None)
+        if group is None:
+            sys.exit(f"{NAME}: the census has no group for {p['ref']} ({fp})")
+        n[group] = n.get(group, 0) + 1
+    return [(g, n[g]) for g, _ in CENSUS if g in n]
+
+
+def census_lines(width=34):
+    """The census as silkscreen lines, about width characters each."""
+    groups = census()
+    lines, line = [f"{sum(c for _, c in groups)} parts, every one on the front:"], ""
+    for i, (g, c) in enumerate(groups):
+        item = f"{c} {g}" + ("," if i < len(groups) - 1 else "")
+        if line and len(line) + 1 + len(item) > width:
+            lines.append(line)
+            line = item
+        else:
+            line = f"{line} {item}" if line else item
+    lines.append(line)
+    return lines + ["and the panel, fitted by hand"]
+
+
+def current_lines():
+    """The current to expect, by the USB-C: a USB meter is the radio detector."""
+    return [f"under {max(jlc_spec()['regulator']['amps']):g} A at 5 V: more, or bursts,", "is a part that isn't ours"]
+
+
 def write_board(sh, nets):
     import pcbnew
     mm = lambda x, y: pcbnew.VECTOR2I_MM(OX + x, OY + y)
@@ -1047,9 +1139,11 @@ def write_board(sh, nets):
                 fp.Remove(it)
         x, y, rot = AT[p["ref"]]
         place(fp, p["ref"], x, y, rot)
-        if p["ref"] == "J1":           # the plug's face, past the board's edge: no silkscreen off the board
+        if p.get("back"):              # the jig's pads: copper on the back, nothing fitted
+            fp.Flip(fp.GetPosition(), pcbnew.FLIP_DIRECTION_LEFT_RIGHT)
+        if p["ref"] == "J1":           # the plug's face, past the board's bottom edge: no silkscreen off the board
             for it in [i for i in fp.GraphicalItems() if i.GetLayer() == pcbnew.F_SilkS
-                       and pcbnew.ToMM(i.GetBoundingBox().GetRight()) > OX + W]:
+                       and pcbnew.ToMM(i.GetBoundingBox().GetBottom()) > OY + H]:
                 fp.Remove(it)
         for pad in fp.Pads():
             n = pad_net.get((p["ref"], pad.GetNumber()))
@@ -1060,7 +1154,7 @@ def write_board(sh, nets):
     place(pcbnew.FootprintLoad(fp_lib("pqrp"), "LCD_1.14in_240x135_on_tape"), "LCD1", XC, YC, 0)
     logo = pcbnew.FootprintLoad(MARK, "PicoQuorum_Mark")
     logo.SetFPID(pcbnew.LIB_ID("picoquorum", "PicoQuorum_Mark"))
-    place(logo, "LOGO1", 24.0, 13.0, 0)
+    place(logo, "LOGO1", XC, 15.0, 0)
     logo.Flip(logo.GetPosition(), pcbnew.FLIP_DIRECTION_LEFT_RIGHT)
 
     def seg(a, c):
@@ -1073,7 +1167,8 @@ def write_board(sh, nets):
         s.SetArcGeometry(mm(*a), mm(*m), mm(*c)); s.SetLayer(pcbnew.Edge_Cuts); s.SetWidth(pcbnew.FromMM(0.05))
         b.Add(s)
     r, k = CORNER, CORNER * (1 - 0.5 ** 0.5)
-    seg((r, 0), (W - r, 0)); seg((W, r), (W, H - r)); seg((W - r, H), (r, H)); seg((0, H - r), (0, r))
+    seg((r, 0), (W - CUT, 0)); seg((W - CUT, 0), (W, CUT)); seg((W, CUT), (W, H - r)); seg((W - r, H), (r, H))
+    seg((0, H - r), (0, r))
 
     # --- copper: ground pours on both sides; round U1, Raspberry Pi's copper as it is, locked, with LINKS
     u0, v0 = AT["U1"][0], AT["U1"][1]
@@ -1107,7 +1202,7 @@ def write_board(sh, nets):
         b.Add(z)
         return z
 
-    edge = [(-u0, -v0), (W - u0, -v0), (W - u0, H - v0), (-u0, H - v0)]
+    edge = [(-u0, -v0), (W - CUT - u0, -v0), (W - u0, CUT - v0), (W - u0, H - v0), (-u0, H - v0)]
     for layer in ("F.Cu", "B.Cu"):
         z = zone(edge, (layer,), GND)
         if layer == "F.Cu":         # not in the regulator's corner, where it left scraps between their pours
@@ -1154,8 +1249,7 @@ def write_board(sh, nets):
              ("F.Cu", "B.Cu"), rule=f"{h}: no tracks")
     b.GetDesignSettings().SetAuxOrigin(mm(0, H))     # the fab files' origin: the bottom-left corner
     b.GetDesignSettings().SetGridOrigin(mm(0, H))
-    arc((W - r, 0), (W - k, k), (W, r)); arc((W, H - r), (W - k, H - k), (W - r, H))
-    arc((r, H), (k, H - k), (0, H - r)); arc((0, r), (k, k), (r, 0))
+    arc((W, H - r), (W - k, H - k), (W - r, H)); arc((r, H), (k, H - k), (0, H - r)); arc((0, r), (k, k), (r, 0))
 
     def text(s, x, y, size, layer=pcbnew.F_SilkS, back=False, rot=0, align=0, wide=None):
         t = pcbnew.PCB_TEXT(b)
@@ -1177,11 +1271,27 @@ def write_board(sh, nets):
         s = pcbnew.PCB_SHAPE(b, pcbnew.SHAPE_T_RECTANGLE)
         s.SetStart(mm(x0, y0)); s.SetEnd(mm(x1, y1)); s.SetLayer(pcbnew.F_SilkS); s.SetWidth(0); s.SetFilled(True)
         b.Add(s)
+
+    def silk_circle(c, rad, filled, width=0.2):
+        s = pcbnew.PCB_SHAPE(b, pcbnew.SHAPE_T_CIRCLE)
+        s.SetCenter(mm(*c)); s.SetEnd(mm(c[0] + rad, c[1])); s.SetLayer(pcbnew.F_SilkS)
+        s.SetWidth(0 if filled else pcbnew.FromMM(width)); s.SetFilled(filled)
+        b.Add(s)
     # silkscreen text 1.0 mm high at least, JLCPCB's least
     for i, lab in enumerate(("D0", "D1", "D2")):
-        text(lab, AT[f"SW{i + 1}"][0], H - 1.8, 1.0)
-    text("RESET", AT["SW4"][0], H - 1.8, 1.0)
-    text("BOOTSEL", AT["SW5"][0], H - 1.8, 1.0)
+        text(lab, AT[f"SW{i + 1}"][0], BY + 3.9, 1.0)
+    text("RESET", AT["SW4"][0], AT["SW4"][1] + 4.0, 1.0)
+    text("BOOTSEL", AT["SW5"][0], AT["SW5"][1] + 4.0, 1.0)
+    # the mark, RESET and BOOTSEL its two lower signed dots (docs/BRAND.md): the top one solid, the two
+    # waiting ones rings, and the triangle's sides from the top dot to the switches' outlines
+    _, mr, dots = mark()
+    silk_circle(dots[0], mr / 4, True)
+    for k in (1, 4):
+        silk_circle(dots[k], mr / 6, False)
+    for k in (2, 3):
+        (x0, y0), (x1, y1) = dots[0], dots[k]
+        t = (y1 - 2.75 - y0) / (y1 - y0)              # where the side meets the switch's outline, 2.75 above its centre
+        silk_line(dots[0], (x0 + t * (x1 - x0), y1 - 2.75))
     # the top strip: a warning triangle and WARN_TEXT; the name goes between the glass and the buttons
     tx, ty, side = WARN
     tri = [(tx, ty - side * 0.866 / 2), (tx + side / 2, ty + side * 0.866 / 2), (tx - side / 2, ty + side * 0.866 / 2)]
@@ -1194,12 +1304,22 @@ def write_board(sh, nets):
     for x0, y0, x1, y1 in silk_pixels():
         silk_box(x0, y0, x1, y1)
     x3, y3, _ = AT["J3"]
-    for i, lab in enumerate(("GND", "3V3", "CLK", "DIO", "D-", "D+", "SDA", "SCL")):     # J3's pins, as the schematic, upright to fit
-        text(lab, x3 - 2.54 * i, y3 + 2.6, 1.0, rot=90)
-    text("no radio: USB serial only", XC, 20.0, 1.0, pcbnew.B_SilkS, back=True)
-    text("console-rp rev A " + DATE, 50.0, 22.0, 1.0, pcbnew.B_SilkS, back=True)
-    text("picoquorum.dev", 50.0, 24.6, 1.4, pcbnew.B_SilkS, back=True)           # also the Source Location
-    text("CERN-OHL-W v2, Source Location as 4.1", 50.0, 26.8, 1.0, pcbnew.B_SilkS, back=True)
+    for i, lab in enumerate(("GND", "3V3", "CLK", "DIO", "D-", "D+", "SDA", "SCL")):     # J3's pins, as the schematic
+        text(lab, x3 + 1.5, y3 + 2.54 * i, 1.0, align=-1, wide=0.85)
+    for p in PARTS:                                  # the jig's pads, named on the back, beside them
+        if p.get("back"):
+            text(p["value"], AT[p["ref"]][0] - 2.6, AT[p["ref"]][1], 1.0, pcbnew.B_SilkS, back=True, wide=0.85)
+    # the back, under the glass: what isn't on it, the mark, the revision, the Source Location; and under
+    # the block, the census of what JLCPCB fits and the current to expect, for the owner to check
+    for i, line in enumerate(("nothing is fitted on this side", "no radio: USB serial only")):
+        text(line, XC, 9.0 + 2.0 * i, 1.0, pcbnew.B_SilkS, back=True, wide=0.85)
+    text(f"console-rp rev {REV} {DATE}", XC, 19.6, 1.0, pcbnew.B_SilkS, back=True)
+    text("picoquorum.app", XC, 21.8, 1.4, pcbnew.B_SilkS, back=True)           # also the Source Location
+    text("CERN-OHL-W v2, Source Location as 4.1", XC, 23.9, 1.0, pcbnew.B_SilkS, back=True, wide=0.85)
+    for i, line in enumerate(census_lines()):
+        text(line, 38.0, 27.0 + 2.0 * i, 1.0, pcbnew.B_SilkS, back=True, wide=0.85)
+    for i, line in enumerate(current_lines()):
+        text(line, AT["J1"][0] - 4.0, AT["J1"][1] - 7.4 + 2.0 * i, 1.0, pcbnew.B_SilkS, back=True, wide=0.85)   # over it, clear of the edge
     text("ribbon folds under the glass into J2", (ZIF_IN + GX1) / 2 + 1.0, YC + 3.0, 0.8, pcbnew.F_Fab)
     text(ROUTE_NOTE, W / 2, H + 2.0, 1.0, pcbnew.Cmts_User)
     pcbnew.SaveBoard(os.path.join(OUT, NAME + ".kicad_pcb"), b)
@@ -1259,10 +1379,10 @@ def check_rpi(bad):
 
 
 RENDERS = [  # name, kicad-cli pcb render options
-    ("top", ["--side", "top", "--zoom", "1.6", "--width", "1600", "--height", "820"]),
-    ("3q", ["--side", "top", "--rotate", "-38,0,-24", "--perspective", "--zoom", "1.45", "--width", "1600", "--height", "900"]),
-    ("bottom", ["--side", "bottom", "--zoom", "1.6", "--width", "1600", "--height", "820"]),
-    ("under-glass", ["--side", "top", "--zoom", "1.6", "--width", "1600", "--height", "820"]),
+    ("top", ["--side", "top", "--zoom", "1.6", "--width", "1400", "--height", "1300"]),
+    ("3q", ["--side", "top", "--rotate", "-38,0,-24", "--perspective", "--zoom", "1.45", "--width", "1500", "--height", "1300"]),
+    ("bottom", ["--side", "bottom", "--zoom", "1.6", "--width", "1400", "--height", "1300"]),
+    ("under-glass", ["--side", "top", "--zoom", "1.6", "--width", "1400", "--height", "1300"]),
 ]
 
 
@@ -1295,7 +1415,8 @@ HEIGHT = {"C_0402_1005Metric": 0.55, "R_0402_1005Metric": 0.4, "RPi_C_0402": 0.5
           "RPi_L_Abracon_AOTA-B201610": 1.0, "RPi_RP2350A_QFN-60_7x7mm_P0.4mm_ThermalVias": 0.85,
           "WCH_QFN-16-1EP_3x3mm_P0.5mm_EP1.8x1.8mm": 0.75, "SOIC-8_3.9x4.9mm_P1.27mm": 1.75, "SOIC-8_5.3x5.3mm_P1.27mm": 2.16,
           "RPi_Crystal_SMD_3225-4Pin_3.2x2.5mm": 0.8, "FPC_ZIF_8P_P0.5mm_HDGC_0.5K-HX-8PWB": 1.0,
-          "SW_Push_1P1T_XKB_TS-1187A": 1.5, "USB_C_Receptacle_HRO_TYPE-C-31-M-12": 3.2}
+          "SW_Push_1P1T_XKB_TS-1187A": 1.5, "USB_C_Receptacle_HRO_TYPE-C-31-M-12": 3.2,
+          "Fiducial_1mm_Mask2mm": 0.05, "TestPoint_Pad_D1.5mm": 0.05}       # copper only
 
 
 def jlc_spec():
