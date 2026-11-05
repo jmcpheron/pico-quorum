@@ -5,6 +5,7 @@
 #   uv run --no-project --with littlefs-python==0.19.0 python hardware/console-rp/bench/swdload.py \
 #       RPI_PICO2-20250911-v1.26.1.uf2 main.py=hardware/console-rp/bench/stage0.py [--no-micropython] [--dry-run]
 #   ... swdload.py --no-micropython --image build/console-rp-<sha> [--dirty-ok] [--dev] [--secrets PATH]
+#   ... swdload.py --dump DIR       read only: the board's logs, error.log, pin.json, keyflow.json
 #
 # Each NAME=PATH goes into the filesystem as /NAME. --image DIR puts in a `tools/fw build console-rp`
 # directory, each file first checked against its build.py's FILES. It refuses a build of uncommitted
@@ -117,6 +118,37 @@ def download(addr, blob, dry):
         os.unlink(f.name)
 
 
+DUMP = ("log.txt", "log.1.txt", "error.log", "prep-log.txt", "pin.json", "keyflow.json", "chips.json")
+
+
+def dump(out):
+    """Read only. The filesystem over SWD, then from it only DUMP's files into out, and a list of every
+    file with its size. The raw image is read into a temporary file and deleted: on a development board
+    the filesystem holds a secrets.py, and nothing but DUMP's files is copied out."""
+    from littlefs import LittleFS
+    os.makedirs(out, exist_ok=True)
+    with tempfile.NamedTemporaryFile(suffix=".bin", delete=False) as f:
+        raw = f.name
+    try:
+        subprocess.run(PROBE + ["read"] + CHIP + ["b8", hex(FS_BASE), str(FS_BLOCKS * BLOCK), "--output", raw, "--format", "binary"], check=True)
+        data = open(raw, "rb").read()
+    finally:
+        os.unlink(raw)
+    fs = LittleFS(block_size=BLOCK, block_count=FS_BLOCKS, prog_size=256, read_size=32, lookahead_size=32, mount=False)
+    fs.context.buffer = bytearray(data)
+    fs.mount()
+    names = sorted(fs.listdir("/"))
+    with open(os.path.join(out, "files.txt"), "w") as f:
+        for n in names:
+            f.write("%8d  %s\n" % (fs.stat(n).size, n))
+    for n in names:
+        if n in DUMP:
+            with fs.open(n, "rb") as src, open(os.path.join(out, n), "wb") as dst:
+                dst.write(src.read())
+            print("  %s  %d bytes" % (n, fs.stat(n).size))
+    print("%d files on the board; listed in %s/files.txt" % (len(names), out))
+
+
 def option(argv, name):
     """The value after --name, taken out of argv; None when it isn't there."""
     if name not in argv:
@@ -131,6 +163,9 @@ def option(argv, name):
 
 def main(argv):
     argv = list(argv)
+    out = option(argv, "--dump")
+    if out:
+        return dump(out)
     image, secrets = option(argv, "--image"), option(argv, "--secrets")
     dry = "--dry-run" in argv
     skip_mp = "--no-micropython" in argv

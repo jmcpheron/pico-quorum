@@ -199,7 +199,7 @@ console up to the README:
 | <img src="docs/releases/badges/ceremony-blockie.svg" width="32" height="32" alt=""> | **ceremony** | `dc88adb12ac97399d46f2908cfacf465b690123f6473bb8b11f40727f6622a6e` |
 | <img src="docs/releases/badges/brand-blockie.svg" width="32" height="32" alt=""> | **brand** | `83adb1a02b4360650bd2eec3b1a5a3418145869f4d2fce8cfe763ffe6b27382a` |
 | <img src="docs/releases/badges/dual-blockie.svg" width="32" height="32" alt=""> | **dual** | `cb4798e6491ea986f6e1d51cb288e5e8c09d8eabe75ef8d6b73d33c820b37a35` |
-| <img src="docs/releases/badges/console-rp-blockie.svg" width="32" height="32" alt=""> | **console-rp** | `3fb91089520d56cf469bcadc32fa71f0f024a7318bbf5c9a89b67ed8d0a918a6` |
+| <img src="docs/releases/badges/console-rp-blockie.svg" width="32" height="32" alt=""> | **console-rp** | `4fb1139c539909e6ddf3e7627176fbd2805bc06be3d06296170e2309d33b2938` |
 
 <!-- build:end -->
 

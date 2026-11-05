@@ -37,13 +37,13 @@ def run():
     import splash
     splash.pause()
     gc.collect()
+    import fonts                    # the big blocks while the heap is whole, whichever way it goes
+    for _f in fonts.FILES:
+        fonts.get(_f)
     path, sig = route()
     if path == "key":
         splash.pause(False)
         key_flow(sig)               # never returns
-    import fonts
-    for _f in fonts.FILES:
-        fonts.get(_f)
     import quorum
     import quorum_ui_crt
     quorum.NET, quorum.VIA = link, link     # the way out, and the transport txservice calls
@@ -96,7 +96,6 @@ def key_flow(sig):
     import machine
     import splash
     import lcd
-    import fonts
     import qlog
     import link
     import usblink
@@ -106,8 +105,6 @@ def key_flow(sig):
     d = splash.begin()
     keys = lcd.Keys()
     splash.finish(keys, wait=False)
-    for _f in fonts.FILES:
-        fonts.get(_f)
     ui = keypick_rp.UI(d, keys, sig, keyflow.OwnKey(sig))
     usblink.host, usblink.mode = KeyHost(ui), "key"
     last = None
