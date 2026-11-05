@@ -118,7 +118,8 @@ def download(addr, blob, dry):
         os.unlink(f.name)
 
 
-DUMP = ("log.txt", "log.1.txt", "error.log", "prep-log.txt", "pin.json", "keyflow.json", "chips.json")
+DUMP = ("log.txt", "log.1.txt", "error.log", "prep-log.txt", "key-log.txt", "pin.json", "keyflow.json", "chips.json")
+SNAP = ("snapshot-", ".bin")    # C1's copy of a chip's 128 factory config bytes: public, for check_config --summary
 
 
 def dump(out):
@@ -142,7 +143,7 @@ def dump(out):
         for n in names:
             f.write("%8d  %s\n" % (fs.stat(n).size, n))
     for n in names:
-        if n in DUMP:
+        if n in DUMP or (n.startswith(SNAP[0]) and n.endswith(SNAP[1])):
             with fs.open(n, "rb") as src, open(os.path.join(out, n), "wb") as dst:
                 dst.write(src.read())
             print("  %s  %d bytes" % (n, fs.stat(n).size))
