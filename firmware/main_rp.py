@@ -40,6 +40,8 @@ def run():
     import fonts                    # the big blocks while the heap is whole, whichever way it goes
     for _f in fonts.FILES:
         fonts.get(_f)
+    import crt
+    crt.reserve()                   # the effects' noise strip, 7.5 KB, before the heap breaks up
     path, sig = route()
     if path == "key":
         splash.pause(False)
@@ -107,6 +109,9 @@ def key_flow(sig):
     splash.finish(keys, wait=False)
     ui = keypick_rp.UI(d, keys, sig, keyflow.OwnKey(sig))
     usblink.host, usblink.mode = KeyHost(ui), "key"
+    import gc
+    gc.collect()
+    qlog.write("key flow: %d bytes free" % gc.mem_free())
     last = None
     while True:
         st = ui.c.step()

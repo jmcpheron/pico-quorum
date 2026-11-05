@@ -44,12 +44,18 @@ def _stopped(keys):
     return False
 
 
-def _refresh(bg):
-    """The noise strip again: two rows of hex from os.urandom, each digit shaded by its value."""
+def reserve():
+    """The noise strip's 7.5 KB, taken early (main_rp.py, with the fonts) while the heap is whole: at
+    the first effect it may no longer find a block that size (board #1, 2026-11-04)."""
     global _noise, _nfb
     if _noise is None:
         _noise = bytearray(W * NH * 2)
         _nfb = framebuf.FrameBuffer(_noise, W, NH, framebuf.RGB565)
+
+
+def _refresh(bg):
+    """The noise strip again: two rows of hex from os.urandom, each digit shaded by its value."""
+    reserve()
     _nfb.fill(bg)
     raw = os.urandom(W // 8)
     for r in range(2):

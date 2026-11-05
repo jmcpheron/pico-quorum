@@ -190,6 +190,7 @@ loaded by `swdload.py --image`). The link's `status` collects and then reads `gc
 |---|---|
 | at start, before anything (above) | 390 KB |
 | the console running, unconfigured (a factory 608C, no key), the relay saying hi | **70 KB** (70,192 bytes) |
+| the key flow on the same chip (Not prepared), the CRT screens, the 24 KB line buffer | **84 KB** (84,064 bytes) |
 
 What holds the rest: the 64.8 KB frame, the link's 48 KB line buffer, every font, and the console's
 bytecode. An `.mpy` file is loaded into the heap on this port, not run from flash.
@@ -204,9 +205,11 @@ What it means:
 - More room would come from a smaller line buffer (24 KB still holds a queue of 10), or from
   freezing the modules into the MicroPython image so their bytecode runs from flash. Freezing means
   building our own MicroPython. It is not done.
-- The line buffer is now 24 KB (`link.MAX_LINE`), so hello's `max` is 24 KB. That should give back
-  about 24 KB, but the CRT screens (`crt.py`, `quorum_ui_crt.py`) came in with it, and the two
-  together are not yet measured on the board.
+- The line buffer is now 24 KB (`link.MAX_LINE`), so hello's `max` is 24 KB. With it and the CRT
+  screens, the console had 88 KB free (88,384 bytes, same chip, 2026-11-04).
+- Size isn't the only limit; order matters too. The key flow first loaded its modules, then the fonts,
+  and a 3 KB font block no longer fit. Then the effects' 7.5 KB noise strip, taken at the first effect,
+  didn't fit either. Both are now taken first, while the heap is whole (`main_rp.py`, `crt.reserve`).
 
 ## What this means for the console
 
