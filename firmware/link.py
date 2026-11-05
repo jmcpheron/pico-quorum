@@ -288,8 +288,9 @@ def ready(log_):
 
 
 def status():
-    """For usblink's status: the link's counts, and the heap free, for the soak's logs."""
+    """For usblink's status: the link's counts, and the heap free after a collect, for the soak's logs."""
     import gc
+    gc.collect()
     d = dict(_stats)
     d["up"], d["max"], d["free"] = up, MAX_LINE, gc.mem_free()
     return {"link": d}

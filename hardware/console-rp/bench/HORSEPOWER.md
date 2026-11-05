@@ -181,8 +181,29 @@ sent three times, while the board was doing one of three things.
 - The computer must ask again when an ask gets no answer: one that lands while the board writes its
   log is lost.
 
-The heap with the whole console imported waits for the console-rp profile: today's console imports
-`network`, and this MicroPython has none.
+## The heap with the whole console running
+
+Measured on 2026-11-04 on the first board, with the console-rp image (`tools/fw build console-rp`,
+loaded by `swdload.py --image`). The link's `status` collects and then reads `gc.mem_free()`.
+
+| when | free |
+|---|---|
+| at start, before anything (above) | 390 KB |
+| the console running, unconfigured (a factory 608C, no key), the relay saying hi | **70 KB** (70,192 bytes) |
+
+What holds the rest: the 64.8 KB frame, the link's 48 KB line buffer, every font, and the console's
+bytecode. An `.mpy` file is loaded into the heap on this port, not run from flash.
+
+What it means:
+- **A second whole frame doesn't fit.** It would leave about 5 KB. The CRT screens must draw into
+  the one frame and send only the windows that change (523 fps for a 44×44 block, above).
+- **A big queue answer is tight.** The relay's line is read into the line buffer. Then its body
+  string and the parsed queue need heap of their own, about 30 KB for a queue of 10. A 40 KB answer,
+  which needed 90 KB on the bench, would not fit. The relay should send no more than hello's `max`,
+  and the console asks for a few transactions at a time.
+- More room would come from a smaller line buffer (24 KB still holds a queue of 10), or from
+  freezing the modules into the MicroPython image so their bytecode runs from flash. Freezing means
+  building our own MicroPython. It is not done.
 
 ## What this means for the console
 
