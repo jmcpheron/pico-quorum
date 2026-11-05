@@ -264,7 +264,9 @@ An outside review on 2026-10-29 found these, all left as they are for the first 
    with Raspberry Pi means sending them the files; we don't.
 3. **Bring one up.** Done for the first board on 2026-11-04, over SWD: J3's USB wasn't seen by the
    Mac. Everything checked out, J3's USB aside. [bench/BRINGUP.md](bench/BRINGUP.md) has how it was
-   loaded, what was checked, and the ways to load boards in numbers.
+   loaded, what was checked, and the ways to load boards in numbers. What comes next (the
+   firmware, the relay, a batch of 20, selling the first boards) is in
+   [CONSOLE-RP-PLAN-2026-11-04.md](../../CONSOLE-RP-PLAN-2026-11-04.md).
 4. **The firmware and the relay.** A `console-rp` profile: the QT Py's footer screens at 240 × 135
    (`claude/qtpy-cosigner`, PR #91), these pins, and the link on UART1. The relay is a new network
    path and part of the app, so it needs a yes before it's built.
