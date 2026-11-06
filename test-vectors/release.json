@@ -1,5 +1,5 @@
 {
-  "note": "PicoQuorum release approvals (firmware/release.py, decode.py): the digest, the approval transaction and its origin note, made by viem (tools/mock-tx-service/release.mjs) and checked against Safe{DAO}'s Safe on Ethereum by tools/vectors/release.mjs.",
+  "note": "Picoquorum release approvals (firmware/release.py, decode.py): the digest, the approval transaction and its origin note, made by viem (tools/mock-tx-service/release.mjs) and checked against Safe{DAO}'s Safe on Ethereum by tools/vectors/release.mjs.",
   "vectors": [
     {
       "name": "this-checkout",

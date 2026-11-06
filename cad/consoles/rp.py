@@ -50,9 +50,9 @@ BADGE = dict(depth=1.0, proud=0.6, gap=0.1, short=0.05, edge=0.2)
 # pocket's walls, 0.05 mm off the pocket's floor for the glue; their top edges chamfered
 # The mark: its centre and radius, in the face's open corner right of RESET and BOOTSEL, under D1 and D2
 MARK = (32.0, 20.0, 5.5)
-# The name under the mark, one line up to 22 x 4 mm, its top 2 mm under the lower dots. Cut 0.6 mm, three 0.2 mm layers: printed face down with its first two layers in black
+# The name under the mark, on one line (docs/BRAND.md), up to 22 x 4 mm, its top 2 mm under the lower dots. Cut 0.6 mm, three 0.2 mm layers: printed face down with its first two layers in black
 # and the rest in a colour, the letters' floor shows that colour. The back's text is cut as deep.
-NAME = ("PicoQuorum", (22.0, 4.0), 2.0)
+NAME = ("Picoquorum", (22.0, 4.0), 2.0)
 ENGRAVE_DEEP = 0.6
 
 
@@ -75,9 +75,14 @@ def decor(c, shell, back):
     for k in (0, 2, 3):
         triangle = triangle.cut(S.cyl(*pts[k], rad[k] + g, z0 - 1, z1 + 1))
     word, (w, h), under = NAME
+    size = S.fit_text(word, w, h)
     y = pts[3][1] - rad[3] - under - h / 2          # the line's middle
-    shell = shell.cut(S.engrave_text(cq.Plane(origin=(cx, y, c.zt), xDir=(1, 0, 0), normal=(0, 0, 1)), word,
-                                     S.fit_text(word, w, h), ENGRAVE_DEEP))
+    tw = size * cq.Workplane("XY").text(word, 10, 1, combine=False, kind="bold").val().BoundingBox().xlen / 10
+    for hx, hy in c.b["holes"]:                     # clear of each screw's counterbore by 0.5 mm
+        gap = math.hypot(max(abs(hx - cx) - tw / 2, 0), max(abs(hy - y) - h / 2, 0))
+        assert gap > S.M2_HEAD[0] / 2 + 0.2 + 0.5, "the name runs into the counterbore at %s" % ((hx, hy),)
+    shell = shell.cut(S.engrave_text(cq.Plane(origin=(cx, y, c.zt), xDir=(1, 0, 0), normal=(0, 0, 1)), word, size,
+                                     ENGRAVE_DEEP))
     out = [("badge triangle", top(triangle), GREEN, S.flip)]
     for k in (0, 2, 3):
         out.append(("badge signed %d" % k, top(S.cyl(*pts[k], rad[k] - g, z0, z1)), BLUE, S.flip))
@@ -129,8 +134,8 @@ def board():
         mark=MARK,
         flip="y",                   # turned over about its height to read the back, as the badge
         # clear of the ribs inside (the buttons' rows), which the pictures draw through the panel
-        back_text=[("PicoQuorum", (W / 2, 51.0), (34.0, 7.0), "bold"),
-                   ("PicoQuorum.app", (W / 2, 44.5), (26.0, 3.2), "regular")],
+        back_text=[("Picoquorum", (W / 2, 51.0), (34.0, 7.0), "bold"),
+                   ("picoquorum.app", (W / 2, 44.5), (26.0, 3.2), "regular")],
         seen=("D1",),
         views=dict(front=[("in the hand: four screws in the face", 58, -78), ("the back panel: the name, the Source Location", -55, 110)],
                    apart=[("apart: screws, front shell, caps, board, back panel", 30, -60)],

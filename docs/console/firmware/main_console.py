@@ -5,7 +5,7 @@
 # link's few requests and never the REPL (docs/USB-LINK.md). tools/fw reads the console through
 # the link, and asks it for maintenance to do anything else.
 #
-# Maintenance: hold B (on build1, the knob pressed down; D1 on the Feather and PicoQuorumKey) while
+# Maintenance: hold B (on build1, the knob pressed down; D1 on the Feather and PicoquorumKey) while
 # plugging the board in, and keep holding it until the onboard LED lights, or accept the link's
 # maint ask on the screen (it leaves a file named "maint" on flash). The display stays off in
 # maintenance. Then nothing starts: no console, no watchdog, only the USB REPL, for a restore or a

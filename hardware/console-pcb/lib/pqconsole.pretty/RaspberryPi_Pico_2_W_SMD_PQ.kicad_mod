@@ -3,7 +3,7 @@
 	(generator "pcbnew")
 	(generator_version "10.0")
 	(layer "F.Cu")
-	(descr "PicoQuorum copy (gen_console.py): no Edge.Cuts zone, no test-point or debug pads, copper kept off the top layer under them. Raspberry Pi Pico W surface-mount footprint for reflow soldering with test points and debug pads (not compatible with non-wireless Pico), supports Raspberry Pi Pico 2 W, https://datasheets.raspberrypi.com/picow/pico-w-datasheet.pdf")
+	(descr "Picoquorum copy (gen_console.py): no Edge.Cuts zone, no test-point or debug pads, copper kept off the top layer under them. Raspberry Pi Pico W surface-mount footprint for reflow soldering with test points and debug pads (not compatible with non-wireless Pico), supports Raspberry Pi Pico 2 W, https://datasheets.raspberrypi.com/picow/pico-w-datasheet.pdf")
 	(tags "module usb pcb swd antenna")
 	(property "Reference" "REF**"
 		(at 11.7475 24.765 0)

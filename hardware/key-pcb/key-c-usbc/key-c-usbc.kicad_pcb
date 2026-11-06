@@ -8,10 +8,10 @@
 	)
 	(paper "A4")
 	(title_block
-		(title "PicoQuorum key, proposal C: USB-C receptacle")
+		(title "Picoquorum key, proposal C: USB-C receptacle")
 		(date "2026-10-23")
 		(rev "P3")
-		(company "PicoQuorum")
+		(company "Picoquorum")
 	)
 	(layers
 		(0 "F.Cu" signal)
@@ -1997,7 +1997,7 @@
 		(layer "F.Cu")
 		(uuid "fb0417ae-2924-4a78-9e45-61c7f23e0006")
 		(at 108 132.324999)
-		(descr "PicoQuorum copy: outer ground pads 0.1 mm shorter at the peg end, for JLCPCB hole clearance (gen_cd.py). 16-pin USB-C receptacle, USB2.0 and PD, 5A VBUS rating, https://datasheet.lcsc.com/lcsc/2211161000_HCTL-HC-TYPE-C-16P-01A_C2894897.pdf")
+		(descr "Picoquorum copy: outer ground pads 0.1 mm shorter at the peg end, for JLCPCB hole clearance (gen_cd.py). 16-pin USB-C receptacle, USB2.0 and PD, 5A VBUS rating, https://datasheet.lcsc.com/lcsc/2211161000_HCTL-HC-TYPE-C-16P-01A_C2894897.pdf")
 		(tags "usb usb-c 2.0 pd")
 		(property "Reference" "J1"
 			(at 0 -5.645 0)
@@ -2681,8 +2681,8 @@
 		(layer "B.Cu")
 		(uuid "6b65c14b-2cc1-4fee-85d4-9fca6be95b0d")
 		(at 108 108.6 180)
-		(descr "The PicoQuorum mark, 5.0 mm tall, in one colour for silkscreen: three signed dots solid, two waiting dots as rings. docs/BRAND.md")
-		(tags "logo PicoQuorum")
+		(descr "The Picoquorum mark, 5.0 mm tall, in one colour for silkscreen: three signed dots solid, two waiting dots as rings. docs/BRAND.md")
+		(tags "logo Picoquorum")
 		(property "Reference" "LOGO1"
 			(at 0 3.5 0)
 			(layer "B.SilkS")
@@ -3107,7 +3107,7 @@
 		(layer "Edge.Cuts")
 		(uuid "381ea891-36c5-4d27-8c6d-9ff2ea0191d7")
 	)
-	(gr_text "PICOQUORUM"
+	(gr_text "Picoquorum"
 		(at 108 109.2 0)
 		(layer "F.SilkS")
 		(uuid "2e82c0dd-f70d-445f-a9f7-b85b9586c424")
@@ -3190,7 +3190,7 @@
 			(justify mirror)
 		)
 	)
-	(gr_text "PicoQuorum key"
+	(gr_text "Picoquorum key"
 		(at 108 112.1 0)
 		(layer "B.SilkS")
 		(uuid "cbf55034-c2c1-4ebc-8429-5b5485948050")

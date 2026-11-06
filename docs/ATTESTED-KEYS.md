@@ -230,7 +230,7 @@ flowchart TB
   to its owner address in public, which is the price of the relay.
 - **The project Safe can:** revoke a bench key, retire a brand key, and set the relay's limits.
   It can't register or unregister a key for someone.
-- This would be PicoQuorum's first contract (`contracts/README.md`). It needs review before
+- This would be Picoquorum's first contract (`contracts/README.md`). It needs review before
   anything is deployed.
 
 ### The relay

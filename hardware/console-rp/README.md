@@ -26,7 +26,7 @@ What the generator places, top to bottom:
 - **J3** down the right edge beside the glass, not fitted: seven holes, GND, 3V3, CLK, DIO, RUN,
   D+ and D−, for a header at the bench and for a jig's pogo pins. Its last two are level with the
   bench USB's lines out of U1's block, so they run straight in on the front;
-- **PicoQuorum console-rp,** then **D0, D1 and D2** at `slot()`: x 15.75, 23.95 and 32.15, y 30.5;
+- **Picoquorum console-rp,** then **D0, D1 and D2** at `slot()`: x 15.75, 23.95 and 32.15, y 30.5;
 - **RESET and BOOTSEL** at the left, x 5.0 and 14.5, y 39. The front has no mark now; it is on the
   back;
 - **U1's block** at the bottom right, written as offsets from U1 so it moves as one. The flash is

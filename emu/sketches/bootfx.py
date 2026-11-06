@@ -1,4 +1,4 @@
-# Boot screen options for PicoQuorum. A cycles through them, X stops.
+# Boot screen options for Picoquorum. A cycles through them, X stops.
 #   tools/emu run bootfx            watch them in the emulator
 #   tools/bootgifs                  capture each one as a GIF for docs/quorum-ui/boot/
 # Every frame is a function of its number (render(option, i)), so the GIFs are exact. start()
@@ -62,7 +62,7 @@ def title(i, a, b, y, sub=None):
     if t <= 0:
         return
     yy = int(y + 14 * (1 - t))
-    center("PicoQuorum", yy, "bold26", mix(BG, INK, t))
+    center("Picoquorum", yy, "bold26", mix(BG, INK, t))
     if sub:
         center(sub, yy + 34, "sans14", mix(BG, MUTED, t))
 
@@ -79,7 +79,7 @@ def node_xy(k, r=R, cx=CX, cy=CY, turn=0.0):
 
 
 def mark(cx, cy, r, node, filled=2):
-    """The PicoQuorum mark at any size: r to the nodes, node radius."""
+    """The Picoquorum mark at any size: r to the nodes, node radius."""
     pts = [node_xy(k, r, cx, cy) for k in range(3)]
     for a, b in ((0, 1), (1, 2), (2, 0)):
         thick(pts[a][0], pts[a][1], pts[b][0], pts[b][1], mix(BG, STAKE, 0.55), max(1, node // 4))
@@ -172,7 +172,7 @@ def rnd(a, b):
 def draw_hashrain(i):
     d.fill(col(BG))
     fade = 1 - span(i, 44, 60)
-    name = "PicoQuorum"
+    name = "Picoquorum"
     nx = (240 - F.width(name, "bold26")) // 2
     for c in range(COLS):
         speed = 0.5 + (rnd(c, 1) % 100) / 100
@@ -217,7 +217,7 @@ def spinner(cx, cy, i):
 def draw_checklist(i):
     d.fill(col(BG))
     mark(30, 30, 13, 4)
-    F.text(d, "PicoQuorum", 52, 14, "bold18", INK, BG)
+    F.text(d, "Picoquorum", 52, 14, "bold18", INK, BG)
     F.text(d, "Safe approval console", 52, 36, "sans12", MUTED, BG)
     y = 62
     done = 0

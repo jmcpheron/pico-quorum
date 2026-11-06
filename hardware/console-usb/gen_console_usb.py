@@ -392,8 +392,8 @@ class Sheet:
             f.write(f"""(kicad_sch (version 20250114) (generator "picoquorum_gen") (generator_version "9.0")
 (uuid "{self.root}")
 (paper "A3")
-(title_block (title "PicoQuorum console-usb: no radio, USB serial to the host") (date "{DATE}") (rev "A")
-  (company "PicoQuorum") (comment 1 "Written by hardware/console-usb/gen_console_usb.py. CERN-OHL-W v2")
+(title_block (title "Picoquorum console-usb: no radio, USB serial to the host") (date "{DATE}") (rev "A")
+  (company "Picoquorum") (comment 1 "Written by hardware/console-usb/gen_console_usb.py. CERN-OHL-W v2")
   (comment 2 "Source Location: https://github.com/jmcpheron/pico-quorum"))
 (lib_symbols
 {cache})
@@ -924,7 +924,7 @@ def write_board(sh, nets):
     for i, lab in enumerate(("D0", "D1", "D2")):
         text(lab, 5.6, AT[f"SW{i + 1}"][1], 0.9, rot=90)
     text("RESET", 50.5, 20.3, 0.8)
-    text("PicoQuorum console-usb", (GX0 + GX1) / 2, 2.6, 1.0)
+    text("Picoquorum console-usb", (GX0 + GX1) / 2, 2.6, 1.0)
     x3, y3, _ = AT["J3"]
     text("BENCH", x3 - 2.0, y3, 0.8, rot=90)
     for i, lab in enumerate(("GND", "3V3", "TX", "RX", "D-", "D+", "SDA", "SCL")):     # J3's pins, as the schematic

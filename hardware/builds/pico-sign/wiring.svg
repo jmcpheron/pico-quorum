@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1020" height="860" viewBox="0 0 1020 860" font-family="Helvetica, Arial, sans-serif" font-size="12">
 <rect width="1020" height="860" fill="#ffffff"/>
-<text x="24" y="34" font-size="19" font-weight="bold">PicoQuorum pico-sign: Pico 2 W, 2.8" screen, EC11 knob, hold-to-sign switch, key-c</text>
+<text x="24" y="34" font-size="19" font-weight="bold">Picoquorum pico-sign: Pico 2 W, 2.8" screen, EC11 knob, hold-to-sign switch, key-c</text>
 <text x="24" y="56" fill="#555">Pico seen from the top, USB on the left. Firmware: the console image, BOARD = "build1", SCREEN = "2.8". Go by the names printed on each part.</text>
 <rect x="330" y="210" width="408.0" height="168.0" rx="6" fill="#1f6f3f"/>
 <rect x="319.6" y="262.0" width="44.0" height="64.0" rx="2" fill="#bfc4c9"/>

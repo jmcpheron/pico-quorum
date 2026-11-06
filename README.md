@@ -2,7 +2,7 @@
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/brand/lockup-dark.svg">
     <source media="(prefers-color-scheme: light)" srcset="docs/brand/lockup-light.svg">
-    <img alt="PicoQuorum" src="docs/brand/lockup-light.svg" width="420">
+    <img alt="Picoquorum" src="docs/brand/lockup-light.svg" width="420">
   </picture>
 </p>
 
@@ -13,6 +13,7 @@
 
 <p align="center">
   <a href="https://picoquorum.app/"><img alt="Website" src="https://img.shields.io/website?url=https%3A%2F%2Fpicoquorum.app%2F&label=site&up_message=live&up_color=34C759&labelColor=0B0D11"></a>
+  <a href="https://x.com/picoquorum"><img alt="Follow @picoquorum on X" src="https://img.shields.io/badge/X-%40picoquorum-F2F4F7?logo=x&logoColor=F2F4F7&labelColor=0B0D11"></a>
   <a href="https://picoquorum.app/console/"><img alt="Try the console in your browser" src="https://img.shields.io/badge/console-try%20it%20in%20your%20browser-7A92FF?labelColor=0B0D11"></a>
   <a href="https://github.com/jmcpheron/pico-quorum/actions/workflows/site-check.yml"><img alt="Site check: GitHub Pages serves exactly this source" src="https://github.com/jmcpheron/pico-quorum/actions/workflows/site-check.yml/badge.svg"></a>
   <a href="https://github.com/jmcpheron/pico-quorum/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/jmcpheron/pico-quorum/actions/workflows/ci.yml/badge.svg"></a>
@@ -28,10 +29,10 @@
 </p>
 
 <p align="center">
-  <img src="docs/quorum-ui/v2/boot/orbit-lite.gif" width="240" alt="The PicoQuorum boot screen: five owners, three sign, and their triangle turns into the Ethereum diamond">
+  <img src="docs/quorum-ui/v2/boot/orbit-lite.gif" width="240" alt="The Picoquorum boot screen: five owners, three sign, and their triangle turns into the Ethereum diamond">
 </p>
 
-PicoQuorum is a small console that is **one owner of a Safe**. Each signer holds a plug-in key with a
+Picoquorum is a small console that is **one owner of a Safe**. Each signer holds a plug-in key with a
 secure element inside. The console shows what a transaction does on its own screen, works out the
 Safe transaction hash itself, and asks the key to sign only after you have seen every page and held
 the green **Sign** button. **Reject** is red and easy.
@@ -44,7 +45,7 @@ README, and sign from on your own computer.
 
 A *pico quorum* is a small group that agrees before anything moves: a family's savings, a club's
 treasury, a two-person company, a project's release keys. Two of three. Three of five. Too small for
-a custody desk, too important for one laptop. PicoQuorum gives each person in that group the same
+a custody desk, too important for one laptop. Picoquorum gives each person in that group the same
 small box and their own key, and makes every approval a deliberate thing you do with your hands.
 
 > **Experimental.** Early design. Use a testnet first, and only small amounts on mainnet. The Safe's
@@ -73,7 +74,7 @@ array between the connector and the chip.
 
 | parts side | back |
 |---|---|
-| <img src="hardware/key-pcb/key-c-usbc/renders/key-c-P2-3q-top.jpg" width="360" alt="key-c P2, parts side"> | <img src="hardware/key-pcb/key-c-usbc/renders/key-c-P2-3q-bottom.jpg" width="360" alt="key-c P2, back, with the PicoQuorum mark"> |
+| <img src="hardware/key-pcb/key-c-usbc/renders/key-c-P2-3q-top.jpg" width="360" alt="key-c P2, parts side"> | <img src="hardware/key-pcb/key-c-usbc/renders/key-c-P2-3q-bottom.jpg" width="360" alt="key-c P2, back, with the Picoquorum mark"> |
 
 Until it arrives, the dev console's key is an Infineon OPTIGA Trust M or an ATECC608 breakout. The
 other key designs (card edge, pogo pads) are in [`hardware/key-pcb/`](hardware/key-pcb/README.md).
@@ -108,8 +109,8 @@ at it. More screens: [docs/quorum-ui](docs/quorum-ui/README.md).
 
 ### 3. One owner in a multisig
 
-PicoQuorum is never the whole wallet. It is one owner among several, and it is built to sit next to
-the others: a hardware wallet, a passkey, Safe{Wallet} in a browser, another PicoQuorum in another
+Picoquorum is never the whole wallet. It is one owner among several, and it is built to sit next to
+the others: a hardware wallet, a passkey, Safe{Wallet} in a browser, another Picoquorum in another
 house. The project's own Safe is planned around one rule ([docs/GOVERNANCE.md](docs/GOVERNANCE.md)),
 and we suggest it for yours: **no technology, and no person, holds a threshold's worth of keys.**
 
@@ -182,10 +183,10 @@ console up to the README:
 
 | | image | release fingerprint |
 |---|---|---|
-| <img src="docs/releases/badges/console-blockie.svg" width="32" height="32" alt=""> | **console** | `756df44b13ff0aa317bd8804bad53121344b7a9606ccefa5bbdef45093c1c0f1` |
-| <img src="docs/releases/badges/ceremony-blockie.svg" width="32" height="32" alt=""> | **ceremony** | `1b78837008174bfcfcd360b487fbce15bac94e88a216c2af987e35623762fd3a` |
-| <img src="docs/releases/badges/brand-blockie.svg" width="32" height="32" alt=""> | **brand** | `a4673a12de701ba3a5502ee96becf9df5f96800f4cc56931f2a3da4cdf5eed0d` |
-| <img src="docs/releases/badges/dual-blockie.svg" width="32" height="32" alt=""> | **dual** | `64313b5f16a9e5f25a4485d800e6e7261ce34b969a6f5db562b386cb4022ba36` |
+| <img src="docs/releases/badges/console-blockie.svg" width="32" height="32" alt=""> | **console** | `1eebbf43e652aa289b9495c5dc66a7878e00a54e2f4c9bd2fbc4934a382bc033` |
+| <img src="docs/releases/badges/ceremony-blockie.svg" width="32" height="32" alt=""> | **ceremony** | `b023b563b115e06aa9250c192d3c22fa1e07107a50e41ea9462649564e6f7aea` |
+| <img src="docs/releases/badges/brand-blockie.svg" width="32" height="32" alt=""> | **brand** | `4fb1d81abf7c37040f02c0d110f9423db2202626df3c7a4a8330c3cb7a718670` |
+| <img src="docs/releases/badges/dual-blockie.svg" width="32" height="32" alt=""> | **dual** | `27b254630a065e6c7dc811374a5d2837dee3486b7cd1cc761c546a3758bb9b0d` |
 
 <!-- build:end -->
 
@@ -195,13 +196,13 @@ How a release is trusted ([docs/RELEASES.md](docs/RELEASES.md)):
 - **Reproducible pages.** CI rebuilds the app and the console page from source and fails if they
   differ from what is committed. The site check then compares what GitHub Pages serves, byte for byte,
   with the commit it deployed.
-- **Approved by a Safe.** The project Safe will approve each release on chain, signed on PicoQuorum
+- **Approved by a Safe.** The project Safe will approve each release on chain, signed on Picoquorum
   consoles, and the app then shows **Approved by the project Safe**. The code is ready; the Safe
   comes at launch ([docs/GOVERNANCE.md](docs/GOVERNANCE.md)).
 
 ## Where it stands
 
-PicoQuorum is built in public. **[docs/STATUS.md](docs/STATUS.md)** is the one page for what exists
+Picoquorum is built in public. **[docs/STATUS.md](docs/STATUS.md)** is the one page for what exists
 today: the name (picoquorum.eth) and the domains, every Safe and key with its address, the contracts
 the console relies on, and what's next.
 
@@ -227,7 +228,7 @@ in [GOVERNANCE.md](docs/GOVERNANCE.md). Dated notes and photos, mistakes include
 | `emu/` | the console in a browser: MicroPython in WebAssembly and a virtual secure element. `build.mjs` writes the console page (`docs/console/`); `tools/emu` adds an editor and the case in 3D, for development |
 | `test-vectors/` | Safe transactions with known-correct hashes, and the suites CI runs |
 | `tools/` | `quorum` (Safes on a fork and on chain), `fw` (build and push images), `emu`, `usb`, `release`, `releases/`, `brand/`, `keypcb`, `wiring`, `wiring-esp32` |
-| `contracts/` | PicoQuorum's own contracts, when there are any; today each key owns a Safe through Safe's passkey signer |
+| `contracts/` | Picoquorum's own contracts, when there are any; today each key owns a Safe through Safe's passkey signer |
 | `buildlog/` | dated notes and photos |
 
 The name, the mark and the colours: [docs/BRAND.md](docs/BRAND.md). `tools/brand/lockup.py` draws the
@@ -235,10 +236,10 @@ logo at the top of this page.
 
 ## Credit
 
-PicoQuorum exists because of [picowallet](https://github.com/austintgriffith/picowallet) by
+Picoquorum exists because of [picowallet](https://github.com/austintgriffith/picowallet) by
 **Austin Griffith**. picowallet proved that a Raspberry Pi Pico can drive a secure element from
 MicroPython, rebuild an EIP-712 digest on the device, show it on its own screen, and sign with a
-key that never leaves the chip, all on mainnet. PicoQuorum began as a fork of it and is still
+key that never leaves the chip, all on mainnet. Picoquorum began as a fork of it and is still
 built on it:
 - the ATECC608 and Trust M drivers, the display driver, keccak and P-256, blockies and the WiFi join;
 - the emulator that runs the console in your browser.
@@ -247,7 +248,7 @@ Each of those files says so on its first line, under Austin's MIT license. Fixes
 back upstream ([docs/UPSTREAM-TRACKING.md](docs/UPSTREAM-TRACKING.md)). Everything else this project
 uses is credited in [NOTICE](NOTICE).
 
-PicoQuorum runs on Raspberry Pi Pico 2 W. It is not affiliated with Raspberry Pi or Safe.
+Picoquorum runs on Raspberry Pi Pico 2 W. It is not affiliated with Raspberry Pi or Safe.
 
 ## License
 
@@ -256,7 +257,7 @@ PicoQuorum runs on Raspberry Pi Pico 2 W. It is not affiliated with Raspberry Pi
 | Code and firmware: `firmware/`, `emu/`, `web/`, `tools/`, `test-vectors/`, the built site | [MIT](LICENSE) |
 | Hardware: `hardware/` (the key boards, wiring, parts lists) | [CERN-OHL-W-2.0](LICENSE-HARDWARE) |
 | Docs, the build log, photos and screenshots | [CC BY-SA 4.0](LICENSE-DOCS) |
-| The name PicoQuorum and its mark | not licensed: [TRADEMARK.md](TRADEMARK.md) |
+| The name Picoquorum and its mark | not licensed: [TRADEMARK.md](TRADEMARK.md) |
 
 Hardware made from these sources must show where the source is ([hardware/README.md](hardware/README.md#license)).
 Third-party parts and their licenses are in [NOTICE](NOTICE).

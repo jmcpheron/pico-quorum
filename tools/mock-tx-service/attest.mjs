@@ -103,7 +103,7 @@ const qy = ok3 ? BigInt("0x" + rec.subarray(50, 82).toString("hex")) : 0n;
 const recOwner = ok3 ? getAddress("0x" + rec.subarray(82, 102).toString("hex")) : null;
 const made = ok3 ? new Date(rec.readUInt32BE(102) * 1000).toISOString().slice(0, 10) : "?";
 row(ok3 && rec.subarray(4, 14).toString("hex") === serial && rec.readUInt16BE(14) === KEY,
-  "record (F1D0): this chip's serial, the key in E0F1", ok3 ? `key ${qx.toString(16).padStart(64, "0").slice(0, 8)}, written ${made}, build ${rec.subarray(106, 110).toString("hex")}` : "no PicoQuorum record");
+  "record (F1D0): this chip's serial, the key in E0F1", ok3 ? `key ${qx.toString(16).padStart(64, "0").slice(0, 8)}, written ${made}, build ${rec.subarray(106, 110).toString("hex")}` : "no Picoquorum record");
 const owner = ok3 ? p256Owner(CFG.signer, "0x" + qx.toString(16), "0x" + qy.toString(16)) : null;
 row(ok3 && owner === recOwner, "owner address: computed from the key, the same as the record says", owner || "");
 

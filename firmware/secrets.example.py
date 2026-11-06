@@ -5,7 +5,7 @@ WIFI_SSID = "your-ssid"
 WIFI_PASS = "your-password"
 HOSTNAME = "picoquorum"
 DEVICE_NAME = "picoquorum"
-# The PicoQuorum console (quorum.py). On the laptop: tools/quorum's Family Safe, simulated or on
+# The Picoquorum console (quorum.py). On the laptop: tools/quorum's Family Safe, simulated or on
 # the Anvil fork (`tools/quorum ip` or `tools/quorum up` prints this line).
 QUORUM_URL = "http://<mac-lan-ip>:8787"
 # Real Safes (docs/guide/SETUP.md): the Safes this console signs for, up to 4, on any of the chains
@@ -27,7 +27,7 @@ QUORUM_URL = "http://<mac-lan-ip>:8787"
 # The clock card's time zone, in hours from UTC (it says UTC when this is 0).
 # QUORUM_UTC_OFFSET = -7
 QUORUM_THEME = "dark"   # or "light"
-# The boot screen: "mark" (the default: the PicoQuorum mark turning into Ethereum in ~3.7 s, light on the Pico),
+# The boot screen: "mark" (the default: the Picoquorum mark turning into Ethereum in ~3.7 s, light on the Pico),
 # "still" (the finished mark at once), "orbit" (the full orbit animation, ~8-10 fps) or "checklist".
 # BOOT_ART = "mark"
 # Its taglines (firmware/taglines.py): "serious" (the default), "fun", "all" or "none".

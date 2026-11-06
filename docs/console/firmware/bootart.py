@@ -289,7 +289,7 @@ def draw_quorum(i):
         node(x, y, int(9 + 3 * math.sin(math.pi * span(i, at, at + 8))), rgb)
 
 def quorum_mark(cx, cy, a):
-    """The PicoQuorum mark, small: five owners, three signed, their triangle."""
+    """The Picoquorum mark, small: five owners, three signed, their triangle."""
     pts = [(int(cx + 12 * math.cos(math.radians(-90 + 72 * k))),
             int(cy + 12 * math.sin(math.radians(-90 + 72 * k)))) for k in range(5)]
     g = mix(BG, OK, a)
@@ -313,10 +313,10 @@ def draw_orbit_out(i):
                  1 - span(m, 92, 100), back)               # its face goes blue round the back
     t = smooth(span(m, BACK0 + 18, BACK1 + 10))         # the name, in front, once it has dimmed
     if t > 0:
-        w = F.width("PicoQuorum", "bold26") + 34
+        w = F.width("Picoquorum", "bold26") + 34
         x, y = (L.W - w) // 2, 82 + int(8 * (1 - t))
         quorum_mark(x + 13, y + 17, t)
-        d.text("PicoQuorum", x + 34, y, "bold26", mix(BG, INK, t), BG)
+        d.text("Picoquorum", x + 34, y, "bold26", mix(BG, INK, t), BG)
     if m >= TAG0:                                       # a tagline, one after another
         n, f = divmod(m - TAG0, TAG_EACH)
         a = smooth(span(f, 0, 8)) * (1 - smooth(span(f, TAG_EACH - 8, TAG_EACH)))

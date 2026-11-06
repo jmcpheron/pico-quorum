@@ -202,7 +202,7 @@ const FAKE_SERIAL = ({ release, safe }) => {
     wifi: { up: true, ssid: "bench", saved: ["bench"] },
     safes: [{ chainId: 84532, address: safe.toLowerCase(), name: "<b>Ops</b>", ok: true, err: "", threshold: 2, owners: 3, nonce: 9, isOwner: false, queued: 0, waiting: 0 }] };
   const say = (o) => dev.ctrl?.enqueue(enc.encode('{"pq":1,' + JSON.stringify(o).slice(1) + "\n"));
-  const status = () => ({ mode: "console", name: "PicoQuorum", state: "home", ready: "ok", serial: "0123e063aa", profile: "608C",
+  const status = () => ({ mode: "console", name: "Picoquorum", state: "home", ready: "ok", serial: "0123e063aa", profile: "608C",
     owner: "0x5FbDB2315678afecb367f032d93F642f64180aa3", key: "02" + "ab".repeat(32), pinned: true, pinWhy: "", counter: 3,
     chip: { model: "<i>ATECC608C</i>", keySealed: true, configLocked: true, dataLocked: true },
     wifi: dev.wifi, safes: dev.safes, safesFrom: "safes.json", ask: dev.pending?.op || null, watchdog: true, image: "console", version: "2026.11.1" });
@@ -549,7 +549,7 @@ await step("#/device: a console on USB, its cards, a Safes ask accepted on it, a
   await page.evaluate((safe) => localStorage.setItem("pq.safes", JSON.stringify([{ chain: "basesep", address: safe, name: "Team" }])), SAFE);
   await page.goto(`${BASE}app/#/device`);
   await page.getByRole("button", { name: "Connect a device" }).click();
-  await page.getByText("PicoQuorumKey", { exact: true }).waitFor();
+  await page.getByText("PicoquorumKey", { exact: true }).waitFor();
   const d = await dev(() => window.__dev);
   check(d.filters.some((f) => f.usbVendorId === 0x303a) && d.baud === 115200, "#/device: the chooser offers Espressif's USB, and the port opens at 115200");
   check(d.signals.length && d.signals.every((s) => s.dataTerminalReady === false && s.requestToSend === false), "#/device: DTR and RTS are set low, and never high");

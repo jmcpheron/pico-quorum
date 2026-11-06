@@ -186,7 +186,7 @@ function openBrowser() {
 }
 
 server.listen(PORT, HOST, () => {
-  console.log(`PicoQuorum emulator  http://localhost:${PORT}/   app proxy -> ${APP}`);
+  console.log(`Picoquorum emulator  http://localhost:${PORT}/   app proxy -> ${APP}`);
   if (HOST !== "127.0.0.1") console.log(`listening on ${HOST}: anyone who can reach it can run code on the emulator and ship to USB boards`);
   if (OPEN) openBrowser();
 });

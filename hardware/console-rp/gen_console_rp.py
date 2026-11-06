@@ -442,8 +442,8 @@ class Sheet:
             f.write(f"""(kicad_sch (version 20250114) (generator "picoquorum_gen") (generator_version "9.0")
 (uuid "{self.root}")
 (paper "A3")
-(title_block (title "PicoQuorum console-rp: an RP2350, no radio, USB serial to the host") (date "{DATE}") (rev "{REV}")
-  (company "PicoQuorum") (comment 1 "Written by hardware/console-rp/gen_console_rp.py. CERN-OHL-W v2")
+(title_block (title "Picoquorum console-rp: an RP2350, no radio, USB serial to the host") (date "{DATE}") (rev "{REV}")
+  (company "Picoquorum") (comment 1 "Written by hardware/console-rp/gen_console_rp.py. CERN-OHL-W v2")
   (comment 2 "Source Location: https://github.com/jmcpheron/pico-quorum"))
 (lib_symbols
 {cache})
@@ -1394,7 +1394,7 @@ def write_board(sh, nets):
     silk_line((tx, ty - side * 0.866 / 2 + 0.55), (tx, ty + side * 0.866 / 2 - 0.75))
     silk_box(tx - 0.12, ty + side * 0.866 / 2 - 0.5, tx + 0.12, ty + side * 0.866 / 2 - 0.26)
     text(WARN_TEXT, tx + side / 2 + 0.6, ty, 1.0, align=-1, wide=0.85)      # narrow, to end before U6's pads
-    text("PicoQuorum console-rp", XC, (GY1 + BY - 3.3) / 2, 1.0)
+    text("Picoquorum console-rp", XC, (GY1 + BY - 3.3) / 2, 1.0)
     for x0, y0, x1, y1 in silk_pixels():
         silk_box(x0, y0, x1, y1)
     x3, y3, _ = AT["J3"]

@@ -26,7 +26,7 @@ One JSON object per line, each way, at 115200 baud. Every request has an `id`. E
 any line that doesn't start `{"pq":`. A line longer than 2 KB is dropped.
 
 The console writes each answer in pieces of 64 bytes. On an ESP32-S3's own USB, MicroPython 1.26.1
-drops the front of a long write. On the PicoQuorumKey, a 600-byte line written at once came out as
+drops the front of a long write. On the PicoquorumKey, a 600-byte line written at once came out as
 its last 318 bytes, every time; written in 64-byte pieces it came out whole (2026-11-02). A log line
 printed between two pieces can land inside an answer; the host then skips that answer.
 
@@ -65,7 +65,7 @@ An ask comes up like a review: every page has to be seen, then Sign is held.
 
 | | Pages | Accept | Refuse |
 |---|---|---|---|
-| Three buttons (Feather, PicoQuorumKey) | D1 | D2 held 2 s (3 s red) | D0, one press |
+| Three buttons (Feather, PicoquorumKey) | D1 | D2 held 2 s (3 s red) | D0, one press |
 | Waveshare | joystick | A held | Y or B |
 | Knob (Build 1) | turn | the knob held down | B, or wait 120 s |
 
@@ -81,7 +81,7 @@ answers `hello`, `status` and `wifi` only: it shows the network, joins it after 
   file. Then `main.py` ends in `usblink.run()`, which never returns. A console that failed to
   start still ends there, so a failed start doesn't open the REPL.
 - With Ctrl-C off, 0x03 (and Ctrl-A, Ctrl-B, Ctrl-D) reach the link as plain bytes. This was
-  checked on the PicoQuorumKey on 2026-11-02.
+  checked on the PicoquorumKey on 2026-11-02.
 - The ceremony and brand images keep the REPL, because they are bench images (`tools/fw ceremony`).
   So does the dual image while it runs the ceremony or the claim.
 

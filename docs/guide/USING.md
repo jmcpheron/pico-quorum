@@ -28,8 +28,9 @@ won't sign it at all.
 If the service doesn't take the signature (a network error, say), the console keeps it. A on the
 result screen tries again, and it's sent after a restart too.
 
-**The console never executes.** When a transaction has enough approvals, someone executes it:
-today that's `tools/quorum live exec --chain C NONCE`.
+**The console never executes.** When a transaction has enough approvals, someone executes it in
+[the Picoquorum app](https://picoquorum.app/app/) (**Execute with wallet**), or from the terminal
+with `tools/quorum live exec --chain C NONCE`.
 
 ## Red pages and refusals
 
@@ -50,7 +51,7 @@ chain. Every screen that shows a name shows the full address too.
 
 Y hides the transaction **on this console only**. It doesn't reject it on the Safe. The Safe's
 queue stays blocked at that nonce until someone replaces it with a rejection: in
-[the PicoQuorum app](../app/), open the Safe and press **Propose a rejection** on that transaction.
+[the Picoquorum app](https://picoquorum.app/app/), open the Safe and press **Propose a rejection** on that transaction.
 The console shows it as REJECTION, and once it has the Safe's approvals and is executed, the
 nonce is used up and the rejected transaction can never run.
 

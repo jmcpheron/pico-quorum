@@ -1,6 +1,6 @@
 # Safe{Wallet}: GS021 when a confirmation is a contract signature
 
-The Safe web app can't execute a transaction that a PicoQuorum key approved once there are two or
+The Safe web app can't execute a transaction that a Picoquorum key approved once there are two or
 more signatures. It fails with GS021 because the chip's approval is an EIP-1271 contract signature,
 and the web app rebuilds every stored confirmation as a plain signature. Until this is fixed
 upstream, `tools/quorum live exec` executes instead.

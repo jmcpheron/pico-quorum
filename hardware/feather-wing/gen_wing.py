@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PicoQuorum key wing: a board the size of a Feather that sits behind Adafruit's ESP32-S3 Reverse TFT
+"""Picoquorum key wing: a board the size of a Feather that sits behind Adafruit's ESP32-S3 Reverse TFT
 on its header pins and carries the key's port. Two variants, each a whole KiCad 9 project written as
 text:
 
@@ -57,7 +57,7 @@ L = "pqwing"                                   # the library name, in sym-lib-ta
 LIB = os.path.join(HERE, "lib")
 OUT = os.path.join(HERE, NAME)
 DATE = "2026-10-23"
-TITLE = (f"PicoQuorum key wing, {NAME}: key-c's USB-C port{' at the edge' if B else ''} behind a Feather ESP32-S3 Reverse TFT "
+TITLE = (f"Picoquorum key wing, {NAME}: key-c's USB-C port{' at the edge' if B else ''} behind a Feather ESP32-S3 Reverse TFT "
          "(FeatherWing-compatible)")
 NOTE = "A FeatherWing-compatible key port: see hardware/feather-wing/README.md"
 SRC = "github.com/jmcpheron/pico-quorum"
@@ -1190,7 +1190,7 @@ def mark_text(x, y):
     body = src[src.index("\n(fp_poly"):src.rindex("\n(embedded_fonts")]
     px, py = page(x, y)
     return (f'\t(footprint "picoquorum:PicoQuorum_Mark" (layer "F.Cu") (uuid "{uid()}") (at {f(px)} {f(py)})\n'
-            f'\t\t(descr "The PicoQuorum mark, one colour, for silkscreen: docs/BRAND.md")\n\t\t(tags "logo")\n'
+            f'\t\t(descr "The Picoquorum mark, one colour, for silkscreen: docs/BRAND.md")\n\t\t(tags "logo")\n'
             + _prop("Reference", "LOGO1", 0, -4, "F.SilkS", hide=True).replace("\t(", "\t\t(", 1) + "\n"
             + _prop("Value", "PicoQuorum_Mark", 0, 4, "F.Fab", hide=True).replace("\t(", "\t\t(", 1) + "\n"
             + "\t\t(attr board_only exclude_from_pos_files exclude_from_bom allow_missing_courtyard)\n"
@@ -1252,7 +1252,7 @@ def write_board(uids, router):
     layers, setup = _template_blocks()
     out = ["(kicad_pcb", "\t(version 20241229)", '\t(generator "picoquorum_gen")', '\t(generator_version "9.0")',
            f"\t(general (thickness {f(THICK)}) (legacy_teardrops no))", '\t(paper "A4")',
-           f'\t(title_block (title "{TITLE}") (date "{DATE}") (rev "A") (company "PicoQuorum") (comment 1 "{NOTE}"))',
+           f'\t(title_block (title "{TITLE}") (date "{DATE}") (rev "A") (company "Picoquorum") (comment 1 "{NOTE}"))',
            layers, setup, '\t(net 0 "")']
     out += [f'\t(net {i} "{n}")' for n, i in nets.items()]
     for ref, p in PARTS.items():
@@ -1277,7 +1277,7 @@ def write_board(uids, router):
     out.append(gr_text("USB", 1.2, 11.43, "F.SilkS", 0.8, rot=90))
     out.append(gr_text(f"{NAME} {DATE[:7]}", 23.0, 3.4, "F.SilkS", 0.8))
     # back: what this side is, and the source
-    out.append(gr_text("PicoQuorum key wing", 25.0, 15.4, "B.SilkS", 1.0))
+    out.append(gr_text("Picoquorum key wing", 25.0, 15.4, "B.SilkS", 1.0))
     out.append(gr_text("FeatherWing-compatible", 25.0, 13.6, "B.SilkS", 0.8))
     out.append(gr_text("this side faces the Feather", 25.0, 11.8, "B.SilkS", 0.8))
     out.append(gr_text(SRC, 25.0, 9.6, "B.SilkS", 0.8))
@@ -1339,12 +1339,12 @@ def write_project(sheet_uuid):
 def write_lib_tables():
     with open(os.path.join(OUT, "sym-lib-table"), "w") as fh:
         fh.write(f'(sym_lib_table\n  (version 7)\n  (lib (name "{L}")(type "KiCad")(uri "${{KIPRJMOD}}/../lib/{L}.kicad_sym")'
-                 f'(options "")(descr "PicoQuorum key wing parts"))\n)\n')
+                 f'(options "")(descr "Picoquorum key wing parts"))\n)\n')
     with open(os.path.join(OUT, "fp-lib-table"), "w") as fh:
         fh.write(f'(fp_lib_table\n  (version 7)\n  (lib (name "{L}")(type "KiCad")(uri "${{KIPRJMOD}}/../lib/{L}.pretty")'
-                 f'(options "")(descr "PicoQuorum key wing footprints"))\n'
+                 f'(options "")(descr "Picoquorum key wing footprints"))\n'
                  f'  (lib (name "picoquorum")(type "KiCad")(uri "${{KIPRJMOD}}/../lib/picoquorum.pretty")'
-                 f'(options "")(descr "The PicoQuorum mark"))\n)\n')
+                 f'(options "")(descr "The Picoquorum mark"))\n)\n')
 
 
 # =================================================================================================

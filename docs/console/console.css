@@ -35,7 +35,7 @@ code { font: .9em var(--mono); }
 
 /* the site's header and footer (docs/home.css) */
 .top { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; max-width: 1080px; margin: 0 auto; padding: 16px; }
-.lockup { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 20px; text-decoration: none; }
+.lockup { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 20px; text-decoration: none; white-space: nowrap; }
 .lockup img { display: block; }
 nav { display: flex; gap: 4px; margin-left: auto; }
 nav a { text-decoration: none; color: var(--muted); padding: 6px 10px; border-radius: 8px; }

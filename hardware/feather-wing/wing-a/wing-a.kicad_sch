@@ -1,7 +1,7 @@
 (kicad_sch (version 20250114) (generator "picoquorum_gen") (generator_version "9.0")
 (uuid "28672c39-b73a-4a98-8a24-7070b46d837b")
 (paper "A4")
-(title_block (title "PicoQuorum key wing, wing-a: key-c's USB-C port behind a Feather ESP32-S3 Reverse TFT (FeatherWing-compatible)") (date "2026-10-23") (rev "A") (company "PicoQuorum")
+(title_block (title "Picoquorum key wing, wing-a: key-c's USB-C port behind a Feather ESP32-S3 Reverse TFT (FeatherWing-compatible)") (date "2026-10-23") (rev "A") (company "Picoquorum")
   (comment 1 "A FeatherWing-compatible key port: see hardware/feather-wing/README.md"))
 (lib_symbols
 (symbol "pqwing:Feather_1x16" (pin_names (offset 1.016)) (exclude_from_sim no) (in_bom yes) (on_board yes)
