@@ -926,14 +926,26 @@ USB_VIAS = [("/USB_D-", jb(6.447, 51.485)), ("/USB_D-", jb(9.963, 52.874)), (VBU
 # line, stays ground, so that via meets the rest of the back's ground (board mm, as jb())
 AROUND_U2 = [jb(0.0, 44.6), jb(13.6, 44.6), jb(13.6, 46.9), jb(11.7, 48.8), jb(11.7, 50.4), jb(10.3, 51.8), jb(0.0, 51.8)]
 
-# (net, where, locked): BL_GATE's via unlocked, so the route's tidy-up drops it if the router stays on the front.
+# J2's pins 1 and 2 (from J2's centre, as it's placed, turned 90): the backlight's anode and the panel's only
+# ground, side by side. On the short bar's route LCD_LEDA's via shut pin 2 in, and the routed board's fix
+# is drawn here: pin 1 out to a via below and left of it, pin 2 to a ground via left of it.
+def j2(x, y):
+    return round(AT["J2"][0] + x, 4), round(AT["J2"][1] + y, 4)
+
+
+PANEL_PINS = [("/LCD_LEDA", 0.15, [j2(-1.25, 1.75), j2(-1.65, 1.75), j2(-2.05, 2.15)]),
+              (GND, 0.2, [j2(-1.25, 1.25), j2(-2.1, 1.3)])]
+
+# (net, where, locked): BL_GATE's and LCD_CS's vias unlocked, so the route's tidy-up drops them if the
+# router stays on the front (on the short bar's route it took CS on along the front from its via).
 # Two ground vias for pads the pour can't reach otherwise: C17's, shut in by the 3V3 spine and D+, beside
 # it; and the CH343P's, its exposed pad and pin 2 shut in by its pins, in the exposed pad (jlc_spec says so)
 HAND_VIAS = [(GND, u1(-9.3, -8.895), True), ("/SDA", u1(-7.8, -0.25), True), ("/SCL", u1(-7.8, 0.6), True),
              ("/BL_GATE", gl(6.438, 13.1), False), (GND, u1(-0.95, -12.8), True), ("/RUN", u1(3.6, 6.4), True),
              (GND, u1(-0.2, -9.4), True), (GND, (AT["U4"][0] - 0.55, AT["U4"][1]), True),
-             ("/BTN_D2", u1(-4.775, 0.575), True), ("/LCD_CS", u1(-5.1, 2.55), True), ("/LCD_DC", u1(-8.5, 4.8), True),
-             (GND, u1(5.3, -5.125), True), (GND, j1(-0.5, -7.5), True), (VBUS, j1(1.9, -7.5), True)]
+             ("/BTN_D2", u1(-4.775, 0.575), True), ("/LCD_CS", u1(-5.1, 2.55), False), ("/LCD_DC", u1(-8.5, 4.8), True),
+             (GND, u1(5.3, -5.125), True), (GND, j1(-0.5, -7.5), True), (VBUS, j1(1.9, -7.5), True),
+             ("/LCD_LEDA", j2(-2.05, 2.15), True), (GND, j2(-2.1, 1.3), True)]
 
 # Pads joined to the ground pours solid, not by thermal spokes: C1's and C2's, inside Raspberry Pi's
 # pours as theirs are, and J1's and C17's, between other copper, where spokes don't fit
@@ -1320,6 +1332,9 @@ def write_board(sh, nets):
     for net, layer, w, pts in USB:
         for a, c in zip(pts, pts[1:]):
             track(net, layer, (a[0] - u0, a[1] - v0), (c[0] - u0, c[1] - v0), w)
+    for net, w, pts in PANEL_PINS:
+        for a, c in zip(pts, pts[1:]):
+            track(net, "F.Cu", (a[0] - u0, a[1] - v0), (c[0] - u0, c[1] - v0), w)
     for net, q, locked in HAND_VIAS + [(n, q, True) for n, q in USB_VIAS]:
         via = pcbnew.PCB_VIA(b)
         via.SetPosition(at((q[0] - u0, q[1] - v0))); via.SetWidth(pcbnew.FromMM(0.6)); via.SetDrill(pcbnew.FromMM(0.3))
@@ -1533,7 +1548,14 @@ def jlc_spec():
                         {"type": "silk_over_copper", "ref": "LCD1", "why": "the glass's outline crosses U6's pads, and KiCad cuts it at their openings"}],
         "regulator": {"ref": "U3", "part": "XC6206P332MR", "vin": 5.0, "vout": 3.3, "amps": [0.05, 0.12], "theta_ja": 400,
                       "theta_note": "250 mW at 25 C in its datasheet's SOT-23 rating, so about 400 C/W"},
-        "return_nets": ["/USB_D+", "/USB_D-", "/RP_DP", "/RP_DM", "/LCD_SCK", "/LCD_MOSI", "/QSPI_SCLK", "/XIN"],
+        "return_nets": ["/USB_D+", "/USB_D-", "/RP_DP", "/RP_DM", "/DEV_D+", "/DEV_D-", "/LCD_SCK", "/LCD_MOSI", "/LCD_CS",
+                        "/LCD_DC", "/XIN", "/XOUT", "/SWCLK", "/SWDIO", "/LINK_TX", "/LINK_RX"],
+        # the ground review of the short bar's first route (README, rev B): the flash's six lines had
+        # ground under 26-42 % of their length, and U1's exposed pad, its only ground but the regulator's
+        # pin, met the rest through one via. These keep a new route from doing that again: the flash's
+        # lines at 100 % now; U1's pad at 3, what this board has (KiCad's connectivity agrees).
+        "return_least": {f"/QSPI_{n}": 90 for n in ("SCLK", "SS", "SD0", "SD1", "SD2", "SD3")},
+        "ground_ties": [{"pad": "U1.61", "least": 3, "why": "the RP2350's exposed pad, its only ground but the regulator's pin"}],
         "fit": {
             "heights": HEIGHT, "default_height": 1.0,
             "solids": [{"name": "glass", "box": [GX0, up(GY1), GX1, up(GY0)], "z": [PANEL["foam"], PANEL["foam"] + PANEL["thick"]],

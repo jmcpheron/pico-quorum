@@ -79,10 +79,14 @@ it for a key on wires). The cut corner and the key port's zone went with the squ
   4. BTN_D2's 0.12 mm neck at (25.5, 35.0), on the back, widened to 0.15 mm;
   5. LCD_CS's drawn via at (33.30, 51.55) taken off: the router went on along the front from it.
 
-  **Don't reroute.** These edits are on the routed board, and any new route differs.
+  **Don't reroute this board.** See below for why, and for what carries over to a new one.
 - Checked after, with scripts on the board's copper (scratch, not in the repo):
-  - The ground is one piece: every part of either pour meets the rest. The back pour under U1
-    meets the main back pour by 6 separate vias at the least (the first route: 1).
+  - The ground is one piece: every part of either pour meets the rest. U1's exposed pad meets the
+    main pour through 3 separate vias at the least (the first route: 1): the back pour under U1 is
+    its own piece, joined to the main front pour by two vias and, through the front round C4, C5,
+    C10 and C23, to the main back pour by a third. With those three vias taken off, KiCad's
+    connectivity finds the ground in two pieces. (It said 6 here before: a scratch script had
+    joined copper that doesn't touch.)
   - Back tracks: 375 mm (before J3 moved: 655). Each line's length now (before): the bench USB's
     D+ 12 mm and D− 8 mm, all on the front (60 and 59, mostly on the back); SWCLK 39 mm, all on
     the front (93); SWDIO 34 (81); SDA and SCL 23 each (67 and 61). RUN is longer, 76 mm (67), 65
@@ -96,8 +100,44 @@ it for a key on wires). The cut corner and the key port's zone went with the squ
 - `tools/keypcb jlc console-rp`: every check passes. Warnings: U3's heat, as on rev A (about 82 °C
   over the air at 0.12 A, by the datasheet's 400 °C/W), and J3.2 "joined to a pour by solid
   copper". That one is wrong: the check counts any pour on the pad's net, and J3.2 (3V3, at
-  45.5, 25.6) is about 19 mm from the only 3V3 pours, under U1. The golden pictures are this
-  route's. `--selftest` catches 10 of 10.
+  45.5, 25.6) is about 19 mm from the only 3V3 pours, under U1. The flash's lines are over ground
+  at 100 %, and U1's pad meets the main pour through 3 vias, both at the least `jlc_spec()` asks.
+  The golden pictures are this route's. `--selftest` catches 12 of 12.
+
+**Rerouting, and what carries over to a new revision.** The routed board's copper comes from three
+places:
+- **The generator:** the placement and the netlist, and every track and via it draws, each locked
+  so the router leaves it. That's Raspberry Pi's copper round U1, the flash's lines, the lines out
+  of U1 (`BUS`, `SWD`), the bench USB (`BENCH`), the USB-C's lines (`USB`), J2's pins 1 and 2
+  (`PANEL_PINS`), the ground and 3V3 ties (`TIES`, `HAND_VIAS`), and the keep-outs the router obeys
+  (`AROUND_U1`, `AROUND_U2`).
+- **Freerouting:** everything else.
+- **The hand steps** above.
+
+Freerouting gives the same route only for the same board file. Placing the board again writes new
+UUIDs, and any change to the generator moves something, so the route comes out different. The hand
+steps were made on this route's copper and don't fit another. So a new route is a new board to
+check, and `tools/keypcb gen-console-rp` won't place over a routed board.
+
+What carries over:
+- Everything the generator draws. A board placed from it was checked against this one: every
+  track and via it draws is on the routed board, but LCD_CS's via (step 5).
+- Hand step 2, J2's pins, is in the generator now (`PANEL_PINS`).
+- Step 5: LCD_CS's via is unlocked now, as BL_GATE's is, so the route's tidy-up drops it if the
+  router doesn't use it. Not yet tried in a route.
+- Steps 3 and 4 (an island's vias, a neck) belong to this route. DRC finds their like on any route.
+
+What a new route is checked for:
+- `tools/keypcb gen-console-rp check`: DRC with schematic parity finds a pad or a piece of pour
+  left off (`unconnected_items`), a via joined on one side only (`via_dangling`) and a track under
+  0.15 mm (`track_width`).
+- `tools/keypcb jlc console-rp`: the ground review's two findings are checks now, in `jlc_spec()`.
+  Each of the flash's six lines must have ground under 90 % of its length (`return_least`; the
+  first route had 26-42 %). U1's exposed pad must meet the main pour through 3 vias at least
+  (`ground_ties`; the first route had 1). Either one fails the run. `--selftest` breaks a copy
+  each way and checks both are caught. The run also prints the ground under the other fast lines,
+  to read against the numbers above.
+- No check sees long lines on the back, like the bench lines before J3 moved. Look at the back.
 
 **The case,** [`cad/consoles/rp.py`](../../cad/consoles/rp.py), is redrawn for the short bar:
 52.6 × 75.1 × 10.9 mm closed, the lanyard lug included. The USB-C is open in the left wall. RESET
