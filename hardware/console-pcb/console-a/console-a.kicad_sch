@@ -1,7 +1,7 @@
 (kicad_sch (version 20250114) (generator "picoquorum_gen") (generator_version "9.0")
 (uuid "48d53f20-19af-472e-867d-8a7abde88e44")
 (paper "A3")
-(title_block (title "PicoQuorum console, proposal A: Pico 2 W carrier") (date "2026-10-07") (rev "P1") (company "PicoQuorum")
+(title_block (title "Picoquorum console, proposal A: Pico 2 W carrier") (date "2026-10-07") (rev "P1") (company "Picoquorum")
   (comment 1 "Console carrier: see hardware/console-pcb/README.md"))
 (lib_symbols
 (symbol "pqconsole:Pico_2_W" (pin_names (offset 1.016)) (exclude_from_sim no) (in_bom yes) (on_board yes)

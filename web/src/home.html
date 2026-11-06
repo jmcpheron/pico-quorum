@@ -5,36 +5,36 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; font-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
-<meta name="description" content="PicoQuorum: a hardware approval console for Safe multisig wallets. Several people, several keys, one Safe.">
+<meta name="description" content="Picoquorum: a hardware approval console for Safe multisig wallets. Several people, several keys, one Safe.">
 <link rel="canonical" href="https://picoquorum.app/">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="PicoQuorum">
+<meta property="og:site_name" content="Picoquorum">
 <meta property="og:url" content="https://picoquorum.app/">
-<meta property="og:title" content="PicoQuorum: hardware approvals for Safe">
+<meta property="og:title" content="Picoquorum: hardware approvals for Safe">
 <meta property="og:description" content="A small console that is one owner of a Safe multisig. It shows what a transaction does, works out the hash itself, and signs with a key that never leaves its chip.">
 <meta property="og:image" content="https://picoquorum.app/quorum-ui/shots/51-trustm-home.png">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:site" content="@picoquorum">
-<title>PicoQuorum · Hardware approvals for Safe</title>
+<title>Picoquorum · Hardware approvals for Safe</title>
 <link rel="icon" href="brand/mark-dark.svg" type="image/svg+xml">
 <link rel="me" href="https://x.com/picoquorum">
 <link rel="stylesheet" href="home.css" integrity="%%HOME_CSS_SRI%%">
 </head>
 <body>
 <header class="top">
-  <a class="lockup" href="./" aria-label="PicoQuorum home">
+  <a class="lockup" href="./" aria-label="Picoquorum home">
     <picture>
       <source media="(prefers-color-scheme: light)" srcset="brand/mark-light.svg">
       <img src="brand/mark-dark.svg" width="28" height="26" alt="">
     </picture>
-    <span>PicoQuorum</span>
+    <span>Picoquorum</span>
   </a>
   <nav aria-label="Main">
     <a href="https://github.com/jmcpheron/pico-quorum/blob/main/docs/guide/README.md">Guide</a>
     <a href="#hardware">Hardware</a>
     <a href="console/">Console</a>
     <a href="https://github.com/jmcpheron/pico-quorum">Source</a>
-    <a href="https://x.com/picoquorum" aria-label="PicoQuorum on X">X</a>
+    <a href="https://x.com/picoquorum" aria-label="Picoquorum on X">X</a>
   </nav>
   <a class="btn go" href="app/">Launch app</a>
 </header>
@@ -45,7 +45,7 @@
       <a class="announce" href="#hardware"><span class="tag">New</span> console-rp, the first board is up <span aria-hidden="true">↓</span></a>
       <p class="eyebrow">Hardware approvals for Safe</p>
       <h1>Several people, several keys, one&nbsp;Safe.</h1>
-      <p class="lede">PicoQuorum is a small approval console for Safe multisig wallets. It shows what a transaction does on its own screen, works out the hash itself, and signs with a key that never leaves its chip, only when you hold Sign.</p>
+      <p class="lede">Picoquorum is a small approval console for Safe multisig wallets. It shows what a transaction does on its own screen, works out the hash itself, and signs with a key that never leaves its chip, only when you hold Sign.</p>
       <div class="cta">
         <a class="btn go big" href="app/">Launch app <span aria-hidden="true">→</span></a>
         <a class="btn big" href="https://github.com/jmcpheron/pico-quorum/blob/main/docs/guide/README.md">Read the owner's guide</a>
@@ -115,7 +115,7 @@
   <section class="split">
     <div>
       <h2>The app</h2>
-      <p>Safe{Wallet} can't execute a transaction when a PicoQuorum key is one of two or more confirmations: it fails with GS021. The PicoQuorum app can, and checks everything on the way.</p>
+      <p>Safe{Wallet} can't execute a transaction when a Picoquorum key is one of two or more confirmations: it fails with GS021. The Picoquorum app can, and checks everything on the way.</p>
       <ul class="ticks">
         <li><strong>Safes.</strong> Owners, threshold and nonce read from the Safe itself. Save the ones you use, name the owners, back it all up to a file.</li>
         <li><strong>Propose.</strong> Sends, tokens, owner changes, thresholds and rejections, signed by your wallet as one owner, with the verify code the console will show.</li>
@@ -141,7 +141,7 @@
 </main>
 
 <footer>
-  <p>PicoQuorum is inspired by and built on <a href="https://github.com/austintgriffith/picowallet">picowallet</a> by Austin Griffith (MIT). Runs on Raspberry Pi Pico 2 W and ESP32-S3, and next on console-rp (RP2350).</p>
+  <p>Picoquorum is inspired by and built on <a href="https://github.com/austintgriffith/picowallet">picowallet</a> by Austin Griffith (MIT). Runs on Raspberry Pi Pico 2 W and ESP32-S3, and next on console-rp (RP2350).</p>
   <p class="muted">Hardware approvals for Safe · <a href="https://github.com/jmcpheron/pico-quorum">Source</a> · <a href="https://github.com/jmcpheron/pico-quorum/blob/main/docs/README.md">All the docs</a> · <a href="https://x.com/picoquorum">@picoquorum on X</a></p>
 </footer>
 </body>

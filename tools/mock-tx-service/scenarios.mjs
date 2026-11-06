@@ -85,7 +85,7 @@ export const SCENARIOS = {
     build: () => [{ to: BOOK.Carol, value: parseEther("1") }, { reportSafe: OTHER_SAFE }],
   },
   release: {
-    about: "Alice proposes that the Safe approve this checkout's PicoQuorum release (SignMessageLib, its release in the origin note), and signs it",
+    about: "Alice proposes that the Safe approve this checkout's Picoquorum release (SignMessageLib, its release in the origin note), and signs it",
     by: "alice", sign: true,
     build: () => { const t = approvalTx(RELEASE); return [{ to: t.to, operation: 1, data: t.data }, { origin: t.origin }]; },
   },

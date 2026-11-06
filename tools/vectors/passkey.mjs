@@ -1,4 +1,4 @@
-// Can a laptop's passkey be a PicoQuorum owner? The browser emulator's passkey key (docs/EMU-WEB.md)
+// Can a laptop's passkey be a Picoquorum owner? The browser emulator's passkey key (docs/EMU-WEB.md)
 // rests on this: a real WebAuthn assertion from a browser, made over a safeTxHash, packed the way
 // firmware/webauthn.py packs the chip's, passes Safe's deployed passkey signer.
 //
@@ -51,7 +51,7 @@ try {
   got = await page.evaluate(async (hash) => {
     const hx = (b) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join("");
     const c = await navigator.credentials.create({ publicKey: {
-      rp: { name: "PicoQuorum", id: "localhost" },
+      rp: { name: "Picoquorum", id: "localhost" },
       user: { id: crypto.getRandomValues(new Uint8Array(16)), name: "emu", displayName: "Emulator key" },
       challenge: crypto.getRandomValues(new Uint8Array(32)), pubKeyCredParams: [{ type: "public-key", alg: -7 }],
       authenticatorSelection: { authenticatorAttachment: "platform", userVerification: "required", residentKey: "preferred" } } });

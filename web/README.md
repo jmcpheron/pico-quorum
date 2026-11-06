@@ -2,23 +2,23 @@
 
 Three static pages, served by GitHub Pages from `docs/`:
 
-- **The front page**, `docs/index.html` (from `src/home.html` and `src/home.css`): what PicoQuorum is,
+- **The front page**, `docs/index.html` (from `src/home.html` and `src/home.css`): what Picoquorum is,
   how an approval goes, the console's screens, the hardware being built, where it stands, and a big
   green **Launch app**. No script. Its header (Guide, Hardware, Console, Source, X) is the same on
   the handheld's page and the console page (`emu/console/index.html`); Guide goes to the guide on
   GitHub, since Pages would draw `docs/guide/` with Jekyll's default theme.
 - **The handheld's page**, `docs/handheld/` (from `src/handheld.html` and the same `home.css`): the
-  [PicoQuorum Handheld](../hardware/builds/pico-sign-handheld/README.md) and its 16 assembly steps, kept
+  [Picoquorum Handheld](../hardware/builds/pico-sign-handheld/README.md) and its 16 assembly steps, kept
   for links already shared. An earlier design: the front page no longer links it. No script. Its pictures are copied from the case's `out/assembly/`, and its
   share card (`src/handheld-card.png`, 1200 × 630) is cut from two of them by `handheld-card.py`:
   `uv run --no-project --with pillow==12.3.0 python3 web/handheld-card.py`. The video box is a
   placeholder; a link to the video can replace it, but an embedded player needs the page's CSP changed.
 - **The app**, `docs/app/` (from `src/main.mjs`), described below.
 
-The app closes the loop on a PicoQuorum Safe:
+The app closes the loop on a Picoquorum Safe:
 open any Safe, see its owners and queue, check every confirmation in the browser, and execute with
 the signatures laid out the way the Safe expects. Safe{Wallet} can't do that last step when a
-contract signature (a PicoQuorum key's) is one of two or more confirmations: GS021
+contract signature (a Picoquorum key's) is one of two or more confirmations: GS021
 (`docs/upstream/safe-wallet-gs021/`). This is `tools/quorum live exec`, without the terminal.
 
 What it does:
@@ -40,7 +40,7 @@ What it does:
   browser wallet (EIP-1193 / EIP-6963). The page holds no key.
 - **Keys.** `docs/registry/keys.json` lists keys with attestation bundles. Each bundle is checked in
   the browser (`src/attest.mjs`, the same checks as `tools/quorum verify`), and a listed owner that
-  passes gets a **Verified PicoQuorum key** badge. A key's page shows the checks, and deploys its
+  passes gets a **Verified Picoquorum key** badge. A key's page shows the checks, and deploys its
   signer proxy on a chain from the wallet (`tools/quorum live enroll`). Any bundle can be checked
   locally under **Check a bundle**.
 - **Releases.** `docs/releases/index.json` (from `tools/release`), each release with its

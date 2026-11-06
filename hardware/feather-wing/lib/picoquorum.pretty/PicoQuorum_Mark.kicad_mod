@@ -1,6 +1,6 @@
 (footprint "PicoQuorum_Mark" (version 20241229) (generator "picoquorum_gen") (generator_version "9.0") (layer "F.Cu")
-(descr "The PicoQuorum mark, 5.0 mm tall, in one colour for silkscreen: three signed dots solid, two waiting dots as rings. docs/BRAND.md")
-(tags "logo PicoQuorum")
+(descr "The Picoquorum mark, 5.0 mm tall, in one colour for silkscreen: three signed dots solid, two waiting dots as rings. docs/BRAND.md")
+(tags "logo Picoquorum")
 (property "Reference" "LOGO1" (at 0 -3.50 0) (layer "F.SilkS") (hide yes) (uuid "6828b7b7-02d3-4cff-b646-719e3ba97771") (effects (font (size 1 1) (thickness 0.15))))
 (property "Value" "PicoQuorum_Mark" (at 0 3.50 0) (layer "F.Fab") (hide yes) (uuid "1227987c-daf7-4f05-a3fc-06d9a5c86ccb") (effects (font (size 1 1) (thickness 0.15))))
 (attr board_only exclude_from_pos_files exclude_from_bom allow_missing_courtyard)

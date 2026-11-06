@@ -1,4 +1,4 @@
-// The PicoQuorum console in a page: the console's screen and buttons. The same firmware as the Pico
+// The Picoquorum console in a page: the console's screen and buttons. The same firmware as the Pico
 // (the console image, in firmware/ beside this file), the quorum console only, with your own passkey
 // as its key and the Safes you saved in the app (or add here: the same list). It shows your passkey's
 // owner address, the one to add to a Safe. emu/build.mjs writes it to docs/console/, one folder with

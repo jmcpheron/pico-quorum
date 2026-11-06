@@ -1,9 +1,9 @@
-# The light boot screen: the PicoQuorum mark turning into Ethereum, as flat vectors. Five owners pop
+# The light boot screen: the Picoquorum mark turning into Ethereum, as flat vectors. Five owners pop
 # in, three sign and their triangle fills green. With no hold, that triangle is the front face of the
 # Ethereum diamond seen head-on: it starts to turn, the signers ride its corners away, the two who
 # didn't sign fade, the lower pyramid rises in and the green face goes blue round the back. The
 # Ethereum logo, spinning. It slows to a stop on the logo's pose as it grows and dims, and the small
-# mark and PicoQuorum fade in over it, then a tagline (taglines.py). Once the console has read its
+# mark and Picoquorum fade in over it, then a tagline (taglines.py). Once the console has read its
 # chip, the owner's blockie and the chip's name and address (set_chip): the same picture as the
 # ceremony's T5, the Owners screen and approvals. The real boot status is the last line. It stops rather than turning on: after WiFi the console's start takes the Pico for a
 # few seconds without a frame, and a diamond frozen mid-turn looks like a hang (2026-09-30).
@@ -36,7 +36,7 @@ CX, CY = L.W // 2, 40 if SMALL else 84
 DOT = 5 if SMALL else 8
 EDGE = 2 if SMALL else 3
 RING = 12 if SMALL else 22                  # how far a signer's ring goes out
-NAME = "PicoQuorum"
+NAME = "Picoquorum"
 NAME_FONT, NAME_Y = ("bold18", 43) if SMALL else ("bold26", 89)   # in front of the diamond
 ICON_R = 8 if SMALL else 12                 # the small mark left of the name
 ICON_W = 2 * ICON_R + 10
@@ -292,7 +292,7 @@ def draw_edge(d, ox, oy, e, lk):
 
 
 def draw_icon(d, ox, oy, cx, cy, a):
-    """The PicoQuorum mark, small: five owners, three signed, their triangle. Rounded on the
+    """The Picoquorum mark, small: five owners, three signed, their triangle. Rounded on the
     screen, then shifted, so every tile agrees on its pixels."""
     pts = [(int(cx + ICON_R * math.cos(math.radians(-90 + 72 * k))) - ox,
             int(cy + ICON_R * math.sin(math.radians(-90 + 72 * k))) - oy) for k in range(5)]

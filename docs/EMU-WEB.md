@@ -32,7 +32,7 @@
   Ethereum.** Both are the P-256 (secp256r1) signature precompile at `0x100`. EIP-7951 went live on
   mainnet with Fusaka. The P-256 curve is the one passkeys, Secure Enclaves, TPMs, the ATECC608 and
   the Trust M all sign with.
-- **Yes, a laptop passkey works, with no new contracts.** PicoQuorum keys already own Safes through
+- **Yes, a laptop passkey works, with no new contracts.** Picoquorum keys already own Safes through
   Safe's *passkey* signer (`SafeWebAuthnSignerProxy`, `firmware/webauthn.py`). The console builds a
   WebAuthn assertion by hand, so the chip looks like a passkey to the Safe. A real passkey is the
   same thing natively.
@@ -257,7 +257,7 @@ works as well (ES256).
 - **The emulator is not a trusted display.** The console's point is a screen the computer can't
   draw on. In the browser, the "screen" is the page. A passkey owner made this way is a real owner
   and a fine demo or test key, but it isn't a console. On the app, it should show as "passkey", not
-  as a PicoQuorum key.
+  as a Picoquorum key.
 - **No Verified badge.** Platform passkeys give `none` attestation. The badge means a genuine Trust M
   (`attest.mjs`), and that stays true. A YubiKey with `direct` attestation could be checked one day,
   the way the Infineon certificate is.

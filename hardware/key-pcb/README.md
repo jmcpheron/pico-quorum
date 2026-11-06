@@ -65,7 +65,7 @@ Layout notes:
 - **Ground.** Both layers are a ground pour, kept off the finger zone by a rule area. The UDFN's
   centre pad goes to GND, as Microchip recommends.
 
-**P-256 is fine.** The ATECC608 family signs P-256 only, never secp256k1, and PicoQuorum never
+**P-256 is fine.** The ATECC608 family signs P-256 only, never secp256k1, and Picoquorum never
 used k1:
 - Each chip key owns the Safe through Safe's passkey signer
   ([webauthn.py](../../firmware/webauthn.py)).

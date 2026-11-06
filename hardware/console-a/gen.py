@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PicoQuorum console PCB, rev A ("console-a"): a Pico 2 W, a 1.3" 240x240 ST7789 panel and nine
+"""Picoquorum console PCB, rev A ("console-a"): a Pico 2 W, a 1.3" 240x240 ST7789 panel and nine
 buttons on one board, wired exactly as the Waveshare Pico-LCD-1.3, so the console image runs on it
 unchanged. Writes the KiCad 10 project from scratch.
 
@@ -28,7 +28,7 @@ if os.path.isdir(_SS):
     kgen.KISYM, kgen.KIFP = _SS + "/symbols", _SS + "/footprints"
 
 NAME = "console-a"
-TITLE = "PicoQuorum console, rev A: Pico 2 W, 1.3in panel, nine buttons"
+TITLE = "Picoquorum console, rev A: Pico 2 W, 1.3in panel, nine buttons"
 DATE = "2026-10-07"
 LIB = os.path.join(HERE, "lib")
 KEYLIB = os.path.join(HERE, "..", "key-pcb", "lib")
@@ -289,7 +289,7 @@ def write_pico_footprint():
         k += 1
     t = t[:i] + t[k + 2:]
     t = t.replace('(descr "Raspberry Pi Pico W surface-mount footprint with debug pads for hand soldering',
-                  '(descr "PicoQuorum copy, SWD through-holes removed: Raspberry Pi Pico W surface-mount footprint for hand soldering', 1)
+                  '(descr "Picoquorum copy, SWD through-holes removed: Raspberry Pi Pico W surface-mount footprint for hand soldering', 1)
     with open(os.path.join(LIB, "console.pretty", "RaspberryPi_Pico_W_SMD_HandSolder_PQ.kicad_mod"), "w") as f:
         f.write(t)
 
@@ -297,12 +297,12 @@ def write_pico_footprint():
 def write_lib_tables(d):
     with open(os.path.join(d, "sym-lib-table"), "w") as f:
         f.write('(sym_lib_table\n  (version 7)\n'
-                '  (lib (name "console")(type "KiCad")(uri "${KIPRJMOD}/../lib/console.kicad_sym")(options "")(descr "PicoQuorum console parts"))\n'
-                '  (lib (name "picoquorum")(type "KiCad")(uri "${KIPRJMOD}/../../key-pcb/lib/picoquorum.kicad_sym")(options "")(descr "PicoQuorum key parts"))\n)\n')
+                '  (lib (name "console")(type "KiCad")(uri "${KIPRJMOD}/../lib/console.kicad_sym")(options "")(descr "Picoquorum console parts"))\n'
+                '  (lib (name "picoquorum")(type "KiCad")(uri "${KIPRJMOD}/../../key-pcb/lib/picoquorum.kicad_sym")(options "")(descr "Picoquorum key parts"))\n)\n')
     with open(os.path.join(d, "fp-lib-table"), "w") as f:
         f.write('(fp_lib_table\n  (version 7)\n'
-                '  (lib (name "console")(type "KiCad")(uri "${KIPRJMOD}/../lib/console.pretty")(options "")(descr "PicoQuorum console footprints"))\n'
-                '  (lib (name "picoquorum")(type "KiCad")(uri "${KIPRJMOD}/../../key-pcb/lib/picoquorum.pretty")(options "")(descr "PicoQuorum key footprints"))\n)\n')
+                '  (lib (name "console")(type "KiCad")(uri "${KIPRJMOD}/../lib/console.pretty")(options "")(descr "Picoquorum console footprints"))\n'
+                '  (lib (name "picoquorum")(type "KiCad")(uri "${KIPRJMOD}/../../key-pcb/lib/picoquorum.pretty")(options "")(descr "Picoquorum key footprints"))\n)\n')
 
 
 # =================================================================================================
@@ -531,10 +531,10 @@ def _silk(board):
         x, y, _ = next(p["at"] for p in PARTS if p["ref"] == ref)
         _text(board, label, x - 5.2, y, F, 1.2)
     _text(board, "KEY ON", 79.5, 37.4, F, 0.8)
-    _text(board, "PICOQUORUM", 16.0, 44.0, F, 1.2)
+    _text(board, "Picoquorum", 16.0, 44.0, F, 1.2)
     _text(board, "console-a rev A " + DATE[:7], 16.0, 46.3, F, 0.8)
     # the back: what goes where
-    _text(board, "PicoQuorum console rev A", 72.0, 47.0, B, 1.0, mirror=True)
+    _text(board, "Picoquorum console rev A", 72.0, 47.0, B, 1.0, mirror=True)
     _text(board, "Pico 2 W: chips out,", 46.0, 28.0, B, 0.8, mirror=True)
     _text(board, "USB to the bottom edge", 46.0, 29.4, B, 0.8, mirror=True)
     names = ("GND", "VBUS", "SDA D+", "SCL D-", "CC1", "CC2", "DET GP7", "GP26")
@@ -644,7 +644,7 @@ def write_board(netlist):
     ds.m_TentViasFront = True
     ds.m_TentViasBack = True
     tb = board.GetTitleBlock()
-    tb.SetTitle(TITLE); tb.SetDate(DATE); tb.SetRevision("A"); tb.SetCompany("PicoQuorum")
+    tb.SetTitle(TITLE); tb.SetDate(DATE); tb.SetRevision("A"); tb.SetCompany("Picoquorum")
 
     nets = {}
     for n in sorted({net for comp in netlist.values() for net in comp["pads"].values()}):

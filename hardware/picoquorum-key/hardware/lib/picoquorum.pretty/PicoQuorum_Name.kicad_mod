@@ -1,6 +1,6 @@
 (footprint "PicoQuorum_Name" (version 20241229) (generator "picoquorum_gen") (generator_version "9.0") (layer "F.Cu")
-(descr "The name PicoQuorum in Atkinson Hyperlegible Next Bold, 1 mm to the cap height, 9.1110 mm of advance, centred; for silkscreen, scaled by the board's generator. docs/BRAND.md")
-(tags "logo PicoQuorum")
+(descr "The name Picoquorum in Atkinson Hyperlegible Next Bold, 1 mm to the cap height, 9.1110 mm of advance, centred; for silkscreen, scaled by the board's generator. docs/BRAND.md")
+(tags "logo Picoquorum")
 (property "Reference" "LOGO2" (at 0 -1.5 0) (layer "F.SilkS") (hide yes) (uuid "ef18cad7-f690-5176-b501-6139e7858fe4") (effects (font (size 1 1) (thickness 0.15))))
 (property "Value" "PicoQuorum_Name" (at 0 1.5 0) (layer "F.Fab") (hide yes) (uuid "06cfaf9e-b32a-5872-a4cd-aad30ec69acc") (effects (font (size 1 1) (thickness 0.15))))
 (attr board_only exclude_from_pos_files exclude_from_bom allow_missing_courtyard)

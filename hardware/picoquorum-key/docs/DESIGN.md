@@ -31,7 +31,7 @@ the boards ordered with it (`bom-port.csv`), and the plug is soldered by hand.
 |---|---|---|
 | module | WROOM-1-**N8R2**, hand-soldered, back face | plain N4R2 isn't stocked at LCSC, DigiKey or Mouser (2026-10-23); N8R2 is on the known-good list |
 | pins | new profile `picoquorum-key` ([PINS.md](PINS.md)) | no button on a strap, one button polarity, IO_MUX SPI, R8-tolerant, short button tracks |
-| key | ATECC608C-MAHDA-S (UDFN-8, 2 x 3 mm), placed by JLCPCB | LCSC C23291019, an extended part; the same chip and package as PicoQuorum's console-s3 (it was SOIC-8, C28975195, until 2026-10-24) |
+| key | ATECC608C-MAHDA-S (UDFN-8, 2 x 3 mm), placed by JLCPCB | LCSC C23291019, an extended part; the same chip and package as Picoquorum's console-s3 (it was SOIC-8, C28975195, until 2026-10-24) |
 | backlight | high-side P-FET from **5 V**, NPN level shift from GPIO21, 150 Ω series | the current is (5 − Vf)/R, independent of the LDO; keeps ~13 mA off the 3.3 V rail |
 | USB data | 0 Ω links R12, R13 in D+ and D− | removable: the board becomes power-only, closing the REPL path the spec records |
 | polyfuse | **none** | JLCPCB has no Basic-tier PPTC; a USB port limits current itself; one fewer extended line |
@@ -63,7 +63,7 @@ board's top-left at (100, 60); the drill/place origin is the bottom-left, (100, 
  X:  0  4  8  12 14                             29.5        50
  Y 0 ╭──┐▓▓▓▓┌─╮──◂ KEY PORT ──────────────────┬───────────╮
      │  │▓J3▓│ │  U6   U7  R18 R17             │░ antenna ░│  plug on the paddle, X 4.05–11.95;
-     │D3└┐▓▓┌┘─╯                               │░PicoQuorum│  cut away to Y 4.5 either side
+     │D3└┐▓▓┌┘─╯                               │░Picoquorum│  cut away to Y 4.5 either side
    7 ├─────────────────────────────────────────┴───────────┤
      │R21                                                  │   R21, R22, D4: the port's LEDs, by the plug
      │R22    [D0]  ┌──────────────────────────┐ C3 C5      │ ← rows 7 / 67 / 127 at Y 10.70 / 17.30 / 23.90
@@ -121,11 +121,11 @@ JLCPCB's legibility minimums):
 
 | side | what is printed |
 |---|---|
-| front, antenna band | the PicoQuorum mark and name (filled shapes from `hardware/lib/picoquorum.pretty`) over the module's antenna end, centred at X 39.5, the name 1.7 mm to the cap (rev A: 2.4, across the band, which now holds the port's parts), and `PicoQuorum.app` on a rule; `KEY PORT` with an arrow at the plug |
+| front, antenna band | the Picoquorum mark and name (filled shapes from `hardware/lib/picoquorum.pretty`) over the module's antenna end, centred at X 39.5, the name 1.7 mm to the cap (rev A: 2.4, across the band, which now holds the port's parts), and `Picoquorum.app` on a rule; `KEY PORT` with an arrow at the plug |
 | front, around the glass | corner ticks 0.4 mm outside the glass (X 15–46, Y 8.5–26.1) for placing the panel; the glass hides anything under it, and the screen labels the rail three |
 | front, buttons | BOOT and RESET, each under its switch with a small glyph (bolt, circular arrow) |
 | front, elsewhere | an 8-bit key right of U2 and a dragon guarding it, above BOOT (a nod to Atari's Adventure, as on console-s3; 0.3 mm squares of silk); `USB-C 5V` and an arrow beside J1; a ring round each M2 hole for the screw head |
-| back | title block (the mark, the name, `KEY, REV B`, `PicoQuorum.app`), the legend `R12+R13 = USB DATA / remove: power-only` and `BOOT+RESET = FLASH`, a key outline with `ONE OWNER` beside its tip (rev A also said `ONE KEY`; with the port a board can hold two), the fourteen test pads each named for its net (`KEY_CC` as `KCC`, `KEY2_SDA` as `KSDA`), `TEST PADS` beside them |
+| back | title block (the mark, the name, `KEY, REV B`, `Picoquorum.app`), the legend `R12+R13 = USB DATA / remove: power-only` and `BOOT+RESET = FLASH`, a key outline with `ONE OWNER` beside its tip (rev A also said `ONE KEY`; with the port a board can hold two), the fourteen test pads each named for its net (`KEY_CC` as `KCC`, `KEY2_SDA` as `KSDA`), `TEST PADS` beside them |
 
 Back text is mirrored so it reads with the board turned over. `tests/test_silk.py` checks the size
 limits, that each button label sits under its own switch, and that every test-pad label, and the R12/R13

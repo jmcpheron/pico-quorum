@@ -1,4 +1,4 @@
-// #/device: a PicoQuorum console on this computer's USB, through Web Serial (Chrome and Edge on a
+// #/device: a Picoquorum console on this computer's USB, through Web Serial (Chrome and Edge on a
 // computer). The page talks the console's USB link (firmware/usblink.py, docs/USB-LINK.md): it
 // reads what the console is and knows, and can send it a Wi-Fi network and the Safes it watches.
 // The console shows each on its own screen and saves it only when the person holds D2 there.
@@ -96,7 +96,7 @@ export async function hello(link, ms = 30000, tick = () => {}) {
 
 // ----------------------------------------------------------------------------- what it is
 export const BOARDS = {
-  "picoquorum-key": ["PicoQuorumKey", "D0", "D1", "D2"],
+  "picoquorum-key": ["PicoquorumKey", "D0", "D1", "D2"],
   "feather-s3": ["Feather ESP32-S3 Reverse TFT", "D0", "D1", "D2"],
   "feather-knob": ["ESP32-S3 TFT Feather with a knob", "Boot", "a turn", "the knob's push"],
   waveshare: ["Pico with the Waveshare 1.3\" screen", "Y", "the joystick", "A"],
@@ -145,11 +145,11 @@ export function deviceView(ui) {
 
   fill(main,
     h("section", { class: "hero" }, h("h1", { text: "Your device" }),
-      h("p", { class: "lede", text: "Plug your PicoQuorum console into this computer and connect it here. The page reads what it is, and can send it your Wi-Fi and the Safes it watches." }),
+      h("p", { class: "lede", text: "Plug your Picoquorum console into this computer and connect it here. The page reads what it is, and can send it your Wi-Fi and the Safes it watches." }),
       h("p", { class: "muted", text: "The console shows each one on its own screen and saves it only when you hold its Sign button. Nothing on this page can make it sign, read its key or change its chip." })),
     h("section", { class: "card" }, h("h2", { text: "Connect" }),
       supported
-        ? h("p", { class: "muted", text: "Chrome asks which port: pick the one named USB JTAG/serial, usbmodem or PicoQuorum." })
+        ? h("p", { class: "muted", text: "Chrome asks which port: pick the one named USB JTAG/serial, usbmodem or Picoquorum." })
         : h("p", { class: "warn-text", text: "This browser can't talk to USB devices. Use Chrome or Edge on a computer. On a phone, or in Safari or Firefox, set up Wi-Fi with the console's own hotspot (below), and practise in the browser." }),
       h("div", { class: "row" }, connect), log.el),
     body,

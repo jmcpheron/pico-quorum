@@ -1,4 +1,4 @@
-# The provisioning ceremony for a fresh OPTIGA Trust M: PicoQuorum's profile quorum-tm1 (tmcfg.py;
+# The provisioning ceremony for a fresh OPTIGA Trust M: Picoquorum's profile quorum-tm1 (tmcfg.py;
 # the reasoning and the runbook are in docs/TRUSTM.md). The same screen as the ATECC's
 # (provision.UI); the step is worked out from the chip and this session every time.
 #
@@ -47,7 +47,7 @@ WHAT = {
     "T8": "Checks the seal: the record, the binding, and that the key still signs. Changes nothing.",
     "T9": "Raises the lifecycle of every object the Safe key does not use, and of Infineon's own, to operational: nothing else on the chip can ever be written, get a key or change its rules.",
     "T10": "Done. Enroll the owner address, then add it to the Safe.",
-    "other": "E0F1 is sealed but holds no PicoQuorum record. The ceremony is for fresh chips.",
+    "other": "E0F1 is sealed but holds no Picoquorum record. The ceremony is for fresh chips.",
 }
 
 

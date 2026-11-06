@@ -1,6 +1,6 @@
 # Launch: the short-term list
 
-What has to happen before PicoQuorum launches on its own domain, in order. It is a working list:
+What has to happen before Picoquorum launches on its own domain, in order. It is a working list:
 tick items as they land, and fold what's left into [docs/STATUS.md](docs/STATUS.md) after launch.
 The plan behind each section is in the doc it links. Addresses here are public and already in
 STATUS.md. Never put a seed phrase, a private key or an API key in this file.
@@ -120,7 +120,7 @@ owner address.
         is a new release fingerprint, and a new kind of transaction: AGENTS.md says ask first.
   - [ ] Save it to `pq.safes`, so the console watches it.
 - [ ] Label it as a starter, for small amounts. The next screen is "add a second owner" (a
-      PicoQuorum key or a hardware wallet) and "raise the threshold to 2", through the add-owner
+      Picoquorum key or a hardware wallet) and "raise the threshold to 2", through the add-owner
       flow that exists (`web/src/propose.mjs`). The rule stays: keep passkey owners below the
       threshold, because the browser can redraw the screen and the passkey prompt never shows the
       transaction. Say in [EMU-WEB.md](docs/EMU-WEB.md), [BROWSER.md](docs/guide/BROWSER.md) and the
@@ -157,7 +157,7 @@ What's left:
 - [ ] Optional: the leftover "picowallet" strings: `chipmap.py` `NOTE_TEXT`, and the test-signature
       digest in the ceremony. The credits to picowallet stay.
 
-## 6. Chips: provisioning fresh ATECC608s the PicoQuorum way (needed soon)
+## 6. Chips: provisioning fresh ATECC608s the Picoquorum way (needed soon)
 
 Today:
 - **The decision.** Shipped keys are ATECC608 (key-c carries a 608C); the Trust M is for the
@@ -180,7 +180,7 @@ To do:
       [BRANDED-KEYS.md](docs/BRANDED-KEYS.md)). Either:
   - a version 2 OTP record that makes room for a quorum ID; or
   - a quorum v2 table with one readable slot, written before the data lock. For example, slot 8
-    could hold "PicoQuorum", the quorum ID and the record.
+    could hold "Picoquorum", the quorum ID and the record.
 
   Either way it is a new profile: decode it with `tools/check_config`, run
   `node test-vectors/run-ceremony.mjs`, and run it on a spare chip first. Locks are permanent
@@ -192,7 +192,7 @@ To do:
   - [ ] what checks it: the app's badge, as for the registry today.
 
   An ATECC608 has no factory certificate. So membership is the project's own statement, not proof
-  of genuine silicon. A contract would be PicoQuorum's first, and the app reading the root is a new
+  of genuine silicon. A contract would be Picoquorum's first, and the app reading the root is a new
   network call. Review both before building.
 - [ ] Before sealing chip #3, also decide whether each chip gets an attestation key in slot 1, so a
       key can prove it is in a branded chip (a proposal, with the gas relay and treasury it would

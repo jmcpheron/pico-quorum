@@ -147,7 +147,7 @@ def log_bundle(path, bundle):
 TITLES = {"U1": "Check the brand", "U2": "Make your key", "U3": "Test signatures", "U4": "Seal your key",
           "U5": "Your key is ready", "other": "Not a key to claim"}
 WHAT = {
-    "U1": "Checks the brand here, with no network: PicoQuorum key 0000's signature, this chip, its locks.",
+    "U1": "Checks the brand here, with no network: Picoquorum key 0000's signature, this chip, its locks.",
     "U2": "Your key is made inside the chip. It signs your Safe's approvals, holds no funds, can't be read out.",
     "U3": "Signs two test digests with your key and checks both here. Nothing leaves this console.",
     "U4": "Locks slot 0 forever: your key can never be changed or replaced.",
@@ -238,8 +238,8 @@ class Ceremony(P.Ceremony):
             checks.append(("a key from an unfinished claim, replaced at U2 (counter %s)" % self.counter, True))
         self.checked = all(k for _, k in checks)
         if not self.checked:
-            return False, checks, "Not a PicoQuorum key: its brand doesn't verify. Nothing was written. Don't use it."
-        return True, checks, "PicoQuorum key %s, batch %d. Check the number on its label." % (chipcfg.brand_number(rec), rec["batch"])
+            return False, checks, "Not a Picoquorum key: its brand doesn't verify. Nothing was written. Don't use it."
+        return True, checks, "Picoquorum key %s, batch %d. Check the number on its label." % (chipcfg.brand_number(rec), rec["batch"])
 
     def u2(self):
         return make_key(self)

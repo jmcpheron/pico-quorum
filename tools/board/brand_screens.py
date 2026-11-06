@@ -36,7 +36,7 @@ def at(base, **kw):
 def u0_welcome(d, number, batch):
     head(d, "New key", 1, 6)
     chip(d, CHIP_Y, SHIPPED, number)
-    U.txt(d, "A PicoQuorum key", M, BODY_Y, "bold18")
+    U.txt(d, "A Picoquorum key", M, BODY_Y, "bold18")
     U.txt(d, "Key %s · batch %d" % (number, batch), M, BODY_Y + 24, "sans14", "muted")
     card(d, 134, 64)
     U.txt(d, "No key inside it yet.", M + 12, 140, "bold14", "text", "surface")
@@ -50,8 +50,8 @@ def u1_brand(d, number, brand):
     head(d, "Check the brand", 2, 6)
     chip(d, CHIP_Y, at(SHIPPED, focus="otp"), number)
     U.mark(d, True, M + 10, BODY_Y + 10, 10)
-    U.txt(d, "Made by PicoQuorum", M + 26, BODY_Y, "bold18")
-    for i, s in enumerate(("Signed by PicoQuorum key 0000", "Locked at the bench", "Never used: 0 signatures")):
+    U.txt(d, "Made by Picoquorum", M + 26, BODY_Y, "bold18")
+    for i, s in enumerate(("Signed by Picoquorum key 0000", "Locked at the bench", "Never used: 0 signatures")):
         fact(d, True, s, BODY_Y + 26 + i * 19, bg="bg")
     blockie(d, brand, M, 172, 5)
     U.txt(d, "Your label says", M + 50, 170, "sans12", "muted")
@@ -123,7 +123,7 @@ def u_bad(d):
     U.txt(d, "Check the brand", M, 4, "bold14", "on_bad", "bad_head")
     chip(d, CHIP_Y + 4, {"cfg": "locked", "data": "locked", "otp": "bad", "dead": "zero", "s8": "sig"})
     U.mark(d, False, M + 10, BODY_Y + 16, 10)
-    U.txt(d, "Not a PicoQuorum key", M + 26, BODY_Y + 6, "bold18", "bad_text", "bad_bg")
+    U.txt(d, "Not a Picoquorum key", M + 26, BODY_Y + 6, "bold18", "bad_text", "bad_bg")
     U.para(d, "Its brand doesn't verify. Nothing was written to it.", M, BODY_Y + 36, W - 2 * M,
            "sans14", "bad_text", "bad_bg", 18, BODY_Y + 76)
     U.para(d, "Don't use it. Tell the project the number on its label.", M, BODY_Y + 80, W - 2 * M,
@@ -160,7 +160,7 @@ def b5_sign(d, number):
     U.txt(d, "Key 0000 signs it", M, BODY_Y, "bold18")
     card(d, BODY_Y + 26, 74)
     logo_mark(d, M + 22, BODY_Y + 50, 0.9)
-    U.txt(d, "PicoQuorum key 0000", M + 40, BODY_Y + 32, "bold14", "text", "surface")
+    U.txt(d, "Picoquorum key 0000", M + 40, BODY_Y + 32, "bold14", "text", "surface")
     U.txt(d, "the brand key, on I2C1", M + 40, BODY_Y + 50, "sans12", "muted", "surface")
     U.txt(d, "Signature into slot 8: ok", M + 40, BODY_Y + 72, "sans12", "stake", "surface")
     U.txt(d, "Rewritable until the data lock.", M, 188, "sans12", "muted")
@@ -173,7 +173,7 @@ def b4_brand(d, number, batch):
     chip(d, CHIP_Y, BRANDING, number)
     U.txt(d, "Write the brand", M, BODY_Y, "bold18")
     card(d, BODY_Y + 26, 74)
-    U.txt(d, "PicoQuorum · quorum v2", M + 12, BODY_Y + 32, "sans14", "text", "surface")
+    U.txt(d, "Picoquorum · quorum v2", M + 12, BODY_Y + 32, "sans14", "text", "surface")
     U.txt(d, "Key %s · batch %d · zeros elsewhere" % (number, batch), M + 12, BODY_Y + 52, "sans12", "muted", "surface")
     U.txt(d, "No key is made here.", M + 12, BODY_Y + 72, "bold14", "stake", "surface")
     U.txt(d, "Rewritable until the data lock.", M, 188, "sans12", "muted")

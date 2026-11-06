@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PicoQuorum key PCB proposals C and D: the same circuit as rev A, on an off-the-shelf connector
+"""Picoquorum key PCB proposals C and D: the same circuit as rev A, on an off-the-shelf connector
 instead of gold fingers. Writes two KiCad 10 projects next to rev A, and never touches rev A's.
 
     tools/keypcb gen-cd [board]  (runs this with KiCad's own Python, which has the pcbnew module)
@@ -35,10 +35,10 @@ CHIP = dict(chip="ATECC608C-SSHDA", chip_fp="Package_SO:SOIC-8_3.9x4.9mm_P1.27mm
 USBC = dict(mpn="HC-TYPE-C-16P-01A", fp="picoquorum:USB_C_Receptacle_HCTL_HC-TYPE-C-16P-01A_PQ", lcsc="C2894897",
             ds="https://datasheet.lcsc.com/lcsc/2211161000_HCTL-HC-TYPE-C-16P-01A_C2894897.pdf")
 BOARDS = {
-    "key-c-usbc": dict(title="PicoQuorum key, proposal C: USB-C receptacle", W=16.0, L=36.0, R=2.0,
+    "key-c-usbc": dict(title="Picoquorum key, proposal C: USB-C receptacle", W=16.0, L=36.0, R=2.0,
                        finish="HASL(with lead-free)", cap_fp="Capacitor_SMD:C_0402_1005Metric", cap_lcsc="C1525",
                        res_fp="Resistor_SMD:R_0402_1005Metric", res_lcsc="C25905", **CHIP),
-    "key-d-pogo": dict(title="PicoQuorum key, proposal D: pogo pads and magnets", W=18.0, L=32.0, R=3.0,
+    "key-d-pogo": dict(title="Picoquorum key, proposal D: pogo pads and magnets", W=18.0, L=32.0, R=3.0,
                        finish="ENIG", cap_fp="Capacitor_SMD:C_0805_2012Metric", cap_lcsc="C49678",
                        res_fp="Resistor_SMD:R_0805_2012Metric", res_lcsc="", **CHIP),
 }
@@ -117,7 +117,7 @@ def write_pads_footprint():
     half = 2 * PAD_PITCH + PAD_D / 2
     with open(os.path.join(LIB, "picoquorum.pretty", "KeyPads_5P_P2.54mm.kicad_mod"), "w") as f:
         f.write(f"""(footprint "KeyPads_5P_P2.54mm" (version 20241229) (generator "picoquorum_gen") (generator_version "9.0") (layer "F.Cu")
-(descr "PicoQuorum key contact pads: 5 round pads at 2.54 mm for spring (pogo) pins. Place it on the bottom. ENIG, no paste: nothing is soldered here.")
+(descr "Picoquorum key contact pads: 5 round pads at 2.54 mm for spring (pogo) pins. Place it on the bottom. ENIG, no paste: nothing is soldered here.")
 (tags "pogo contact pads")
 (property "Reference" "J1" (at 0 -2 0) (layer "F.SilkS") (hide yes) (uuid "{uid()}") (effects (font (size 1 1) (thickness 0.15))))
 (property "Value" "KeyPads_5P" (at 0 2.5 0) (layer "F.Fab") (uuid "{uid()}") (effects (font (size 1 1) (thickness 0.15))))
@@ -142,7 +142,7 @@ def write_receptacle_footprint():
         a = f"(at {x} -3.745)\n\t\t(size 0.6 1.3)"
         assert t.count(a) == 2, x
         t = t.replace(a, f"(at {x} -3.795)\n\t\t(size 0.6 1.2)")
-    t = t.replace('(descr "', '(descr "PicoQuorum copy: outer ground pads 0.1 mm shorter at the peg end, for JLCPCB hole clearance (gen_cd.py). ', 1)
+    t = t.replace('(descr "', '(descr "Picoquorum copy: outer ground pads 0.1 mm shorter at the peg end, for JLCPCB hole clearance (gen_cd.py). ', 1)
     with open(os.path.join(LIB, "picoquorum.pretty", "USB_C_Receptacle_HCTL_HC-TYPE-C-16P-01A_PQ.kicad_mod"), "w") as f:
         f.write(t)
 
@@ -151,7 +151,7 @@ MARK_H = 5.0     # the mark's height on the board, mm (docs/BRAND.md: below ~16 
 
 
 def write_mark_footprint():
-    """The PicoQuorum mark (docs/BRAND.md) in one colour, for silkscreen. Same geometry as
+    """The Picoquorum mark (docs/BRAND.md) in one colour, for silkscreen. Same geometry as
     docs/brand/mark-*.svg: five points at -90 + 72k degrees on a circle of radius r, signed dots
     r/4 (top, lower left, lower right), waiting dots r/6, the triangle joining the signed three.
     Silkscreen has no second colour, so the waiting dots are hollow rings instead of amber, and the
@@ -187,8 +187,8 @@ def write_mark_footprint():
     w = 1.118 * r
     with open(os.path.join(LIB, "picoquorum.pretty", "PicoQuorum_Mark.kicad_mod"), "w") as f:
         f.write(f"""(footprint "PicoQuorum_Mark" (version 20241229) (generator "picoquorum_gen") (generator_version "9.0") (layer "F.Cu")
-(descr "The PicoQuorum mark, {MARK_H} mm tall, in one colour for silkscreen: three signed dots solid, two waiting dots as rings. docs/BRAND.md")
-(tags "logo PicoQuorum")
+(descr "The Picoquorum mark, {MARK_H} mm tall, in one colour for silkscreen: three signed dots solid, two waiting dots as rings. docs/BRAND.md")
+(tags "logo Picoquorum")
 (property "Reference" "LOGO1" (at 0 {-MARK_H / 2 - 1:.2f} 0) (layer "F.SilkS") (hide yes) (uuid "{uid()}") (effects (font (size 1 1) (thickness 0.15))))
 (property "Value" "PicoQuorum_Mark" (at 0 {MARK_H / 2 + 1:.2f} 0) (layer "F.Fab") (hide yes) (uuid "{uid()}") (effects (font (size 1 1) (thickness 0.15))))
 (attr board_only exclude_from_pos_files exclude_from_bom allow_missing_courtyard)
@@ -476,7 +476,7 @@ def write_board(name, b, netlist, dump=False):
     ds.m_CopperEdgeClearance = pcbnew.FromMM(0.3)
     ds.SetAuxOrigin(gen._mm(-W / 2, 0))
     tb = board.GetTitleBlock()
-    tb.SetTitle(b["title"]); tb.SetDate(DATES[name]); tb.SetRevision(REVS[name]); tb.SetCompany("PicoQuorum")
+    tb.SetTitle(b["title"]); tb.SetDate(DATES[name]); tb.SetRevision(REVS[name]); tb.SetCompany("Picoquorum")
 
     nets = {}
     for n in sorted({net for comp in netlist.values() for net in comp["pads"].values()}):
@@ -655,16 +655,16 @@ def _silk(board, name, W, L):
     import pcbnew
     F, B = pcbnew.F_SilkS, pcbnew.B_SilkS
     if name == "key-c-usbc":
-        gen._text(board, "PICOQUORUM", 0, -26.8, F, 1.0)
-        gen._text(board, "PicoQuorum key", 0, -23.9, B, 1.0, mirror=True)
+        gen._text(board, "Picoquorum", 0, -26.8, F, 1.0)
+        gen._text(board, "Picoquorum key", 0, -23.9, B, 1.0, mirror=True)
         gen._text(board, f"key-c {REVS[name]} {DATES[name][:7]}", 0, -22.5, B, 0.8, mirror=True)
         gen._text(board, "I2C on USB-C", 0, -21.3, B, 0.8, mirror=True)
         for ref, net in TPS:
             x, y, _, _ = LAYOUT[name]["parts"][ref]
             gen._text(board, net, x, y - 1.5, B, 0.8, mirror=True)
     else:
-        gen._text(board, "PICOQUORUM", 0, -L + 8.5, F, 1.2)
-        gen._text(board, "PicoQuorum key", 0, -19.8, B, 1.2, mirror=True)
+        gen._text(board, "Picoquorum", 0, -L + 8.5, F, 1.2)
+        gen._text(board, "Picoquorum key", 0, -19.8, B, 1.2, mirror=True)
         gen._text(board, f"key-d pogo {REVS[name]} {DATES[name][:7]}", 0, -18.2, B, 0.8, mirror=True)
         for n, sig, _ in PADS:
             # pads are numbered as seen from the bottom, so pad n sits at x = (3 - n) * pitch from the top

@@ -1,5 +1,5 @@
 # The bench half of a branded key (docs/BRANDED-KEYS.md), with an attestation key (docs/ATTESTED-KEYS.md):
-# PicoQuorum's config, an attestation key made and sealed in slot 1, a brand record and that key signed
+# Picoquorum's config, an attestation key made and sealed in slot 1, a brand record and that key signed
 # by key 0000, both zone locks, and no key in slot 0. With no brand key pinned it brands a SPARE with a
 # public test key, to settle on silicon what the proposals can't settle on paper, and then runs the
 # claim's key steps on it (S1-S3) and the attestation (S4). The brand image's ceremony, on
@@ -429,7 +429,7 @@ class Ceremony(P.Ceremony):
         if not rec:
             return self.checked, checks, "no record"
         if self.brand:
-            return self.checked, checks, "PicoQuorum key %s, batch %d: ready to ship, no key inside." % (chipcfg.brand_number(rec), rec["batch"])
+            return self.checked, checks, "Picoquorum key %s, batch %d: ready to ship, no key inside." % (chipcfg.brand_number(rec), rec["batch"])
         return self.checked, checks, "number %s, test bench. The S steps make a key." % chipcfg.brand_number(rec)
 
     def s1(self):

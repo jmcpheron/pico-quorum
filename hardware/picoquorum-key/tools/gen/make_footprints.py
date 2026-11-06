@@ -142,7 +142,7 @@ for x in fp:
     if isinstance(x, list) and x and x[0] == "pad" and pad_number(x) in ("A1", "A12", "B1", "B12"):
         x.append(["zone_connect", "2"])
 # the shell's plated slots: KiCad's pads leave a 0.20 mm ring, JLCPCB's least for a plated hole.
-# 0.1 mm more each way makes it 0.25 (the same change as PicoQuorum's console-s3 made)
+# 0.1 mm more each way makes it 0.25 (the same change as Picoquorum's console-s3 made)
 for x in fp:
     if isinstance(x, list) and x and x[0] == "pad" and pad_number(x) == "SH":
         size = find(x, "size")

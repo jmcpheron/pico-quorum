@@ -96,7 +96,7 @@ const owners = [alice.address, chip, getAddress("0x3C44CdDdB6a900fa2b585dd299e03
 const c = await S.checkTx(fake, chainId, safe, owners, t);
 check(!c.problems.length, "checkTx: the service's hash, the fields' hash and the Safe's agree");
 check(c.valid.length === 2, "checkTx: the ECDSA and the console's contract confirmation are both valid");
-check(c.confirmations[1].console && c.confirmations[1].kind === "contract", "checkTx: the console's confirmation is a contract signature naming PicoQuorum");
+check(c.confirmations[1].console && c.confirmations[1].kind === "contract", "checkTx: the console's confirmation is a contract signature naming Picoquorum");
 
 const { signatures } = S.execCall(t, c.valid, 2);
 const sorted = [alice.address, chip].sort((a, b) => (BigInt(a) < BigInt(b) ? -1 : 1));

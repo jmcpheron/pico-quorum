@@ -106,4 +106,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
-        run: gh release create "$TAG" dist/* --verify-tag --title "PicoQuorum ${TAG#fw-}" --notes-file notes.md
+        run: gh release create "$TAG" dist/* --verify-tag --title "Picoquorum ${TAG#fw-}" --notes-file notes.md

@@ -1,8 +1,8 @@
 # The key registry
 
-`keys.json` lists PicoQuorum keys whose attestation bundles anyone can check. The
+`keys.json` lists Picoquorum keys whose attestation bundles anyone can check. The
 [Execute page](../app/) reads it: when one of a Safe's owners is listed here and its bundle passes
-every check, the owner gets a **Verified PicoQuorum key** badge.
+every check, the owner gets a **Verified Picoquorum key** badge.
 
 A listing is a claim. The bundle is the evidence, and the page checks it in your browser every time,
 with the same checks as `tools/quorum verify` (`tools/mock-tx-service/attest.mjs`):

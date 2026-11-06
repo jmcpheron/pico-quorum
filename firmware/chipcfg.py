@@ -2,7 +2,7 @@
 # them: which one a chip has, the CRC the chip checks when a zone is locked, and the record that
 # goes into the OTP zone. Pure: no bus, so tools/check_config and the tests use it too.
 #
-# "quorum-v1" is PicoQuorum's own config, written for one job: a P-256 key that is one owner of a
+# "quorum-v1" is Picoquorum's own config, written for one job: a P-256 key that is one owner of a
 # Safe (docs/PROVISIONING.md has the reasoning, byte by byte). In short:
 #   slot 0      P-256 private key, made on the chip by GenKey, external Sign only (no internal sign,
 #               no ECDH), never written or imported (no PrivWrite), LimitedUse: every signature

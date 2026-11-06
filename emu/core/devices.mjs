@@ -22,7 +22,7 @@ const BOARD_UF2 = { "RP2350": ["RPI_PICO2", "RPI_PICO2_W"], "RPI-RP2": ["RPI_PIC
 // pyserial lives in the mpremote install; used for port info, the 1200-baud bootloader touch, banners
 const PY = [join(homedir(), ".local/share/uv/tools/mpremote/bin/python"), dirname(MPREMOTE) + "/python", "python3"].find((p) => !p.includes("/") || existsSync(p));
 const USBINFO = join(dirname(fileURLToPath(import.meta.url)), "usbinfo.py");
-// A PicoQuorum console from 2026.11 holds USB itself (firmware/usblink.py): it answers the link's
+// A Picoquorum console from 2026.11 holds USB itself (firmware/usblink.py): it answers the link's
 // hello and never the REPL, and an mpremote call would only time out against it.
 const LINKPY = join(dirname(fileURLToPath(import.meta.url)), "../../tools/board/link.py");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -89,7 +89,7 @@ async function identify(port) {
     const l = await run(PY, [LINKPY, port, JSON.stringify({ op: "hello" }), "3"], 8000);
     if (l.code === 0) {
       const h = JSON.parse(l.out.trim().split("\n").pop());
-      if (serialPorts().includes(port)) known.set(port, { mp: true, link: h, board: `PicoQuorum ${h.image} on ${h.board} (USB link)`, product: info.product, manufacturer: info.manufacturer, banner: "" });
+      if (serialPorts().includes(port)) known.set(port, { mp: true, link: h, board: `Picoquorum ${h.image} on ${h.board} (USB link)`, product: info.product, manufacturer: info.manufacturer, banner: "" });
       else known.delete(port);
       return;
     }

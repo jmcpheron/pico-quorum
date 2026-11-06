@@ -17,7 +17,7 @@ leaves with its key made, sealed and recorded. The user has to take the bench's 
 chose that key.
 
 This proposal splits the ceremony in two:
-- **The bench brands the chip.** It writes PicoQuorum's config and a signed brand record, then locks
+- **The bench brands the chip.** It writes Picoquorum's config and a signed brand record, then locks
   the config and data zones. It makes no key.
 - **The user's console makes the key.** It checks the brand, makes the key inside the chip, and
   seals it.
@@ -58,7 +58,7 @@ one thing that matters: a key that only their console asked for.
 <img src="branded-keys/bench.svg" width="100%" alt="The branding bench: a Pico 2 W running the brand image, the chip being branded on I2C0, key 0000 on I2C1, a laptop with tools/fw, and a label printer.">
 
 - **One Pico with two key-c receptacles:**
-  - **The brand key**, PicoQuorum key 0000. It is a key-c board like every other, plugged in for good.
+  - **The brand key**, Picoquorum key 0000. It is a key-c board like every other, plugged in for good.
   - **The chip being branded**, an ATECC608C on a key-c board.
   - Both ATECCs answer at 0x60, so each gets one of the Pico's two I2C controllers. The driver
     already takes its pins as arguments (`atecc.ATECC608(sda, scl)`). The bench board needs the
@@ -85,9 +85,9 @@ B1–B3 are C1–C3 today, with a new table. B6 is C9. The new parts are B4, B5 
 
 | B1: pre-flight | B3: lock the config | B4: write the brand |
 |---|---|---|
-| <img src="branded-keys/b1-preflight.png" width="240" alt="B1 A factory chip: ATECC608C self-test ok, nothing locked yet, factory table saved. The chip graphic is empty, both padlocks open."> | <img src="branded-keys/b3-config-lock.png" width="240" alt="B3 Lock the config, a red page: slot rules fixed for good, the chip checks the table's CRC first. The cfg padlock is ringed in red."> | <img src="branded-keys/b4-brand.png" width="240" alt="B4 Write the brand: PicoQuorum, quorum v2, key 0042, batch 3, zeros elsewhere; no key is made here. The OTP area now shows the mark and 0042."> |
+| <img src="branded-keys/b1-preflight.png" width="240" alt="B1 A factory chip: ATECC608C self-test ok, nothing locked yet, factory table saved. The chip graphic is empty, both padlocks open."> | <img src="branded-keys/b3-config-lock.png" width="240" alt="B3 Lock the config, a red page: slot rules fixed for good, the chip checks the table's CRC first. The cfg padlock is ringed in red."> | <img src="branded-keys/b4-brand.png" width="240" alt="B4 Write the brand: Picoquorum, quorum v2, key 0042, batch 3, zeros elsewhere; no key is made here. The OTP area now shows the mark and 0042."> |
 | **B5: key 0000 signs it** | **B6: lock the data zone** | **B7: ready to ship** |
-| <img src="branded-keys/b5-countersign.png" width="240" alt="B5 Key 0000 signs it: PicoQuorum key 0000, the brand key, on I2C1; signature into slot 8. Slot 8 fills in blue."> | <img src="branded-keys/b6-data-lock.png" width="240" alt="B6 Lock the data, a red page: the brand and every slot freeze for good; then only the chip's own GenKey can fill slot 0. The data padlock is ringed in red."> | <img src="branded-keys/b7-ready.png" width="240" alt="B7 Ready to ship: brand signed by key 0000, locked 00/00 and checked, no key inside, slot 0 empty. Both padlocks shut. Print the label 0042."> |
+| <img src="branded-keys/b5-countersign.png" width="240" alt="B5 Key 0000 signs it: Picoquorum key 0000, the brand key, on I2C1; signature into slot 8. Slot 8 fills in blue."> | <img src="branded-keys/b6-data-lock.png" width="240" alt="B6 Lock the data, a red page: the brand and every slot freeze for good; then only the chip's own GenKey can fill slot 0. The data padlock is ringed in red."> | <img src="branded-keys/b7-ready.png" width="240" alt="B7 Ready to ship: brand signed by key 0000, locked 00/00 and checked, no key inside, slot 0 empty. Both padlocks shut. Print the label 0042."> |
 
 B2 (writing the table) looks like B4. For comparison, today's ceremony screens use the 8-pixel framebuf
 font ([firmware-production/shots](firmware-production/shots/)):
@@ -151,11 +151,11 @@ The console checks four things:
 - that the bench id is 0 and the certificate bytes are zeros. Until a second bench exists, any other
   value is refused, not guessed at.
 
-**3. The brand key: a PicoQuorum key, number 0000.**
-- **A PicoQuorum key brands the others.** The brand key is the product itself: a key-c board with an
+**3. The brand key: a Picoquorum key, number 0000.**
+- **A Picoquorum key brands the others.** The brand key is the product itself: a key-c board with an
   ATECC608C.
 - **Not a laptop key.** A brand key in a file can leak, and a leaked brand key brands fakes. Key
-  0000's private key was made in its chip and can't be read out, like every PicoQuorum key's.
+  0000's private key was made in its chip and can't be read out, like every Picoquorum key's.
 - **It has today's whole ceremony, run by the project on the bench.** That is quorum v1, C1–C10
   ([PROVISIONING.md](PROVISIONING.md)), not the split below. It is the one key that can't be branded
   by another, so its record and the ceremony log are published instead.
@@ -194,7 +194,7 @@ The console checks four things:
 
 **5. More than one bench, later.** Nothing is built for this yet, but the record and slot 8 leave
 room for it. Both are written once and frozen, so the room has to be there from the first chip.
-- A new bench gets its own brand key, itself a PicoQuorum key, and a bench id.
+- A new bench gets its own brand key, itself a Picoquorum key, and a bench id.
 - Key 0000 signs that bench's certificate: its id and its key's public half. The certificate goes
   into slot 8's bytes 64–223 of every chip that bench brands.
 - **The console then checks two signatures:** key 0000's over the certificate, then the bench key's
@@ -203,7 +203,7 @@ room for it. Both are written once and frozen, so the room has to be there from 
 - **A bench whose key leaks** is revoked in the registry without touching the others.
 - **Key 0000 then signs only certificates.** It could live in a drawer between benches.
 - **Further off, and not proposed:** numbers taken from a hash of the serial, with no counter;
-  project Safe approval for each bench key; or other brands beside PicoQuorum's (TRADEMARK.md).
+  project Safe approval for each bench key; or other brands beside Picoquorum's (TRADEMARK.md).
 
 **6. The list.**
 - The registry ([registry/README.md](registry/README.md)) covers Trust M only today, and `tools/fw
@@ -212,7 +212,7 @@ room for it. Both are written once and frozen, so the room has to be there from 
   signature. All of it is public.
 - A claim (below) adds the owner address to that serial's entry.
 - One owner per serial: a second claim on the same serial is the sign of a copied brand.
-- An onchain Merkle root (LAUNCH.md) can come later. It would be PicoQuorum's first contract.
+- An onchain Merkle root (LAUNCH.md) can come later. It would be Picoquorum's first contract.
 
 **7. What the brand proves, and what it doesn't.**
 - **It proves** the project's brand key signed this serial's record, with this config CRC, and that
@@ -238,7 +238,7 @@ room for it. Both are written once and frozen, so the room has to be there from 
   - Claim can only make slot 0's key and seal it. It can't write config, OTP or slot 8, and it can't
     lock a zone.
   - The console image still carries none of it (AGENTS.md rule 2).
-- **The console image gets read-only brand lines** on its Chip page: "PicoQuorum key 0042, batch 3,
+- **The console image gets read-only brand lines** on its Chip page: "Picoquorum key 0042, batch 3,
   brand checked".
 
 **9. The user's gates.** Today a permanent step needs `ALLOW_*` set from the laptop, the B+Y arm,
@@ -286,9 +286,9 @@ nothing locked:
 Every step, on the bench and on the user's console, shows the chip under its header, so the wizard
 reads as the chip filling in:
 
-<img src="branded-keys/chip-stages.png" width="240" align="right" alt="The chip graphic at four stages: 1 Factory, everything dashed and both padlocks open; 2 Branded, the OTP shows the PicoQuorum mark and 0042, slot 8 is blue, both padlocks shut, slot 0 still dashed; 3 Key made, slot 0 green; 4 Sealed, slot 0 green with a white border.">
+<img src="branded-keys/chip-stages.png" width="240" align="right" alt="The chip graphic at four stages: 1 Factory, everything dashed and both padlocks open; 2 Branded, the OTP shows the Picoquorum mark and 0042, slot 8 is blue, both padlocks shut, slot 0 still dashed; 3 Key made, slot 0 green; 4 Sealed, slot 0 green with a white border.">
 
-- **The package** names the part, ATECC608C. Once branded, the PicoQuorum mark sits beside it.
+- **The package** names the part, ATECC608C. Once branded, the Picoquorum mark sits beside it.
 - **The padlocks** for the config and data zones, open or shut.
 - **The OTP zone:** dashed while empty, then blue with the mark and the key's number.
 - **The sixteen slots:** 0–7 on top, 8–15 below.
@@ -306,10 +306,10 @@ reads as the chip filling in:
 
 ### What arrives
 
-- **A key-c board** (USB-C, ATECC608C) with the PicoQuorum mark on its back.
+- **A key-c board** (USB-C, ATECC608C) with the Picoquorum mark on its back.
 - **A bag label:**
 
-  <img src="branded-keys/label-0042.svg" width="420" alt="Proposed label: PicoQuorum key 0042, batch 3, ATECC608C, the serial's last 8 characters, the brand picture, a QR code, and: No key inside yet. Your console makes it.">
+  <img src="branded-keys/label-0042.svg" width="420" alt="Proposed label: Picoquorum key 0042, batch 3, ATECC608C, the serial's last 8 characters, the brand picture, a QR code, and: No key inside yet. Your console makes it.">
 
   The picture is the same blockie the bench drew at B7 and the console draws at U1. The QR code
   opens the app's check page for this serial. That page doesn't exist yet: `#/brand/<serial>` is a
@@ -319,10 +319,10 @@ reads as the chip filling in:
 
 ### The claim, on the console
 
-The user needs a PicoQuorum console, built or bought, on a release that carries claim. The Device
+The user needs a Picoquorum console, built or bought, on a release that carries claim. The Device
 screen shows the release fingerprint, to compare with the README's build table.
 
-1. **Plug the key in.** The console sees a branded, unclaimed chip and says so: "A PicoQuorum key.
+1. **Plug the key in.** The console sees a branded, unclaimed chip and says so: "A Picoquorum key.
    No key inside it yet." A starts.
 2. **U1 Check the brand.** The console checks it with no network. Check that the label's number
    and picture match the screen.
@@ -332,7 +332,7 @@ screen shows the release fingerprint, to compare with the README's build table.
 6. **U5 Your owner address**, with its blockie. The console pins the chip and restarts into the
    console.
 
-On three buttons (PicoQuorumKey, the Feather; `firmware/keypick_s.py`), U2-U4 are one flow for the
+On three buttons (PicoquorumKey, the Feather; `firmware/keypick_s.py`), U2-U4 are one flow for the
 owner. The same screens make an owner's own key with no brand at all: the dual image sends a fresh
 chip (or one whose config zone is still open) to `provision.py`'s C1-C10, where **Start** (D2 held
 3 s) runs C1-C3, Make/New/Keep are C4-C6, and Keep goes on through C7-C9 to the data lock. **Make** (D2, one press) shows the new key's owner address as a big blockie and its two ends.
@@ -347,7 +347,7 @@ the data lock). The brand image's spare runs its S1-S3 on the same screen.
 
 | Plug in | U1: the brand checks | U2: make your key |
 |---|---|---|
-| <img src="branded-keys/u0-welcome.png" width="240" alt="New key: the PicoQuorum mark, A PicoQuorum key, key 0042, batch 3. No key inside it yet: this console makes your key in the chip, in about a minute. A Start, Y Not now."> | <img src="branded-keys/u1-brand-ok.png" width="240" alt="Check the brand: Made by PicoQuorum. Signed by PicoQuorum key 0000, locked at the bench, never used, 0 signatures. Your label says 0042, with the brand picture. A It matches, Y It doesn't."> | <img src="branded-keys/u2-make-key.png" width="240" alt="Make your key: your key is made inside the chip. What this key is: signs your Safe's approvals; can't hold ETH, tokens or funds; can't be copied or read out. Armed, hold A for 3 s."> |
+| <img src="branded-keys/u0-welcome.png" width="240" alt="New key: the Picoquorum mark, A Picoquorum key, key 0042, batch 3. No key inside it yet: this console makes your key in the chip, in about a minute. A Start, Y Not now."> | <img src="branded-keys/u1-brand-ok.png" width="240" alt="Check the brand: Made by Picoquorum. Signed by Picoquorum key 0000, locked at the bench, never used, 0 signatures. Your label says 0042, with the brand picture. A It matches, Y It doesn't."> | <img src="branded-keys/u2-make-key.png" width="240" alt="Make your key: your key is made inside the chip. What this key is: signs your Safe's approvals; can't hold ETH, tokens or funds; can't be copied or read out. Armed, hold A for 3 s."> |
 | **U3: test it** | **U4: seal it** | **U5: ready** |
 | <img src="branded-keys/u3-test.png" width="240" alt="Testing your key: two test signatures, checked here. Nothing leaves this console."> | <img src="branded-keys/u4-seal.png" width="240" alt="Seal your key: Permanent. After this, your key can never be changed or replaced. Lose the chip, and your Safe's other owners swap it out. Hold A, the bar in red."> | <img src="branded-keys/u5-owner.png" width="240" alt="Your key is ready: the Safe owner address and its blockie. A signer, not a wallet: don't send ETH or tokens here. Funds go to your Safe."> |
 
@@ -367,7 +367,7 @@ The claim says what the key is in words a new owner can act on, not in chip term
 
 **When the brand doesn't check out**, claim stops before anything is written:
 
-<img src="branded-keys/u1-brand-bad.png" width="240" alt="Check the brand, on a red page: Not a PicoQuorum key. Its brand doesn't verify. Nothing was written to it. Don't use it. Tell the project the number on its label.">
+<img src="branded-keys/u1-brand-bad.png" width="240" alt="Check the brand, on a red page: Not a Picoquorum key. Its brand doesn't verify. Nothing was written to it. Don't use it. Tell the project the number on its label.">
 
 Claim also refuses:
 - a chip whose slot 0 is already sealed (claimed before)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PicoQuorum console PCB, console-pocket: the Pico 2 W, a 1.54" ST7789 panel, seven buttons and pads
+"""Picoquorum console PCB, console-pocket: the Pico 2 W, a 1.54" ST7789 panel, seven buttons and pads
 for the key, on one 51 x 85 mm board. Writes the whole KiCad 9 project as text:
 
     python3 hardware/console-pocket/gen_console.py          write lib/, console-pocket/, then self-check
@@ -28,7 +28,7 @@ L = "picoquorum-pocket"                        # the library name, in sym-lib-ta
 LIB = os.path.join(HERE, "lib")
 OUT = os.path.join(HERE, NAME)
 DATE = "2026-10-07"
-TITLE = "PicoQuorum console-pocket, rev A: Pico 2 W on the back, 1.54in ST7789, 7 buttons, key pads"
+TITLE = "Picoquorum console-pocket, rev A: Pico 2 W on the back, 1.54in ST7789, 7 buttons, key pads"
 NOTE = "The pocket console on one board: see hardware/console-pocket/README.md"
 PICO_DS = "https://datasheets.raspberrypi.com/picow/pico-2-w-datasheet.pdf"
 SRC = "github.com/jmcpheron/pico-quorum"        # the Source Location, CERN-OHL-W 4.1
@@ -1115,7 +1115,7 @@ def footprint_text(ref, p, fpname, fp, nets, path_uuid):
 
 
 def mark_text(x, y):
-    """The PicoQuorum mark on the back, as a board-only footprint from gen_cd's library file."""
+    """The Picoquorum mark on the back, as a board-only footprint from gen_cd's library file."""
     src = open(os.path.join(LIB, "picoquorum.pretty", "PicoQuorum_Mark.kicad_mod")).read()
     body = src[src.index("\n(fp_poly"):src.rindex("\n(embedded_fonts")]
     # flip to the back: negate every y and swap the silk layer
@@ -1127,7 +1127,7 @@ def mark_text(x, y):
     body = body.replace('"F.SilkS"', '"B.SilkS"')
     px, py = page(x, y)
     return (f'\t(footprint "picoquorum:PicoQuorum_Mark" (layer "B.Cu") (uuid "{uid()}") (at {f(px)} {f(py)})\n'
-            f'\t\t(descr "The PicoQuorum mark, one colour, for silkscreen: docs/BRAND.md")\n\t\t(tags "logo")\n'
+            f'\t\t(descr "The Picoquorum mark, one colour, for silkscreen: docs/BRAND.md")\n\t\t(tags "logo")\n'
             + _prop("Reference", "LOGO1", 0, -4, "B.SilkS", hide=True, back=True).replace("\t(", "\t\t(", 1) + "\n"
             + _prop("Value", "PicoQuorum_Mark", 0, 4, "B.Fab", hide=True, back=True).replace("\t(", "\t\t(", 1) + "\n"
             + "\t\t(attr board_only exclude_from_pos_files exclude_from_bom allow_missing_courtyard)\n"
@@ -1186,7 +1186,7 @@ def write_board(uids, router):
     layers, setup = _template_blocks()
     out = ["(kicad_pcb", "\t(version 20241229)", '\t(generator "picoquorum_gen")', '\t(generator_version "9.0")',
            "\t(general (thickness 1.6) (legacy_teardrops no))", '\t(paper "A4")',
-           f'\t(title_block (title "{TITLE}") (date "{DATE}") (rev "A") (company "PicoQuorum") (comment 1 "{NOTE}"))',
+           f'\t(title_block (title "{TITLE}") (date "{DATE}") (rev "A") (company "Picoquorum") (comment 1 "{NOTE}"))',
            layers, setup, '\t(net 0 "")']
     out += [f'\t(net {i} "{n}")' for n, i in nets.items()]
     for ref, p in PARTS.items():
@@ -1215,8 +1215,8 @@ def write_board(uids, router):
         out.append(gr_text(name, 5.5, 51.27 + 1.27 - 2.54 * (i - 1), "B.SilkS", 0.8, back=True))
     for i, (name, _net) in enumerate(J4_PINS, 1):
         out.append(gr_text(name, 5.5, 60.0 + 2.54 - 2.54 * (i - 1), "B.SilkS", 0.8, back=True))
-    out.append(gr_text("PICOQUORUM", 25.5, 83.6, "F.SilkS", 1.0))
-    out.append(gr_text(f"PicoQuorum console-pocket {DATE[:7]}", 25.5, 33.2, "B.SilkS", 1.0, back=True))
+    out.append(gr_text("Picoquorum", 25.5, 83.6, "F.SilkS", 1.0))
+    out.append(gr_text(f"Picoquorum console-pocket {DATE[:7]}", 25.5, 33.2, "B.SilkS", 1.0, back=True))
     out.append(gr_text(SRC, 25.5, 31.2, "B.SilkS", 0.8, back=True))
     out.append(gr_text("Pico 2 W on this side, USB at the right edge", 25.5, 29.2, "B.SilkS", 0.8, back=True))
     out.append(gr_text("key wires", 45.6, 65.5, "B.SilkS", 0.8, back=True))
@@ -1255,12 +1255,12 @@ def write_project(sheet_uuid):
 def write_lib_tables():
     with open(os.path.join(OUT, "sym-lib-table"), "w") as fh:
         fh.write(f'(sym_lib_table\n  (version 7)\n  (lib (name "{L}")(type "KiCad")(uri "${{KIPRJMOD}}/../lib/{L}.kicad_sym")'
-                 f'(options "")(descr "PicoQuorum console parts"))\n)\n')
+                 f'(options "")(descr "Picoquorum console parts"))\n)\n')
     with open(os.path.join(OUT, "fp-lib-table"), "w") as fh:
         fh.write(f'(fp_lib_table\n  (version 7)\n  (lib (name "{L}")(type "KiCad")(uri "${{KIPRJMOD}}/../lib/{L}.pretty")'
-                 f'(options "")(descr "PicoQuorum console footprints"))\n'
+                 f'(options "")(descr "Picoquorum console footprints"))\n'
                  f'  (lib (name "picoquorum")(type "KiCad")(uri "${{KIPRJMOD}}/../lib/picoquorum.pretty")'
-                 f'(options "")(descr "The PicoQuorum mark"))\n)\n')
+                 f'(options "")(descr "The Picoquorum mark"))\n)\n')
 
 
 # =================================================================================================

@@ -1,4 +1,4 @@
-# PicoQuorum Handheld: a signing console you hold in two hands
+# Picoquorum Handheld: a signing console you hold in two hands
 
 *pico-sign-handheld*: pico-sign's knob, sign button and pins, with the 2.4″ screen and a Pico 2 W, in a slim
 case that also lies flat on the desk.
@@ -205,7 +205,7 @@ between the name and the controls.
     the guard's base's screws.
 - a 23 × 7 mm frame under each, a 0.6 mm line cut 0.6 mm deep, with TURN and SIGN in it, cut 1.2 mm
 - three stripes over the screen, cut 0.6, 1.2 and 1.8 mm ([the colours](#the-colours))
-- PICOQUORUM cut between the controls and the window: 7.7 mm letters, 65 mm long (the script works it out)
+- Picoquorum cut between the controls and the window: 8.5 mm letters, 45 mm long (the script works it out)
 
 ![the plate, front and back](case/out/handheld_plate.png)
 
@@ -220,7 +220,7 @@ bed (before layers 4, 7 and 10, at 0.2 mm layers), and each depth of cut is its 
 | from | colour (a suggestion) | shows |
 |---|---|---|
 | 0.0 mm | light grey | the face |
-| 0.6 mm | charcoal | PICOQUORUM and the label frames, cut 0.6 mm; the nearest stripe |
+| 0.6 mm | charcoal | Picoquorum and the label frames, cut 0.6 mm; the nearest stripe |
 | 1.2 mm | red | TURN and SIGN, cut 1.2 mm; the middle stripe |
 | 1.8 mm | blue | the far stripe, cut 1.8 mm; the wells' floors and everything behind |
 

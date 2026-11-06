@@ -1,4 +1,4 @@
-# PicoQuorum UI, v2: the plan, and the new boot screen
+# Picoquorum UI, v2: the plan, and the new boot screen
 
 A redo of the console's look, starting with the boot screen. Each iteration adds a section here
 with screenshots and what changed. Every picture is the real drawing code running in the emulator
@@ -23,7 +23,7 @@ there is where this one starts.
 
 ## Home as a status screen, and a screensaver (2026-10-05)
 
-You asked for a home that fits how PicoQuorum works now: requests pop up, and when there's
+You asked for a home that fits how Picoquorum works now: requests pop up, and when there's
 nothing to sign, something calmer, turning into a screensaver with useful information. The grid
 of tiles is gone.
 
@@ -169,7 +169,7 @@ of the animation, with the row arriving at 700 ms, against a fresh paint on all 
 
 You said the diamond fading in and flying to the corner didn't work. You asked to go back to the
 original idea, drawn the light way: the green triangle becomes the top of the Ethereum logo, which
-spins until the whole logo is there. Then PicoQuorum, with a small version of the mark to its left,
+spins until the whole logo is there. Then Picoquorum, with a small version of the mark to its left,
 fades in over the logo, which keeps turning. And no pauses: as quick as it can go.
 
 **Update, same day:** on the board it ran fast and smooth until the name came up, then stuttered
@@ -187,7 +187,7 @@ stop on the logo's pose** as the name fades in, rather than freezing mid-turn.
 | <img src="boot/mark-eth-084.png"> | <img src="boot/mark-eth-092.png"> |
 | **2.5 s: all Ethereum blue,** and the lower pyramid rises in. | **2.8 s: the logo,** spinning. |
 | <img src="boot/mark-eth-110.png"> | <img src="boot/mark-eth-150.png"> |
-| **3.3 s:** it slows, grows and dims, and **the small mark and PicoQuorum fade in over it.** | **4.5 s:** the tagline, and the logo at rest on its own pose behind. |
+| **3.3 s:** it slows, grows and dims, and **the small mark and Picoquorum fade in over it.** | **4.5 s:** the tagline, and the logo at rest on its own pose behind. |
 
 The small mark is the boot screen in miniature: five owners, three signed in green, two amber,
 their triangle.
@@ -225,7 +225,7 @@ The orbit redraws and sends the whole panel every frame: 100–130 ms a frame on
 (8–10 fps), of which about 50 ms is just the 150 KB going over SPI to the 2.8". The new default
 is the orbit's end mark on its own, drawn as flat shapes: five owners pop in, three sign (green,
 a ring going out), their triangle closes and fills from the base, the two left out stay amber, and
-PicoQuorum fades in under it, then a tagline. The real boot status is the bottom line, as before.
+Picoquorum fades in under it, then a tagline. The real boot status is the bottom line, as before.
 
 <img src="boot/mark.gif" width="60%">
 
@@ -266,7 +266,7 @@ You asked:
 - Fill the green from the bottom up, like it's being filled.
 - It still felt herky-jerky, pausing at awkward spots. Make it feel like it's booting up
   smoothly.
-- Keep the Ethereum diamond spinning. Put PicoQuorum in front, with the diamond behind it, and a
+- Keep the Ethereum diamond spinning. Put Picoquorum in front, with the diamond behind it, and a
   cycling tagline.
 
 **Why it was jerky:** to give each boot step time on screen, the animation's clock *stopped*
@@ -290,7 +290,7 @@ colours, 0.2 MB, for slower viewers. The full one, 360 px at 20 frames a second 
 | <img src="boot/orbit-186.png"> | <img src="boot/orbit-198.png"> |
 | **It turns straight out of the glow:** one face of the pyramid, blue coming round. | **The green face turns away,** the inverted pyramid rises. |
 | <img src="boot/orbit-214.png"> | <img src="boot/orbit-256.png"> |
-| **The Ethereum diamond,** still spinning; it never stops now. | **Behind the name:** it grows, centres and dims, and **PicoQuorum** comes up in front, with the quorum mark (five owners, three signed, their green triangle). |
+| **The Ethereum diamond,** still spinning; it never stops now. | **Behind the name:** it grows, centres and dims, and **Picoquorum** comes up in front, with the quorum mark (five owners, three signed, their green triangle). |
 | <img src="boot/orbit-300.png"> | <img src="boot/orbit-340.png"> |
 | **Taglines cycle** under the name, about 2 s each… | **…and the diamond keeps turning** behind, slowly, for as long as the screen is up. |
 
@@ -555,7 +555,7 @@ Edit this list on GitHub: add a line, tick one off, or write under it. Each iter
 - [x] ~~After the mark, the spinning Ethereum diamond fades in and lands in the top-left corner~~
       (didn't work, dropped)
 - [x] The light way, the original idea: the green triangle becomes the top of the Ethereum logo,
-      which spins; the small mark and PicoQuorum fade in over it; no pauses (the light mark turns
+      which spins; the small mark and Picoquorum fade in over it; no pauses (the light mark turns
       into Ethereum)
 - [ ] Pick a font set (FONTS.md, question 1)
 - [ ] (add yours)

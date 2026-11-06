@@ -1,7 +1,7 @@
 # Plan: one approval flow, six screen sizes
 
 The Lonely Binary 6-pack is on its way. This plan covers:
-- what each screen can be in PicoQuorum;
+- what each screen can be in Picoquorum;
 - how the approval flow should reflow for each;
 - what has to change in the firmware and emulator;
 - the order to do it in.
@@ -17,7 +17,7 @@ or in a PR comment.
 From the vendor's table ([lonelybinary/TFT-LCD](https://github.com/lonelybinary/TFT-LCD/blob/main/tft-lcd/README.md)).
 None has touch, and all use the same 15-pin FPC and 8 wires.
 
-| Size | Pixels | Driver | Density | Text at our 14 px body size | Role in PicoQuorum |
+| Size | Pixels | Driver | Density | Text at our 14 px body size | Role in Picoquorum |
 |---|---|---|---|---|---|
 | 0.96″ | 80 × 160 | ST7735S | ~186 ppi | small | **Status strip**, never an approval screen |
 | 1.3″ (today) | 240 × 240 | ST7789 | ~261 ppi | smallest | the dev console |

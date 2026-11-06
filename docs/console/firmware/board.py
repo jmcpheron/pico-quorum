@@ -13,7 +13,7 @@
 #   "feather-s3": Adafruit's Feather ESP32-S3 Reverse TFT (hardware/wiring/FEATHER-S3.md): its own
 #            240x135 ST7789 and three buttons, D0 D1 D2, down the screen's left edge (THREE). On an
 #            ESP32-S3 always this one or one of the next two; the emulator picks it with secrets.BOARD.
-#   "picoquorum-key": PicoQuorumKey (hardware/picoquorum-key/docs/PINS.md), an S3 board of our own
+#   "picoquorum-key": PicoquorumKey (hardware/picoquorum-key/docs/PINS.md), an S3 board of our own
 #            with the Feather's screen and three buttons (THREE) on other pins, all pressed low. An S3
 #            is this one when GPIO16 and 17, its key's bus, read high against the S3's own pull-downs:
 #            only it has pull-ups there (4.7k). The Feather, console-s3 and the wings leave them free.
@@ -120,7 +120,7 @@ elif KNOB:
                             # (2026-10-02); 0xA0 was the bench's way up, the header on the right
     SPI_BAUD = 24_000_000   # jumper wires: clean at 24 MHz on the 1.8"
 if BOARD == "picoquorum-key":
-    # The Feather's screen, buttons and rail on PicoQuorumKey's pins (PINS.md): the screen on the S3's
+    # The Feather's screen, buttons and rail on PicoquorumKey's pins (PINS.md): the screen on the S3's
     # own SPI(1) pins, D0 D1 D2 on 42 41 40 to ground with the S3's pull-ups (HIGH empty), the key on
     # 16/17 with 4.7k pull-ups and nothing else on its bus, the LED on 48. Nothing to power up.
     DC, CS, SCK, MOSI, RST, BL = 9, 10, 12, 11, 14, 21

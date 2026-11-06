@@ -1,7 +1,7 @@
 (kicad_sch (version 20250114) (generator "picoquorum_gen") (generator_version "9.0")
 (uuid "be27dd74-f3aa-4475-8fca-ee9b571b0799")
 (paper "A4")
-(title_block (title "PicoQuorum console-s3, rev A: ESP32-S3-WROOM-1 on the back, 1.14in ST7789 in a ZIF, 5 buttons, ATECC608C on board") (date "2026-10-24") (rev "A") (company "PicoQuorum")
+(title_block (title "Picoquorum console-s3, rev A: ESP32-S3-WROOM-1 on the back, 1.14in ST7789 in a ZIF, 5 buttons, ATECC608C on board") (date "2026-10-24") (rev "A") (company "Picoquorum")
   (comment 1 "The S3 console on one board: see hardware/console-s3/DESIGN.md"))
 (lib_symbols
 (symbol "pqs3:ESP32-S3-WROOM-1" (pin_names (offset 1.016)) (exclude_from_sim no) (in_bom yes) (on_board yes)
