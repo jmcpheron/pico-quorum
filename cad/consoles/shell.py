@@ -187,7 +187,7 @@ class Case:
         assert len(set(tops)) == 1, "the buttons stand at different heights"
         self.zcap = tops[0]                                     # the flange's bottom, on the switch
         self.zft = max(self.zcap + CAP_FLANGE_T, self.zu - CAP_GAP)   # its top
-        need = [self.zu + PLATE, self.zft + CAP_GAP + 0.8]
+        need = [self.zu + b.get("plate", PLATE), self.zft + CAP_GAP + 0.8]
         usb = P[b["usb"]]
         self.usb_z = usb["h"] / 2
         need.append(self.usb_z + USB_OPEN[1] / 2 + 0.8)          # a bridge over the USB opening
