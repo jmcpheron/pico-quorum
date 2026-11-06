@@ -8,6 +8,45 @@ Five ordered from JLCPCB on 2026-10-29, fully assembled
 one is up on a bench script ([bench/BRINGUP.md](bench/BRINGUP.md)); the console's firmware for it is
 not written yet.*
 
+## Rev B, 46 × 70: in the generator only, not placed (2026-11-06)
+
+`gen_console_rp.py` now places the short bar 2 mm thinner and 5.5 mm taller, 46 × 70:
+- **All of the extra height is in the top strip** (`DY`). The glass's top is at y 12.0, not 6.5, and
+  everything under it moves down 5.5 with it. H1 and H2 have the strip to themselves, for the
+  case's posts. FID1 moves down to y 8.0, out of the warning's line.
+- **D0, D1 and D2 are 10 mm apart** (`PITCH`), not 8.2. D1 stays under the middle footer slot's
+  middle. D0 and D2 are 1.8 mm further out than their slots' middles, still inside the slots.
+- **U1's block moves 2 mm left** with the right edge. The key (U5, C23, R6, R7) moves 1 mm left. The
+  USB-C's block stays at the left edge. The channel between the USB block and the key, where
+  LINK_TX and LINK_RX run, is 3.4 mm, down from 4.4.
+- `jb()`'s numbers are now taken from J1 at `J1_DRAWN`, so the USB copper moves with J1. Before,
+  they were plain board positions.
+
+**Not placed, routed or checked with KiCad.** This was done in a cloud session without KiCad.
+There, a scratch script read each part's pads and courtyard from the routed board, put them at the
+new places, and checked courtyards, the board's edge, the holes' and fiducials' rings, the glass's
+rules, and the generator's drawn copper against other nets' pads. It found nothing the 48 × 64.5
+placement doesn't also show. That is a preview, not DRC: it doesn't check silkscreen text, or
+anything the router will draw.
+
+**The generator is now ahead of the board.** The routed board, its fab files, the golden pictures,
+the renders and what follows down to "Rerouting" are still the 48 × 64.5 board's (commit
+`04141ce`). Until the board is placed again:
+- `tools/keypcb gen-console-rp check` and `jlc` check that board with the new numbers;
+- the case (`cad/consoles/rp.py`) stops at its check of the generator against `fab/cpl.csv`.
+
+The risk is the route. At 45 mm the router left lines open round U1's left side. At 46 mm it isn't
+known.
+
+On the Mac:
+1. Delete `console-rp/console-rp.kicad_pcb`.
+2. Run `tools/keypcb gen-console-rp`.
+3. Run `tools/keypcb route console-rp`, then `gen-console-rp tidy`.
+4. Make the hand steps the new route needs. The 48 × 64.5 route's steps 3–5 don't carry over (see
+   "Rerouting" below).
+5. Run `gen-console-rp check`, `fab`, `jlc console-rp` and `jlc --selftest`.
+6. Redraw the case: `MARK` and `back_text` in `cad/consoles/rp.py` are absolute.
+
 ## Rev B: the short bar, routed, its fab files written (2026-11-05)
 
 `gen_console_rp.py` now describes rev B: rev A's circuit on a small portrait board, 48 × 64.5 mm.

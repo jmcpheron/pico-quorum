@@ -688,9 +688,12 @@ def kicad_env(tmp):
 # it, and under them the chip block at the right; at the left RESET and BOOTSEL, and the USB-C low on
 # the edge, the plug in from the left. The flash clear of the glass, and J3 right of the glass, above U1.
 # (The square 58 x 54 rev B of CONSOLE-RP-REV-B-PLAN-2026-11-05.md, routed but never ordered, is
-# commit 3be2e70b.)
+# commit 3be2e70b. The short bar before this, 48 x 64.5, routed, is commit 04141ce.)
+# 46 x 70: 2 mm thinner and 5.5 taller. The extra height is all in the top strip (DY), so the
+# screen and everything under it sit 5.5 lower and the top holes have the strip to themselves.
 # =================================================================================================
-W, H = 48.0, 64.5
+W, H = 46.0, 70.0
+DY = 5.5                                 # how far everything under the top strip moved down from the 48 x 64.5 short bar
 OX, OY = 100.0, 100.0
 CORNER = 2.0
 LIB = os.path.join(HERE, "lib")
@@ -705,7 +708,7 @@ MARK = os.path.join(LIB, "picoquorum.pretty")     # a copy of console-pocket's, 
 # in the fold. Measure a panel before ordering.
 PANEL = dict(glass=(31.0, 17.6), active=(24.912, 14.864), rows=135, cols=240, thick=1.6, foam=2.0,
              pad=2.0, tail=23.0, fold=5.7, ribbon=4.5)
-GX0, GY0 = (W - PANEL["glass"][0]) / 2, 6.5     # the glass's top-left corner: centred across, under the top strip
+GX0, GY0 = (W - PANEL["glass"][0]) / 2, 6.5 + DY    # the glass's top-left corner: centred across, under the top strip
 GX1, GY1 = GX0 + PANEL["glass"][0], GY0 + PANEL["glass"][1]
 XC, YC = (GX0 + GX1) / 2, (GY0 + GY1) / 2
 ZIF_IN = GX1 + 1.0 - (PANEL["tail"] - PANEL["fold"]) + 1.0   # where the ribbon's end reaches, as console-s3
@@ -723,22 +726,32 @@ UNDER = {"_0402_": 0.5, "_0603_": 0.8, "SOT-23": 1.15, "HDGC": 1.0}
 
 
 def slot(i):
-    """x of button i: under the middle of footer slot i, as quorum_ui_s.bar draws three slots of
-    (W - 8) // 3 pixels, 2 apart, from x = 2 (the QT Py's footer, 240 wide here)."""
+    """x of the middle of footer slot i, as quorum_ui_s.bar draws three slots of (W - 8) // 3
+    pixels, 2 apart, from x = 2 (the QT Py's footer, 240 wide here): about 8.0 mm wide, 8.2 apart."""
     sw = (PANEL["cols"] - 8) // 3
     px = 2 + i * (sw + 2) + sw / 2
     return round(XC - PANEL["active"][0] / 2 + px * PANEL["active"][0] / PANEL["cols"], 3)
 
 
+PITCH = 10.0        # the buttons apart: D1 under the middle slot's middle, D0 and D2 1.8 mm further out than
+                    # their slots' middles, still inside them; D2 0.8 mm inside its slot's right end, with the
+                    # active area 1.4 mm off-centre to the left (README "The panel")
+
+
+def button(i):
+    """x of button i (D0, D1, D2)."""
+    return round(slot(1) + (i - 1) * PITCH, 3)
+
+
 BY = round(GY1 + 6.4, 3)                 # the buttons' row, 6.4 mm under the glass, the name between
 U1 = (W - 9.6, H - 15.5)                 # the RP2350's centre, bottom right, its flash just under D1's and D2's labels:
                                          # J3 above it at the edge, H4 below right; Raspberry Pi's block round it moves with it, not turned
-J1 = (3.6, 51.0)                         # the USB-C on the left edge, low: its face 3.6 mm from its origin, as the square rev B's
+J1 = (3.6, 51.0 + DY)                    # the USB-C on the left edge, low: its face 3.6 mm from its origin, as the square rev B's
 
 
 def u1(x, y):
     """A point given from U1's centre, on the board: the flash, the copper drawn round U1 and the
-    parts beside it keep their places to U1 (rev A had U1 at 46.5, 15.0)."""
+    parts beside it keep their places to U1 (rev A had U1 at 46.5, 15.0; the 48 x 64.5 short bar at 38.4, 49.0)."""
     return round(U1[0] + x, 4), round(U1[1] + y, 4)
 
 
@@ -752,7 +765,7 @@ def j1(x, y):
 # ref -> (x, y, rotation in degrees). Under the glass: only parts lower than the tape, none in the
 # foam pads' corners, none in the ribbon's path (right of J2, across YC).
 AT = {
-    "SW1": (slot(0), BY, 0), "SW2": (slot(1), BY, 0), "SW3": (slot(2), BY, 0),
+    "SW1": (button(0), BY, 0), "SW2": (button(1), BY, 0), "SW3": (button(2), BY, 0),
     # one hole near each corner: the top two either side of the warning, the bottom two by the USB-C and U1's block
     "H1": (3.5, 3.5, 0), "H2": (W - 3.5, 3.5, 0), "H3": (3.5, H - 3.5, 0), "H4": (W - 3.5, H - 3.5, 0),
     # under the glass, as the square rev B's to the glass: the screen's connector, its decoupling and the backlight switch
@@ -772,15 +785,16 @@ AT = {
     "J1": (*J1, -90), "U2": (*j1(0.0, -7.5), 0), "R4": (*j1(-4.0, -6.2), -90), "R5": (*j1(4.0, -6.2), -90),
     "U4": (*j1(-0.5, -11.8), -90), "C20": (*j1(3.0, -11.1), 0), "C21": (*j1(-3.5, -9.0), 90), "C22": (*j1(-3.4, -14.4), 0),
     "U3": (*j1(8.0, -8.4), -90), "C19": (*j1(8.0, -11.8), -90), "C18": (*j1(7.6, -5.2), -90),
-    # the key, between the USB-C's block and U1's, its 100n above pin 8 and the pull-ups under it
-    "U5": (27.0, 57.0, 0), "C23": (27.2, 53.7, 180), "R6": (25.5, 61.6, -90), "R7": (26.9, 61.6, -90),
+    # the key, between the USB-C's block and U1's, its 100n above pin 8 and the pull-ups under it;
+    # 1 mm left of the 48-wide board's, half the 2 mm the row lost (U1's block moved 2)
+    "U5": (26.0, 57.0 + DY, 0), "C23": (26.2, 53.7 + DY, 180), "R6": (24.5, 61.6 + DY, -90), "R7": (25.9, 61.6 + DY, -90),
     # RESET and BOOTSEL side by side under D0, BOOTSEL nearer the flash's R3
-    "SW4": (5.0, 39.0, 0), "SW5": (14.5, 39.0, 0),
+    "SW4": (5.0, 39.0 + DY, 0), "SW5": (14.5, 39.0 + DY, 0),
     # the bench header and the jig's pads, not fitted: down the right edge beside the glass, its last
     # two (D+ and D-) level with the bench USB's lines out of U1's block, so they run straight in
     "J3": (W - 2.5, round(U1[1] - 10.7 - 6 * 2.54, 3), 0),
-    # fiducials: the top strip's right, the bottom-left, and the left edge where J3 was
-    "FID1": (W - 9.0, 3.3, 0), "FID2": (9.0, H - 1.7, 0), "FID3": (3.0, 14.0, 0),
+    # fiducials: the top strip's right, under the warning's line, the bottom-left, and the left edge beside the glass
+    "FID1": (W - 9.0, 8.0, 0), "FID2": (9.0, H - 1.7, 0), "FID3": (3.0, 14.0 + DY, 0),
 }
 # Raspberry Pi's minimal board round the chip (rpi_minimal.py wrote it from their MIT KiCad files):
 # their footprints and where each part sits from U1's centre, and their power copper, which
@@ -896,9 +910,12 @@ SWD = [("/RUN", [u1(1.2, 3.45), u1(1.2, 4.5), u1(3.1, 6.4), u1(3.6, 6.4)]),
 # to the plug's pins and to the CH343P. With J3 by U1 the router took D+ and VBUS across the back
 # itself, and with LINK_TX and LINK_RX round them fenced U2's ground via in: the ESD clamp's ground
 # met nothing. (net, layer, width, [points])
+J1_DRAWN = (3.6, 51.0)                   # where J1 was when these were taken off the route (the 48 x 64.5 board)
+
+
 def jb(x, y):
-    """A board point (x, y) as j1() has it, so it moves with J1."""
-    return j1(round(y - J1[1], 4), round(J1[0] - x, 4))
+    """A board point (x, y) taken with J1 at J1_DRAWN, as j1() has it, so it moves with J1."""
+    return j1(round(y - J1_DRAWN[1], 4), round(J1_DRAWN[0] - x, 4))
 USB = [("/USB_D+", "F.Cu", 0.2, [jb(7.645, 50.75), jb(8.412, 50.75), jb(8.667, 51.005), jb(8.667, 51.65)]),
        ("/USB_D+", "F.Cu", 0.15, [jb(8.667, 51.65), jb(7.745, 51.65), jb(7.645, 51.75)]),
        ("/USB_D+", "F.Cu", 0.2, [jb(8.667, 51.005), jb(9.622, 50.05), jb(9.963, 50.05)]),
