@@ -8,9 +8,193 @@ Five ordered from JLCPCB on 2026-10-29, fully assembled
 one is up on a bench script ([bench/BRINGUP.md](bench/BRINGUP.md)); the console's firmware for it is
 not written yet.*
 
-![console-rp from above: a warning triangle and EXPERIMENTAL HARDWARE COSIGNER over the 1.14-inch screen at the top left, PicoQuorum console-rp under it, and D0, D1 and D2 in a row below that; the flash, the RP2350, the crystal, the CH343P, and the key chip with an 8-bit key pointing at it, to its right; the USB-C on the right edge, RESET and BOOTSEL at the bottom right, and the bench header's holes along the top](renders/console-rp-top.jpg)
+## Rev B, 46 × 70: in the generator only, not placed (2026-11-06)
 
-*KiCad's 3D render of the routed board. The panel is drawn as a box. More views are in
+`gen_console_rp.py` now places the short bar 2 mm thinner and 5.5 mm taller, 46 × 70:
+- **All of the extra height is in the top strip** (`DY`). The glass's top is at y 12.0, not 6.5, and
+  everything under it moves down 5.5 with it. H1 and H2 have the strip to themselves, for the
+  case's posts. FID1 moves down to y 8.0, out of the warning's line.
+- **D0, D1 and D2 are 10 mm apart** (`PITCH`), not 8.2. D1 stays under the middle footer slot's
+  middle. D0 and D2 are 1.8 mm further out than their slots' middles, still inside the slots.
+- **U1's block moves 2 mm left** with the right edge. The key (U5, C23, R6, R7) moves 1 mm left. The
+  USB-C's block stays at the left edge. The channel between the USB block and the key, where
+  LINK_TX and LINK_RX run, is 3.4 mm, down from 4.4.
+- `jb()`'s numbers are now taken from J1 at `J1_DRAWN`, so the USB copper moves with J1. Before,
+  they were plain board positions.
+
+**Not placed, routed or checked with KiCad.** This was done in a cloud session without KiCad.
+There, a scratch script read each part's pads and courtyard from the routed board, put them at the
+new places, and checked courtyards, the board's edge, the holes' and fiducials' rings, the glass's
+rules, and the generator's drawn copper against other nets' pads. It found nothing the 48 × 64.5
+placement doesn't also show. That is a preview, not DRC: it doesn't check silkscreen text, or
+anything the router will draw.
+
+**The generator is now ahead of the board.** The routed board, its fab files, the golden pictures,
+the renders and what follows down to "Rerouting" are still the 48 × 64.5 board's (commit
+`04141ce`). Until the board is placed again:
+- `tools/keypcb gen-console-rp check` and `jlc` check that board with the new numbers;
+- the case (`cad/consoles/rp.py`) stops at its check of the generator against `fab/cpl.csv`.
+
+The risk is the route. At 45 mm the router left lines open round U1's left side. At 46 mm it isn't
+known.
+
+On the Mac:
+1. Delete `console-rp/console-rp.kicad_pcb`.
+2. Run `tools/keypcb gen-console-rp`.
+3. Run `tools/keypcb route console-rp`, then `gen-console-rp tidy`.
+4. Make the hand steps the new route needs. The 48 × 64.5 route's steps 3–5 don't carry over (see
+   "Rerouting" below).
+5. Run `gen-console-rp check`, `fab`, `jlc console-rp` and `jlc --selftest`.
+6. Redraw the case: `MARK` and `back_text` in `cad/consoles/rp.py` are absolute.
+
+## Rev B: the short bar, routed, its fab files written (2026-11-05)
+
+`gen_console_rp.py` now describes rev B: rev A's circuit on a small portrait board, 48 × 64.5 mm.
+Two earlier rev B boards were routed and passed every check the same day, but weren't ordered: the
+square board of [the rev B plan](../../CONSOLE-RP-REV-B-PLAN-2026-11-05.md) (58 × 54, a corner cut)
+is commit `3be2e70b`, and a taller candy bar, 45 × 83, was never committed. The board, its fab
+files, the golden pictures, the renders and PINS.md in this folder are the short bar's. The rest of
+this README, from the first picture down, is still rev A's, as ordered. Rev A's generator, board and
+fab files are commit `4a349cc`.
+
+What the generator places, top to bottom:
+- **the top strip:** H1 and H2, and the warning between them;
+- **the glass,** 31.0 × 17.6 (the datasheet's), centred across, its top at y 6.5. Under it, placed
+  from the glass's corner (`gl()`): J2, the backlight switch, their capacitors and the dragon. The
+  LED is right of it;
+- **J3** down the right edge beside the glass, not fitted: seven holes, GND, 3V3, CLK, DIO, RUN,
+  D+ and D−, for a header at the bench and for a jig's pogo pins. Its last two are level with the
+  bench USB's lines out of U1's block, so they run straight in on the front;
+- **Picoquorum console-rp,** then **D0, D1 and D2** at `slot()`: x 15.75, 23.95 and 32.15, y 30.5;
+- **RESET and BOOTSEL** at the left, x 5.0 and 14.5, y 39. The front has no mark now; it is on the
+  back;
+- **U1's block** at the bottom right, written as offsets from U1 so it moves as one. The flash is
+  above it, under D2;
+- **the USB-C** on the left edge, low: the plug comes in from the left. The square board's block
+  round it (U2, the CH343P, the regulator and their parts) turned with it a quarter turn (`j1()`);
+- **the key** (U5) at the bottom, between the USB block and U1's;
+- **H3 and H4** in the bottom corners, and three fiducials: FID3 is on the left edge, where J3 was.
+
+The BOM (57 parts) is the square board's. So is the netlist, but for J3: the jig's seven pads
+(TP1–TP7) are gone into it, RUN is on it now, and the key's bus is off it (R6's and R7's pads have
+it for a key on wires). The cut corner and the key port's zone went with the square outline.
+
+**Routed and checked on the Mac** (KiCad 10.0.6, Freerouting 2.5, 2026-11-05):
+- `tools/keypcb gen-console-rp`: ERC 0, KiCad's netlist matches the table.
+- At 45 mm wide the router left LCD_SCK, LCD_CS, USB D− and a ground island open: nine lines leave
+  U1's left side through one channel. At 48 mm it routes.
+- **A ground review of the first short-bar route** (2026-11-05, before any order) found:
+  - U1's exposed pad, its only ground but the regulator's pin, met the rest of the ground through
+    one via. Back tracks had fenced the back under it in. The candy bar's route had two.
+  - The flash's six lines had ground under 27–44 % of their length (rev A: 85–90 %).
+  - U2's ground (the USB's ESD clamp) had no way to the pour.
+
+  So the generator now has, for the route only, a keep-out on the back round U1, under the flash
+  and under the bench USB's lines (`AROUND_U1`), so the back there stays one ground. It also has
+  U2's ground to a via in U2's middle, with VBUS from pin 5 past it to a via of its own; R1's 3V3
+  on down the front to C9's; a ring round each fiducial that tracks keep out of.
+- That route still had J3 at the left edge, far from U1: the bench USB, SWD and the key's bus ran
+  50–90 mm each across the back, 655 mm of back tracks in all. So J3 moved beside U1 (see above).
+- **The route after J3 moved** took four tries. The router first left LCD_CS shut in behind
+  LCD_DC's via; with CS drawn out to a via, it fenced D1 in with its own ground tracks; with the
+  screen's four lines and D0 and D1 drawn out of U1's left side (`BUS`), it routed, but took USB
+  D+ and VBUS across the back and LINK_TX and LINK_RX round them, which shut U2's ground via in
+  again. So the USB-C's D+, D− and VBUS through U2 are now drawn as the first short-bar route had
+  them (`USB`), with a keep-out on the back from U2's ground via to the left edge (`AROUND_U2`).
+- Freerouting 2.5 draws ground tracks even with the Ground class left out (`-inc Ground`): KiCad's
+  Specctra export puts every net in one class, so there is no Ground class for it to leave out.
+  Tried in scratch, not in `tools/keypcb`: with GND in a class of its own, Freerouting leaves it,
+  but counts it as unrouted and skips its optimizer, and the import came back with signal lines
+  open; with GND taken out of the netlist, 32 to 33 signal connections stayed open.
+- Freerouting gives the same route for the same board file. Placing the board again gives new
+  UUIDs, and a different route.
+- Then, on the routed board:
+  1. `tools/keypcb gen-console-rp tidy`;
+  2. J2's pin 2, the panel's only ground, was shut in by LCD_LEDA's via. That via moved 0.5 mm
+     down, under pin 1, to (20.25, 17.45), and a ground via went in left of pin 2, at
+     (20.20, 16.60);
+  3. two ground vias where C4's, C5's, C10's and C23's part of the front pour met nothing else,
+     at (27.09, 52.16) and (31.33, 46.63);
+  4. BTN_D2's 0.12 mm neck at (25.5, 35.0), on the back, widened to 0.15 mm;
+  5. LCD_CS's drawn via at (33.30, 51.55) taken off: the router went on along the front from it.
+
+  **Don't reroute this board.** See below for why, and for what carries over to a new one.
+- Checked after, with scripts on the board's copper (scratch, not in the repo):
+  - The ground is one piece: every part of either pour meets the rest. U1's exposed pad meets the
+    main pour through 3 separate vias at the least (the first route: 1): the back pour under U1 is
+    its own piece, joined to the main front pour by two vias and, through the front round C4, C5,
+    C10 and C23, to the main back pour by a third. With those three vias taken off, KiCad's
+    connectivity finds the ground in two pieces. (It said 6 here before: a scratch script had
+    joined copper that doesn't touch.)
+  - Back tracks: 375 mm (before J3 moved: 655). Each line's length now (before): the bench USB's
+    D+ 12 mm and D− 8 mm, all on the front (60 and 59, mostly on the back); SWCLK 39 mm, all on
+    the front (93); SWDIO 34 (81); SDA and SCL 23 each (67 and 61). RUN is longer, 76 mm (67), 65
+    of it on the back: it goes to J3 at the right edge now, and to RESET at the left.
+  - Ground under each fast line, now (before J3 moved): the flash's six
+    100 % (100 %); the crystal's 88–100 % (89–100 %); the screen's SCK 85 % (39 %), MOSI 67 %
+    (64 %), CS 74 % (61 %), DC 73 % (47 %); the bench USB 92 and 88 % (82 and 77 %); USB D+ 89 %
+    (92 %), D− 42 % (49 %); SWCLK 63 % (74 %); LINK_TX 47 % (55 %), LINK_RX 39 % (28 %).
+- `tools/keypcb gen-console-rp check`: DRC with schematic parity is clean but for J1's and J3's
+  footprints. Nothing else is in Raspberry Pi's areas.
+- `tools/keypcb jlc console-rp`: every check passes. Warnings: U3's heat, as on rev A (about 82 °C
+  over the air at 0.12 A, by the datasheet's 400 °C/W), and J3.2 "joined to a pour by solid
+  copper". That one is wrong: the check counts any pour on the pad's net, and J3.2 (3V3, at
+  45.5, 25.6) is about 19 mm from the only 3V3 pours, under U1. The flash's lines are over ground
+  at 100 %, and U1's pad meets the main pour through 3 vias, both at the least `jlc_spec()` asks.
+  The golden pictures are this route's. `--selftest` catches 12 of 12.
+
+**Rerouting, and what carries over to a new revision.** The routed board's copper comes from three
+places:
+- **The generator:** the placement and the netlist, and every track and via it draws, each locked
+  so the router leaves it. That's Raspberry Pi's copper round U1, the flash's lines, the lines out
+  of U1 (`BUS`, `SWD`), the bench USB (`BENCH`), the USB-C's lines (`USB`), J2's pins 1 and 2
+  (`PANEL_PINS`), the ground and 3V3 ties (`TIES`, `HAND_VIAS`), and the keep-outs the router obeys
+  (`AROUND_U1`, `AROUND_U2`).
+- **Freerouting:** everything else.
+- **The hand steps** above.
+
+Freerouting gives the same route only for the same board file. Placing the board again writes new
+UUIDs, and any change to the generator moves something, so the route comes out different. The hand
+steps were made on this route's copper and don't fit another. So a new route is a new board to
+check, and `tools/keypcb gen-console-rp` won't place over a routed board.
+
+What carries over:
+- Everything the generator draws. A board placed from it was checked against this one: every
+  track and via it draws is on the routed board, but LCD_CS's via (step 5).
+- Hand step 2, J2's pins, is in the generator now (`PANEL_PINS`).
+- Step 5: LCD_CS's via is unlocked now, as BL_GATE's is, so the route's tidy-up drops it if the
+  router doesn't use it. Not yet tried in a route.
+- Steps 3 and 4 (an island's vias, a neck) belong to this route. DRC finds their like on any route.
+
+What a new route is checked for:
+- `tools/keypcb gen-console-rp check`: DRC with schematic parity finds a pad or a piece of pour
+  left off (`unconnected_items`), a via joined on one side only (`via_dangling`) and a track under
+  0.15 mm (`track_width`).
+- `tools/keypcb jlc console-rp`: the ground review's two findings are checks now, in `jlc_spec()`.
+  Each of the flash's six lines must have ground under 90 % of its length (`return_least`; the
+  first route had 26-42 %). U1's exposed pad must meet the main pour through 3 vias at least
+  (`ground_ties`; the first route had 1). Either one fails the run. `--selftest` breaks a copy
+  each way and checks both are caught. The run also prints the ground under the other fast lines,
+  to read against the numbers above.
+- No check sees long lines on the back, like the bench lines before J3 moved. Look at the back.
+
+**The case,** [`cad/consoles/rp.py`](../../cad/consoles/rp.py), is redrawn for the short bar:
+52.6 × 75.1 × 10.9 mm closed, the lanyard lug included. The USB-C is open in the left wall. RESET
+and BOOTSEL are pinholes with their names cut under them. The mark's badge sits at the right, under
+D1 and D2, and the name is cut under it. It builds with nothing overlapping; it hasn't been printed.
+
+**Still to do:**
+1. Before the order: the plan's choices (how many and which assembly, the mask colour, the value
+   swaps). On 2026-11-05 JLCPCB had every part of this BOM in stock, L1 included. Quote again with
+   these files, and hold `fab/check/cpl-overlay.png` beside JLCPCB's placement preview for J1, U4
+   and U1's turns.
+2. Print the case's face and lay it on a 1:1 print of the board.
+3. The concept's outlines round parts that have none (`outlines()` on `claude/console-rp-concept`)
+   need pcbnew to check, so they haven't been brought over.
+
+![console-rp rev B from above: a short board, a warning triangle and EXPERIMENTAL HARDWARE COSIGNER along the top between two holes, the 1.14-inch screen under it with the LED to its right and the bench header's seven holes down the right edge below it, PicoQuorum console-rp, then D0, D1 and D2 in a row; RESET and BOOTSEL at the left under them and the flash at the right; at the bottom the USB-C on the left edge with the CH343P and the regulator beside it, the key chip with an 8-bit key pointing at it, and the RP2350 and the crystal on the right](renders/console-rp-top.jpg)
+
+*KiCad's 3D render of rev B, routed. The panel is drawn as a box. More views are in
 [renders/](renders/).*
 
 [console-usb](../console-usb/README.md) took the radio out of use on an ESP32-S3. This board takes

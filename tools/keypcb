@@ -385,8 +385,9 @@ pcbnew.SaveBoard(sys.argv[2], b)
 
 def route(name, passes="100"):
     """Freerouting, headless, its analytics off. The board file changes only if the whole round trip
-    works. The rule areas (an antenna's keep-out, a shell's) go to it as keep-outs. A net class
-    named Ground isn't routed: the pours and the stitching vias join it."""
+    works. The rule areas (an antenna's keep-out, a shell's) go to it as keep-outs. It is asked to
+    leave a net class named Ground alone (-inc Ground), but KiCad 10's Specctra export puts every net
+    in one class, so it routes ground too (hardware/console-rp/README.md, rev B)."""
     d, sch, pcb = files(name)
     classes = json.load(open(os.path.splitext(pcb)[0] + ".kicad_pro"))["net_settings"]["classes"]
     skip = ["-inc", "Ground"] if any(c["name"] == "Ground" for c in classes) else []
@@ -623,10 +624,17 @@ def jlc_selftest(name):
             real, sys.stdout = sys.stdout, quiet
             try:
                 jlc_pcb(pcb, base, specp, only="")          # facts.json of the real board
-                for kind in ("track", "ring", "wick", "island", "net"):
+                # and, for a board that sets them, its ground's least: one pad's ground tie, the return path
+                ties, least = spec.get("ground_ties", []), spec.get("return_least", {})
+                only = {}
+                for key, kind in (("return_least", "tie"), ("ground_ties", "shadow")):     # each alone, so the check it's for is the one that fails
+                    only[kind] = os.path.join(t, f"spec-{kind}.json")
+                    json.dump({k: v for k, v in spec.items() if k != key}, open(only[kind], "w"))
+                for kind in ("track", "ring", "wick", "island", "net") + (("tie",) if ties else ()) + (("shadow",) if least else ()):
                     k = os.path.join(t, kind)
                     md, msch, mpcb = mirror(d, k)
-                    subprocess.run([KICAD_PY, os.path.join(JLC, "pcb_checks.py"), "--mutate", kind, mpcb], capture_output=True, check=True)
+                    subprocess.run([KICAD_PY, os.path.join(JLC, "pcb_checks.py"), "--mutate", f"tie:{ties[0]['pad']}" if kind == "tie" else kind, mpcb],
+                                   capture_output=True, check=True)
                     o = os.path.join(k, "out")
                     if kind == "track":
                         expect("1. DRC: a 0.08 mm track", jlc_drc(md, mpcb, spec))
@@ -645,6 +653,12 @@ def jlc_selftest(name):
                         draw(kind, md, msch, mpcb, o, k)
                     elif kind == "island":
                         expect("7. pours: an island", jlc_pcb(mpcb, o, specp, "thermal"))
+                        draw(kind, md, msch, mpcb, o, k)
+                    elif kind == "tie":
+                        expect(f"7. ground ties: {ties[0]['pad']} down to one via", jlc_pcb(mpcb, o, only[kind], "thermal"))
+                        draw(kind, md, msch, mpcb, o, k)
+                    elif kind == "shadow":
+                        expect("7. return path: the back's ground pours taken off", jlc_pcb(mpcb, o, only[kind], "thermal"))
                         draw(kind, md, msch, mpcb, o, k)
                     else:
                         os.makedirs(o)
