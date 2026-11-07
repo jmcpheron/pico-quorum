@@ -37,5 +37,8 @@
   "C2846043": {"mpn": "CH343P", "maker": "WCH", "package": "TQFN-16-EP(3x3)", "value": "CH343P", "pads": 17, "pitch": 0.5, "read": "2026-10-29", "note": "sixteen pads and the exposed pad"},
   "C28975195": {"mpn": "ATECC608C-SSHDA-T", "maker": "MICROCHIP", "package": "SOIC-8", "value": "ATECC608C-SSHDA-T", "pads": 8, "pitch": 1.27, "read": "2026-10-29"},
   "C97521": {"mpn": "W25Q128JVSIQ", "maker": "Winbond", "package": "SOIC-8-208mil", "value": "W25Q128JVSIQ", "pads": 8, "pitch": 1.27, "read": "2026-10-29"},
-  "C20625731": {"mpn": "ABM8-272-T3", "maker": "ABRACON", "package": "SMD3225-4P", "value": "12MHz", "pads": 4, "pitch": null, "read": "2026-10-29"}
+  "C20625731": {"mpn": "ABM8-272-T3", "maker": "ABRACON", "package": "SMD3225-4P", "value": "12MHz", "pads": 4, "pitch": null, "read": "2026-10-29"},
+  "C435835": {"mpn": "LDL1117S33R", "maker": "ST", "package": "SOT-223-4", "value": "LDL1117S33R", "pads": 4, "pitch": 2.3, "read": "2026-11-06", "note": "three pins and the tab, which is pin 2 (VOUT)"},
+  "C2158037": {"mpn": "AP22653W6-7", "maker": "DIODES", "package": "SOT-26", "value": "AP22653W6-7", "pads": 6, "pitch": 0.95, "read": "2026-11-06"},
+  "C25076": {"mpn": "0402WGF1000TCE", "maker": "UNI-ROYAL", "package": "0402", "value": "100R", "pads": 2, "pitch": null, "read": "2026-11-06"}
 }
