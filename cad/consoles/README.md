@@ -118,7 +118,10 @@ printed, and no Mono board has been built.**
   across, the board's own keep-out (`HOLE_RING` in its generator). No tab: the board has no radio.
 - **The window** shows the active area where the generator puts it, centred on the board, and 0.555 mm
   further from the ribbon, where it would be if PicoquorumKey's 2.0 mm reading of the drawing is right.
-- **The caps** are the slate's: D0 a red square, D1 a white circle, D2 a green triangle.
+- **The caps** are the slate's shapes, D0 a red square, D1 a white circle, D2 a green triangle, but
+  1.2 times as wide (circle 5.0 mm, square 4.6, triangle 7.2), for a thumb. Their flanges are 7.4 mm,
+  not 6.1, to hold them in: 0.3 mm off the posts beside D0 and D2. Each still sits on its switch with
+  the same 0.2 mm of play and clearance, so the switch clicks as on the slate.
 - **The name and the mark** are in the plain field under the buttons, made as the slate's are
   (`rp.decor`): the mark is a badge in three colours glued into a pocket, and the name over it is cut to
   show a second colour. Mono has no RESET or BOOTSEL buttons, so the mark's dots are whole, with no
@@ -164,7 +167,9 @@ When a case builds, the script checks that none of these overlap each other:
 - the screws
 - the dock, with the case in it
 
-It prints a line for each overlap and exits 1 if there is one; both cases build with none. It also
+It prints a line for each overlap and exits 1 if there is one; both cases build with none.
+It also checks that each cap's flange reaches at least 0.2 mm past the edge of its hole in the face, so the
+cap can't fall out (`CAP_LIP`). It also
 chooses the screw: the longest in the bench's kit (4, 8, 12, 16 mm) that leaves at least 3 mm of
 thread in the post or boss, and stops short of the end of its hole.
 

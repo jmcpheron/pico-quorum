@@ -76,6 +76,10 @@ def board():
         buttons=[("SW1", "D0"), ("SW2", "D1"), ("SW3", "D2")], pins=[],
         # as the slate's: D0 out (Reject, No, Back), a square; D1 on (Next), a circle; D2 do (Sign, OK, Open), a triangle
         cap_shapes={"D0": "square", "D1": "circle", "D2": "triangle"},
+        # the caps' faces 1.2 times the slate's across (circle 5.0 mm, square 4.6, triangle 7.2), and their flanges
+        # 7.4 mm, wider to hold them: 0.3 mm off the posts beside D0 and D2. Each flange still sits on its switch,
+        # with the slate's play and clearance, and reaches 0.35 mm past its hole at the least (the slate's: 0.25)
+        cap_scale=1.2, flange_over=2.3,
         led="D1", usb="J1", usb_edge="bottom", dock_depth=55.0, dock_plug=20.0,
         lug=("top", 6.0), tab=False,
         post_r=G.HOLE_RING,         # the board's own keep-out round each hole

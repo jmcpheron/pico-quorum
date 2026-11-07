@@ -53,6 +53,7 @@ CAP_D, CAP_HOLE = 4.2, 4.6
 CAP_SQUARE, CAP_TRI = (3.8, 0.6), (6.0, 0.8)
 CAP_PROUD = 1.0             # over the plate
 CAP_FLANGE_T = 0.8
+CAP_LIP = 0.2               # the flange past the edge of its hole in the face, at the least (Case.lip)
 CAP_GAP = 0.2               # the flange under the plate (or its pocket) at rest: the cap's free play
 PIN_HOLE, LED_HOLE = 1.8, 1.6   # BOOT and RESET with a paperclip; the status LED
 # The USB-C plug: a cut cable's overmold, as the handheld measured one, and its shell
@@ -131,13 +132,14 @@ def parts(cpl, bom):
     return out
 
 
-def cap_shape(x, y, kind, grow, z0, z1):
-    """A cap's stem (grow 0) or its hole in the face (grow the clearance), as a solid from z0 to z1."""
+def cap_shape(x, y, kind, grow, z0, z1, scale=1.0):
+    """A cap's stem (grow 0) or its hole in the face (grow the clearance), as a solid from z0 to z1. scale makes
+    the stem's face larger (b["cap_scale"]); the clearance stays the same."""
     if kind == "square":
-        s, r = CAP_SQUARE
+        s, r = (v * scale for v in CAP_SQUARE)
         return box(x - s / 2 - grow, x + s / 2 + grow, y - s / 2 - grow, y + s / 2 + grow, z0, z1).edges("|Z").fillet(r + grow)
     if kind == "triangle":
-        s, r = CAP_TRI
+        s, r = (v * scale for v in CAP_TRI)
         h = s * math.sqrt(3) / 2
         cy = y - h / 6                      # the centroid, so the triangle's height is centred on the switch
         s += 2 * math.sqrt(3) * grow        # the same triangle moved out by grow, about its centroid
@@ -145,7 +147,7 @@ def cap_shape(x, y, kind, grow, z0, z1):
         pts = [(x - s / 2, cy - ri), (x + s / 2, cy - ri), (x, cy + 2 * ri)]
         w = cq.Workplane("XY").workplane(offset=z0).polyline(pts).close().extrude(z1 - z0)
         return w.edges("|Z").fillet(r + grow)
-    return cyl(x, y, CAP_D / 2 + grow, z0, z1)
+    return cyl(x, y, CAP_D * scale / 2 + grow, z0, z1)
 
 
 def mark(cx, cy, r, z0, z1):
@@ -466,7 +468,7 @@ class Case:
         for ref, name in b["buttons"]:
             q = P[ref]
             kind = b.get("cap_shapes", {}).get(name, "circle")
-            p = p.cut(cap_shape(q["x"], q["y"], kind, (CAP_HOLE - CAP_D) / 2, zu - 1, zt + 1))
+            p = p.cut(cap_shape(q["x"], q["y"], kind, (CAP_HOLE - CAP_D) / 2, zu - 1, zt + 1, b.get("cap_scale", 1.0)))
             if self.zft + CAP_GAP > zu:
                 f = self.flange_w() / 2 + 0.3
                 p = p.cut(box(q["x"] - f, q["x"] + f, q["y"] - f, q["y"] + f, zu - 0.5, self.zft + CAP_GAP))
@@ -499,7 +501,22 @@ class Case:
         at = [(P[r]["x"], P[r]["y"]) for r, _ in b["buttons"]]
         pitch = min(max(abs(a[0] - c[0]), abs(a[1] - c[1])) for i, a in enumerate(at) for c in at[i + 1:])
         sw = P[b["buttons"][0][0]]["box"]
-        return min(pitch - 0.6, (sw[1] - sw[0]) + 1.0)
+        return min(pitch - 0.6, (sw[1] - sw[0]) + b.get("flange_over", 1.0))
+
+    def lip(self, ref, name):
+        """How far the flange reaches past the edge of its cap's hole at the least, in 0.05 mm steps: what keeps the
+        cap in the face. 0 means the hole is wider than the flange somewhere."""
+        b, q = self.b, self.b["parts"][ref]
+        f = self.flange_w() / 2
+        flange = box(q["x"] - f, q["x"] + f, q["y"] - f, q["y"] + f, 0, 1).edges("|Z").fillet(0.6)
+        kind = b.get("cap_shapes", {}).get(name, "circle")
+        m = 0.0
+        while m < 3.0:
+            hole = cap_shape(q["x"], q["y"], kind, (CAP_HOLE - CAP_D) / 2 + m + 0.05, 0.2, 0.8, b.get("cap_scale", 1.0))
+            if hole.cut(flange).val().Volume() > 1e-6:
+                return m
+            m += 0.05
+        return m
 
     def caps(self):
         """Each button's cap, as it sits: flange on the switch, stem through the plate."""
@@ -509,7 +526,7 @@ class Case:
             q = self.b["parts"][ref]
             c = box(q["x"] - f, q["x"] + f, q["y"] - f, q["y"] + f, self.zcap, self.zft).edges("|Z").fillet(0.6)
             kind = self.b.get("cap_shapes", {}).get(name, "circle")
-            stem = cap_shape(q["x"], q["y"], kind, 0.0, self.zft - 0.01, self.zt + CAP_PROUD)
+            stem = cap_shape(q["x"], q["y"], kind, 0.0, self.zft - 0.01, self.zt + CAP_PROUD, self.b.get("cap_scale", 1.0))
             stem = stem.faces(">Z").edges().fillet(0.6 if kind == "circle" else 0.4)
             out.append((c.union(stem), CAP_C.get(name, PAPER), "cap " + name))
         return out
@@ -632,6 +649,10 @@ def build(b, out, screen_png=None):
     pairs += [("screws", screws, sn, sh) for sh, _, sn in things]
     pairs += [("dock", dock, n, c.on_dock(s, tilt)) for n, s in printed + [("plug overmold", over)]]
     bad = check(pairs)
+    for ref, n in b["buttons"]:                         # the flange must reach past the hole, or the cap falls out
+        lip = c.lip(ref, n)
+        if lip < CAP_LIP:
+            bad.append("cap %s: its flange reaches %.2f mm past its hole, under %.2f" % (n, lip, CAP_LIP))
     for line in bad:
         print("CHECK:", line)
     for n, s, _, lie in parts:
