@@ -1,6 +1,6 @@
 # Mono, as a print
 
-A rough model of [Mono](../../hardware/mono/README.md)'s board to print and hold: the 40 × 96 mm bar, its
+A rough model of [Mono](../../hardware/mono/README.md)'s board to print and hold: the 40 × 89.5 mm bar, its
 holes, a block for each part JLCPCB fits, to its height, and the panel on top. It is for a sense of the
 board's size and what stands on it, not a fit check (`tools/keypcb jlc mono` does that).
 
@@ -11,7 +11,7 @@ uv run --python 3.11 --with cadquery --with matplotlib python cad/mono/board.py
 ```
 
 It writes `out/`:
-- `mono_board.stl`: everything as one solid, 40 × 96 × 5.2 mm, the back down, as it prints.
+- `mono_board.stl`: everything as one solid, 40 × 89.5 × 5.2 mm, the back down, as it prints.
 - `mono_board_pcb.stl`, `mono_board_parts.stl`, `mono_board_panel.stl`: the same in three pieces that
   don't overlap, for a print in colours. Load all three at once so they keep their places.
 - `mono_board.png`: the picture above.

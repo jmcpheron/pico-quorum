@@ -1,4 +1,4 @@
-"""Mono's case. A slender bar round the 40 x 96 mm board, in the slate's "shell" layout: the face and the walls are
+"""Mono's case. A slender bar round the 40 x 89.5 mm board, in the slate's "shell" layout: the face and the walls are
 one front shell, and a flat panel closes the back. Four M2 screws go in from the front, through the shell's posts
 and the board's four M2 holes, into bosses on the back panel. The board has no radio, so no end is kept free of
 metal, and no tab.
@@ -43,15 +43,18 @@ SCREEN = os.path.join(S.REPO, "docs", "quorum-ui", "feather", "06-review-head.pn
 BACK_ROOM = 1.6             # under the board: the USB-C's shell legs, and the bosses' height for the M2 thread
 # The mark in the field under the buttons, over the RP2350: its centre and radius, the slate's size near enough
 # (r 6.4 there, from RESET and BOOTSEL; here nothing fixes it). The name goes over it (rp.NAME).
-MARK = (20.0, 38.0, 6.0)
+# Given in the generator's frame (y down), so it keeps its place to the parts when the board changes.
+MARK = (20.0, 58.0, 6.0)
 FOLD = 1.5                  # the ribbon's fold past the glass's right end: the README reads the drawing as 0.5 at
                             # most; the slate allows 2.0. 1.5 leaves the wall 1.8 mm clear
 
 
 def board():
     P = S.parts(os.path.join(FAB, "cpl.csv"), os.path.join(FAB, "bom.csv"))
+    # the generator's y runs down from the first outline's top-left corner, the board from TOP to H; the fab files'
+    # runs up from the bottom edge
     W, H = G.W, G.H
-    up = lambda xy: (xy[0], H - xy[1])     # the generator's y runs down from the top edge; the fab files' up
+    up = lambda xy: (xy[0], H - xy[1])
     for ref in ("SW1", "SW2", "SW3", "J1", "J2", "D1", "U1"):     # the fab file and the generator agree
         gx, gy = up(G.AT[ref][:2])
         assert abs(P[ref]["x"] - gx) < 0.01 and abs(P[ref]["y"] - gy) < 0.01, ref
@@ -64,12 +67,12 @@ def board():
     over = (active[0] - (2.0 - G.PANEL["active_off"]), active[1], active[2], active[3])
     rw = G.PANEL["ribbon"]
     holes = [up(G.AT[h][:2]) for h in ("H1", "H2", "H3", "H4")]
-    cx, cy, r = MARK
+    cx, cy, r = MARK[0], H - MARK[1], MARK[2]
     led = P["D1"]
     assert math.hypot(led["x"] - cx, led["y"] - cy) > r + r / 4 + S.LED_HOLE, "the mark runs into the LED's hole"
     return dict(
         name="mono", title="Mono's case", layout="shell",
-        W=W, H=H, R=G.CORNER, T=1.6, holes=holes, hole_d=2.2, parts=P,
+        W=W, H=H - G.TOP, R=G.CORNER, T=1.6, holes=holes, hole_d=2.2, parts=P,
         glass=glass, glass_z=(G.PANEL["foam"], G.PANEL["foam"] + G.PANEL["thick"]), active=active, window_over=over,
         fold=(glass[2], glass[2] + FOLD, yc - rw / 2, yc + rw / 2),
         module=None, module_h=BACK_ROOM,
@@ -91,8 +94,8 @@ def board():
         engrave=RP.ENGRAVE_DEEP,
         mark=(cx, cy, r),           # no switch under its dots
         flip="y",                   # turned over about its length to read the back, as the badge
-        back_text=[("Picoquorum", (W / 2, 54.0), (30.0, 6.0), "bold"),
-                   ("picoquorum.app", (W / 2, 46.0), (24.0, 3.0), "regular")],
+        back_text=[("Picoquorum", (W / 2, H - 42.0), (30.0, 6.0), "bold"),
+                   ("picoquorum.app", (W / 2, H - 50.0), (24.0, 3.0), "regular")],
         seen=("D1",),
         views=dict(front=[("in the hand: four screws in the face", 58, -78), ("the back: the name, the Source Location", -55, 110)],
                    apart=[("apart: screws, front shell, caps, board, back panel", 30, -60)],

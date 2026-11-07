@@ -1,4 +1,4 @@
-"""Mono's board as a print: the 40 x 96 mm bar, its holes, and a block for each part JLCPCB fits, to its
+"""Mono's board as a print: the 40 x 89.5 mm bar, its holes, and a block for each part JLCPCB fits, to its
 height, with the panel on top. A rough model to hold in the hand and lay a case or a thumb against, not a
 fit check (tools/jlc's fit3d.py is that).
 
@@ -146,7 +146,7 @@ def block(fp, z0, z1, inset=0.0):
 
 
 def board(fps):
-    pcb = (cq.Workplane("XY").box(G.W, G.H, T, centered=False).translate((0, 0, -T))
+    pcb = (cq.Workplane("XY").box(G.W, G.H - G.TOP, T, centered=False).translate((0, 0, -T))
            .edges("|Z").fillet(G.CORNER))
     for fp in fps:
         for hx, hy, d in fp["holes"]:

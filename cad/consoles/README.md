@@ -110,7 +110,7 @@ port's parts fits this case; its corner is just open.
 
 ## Mono
 
-[`mono.py`](mono.py), for [Mono](../../hardware/mono/README.md): a slender bar, 44.6 × 106.6 × 10.9 mm
+[`mono.py`](mono.py), for [Mono](../../hardware/mono/README.md), the 40 × 89.5 mm board: a slender bar, 44.6 × 100.1 × 10.9 mm
 closed, in the stick's "shell" layout like console-rp's slate ([`rp.py`](rp.py)). **A first draft, not
 printed, and no Mono board has been built.**
 - **Four M2 × 8 screws from the face,** through the shell's posts and the board's four M2 holes (one either
