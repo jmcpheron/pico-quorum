@@ -30,7 +30,7 @@ import wificfg
 AP_IP = "192.168.4.1"
 JOIN_S = 20             # a join that has not finished by now has failed
 STA_IDLE, STA_CONNECTING = 0, 1
-NAME = "PicoQuorum"
+NAME = "Picoquorum"
 
 # Shared with wificfg.handle (the phone's page): state, ssid, msg, nets, pending.
 st = {"state": "idle", "ssid": "", "msg": "", "nets": [], "pending": None, "name": NAME}

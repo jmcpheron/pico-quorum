@@ -157,7 +157,7 @@ WELL_RIB = 3.0                      # the thickening behind a well, this much pa
 COLOURS = [("light grey", (0.86, 0.86, 0.84)), ("charcoal", (0.22, 0.22, 0.25)), ("red", (0.78, 0.16, 0.14)),
            ("blue", (0.20, 0.36, 0.72))]
 LAYER_CHANGES = (0.6, 1.2, 1.8)     # mm from the face: three layers each, at 0.2 mm layers
-NAME = "PICOQUORUM"                 # under the screen, as big as fits in NAME_BAND
+NAME = "Picoquorum"                 # under the screen, as big as fits in NAME_BAND
 NAME_BAND = 8.5                     # how tall its band is, under the window's bevel
 CUT = LAYER_CHANGES[0]              # the name and the frames' lines: the second colour
 LABEL_LINE, LABEL_DEPTH = 0.6, LAYER_CHANGES[1]     # the frames' line; their words: the third colour

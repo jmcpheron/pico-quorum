@@ -1,6 +1,6 @@
 # tools/mockup
 
-Printable mockups of the two S3 boards, console-s3 and PicoQuorumKey: something to hold, put in a
+Printable mockups of the two S3 boards, console-s3 and PicoquorumKey: something to hold, put in a
 hand and try in a case before the boards come. Not a model to measure.
 
     tools/mockup/mockup.py                    # both boards
@@ -20,7 +20,7 @@ What it writes, in `<board dir>/mockup/`:
 
 Where the numbers come from:
 - The outline, the holes and every part's place and courtyard: the routed `.kicad_pcb` (`facts.py`).
-- The panel and fold: console-s3's generator (`jlc_spec()["fit"]`), PicoQuorumKey's `GLASS` and
+- The panel and fold: console-s3's generator (`jlc_spec()["fit"]`), PicoquorumKey's `GLASS` and
   `FOLD_Y` in `tools/gen/gen_pcb.py`, with its 1.5 mm tape and 1.6 mm panel.
 - Heights: console-s3's generator, then the table in `mockup.py`.
 - The module's split between its board and its shield, and the shield's inset, are rough.

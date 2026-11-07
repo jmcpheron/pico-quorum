@@ -1,4 +1,4 @@
-// The PicoQuorum page: open a Safe, see its owners and queue, check every confirmation, and execute
+// The Picoquorum page: open a Safe, see its owners and queue, check every confirmation, and execute
 // with the signatures laid out right. Keys: the registry (docs/registry/keys.json), each bundle checked
 // in the browser, and a key's signer deployed from the wallet: your passkey's, or anyone's from a
 // deploy link (#/signer/<x>/<y>) or a new key's set-up link (#/k/<compressed key>), from any
@@ -22,7 +22,7 @@ import { isApproved } from "../../tools/mock-tx-service/release.mjs";
 import { p256Owner } from "../../tools/mock-tx-service/sigs.mjs";
 
 const REPO = "https://github.com/jmcpheron/pico-quorum";
-const DEMO = { chain: "basesep", address: "0xEDEDC0063B23A309f4cAdA5e1225Ef21D8A30a43", name: "PicoQuorum test Safe" };
+const DEMO = { chain: "basesep", address: "0xEDEDC0063B23A309f4cAdA5e1225Ef21D8A30a43", name: "Picoquorum test Safe" };
 
 // ----------------------------------------------------------------------------- small things
 const store = {
@@ -190,9 +190,9 @@ function registry() {
 const byOwner = async () => Object.fromEntries((await registry().catch(() => [])).map((k) => [k.owner, k]));
 
 function keyBadge(k, kind) {
-  if (k?.verified) return badge("ok", `Verified PicoQuorum key · ${k.name}`, "Its attestation bundle passes every check, in this browser");
+  if (k?.verified) return badge("ok", `Verified Picoquorum key · ${k.name}`, "Its attestation bundle passes every check, in this browser");
   if (k) return badge("bad", `Listed key failed its checks · ${k.name}`, k.why);
-  if (kind?.kind === "passkey") return badge("muted", `Passkey signer · key ${kind.fingerprint}`, "A Safe passkey signer, not in the PicoQuorum registry");
+  if (kind?.kind === "passkey") return badge("muted", `Passkey signer · key ${kind.fingerprint}`, "A Safe passkey signer, not in the Picoquorum registry");
   if (kind?.kind === "wallet" && kind.delegated) return badge("muted", "Wallet · EIP-7702", `A wallet whose account delegates to ${kind.delegated}. It still signs as a wallet.`);
   if (kind?.kind === "wallet") return badge("muted", "Wallet");
   if (kind?.kind === "contract") return badge("muted", "Contract");
@@ -266,7 +266,7 @@ function home() {
     h("section", { class: "hero" },
       h("h1", { text: "Execute what your quorum signed" }),
       h("p", { class: "lede", text: "Open any Safe to see its owners and queue. Every confirmation is checked here, then the signatures are laid out the way the Safe expects and your wallet sends the transaction." }),
-      h("p", { class: "muted", text: "Safe{Wallet} can't execute a transaction when a PicoQuorum key is one of two or more confirmations: it fails with GS021. This page can. Nothing here holds a key." })),
+      h("p", { class: "muted", text: "Safe{Wallet} can't execute a transaction when a Picoquorum key is one of two or more confirmations: it fails with GS021. This page can. Nothing here holds a key." })),
     h("section", { class: "card" }, h("h2", { text: "Open a Safe" }), form,
       h("p", { class: "small muted" }, "Or try ",
         h("a", { href: `#/safe/${DEMO.chain}/${DEMO.address}`, text: DEMO.name }), " on Base Sepolia.")),
@@ -275,7 +275,7 @@ function home() {
       h("p", { class: "small muted" }, "Kept in this browser. ", h("a", { href: "#/settings", text: "Back them up" }), " to move them to another.")) : null,
     recent.length ? h("section", { class: "card" }, h("h2", { text: "Opened lately" }),
       h("ul", { class: "list" }, ...recent.map((s) => safeRow(s, false)))) : null,
-    h("section", { class: "card quiet" }, h("h2", { text: "What is PicoQuorum?" }),
+    h("section", { class: "card quiet" }, h("h2", { text: "What is Picoquorum?" }),
       h("p", {}, "A hardware approval console for Safe multisig wallets: a Raspberry Pi Pico 2 W with a screen and two buttons, and a sealed Infineon Trust M key that plugs in. It decodes each queued transaction on its own screen, and signs only when you hold Sign."),
       h("p", {}, h("a", { href: "../", text: "About the project" }), " · ", h("a", { href: REPO, text: "Source" }), " · ", h("a", { href: "#/keys", text: "Verified keys" }))),
   );
@@ -392,7 +392,7 @@ async function txCard(name, safe, onchain, t, keys, rejected = new Set()) {
       ident(x.owner, 28),
       h("div", {},
         h("div", { class: "addr-top" }, h("strong", { text: nameOf(x.owner) || short(x.owner) }),
-          keyBadge(keys[x.owner]), x.console ? badge("muted", "signed on a console", "The WebAuthn data names PicoQuorum. Anyone can write that; the check is the signature.") : null,
+          keyBadge(keys[x.owner]), x.console ? badge("muted", "signed on a console", "The WebAuthn data names Picoquorum. Anyone can write that; the check is the signature.") : null,
           badge("muted", { ecdsa: "wallet signature", contract: "contract signature", approved: "approved onchain" }[x.kind] || x.kind)),
         h("code", { class: "mono small", text: x.owner }),
         x.ok ? null : h("div", { class: "bad small", text: x.why || "not valid" })))),
@@ -589,15 +589,15 @@ function proposeForm(body, { name, c, safe, pub, svc, s, queued, keys, back, pre
         tokenRow.at(-1).addEventListener("change", () => fill(other, vals.token === "other" ? addressField("tokenAddress", "Token address") : null));
         return [...tokenRow, other, ...addressField("to", "To"), ...textField("amount", "Amount", null, { inputmode: "decimal", placeholder: "10" })];
       },
-      add: () => [...addressField("owner", "New owner", "A wallet, or a PicoQuorum key's owner address (its key page has it)."),
+      add: () => [...addressField("owner", "New owner", "A wallet, or a Picoquorum key's owner address (its key page has it)."),
         ...pick("threshold", "Approvals needed after", counts(n + 1, n + 1))],
       remove: () => [...pick("owner", "Owner to remove", owners), ...pick("threshold", "Approvals needed after", counts(n - 1, n - 1))],
-      swap: () => [...pick("old", "Owner to replace", owners), ...addressField("owner", "New owner", "Takes the old owner's place, with the same vote. For a new PicoQuorum key, use its owner address.")],
+      swap: () => [...pick("old", "Owner to replace", owners), ...addressField("owner", "New owner", "Takes the old owner's place, with the same vote. For a new Picoquorum key, use its owner address.")],
       threshold: () => [...pick("threshold", "Approvals needed", counts(n, n).filter(([v]) => Number(v) !== s.threshold))],
       reject: () => [h("p", {}, "A transaction that does nothing. Once executed it uses up its nonce, so every other transaction waiting at that nonce can never run. It needs the same approvals as any other.")],
       release: () => {
         const row = pick("release", "Release", releases.map((r) => [r.version, `${r.version} · firmware ${shortFp(r.fingerprints.console)}`]),
-          "The Safe approves this release for everyone who runs PicoQuorum. Each owner's console shows its firmware fingerprint before signing.");
+          "The Safe approves this release for everyone who runs Picoquorum. Each owner's console shows its firmware fingerprint before signing.");
         return releases.length ? row : [h("p", { class: "bad", text: "No releases listed (docs/releases/index.json)." })];
       },
       custom: () => [...addressField("to", "Contract"), ...textField("amount", "ETH sent with it", "Optional.", { inputmode: "decimal", placeholder: "0" }),
@@ -730,7 +730,7 @@ async function keysView() {
     } catch (e) { fail(checkOut, e); }
   };
   fill($main(), 
-    h("section", { class: "hero" }, h("h1", { text: "PicoQuorum keys" }),
+    h("section", { class: "hero" }, h("h1", { text: "Picoquorum keys" }),
       h("p", { class: "lede", text: "Each key here has an attestation bundle: what the chip says about itself, signed with Infineon's factory key. This page checks every bundle when it loads, with the same checks as tools/quorum verify." }),
       h("p", { class: "muted" }, "A badge says a genuine Trust M holds the key and the owner address follows from it. It doesn't say who holds the chip; that's the Safe's threshold. ",
         h("a", { href: `${REPO}/blob/main/docs/registry/README.md`, text: "Add your key" }), ".")),
@@ -915,9 +915,9 @@ function signerForm() {
   };
   fill($main(),
     h("section", { class: "hero" }, h("h1", { text: "Deploy a key's signer" }),
-      h("p", { class: "lede", text: "A PicoQuorum key or a passkey owns a Safe through a small signer contract. Until it's deployed on a chain, its signatures can't be checked there, and Safe's service refuses them. Any wallet can deploy it: it doesn't have to own the Safe, it moves no funds, it only pays the gas." })),
+      h("p", { class: "lede", text: "A Picoquorum key or a passkey owns a Safe through a small signer contract. Until it's deployed on a chain, its signatures can't be checked there, and Safe's service refuses them. Any wallet can deploy it: it doesn't have to own the Safe, it moves no funds, it only pays the gas." })),
     h("section", { class: "card" }, h("h2", { text: "The key" }),
-      h("p", { class: "muted", text: "Paste a PicoQuorum key's compressed public key (02 or 03, then 64 hex digits) or its set-up link, or a passkey's deploy link from the console page or Your passkey (Share the deploy link). Not its owner address: that's a hash of the key." }),
+      h("p", { class: "muted", text: "Paste a Picoquorum key's compressed public key (02 or 03, then 64 hex digits) or its set-up link, or a passkey's deploy link from the console page or Your passkey (Share the deploy link). Not its owner address: that's a hash of the key." }),
       input, h("div", { class: "row" }, h("button", { class: "btn go", type: "button", text: "Show its signer", onclick: go })), why,
       myPasskey() ? h("p", { class: "small muted" }, "Your own passkey: ", h("a", { href: "#/passkey", text: "Your passkey" }), ".") : null));
 }
@@ -950,7 +950,7 @@ function signerView(x, y) {
 }
 
 // ----------------------------------------------------------------------------- a new key's set-up link
-// #/k/<compressed key>: a PicoQuorum key's public key, 33 bytes, short enough for the console's QR
+// #/k/<compressed key>: a Picoquorum key's public key, 33 bytes, short enough for the console's QR
 // (docs/ONBOARDING.md, The QR code). The page works the owner address out again to compare with the
 // console's, deploys its signer from any wallet (which pays the gas and needn't own the Safe), and
 // links Add owner for each saved Safe. Nothing here signs for the key.
@@ -971,7 +971,7 @@ function keySetupView(compressed) {
   const deploy = h("div", {});
   fill($main(),
     h("section", { class: "hero" },
-      h("div", { class: "safe-title" }, ident(owner, 56), h("div", {}, h("h1", { text: mine ? "Your passkey" : known || "A PicoQuorum key" }),
+      h("div", { class: "safe-title" }, ident(owner, 56), h("div", {}, h("h1", { text: mine ? "Your passkey" : known || "A Picoquorum key" }),
         h("div", { class: "chips" }, mine ? badge("ok", "Your passkey") : null, badge("muted", `key ${k.x.slice(0, 8)}`)))),
       h("p", { class: "lede", text: "Set it up as an owner of a Safe: compare its address with the console's, then make a new Safe with it, or deploy its signer and add it to one you have." }),
       h("p", { class: "muted", text: "Its owner address is a signer contract, not a wallet. Never send funds to it." })),
@@ -982,7 +982,7 @@ function keySetupView(compressed) {
     newSafeCard(k, owner),
     h("section", { class: "card" }, h("h2", { text: "3. Or, for a Safe you have: deploy its signer" }),
       h("p", { class: "muted" }, "Once on each chain you use. Any wallet can send it: yours needn't own the Safe, and it moves no funds; it pays the gas (about 110k). No wallet here? ",
-        shareButton(setupLink(c), "Share this link", "Set up a PicoQuorum key"), " and open it where MetaMask or Rabby is."),
+        shareButton(setupLink(c), "Share this link", "Set up a Picoquorum key"), " and open it where MetaMask or Rabby is."),
       deploy),
     h("section", { class: "card" }, h("h2", { text: "4. Then add it to that Safe" }),
       h("p", { class: "muted", text: "Propose adding it as an owner. The Safe's owners approve that as any transaction; keep the threshold at 2 or more." }),
@@ -1016,7 +1016,7 @@ function newSafeCard(k, owner) {
   const noWallet = !wallet.available().length ? h("p", { class: "small" }, "No wallet in this browser. Open this page in your wallet's: ",
     h("a", { href: `https://metamask.app.link/dapp/${href.replace(/^https?:\/\//, "")}`, text: "MetaMask" }), " · ",
     h("a", { href: `https://go.cb-w.com/dapp?cb_url=${encodeURIComponent(href)}`, text: "Coinbase Wallet" }), " · or ",
-    shareButton(href, "copy the link", "Set up a PicoQuorum key"), " into its browser.") : null;
+    shareButton(href, "copy the link", "Set up a Picoquorum key"), " into its browser.") : null;
   go.onclick = async () => {
     go.disabled = true;
     fill(log.el);
@@ -1045,7 +1045,7 @@ function newSafeCard(k, owner) {
       const checks = await checkNew(pub, safe, me, owner, g);
       for (const [ok, what] of checks) log.add(ok ? "ok" : "bad", what);
       if (!checks.every(([ok]) => ok)) { log.add("bad", "That isn't the Safe this page meant to make. Don't use it; find out why."); return; }
-      saveSafe({ chain: name, address: safe, name: savedSafe({ chain: name, address: safe })?.name || "PicoQuorum Safe", threshold: 2, owners: [me, owner] });
+      saveSafe({ chain: name, address: safe, name: savedSafe({ chain: name, address: safe })?.name || "Picoquorum Safe", threshold: 2, owners: [me, owner] });
       log.add("ok", "Saved here. ", h("a", { href: `#/safe/${name}/${safe}`, text: "Open it" }), " · ",
         h("a", { href: "#/device", text: "point the console at it" }), " · ", explorer(name, "address", safe));
     } catch (e) { log.add("bad", said(e)); go.disabled = false; }
@@ -1076,7 +1076,7 @@ function backupFile() {
 // Merge a backup in: Safes by chain and address (the file's name wins), names by address. Everything
 // is checked, since the file could come from anywhere.
 function restore(B) {
-  if (B?.kind !== BACKUP || !Array.isArray(B.safes) || typeof B.names !== "object") throw new Error("That isn't a PicoQuorum backup.");
+  if (B?.kind !== BACKUP || !Array.isArray(B.safes) || typeof B.names !== "object") throw new Error("That isn't a Picoquorum backup.");
   let safes = 0, names = 0;
   for (const x of B.safes) {
     if (!CHAINS[x?.chain] || !isAddress(String(x.address), { strict: false })) continue;

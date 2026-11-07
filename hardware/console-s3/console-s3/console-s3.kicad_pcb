@@ -8,10 +8,10 @@
 	)
 	(paper "A4")
 	(title_block
-		(title "PicoQuorum console-s3, rev A: ESP32-S3-WROOM-1 on the back, 1.14in ST7789 in a ZIF, 5 buttons, ATECC608C on board")
+		(title "Picoquorum console-s3, rev A: ESP32-S3-WROOM-1 on the back, 1.14in ST7789 in a ZIF, 5 buttons, ATECC608C on board")
 		(date "2026-10-24")
 		(rev "A")
-		(company "PicoQuorum")
+		(company "Picoquorum")
 		(comment 1 "The S3 console on one board: see hardware/console-s3/DESIGN.md")
 	)
 	(layers
@@ -7100,7 +7100,7 @@
 			(justify mirror)
 		)
 	)
-	(gr_text "PicoQuorum.app"
+	(gr_text "Picoquorum.app"
 		(at 123.4934 132.2 0)
 		(layer "B.SilkS")
 		(uuid "fd8c30f1-dc8c-451a-a7f5-694595508082")

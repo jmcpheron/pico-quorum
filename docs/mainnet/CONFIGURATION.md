@@ -77,7 +77,7 @@ deploy, and check the Safe's `VERSION()` and masterCopy after.
 
 **Owners: 3 of 5, and no single kind of device can reach three.**
 - One Trust M Pico, the subject of these docs.
-- At most one more PicoQuorum signer (an ATECC Pico, say), so the firmware family holds at most
+- At most one more Picoquorum signer (an ATECC Pico, say), so the firmware family holds at most
   2 of 5.
 - At least three owners on hardware wallets from at least two vendors, held by at least two
   people, in at least two places.

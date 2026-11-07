@@ -2,7 +2,7 @@
 
 Two cases for the two S3 boards from JLCPCB, and a dock for each:
 - **the stick**, for [console-s3](../../hardware/console-s3/DESIGN.md)
-- **the badge**, for [PicoQuorumKey rev B](../../hardware/picoquorum-key/README.md) with its key port fitted
+- **the badge**, for [PicoquorumKey rev B](../../hardware/picoquorum-key/README.md) with its key port fitted
 
 **Status, 2026-11-03:** a first draft of each, drawn the day the boards arrived. The first badge was
 drawn for rev A. Its plate was printed and laid on a board: the board was rev B, and the rib above
@@ -11,7 +11,7 @@ the screen sat on U6 and U7, the key port's chips. The badge is drawn for rev B 
 
 | | the stick | the badge |
 |---|---|---|
-| board | console-s3 rev A, 64 × 22.86 × 1.6 mm | PicoQuorumKey rev B with the key port, 50 × 53 × 0.8 mm |
+| board | console-s3 rev A, 64 × 22.86 × 1.6 mm | PicoquorumKey rev B with the key port, 50 × 53 × 0.8 mm |
 | layout | a front shell and a back panel | a tub and a front plate |
 | closed | 74.6 × 27.5 × 12.4 mm | 54.6 × 63.6 × 11.4 mm |
 | screws | 2 × M2 × 8 from the front, at the USB end | 4 × M2 × 8 from the back |
@@ -53,7 +53,7 @@ Everything else is the same:
   doesn't press them by mistake. BOOT is a 1.8 mm pinhole. On the badge RESET is too; on the stick it
   is the mark's lower-left dot, 3.75 mm across.
 - **A hole over the LED.**
-- **The back carries the name.** On the badge, `PicoQuorum.app` is under it: the Source Location
+- **The back carries the name.** On the badge, `picoquorum.app` is under it: the Source Location
   (CERN-OHL-W v2, section 4.1), since the case covers the board's own. The stick's back has the name
   alone.
 
@@ -80,7 +80,7 @@ Everything else is the same:
 
 ![the stick on its dock](out/stick/stick_dock.png)
 
-## The badge (PicoQuorumKey rev B)
+## The badge (PicoquorumKey rev B)
 
 [`badge.py`](badge.py). Portrait, like a small handheld, with a lug for a lanyard.
 - **The key port's corner is open.** The plug stands 9.6 mm out of the board's top edge, at the

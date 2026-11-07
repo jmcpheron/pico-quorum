@@ -1,7 +1,7 @@
 (kicad_sch (version 20250114) (generator "picoquorum_gen") (generator_version "9.0")
 (uuid "23c83bc2-9aa4-41f0-a35d-2af879740cc2")
 (paper "A3")
-(title_block (title "PicoQuorum console, rev A: Pico 2 W, 1.3in panel, nine buttons") (date "2026-10-02") (rev "A") (company "PicoQuorum")
+(title_block (title "Picoquorum console, rev A: Pico 2 W, 1.3in panel, nine buttons") (date "2026-10-02") (rev "A") (company "Picoquorum")
   (comment 1 "See hardware/console-a/README.md"))
 (lib_symbols
 (symbol "power:GND"

@@ -1,6 +1,6 @@
 """The picoquorum-key board profile, as constants.
 
-The console firmware carries these as the `"picoquorum-key"` profile in PicoQuorum's
+The console firmware carries these as the `"picoquorum-key"` profile in Picoquorum's
 `firmware/board.py`, under its own names; the numbers are the contract (docs/PINS.md). Changing any
 of them is a new profile and a new release fingerprint.
 

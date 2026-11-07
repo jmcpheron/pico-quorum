@@ -1,6 +1,6 @@
 # Upstream
 
-Problems found in other projects while building PicoQuorum, with the evidence and draft
+Problems found in other projects while building Picoquorum, with the evidence and draft
 contributions. Jason submits anything to another project by hand; nothing here has been sent
 unless its status says so.
 

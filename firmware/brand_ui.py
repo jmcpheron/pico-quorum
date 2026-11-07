@@ -24,7 +24,7 @@ BODY_Y = 84                     # where a step's own content starts, under the c
 
 # ----------------------------------------------------------------------------- the kit
 def logo_mark(d, cx, cy, s=1.0):
-    """The PicoQuorum mark: five owners, three signed, their triangle (docs/brand/mark-dark.svg)."""
+    """The Picoquorum mark: five owners, three signed, their triangle (docs/brand/mark-dark.svg)."""
     p = lambda v: int(v * s)
     d.poly(cx, cy, array("h", [0, p(-12), p(7), p(9.7), p(-7), p(9.7)]), U.c((95, 222, 126)), True)
     for x, y, r, col in ((0, -12, 3, "ok"), (7, 9.7, 3, "ok"), (-7, 9.7, 3, "ok"), (11.4, -3.7, 2, "warn"), (-11.4, -3.7, 2, "warn")):

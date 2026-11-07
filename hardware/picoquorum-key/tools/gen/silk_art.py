@@ -131,13 +131,13 @@ def text(board, layer, s, x, y, size=1.0, thick=0.15, align="center"):
     return (cx - w / 2, y - 0.55 * size, cx + w / 2, y + 0.55 * size)
 
 
-# --- the brand (PicoQuorum's docs/BRAND.md) ---------------------------------------------------
+# --- the brand (Picoquorum's docs/BRAND.md) ---------------------------------------------------
 # The mark and the name are the polygons in hardware/lib/picoquorum.pretty, copied from the
-# PicoQuorum repository's hardware/console-s3/lib: the mark 5.0 mm tall, the name traced from
+# Picoquorum repository's hardware/console-s3/lib: the mark 5.0 mm tall, the name traced from
 # Atkinson Hyperlegible Next Bold at 1 mm to the cap height. They go on as plain board shapes,
 # scaled here, not as footprints.
 CAP_EM = 0.669          # Atkinson Hyperlegible Next: its cap height in em
-SITE = "PicoQuorum.app"
+SITE = "Picoquorum.app"
 
 
 def _logo(name):
@@ -191,7 +191,7 @@ def lockup(board, layer, cx, cy, cap):
     logo(board, layer, "PicoQuorum_Name", left + sx * (34 / 26 * em + adv / 2), cy, cap)
 
 
-# A nod to Adventure (Atari 2600, 1980), as on PicoQuorum's console-s3: an 8-bit key beside U2, the
+# A nod to Adventure (Atari 2600, 1980), as on Picoquorum's console-s3: an 8-bit key beside U2, the
 # key chip, and a dragon facing it, guarding it; drawn in the game's manner, not copied from it.
 # Rows top to bottom, '#' a 0.3 mm square of silk.
 DRAGON = ("....###.", "#####.#.", "....###.", ".....#..", ".....#..", "....##..", "...###..", "..####..",
@@ -214,7 +214,7 @@ def pixels(board, rows, x0, y0):
 
 # --- front art ------------------------------------------------------------------------------
 def wordmark(board):
-    """The mark and the name over the module's antenna end, over a rule that carries PicoQuorum.app
+    """The mark and the name over the module's antenna end, over a rule that carries Picoquorum.app
     (silk is not copper: it costs the antenna nothing), and KEY PORT pointing at the plug. Rev A had
     the lockup across the whole band at a 2.4 mm cap; rev B's key port parts sit in the band's left
     half, so it is 1.7 mm, 18.8 mm wide."""

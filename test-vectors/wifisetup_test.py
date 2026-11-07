@@ -286,7 +286,7 @@ def _ap(esp32, fail=False):
 got, ws = _ap(True)
 check(got["calls"] == ["on", "config"] and got.get("security") == 3 and got.get("key") == ws.ap_pass and got["active"],
       "ESP32: the hotspot is switched on, then made WPA2 with its password")
-check(ws.ap_ssid == "PicoQuorum-CFB0" and "T:WPA;" in W.qr_join(ws.ap_ssid, ws.ap_pass),
+check(ws.ap_ssid == "Picoquorum-CFB0" and "T:WPA;" in W.qr_join(ws.ap_ssid, ws.ap_pass),
       "ESP32: the QR asks for the same WPA network")
 got, ws = _ap(True, fail=True)
 check(got["calls"] == ["on", "config", "off"] and not got["active"], "ESP32: a hotspot that can't be set up is switched off, never left open")

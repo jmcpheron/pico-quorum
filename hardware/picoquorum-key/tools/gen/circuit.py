@@ -150,7 +150,7 @@ P("D1", "Device:LED", "red", "LED_SMD:LED_0603_1608Metric", "C2286", (127.0, 203
 P("U2", "Security:ATECC608B-MAHDA", "ATECC608C-MAHDA", "Package_DFN_QFN:DFN-8-1EP_3x2mm_P0.5mm_EP1.3x1.5mm", "C23291019",
   (215.9, 215.9), {"8": "+3V3", "4": "GND", "5": "I2C_SDA", "6": "I2C_SCL", "9": "GND",
                    "1": NC, "2": NC, "3": NC, "7": NC},
-  mpn="ATECC608C-MAHDA-S", note="UDFN-8 2x3 mm, as PicoQuorum's console-s3; placed by JLCPCB (extended part)")
+  mpn="ATECC608C-MAHDA-S", note="UDFN-8 2x3 mm, as Picoquorum's console-s3; placed by JLCPCB (extended part)")
 C("C7", "100n", "C14663", (195.58, 198.12), "+3V3", "GND", note="at ATECC VCC")
 R("R6", "4.7k", "C23162", (241.3, 198.12), "+3V3", "I2C_SDA")
 R("R7", "4.7k", "C23162", (251.46, 198.12), "+3V3", "I2C_SCL")

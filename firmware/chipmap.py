@@ -387,7 +387,7 @@ def cfg_actions(ui):
     out = [("raw", "RAW BYTES", "safe", "")]
     if ui.snap is not None:
         out.append(("diff", "COMPARE WITH SAVED", "safe", ""))
-    # A fresh chip gets PicoQuorum's own table, quorum v1, through PROVISION (provision.py), which
+    # A fresh chip gets Picoquorum's own table, quorum v1, through PROVISION (provision.py), which
     # locks each zone with a CRC the chip checks. Microchip's test table and the unchecked locks
     # stay readable here but can no longer be written or sealed from the chip map.
     if not cfg:

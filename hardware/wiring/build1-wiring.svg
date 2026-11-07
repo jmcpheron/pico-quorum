@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1000" viewBox="0 0 1440 1000">
 <rect width="1440" height="1000" fill="#fbfbf8"/>
-<text x="24" y="32" font-size="16" text-anchor="start" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">PicoQuorum Build 1: Pico 2 W + 2.0" ST7789 240x320 + EC11 knob + key jacks (3.5 mm and 2.5 mm TRRS), ATECC608 key</text>
+<text x="24" y="32" font-size="16" text-anchor="start" fill="#222" font-weight="bold" font-family="ui-monospace, Menlo, Consolas, monospace">Picoquorum Build 1: Pico 2 W + 2.0" ST7789 240x320 + EC11 knob + key jacks (3.5 mm and 2.5 mm TRRS), ATECC608 key</text>
 <text x="24" y="52" font-size="11" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">Pico 2 W seen from the top, USB up. Numbers are physical header pins. A dot joins wires; wires that cross without a dot do not touch.</text>
 <text x="24" y="68" font-size="11" text-anchor="start" fill="#666" font-weight="normal" font-family="ui-monospace, Menlo, Consolas, monospace">All power is 3.3 V from pin 36. Nothing here goes to VBUS (40) or VSYS (39). The pin table in hardware/wiring/BUILD1.md is the same one.</text>
 <rect x="620" y="150" width="240" height="440" rx="8" fill="#2e7d4f" stroke="#1b4d31" stroke-width="2"/>

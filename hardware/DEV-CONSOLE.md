@@ -1,6 +1,6 @@
 # The dev console
 
-The quickest PicoQuorum console to build: three off-the-shelf parts, about $35, no soldering, an
+The quickest Picoquorum console to build: three off-the-shelf parts, about $35, no soldering, an
 evening. It runs the same console image as every other build. Its key is an ATECC608 breakout (or
 an Infineon OPTIGA Trust M, [TRUSTM.md](../docs/TRUSTM.md)) until the [plug-in key](key-pcb/) is
 ready.

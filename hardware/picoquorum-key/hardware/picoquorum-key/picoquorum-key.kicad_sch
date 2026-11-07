@@ -11450,7 +11450,7 @@
 				(hide yes)
 			)
 		)
-		(property "Description" "UDFN-8 2x3 mm, as PicoQuorum's console-s3; placed by JLCPCB (extended part)"
+		(property "Description" "UDFN-8 2x3 mm, as Picoquorum's console-s3; placed by JLCPCB (extended part)"
 			(at 215.9 215.9 0)
 			(effects
 				(font

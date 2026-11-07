@@ -1,6 +1,6 @@
 # For the other owners of the Safe
 
-One owner of our Safe is a PicoQuorum signer: a small device with a screen and a secure chip
+One owner of our Safe is a Picoquorum signer: a small device with a screen and a secure chip
 that approves Safe transactions. This page covers four things:
 - how to check that signer yourself before you accept it as an owner
 - what changes for you (very little)

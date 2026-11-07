@@ -1,6 +1,6 @@
-# PicoQuorum: the owner's guide
+# Picoquorum: the owner's guide
 
-PicoQuorum is a small console that is **one owner of your Safe multisig**. It watches your Safes
+Picoquorum is a small console that is **one owner of your Safe multisig**. It watches your Safes
 over WiFi, shows each pending transaction in plain language, and signs with a key sealed inside
 its chip, but only after you have seen every page and held the green button.
 
@@ -27,8 +27,9 @@ its chip, but only after you have seen every page and held the green button.
   on its own screen, with the chain and the Safe it was set up for. Its key signs that hash and
   nothing else. A service that lies gets a refusal, not a signature.
 - **Someone else executes.** Once enough owners have signed, anyone executes the transaction and
-  pays the gas. Today that is `tools/quorum live exec`, because the Safe web app can't execute
-  these (see [TROUBLESHOOTING](TROUBLESHOOTING.md#the-safe-web-app-fails-with-gs021)).
+  pays the gas, in [the Picoquorum app](https://picoquorum.app/app/) with their own wallet. The
+  Safe web app can't execute these (see
+  [TROUBLESHOOTING](TROUBLESHOOTING.md#the-safe-web-app-fails-with-gs021)).
 
 For how and why it works: [SECURITY.md](../SECURITY.md) (the trust model),
 [PROVISIONING.md](../PROVISIONING.md) (making a key), [LADDER.md](../LADDER.md) (how far each

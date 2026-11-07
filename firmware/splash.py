@@ -1,4 +1,4 @@
-# Boot display: a short black lead-in, then the PicoQuorum mark with the real boot status on its
+# Boot display: a short black lead-in, then the Picoquorum mark with the real boot status on its
 # last line. secrets.BOOT_ART picks the art: "mark" (the default, bootmark.py: flat vectors, only
 # what changed is sent to the panel, runs on every panel), "still" (the finished mark at once) or
 # "orbit" (bootart.py: the full orbit, the whole panel every frame, ~8-10 fps on the Pico; strip-

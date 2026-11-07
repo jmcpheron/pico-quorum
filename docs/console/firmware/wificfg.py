@@ -150,11 +150,11 @@ def page(st):
     state, ssid = st.get("state"), esc(st.get("ssid") or "")
     out = ["<!doctype html><html><head><meta charset=utf-8>"
            "<meta name=viewport content='width=device-width,initial-scale=1'><title>%s Wi-Fi</title>"
-           % esc(st.get("name", "PicoQuorum"))]
+           % esc(st.get("name", "Picoquorum"))]
     if state == "joining":
         out.append("<meta http-equiv=refresh content=3>")
     out.append("<style>%s</style></head><body><h1>Connect %s to <span style=white-space:nowrap>Wi-Fi</span></h1>"
-               % (_CSS, esc(st.get("name", "PicoQuorum"))))
+               % (_CSS, esc(st.get("name", "Picoquorum"))))
     if state == "joining":
         out.append("<p class='m wait'>Joining <b>%s</b>&hellip;</p><p>Watch the console's screen. "
                    "When it says <b>Connected</b> you are done and can close this page.</p></body></html>" % ssid)

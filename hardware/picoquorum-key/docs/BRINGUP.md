@@ -133,7 +133,7 @@ key on the plug stays unpowered.
 - Peel the tape, press the panel down square to the rail ticks.
 - Write the board's serial (from the test) and the module's lot on the back in pencil, or in the
   project log.
-- The console image and the ceremony are PicoQuorum's steps (`tools/fw push console`), from a
+- The console image and the ceremony are Picoquorum's steps (`tools/fw push console`), from a
   release that has the `picoquorum-key` profile; 2026.10.12 and earlier don't
   ([PINS.md](PINS.md#in-the-console-image)).
 - From 2026.11.1, plug it into a computer and open the app's **Device** page in Chrome or Edge.

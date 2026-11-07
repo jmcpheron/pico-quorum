@@ -1,4 +1,4 @@
-# PicoQuorum's pinned config: which Safe this console signs for, and the names it may show. The
+# Picoquorum's pinned config: which Safe this console signs for, and the names it may show. The
 # transaction service is untrusted (docs/SECURITY.md), so none of this comes from it.
 #
 # CFG is written as JSON on purpose (double quotes, no True/None, no trailing commas):
@@ -33,13 +33,13 @@
 # "project" is the project Safe (docs/GOVERNANCE.md): the one whose approval of a release the app
 # and the pinned service worker check. "" until it exists.
 #
-# "brandKeys" is the brand key, PicoQuorum key 0000 (docs/BRANDED-KEYS.md), by its id
+# "brandKeys" is the brand key, Picoquorum key 0000 (docs/BRANDED-KEYS.md), by its id
 # SHA-256(qx || qy)[:16]: {"qx", "qy" (hex), "serial"}. The claim checks a chip's brand against it
 # with no network, and the brand bench signs with the chip whose serial it names. {} until key 0000
 # is made: then no chip passes as branded, and the bench brands only a spare with its test key.
 #
 # "messages" is Safe's SignMessageLib, the one delegatecall besides a batch: the project Safe signs a
-# PicoQuorum release with it (release.py), and decode.py refuses any other message.
+# Picoquorum release with it (release.py), and decode.py refuses any other message.
 #
 # "signer" is how this key owns a Safe (webauthn.py): Safe's passkey signer, safe-modules passkey
 # v0.2.1, the same addresses on Base, Base Sepolia, OP and the Base fork. "proxyCode" is the

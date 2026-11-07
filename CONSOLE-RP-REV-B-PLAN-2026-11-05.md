@@ -58,7 +58,7 @@ reads as square in the hand. Two-layer, every part on the front, as rev A.
       |  |      active 240 x 135         |~    |  U1    | L1|   <- Raspberry Pi's block, as rev A
       |  |                               |~    | RP2350 |   |
    24 |  +-------------------------------+     +--------+   |
-      |        PicoQuorum console-rp              Y1        |
+      |        Picoquorum console-rp              Y1        |
    31 |     (D0)      (D1)      (D2)         . . crystal    |
       |                                                     |
       |       o   mark  o          U5 key   U4 CH343P  U3   |
@@ -93,7 +93,7 @@ holes already not mirror-symmetric (rev A has H3 at y 9 and H4 at y 33) two hole
 for a fixture. In the SMT line itself the panel's fiducials set orientation, not the outline; the
 cut is for the jig, the case, and the eye. It's also the brand's shape, so the case follows it.
 
-**The key port's zone.** The PicoQuorumKey rev B has a key port: a USB-C plug standing out of the
+**The key port's zone.** The PicoquorumKey rev B has a key port: a USB-C plug standing out of the
 board's top-left, on I2C1, with a load switch, a CC sense and an enable, its power off until the
 firmware turns it on (`hardware/picoquorum-key/docs/DESIGN.md`, "The key port"). The console-rp can
 carry the same one later: an interchangeable key is a key-c on that plug, like a cartridge. Rev B
@@ -112,17 +112,17 @@ make rev B 52 tall and give the port its own board later.
 - **The mark on the face,** in the silkscreen for the five: `lib/picoquorum.pretty` already has
   `PicoQuorum_Mark.kicad_mod`. For the run, the mark in exposed ENIG copper under the mask: gold on
   green, two colours from one process, and a tamper-visible one (a sticker over it shows).
-- **The name under the screen** as rev A, and the warning line above it until the terms say
-  otherwise. On the back: the revision, the part census (below), the expected current, picoquorum.app
-  as the Source Location. The back's `picoquorum.dev` is rev A's open item; print the name that
-  resolves.
+- **The name under the screen** as rev A, written Picoquorum and on one line (`docs/BRAND.md`), and
+  the warning line above it until the terms say otherwise. On the back: the revision, the part
+  census (below), the expected current, picoquorum.app as the Source Location. The back's
+  `picoquorum.dev` is rev A's open item; print the name that resolves.
 - **The 8-bit key and the dragon** stay: the key by U5, pointing at it; the dragon under the glass.
 - **Mask colour. Decide.** Matte black is the brand's Night and hides traces; green is the clearest
   over copper, the tamper-visible concept's choice, and JLCPCB's cheapest. For the 5 to 20: green,
   and let the case carry the colour. Reopen at rev C.
 - **The case** does the colour work: the slate's badge (the triangle green, the signed dots blue, the
   waiting dots orange, glued into a pocket), the caps in Reject red, white and Sign green, the name
-  cut through to a second colour. All drawn in `rp.py` already; it moves to the new outline.
+  on one line, cut through to a second colour. All drawn in `rp.py` already; it moves to the new outline.
 
 ## What a run of 100 to 250 needs, designed in now
 

@@ -62,7 +62,7 @@ def pin(part, contact): return next(p for p in PINS if p[0] == part and p[1] == 
 def build():
     add('<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d">' % (W, H, W, H))
     add('<rect width="%d" height="%d" fill="#fbfbf8"/>' % (W, H))
-    text(24, 32, "PicoQuorum Build 1: Pico 2 W + 2.0\" ST7789 240x320 + EC11 knob + key jacks (3.5 mm and 2.5 mm TRRS), ATECC608 key", 16, bold=True)
+    text(24, 32, "Picoquorum Build 1: Pico 2 W + 2.0\" ST7789 240x320 + EC11 knob + key jacks (3.5 mm and 2.5 mm TRRS), ATECC608 key", 16, bold=True)
     text(24, 52, "Pico 2 W seen from the top, USB up. Numbers are physical header pins. A dot joins wires; wires that cross without a dot do not touch.", 11, GREY)
     text(24, 68, "All power is 3.3 V from pin 36. Nothing here goes to VBUS (40) or VSYS (39). The pin table in hardware/wiring/BUILD1.md is the same one.", 11, GREY)
 

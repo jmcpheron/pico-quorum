@@ -8,10 +8,10 @@
 	)
 	(paper "A4")
 	(title_block
-		(title "PicoQuorum console, rev A: Pico 2 W, 1.3in panel, nine buttons")
+		(title "Picoquorum console, rev A: Pico 2 W, 1.3in panel, nine buttons")
 		(date "2026-10-07")
 		(rev "A")
-		(company "PicoQuorum")
+		(company "Picoquorum")
 	)
 	(layers
 		(0 "F.Cu" signal)
@@ -4056,8 +4056,8 @@
 		(layer "F.Cu")
 		(uuid "44c5d4a2-691c-4a77-9290-f4185d194e64")
 		(at 116 140.4)
-		(descr "The PicoQuorum mark, 5.0 mm tall, in one colour for silkscreen: three signed dots solid, two waiting dots as rings. docs/BRAND.md")
-		(tags "logo PicoQuorum")
+		(descr "The Picoquorum mark, 5.0 mm tall, in one colour for silkscreen: three signed dots solid, two waiting dots as rings. docs/BRAND.md")
+		(tags "logo Picoquorum")
 		(property "Reference" "LOGO1"
 			(at 0 -3.5 0)
 			(layer "F.SilkS")
@@ -10403,7 +10403,7 @@
 		(layer "B.Cu")
 		(uuid "8d25353a-d34e-4041-9c1a-d353ab9356ce")
 		(at 146 126)
-		(descr "PicoQuorum copy, SWD through-holes removed: Raspberry Pi Pico W surface-mount footprint for hand soldering (not compatible with non-wireless Pico), supports Raspberry Pi Pico 2 W, https://datasheets.raspberrypi.com/picow/pico-w-datasheet.pdf")
+		(descr "Picoquorum copy, SWD through-holes removed: Raspberry Pi Pico W surface-mount footprint for hand soldering (not compatible with non-wireless Pico), supports Raspberry Pi Pico 2 W, https://datasheets.raspberrypi.com/picow/pico-w-datasheet.pdf")
 		(tags "module usb pcb swd antenna")
 		(property "Reference" "U1"
 			(at 11.7475 -24.765 180)
@@ -13187,7 +13187,7 @@
 			)
 		)
 	)
-	(gr_text "PICOQUORUM"
+	(gr_text "Picoquorum"
 		(at 116 144 0)
 		(layer "F.SilkS")
 		(uuid "aa6eb843-f902-44ed-818d-6bfb00b55162")
@@ -13362,7 +13362,7 @@
 			(justify mirror)
 		)
 	)
-	(gr_text "PicoQuorum console rev A"
+	(gr_text "Picoquorum console rev A"
 		(at 172 147 0)
 		(layer "B.SilkS")
 		(uuid "ed2291da-83a3-409a-97d4-7f6490952a41")

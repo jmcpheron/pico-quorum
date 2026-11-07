@@ -60,8 +60,8 @@ class Silk(unittest.TestCase):
 
     def test_board_name_and_revision(self):
         """The name itself is drawn (filled shapes from silk_art.py's logos); the text says where it lives."""
-        self.label("PicoQuorum.app", "F.Silkscreen")
-        self.label("PicoQuorum.app", "B.Silkscreen")
+        self.label("Picoquorum.app", "F.Silkscreen")
+        self.label("Picoquorum.app", "B.Silkscreen")
         self.label("KEY, REV B", "B.Silkscreen")
         self.label("KEY PORT", "F.Silkscreen")
 

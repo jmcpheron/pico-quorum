@@ -126,7 +126,7 @@ export function verifyBundle(B, signer) {
   const made = ok3 ? new Date(u32(rec, 102) * 1000).toISOString().slice(0, 10) : "?";
   const fingerprint = qx.toString(16).padStart(64, "0").slice(0, 8);
   row(ok3 && bytesToHex(rec.subarray(4, 14)) === serial && u16(rec, 14) === KEY, "record (F1D0): this chip's serial, the key in E0F1",
-    ok3 ? `key ${fingerprint}, written ${made}, build ${bytesToHex(rec.subarray(106, 110))}` : "no PicoQuorum record");
+    ok3 ? `key ${fingerprint}, written ${made}, build ${bytesToHex(rec.subarray(106, 110))}` : "no Picoquorum record");
   const owner = ok3 ? p256Owner(signer, "0x" + qx.toString(16), "0x" + qy.toString(16)) : null;
   row(ok3 && owner === recOwner, "owner address: computed from the key, the same as the record says", owner || "");
 

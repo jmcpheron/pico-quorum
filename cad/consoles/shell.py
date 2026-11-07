@@ -1,7 +1,7 @@
 """The shared half of the console boards' cases (cad/consoles/README.md): a tub and a front plate round one
 board, the board clamped between them by M2 screws through its own holes, printed caps on its three
 buttons, pinholes for BOOT and RESET, and a dock that holds the closed case on the desk. stick.py
-(console-s3) and badge.py (PicoQuorumKey rev A) each describe their board and call build().
+(console-s3) and badge.py (PicoquorumKey rev A) each describe their board and call build().
 
 The board's parts come from the files JLCPCB built it from: the placement file (cpl.csv) and the BOM's
 footprints, read by parts(). Each part is a box: its footprint's usual size and height (PACKAGES), not
@@ -71,7 +71,7 @@ TAB = (2.0, 1.2, 0.2)       # the back panel's tab into the end wall: long, thic
 # with the leads, not measured. The receptacles' face is at the board's edge.
 PACKAGES = [
     ("USB_C_Receptacle_HCTL", (8.94, 7.35, 3.3)),       # HC-TYPE-C-16P-01A (console-s3's generator: 3.3)
-    ("USB_C_Receptacle_HRO", (8.94, 7.35, 3.2)),        # TYPE-C-31-M-12 (PicoQuorumKey's DESIGN.md: 3.2)
+    ("USB_C_Receptacle_HRO", (8.94, 7.35, 3.2)),        # TYPE-C-31-M-12 (PicoquorumKey's DESIGN.md: 3.2)
     ("FPC", (3.6, 8.0, 1.0)), ("SW_TS-1187A", (5.1, 5.1, 1.5)), ("SW_Push_1P1T_XKB_TS-1187A", (5.1, 5.1, 1.5)),
     ("SW_Tact_4.5x4.5", (4.5, 4.5, 3.8)),
     ("SOT-223", (6.5, 7.0, 1.8)), ("SOT-23-6", (2.9, 2.8, 1.45)), ("SOT-23-5", (2.9, 2.8, 1.25)),
@@ -149,7 +149,7 @@ def cap_shape(x, y, kind, grow, z0, z1):
 
 
 def mark(cx, cy, r, z0, z1):
-    """The PicoQuorum mark (docs/BRAND.md): five owners on a circle of radius r, the top and the two at the bottom
+    """The Picoquorum mark (docs/BRAND.md): five owners on a circle of radius r, the top and the two at the bottom
     signed (dots r/4) and joined by their triangle, the other two waiting (dots r/6)."""
     pts = [(cx + r * math.cos(math.radians(90 - 72 * k)), cy + r * math.sin(math.radians(90 - 72 * k))) for k in range(5)]
     tri = [pts[0], pts[2], pts[3]]

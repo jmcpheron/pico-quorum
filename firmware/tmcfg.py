@@ -3,7 +3,7 @@
 # goes into a data object, the key-binding statement, and the lines the screens show. Pure: no
 # bus, so the tests and the host tools use it too. The chipcfg.py of the Trust M.
 #
-# "quorum-tm1" is PicoQuorum's Trust M profile (docs/TRUSTM.md):
+# "quorum-tm1" is Picoquorum's Trust M profile (docs/TRUSTM.md):
 #   E0F1   P-256 private key, made on the chip by GenKeyPair (key usage Sign), Execute ALW (no use
 #          limit, no PIN: the Safe's threshold and rotation cover theft, as on quorum v1).
 #   F1D0   the record: serial, key OID, the public key (a Trust M never hands a private-key OID's

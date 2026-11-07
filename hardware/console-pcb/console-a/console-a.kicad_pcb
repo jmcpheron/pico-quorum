@@ -8,10 +8,10 @@
 	)
 	(paper "A4")
 	(title_block
-		(title "PicoQuorum console, proposal A: Pico 2 W carrier")
+		(title "Picoquorum console, proposal A: Pico 2 W carrier")
 		(date "2026-10-07")
 		(rev "P1")
-		(company "PicoQuorum")
+		(company "Picoquorum")
 	)
 	(layers
 		(0 "F.Cu" signal)
@@ -5118,7 +5118,7 @@
 		(layer "F.Cu")
 		(uuid "a9a84fa9-671b-49fe-af1c-abd42ff5760d")
 		(at 113 125.5 180)
-		(descr "PicoQuorum copy (gen_console.py): no Edge.Cuts zone, no test-point or debug pads, copper kept off the top layer under them. Raspberry Pi Pico W surface-mount footprint for reflow soldering with test points and debug pads (not compatible with non-wireless Pico), supports Raspberry Pi Pico 2 W, https://datasheets.raspberrypi.com/picow/pico-w-datasheet.pdf")
+		(descr "Picoquorum copy (gen_console.py): no Edge.Cuts zone, no test-point or debug pads, copper kept off the top layer under them. Raspberry Pi Pico W surface-mount footprint for reflow soldering with test points and debug pads (not compatible with non-wireless Pico), supports Raspberry Pi Pico 2 W, https://datasheets.raspberrypi.com/picow/pico-w-datasheet.pdf")
 		(tags "module usb pcb swd antenna")
 		(property "Reference" "U1"
 			(at 11.7475 24.765 180)
@@ -7741,8 +7741,8 @@
 		(layer "B.Cu")
 		(uuid "131eb292-e03a-42e4-947d-f731576d2144")
 		(at 184 124 180)
-		(descr "The PicoQuorum mark, 5.0 mm tall, in one colour for silkscreen: three signed dots solid, two waiting dots as rings. docs/BRAND.md")
-		(tags "logo PicoQuorum")
+		(descr "The Picoquorum mark, 5.0 mm tall, in one colour for silkscreen: three signed dots solid, two waiting dots as rings. docs/BRAND.md")
+		(tags "logo Picoquorum")
 		(property "Reference" "LOGO1"
 			(at 0 3.5 0)
 			(layer "B.SilkS")
@@ -8782,7 +8782,7 @@
 			)
 		)
 	)
-	(gr_text "PICOQUORUM"
+	(gr_text "Picoquorum"
 		(at 244 149.4 0)
 		(layer "F.SilkS")
 		(uuid "3c05d5bb-6631-48d8-b045-bb533e4114fc")
@@ -8935,7 +8935,7 @@
 			(justify mirror)
 		)
 	)
-	(gr_text "PicoQuorum console-a P1 2026-10"
+	(gr_text "Picoquorum console-a P1 2026-10"
 		(at 184 106 0)
 		(layer "B.SilkS")
 		(uuid "64b160a8-6074-45c4-ad09-8694c823408f")

@@ -1,7 +1,7 @@
 (kicad_sch (version 20250114) (generator "picoquorum_gen") (generator_version "9.0")
 (uuid "f9568a60-38db-4a3d-8c89-4c7d73918360")
 (paper "A4")
-(title_block (title "PicoQuorum key, proposal D: pogo pads and magnets") (date "2026-10-02") (rev "P1") (company "PicoQuorum")
+(title_block (title "Picoquorum key, proposal D: pogo pads and magnets") (date "2026-10-02") (rev "P1") (company "Picoquorum")
   (comment 1 "Pogo pads and magnets: see hardware/key-pcb/PROPOSALS.md"))
 (lib_symbols
 (symbol "picoquorum:ATECC608C-SSHDA" (pin_names (offset 1.016)) (exclude_from_sim no) (in_bom yes) (on_board yes)

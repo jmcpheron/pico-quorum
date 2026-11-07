@@ -1,4 +1,4 @@
-# A PicoQuorum release, as the project Safe approves it (docs/GOVERNANCE.md, docs/RELEASES.md).
+# A Picoquorum release, as the project Safe approves it (docs/GOVERNANCE.md, docs/RELEASES.md).
 # The Safe approves a release by signing its digest D as a Safe message: one ordinary Safe
 # transaction, a delegatecall to Safe's SignMessageLib (signMessage(abi.encode(D))), which marks D
 # signed for good. Anyone checks it with isValidSignature(D, "0x") on that Safe.

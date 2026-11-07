@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>PicoQuorum Brand Guide</title>
+<title>Picoquorum Brand Guide</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@400;500;700&family=Atkinson+Hyperlegible+Next:wght@400;700;800&display=swap">
@@ -104,7 +104,7 @@ a:hover { text-decoration-color: var(--signed); }
 .device-note { font-size: 13px; color: var(--muted); text-align: center; max-width: 46ch; }
 
 .hero-copy { display: grid; gap: 22px; }
-.lockup { display: inline-flex; align-items: center; gap: 0.22em; font-weight: 700; line-height: 1; }
+.lockup { display: inline-flex; align-items: center; gap: 0.22em; font-weight: 700; line-height: 1; white-space: nowrap; }
 .lockup svg { width: 1.23em; height: 1.23em; flex: none; transform: translateY(0.02em); }
 .hero .lockup { font-size: clamp(38px, 10vw, 76px); letter-spacing: -0.02em; }
 .lede { font-size: 19px; line-height: 1.5; color: var(--ink); max-width: 36ch; }
@@ -133,7 +133,7 @@ section:last-of-type { border-bottom: 0; }
 /* name */
 .name-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 @media (max-width: 720px) { .name-row { grid-template-columns: minmax(0, 1fr); } }
-.wordmark-big { font-size: clamp(34px, 9vw, 64px); font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
+.wordmark-big { font-size: clamp(32px, 8vw, 56px); font-weight: 700; letter-spacing: -0.02em; line-height: 1; white-space: nowrap; }
 .wordmark-big .cap { color: var(--signed); }
 .say { display: grid; gap: 10px; }
 .say li { list-style: none; }
@@ -261,9 +261,9 @@ footer { padding-top: 40px; color: var(--muted); font-size: 14px; display: grid;
 
   <header class="hero">
     <div class="device">
-      <div class="board" aria-label="The PicoQuorum console: a Pico-LCD-1.3 board with a 240 by 240 screen, a joystick and four keys">
+      <div class="board" aria-label="The Picoquorum console: a Pico-LCD-1.3 board with a 240 by 240 screen, a joystick and four keys">
         <div class="stick" aria-hidden="true"></div>
-        <div class="screen"><canvas id="boot" width="480" height="480" aria-label="The PicoQuorum boot screen, animated"></canvas></div>
+        <div class="screen"><canvas id="boot" width="480" height="480" aria-label="The Picoquorum boot screen, animated"></canvas></div>
         <div class="keys" aria-hidden="true"><span>A</span><span>B</span><span>X</span><span>Y</span></div>
       </div>
       <div class="player">
@@ -275,8 +275,8 @@ footer { padding-top: 40px; color: var(--muted); font-size: 14px; display: grid;
     </div>
 
     <div class="hero-copy">
-      <span class="eyebrow">Brand guide · v1 · October 2026</span>
-      <h1 class="lockup" aria-label="PicoQuorum"><span data-mark="hero"></span>PicoQuorum</h1>
+      <span class="eyebrow">Brand guide · v2 · November 2026</span>
+      <h1 class="lockup" aria-label="Picoquorum"><span data-mark="hero"></span>Picoquorum</h1>
       <p class="lede">A physical approval device for Safe multisig wallets. Several people, several keys, one Safe.</p>
       <p class="lede-sub">Everything here comes from the boot screen: five owners, three of them sign, and their green triangle turns into the Ethereum diamond. The name, the mark, the colours and the motion all follow from that one picture.</p>
       <ul class="toc">
@@ -295,23 +295,23 @@ footer { padding-top: 40px; color: var(--muted); font-size: 14px; display: grid;
     <div class="rail"><span class="eyebrow">Name</span><h2>One word</h2></div>
     <div class="body">
       <div class="intro">
-        <p><b>Pico</b> for the Raspberry Pi Pico it runs on. <b>Quorum</b> for the idea at its centre: a Safe needs a set number of owners to agree before anything moves. The multisig is the star, and the name says so.</p>
+        <p><b>Pico</b> for the Raspberry Pi Pico it runs on. <b>quorum</b> for the idea at its centre: a Safe needs a set number of owners to agree before anything moves. The multisig is the star, and the name says so.</p>
       </div>
       <div class="name-row">
         <div class="tile" style="display:grid;gap:18px;align-content:start">
-          <div class="wordmark-big"><span class="cap">P</span>ico<span class="cap">Q</span>uorum</div>
-          <p class="muted">One word, two capitals. Set in Atkinson Hyperlegible Next Bold. The capitals are highlighted here only to show where they go.</p>
+          <div class="wordmark-big"><span class="cap">P</span>icoquorum</div>
+          <p class="muted">One word on one line, one capital. Set in Atkinson Hyperlegible Next Bold. The capital is highlighted here only to show where it goes. Every other letter is lower case, even where the text around it is in capitals. Addresses stay lower case: picoquorum.app, @picoquorum.</p>
         </div>
         <div class="tile say">
           <span class="pill ok">Write</span>
           <ul>
-            <li><span class="right">PicoQuorum</span></li>
-            <li><span class="right">the PicoQuorum console</span> <span class="muted">· the box with the screen</span></li>
-            <li><span class="right">a PicoQuorum key</span> <span class="muted">· the plug-in secure element</span></li>
+            <li><span class="right">Picoquorum</span></li>
+            <li><span class="right">the Picoquorum console</span> <span class="muted">· the box with the screen</span></li>
+            <li><span class="right">a Picoquorum key</span> <span class="muted">· the plug-in secure element</span></li>
           </ul>
           <span class="pill no" style="margin-top:8px">Never</span>
           <ul>
-            <li><span class="wrong">Pico Quorum</span> <span class="wrong">Picoquorum</span> <span class="wrong">PICOQUORUM</span> <span class="wrong">PQ</span></li>
+            <li><span class="wrong">PicoQuorum</span> <span class="wrong">PICOQUORUM</span> <span class="wrong">Pico Quorum</span> <span class="wrong">Pico-Quorum</span> <span class="wrong">PQ</span></li>
           </ul>
         </div>
       </div>
@@ -349,7 +349,7 @@ footer { padding-top: 40px; color: var(--muted); font-size: 14px; display: grid;
         </div>
         <div class="tile lockup-demo">
           <h3>Lockup</h3>
-          <div class="lockup"><span data-mark="lockup"></span>PicoQuorum</div>
+          <div class="lockup"><span data-mark="lockup"></span>Picoquorum</div>
           <p class="muted" style="font-size:14px">On the panel the name is 26 px bold; the ring radius is 12 px and the mark's centre sits 13 px in from the left edge, with the word starting at 34 px. Scale those proportions. The mark always goes on the left, centred on the word.</p>
         </div>
       </div>
@@ -404,7 +404,7 @@ footer { padding-top: 40px; color: var(--muted); font-size: 14px; display: grid;
         <p>The console's job is to make people compare addresses and hashes before they sign. Atkinson Hyperlegible, from the Braille Institute, was drawn to keep look-alike characters apart. <b>Next</b> sets words; <b>Mono</b> sets addresses, hashes and the verify code. Both are SIL Open Font License.</p>
       </div>
       <div class="tile specimen">
-        <div class="big">PicoQuorum</div>
+        <div class="big">Picoquorum</div>
         <div class="lookalike">
           <div>Il1| O0o rn m 5S 8B 6b</div>
           <div class="m">Il1| O0o rn m 5S 8B 6b</div>
@@ -495,7 +495,7 @@ footer { padding-top: 40px; color: var(--muted); font-size: 14px; display: grid;
   </section>
 
   <footer>
-    <span>PicoQuorum brand guide. Sources: <code>firmware/bootart.py</code>, <code>firmware/quorum_ui.py</code>, <code>tools/fonts/gen.py</code>, <code>docs/quorum-ui/v2</code>.</span>
+    <span>Picoquorum brand guide. Sources: <code>firmware/bootart.py</code>, <code>firmware/quorum_ui.py</code>, <code>tools/fonts/gen.py</code>, <code>docs/quorum-ui/v2</code>.</span>
     <span>The mark and the boot artwork are branding. Their dots never report real signatures; live state belongs to the approval screens.</span>
   </footer>
 </div>
@@ -680,10 +680,10 @@ footer { padding-top: 40px; color: var(--muted); font-size: 14px; display: grid;
       nodes > 0.1 ? [T(9 * nodes), OK] : null, 1 - span(m, 92, 100), back);
     const t = smooth(span(m, BACK0 + 18, BACK1 + 10));
     if (t > 0) {
-      const w = width("PicoQuorum", "bold26") + 34;
+      const w = width("Picoquorum", "bold26") + 34;
       const x = T((240 - w) / 2), y = 82 + T(8 * (1 - t));
       quorumMark(x + 13, y + 17, t);
-      text("PicoQuorum", x + 34, y, "bold26", mix(BG, INK, t));
+      text("Picoquorum", x + 34, y, "bold26", mix(BG, INK, t));
     }
     if (m >= TAG0) {
       const n = Math.floor((m - TAG0) / TAG_EACH), f = (m - TAG0) % TAG_EACH;
@@ -812,7 +812,7 @@ footer { padding-top: 40px; color: var(--muted); font-size: 14px; display: grid;
   curve("curve-ease", ease); curve("curve-smooth", smooth);
 
   // ------------------------------------------------------------------ the mark
-  function markSVG({ signed = [0, 2, 3], tri = [0, 2, 3], rot = 0, triFill = "var(--mark-tri)", on = "var(--signed)", wait = "var(--mark-wait)", label = "PicoQuorum mark" } = {}) {
+  function markSVG({ signed = [0, 2, 3], tri = [0, 2, 3], rot = 0, triFill = "var(--mark-tri)", on = "var(--signed)", wait = "var(--mark-wait)", label = "Picoquorum mark" } = {}) {
     const p = [0, 1, 2, 3, 4].map(k => [16 + 12 * Math.cos(rad(-90 + 72 * k)), 16 + 12 * Math.sin(rad(-90 + 72 * k))]);
     const triPts = tri.length ? `<polygon points="${tri.map(k => p[k].map(v => v.toFixed(2)).join(",")).join(" ")}" fill="${triFill}"/>` : "";
     const dots = p.map(([x, y], k) => signed.includes(k)
@@ -825,7 +825,7 @@ footer { padding-top: 40px; color: var(--muted); font-size: 14px; display: grid;
   document.querySelectorAll("[data-mark]").forEach(el => {
     const kind = el.dataset.mark;
     const opts = kind === "dark" ? DARK_MARK : kind === "light" ? LIGHT_MARK : {};
-    el.outerHTML = markSVG({ ...opts, label: kind === "hero" || kind === "lockup" ? "" : "PicoQuorum mark" }).replace('aria-label=""', 'aria-hidden="true"');
+    el.outerHTML = markSVG({ ...opts, label: kind === "hero" || kind === "lockup" ? "" : "Picoquorum mark" }).replace('aria-label=""', 'aria-hidden="true"');
   });
 
   const ladder = document.getElementById("ladder");

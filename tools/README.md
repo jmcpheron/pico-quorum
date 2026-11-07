@@ -1,7 +1,7 @@
 # tools
 
 From picowallet (Austin Griffith, MIT): `emu`, the emulator's command line
-([`../emu/README.md`](../emu/README.md)), and the start of `check_config`. The rest is PicoQuorum's:
+([`../emu/README.md`](../emu/README.md)), and the start of `check_config`. The rest is Picoquorum's:
 
 - `usb`: the board's REPL and file pushes over USB serial (mpremote), for development boards
 

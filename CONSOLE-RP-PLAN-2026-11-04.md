@@ -1,13 +1,13 @@
 # The console-rp plan (2026-11-04)
 
-Where PicoQuorum stands the night the first console-rp came up, why this board is the one to build
+Where Picoquorum stands the night the first console-rp came up, why this board is the one to build
 on, and a plan for the next two weeks and after: the firmware, a batch of 20, the brand's root key,
 and selling the first boards. It's a plan to argue with, not a decision record. The decisions it
 needs are marked **Decide**.
 
 ## In one paragraph
 
-PicoQuorum is a small cosigner for Safe multisigs. It is an ATECC608 secure chip that holds one
+Picoquorum is a small cosigner for Safe multisigs. It is an ATECC608 secure chip that holds one
 owner's key and can't give it up, and a screen and three buttons on which the owner checks every
 transaction before it signs. It doesn't trust the computer, the app or Safe's service for what it
 signs: it works out the transaction's hash from the fields it shows. The console-rp is the version to
@@ -133,7 +133,7 @@ In this order, all on board #1, each checked in the emulator first:
 2. **The link on UART1** instead of USB stdin, so `usblink.py` speaks over the CH343P. MicroPython's
    own USB (J3 only) keeps the REPL for the bench.
 3. **The relay**, in the app's Device page and on the console (needs the decision above).
-4. **Pick-your-key on this board:** the same screens as the PicoQuorumKey, on the footer.
+4. **Pick-your-key on this board:** the same screens as the PicoquorumKey, on the footer.
 5. **A `console-rp` image** in `firmware/manifest.json`, its release fingerprint, and the emulator's
    board for screenshots.
 6. **The first signature:** a Base Sepolia transaction, start to finish, the console-rp as one owner.
@@ -221,7 +221,7 @@ development boards.
 
 The design is in [docs/BRANDED-KEYS.md](docs/BRANDED-KEYS.md) and
 [docs/ATTESTED-KEYS.md](docs/ATTESTED-KEYS.md):
-- the bench writes PicoQuorum's settings and a signed brand record into each chip, and locks them;
+- the bench writes Picoquorum's settings and a signed brand record into each chip, and locks them;
 - the owner's console makes the key inside the chip, so nobody chose it, not even the bench;
 - an attestation key in the chip lets anyone check the key was made there.
 
@@ -240,7 +240,7 @@ If secure boot happens, there are two roots: the key that signs firmware, and ke
 under the project Safe.
 
 **For the first 20:** ship them unbranded. Each owner makes their own key on the device
-(pick-your-key), as the PicoQuorumKey does tonight. Branding can come with the next batch.
+(pick-your-key), as the PicoquorumKey does tonight. Branding can come with the next batch.
 
 ## Selling the first boards
 

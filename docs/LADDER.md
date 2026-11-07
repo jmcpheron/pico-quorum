@@ -125,7 +125,7 @@ Same steps as rung 2 with `--chain base` and `QUORUM_URL = ".../tx-service/base"
    to keep watching the Sepolia Safe too (`QUORUM_SAFES`; each chain's service comes from
    `quorum_cfg.py`, so `QUORUM_URL` goes). The same API key.
 6. [ ] **One approval:**
-   - Propose a small send and sign it with MetaMask: in the web app, or in the PicoQuorum app
+   - Propose a small send and sign it with MetaMask: in the web app, or in the Picoquorum app
      (`docs/app/`, **New transaction**).
    - The Pico approves over HTTPS.
    - Try Execute in the web app. Expect GS021, and capture it for

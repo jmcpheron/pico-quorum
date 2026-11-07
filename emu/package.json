@@ -1,7 +1,7 @@
 {
   "name": "picoquorum-emu",
   "version": "1.0.0",
-  "description": "The PicoQuorum console in a browser: MicroPython in WebAssembly, a virtual secure element, keyboard buttons.",
+  "description": "The Picoquorum console in a browser: MicroPython in WebAssembly, a virtual secure element, keyboard buttons.",
   "scripts": {
     "start": "node server.mjs --open",
     "serve": "node server.mjs",

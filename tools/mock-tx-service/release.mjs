@@ -1,4 +1,4 @@
-// A PicoQuorum release as the project Safe approves it: the digest D (firmware/release.py builds the
+// A Picoquorum release as the project Safe approves it: the digest D (firmware/release.py builds the
 // same), the one Safe transaction that approves it, and how anyone checks the approval. Shared by
 // tools/quorum, tools/release, tools/vectors and the app (web/src/main.mjs bundles it).
 //
@@ -60,7 +60,7 @@ export function checkApproval(t) {
   let o;
   try { o = typeof t.origin === "string" ? JSON.parse(t.origin) : t.origin; } catch { o = null; }
   const pq = o && o.pq;
-  if (!pq || typeof pq.v !== "string") return "a message with no PicoQuorum release named for it";
+  if (!pq || typeof pq.v !== "string") return "a message with no Picoquorum release named for it";
   try {
     const want = approvalTx({ version: pq.v, firmware: pq.f, manifest: pq.m }).data.toLowerCase();
     return String(t.data).toLowerCase() === want && BigInt(t.value || 0) === 0n ? "" : "the release named doesn't match what the Safe would sign";

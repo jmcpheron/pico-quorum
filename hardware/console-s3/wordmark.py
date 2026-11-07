@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The PicoQuorum name as a silkscreen footprint, in the brand's face (docs/BRAND.md: Atkinson
+"""The Picoquorum name as a silkscreen footprint, in the brand's face (docs/BRAND.md: Atkinson
 Hyperlegible Next, bold): lib/picoquorum.pretty/PicoQuorum_Name.kicad_mod.
 
     uv run --no-project --with numpy==2.5.3 --with pillow==12.3.0 python3 hardware/console-s3/wordmark.py
@@ -22,7 +22,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.normpath(os.path.join(HERE, "..", ".."))
 FONT = os.path.join(REPO, "tools", "fonts", "src", "next.ttf")
 OUT = os.path.join(HERE, "lib", "picoquorum.pretty", "PicoQuorum_Name.kicad_mod")
-NAME, WEIGHT, SIZE = "PicoQuorum", 700, 420     # bold, as the panel's lockup; SIZE in px a em
+NAME, WEIGHT, SIZE = "Picoquorum", 700, 420     # bold, as the panel's lockup; SIZE in px a em
 TRACK = 0.04                                    # em added between letters: c and o close to 0.08 mm at 1.3 mm without it
 TOL = 0.003                                     # mm, at 1 mm cap height
 
@@ -158,8 +158,8 @@ def write():
              f'(layer "F.SilkS") (uuid "{next(ids)}"))' for p in polys]
     with open(OUT, "w") as fh:
         fh.write(f"""(footprint "PicoQuorum_Name" (version 20241229) (generator "picoquorum_gen") (generator_version "9.0") (layer "F.Cu")
-(descr "The name PicoQuorum in Atkinson Hyperlegible Next Bold, 1 mm to the cap height, {width:.4f} mm of advance, centred; for silkscreen, scaled by the board's generator. docs/BRAND.md")
-(tags "logo PicoQuorum")
+(descr "The name Picoquorum in Atkinson Hyperlegible Next Bold, 1 mm to the cap height, {width:.4f} mm of advance, centred; for silkscreen, scaled by the board's generator. docs/BRAND.md")
+(tags "logo Picoquorum")
 (property "Reference" "LOGO2" (at 0 -1.5 0) (layer "F.SilkS") (hide yes) (uuid "{next(ids)}") (effects (font (size 1 1) (thickness 0.15))))
 (property "Value" "PicoQuorum_Name" (at 0 1.5 0) (layer "F.Fab") (hide yes) (uuid "{next(ids)}") (effects (font (size 1 1) (thickness 0.15))))
 (attr board_only exclude_from_pos_files exclude_from_bom allow_missing_courtyard)

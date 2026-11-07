@@ -1,4 +1,4 @@
-# PicoQuorum's console: the Safe's queue, each transaction in plain language, and a signature from
+# Picoquorum's console: the Safe's queue, each transaction in plain language, and a signature from
 # the chip only after the person has seen every page and held A. Polls Safe's transaction service
 # over WiFi (for now tools/quorum's simulated Safe on the laptop).
 #
