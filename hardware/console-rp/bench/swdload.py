@@ -5,7 +5,8 @@
 #   uv run --no-project --with littlefs-python==0.19.0 python hardware/console-rp/bench/swdload.py \
 #       RPI_PICO2-20250911-v1.26.1.uf2 main.py=hardware/console-rp/bench/stage0.py [--no-micropython] [--dry-run]
 #   ... swdload.py --no-micropython --image build/console-rp-<sha> [--dirty-ok] [--dev] [--secrets PATH]
-#   ... swdload.py --dump DIR       read only: the board's logs, error.log, pin.json, keyflow.json
+#   ... swdload.py --dump DIR       read only: the board's logs, error.log, pin.json, keyflow.json, counter
+#   ... swdload.py --no-micropython --image DIR pin.json=DIR/pin.json ...   a new image, the pin kept
 #
 # Each NAME=PATH goes into the filesystem as /NAME. --image DIR puts in a `tools/fw build console-rp`
 # directory, each file first checked against its build.py's FILES. It refuses a build of uncommitted
@@ -113,14 +114,21 @@ def download(addr, blob, dry):
     cmd = PROBE + ["download"] + CHIP + ["--binary-format", "bin", "--base-address", hex(addr), "--verify", f.name]
     print("  %#x  %d bytes" % (addr, len(blob)))
     try:
-        if not dry:
-            subprocess.run(cmd, check=True)
+        for tries in range(3 if not dry else 0):    # pogo pins drop out mid-write too; --verify says so
+            if subprocess.run(cmd).returncode == 0:
+                break
+            print("  %#x: download failed, again" % addr)
+        else:
+            if not dry:
+                sys.exit("the write over SWD keeps failing: check J3's pins, then load again (the whole filesystem)")
     finally:
         os.unlink(f.name)
 
 
-DUMP = ("log.txt", "log.1.txt", "error.log", "prep-log.txt", "key-log.txt", "pin.json", "keyflow.json", "chips.json")
-SNAP = ("snapshot-", ".bin")    # C1's copy of a chip's 128 factory config bytes: public, for check_config --summary
+DUMP = ("log.txt", "log.1.txt", "error.log", "prep-log.txt", "key-log.txt", "pin.json", "keyflow.json", "chips.json",
+        "owners.txt")
+SNAP = (("snapshot-", ".bin"),  # C1's copy of a chip's 128 factory config bytes: public, for check_config --summary
+        ("counter-", ".txt"))   # the counter quorum last saw (check_counter): kept across a load like the pin
 
 
 def dump(out):
@@ -154,7 +162,7 @@ def dump(out):
         for n in names:
             f.write("%8d  %s\n" % (fs.stat(n).size, n))
     for n in names:
-        if n in DUMP or (n.startswith(SNAP[0]) and n.endswith(SNAP[1])):
+        if n in DUMP or any(n.startswith(a) and n.endswith(b) for a, b in SNAP):
             with fs.open(n, "rb") as src, open(os.path.join(out, n), "wb") as dst:
                 dst.write(src.read())
             print("  %s  %d bytes" % (n, fs.stat(n).size))
