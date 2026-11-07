@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Mono: a slender console on one board with no radio at all. A 40 x 96 mm bar (2.4:1): the 1.14"
+"""Mono: a slender console on one board with no radio at all. A 40 x 89.5 mm bar (2.24:1): the 1.14"
 screen near the top, three buttons under it, and a plain field below. An RP2350A and its flash, the
 ATECC608C soldered on, a second key site under D0 on a bus of its own, and a USB-C on the bottom end,
 left of centre, whose only data path is a CH343P serial bridge to the RP2350's UART1. The jig's pads
@@ -793,16 +793,21 @@ def kicad_env(tmp):
 
 
 # =================================================================================================
-# The board: every part placed, not routed. Board coordinates in mm from the top-left corner, y
-# down; the page puts that corner at (OX, OY).
-# Mono: a 40 x 96 bar, 2.40:1. The glass across the top 3 mm from the edge, its picture centred
+# The board: every part placed, not routed. Board coordinates in mm, y down, from the top-left
+# corner of Mono's first outline, 40 x 96; the page puts that point at (OX, OY). The board was made
+# shorter after its route without routing it again: the top edge came down 2 mm, to TOP, and
+# everything below y 73.85 (the USB-C, the CH343P, the regulator, the bottom holes) rose 4.5 mm
+# into the empty field under the LED (README.md, "Routing"); the back's current lines and logo
+# rose 1.3. Every other part kept its place.
+# Mono: a 40 x 89.5 bar, 2.24:1. The glass across the top 1 mm from the edge, its picture centred
 # across; the three buttons under it 10 mm apart, an M2 hole either side; under D0 the second key's
 # site, under D2 the backlight's switch and the key; the RP2350 in the middle turned a quarter turn so
 # its screen and button pins face up and its flash sits up-right, clear of the glass; the jig's pads
 # on the back under it; and the USB-C on the bottom end, left of centre, with its ESD diodes, the
 # CH343P and the regulator above it. Every part on the front, as every board before it.
 # =================================================================================================
-W, H = 40.0, 96.0
+W = 40.0
+TOP, H = 2.0, 91.5                       # the top and bottom edges: 89.5 mm
 OX, OY = 100.0, 100.0
 CORNER = 2.0
 CLEAR = 0.15                             # the Default and Power classes' clearance (write_project)
@@ -853,7 +858,7 @@ def button(i):
 
 
 U1 = (20.0, 61.0)                        # the RP2350's centre, turned -90: pins 1-15 face up
-J1 = (12.0, 92.4)                        # the USB-C, its opening down: its face 3.6 mm from its origin, on the bottom edge
+J1 = (12.0, 87.9)                        # the USB-C, its opening down: its face 3.6 mm from its origin, on the bottom edge
 
 
 def u1(x, y):
@@ -920,7 +925,7 @@ AT = {
     # square console-rp rev B's block as it was; the regulator right of it
     "J1": (*J1, 0), "U2": (*jm(0.0, -7.5), 90), "R4": (*jm(-4.0, -6.2), 0), "R5": (*jm(4.0, -6.2), 0),
     "U4": (*jm(-0.5, -11.8), 0), "C20": (*jm(3.0, -11.1), 90), "C21": (*jm(-3.5, -9.0), 180), "C22": (*jm(-3.4, -14.4), 90),
-    "U3": (27.0, 86.5, 0), "C18": (21.6, 88.8, 0), "C19": (32.9, 86.5, 90),
+    "U3": (27.0, 82.0, 0), "C18": (21.6, 84.3, 0), "C19": (32.9, 82.0, 90),
     # KEY 2 under D0: the two chips side by side, their 100n above them, the pull-ups under them, the
     # holes across, and the switch and the clamp under the holes: C28 beside the switch's IN and
     # ground, C29 beside its OUT and ground, R20 under C28
@@ -1062,8 +1067,8 @@ def j2(x, y):
 # - SCL, which leaves the column left of SDA and has its pads below SDA's, so a route took it 61 mm up
 #   round SW2 and back: up the column past where SDA turns off, to a via, on the back north of D1's
 #   via and under R6 and R7 to a via between R7 and C23, and into R7 (drawn in place after the route).
-RAILS = [(V33, "F.Cu", 0.4, [(23.85, 86.5), (30.15, 86.5)]), (V33, "F.Cu", 0.4, [(30.15, 87.45), (32.9, 87.45)]),
-         (V33, "F.Cu", 0.4, [(30.15, 86.5), (30.15, 76.0), (25.5, 71.35), (25.5, 67.01)]),
+RAILS = [(V33, "F.Cu", 0.4, [(23.85, 82.0), (30.15, 82.0)]), (V33, "F.Cu", 0.4, [(30.15, 82.95), (32.9, 82.95)]),
+         (V33, "F.Cu", 0.4, [(30.15, 82.0), (30.15, 71.66), (25.5, 67.01)]),
          (GND, "F.Cu", 0.3, [(1.75, 50.49), (1.75, 49.6), (3.2625, 49.6), (5.5375, 49.6), (7.0, 49.6), (8.4625, 49.6)]),
          (GND, "F.Cu", 0.3, [(7.0, 49.6), (7.0, 50.65)]),
          (V33, "F.Cu", 0.25, [(1.75, 48.64), (3.2625, 48.65)]), ("/VKEY", "F.Cu", 0.25, [(5.5375, 48.65), (7.0, 48.64)]),
@@ -1083,8 +1088,8 @@ RAILS = [(V33, "F.Cu", 0.4, [(23.85, 86.5), (30.15, 86.5)]), (V33, "F.Cu", 0.4, 
          (V33, "F.Cu", 0.25, [(14.395, 59.2), (14.395, 58.611), (12.45, 56.666), (12.45, 51.9), (11.9, 51.35)]),
          (V33, "B.Cu", 0.25, [(11.9, 51.35), (11.9, 49.6)]),
          (V33, "F.Cu", 0.25, [(16.0, 66.21), (15.5, 66.21), (14.723, 66.987), (14.723, 68.364), (10.013, 73.074),
-                              (10.013, 79.85)]),
-         (V33, "F.Cu", 0.25, [(10.013, 78.48), (8.6, 78.48)]),
+                              (10.013, 75.35)]),
+         (V33, "F.Cu", 0.25, [(10.013, 73.98), (8.6, 73.98)]),
          (V33, "B.Cu", 0.25, [(14.0, 69.087), (13.16, 70.0)]),
          ("/LCD_MOSI", "F.Cu", 0.15, [(15.8, 43.0), (14.395, 41.595), (14.395, 21.2), (13.425, 20.23), (13.425, 13.42)]),
          ("/LCD_MOSI", "B.Cu", 0.15, [(13.425, 13.42), (14.545, 12.3)]),
@@ -1427,7 +1432,7 @@ def write_board(sh, nets):
     place(pcbnew.FootprintLoad(MONO_FP, "LCD_1.14in_240x135_on_tape"), "LCD1", XC, YC, 0)
     logo = pcbnew.FootprintLoad(MARK, "PicoQuorum_Mark")
     logo.SetFPID(pcbnew.LIB_ID("picoquorum", "PicoQuorum_Mark"))
-    place(logo, "LOGO1", XA, 82.5, 0)
+    place(logo, "LOGO1", XA, 81.2, 0)
     logo.Flip(logo.GetPosition(), pcbnew.FLIP_DIRECTION_LEFT_RIGHT)
 
     def seg(a, c):
@@ -1440,7 +1445,7 @@ def write_board(sh, nets):
         s.SetArcGeometry(mm(*a), mm(*m), mm(*c)); s.SetLayer(pcbnew.Edge_Cuts); s.SetWidth(pcbnew.FromMM(0.05))
         b.Add(s)
     r, k = CORNER, CORNER * (1 - 0.5 ** 0.5)
-    seg((r, 0), (W - r, 0)); seg((W, r), (W, H - r)); seg((W - r, H), (r, H)); seg((0, H - r), (0, r))
+    seg((r, TOP), (W - r, TOP)); seg((W, TOP + r), (W, H - r)); seg((W - r, H), (r, H)); seg((0, H - r), (0, TOP + r))
 
     # --- copper: ground pours on both sides; round U1, Raspberry Pi's copper as it is, turned, locked
     def track(net, layer, a, c, w):
@@ -1471,7 +1476,7 @@ def write_board(sh, nets):
         b.Add(z)
         return z
 
-    edge = [(0, 0), (W, 0), (W, H), (0, H)]
+    edge = [(0, TOP), (W, TOP), (W, H), (0, H)]
     for layer in ("F.Cu", "B.Cu"):
         z = zone(edge, (layer,), GND)
         if layer == "F.Cu":         # not in the regulator's corner, where it left scraps between their pours
@@ -1529,7 +1534,7 @@ def write_board(sh, nets):
     zone([(x + SPOKE_RING * math.cos(kk * math.pi / 8), y + SPOKE_RING * math.sin(kk * math.pi / 8)) for kk in range(16)],
          ("B.Cu",), rule=ROUTE_ONLY + "round J4's ground hole")
     e = EDGE_KEEP
-    for i, (x0, y0, x1, y1) in enumerate(((0, 0, W, e), (0, H - e, W, H), (0, 0, e, H), (W - e, 0, W, H))):
+    for i, (x0, y0, x1, y1) in enumerate(((0, TOP, W, TOP + e), (0, H - e, W, H), (0, TOP, e, H), (W - e, TOP, W, H))):
         zone([(x0, y0), (x1, y0), (x1, y1), (x0, y1)], ("F.Cu", "B.Cu"),
              rule=ROUTE_ONLY + f"the edge {'top bottom left right'.split()[i]}")
     for h in ("H1", "H2", "H3", "H4"):              # the screws' heads: the pours may run under, behind the mask
@@ -1542,8 +1547,8 @@ def write_board(sh, nets):
              ("F.Cu",), rule=f"{f}: no tracks")
     b.GetDesignSettings().SetAuxOrigin(mm(0, H))     # the fab files' origin: the bottom-left corner
     b.GetDesignSettings().SetGridOrigin(mm(0, H))
-    arc((W, H - r), (W - k, H - k), (W - r, H)); arc((r, H), (k, H - k), (0, H - r)); arc((0, r), (k, k), (r, 0))
-    arc((W - r, 0), (W - k, k), (W, r))
+    arc((W, H - r), (W - k, H - k), (W - r, H)); arc((r, H), (k, H - k), (0, H - r)); arc((0, TOP + r), (k, TOP + k), (r, TOP))
+    arc((W - r, TOP), (W - k, TOP + k), (W, TOP + r))
 
     def text(s, x, y, size, layer=pcbnew.F_SilkS, back=False, rot_=0, align=0, wide=None):
         t = pcbnew.PCB_TEXT(b)
@@ -1567,7 +1572,7 @@ def write_board(sh, nets):
     text("KEY 2  I2C1  3.3 V", (x4 + x4 + 4 * 2.54) / 2, y4 - 2.3, 1.0, wide=0.8)    # midway, R18's silk to J4's
     # the back: the warning along the top; under the glass what isn't on this side, the name, the
     # revision, the Source Location; the jig's pads' names; the census and the current to expect
-    text(WARN_TEXT, XA, 1.6, 1.0, pcbnew.B_SilkS, back=True, wide=0.85)
+    text(WARN_TEXT, XA, TOP + 1.6, 1.0, pcbnew.B_SilkS, back=True, wide=0.85)
     for i, line in enumerate(("nothing is fitted on this side", "no radio: USB serial only")):
         text(line, XA, GY0 + 3.0 + 2.0 * i, 1.0, pcbnew.B_SilkS, back=True, wide=0.85)
     text(f"Picoquorum mono rev {REV} {DATE}", XA, GY0 + 9.4, 1.0, pcbnew.B_SilkS, back=True, wide=0.85)
@@ -1578,8 +1583,8 @@ def write_board(sh, nets):
         text(lab, x, TPY + (-1.9 if int(t_[2:]) % 2 else 1.9), 1.0, pcbnew.B_SilkS, back=True, wide=0.7)
     for i, line in enumerate(census_lines()):
         text(line, XA, 21.0 + 2.0 * i, 1.0, pcbnew.B_SilkS, back=True, wide=0.8)       # between H1 and H2
-    for i, line in enumerate(current_lines()):
-        text(line, XA, 75.5 + 2.0 * i, 1.0, pcbnew.B_SilkS, back=True, wide=0.8)
+    for i, line in enumerate(current_lines()):                                       # under the jig's names, the mark under them
+        text(line, XA, 74.2 + 2.0 * i, 1.0, pcbnew.B_SilkS, back=True, wide=0.8)
     text("ribbon folds under the glass into J2", (ZIF_X + GX1) / 2 + 1.0, YC + 3.0, 0.8, pcbnew.F_Fab)
     text(ROUTE_NOTE, W / 2, H + 2.0, 1.0, pcbnew.Cmts_User)
     pcbnew.SaveBoard(os.path.join(OUT, NAME + ".kicad_pcb"), b)
@@ -1758,7 +1763,7 @@ def main():
     drc = check_placement(bad, routed=checking)
     if checking:
         check_rpi(bad)
-    print(f"  the board: {NAME}.kicad_pcb, {W:g} x {H:g} mm ({H / W:.2f}:1), {'routed' if checking else 'placed, not routed'}; DRC: "
+    print(f"  the board: {NAME}.kicad_pcb, {W:g} x {H - TOP:g} mm ({(H - TOP) / W:.2f}:1), {'routed' if checking else 'placed, not routed'}; DRC: "
           + (", ".join(f"{k} {v}" for k, v in sorted(drc.items())) or "nothing"))
     if "render" in sys.argv[1:] and not bad:
         render()
