@@ -315,4 +315,4 @@ Not checked:
   glitch attacks on the A2 stepping; check which stepping JLCPCB supplies.
 - [ ] KEY 2's firmware, and whether to fit a key there. VKEY's rise with a breakout on it,
   measured; and whether RST wants a GPIO (spares: 0, 1, 16–19, 22–24, 26–29).
-- [ ] A case.
+- [ ] A case: a first draft, not printed ([cad/consoles/mono.py](../../cad/consoles/README.md#mono)).

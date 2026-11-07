@@ -59,6 +59,11 @@ DESIGNS = {
         scripts=["cad/consoles/badge.py"],
         outputs=["cad/consoles/out/badge/*"],
         pages=["cad/consoles/README.md"]),
+    "mono": dict(
+        about="Mono's case: a front shell and a back panel, its three caps, the badge's pieces and its dock",
+        scripts=["cad/consoles/mono.py"],
+        outputs=["cad/consoles/out/mono/*"],
+        pages=["cad/consoles/README.md"]),
     "key-tray": dict(
         about="the snap-lid case for the ATECC608 breakout, v2 and v3",
         scripts=["cad/key/tray.py"],
