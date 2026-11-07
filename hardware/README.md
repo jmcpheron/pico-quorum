@@ -28,7 +28,8 @@ screens are bench scripts, never part of the image ([builds/](builds/README.md#f
 | [console-rp](console-rp/README.md) | board | ATECC608C (SOIC-8) on the board | a `console-rp` profile, not written | 5 ordered 2026-10-29 ([order](../buildlog/2026-10-29-console-rp-order.md)) |
 | [picoquorum-key](picoquorum-key/README.md) | board | UDFN ATECC608C on the board; rev B adds a key port for key-c | `picoquorum-key`, picked by its key bus's pull-ups; the port needs a later image | rev A to order ([plan](../ORDER-PLAN-2026-10-24.md)); rev B designed, not ordered |
 
-The parts of each are below.
+The parts of each are below. What every no-radio Raspberry Pi console has in common (console-rp,
+Mono) is in [RP-REFERENCE.md](RP-REFERENCE.md).
 
 - [`DEV-CONSOLE.md`](DEV-CONSOLE.md): the no-solder dev console (Pico 2 W, Waveshare Pico-LCD-1.3,
   an ATECC608 breakout), from picowallet
