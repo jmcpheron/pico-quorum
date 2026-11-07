@@ -9,8 +9,8 @@ and no panel folded against it yet.*
 
 *KiCad's 3D render. The panel is drawn as a box. More views are in [renders/](renders/).*
 
-Mono is a newer, slender sibling of [console-rp](../console-rp/README.md): a 40 × 96 mm bar,
-2.40 : 1. The screen sits near the top, the three buttons are evenly spaced under it, and the rest
+Mono is a newer, slender sibling of [console-rp](../console-rp/README.md): a 40 × 89.5 mm bar,
+2.24 : 1. The screen sits near the top, the three buttons are evenly spaced under it, and the rest
 of the face is a plain field. Power and data come in at the bottom end, through a USB-C left of
 centre. Like console-rp it has no radio at all, and the USB-C's data lines reach a USB serial bridge
 and nothing else:
@@ -42,7 +42,7 @@ Kept from console-rp, whose first board came up on 2026-11-04
   checks the screen's and key's pins against `firmware/board.py`.
 
 New:
-- **The shape.** 40 × 96 mm, every part on the front, the jig's pads and the text on the back.
+- **The shape.** 40 × 89.5 mm, every part on the front, the jig's pads and the text on the back.
 - **An LDL1117S33R** (ST, 1.2 A, SOT-223) in place of console-rp's XC6206 (200 mA in a SOT-23, which
   its README flags at about 82 °C over the air at 0.12 A). By ST's 120 °C/W, 0.15 A from 5 V is about
   30 °C over the air. It is stable on ceramics: 4.7 µF in, 10 µF out.
@@ -62,7 +62,7 @@ New:
 
 ## The front
 
-- The glass is 3 mm from the top edge. Its picture is centred across the board.
+- The glass is 1 mm from the top edge. Its picture is centred across the board.
 - D0, D1 and D2 are 10 mm apart, 5.4 mm under the glass. D1 is on the board's middle, and D0 and
   D2 sit about 1.8 mm further out than the middles of the footer's slots, still inside them (each
   slot is about 8 mm wide). An M2 hole sits either side of the row, and one at each bottom corner.
@@ -217,11 +217,12 @@ J2's pad ends, 1.65 mm round J4's ground hole and round U1 and the flash on the 
 ground via to the edge, the crystal's corner, and 0.6 mm in from the edge. `tools/keypcb gen-mono
 tidy` takes them off after the route.
 
-Ground is left to the pours and 279 ground vias, 254 of them put in by the tidy-up. The route is
-told to skip the Ground class (`-inc Ground`), but it still drew 107 mm of short ground lines, inside
-the pours; console-rp's route drew 139. Tracks are 0.2 mm, and 0.25 for power and ground. The
-escapes and the screen's lines are 0.15, the least, and Raspberry Pi's DVDD and the regulator's
-output are wider.
+Ground is left to the pours and 250 ground vias. `tools/keypcb route` put 225 of them in as it read
+the route back: on a 2.5 mm grid, and one in each island of the front's pour the grid missed. The
+route is told to skip the Ground class (`-inc Ground`), but it still drew 107 mm of short ground
+lines, inside the pours; console-rp's route drew 139. Tracks are 0.2 mm, and 0.25 for power and
+ground. The escapes and the screen's lines are 0.15, the least, and Raspberry Pi's DVDD and the
+regulator's output are wider.
 
 After the last route the board was put right in place, not routed again. The generator draws the
 same for the next route:
@@ -231,6 +232,16 @@ same for the next route:
 - **Two ground vias** sat 1 nm off the ends the route drew to them, because KiCad's millimetre
   conversion truncates. JLCPCB's DRC flags that (`track_not_centered_on_via`). The generator now
   rounds.
+- **96 mm became 89.5.** The top edge came down 2 mm, so the glass is 1 mm from it. Everything
+  below y 73.85 rose 4.5 mm into the empty field under the LED: the USB-C, U2, the CH343P, the
+  regulator, their capacitors and resistors, the bottom holes, a fiducial and their copper. Lines
+  running straight down through the field got shorter. Four crossed it at a slant: the regulator's
+  3V3 line, which the generator draws, is now its column and one 45° run, and VBUS, LINK_TX and
+  LINK_RX, the route's, keep their upper part and take a 4.5 mm level jog in the field. On the back,
+  the warning came down with the edge, and the current lines and the logo rose only 1.3 mm, clear
+  of the jig's names. The route's top row of ground vias, now off the board, came out, and 15 more
+  where the two halves met, too near each other or other copper: 29 in all. The pours were filled
+  again.
 
 ## What is checked, and how
 
@@ -255,9 +266,10 @@ checks the routed one as it is. Both run:
 
 `tools/keypcb fab mono` writes the files to upload: `mono-gerbers.zip`, `bom.csv` and `cpl.csv` in
 [mono/fab/](mono/fab/). `tools/keypcb jlc mono` ([tools/jlc](../../tools/jlc/README.md)) passed
-every check on 2026-11-06, `--strict` against the golden pictures included: DRC at JLCPCB's limits,
-the Gerbers and drills read back, the netlist, the BOM and CPL against LCSC's parts, mask and paste,
-holes, pours and the 3D fit. Its self-test caught 10 of 10 broken copies. For the fit, its broken
+every check on 2026-11-06, before the board was made shorter and after, `--strict` against the
+golden pictures included (written again for the shorter board): DRC at JLCPCB's limits, the Gerbers
+and drills read back, the netlist, the BOM and CPL against LCSC's parts, mask and paste, holes,
+pours and the 3D fit. Its self-test caught 10 of 10 broken copies. For the fit, its broken
 copy makes J2's ZIF 3 mm tall, since no SOT-23 sits under Mono's glass (`selftest_tall` in the spec;
 other boards' copies still raise their SOT-23s). What its spec (`jlc_spec()`) lets through, each
 with why:
