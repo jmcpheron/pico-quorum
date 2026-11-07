@@ -46,6 +46,8 @@ def run():
     if path == "key":
         splash.pause(False)
         key_flow(sig)               # never returns
+    import qrcode                   # the Key page's QR code: loaded at its first draw, its 8 KB found no block
+                                    # that size once the console had run a while (board #2, 2026-11-06)
     import quorum
     import quorum_ui_crt
     quorum.NET, quorum.VIA = link, link     # the way out, and the transport txservice calls

@@ -53,6 +53,24 @@ def reserve():
         _nfb = framebuf.FrameBuffer(_noise, W, NH, framebuf.RGB565)
 
 
+def tile(w, h):
+    """A w x h picture on the noise strip's memory (w * h <= W * NH), for one that moves while no
+    effect plays: keypick_rp's chip while the key's steps run. -> (FrameBuffer, its bytes). The next
+    effect fills the strip again."""
+    reserve()
+    mv = memoryview(_noise)[:w * h * 2]
+    return framebuf.FrameBuffer(mv, w, h, framebuf.RGB565), mv
+
+
+def rect(d, mv, x, y, w, h):
+    """A w x h picture's bytes to the panel at (x, y); the rest of the panel keeps what it shows."""
+    d._window(x, y, w, h)
+    d.dc(1)
+    d.cs(0)
+    d.spi.write(mv)
+    d.cs(1)
+
+
 def _refresh(bg):
     """The noise strip again: two rows of hex from os.urandom, each digit shaded by its value."""
     reserve()

@@ -19,11 +19,22 @@
 #
 # The effects (crt.py): a K0 that found nothing locks in, a key lands and locks in, Sealed locks in;
 # a red page arrives torn. None while ▲ is held, none on a shuffle frame.
+#
+# While the chip works (Make, then Keep's test signatures, seal, record, data lock and pin, 20 s or
+# so), the busy page draws the key's chip: a light running round its legs, hex flickering in its
+# body, now and then a slip sideways. A soft timer sends that one 60 x 60 corner, from the noise
+# strip's memory (crt.tile), between the steps' own work; it stops before any other page is drawn.
+# Beside it, Keep's steps tick off as each one passes: what the steps returned, not a show. Each
+# step's result, K0's too, goes to the log (qlog: log.txt, and the computer over the link) as
+# prepare.py's do.
 import os
 import time
 from binascii import hexlify
+import machine
 import blockies
 import ceremony_ui
+import qlog
+import crt
 import quorum_ui as B
 import quorum_ui_s as Q
 import quorum_ui_crt as C
@@ -31,6 +42,14 @@ import signer as S
 import keypick_s
 
 W, H, M, R, TW, HEAD, FOOT = Q.W, Q.H, Q.M, Q.R, Q.TW, Q.HEAD, Q.FOOT
+KEEP = (("C5", "Test signatures"), ("C6", "Seal"), ("C8", "Record"), ("C9", "Data lock"), ("C10", "Pin"))
+TS, CB = 60, 32                     # the chip's picture, and its body, square
+CX0, CY0 = 12, HEAD + (FOOT - HEAD - TS) // 2
+RX, RY0, PITCH = 82, HEAD + 24, 15  # the steps beside it
+_P = (17, 22, 27, 32, 37, 42)       # six legs a side, clockwise from the top left
+LEGS = tuple([(x, 7, 3, 6) for x in _P] + [(47, y, 6, 3) for y in _P] +
+             [(x, 47, 3, 6) for x in reversed(_P)] + [(7, y, 6, 3) for y in reversed(_P)])
+GLOW = 7                            # legs lit behind the light, fading
 OPS = {"make": ("ALLOW_GENKEY", "genkey0"), "keep": ("ALLOW_LOCK", "lock_slot0"), "finish": ("ALLOW_LOCK", "lock_data")}
 STOP = {"unprepared": ("Not prepared", "This chip was never set up at the bench, so no key can be made in it here. Nothing on it has changed."),
         "other": ("Not this console's chip", "It is set up as something other than quorum v1. Nothing here uses it."),
@@ -52,6 +71,9 @@ class UI(keypick_s.UI):
         self._view = None           # what the screen showed, for the effect
         self._fx = None
         self._seed = "0x" + hexlify(os.urandom(20)).decode()     # Make's picture: random bytes, not a key
+        self._todo, self._ok, self._now = (), set(), None        # the busy page's steps, passed, running
+        self._busy = self._paint = False                         # the busy page up; the page going out
+        self._tm, self._tile, self._f, self._col = None, None, 0, None
 
     def arm(self):
         pass                        # no 60 s arm here (ceremony_ui's D0+D1 hold): only step_run's, per call
@@ -83,7 +105,7 @@ class UI(keypick_s.UI):
         st = self.c.step()
         kind = self.kind(st)
         if kind == "k0":
-            self.c.run("K0")            # read only: no press needed
+            self.log(("K0",) + tuple(self.c.run("K0")))      # read only: no press needed
             self.dirty = True
         elif kind == "result":
             if "D2" in pressed:
@@ -98,13 +120,38 @@ class UI(keypick_s.UI):
             super().tick(pressed)
         return None
 
+    def step_run(self, step):
+        """keypick_s's, its result in the log and on the busy page's list."""
+        self._now = step
+        self.rows()
+        out = super().step_run(step)
+        self._now = None
+        if out[1]:
+            self._ok.add(step)
+        self.log(out)
+        self.rows()
+        return out
+
+    def log(self, out):
+        step, ok, checks, msg = out
+        qlog.write("key %s %s %s: %s | %s" % (self.c.serial, step, "ok" if ok else "STOPPED",
+                                              "; ".join("%s %s" % (k, "ok" if g else "FAIL") for k, g in checks), msg))
+
     def do_keep(self, st):
-        super().do_keep(st)
-        self.after()
+        self._todo, self._ok = KEEP, set()
+        try:
+            super().do_keep(st)
+            self.after()
+        finally:
+            self.spin_stop()
 
     def do_finish(self, st):
-        super().do_finish(st)
-        self.after()
+        self._todo, self._ok = KEEP[2:], set()
+        try:
+            super().do_finish(st)
+            self.after()
+        finally:
+            self.spin_stop()
 
     def after(self):
         """The data lock done: C10 and the pin straight away, under a busy page."""
@@ -113,8 +160,13 @@ class UI(keypick_s.UI):
             self.pin()
 
     def pin(self):
-        self.d.frames(self._busy_page, "Checking the chip", "then pinning this console to it")
-        out = self.step_run("C10")
+        if not self._todo:
+            self._todo, self._ok = KEEP[4:], set()
+        try:
+            self.d.frames(self._busy_page, "Checking the chip", "then pinning this console to it")
+            out = self.step_run("C10")
+        finally:
+            self.spin_stop()
         if not out[1]:
             self.result = out
         self.dirty = True
@@ -123,6 +175,8 @@ class UI(keypick_s.UI):
     def draw(self):
         if not self.dirty:
             return
+        self.spin_stop()
+        self._busy, self._todo = False, ()
         st = self.c.step()
         kind = self.kind(st)
         self.dirty = False
@@ -154,14 +208,108 @@ class UI(keypick_s.UI):
     def foot(self, labels, red=False, hold=None):
         Q.slots(self.d, labels, "bad_bg" if red else "bg", hold)
 
+    # --- the busy page: the chip at work, and Keep's steps ----------------------------
     def _busy_page(self, title, sub):
+        self.spin_stop()
         d = self.d
         d.fill(B.c("bg"))
         Q.header(d, "Your key", "")
-        B.txt(d, B.fit(title + "…", TW, "bold18"), M, 44, "bold18")
-        B.txt(d, B.fit(sub, TW, "sans12"), M, 70, "sans12", "muted")
+        B.txt(d, B.fit(title + "…", R - RX, "bold14"), RX, HEAD + 4, "bold14")
+        self._busy = True
+        if self._todo:
+            self.rows(push=False)
+        else:
+            B.para(d, sub, RX, RY0, R - RX, "sans12", "muted", "bg", 14, FOOT - 2)
+        self.draw_chip(d, CX0, CY0, self._f)
         self.foot((None, None, None))
         C.show(d)
+        self.spin_start()
+
+    def rows(self, push=True):
+        """Keep's steps beside the chip: passed (a check), running (a ring), to come (a dot)."""
+        if not self._busy or not self._todo:
+            return
+        d, y0 = self.d, RY0 - 2
+        d.fill_rect(RX - 2, y0, W - RX + 2, FOOT - y0, B.c("bg"))
+        scan = B.c(C.SCAN["bg"])
+        for y in range(HEAD + 2, FOOT, 3):
+            if y >= y0:
+                d.hline(RX - 2, y, W - RX + 2, scan)
+        y = RY0
+        for step, label in self._todo:
+            if step in self._ok:
+                B.mark(d, True, RX + 5, y + 7, 5)
+            elif step == self._now:
+                d.ellipse(RX + 5, y + 7, 4, 4, B.c("stake"))
+            else:
+                d.fill_rect(RX + 4, y + 6, 3, 3, B.c("faint"))
+            B.txt(d, B.fit(label, R - RX - 16, "sans12"), RX + 16, y, "sans12",
+                  "text" if step in self._ok or step == self._now else "faint")
+            y += PITCH
+        if push:
+            self._paint = True          # the timer waits: one thing on the panel's bus at a time
+            try:
+                self.draw_chip(d, CX0, CY0, self._f)    # the chip as the panel shows it, under these rows
+                crt.page(d, y0, FOOT - y0, y0)
+            finally:
+                self._paint = False
+
+    def colours(self):
+        if self._col is None:
+            lit, dim = (200, 214, 255), B.rgb("raised")
+            glow = [B.c(tuple(lit[i] + (dim[i] - lit[i]) * k // (GLOW - 1) for i in range(3))) for k in range(GLOW)]
+            self._col = (B.c("bg"), B.c(C.SCAN["bg"]), glow, B.c("surface"), B.c("faint"), B.c("muted"), B.c("ok"))
+        return self._col
+
+    def draw_chip(self, fb, ox, oy, f):
+        """The chip at frame f, its top left at (ox, oy): the light on leg f % 24, the body's hex."""
+        bg, scan, glow, body, edge, muted, ok = self.colours()
+        fb.fill_rect(ox, oy, TS, TS, bg)
+        for y in range((HEAD + 2 - CY0) % 3, TS, 3):         # the page's scanlines, where it sits on screen
+            fb.hline(ox, oy + y, TS, scan)
+        head, n = f % len(LEGS), len(LEGS)
+        for i, (x, y, w, h) in enumerate(LEGS):
+            k = (head - i) % n
+            fb.fill_rect(ox + x, oy + y, w, h, glow[k if k < GLOW else GLOW - 1])
+        fb.fill_rect(ox + 14, oy + 14, CB, CB, body)
+        fb.rect(ox + 14, oy + 14, CB, CB, edge)
+        fb.fill_rect(ox + 17, oy + 17, 2, 2, edge)
+        r = os.urandom(4)
+        fb.text("%02x" % r[0], ox + 22, oy + 18, ok if r[2] < 16 else edge)
+        fb.text("608", ox + 18, oy + 26, muted)
+        fb.text("%02x" % r[1], ox + 22, oy + 35, ok if r[3] < 16 else edge)
+        return r
+
+    def spin_start(self):
+        if not crt.FX or self._tm is not None:
+            return
+        if self._tile is None:
+            self._tile = crt.tile(TS, TS)
+        try:
+            self._tm = machine.Timer(-1, mode=machine.Timer.PERIODIC, period=70, callback=self.spin)
+        except Exception:
+            self._tm = None             # no timer: the chip stays still, the steps go on
+
+    def spin_stop(self):
+        tm, self._tm = self._tm, None
+        if tm is not None:
+            tm.deinit()
+
+    def spin(self, _t):
+        """The timer's: the next frame of the chip, to its corner alone. It never raises into the steps."""
+        if self._paint or self._tm is None:
+            return
+        self._paint = True
+        try:
+            self._f += 1
+            fb, mv = self._tile
+            r = self.draw_chip(fb, 0, 0, self._f)
+            dx = r[2] % 7 - 3 if r[3] < 20 else 0       # now and then the picture slips sideways a frame
+            crt.rect(self.d, mv, CX0 + dx, CY0, TS, TS)
+        except Exception:
+            self._tm = None
+        finally:
+            self._paint = False
 
     def _make(self, st):
         d, c, why = self.d, self.c, self.need("make")
@@ -193,6 +341,8 @@ class UI(keypick_s.UI):
 
     def _pick_page(self, a, spinning):
         """The picture big and its two ends. spinning: a shuffle frame, no ends and no buttons yet."""
+        self.spin_stop()
+        self._busy = False
         d, why = self.d, self.need("make")
         d.fill(B.c("bg"))
         Q.header(d, "Your key", "" if spinning else "made in the chip")

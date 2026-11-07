@@ -168,7 +168,18 @@ start()
 tick()
 tick()`);
 shot("key-make", "The key, at the first start: K0 has read the chip (no key in slot 0, counter 0 at 0) and that locks in. D2 ▲ Make: the chip makes a key inside itself. The picture is random bytes, not a key.");
-py(`tick("D2")`);
+py(`SNAP = {}                   # the busy page as each step starts, its list as the step saw it
+_run = sys.modules["keypick_s"].UI.step_run
+def _snap(self, step):
+    _show()
+    SNAP[step] = bytes(FULL)
+    return _run(self, step)
+sys.modules["keypick_s"].UI.step_run = _snap
+tick("D2")
+PAGE = bytes(FULL)
+FULL[:] = SNAP["C4"]`);
+shot("key-making", "Make: the chip at work, a light running round its legs and hex flickering in its body (a timer moves that corner alone while GenKey runs). Nothing to press.");
+py(`FULL[:] = PAGE`);
 shot("key-pick", "A key: its owner address's blockie and two ends, landed after a shuffle, locking in. D0 ■ New makes another, as many as anyone likes; D1 ● Full; D2 ▲ Choose.");
 py(`tick("D1")`);
 shot("key-pick-full", "Full: the whole owner address.");
@@ -185,7 +196,14 @@ board.unix = lambda: 1609459200
 clock.now += 1600
 tick()
 keys.down.discard("D2")
-tick()`);
+tick()
+sys.modules["keypick_s"].UI.step_run = _run
+PAGE = bytes(FULL)
+FULL[:] = SNAP["C6"]`);
+shot("key-keeping", "Keep, let go of at 3 s: the chip at work, and Keep's steps beside it, ticked off as each one passes. The test signatures passed; the seal is running.");
+py(`FULL[:] = SNAP["C9"]`);
+shot("key-locking", "Then the chip's record and its data lock, under the same list: the seal passed, the data lock is running. Then the pin.");
+py(`FULL[:] = PAGE`);
 shot("key-done", "Sealed and pinned: C5's test signatures, the seal, the record, the data lock, then pin.json. It locks in. D2 ▲ restarts into the console, on that pin.");
 py(`CT.no_files()
 sim = CT.prepared()

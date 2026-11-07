@@ -888,11 +888,39 @@ def case_own_key():
     tick()
     check(sim.cfg[88] & 1, "Keep let go at 1.5 s: nothing sealed")
     before = sim.counters[0]
-    import board
+    import board, qlog
     unix = board.unix
     board.unix = lambda: 1609459200         # an RP2350's clock at start: 2021, no RTC and no network
+    lines, tap = [], qlog.TAP
+    qlog.TAP = lines.append
+    busy = []                               # each busy page as the steps saw it: its steps, passed
+    run = ui.step_run
+    def seen(step):
+        busy.append((step, ui._busy, [s for s, _ in ui._todo], sorted(ui._ok)))
+        return run(step)
+    ui.step_run = seen
+    reads = []                              # public-key reads once the data zone is locked: each counts
+    pub = c.chip.pubkey
+    def pubkey(slot):
+        reads.append(sim.cfg[86] == 0x00)
+        return pub(slot)
+    c.chip.pubkey = pubkey
     hold()
+    del ui.step_run, c.chip.pubkey
+    qlog.TAP = tap
     board.unix = unix
+    tag = " key %s " % c.serial              # after the stamp: "+12s" on a board, a date and time here
+    logged = [l.split(tag, 1)[1].split(" ")[:2] for l in lines if tag in l]
+    check([s for s, _ in logged] == ["C5", "C6", "C7", "C8", "C9", "C10"] and all(k == "ok:" for _, k in logged),
+          "each step of the hold in the log, ok: %s" % " ".join(s for s, _ in logged))
+    check(all(b and todo == ["C5", "C6", "C8", "C9", "C10"] for _, b, todo, _ in busy) and busy[-1][3] == ["C5", "C6", "C7", "C8", "C9"],
+          "the busy page up for every step, its list Keep's five, ticked as they passed")
+    check(ui._tm is None and not ui._busy, "the chip's timer stopped once the steps ran (FX off here: never started)")
+    fb, mv = crt.tile(keypick_rp.TS, keypick_rp.TS)
+    r = ui.draw_chip(fb, 0, 0, 5)
+    lit = fb.pixel(*keypick_rp.LEGS[5][:2]) == ui.colours()[2][0]
+    check(len(r) == 4 and lit and len(mv) == keypick_rp.TS * keypick_rp.TS * 2 <= len(crt._noise),
+          "the chip's frame: on the noise strip's memory, the light on leg 5 at frame 5")
     check(not sim.cfg[88] & 1 and sim.cfg[86] == 0x00 and c.step() == "done" and ui.result is None,
           "Keep held 3 s: test signatures, the seal, the record and the data lock, then the pin")
     import policy, chipcfg
@@ -902,7 +930,10 @@ def case_own_key():
     check(pin == {"serial": c.serial, "slot": 0, "owner": c.owner(), "locked": True} and chipcfg.record_matches(rec, x, y),
           "pin.json names this chip, slot 0 and the key's owner; the OTP record names the key")
     check(rec["date"] == 1793000000, "a clock still in 2021: the record is dated from the build (image.DATE)")
-    check(sim.counters[0] >= before + 4, "counter 0 went up %d: C5's two, C6's two, C9's" % (sim.counters[0] - before))
+    after_lock = sum(reads)
+    check(sim.counters[0] == before + 5 + after_lock and after_lock == 3,
+          "counter 0 went up %d: C5's two signatures, C6's two, C9's one, and %d public-key reads after the "
+          "data lock (silicon counts those: atecc_sim)" % (sim.counters[0] - before, after_lock))
     check(tick("D2") == "console", "Done: D2 starts the console")
     check(rp_route() == "console", "pinned: the console from now on")
     sys.path.insert(0, "/")

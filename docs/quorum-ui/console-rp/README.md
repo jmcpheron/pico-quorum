@@ -133,56 +133,74 @@ The key, at the first start: K0 has read the chip (no key in slot 0, counter 0 a
 
 ![20-key-make](20-key-make.png)
 
+### key making
+
+Make: the chip at work, a light running round its legs and hex flickering in its body (a timer moves that corner alone while GenKey runs). Nothing to press.
+
+![21-key-making](21-key-making.png)
+
 ### key pick
 
 A key: its owner address's blockie and two ends, landed after a shuffle, locking in. D0 ■ New makes another, as many as anyone likes; D1 ● Full; D2 ▲ Choose.
 
-![21-key-pick](21-key-pick.png)
+![22-key-pick](22-key-pick.png)
 
 ### key pick full
 
 Full: the whole owner address.
 
-![22-key-pick-full](22-key-pick-full.png)
+![23-key-pick-full](23-key-pick-full.png)
 
 ### key keep
 
 Keep: red, it arrives torn. D2 ▲ held 3 s seals the key and locks the chip, for good. D0 ■ goes back.
 
-![23-key-keep](23-key-keep.png)
+![24-key-keep](24-key-keep.png)
 
 ### key keep hold
 
 Keep, held: its slot fills. Let go before 3 s and nothing happens.
 
-![24-key-keep-hold](24-key-keep-hold.png)
+![25-key-keep-hold](25-key-keep-hold.png)
+
+### key keeping
+
+Keep, let go of at 3 s: the chip at work, and Keep's steps beside it, ticked off as each one passes. The test signatures passed; the seal is running.
+
+![26-key-keeping](26-key-keeping.png)
+
+### key locking
+
+Then the chip's record and its data lock, under the same list: the seal passed, the data lock is running. Then the pin.
+
+![27-key-locking](27-key-locking.png)
 
 ### key done
 
 Sealed and pinned: C5's test signatures, the seal, the record, the data lock, then pin.json. It locks in. D2 ▲ restarts into the console, on that pin.
 
-![25-key-done](25-key-done.png)
+![28-key-done](28-key-done.png)
 
 ### key make before
 
 A chip with a key in slot 0 already (made at an earlier start, or written in at the bench): K0 says so, and Make replaces it before anything else.
 
-![26-key-make-before](26-key-make-before.png)
+![29-key-make-before](29-key-make-before.png)
 
 ### key finish
 
 A restart between the seal and the data lock: keyflow.json says this console sealed it, so Finish, held 3 s.
 
-![27-key-finish](27-key-finish.png)
+![30-key-finish](30-key-finish.png)
 
 ### key elsewhere
 
 The same chip with no keyflow.json: sealed elsewhere. Nothing here locks or pins it.
 
-![28-key-elsewhere](28-key-elsewhere.png)
+![31-key-elsewhere](31-key-elsewhere.png)
 
 ### key not prepared
 
 A factory chip: never prepared at the bench. Nothing here can change it.
 
-![29-key-not-prepared](29-key-not-prepared.png)
+![32-key-not-prepared](32-key-not-prepared.png)
