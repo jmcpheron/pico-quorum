@@ -28,6 +28,7 @@ XIP = 0x10000000
 # MicroPython's rp2 filesystem on a Pico 2 (ports/rp2: PICO_FLASH_SIZE_BYTES 4 MB, storage = all but the
 # first 1 MB): littlefs v2, 4 KB blocks, 256-byte programming (_boot.py), readsize and lookahead 32.
 FS_BASE, FS_BLOCKS, BLOCK = XIP + 0x100000, 768, 4096
+CHUNK = 32                      # blocks per read in --dump: 128 KB
 PROBE = ["probe-rs"]
 CHIP = ["--chip", "RP235x", "--protocol", "swd"]
 
@@ -131,8 +132,18 @@ def dump(out):
     with tempfile.NamedTemporaryFile(suffix=".bin", delete=False) as f:
         raw = f.name
     try:
-        subprocess.run(PROBE + ["read"] + CHIP + ["b8", hex(FS_BASE), str(FS_BLOCKS * BLOCK), "--output", raw, "--format", "binary"], check=True)
-        data = open(raw, "rb").read()
+        data = bytearray()
+        for i in range(0, FS_BLOCKS, CHUNK):     # in pieces, each tried again: pogo pins drop out mid-read
+            n = min(CHUNK, FS_BLOCKS - i) * BLOCK
+            for tries in range(5):
+                r = subprocess.run(PROBE + ["read"] + CHIP + ["b8", hex(FS_BASE + i * BLOCK), str(n), "--output", raw,
+                                                               "--format", "binary"], capture_output=True, text=True)
+                if r.returncode == 0 and os.path.getsize(raw) == n:
+                    break
+                print("  blocks %d-%d: read failed, again (%s)" % (i, i + n // BLOCK - 1, r.stderr.strip().splitlines()[-1:]))
+            else:
+                sys.exit("the read over SWD keeps failing: check J3's pins")
+            data += open(raw, "rb").read()
     finally:
         os.unlink(raw)
     fs = LittleFS(block_size=BLOCK, block_count=FS_BLOCKS, prog_size=256, read_size=32, lookahead_size=32, mount=False)
