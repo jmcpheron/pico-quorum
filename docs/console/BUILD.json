@@ -1,10 +1,10 @@
 {
   "note": "SHA-256 of every file emu/build.mjs wrote for the console page, which holds everything it runs: firmware/ is the console image, and hashes to the release fingerprint. SHA256SUMS lists the same files for sha256sum -c. Rebuild from the same commit (cd emu && npm ci && node build.mjs) and compare.",
-  "release": "b3256ce093f73fb6d71ea102862f2b6daa5eb4b7b647fc680fbbae5e80aa40d7",
+  "release": "0c55ed79732af6a14b8651c7e18d7ecccacb7733c672ab37550d484823fb31cd",
   "files": {
     "LICENSE": "84d2bd6f4370ad28bb4f23f9ebf7a9f659b3ccc043120566711c2325a5858800",
-    "SHA256SUMS": "584c6e38d40a6971d610182aac335d8ffee801006de8b8bef2d06e88a61ff13a",
-    "boot.json": "7e5c942342adef37e36448f9c6825b21f6faa85c54694f81b59c11c78d900063",
+    "SHA256SUMS": "a135ccf2dc7b97a5e51d117786ffe73bcc3dccc68c671d10443b7c96d2b03a9f",
+    "boot.json": "62f4df0d9a0c01960f6fc74a329a081abc080a24fd9196485d8b8057ac41bd87",
     "brand/mark-dark.svg": "61a3d9f8aac37c8e4d80e0509952d0efc772ab105c000eb918ebf9f13f654ef7",
     "brand/mark-light.svg": "9fe0fcc3b8bac395d82f86b1db5e78cc4d8bd0c08c958629490b71d17b84d084",
     "coi.js": "50f153f5ba36e3e8d801313072be518b236c49eb7ae04ab425bedcba91a25803",
@@ -45,7 +45,7 @@
     "firmware/qf_sans12.bin": "45c8bb74f7f7af54a0a22ef7494a6b2c0cffd82cd5784c06e9de5eb21e53253f",
     "firmware/qf_sans14.bin": "1f07300445ddbc385883feb90b89e918b17be707e948f17efd6315bd8247c244",
     "firmware/qlog.py": "9752f4b3605c48cfde72e9e68e836be852337d7b9a9690096c57fc6074d25f7f",
-    "firmware/qrcode.py": "5d07838286b736c2a2c4f5159ebe815b3a322b6352f6b1b29732dfd11eff298e",
+    "firmware/qrcode.py": "06db395c8d19b161f13b2dc3faf2bcc96e9d0ecfb17922ab19de56a9545099dd",
     "firmware/quorum.py": "ca6290f1e348f38c750844a45c9f19351bff75a8eb2902abfa54fc7c18922fbc",
     "firmware/quorum_cfg.py": "48e35a059419c6be74f3ad72562c5c56bc002895a9c1ac43bbeecc6b5219eb03",
     "firmware/quorum_ui.py": "5e3cbaddef8b63f7a7ddc654640bd240e6bab96cb30c1287fbd2097e5a08904b",

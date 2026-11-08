@@ -133,11 +133,11 @@ def _matrix(version):
 
 
 def _place(g, r, cw):
+    """The codewords into the modules not reserved, most significant bit first. Each bit is read
+    from cw where it goes: a list of the 1072 bits (version 5) grew to an 8 KB block, more than a
+    console-rp's heap had in one piece after a while (board #2, 2026-11-07)."""
     n = len(g)
-    bits = []
-    for c in cw:
-        for k in range(7, -1, -1):
-            bits.append((c >> k) & 1)
+    nbits = 8 * len(cw)
     i, up, col = 0, True, n - 1
     while col > 0:
         if col == 6:
@@ -147,7 +147,7 @@ def _place(g, r, cw):
             for dx in (0, 1):
                 x = col - dx
                 if not r[row][x]:
-                    g[row][x] = bits[i] if i < len(bits) else 0
+                    g[row][x] = cw[i >> 3] >> (7 - (i & 7)) & 1 if i < nbits else 0
                     i += 1
         up = not up
         col -= 2
