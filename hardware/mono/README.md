@@ -73,10 +73,14 @@ New:
   the bottom right of the chip.
 - The bottom end: the USB-C left of centre, its ESD diodes and the CH343P above it, and the LDL1117
   on the right.
-- The silkscreen on the front is only the buttons' names and KEY 2's labels. On the back:
-  EXPERIMENTAL HARDWARE COSIGNER, "nothing is fitted on this side", "no radio: USB serial only",
-  the revision, picoquorum.app (the Source Location), the licence, the census of the parts, the
-  current to expect, and the jig's pads' names.
+- The silkscreen on the front is the buttons' names, KEY 2's labels and two drawings. The
+  key-forge, a hammer over a key on an anvil, is the owner's drawing traced into keyforge.json. It
+  sits between D2's name and U5, the key that signs. Some ground vias are under it; they're tented,
+  so it prints over them. The dragon from Atari's Adventure, 4 × 10 mm, is under the glass's left
+  end, where the panel hides it; it prints over tented ground vias too. On the back: EXPERIMENTAL
+  HARDWARE COSIGNER, "nothing is fitted on this side", "no radio: USB serial only", the revision,
+  picoquorum.dev (the Source Location), the licence, the census of the parts, the current to expect,
+  and the jig's pads' names.
 
 Every part JLCPCB fits is on the front, because Economic assembly does one side. So the field below
 the buttons holds the electronics. A case's face would cover them.
@@ -242,6 +246,9 @@ same for the next route:
   of the jig's names. The route's top row of ground vias, now off the board, came out, and 15 more
   where the two halves met, too near each other or other copper: 29 in all. The pours were filled
   again.
+- **The silkscreen's drawings and address** (2026-11-08). The key-forge and the dragon were drawn
+  onto the board by the generator's own `art()`, and the back's address became picoquorum.dev. Only
+  the two silkscreen layers changed.
 
 ## What is checked, and how
 
@@ -258,24 +265,29 @@ checks the routed one as it is. Both run:
 - **Every symbol pin has a pad** in its footprint, and every pad a pin.
 - **Each GPIO's function** (UART1, I2C0, I2C1, SPI1) against the RP2350's table; the screen's and
   key's pins against `firmware/board.py`; KEY 2's pair against `make_i2c`.
-- **DRC** on the placed board, and on the routed one with schematic parity. The one finding left
-  is expected: J1 differs from its library's copy, since its silkscreen past the edge is left out.
+- **DRC** on the placed board, and on the routed one with schematic parity. The five findings left
+  are expected, each a footprint that differs from its library's copy. J1's silkscreen past the edge
+  is left out. FID1–3 and U4 differ from KiCad 10.0.8's library, which came after the route: it
+  tags the fiducials' pads as fiducials, a Gerber attribute, and moves the CH343P's pin-1 mark to
+  its corner. Their copper, mask and paste are the same.
 - **Raspberry Pi's areas:** no other net's copper in their regulator's or crystal's corner, or under
   the chip or the crystal on the back.
 - **Under the glass:** each part's height and place.
 
 `tools/keypcb fab mono` writes the files to upload: `mono-gerbers.zip`, `bom.csv` and `cpl.csv` in
 [mono/fab/](mono/fab/). `tools/keypcb jlc mono` ([tools/jlc](../../tools/jlc/README.md)) passed
-every check on 2026-11-06, before the board was made shorter and after, `--strict` against the
-golden pictures included (written again for the shorter board): DRC at JLCPCB's limits, the Gerbers
-and drills read back, the netlist, the BOM and CPL against LCSC's parts, mask and paste, holes,
-pours and the 3D fit. Its self-test caught 10 of 10 broken copies. For the fit, its broken
-copy makes J2's ZIF 3 mm tall, since no SOT-23 sits under Mono's glass (`selftest_tall` in the spec;
-other boards' copies still raise their SOT-23s). What its spec (`jlc_spec()`) lets through, each
-with why:
-- 26 DRC findings: Raspberry Pi's footprints and the ZIF don't match the stock symbols' footprint
+every check: DRC at JLCPCB's limits, the Gerbers and drills read back, the netlist, the BOM and
+CPL against LCSC's parts, mask and paste, holes, pours and the 3D fit. It passed on 2026-11-06,
+before the board was made shorter and after, and on 2026-11-08 after the drawings, with KiCad
+10.0.8, each time with `--strict` against the golden pictures (written again for the shorter
+board, then the silkscreen's for the drawings). Its self-test caught 10 of 10 broken copies. For
+the fit, its broken copy makes J2's ZIF 3 mm tall, since no SOT-23 sits under Mono's glass
+(`selftest_tall` in the spec; other boards' copies still raise their SOT-23s). What its spec
+(`jlc_spec()`) lets through, each with why:
+- 30 DRC findings: Raspberry Pi's footprints and the ZIF don't match the stock symbols' footprint
   filters (23), U1 is an SMD part with holes in its pad, J1's silkscreen past the edge is left out,
-  and the panel has no courtyard (the fit's glass stands in).
+  FID1–3 and U4 differ from KiCad 10.0.8's library (above), and the panel has no courtyard (the
+  fit's glass stands in).
 - U1's nine thermal-via holes are held to the vias' ring (0.15 mm), not a component hole's 0.2.
 - The one via in the CH343P's exposed pad, the only via not tented.
 
@@ -316,3 +328,6 @@ Not checked:
 - [ ] KEY 2's firmware, and whether to fit a key there. VKEY's rise with a breakout on it,
   measured; and whether RST wants a GPIO (spares: 0, 1, 16–19, 22–24, 26–29).
 - [ ] A case.
+- [ ] picoquorum.dev, printed on the back as the Source Location, must lead to the source before
+  boards ship. Its forwarding is still to do (docs/STATUS.md). It expires 2027-10-06, and the
+  licence wants a Source Location that lasts three years.

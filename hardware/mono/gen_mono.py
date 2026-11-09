@@ -16,7 +16,8 @@ Writes, from the one table below:
   mono/mono.kicad_sch   the schematic, every part a stock KiCad symbol but two (lib/mono.kicad_sym)
   mono/mono.kicad_pcb   the board, every part placed, the copper round the RP2350 copied from
                         Raspberry Pi's minimal board (rpi_minimal.json), turned with the chip; the rest
-                        left to the router
+                        left to the router. On the front's silkscreen, two drawings: the key-forge
+                        (keyforge.json) and Adventure's dragon under the glass
   mono/mono.kicad_pro   the project, with JLCPCB's limits as its rules
   lib/                  the symbols for the second key site's switch and Trust M; Raspberry Pi's
                         footprints (console-rp's copy), console-s3's ZIF, the panel's footprint, 3D
@@ -829,6 +830,39 @@ GX1, GY1 = GX0 + PANEL["glass"][0], GY0 + PANEL["glass"][1]
 XC, YC = (GX0 + GX1) / 2, (GY0 + GY1) / 2
 ZIF_X = round(GX1 - 19.5, 3)             # J2's origin 19.5 mm in from the glass's ribbon end, as console-s3's and PicoquorumKey's
 
+# The front's two drawings, on its silkscreen (art()):
+# - The key-forge, a hammer over a key on an anvil: the owner's drawing, traced (keyforge.json). It
+#   sits between D2's name and the key that signs, U5, 0.9 mm clear of each. KEYFORGE gives where its
+#   box's centre goes and its height. Some of the grid's ground vias lie under it; they're tented, so
+#   it prints over them.
+# - The dragon from Atari's Adventure, cell for cell from the owner's picture: their pick, where the
+#   earlier boards' dragons are drawn in the game's manner. 0.5 mm a pixel, under the glass's left end
+#   between the foam pads, where the panel hides it. It too prints over tented ground vias, seven.
+KEYFORGE = dict(centre=(30.05, 36.8), height=8.5)
+DRAGON = """
+.....XX.
+....XXXX
+XXXX..XX
+XXXXXXX.
+....XXX.
+.....X..
+.....X..
+...XXXX.
+..XXXXXX
+.XXXXXXX
+XXX...XX
+XX....XX
+XX....XX
+XX...XXX
+XXXXXXXX
+..XXXX..
+....X...
+X...XXXX
+XXX....X
+..XXXXXX
+""".split()
+DRAGON_PX = 0.5
+
 
 def gl(x, y):
     """A point given from the glass's top-left corner."""
@@ -1360,6 +1394,53 @@ def census_lines(width=30):
     return lines + ["and the screen, fitted by hand"]
 
 
+def art(b, mm):
+    """The front's drawings (KEYFORGE, DRAGON) onto board b as filled polygons on F.SilkS, mm()
+    giving a point on the board. They're board drawings, not footprints, so there is nothing to
+    place, count or match to the schematic. Each drawing is drawn as one union, fractured into
+    outlines, since the key's ring and the dragon's eye and belly are holes."""
+    import pcbnew
+
+    def ring_of(pts, outline):              # outlines one way round, holes the other
+        a = sum(pts[i][0] * pts[i - 1][1] - pts[i - 1][0] * pts[i][1] for i in range(len(pts)))
+        return pts if (a > 0) == outline else pts[::-1]
+
+    def draw(shapes):                       # [(outline, [holes])], in the generator's mm
+        ps = pcbnew.SHAPE_POLY_SET()
+        for out, holes in shapes:
+            ps.NewOutline()
+            for x, y in ring_of(out, True):
+                v = mm(x, y); ps.Append(v.x, v.y)
+            for h in holes:
+                n = ps.NewHole()                    # Append adds to the outline unless given the hole
+                for x, y in ring_of(h, False):
+                    v = mm(x, y); ps.Append(v.x, v.y, -1, n)
+        ps.Simplify(); ps.Fracture()
+        for i in range(ps.OutlineCount()):
+            one = pcbnew.SHAPE_POLY_SET(); one.AddOutline(ps.Outline(i))
+            s = pcbnew.PCB_SHAPE(b, pcbnew.SHAPE_T_POLY)
+            s.SetPolyShape(one); s.SetFilled(True); s.SetWidth(0); s.SetLayer(pcbnew.F_SilkS)
+            b.Add(s)
+
+    k = json.load(open(os.path.join(HERE, "keyforge.json")))
+    x0, y0, x1, y1 = k["box"]
+    sc, (cx, cy) = KEYFORGE["height"] / (y1 - y0), KEYFORGE["centre"]
+    at = lambda px, py: (cx + (px - (x0 + x1) / 2) * sc, cy + (py - (y0 + y1) / 2) * sc)
+    r = k["ring"]
+    circle = lambda rad: [at(r["cx"] + rad * math.cos(t * math.pi / 32), r["cy"] + rad * math.sin(t * math.pi / 32))
+                          for t in range(64)]
+    draw([([at(*q) for q in p], []) for p in k["polys"]]
+         + [(circle(r["r"] + r["stroke"] / 2), [circle(r["r"] - r["stroke"] / 2)])])
+    p = DRAGON_PX
+    left, top = GX0 + 0.5, YC - len(DRAGON) * p / 2
+    runs = []
+    for i, row in enumerate(DRAGON):
+        for m in re.finditer("X+", row):
+            xa, xb, ya, yb = left + m.start() * p, left + m.end() * p, top + i * p, top + (i + 1) * p
+            runs.append(([(xa, ya), (xb, ya), (xb, yb), (xa, yb)], []))
+    draw(runs)
+
+
 def current_lines():
     """The current to expect, by the USB-C: a USB meter is the radio detector. All the USB-C feeds:
     U3's load at most (jlc_spec), the backlight's 17 mA (R8 at 5.5 V, the LED's 2.9 V least) and the
@@ -1561,8 +1642,8 @@ def write_board(sh, nets):
             t.SetMirrored(True)
         b.Add(t)
 
-    # silkscreen text 1.0 mm high at least, JLCPCB's least. The front keeps to the buttons' names and
-    # the second key's site; the rest is on the back.
+    # silkscreen text 1.0 mm high at least, JLCPCB's least. The front keeps to the buttons' names,
+    # the second key's site and the two drawings (art()); the rest is on the back.
     for i, lab in enumerate(("D0", "D1", "D2")):
         text(lab, AT[f"SW{i + 1}"][0], BY + 4.8, 1.0)
     x4, y4, _ = AT["J4"]
@@ -1570,13 +1651,14 @@ def write_board(sh, nets):
         text(lab, x4 + 2.54 * i, y4 + 2.4, 1.0, wide=0.75)
         text(lab, x4 + 2.54 * i, y4 + 2.4, 1.0, pcbnew.B_SilkS, back=True, wide=0.75)
     text("KEY 2  I2C1  3.3 V", (x4 + x4 + 4 * 2.54) / 2, y4 - 2.3, 1.0, wide=0.8)    # midway, R18's silk to J4's
+    art(b, mm)
     # the back: the warning along the top; under the glass what isn't on this side, the name, the
     # revision, the Source Location; the jig's pads' names; the census and the current to expect
     text(WARN_TEXT, XA, TOP + 1.6, 1.0, pcbnew.B_SilkS, back=True, wide=0.85)
     for i, line in enumerate(("nothing is fitted on this side", "no radio: USB serial only")):
         text(line, XA, GY0 + 3.0 + 2.0 * i, 1.0, pcbnew.B_SilkS, back=True, wide=0.85)
     text(f"Picoquorum mono rev {REV} {DATE}", XA, GY0 + 9.4, 1.0, pcbnew.B_SilkS, back=True, wide=0.85)
-    text("picoquorum.app", XA, GY0 + 11.8, 1.4, pcbnew.B_SilkS, back=True)           # also the Source Location
+    text("picoquorum.dev", XA, GY0 + 11.8, 1.4, pcbnew.B_SilkS, back=True)           # also the Source Location
     text("CERN-OHL-W v2, Source Location as 4.1", XA, GY0 + 14.0, 1.0, pcbnew.B_SilkS, back=True, wide=0.8)
     for t_, x in TP_X.items():
         lab = next(p["value"] for p in PARTS if p["ref"] == t_)
@@ -1717,6 +1799,10 @@ def jlc_spec():
                         {"type": "lib_footprint_mismatch", "ref": "J1", "why": "its silkscreen past the board's edge left out"},
                         *({"type": "lib_footprint_mismatch", "ref": r, "why": "not fitted: its 3D model left out, so the site shows empty"}
                           for r in ("U7", "U8", "D2", "J4")),
+                        # the board was routed with KiCad 10.0.6's library; 10.0.8's changed these two, not their copper or mask
+                        *({"type": "lib_footprint_mismatch", "ref": f"FID{i}", "why": "10.0.8's tags the pad a global fiducial, a Gerber attribute only"}
+                          for i in (1, 2, 3)),
+                        {"type": "lib_footprint_mismatch", "ref": "U4", "why": "10.0.8's moves the pin-1 mark from beside pin 1 to the corner"},
                         {"type": "missing_courtyard", "ref": "LCD1", "why": "the panel on tape over the parts: the fit check's glass stands in"}],
         "regulator": {"ref": "U3", "part": "LDL1117S33R", "vin": 5.0, "vout": 3.3, "amps": [0.06, 0.15], "theta_ja": 120,
                       "theta_note": "ST's datasheet (DocID030319): 120 C/W in SOT-223 on its test board's copper"},
