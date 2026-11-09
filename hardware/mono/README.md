@@ -327,7 +327,4 @@ Not checked:
   glitch attacks on the A2 stepping; check which stepping JLCPCB supplies.
 - [ ] KEY 2's firmware, and whether to fit a key there. VKEY's rise with a breakout on it,
   measured; and whether RST wants a GPIO (spares: 0, 1, 16–19, 22–24, 26–29).
-- [ ] A case.
-- [ ] picoquorum.dev, printed on the back as the Source Location, must lead to the source before
-  boards ship. Its forwarding is still to do (docs/STATUS.md). It expires 2027-10-06, and the
-  licence wants a Source Location that lasts three years.
+- [ ] A case: a first draft, not printed ([cad/consoles/mono.py](../../cad/consoles/README.md#mono)).
