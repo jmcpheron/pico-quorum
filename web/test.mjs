@@ -251,7 +251,7 @@ try {
     "docs/handheld/index.html: no script, no unfilled placeholder, a large share card");
   const learn = readFileSync(`${ROOT}docs/learn/index.html`, "utf8");
   const scripts = [...learn.matchAll(/blob\/main\/(docs\/videos\/[\w-]+\.md)"/g)].map((m) => m[1]);
-  check(!/%%/.test(learn) && !/<script/i.test(learn) && scripts.length >= 7 && scripts.every((f) => existsSync(ROOT + f)),
+  check(!/%%/.test(learn) && !/<script/i.test(learn) && scripts.length >= 9 && scripts.every((f) => existsSync(ROOT + f)),
     "docs/learn/index.html: no script, no unfilled placeholder, and every video script it links is in docs/videos/");
   // every local picture, stylesheet and link on the three static pages is a file the site serves
   const missing = [];

@@ -1,6 +1,6 @@
 # Explainer videos: the scripts
 
-*Started 2026-11-09. Six draft scripts. No video is recorded yet.*
+*Started 2026-11-09. Eight draft scripts. No video is recorded yet.*
 
 Short videos that explain why a multisig, and what Picoquorum adds to one. The videos are made in
 another project. This folder holds what they say: one script per video, written and checked here,
@@ -8,14 +8,32 @@ next to the docs they draw on. [The Learn page](https://picoquorum.app/learn/) (
 [`web/src/learn.html`](../../web/src/learn.html)) has a card for each, with a box where its
 thumbnail will go.
 
+The videos are in three areas, as on the Learn page.
+
+**Start here**: why a multisig, and what an approval looks like.
+
 | | video | for | length | status |
 |---|---|---|---|---|
 | 1 | [One seed phrase, one point of failure](seed-phrase.md) | everyone | 2:20 | draft script |
 | 2 | [Two of three: a multisig in two minutes](multisig-basics.md) | new to crypto | 1:45 | draft script |
 | 3 | [The multisig is the wallet](cosigner.md) | wallet users | 2:00 | draft script |
-| 4 | [Inside the console](inside-the-console.md) | the technical | 3:00 | draft script |
-| 5 | [A key with no backup](no-backup.md) | owners, the technical | 2:10 | draft script |
-| 6 | [One approval, start to finish](one-approval.md) | everyone | 2:00 | draft script |
+| 4 | [One approval, start to finish](one-approval.md) | everyone: the demo | 2:00 | draft script |
+
+**The hardware**: the board, zone by zone, and how it fails. Drawn on
+[Mono](../../hardware/mono/README.md), the board planned for developer kits. Videos 5 and 6 share
+one picture and can be recorded as one.
+
+| | video | for | length | status |
+|---|---|---|---|---|
+| 5 | [Inside the console](inside-the-console.md) | the technical | 3:15 | draft script |
+| 6 | [When the hardware fails](hardware-failures.md) | the technical | 2:30 | draft script |
+
+**Being an owner**: what holding a key asks of you.
+
+| | video | for | length | status |
+|---|---|---|---|---|
+| 7 | [A key with no backup](no-backup.md) | owners | 2:10 | draft script |
+| 8 | [What it protects, and what it doesn't](threat-model.md) | owners, and their co-owners | 2:30 | draft script |
 
 The lengths are targets, at about 150 spoken words a minute.
 
@@ -57,14 +75,29 @@ The lengths are targets, at about 150 spoken words a minute.
 
 ## Ideas not written yet
 
-- **Check it yourself.** The console page is one folder: save it, hash it, hold it up to the
-  README's fingerprint, sign from your own copy ([guide/BROWSER.md](../guide/BROWSER.md)).
-- **Red pages.** What the console treats as dangerous, and why those pages are red all over.
-- **No technology, and no person, holds a threshold.** How to pick the owners of a Safe
-  ([GOVERNANCE.md](../GOVERNANCE.md), [mainnet/CONFIGURATION.md](../mainnet/CONFIGURATION.md)).
-- **Sealing a key.** The key ceremony, and locks that can't be undone ([LOCKING.md](../LOCKING.md)).
-- **Build a dev console.** A Pico 2 W, a screen and a chip breakout, no soldering
-  ([hardware/DEV-CONSOLE.md](../../hardware/DEV-CONSOLE.md)).
+Start here:
 - **Why the hash.** What a Safe transaction hash is, and why the console works it out itself.
+- **Red pages.** What the console treats as dangerous, and why those pages are red all over.
 - **Onboarding cuts.** The same ideas at 30 seconds each, for X: one for newcomers, one for wallet
   users, one for hardware people.
+
+The hardware:
+- **Sealing a key.** The key ceremony, and locks that can't be undone ([LOCKING.md](../LOCKING.md)).
+- **Check it yourself.** The console page is one folder: save it, hash it, hold it up to the
+  README's fingerprint, sign from your own copy ([guide/BROWSER.md](../guide/BROWSER.md)). And the
+  same fingerprint on a board's Device screen.
+- **Is this chip real?** What a key's attestation proves, and what it can't
+  ([mainnet/THREAT-MODEL.md](../mainnet/THREAT-MODEL.md), "What the binding proves").
+- **Build a dev console**, and then **the developer kit**: what is in the box and the first
+  approval on a testnet ([hardware/DEV-CONSOLE.md](../../hardware/DEV-CONSOLE.md)). The kit's video
+  waits for the kit.
+- **Secure boot, when it is on.** What was burned, what it stops, and what it cost.
+
+Being an owner:
+- **A console is lost: what happens next.** The other owners swap it out, step by step, on a
+  testnet Safe ([mainnet/COSIGNERS.md](../mainnet/COSIGNERS.md), section 4). The follow-on to
+  videos 7 and 8.
+- **No technology, and no person, holds a threshold.** How to pick the owners of a Safe
+  ([GOVERNANCE.md](../GOVERNANCE.md), [mainnet/CONFIGURATION.md](../mainnet/CONFIGURATION.md)).
+- **For the other owners.** What a console's confirmation means when you are a co-signer, and
+  what to check on your own device anyway ([mainnet/COSIGNERS.md](../mainnet/COSIGNERS.md)).

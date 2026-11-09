@@ -11,13 +11,13 @@
 <meta property="og:site_name" content="Picoquorum">
 <meta property="og:url" content="https://picoquorum.app/learn/">
 <meta property="og:title" content="Learn Picoquorum: why a multisig, and why this console">
-<meta property="og:description" content="Short explainers: one seed phrase is one point of failure, a multisig in two minutes, the multisig is the wallet, inside the console, and a key with no backup.">
+<meta property="og:description" content="Short explainers: one seed phrase is one point of failure, a multisig in two minutes, inside the console, how the hardware fails, and what it protects from and what it doesn't.">
 <meta property="og:image" content="https://picoquorum.app/quorum-ui/shots/51-trustm-home.png">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:site" content="@picoquorum">
 <title>Learn · Picoquorum</title>
 <link rel="icon" href="../brand/mark-dark.svg" type="image/svg+xml">
-<link rel="stylesheet" href="../home.css" integrity="sha384-+uijPegPfrxqFNmCM1qanSJFdStPciu6XZnhGB+598lQoV0x+uRe1Z4l+/eceYon">
+<link rel="stylesheet" href="../home.css" integrity="sha384-0w94PRSgXSab3u/NOUlaAIZ2rvdGmdBYDkezJ/r4OvA6Hw5k5lKEdODFilEO0ud1">
 </head>
 <body>
 <header class="top">
@@ -45,17 +45,18 @@
       <p class="eyebrow">Learn</p>
       <h1>Why a multisig, and why this console.</h1>
       <p class="lede">One seed phrase is one point of failure. A multisig takes it away: several owners, and nothing moves until enough of them approve. Picoquorum is a new kind of owner to put in one, a small console with its own screen and a key sealed in a chip.</p>
-      <p class="warn-note"><strong>The videos are on their way.</strong> Six short explainers are written and none is recorded yet. Until one is up, its script is here to read.</p>
+      <p class="warn-note"><strong>The videos are on their way.</strong> Eight short explainers are written and none is recorded yet. Until one is up, its script is here to read.</p>
     </div>
   </section>
 
-  <section>
-    <h2>The explainers</h2>
+  <section id="start">
+    <h2>Start here</h2>
+    <p class="muted">Why a multisig, what one is, and what an approval looks like. No background needed.</p>
     <!-- One card per video; its script is docs/videos/<name>.md. When a video is up, put its thumbnail in
          the card's box and link the card to it (docs/videos/README.md, "When a video is ready"). A link out
          needs nothing else. An embedded player would need this page's Content-Security-Policy changed
          (frame-src or media-src), and that is a decision, not a copy edit. -->
-    <ol class="vids">
+    <ol class="vids" start="1">
       <li>
         <div class="video" role="img" aria-label="Video 1: coming soon"><span class="play" aria-hidden="true"></span><p class="muted small">Video on its way · about 2:20</p></div>
         <p class="who">1 · For everyone</p>
@@ -78,25 +79,53 @@
         <a href="https://github.com/jmcpheron/pico-quorum/blob/main/docs/videos/cosigner.md">Read the script</a>
       </li>
       <li>
-        <div class="video" role="img" aria-label="Video 4: coming soon"><span class="play" aria-hidden="true"></span><p class="muted small">Video on its way · about 3:00</p></div>
-        <p class="who">4 · Technical</p>
+        <div class="video" role="img" aria-label="Video 4: coming soon"><span class="play" aria-hidden="true"></span><p class="muted small">Video on its way · about 2:00</p></div>
+        <p class="who">4 · The demo</p>
+        <h3>One approval, start to finish</h3>
+        <p>Propose, read every page, check the verify code with whoever proposed it, hold Sign for two seconds, execute. Let go early and nothing is signed.</p>
+        <a href="https://github.com/jmcpheron/pico-quorum/blob/main/docs/videos/one-approval.md">Read the script</a>
+      </li>
+    </ol>
+  </section>
+
+  <section id="hardware">
+    <h2>The hardware</h2>
+    <p class="muted">The board, zone by zone, and every way it can fail. Drawn on Mono, the board planned for developer kits.</p>
+    <ol class="vids" start="5">
+      <li>
+        <div class="video" role="img" aria-label="Video 5: coming soon"><span class="play" aria-hidden="true"></span><p class="muted small">Video on its way · about 3:15</p></div>
+        <p class="who">5 · Technical</p>
         <h3>Inside the console</h3>
-        <p>Not a dumb signer: it rebuilds the Safe transaction hash from the fields on its own screen, and its key signs only that. The cable that can't reflash it, and what isn't done yet.</p>
+        <p>Three zones: the cable, which isn't trusted and can't send firmware; the console, which rebuilds the hash from the fields it shows; and the key, which signs it. And the lock that isn't on yet.</p>
         <a href="https://github.com/jmcpheron/pico-quorum/blob/main/docs/videos/inside-the-console.md">Read the script</a>
       </li>
       <li>
-        <div class="video" role="img" aria-label="Video 5: coming soon"><span class="play" aria-hidden="true"></span><p class="muted small">Video on its way · about 2:10</p></div>
-        <p class="who">5 · For owners</p>
+        <div class="video" role="img" aria-label="Video 6: coming soon"><span class="play" aria-hidden="true"></span><p class="muted small">Video on its way · about 2:30</p></div>
+        <p class="who">6 · Technical</p>
+        <h3>When the hardware fails</h3>
+        <p>It dies, it glitches, someone reflashes it, swaps the chip, cracks the chip or swaps the whole box. Each one costs the same thing: one vote out of several.</p>
+        <a href="https://github.com/jmcpheron/pico-quorum/blob/main/docs/videos/hardware-failures.md">Read the script</a>
+      </li>
+    </ol>
+  </section>
+
+  <section id="owner">
+    <h2>Being an owner</h2>
+    <p class="muted">What holding a key asks of you, said plainly.</p>
+    <ol class="vids" start="7">
+      <li>
+        <div class="video" role="img" aria-label="Video 7: coming soon"><span class="play" aria-hidden="true"></span><p class="muted small">Video on its way · about 2:10</p></div>
+        <p class="who">7 · For owners</p>
         <h3>A key with no backup</h3>
         <p>The key can't be copied. That is a feature and a bug: nothing to phish or photograph, and nothing to restore. The Safe's other owners are the backup.</p>
         <a href="https://github.com/jmcpheron/pico-quorum/blob/main/docs/videos/no-backup.md">Read the script</a>
       </li>
       <li>
-        <div class="video" role="img" aria-label="Video 6: coming soon"><span class="play" aria-hidden="true"></span><p class="muted small">Video on its way · about 2:00</p></div>
-        <p class="who">6 · The demo</p>
-        <h3>One approval, start to finish</h3>
-        <p>Propose, read every page, check the verify code with whoever proposed it, hold Sign for two seconds, execute. Let go early and nothing is signed.</p>
-        <a href="https://github.com/jmcpheron/pico-quorum/blob/main/docs/videos/one-approval.md">Read the script</a>
+        <div class="video" role="img" aria-label="Video 8: coming soon"><span class="play" aria-hidden="true"></span><p class="muted small">Video on its way · about 2:30</p></div>
+        <p class="who">8 · For owners</p>
+        <h3>What it protects, and what it doesn't</h3>
+        <p>It guards against a lying screen and a leaked secret. It doesn't guard itself: no PIN, no fingerprint. Keep it safe, notice fast when it's gone, and don't say where it is.</p>
+        <a href="https://github.com/jmcpheron/pico-quorum/blob/main/docs/videos/threat-model.md">Read the script</a>
       </li>
     </ol>
   </section>

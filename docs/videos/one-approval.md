@@ -1,4 +1,4 @@
-# 6. One approval, start to finish
+# 4. One approval, start to finish
 
 *Draft script, 2026-11-09. Not recorded.*
 
