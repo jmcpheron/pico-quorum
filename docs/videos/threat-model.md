@@ -1,4 +1,4 @@
-# 8. What it protects, and what it doesn't
+# 9. What it protects, and what it doesn't
 
 *Draft script, 2026-11-09. Not recorded.*
 

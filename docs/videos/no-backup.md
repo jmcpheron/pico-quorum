@@ -1,4 +1,4 @@
-# 7. A key with no backup
+# 8. A key with no backup
 
 *Draft script, 2026-11-09. Not recorded.*
 

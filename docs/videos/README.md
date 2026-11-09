@@ -1,6 +1,6 @@
 # Explainer videos: the scripts
 
-*Started 2026-11-09. Eight draft scripts. No video is recorded yet.*
+*Started 2026-11-09. Nine draft scripts. No video is recorded yet.*
 
 Short videos that explain why a multisig, and what Picoquorum adds to one. The videos are made in
 another project. This folder holds what they say: one script per video, written and checked here,
@@ -32,8 +32,9 @@ one picture and can be recorded as one.
 
 | | video | for | length | status |
 |---|---|---|---|---|
-| 7 | [A key with no backup](no-backup.md) | owners | 2:10 | draft script |
-| 8 | [What it protects, and what it doesn't](threat-model.md) | owners, and their co-owners | 2:30 | draft script |
+| 7 | [A new key, from the bench to your Safe](new-key.md) | someone about to get a key | 3:45 | draft script; mostly a plan |
+| 8 | [A key with no backup](no-backup.md) | owners | 2:10 | draft script |
+| 9 | [What it protects, and what it doesn't](threat-model.md) | owners, and their co-owners | 2:30 | draft script |
 
 The lengths are targets, at about 150 spoken words a minute.
 
@@ -49,6 +50,9 @@ The lengths are targets, at about 150 spoken words a minute.
 
 ## Rules for every script
 
+- **A plan is called a plan.** A video about something proposed and not built
+  ([A new key](new-key.md) is the first) says so in its first line, and keeps "planned" on screen
+  for each step that isn't built.
 - **Say what is true today.** If something is planned and not done (secure boot is the standing
   example), the script says "not yet". [SECURITY.md](../SECURITY.md) and [STATUS.md](../STATUS.md)
   win over any script.
@@ -96,7 +100,10 @@ The hardware:
 Being an owner:
 - **A console is lost: what happens next.** The other owners swap it out, step by step, on a
   testnet Safe ([mainnet/COSIGNERS.md](../mainnet/COSIGNERS.md), section 4). The follow-on to
-  videos 7 and 8.
+  videos 8 and 9.
+- **Giving someone a key.** The keyholder's three jobs, the handover, the card in the drawer and
+  the voice rule ([ONBOARDING.md](../ONBOARDING.md)). For the person who sets a Safe up for others.
+- **The gas relay and its treasury**, once they exist ([ATTESTED-KEYS.md](../ATTESTED-KEYS.md)).
 - **No technology, and no person, holds a threshold.** How to pick the owners of a Safe
   ([GOVERNANCE.md](../GOVERNANCE.md), [mainnet/CONFIGURATION.md](../mainnet/CONFIGURATION.md)).
 - **For the other owners.** What a console's confirmation means when you are a co-signer, and
