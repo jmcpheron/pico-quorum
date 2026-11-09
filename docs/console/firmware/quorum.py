@@ -1887,10 +1887,29 @@ def tick(t):
         fails += 1
         if fails == 1:
             qlog.write("tick: %r" % e)
+            qlog.write("  at " + where(e))
         if fails >= CRASH_AFTER and state != "crashed":
             crashed(e)
     finally:
         _busy = False
+
+
+def where(e):
+    """The failure's last frames, innermost first, as one log line: "file:line in function < ...".
+    console-rp's print_exception goes to the native USB, which nothing reaches."""
+    try:
+        import io
+        s = io.StringIO()
+        sys.print_exception(e, s)
+        out = []
+        for l in s.getvalue().split("\n"):
+            l = l.strip()
+            if l.startswith("File "):
+                p = l[5:].replace('"', "").split(", ")
+                out.append("%s:%s %s" % (p[0], p[1].replace("line ", ""), p[2] if len(p) > 2 else ""))
+        return " < ".join(out[-4:][::-1]) or "?"
+    except Exception as x:
+        return "? (%r)" % x
 
 
 def crashed(e):

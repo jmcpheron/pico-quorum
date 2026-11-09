@@ -591,6 +591,9 @@ def case_production():
         Q.tick(None)
     Q.U.draw = bad
     check(Q.state == "crashed", "20 failed ticks in a row: the crashed screen")
+    at = [l for l in open("log.txt").read().split("\n") if "  at " in l]
+    check(len(at) == 1 and "console_test.py:" in at[-1] and "quorum.py:" in at[-1] and "in tick" in at[-1],
+          "the first failure's frames in the log, once: %s" % (at[-1][-70:] if at else "none"))
     check(Q.can_sign(Q.queue[0])[0] and Q.state == "crashed", "(the queue is still there, but the crashed state never reaches review)")
     Q.handle("A")
     check(Q.state == "crashed", "A does nothing on the crashed screen")

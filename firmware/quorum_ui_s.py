@@ -826,31 +826,39 @@ def draw_chip(q):
     d.show()
 
 
-_qr = (None, 0, None)
+_qr = (None, 0, None, b"")
 
 
 def qr_of(text):
-    """qrcode.encode, once per text: it scores all eight masks, too slow for every frame."""
+    """qrcode.encode, once per text: it scores all eight masks, too slow for every frame. Kept with
+    a byte per module too (_qr[3]), which draw_qr reads: a row as one int is 37 bits, past a small
+    int on a 32-bit board, so every shift of it made a new big int (76 KB of them a frame)."""
     global _qr
     if _qr[0] != text:
         import qrcode
-        _qr = (text,) + qrcode.encode(text)
+        n, rows = qrcode.encode(text)
+        m = bytearray(n * n)
+        for r in range(n):
+            for x in range(n):
+                m[r * n + x] = rows[r] >> x & 1
+        _qr = (text, n, rows, m)
     return _qr[1], _qr[2]
 
 
 def draw_qr(d, text, x0, y0, size):
     """text as a QR code, dark on white with a 2-module margin, its top left at (x0, y0). -> its
     side in px."""
-    n, rows = qr_of(text)
+    n = qr_of(text)[0]
+    m = _qr[3]
     q = 2 * size
     box = n * size + 2 * q
     d.fill_rect(x0, y0, box, box, L.WHITE)
     for r in range(n):
-        bits, x = rows[r], 0
+        i, x = r * n, 0
         while x < n:                    # one rectangle per run of dark modules
-            if bits >> x & 1:
+            if m[i + x]:
                 e = x
-                while e < n and bits >> e & 1:
+                while e < n and m[i + e]:
                     e += 1
                 d.fill_rect(x0 + q + x * size, y0 + q + r * size, (e - x) * size, size, L.BLACK)
                 x = e
@@ -859,15 +867,25 @@ def draw_qr(d, text, x0, y0, size):
     return box
 
 
+_ck = (None, None)
+
+
+def checksummed(a):
+    """txservice.checksum, once per address: a keccak, ~0.5 s and its big ints on console-rp."""
+    global _ck
+    if _ck[0] != a:
+        import txservice
+        _ck = (a, txservice.checksum(a))
+    return _ck[1]
+
+
 def draw_key(q):
     """The Feather's Key screen. Page 0: the app's set-up link for this key as a QR code (97
     characters, 37 modules at 3 px, 123 px with the margin) beside the short owner address and its
     picture, to compare with the page the phone opens. Page 1: the owner address in full. D1
     switches. The link holds only the public key; the owner address is a signer, not a wallet."""
-    import txservice
     d = q.d
     d.fill(c("bg"))
-    a = txservice.checksum(q.me)
     if q.kpage == 0:
         link = q.setup_link()
         n = qr_of(link)[0]
@@ -888,7 +906,7 @@ def draw_key(q):
     else:
         header(d, "Your key", q.chip["name"] if q.chip else "")
         y = HEAD + 3
-        for line in addr_lines(a):
+        for line in addr_lines(checksummed(q.me)):
             txt(d, line, M, y, "mono13")
             y += 16
         blockies.draw(d, q.me, R - 24, HEAD + 31, 3)      # beside the short last line
