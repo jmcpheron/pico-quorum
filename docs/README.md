@@ -8,6 +8,7 @@ troubleshooting.
 - [`guide/`](guide/README.md): the owner's guide ([setup](guide/SETUP.md), [using it](guide/USING.md),
   [networks](guide/NETWORKS.md), [troubleshooting](guide/TROUBLESHOOTING.md), [the console in your
   browser](guide/BROWSER.md))
+- [`videos/`](videos/README.md): the scripts for the explainer videos on [the Learn page](learn/): why a multisig, the hardware and how it fails, and being an owner
 - [`STATUS.md`](STATUS.md): **what exists today**: the name and domains, every Safe, key and address, the
   contracts the console relies on, and what's next
 - [`RELEASES.md`](RELEASES.md): firmware versions (year.month.n), what each holds, and how to make one

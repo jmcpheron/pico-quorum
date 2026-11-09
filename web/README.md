@@ -1,11 +1,12 @@
 # web: the front page and the app
 
-Three static pages, served by GitHub Pages from `docs/`:
+Four static pages, served by GitHub Pages from `docs/`:
 
 - **The front page**, `docs/index.html` (from `src/home.html` and `src/home.css`): what Picoquorum is,
   how an approval goes, the console's screens, the hardware being built, where it stands, and a big
-  green **Launch app**. No script. Its header (Guide, Hardware, Console, Source, X) is the same on
-  the handheld's page and the console page (`emu/console/index.html`); Guide goes to the guide on
+  green **Launch app**. No script. Its header (Learn, Guide, Hardware, Console, Source, X) is the
+  same on the handheld's page, the learn page and the console page (`emu/console/index.html`).
+  Guide goes to the guide on
   GitHub, since Pages would draw `docs/guide/` with Jekyll's default theme.
 - **The handheld's page**, `docs/handheld/` (from `src/handheld.html` and the same `home.css`): the
   [Picoquorum Handheld](../hardware/builds/pico-sign-handheld/README.md) and its 16 assembly steps, kept
@@ -13,6 +14,10 @@ Three static pages, served by GitHub Pages from `docs/`:
   share card (`src/handheld-card.png`, 1200 × 630) is cut from two of them by `handheld-card.py`:
   `uv run --no-project --with pillow==12.3.0 python3 web/handheld-card.py`. The video box is a
   placeholder; a link to the video can replace it, but an embedded player needs the page's CSP changed.
+- **The learn page**, `docs/learn/` (from `src/learn.html` and the same `home.css`): a card for each
+  explainer video, with a box where its thumbnail will go and a link to its script in
+  [`docs/videos/`](../docs/videos/README.md). No script. No video is recorded yet; that README says
+  what to change when one is.
 - **The app**, `docs/app/` (from `src/main.mjs`), described below.
 
 The app closes the loop on a Picoquorum Safe:

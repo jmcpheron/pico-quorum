@@ -160,6 +160,9 @@ stronger owner: keep passkey owners below the threshold.
 - **[The console in your browser](https://picoquorum.app/console/)**: the same
   firmware in MicroPython on WebAssembly, with your own passkey as its key. Save it, check it and
   run your own copy ([how](docs/guide/BROWSER.md); the design: [EMU-WEB.md](docs/EMU-WEB.md)).
+- **[Learn](https://picoquorum.app/learn/)**: short explainer videos on why a multisig and what the
+  console adds to one. The videos are on their way; [their scripts](docs/videos/README.md) are here
+  to read.
 - **[The owner's guide](docs/guide/README.md)**: from a board to a console that signs for your
   Safes.
 - **Build a dev console**: a Pico 2 W, a Waveshare Pico-LCD-1.3 and an ATECC608 breakout, about
