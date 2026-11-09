@@ -219,6 +219,25 @@ Every part prints without supports, judging by the shapes. They haven't been sli
 - **dock:** on its base, as written.
 - PLA or PETG, 0.2 mm layers. The engraving is 0.5 mm deep.
 
+**The counterbores are bridged in the model.** Every case's screw counterbores print from the bed up: in the
+shells, face down, and in the badge's tub, on its back. Each ends in a ceiling with the screw's hole in it, a
+ring with nothing to bridge to. So `shell.py` steps the hole for two layers over the counterbore
+(`BRIDGE_LAYER`):
+1. a strip as wide as the hole, right across the counterbore, so that layer is two bridges from wall to
+   wall, along the strip
+2. a square as wide as the hole, so the next layer bridges across the first, the other way
+3. then the round hole
+
+Because it is in the model, it works the same in any slicer: PrusaSlicer, Cura, OrcaSlicer, Bambu Studio.
+- **Slice at 0.2 mm.** Each step is one 0.2 mm layer, and each counterbore is 2.2 mm deep, 11 layers,
+  so the steps fall on layer lines. For other layer heights, set `bridge_layer` in the board's
+  description. The script stops if the counterbore isn't a whole number of layers.
+- **In OrcaSlicer or Bambu Studio,** leave "Bridge counterbore holes" (Quality, Bridging) at None. With
+  it on, the slicer bridges the steps again.
+
+Above the square, the round hole's first layer overhangs the square's corners by 0.5 mm at most. That
+prints without a bridge. Not yet sliced or printed.
+
 **The fit check:** print the badge's plate first and lay it on the board. The stick's face is part of
 its shell, so print the shell first and lay the board in it. Either way, check that:
 - the posts land round the holes

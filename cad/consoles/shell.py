@@ -42,6 +42,12 @@ ENGRAVE = 0.5
 # The bench's kit has 4, 8, 12 and 16 mm; the longest that fits is taken.
 M2_PILOT, M2_CLEAR, M2_HEAD = 1.8, 2.4, (3.8, 2.0)
 M2_KIT = (4.0, 8.0, 12.0, 16.0)
+# A counterbore printed from the bed up ends in a ceiling with the screw's hole in it, an annulus with nothing to
+# bridge to. Two layers of steps fix it in any slicer: in the first, the hole is a strip across the counterbore, so the
+# layer is two bridges from wall to wall, along the strip; in the second, a square, bridged across the strip the
+# other way; above it, the round hole. One layer each at the slicer's layer height (b["bridge_layer"]; 0 for none).
+# The counterbore's depth must be a whole number of layers, so the steps fall on layer lines.
+BRIDGE_LAYER = 0.2
 ENGAGE = 3.0                # the least thread in the post
 POST_R = 2.2                # on the board's front: inside the 2.5 mm keep-out round each hole
 BOSS_R, BOSS_BASE = 2.3, (3.4, 1.2)     # under the board; a wider foot on the floor round the counterbore
@@ -294,6 +300,7 @@ class Case:
         for x, y in b["holes"]:
             t = t.cut(cyl(x, y, M2_CLEAR / 2, self.z0 - 1, self.zb + 0.1))
             t = t.cut(cyl(x, y, M2_HEAD[0] / 2 + 0.2, self.z0 - 1, self.z0 + self.cb))
+            t = self.bridge_steps(t, x, y, self.z0 + self.cb, up=True)       # the tub prints on its back
         t = t.cut(self.usb_hole())
         t = self.notch(self.lug_slot(t))
         # the back: the name, and the Source Location (CERN-OHL-W v2, section 4.1: the board's own is under the case)
@@ -356,6 +363,7 @@ class Case:
         for x, y in b["holes"]:
             t = t.cut(cyl(x, y, M2_CLEAR / 2, -1, self.zt + 1))
             t = t.cut(cyl(x, y, M2_HEAD[0] / 2 + 0.2, self.seat, self.zt + 1))
+            t = self.bridge_steps(t, x, y, self.seat, up=False)              # the shell prints face down
             ch = b.get("cb_chamfer", 0.0)       # the counterbore's top edge chamfered
             if ch:
                 t = t.cut(cq.Workplane("XY").workplane(offset=self.zt - ch).center(x, y).circle(M2_HEAD[0] / 2 + 0.2)
@@ -366,6 +374,21 @@ class Case:
         if b.get("tab", True):
             t = t.cut(self.tab(TAB[2]))
         return self.face(t)
+
+    def bridge_steps(self, t, x, y, seat, up):
+        """t with the two bridging steps over a counterbore whose floor (the screw head's seat) is at seat, the
+        layers after it going up (up) or down from it (BRIDGE_LAYER)."""
+        L = self.b.get("bridge_layer", BRIDGE_LAYER)
+        if not L:
+            return t
+        n = self.cb / L
+        assert abs(n - round(n)) < 1e-6, "the counterbore isn't a whole number of %.2f mm layers" % L
+        rc, d, s = M2_HEAD[0] / 2 + 0.2, M2_CLEAR, 1 if up else -1
+        z1, z2 = seat + s * L, seat + 2 * s * L
+        strip = box(x - rc - 1, x + rc + 1, y - d / 2, y + d / 2, min(seat, z1) - 0.01, max(seat, z1))
+        strip = strip.intersect(cyl(x, y, rc, min(seat, z1) - 0.01, max(seat, z1)))
+        square = box(x - d / 2, x + d / 2, y - d / 2, y + d / 2, min(z1, z2) - 0.01, max(z1, z2) + 0.01)
+        return t.cut(strip).cut(square)
 
     def outline(self, z0, z1):
         """The case's outside from z0 to z1: the outline rounded at its corners, or with them cut off at 45 degrees
