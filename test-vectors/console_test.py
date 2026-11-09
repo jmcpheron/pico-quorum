@@ -591,8 +591,8 @@ def case_production():
         Q.tick(None)
     Q.U.draw = bad
     check(Q.state == "crashed", "20 failed ticks in a row: the crashed screen")
-    at = [l for l in open("log.txt").read().split("\n") if "  at " in l]
-    check(len(at) == 1 and "console_test.py:" in at[-1] and "quorum.py:" in at[-1] and "in tick" in at[-1],
+    at = [l for l in open("log.txt").read().split("\n") if "  at " in l and "in tick" in l]
+    check(len(at) == 1 and "console_test.py:" in at[-1] and "quorum.py:" in at[-1],
           "the first failure's frames in the log, once: %s" % (at[-1][-70:] if at else "none"))
     check(Q.can_sign(Q.queue[0])[0] and Q.state == "crashed", "(the queue is still there, but the crashed state never reaches review)")
     Q.handle("A")
@@ -767,6 +767,8 @@ def case_safes():
     Q.net_work()
     check(not Q.net_ok and "Vault" in Q.net_err and any(e["w"]["chain"] == CHAIN for e in Q.queue),
           "Ethereum's service down: said so by name, Base Sepolia's queue still shown")
+    at = [l for l in open("log.txt").read().split("\n") if "  at " in l and "in fetch_info" in l]
+    check(len(at) == 1 and "quorum.py:" in at[0], "where the poll failed, in the log: %s" % (at[-1][-70:] if at else "none"))
     SVC.safes[ETH_SAFE]["down"] = False
 
     # a signature the service did not take, for the second Safe, survives a restart and goes to its service

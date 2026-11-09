@@ -840,6 +840,7 @@ def poll(w):
         w["ok"], w["err"] = False, NET.short_err(ex)
         _log("service %s: %r" % (w["name"], ex))
         qlog.once("service %s: %s" % (w["name"], w["err"]))
+        qlog.once("  at " + where(ex))
 
 
 def net_work():
