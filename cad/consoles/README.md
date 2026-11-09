@@ -108,6 +108,41 @@ port's parts fits this case; its corner is just open.
 
 ![the badge, apart](out/badge/badge_apart.png)
 
+## Mono
+
+[`mono.py`](mono.py), for [Mono](../../hardware/mono/README.md), the 40 × 89.5 mm board: a slender bar, 44.6 × 100.1 × 10.9 mm
+closed, in the stick's "shell" layout like console-rp's slate ([`rp.py`](rp.py)). **A first draft, not
+printed, and no Mono board has been built.**
+- **Four M2 × 8 screws from the face,** through the shell's posts and the board's four M2 holes (one either
+  side of the buttons, one at each bottom corner), into bosses on the back panel. The posts are 2.5 mm
+  across, the board's own keep-out (`HOLE_RING` in its generator). No tab: the board has no radio.
+- **The window** shows the active area where the generator puts it, centred on the board, and 0.555 mm
+  further from the ribbon, where it would be if PicoquorumKey's 2.0 mm reading of the drawing is right.
+- **The caps** are the slate's shapes, D0 a red square, D1 a white circle, D2 a green triangle, but
+  1.2 times as wide (circle 5.0 mm, square 4.6, triangle 7.2), for a thumb. Their flanges are 7.4 mm,
+  not 6.1, to hold them in: 0.3 mm off the posts beside D0 and D2. Each still sits on its switch with
+  the same 0.2 mm of play and clearance, so the switch clicks as on the slate.
+- **The name and the mark** are in the plain field under the buttons, made as the slate's are
+  (`rp.decor`): the mark is a badge in three colours glued into a pocket, and the name over it is cut to
+  show a second colour. Mono has no RESET or BOOTSEL buttons, so the mark's dots are whole, with no
+  pinholes. The script checks the mark misses the LED's hole and the name misses the counterbores.
+- **A hole over the LED** (D1), below the mark.
+- **The USB-C is open at the bottom end,** left of centre. A lanyard lug at the top.
+- **A rib on the back panel under D0–D2.** The jig's pads on the board's back are covered: take the back
+  panel off to reach them.
+- **KEY 2's five holes are covered too.** A breakout soldered there would need its own opening.
+- **The ribbon's fold** is taken as 1.5 mm past the glass's end. Mono's README reads the drawing as
+  0.5 at most; the slate allows 2.0.
+- **The dock** holds it leaning back 25°, the plug down into a slot in its lip, as the badge's.
+
+![Mono's case](out/mono/mono_front.png)
+
+![Mono's face, sliced](out/mono/mono_face.png)
+
+![Mono's case, apart](out/mono/mono_apart.png)
+
+![Mono's case on its dock](out/mono/mono_dock.png)
+
 ## Where the numbers come from
 
 | | the stick | the badge |
@@ -132,7 +167,9 @@ When a case builds, the script checks that none of these overlap each other:
 - the screws
 - the dock, with the case in it
 
-It prints a line for each overlap and exits 1 if there is one; both cases build with none. It also
+It prints a line for each overlap and exits 1 if there is one; both cases build with none.
+It also checks that each cap's flange reaches at least 0.2 mm past the edge of its hole in the face, so the
+cap can't fall out (`CAP_LIP`). It also
 chooses the screw: the longest in the bench's kit (4, 8, 12, 16 mm) that leaves at least 3 mm of
 thread in the post or boss, and stops short of the end of its hole.
 
@@ -154,6 +191,9 @@ Every part prints without supports, judging by the shapes. They haven't been sli
 - **the stick's back panel:** outside down, as written. The bosses, ribs and tab point up.
 - **the badge's tub:** on its back, as written. The opening over the USB-C is a short bridge.
 - **the badge's plate:** face down, as written. The posts, ribs and pockets point up.
+- **Mono's shell and back panel:** as the stick's. The USB-C opening's far side is a 13.2 mm bridge.
+- **Mono's badge:** its six pieces face down, the triangle green, the three signed dots blue, the two
+  waiting dots orange. For the name, print the shell's first two layers black and the rest in a colour.
 - **caps:** flange down, one STL each, so each can be its own colour.
 - **dock:** on its base, as written.
 - PLA or PETG, 0.2 mm layers. The engraving is 0.5 mm deep.
@@ -183,6 +223,9 @@ its shell, so print the shell first and lay the board in it. Either way, check t
 5. Turn each screw until it is snug, no tighter: it cuts its own thread in the post.
 6. Press each cap. It should click and come back.
 
+**Mono:** as the stick, but with no tab. Lay the board in face down, lay the back panel on, and put the
+four M2 × 8 screws in through the face. Glue the badge's pieces into the mark's pocket.
+
 ## Run
 
 ```sh
@@ -195,7 +238,7 @@ Each script runs on its own too:
 uv run --python 3.11 --with cadquery --with matplotlib --with pillow python cad/consoles/stick.py [screen.png]
 ```
 
-They write `out/stick/` and `out/badge/`:
+`tools/case build mono` builds Mono's. They write `out/stick/`, `out/badge/` and `out/mono/`:
 - the STLs to print
 - `<name>_assembly.step`, with the board's stand-ins
 - `<name>_face.png`: the face sliced just under its top, which shows the engraving

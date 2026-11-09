@@ -64,6 +64,7 @@ def decor(c, shell, back):
     pinholes for RESET and BOOTSEL. Each piece its own STL, face down."""
     b, P = c.b, c.b["parts"]
     cx, cy, r, *under = b["mark"]
+    pinned = dict(zip((3, 2), under))           # the dots with a pinhole: the slate's two, none on Mono (mono.py)
     pts = [(cx + r * math.cos(math.radians(90 - 72 * k)), cy + r * math.sin(math.radians(90 - 72 * k))) for k in range(5)]
     for k, ref in zip((3, 2), under):           # the lower dots, left and right: over RESET and BOOTSEL
         assert abs(pts[k][0] - P[ref]["x"]) < 0.01 and abs(pts[k][1] - P[ref]["y"]) < 0.01, "the mark's dot isn't over " + ref
@@ -94,7 +95,7 @@ def decor(c, shell, back):
     out = [("badge triangle", top(triangle), GREEN, S.flip)]
     for k in (0, 2, 3):
         dot = S.cyl(*pts[k], rad[k] - g, z0, z1)
-        if k != 0:
+        if k in pinned:
             dot = dot.cut(S.cyl(*pts[k], PIN + g, z0 - 1, z1 + 1))
         out.append(("badge signed %d" % k, top(dot), BLUE, S.flip))
     for k in (1, 4):
