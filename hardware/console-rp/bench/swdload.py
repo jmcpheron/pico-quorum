@@ -5,8 +5,8 @@
 #   uv run --no-project --with littlefs-python==0.19.0 python hardware/console-rp/bench/swdload.py \
 #       RPI_PICO2-20250911-v1.26.1.uf2 main.py=hardware/console-rp/bench/stage0.py [--no-micropython] [--dry-run]
 #   ... swdload.py --no-micropython --image build/console-rp-<sha> [--dirty-ok] [--dev] [--secrets PATH]
-#   ... swdload.py --dump DIR       read only: the board's logs, error.log, pin.json, keyflow.json, counter
-#   ... swdload.py --no-micropython --image DIR pin.json=DIR/pin.json ...   a new image, the pin kept
+#   ... swdload.py --dump DIR       read only: the files a push keeps (the manifest's preserve), secrets left out
+#   ... swdload.py --no-micropython --image DIR --keep DUMP   a new image, the dumped files carried back
 #
 # Each NAME=PATH goes into the filesystem as /NAME. --image DIR puts in a `tools/fw build console-rp`
 # directory, each file first checked against its build.py's FILES. It refuses a build of uncommitted
@@ -14,8 +14,12 @@
 # the board named by secrets.BOARD); --secrets PATH adds a bench secrets.py, which stays out of the
 # repository. Needs probe-rs on the PATH (brew install probe-rs-tools) and a CMSIS-DAP probe on J3's
 # CLK, DIO and GND. It writes the RP2350's flash only: nothing here talks to the key. The whole
-# filesystem is new each time: what was on the board before is gone.
+# filesystem is new each time: what was on the board before is gone. --keep DUMP puts back each file
+# a --dump wrote (a pinned board's pin.json, keyflow.json, safes.json, counter and logs): without it a
+# pinned board loses its pin.
+import fnmatch
 import hashlib
+import json
 import os
 import struct
 import subprocess
@@ -29,7 +33,7 @@ XIP = 0x10000000
 # MicroPython's rp2 filesystem on a Pico 2 (ports/rp2: PICO_FLASH_SIZE_BYTES 4 MB, storage = all but the
 # first 1 MB): littlefs v2, 4 KB blocks, 256-byte programming (_boot.py), readsize and lookahead 32.
 FS_BASE, FS_BLOCKS, BLOCK = XIP + 0x100000, 768, 4096
-CHUNK = 32                      # blocks per read in --dump: 128 KB
+CHUNK = 32                      # blocks per read in --dump, and per write: 128 KB
 PROBE = ["probe-rs"]
 CHIP = ["--chip", "RP235x", "--protocol", "swd"]
 
@@ -60,8 +64,11 @@ def micropython_bin(path):
 
 
 def filesystem(files):
-    """A littlefs with these (name, path) files. -> [(address, bytes)]: blocks 0 and 1 (the superblock
-    pair, always, so an older filesystem's pair can't win) and every block that holds data."""
+    """A littlefs with these (name, path) files. -> [(address, bytes)]: every block of it, the unused
+    ones erased, in CHUNK pieces. Each directory is a pair of blocks, and littlefs reads the pair's
+    newer half: a block this image leaves blank would keep what the old filesystem had there, and an
+    old directory block won (board #2, 2026-11-08: block 602 brought back the empty safes.json.tmp of
+    an earlier write, and safes.json was gone). Writing only the blocks with data was 400 KB, not 3 MB."""
     from littlefs import LittleFS
     fs = LittleFS(block_size=BLOCK, block_count=FS_BLOCKS, prog_size=256, read_size=32, lookahead_size=32,
                   disk_version=0x00020000)
@@ -70,14 +77,7 @@ def filesystem(files):
             f.write(open(path, "rb").read())
         print("  /%s  %d bytes  sha256 %s" % (name, os.path.getsize(path), hashlib.sha256(open(path, "rb").read()).hexdigest()[:16]))
     data = bytes(fs.context.buffer)
-    keep = [i for i in range(FS_BLOCKS) if i < 2 or data[i * BLOCK:(i + 1) * BLOCK] != b"\xff" * BLOCK]
-    runs = []
-    for i in keep:
-        if runs and runs[-1][1] == i:
-            runs[-1][1] = i + 1
-        else:
-            runs.append([i, i + 1])
-    return [(FS_BASE + a * BLOCK, data[a * BLOCK:b * BLOCK]) for a, b in runs]
+    return [(FS_BASE + a * BLOCK, data[a * BLOCK:(a + CHUNK) * BLOCK]) for a in range(0, FS_BLOCKS, CHUNK)]
 
 
 def image_files(d, dirty_ok=False, dev=False, secrets=None):
@@ -125,16 +125,38 @@ def download(addr, blob, dry):
         os.unlink(f.name)
 
 
-DUMP = ("log.txt", "log.1.txt", "error.log", "prep-log.txt", "key-log.txt", "pin.json", "keyflow.json", "chips.json",
-        "owners.txt")
-SNAP = (("snapshot-", ".bin"),  # C1's copy of a chip's 128 factory config bytes: public, for check_config --summary
-        ("counter-", ".txt"))   # the counter quorum last saw (check_counter): kept across a load like the pin
+MANIFEST = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "firmware", "manifest.json")
+NEVER_OUT = ("secrets*", "wifi.json*")      # a development board's secrets and a Wi-Fi password stay on it
+
+
+def kept():
+    """The files a dump copies out and --keep puts back: the manifest's preserve list (what tools/fw push
+    keeps on a board) and the ceremony's key-log.txt, less NEVER_OUT."""
+    return json.load(open(MANIFEST))["preserve"] + ["key-log.txt"]
+
+
+def keeps(name):
+    return any(fnmatch.fnmatchcase(name, p) for p in kept()) and not any(fnmatch.fnmatchcase(name, p) for p in NEVER_OUT)
+
+
+def keep_files(d):
+    """A --dump directory's files as (name, path) pairs: each one the board kept, files.txt left out."""
+    out = []
+    for n in sorted(os.listdir(d)):
+        if n == "files.txt":
+            continue
+        if not keeps(n):
+            sys.exit("%s/%s is not a file a board keeps (or never leaves it): not carried" % (d, n))
+        out.append((n, os.path.join(d, n)))
+    if not out:
+        sys.exit("%s holds no dumped files" % d)
+    return out
 
 
 def dump(out):
-    """Read only. The filesystem over SWD, then from it only DUMP's files into out, and a list of every
-    file with its size. The raw image is read into a temporary file and deleted: on a development board
-    the filesystem holds a secrets.py, and nothing but DUMP's files is copied out."""
+    """Read only. The filesystem over SWD, then from it only the files a board keeps (keeps) into out,
+    and a list of every file with its size. The raw image is read into a temporary file and deleted: on
+    a development board the filesystem holds a secrets.py, and nothing NEVER_OUT names is copied out."""
     from littlefs import LittleFS
     os.makedirs(out, exist_ok=True)
     with tempfile.NamedTemporaryFile(suffix=".bin", delete=False) as f:
@@ -162,7 +184,7 @@ def dump(out):
         for n in names:
             f.write("%8d  %s\n" % (fs.stat(n).size, n))
     for n in names:
-        if n in DUMP or any(n.startswith(a) and n.endswith(b) for a, b in SNAP):
+        if keeps(n):
             with fs.open(n, "rb") as src, open(os.path.join(out, n), "wb") as dst:
                 dst.write(src.read())
             print("  %s  %d bytes" % (n, fs.stat(n).size))
@@ -186,7 +208,7 @@ def main(argv):
     out = option(argv, "--dump")
     if out:
         return dump(out)
-    image, secrets = option(argv, "--image"), option(argv, "--secrets")
+    image, secrets, keep = option(argv, "--image"), option(argv, "--secrets"), option(argv, "--keep")
     dry = "--dry-run" in argv
     skip_mp = "--no-micropython" in argv
     args = [a for a in argv if not a.startswith("--")]
@@ -202,6 +224,8 @@ def main(argv):
         files = image_files(image, "--dirty-ok" in argv, "--dev" in argv, secrets) + files
     elif secrets:
         files.append(("secrets.py", secrets))
+    if keep:
+        files += keep_files(keep)
     if len(set(n for n, _ in files)) != len(files):
         sys.exit("a name twice: %s" % [n for n, _ in files])
     if not dry:
