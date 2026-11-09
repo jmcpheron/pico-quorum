@@ -253,6 +253,9 @@ try {
   const scripts = [...learn.matchAll(/blob\/main\/(docs\/videos\/[\w-]+\.md)"/g)].map((m) => m[1]);
   check(!/%%/.test(learn) && !/<script/i.test(learn) && scripts.length >= 10 && scripts.every((f) => existsSync(ROOT + f)),
     "docs/learn/index.html: no script, no unfilled placeholder, and every video script it links is in docs/videos/");
+  const listed = JSON.parse(readFileSync(`${ROOT}docs/videos/videos.json`, "utf8")).videos;
+  check(listed.length === scripts.length - 1 && listed.every((v, i) => v.n === i + 1 && scripts.includes(`docs/videos/${v.script}`) && learn.includes(`<h3>${v.title}</h3>`)),
+    "docs/videos/videos.json: the same videos, by number, title and script, as the learn page");
   // every local picture, stylesheet and link on the three static pages is a file the site serves
   const missing = [];
   for (const [dir, html] of [["docs/", home], ["docs/handheld/", hand], ["docs/learn/", learn]])

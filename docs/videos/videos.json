@@ -1,0 +1,157 @@
+{
+  "note": "The explainer videos, as data. The same list as README.md and BRIEF.md in this folder; web/test.mjs checks it against the Learn page. 'basis' says what the video describes: 'built' runs today, 'design' is a board that is designed and not built, 'plan' is mostly proposals.",
+  "updated": "2026-11-09",
+  "page": "https://picoquorum.app/learn/",
+  "brief": "BRIEF.md",
+  "areas": [
+    {
+      "id": "start",
+      "title": "Start here"
+    },
+    {
+      "id": "hardware",
+      "title": "The hardware"
+    },
+    {
+      "id": "owner",
+      "title": "Being an owner"
+    }
+  ],
+  "videos": [
+    {
+      "n": 1,
+      "area": "start",
+      "id": "seed-phrase",
+      "title": "One seed phrase, one point of failure",
+      "audience": "everyone",
+      "length": "2:20",
+      "style": "motion graphics",
+      "basis": "built",
+      "idea": "A seed phrase is a single point of failure. A multisig removes it, and Picoquorum is a new kind of owner to put in one.",
+      "script": "seed-phrase.md",
+      "status": "draft script",
+      "video": null,
+      "thumbnail": null
+    },
+    {
+      "n": 2,
+      "area": "start",
+      "id": "multisig-basics",
+      "title": "Two of three: a multisig in two minutes",
+      "audience": "new to crypto",
+      "length": "1:45",
+      "style": "motion graphics",
+      "basis": "built",
+      "idea": "A multisig is a shared account that needs several approvals, so no one person and no one mistake can move the money.",
+      "script": "multisig-basics.md",
+      "status": "draft script",
+      "video": null,
+      "thumbnail": null
+    },
+    {
+      "n": 3,
+      "area": "start",
+      "id": "cosigner",
+      "title": "The multisig is the wallet",
+      "audience": "wallet users",
+      "length": "2:00",
+      "style": "motion graphics",
+      "basis": "built",
+      "idea": "Wallets of every kind hold a seed phrase. Picoquorum is a cosigner with a sealed key, and the multisig is the wallet.",
+      "script": "cosigner.md",
+      "status": "draft script",
+      "video": null,
+      "thumbnail": null
+    },
+    {
+      "n": 4,
+      "area": "start",
+      "id": "one-approval",
+      "title": "One approval, start to finish",
+      "audience": "everyone",
+      "length": "2:00",
+      "style": "screen recording",
+      "basis": "built",
+      "idea": "An approval is a thing you do with your hands: read every page, check the code, hold Sign.",
+      "script": "one-approval.md",
+      "status": "draft script",
+      "video": null,
+      "thumbnail": null
+    },
+    {
+      "n": 5,
+      "area": "hardware",
+      "id": "inside-the-console",
+      "title": "Inside the console",
+      "audience": "technical",
+      "length": "3:15",
+      "style": "board diagram",
+      "basis": "design",
+      "idea": "Three zones: the cable, which is not trusted; the console, which rebuilds and shows the transaction; and the key, which signs.",
+      "script": "inside-the-console.md",
+      "status": "draft script",
+      "video": null,
+      "thumbnail": null
+    },
+    {
+      "n": 6,
+      "area": "hardware",
+      "id": "hardware-failures",
+      "title": "When the hardware fails",
+      "audience": "technical",
+      "length": "2:30",
+      "style": "board diagram",
+      "basis": "design",
+      "idea": "Every way the box can fail ends in the same place: one owner's vote, lost or misused.",
+      "script": "hardware-failures.md",
+      "status": "draft script",
+      "video": null,
+      "thumbnail": null
+    },
+    {
+      "n": 7,
+      "area": "owner",
+      "id": "new-key",
+      "title": "A new key, from the bench to your Safe",
+      "audience": "someone about to get a key",
+      "length": "3:45",
+      "style": "motion graphics and console screens",
+      "basis": "plan",
+      "idea": "The bench marks the chip and makes no key. Your console checks the mark, then makes the key in front of you. Funds go to your Safe.",
+      "script": "new-key.md",
+      "status": "draft script",
+      "video": null,
+      "thumbnail": null
+    },
+    {
+      "n": 8,
+      "area": "owner",
+      "id": "no-backup",
+      "title": "A key with no backup",
+      "audience": "owners",
+      "length": "2:10",
+      "style": "motion graphics",
+      "basis": "built",
+      "idea": "The key can't be copied. That makes it safe to hold, and it is why the other owners are the backup.",
+      "script": "no-backup.md",
+      "status": "draft script",
+      "video": null,
+      "thumbnail": null
+    },
+    {
+      "n": 9,
+      "area": "owner",
+      "id": "threat-model",
+      "title": "What it protects, and what it doesn't",
+      "audience": "owners and their co-owners",
+      "length": "2:30",
+      "style": "talking head",
+      "basis": "built",
+      "idea": "It guards against a lying screen and a leaked secret. It does not guard itself: no PIN, no fingerprint.",
+      "script": "threat-model.md",
+      "status": "draft script",
+      "video": null,
+      "thumbnail": null
+    }
+  ]
+}

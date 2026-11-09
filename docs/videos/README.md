@@ -8,6 +8,10 @@ next to the docs they draw on. [The Learn page](https://picoquorum.app/learn/) (
 [`web/src/learn.html`](../../web/src/learn.html)) has a card for each, with a box where its
 thumbnail will go.
 
+**Handing this to a studio?** [BRIEF.md](BRIEF.md) is the brief: what the project is, what each
+video needs, what we can hand over, and what a quote should cover. [videos.json](videos.json) is
+the same list as data.
+
 The videos are in three areas, as on the Learn page.
 
 **Start here**: why a multisig, and what an approval looks like.
@@ -69,7 +73,7 @@ The lengths are targets, at about 150 spoken words a minute.
 
 ## When a video is ready
 
-1. Set its status in the table above, and add its link.
+1. Set its status in the table above and in `videos.json`, and add its link to both.
 2. In `web/src/learn.html`, put its thumbnail in the card (a file under `web/src/`, copied by
    `web/build.mjs` like the handheld's card) and make the card link to the video.
 3. A link out needs nothing else. A player embedded in the page needs the page's
