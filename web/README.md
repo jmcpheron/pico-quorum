@@ -5,8 +5,8 @@ Four static pages, served by GitHub Pages from `docs/`:
 - **The front page**, `docs/index.html` (from `src/home.html` and `src/home.css`): what Picoquorum is,
   how an approval goes, the console's screens, the hardware being built, where it stands, and a big
   green **Launch app**. No script. Its header (Learn, Guide, Hardware, Console, Source, X) is the
-  same on the handheld's page and the learn page; the console page (`emu/console/index.html`) has
-  it without Learn. Guide goes to the guide on
+  same on the handheld's page, the learn page and the console page (`emu/console/index.html`).
+  Guide goes to the guide on
   GitHub, since Pages would draw `docs/guide/` with Jekyll's default theme.
 - **The handheld's page**, `docs/handheld/` (from `src/handheld.html` and the same `home.css`): the
   [Picoquorum Handheld](../hardware/builds/pico-sign-handheld/README.md) and its 16 assembly steps, kept
