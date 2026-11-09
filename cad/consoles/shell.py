@@ -67,6 +67,7 @@ PANEL_T = 1.6               # the back panel
 SHELL_EDGE = (1.5, 0.8)     # the face's edge rounded, the back's
 SHELL_POST_R = 3.0          # the face's posts, wider than POST_R so a counterbore fits in them
 TAB = (2.0, 1.2, 0.2)       # the back panel's tab into the end wall: long, thick, clearance round it
+CORNER_WALL = 1.5           # the wall where a cut corner (b["corner_cut"]) comes nearest the inside, at the least
 
 # Footprint -> (along x at rotation 0, along y, height), by the first prefix that matches. Datasheet sizes
 # with the leads, not measured. The receptacles' face is at the board's edge.
@@ -333,11 +334,13 @@ class Case:
     def front(self):
         """The "shell" layout's front: the face and the walls in one piece, open at the back."""
         b = self.b
-        x0, x1, y0, y1 = self.outer
-        t = rrect(x0, x1, y0, y1, self.r_out, self.z0, self.zt)
+        t = self.outline(self.z0, self.zt)
         kind, size = b.get("face_edge", ("fillet", SHELL_EDGE[0]))     # the face's edge: rounded, or a chamfer
         t = t.faces(">Z").edges()
-        t = (t.chamfer(size) if kind == "chamfer" else t.fillet(size)).faces("<Z").edges().fillet(SHELL_EDGE[1])
+        t = t.chamfer(size) if kind == "chamfer" else t.fillet(size)
+        kind, size = b.get("back_edge", ("fillet", SHELL_EDGE[1]))     # the back's edge, the same choice
+        t = t.faces("<Z").edges()
+        t = t.chamfer(size) if kind == "chamfer" else t.fillet(size)
         ix0, ix1, iy0, iy1 = self.inner
         t = t.cut(rrect(ix0, ix1, iy0, iy1, self.r_in, self.z0 - 1, self.zu))
         # posts on the board round its holes (they run into the walls at the corners), ribs on its antenna end
@@ -353,11 +356,53 @@ class Case:
         for x, y in b["holes"]:
             t = t.cut(cyl(x, y, M2_CLEAR / 2, -1, self.zt + 1))
             t = t.cut(cyl(x, y, M2_HEAD[0] / 2 + 0.2, self.seat, self.zt + 1))
+            ch = b.get("cb_chamfer", 0.0)       # the counterbore's top edge chamfered
+            if ch:
+                t = t.cut(cq.Workplane("XY").workplane(offset=self.zt - ch).center(x, y).circle(M2_HEAD[0] / 2 + 0.2)
+                          .workplane(offset=ch + 0.01).circle(M2_HEAD[0] / 2 + 0.2 + ch + 0.01).loft())
         t = t.cut(self.usb_hole())
         t = self.notch(self.lug_slot(t))
+        t = self.grooves(t)
         if b.get("tab", True):
             t = t.cut(self.tab(TAB[2]))
         return self.face(t)
+
+    def outline(self, z0, z1):
+        """The case's outside from z0 to z1: the outline rounded at its corners, or with them cut off at 45 degrees
+        (b["corner_cut"]: the cut along each edge at the bottom corners, and at the top's). Checks that the wall
+        keeps CORNER_WALL where a cut comes nearest the board's corner inside."""
+        x0, x1, y0, y1 = self.outer
+        cut = self.b.get("corner_cut")
+        if not cut:
+            return rrect(x0, x1, y0, y1, self.r_out, z0, z1)
+        lo, hi = cut
+        ix0, ix1, iy0, iy1 = self.inner
+        r = self.r_in
+        # each corner of the inside is an arc of r_in; the cut's line is (lo or hi) from the outside's corner
+        dx = (ix0 + r) - x0
+        self.corner_wall = min(((dx + (iy0 + r) - y0) - lo) / math.sqrt(2) - r, ((dx + y1 - (iy1 - r)) - hi) / math.sqrt(2) - r)
+        assert self.corner_wall >= CORNER_WALL, "a cut corner leaves the wall %.2f mm" % self.corner_wall
+        pts = [(x0 + lo, y0), (x1 - lo, y0), (x1, y0 + lo), (x1, y1 - hi), (x1 - hi, y1), (x0 + hi, y1), (x0, y1 - hi),
+               (x0, y0 + lo)]
+        return cq.Workplane("XY").workplane(offset=z0).polyline(pts).close().extrude(z1 - z0)
+
+    def grooves(self, t):
+        """90-degree V-grooves across both long sides, for grip (b["grooves"]: their y, and their depth; each is twice
+        as wide as it is deep), stopping short of the face's and the back's edges."""
+        g = self.b.get("grooves")
+        if not g:
+            return t
+        ys, d = g
+        assert d <= WALL - 1.0, "a groove too deep for the wall"
+        x0, x1, _, _ = self.outer
+        a = d * math.sqrt(2)                    # a square turned 45 degrees, its corner d into the wall
+        za = self.z0 + self.b.get("back_edge", ("", SHELL_EDGE[1]))[1] + 0.8
+        zb = self.zt - self.b.get("face_edge", ("", SHELL_EDGE[0]))[1] - 0.8
+        for y in ys:
+            for x in (x0, x1):
+                v = cq.Workplane("XY").box(a, a, zb - za).rotate((0, 0, 0), (0, 0, 1), 45).translate((x, y, (za + zb) / 2))
+                t = t.cut(v)
+        return t
 
     def back(self):
         """The "shell" layout's back panel: flush in the shell's back, its tab in the end wall, two screws at the

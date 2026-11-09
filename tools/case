@@ -64,6 +64,11 @@ DESIGNS = {
         scripts=["cad/consoles/mono.py"],
         outputs=["cad/consoles/out/mono/*"],
         pages=["cad/consoles/README.md"]),
+    "mono-industrial": dict(
+        about="Mono's case with harder edges: the corners cut off, the edges chamfered, grooves on the sides",
+        scripts=["cad/consoles/mono_ind.py"],
+        outputs=["cad/consoles/out/mono_ind/*"],
+        pages=["cad/consoles/README.md"]),
     "key-tray": dict(
         about="the snap-lid case for the ATECC608 breakout, v2 and v3",
         scripts=["cad/key/tray.py"],

@@ -143,6 +143,27 @@ printed, and no Mono board has been built.**
 
 ![Mono's case on its dock](out/mono/mono_dock.png)
 
+## Mono, industrial
+
+[`mono_ind.py`](mono_ind.py): Mono's case with harder edges. **A variant of the first draft, not printed.**
+Inside, it is Mono's case: the same posts, screws, caps, window, badge, back panel and dock. Only the
+outside of the front shell changes:
+- **The corners are cut off at 45°**, not rounded. At the bottom, 3 mm along each edge, as far as the
+  board's corner inside allows: the wall there is 1.66 mm at its thinnest, against 2.0 along the sides.
+  The script stops if a cut leaves less than 1.5 (`CORNER_WALL`). At the top, 8 mm, across the lanyard's
+  lug, so the top end tapers.
+- **The face's edge is chamfered 1.6 mm**, and the back's 0.8, in place of the rounds.
+- **The screws' counterbores are chamfered 0.4 mm** at the face.
+- **Nine V-grooves, 0.5 mm deep and 2.5 mm apart, run across each long side** where the hand holds it, 14
+  to 34 mm up from the board's bottom edge. They stop short of both chamfers.
+
+The case closes at the same 44.6 × 100.1 × 10.9 mm, and the build finds no overlap. It prints face down
+like Mono's. The grooves' closed ends are 1 mm bridges.
+
+![Mono's case, industrial](out/mono_ind/mono_ind_front.png)
+
+![Mono's case, industrial, apart](out/mono_ind/mono_ind_apart.png)
+
 ## Where the numbers come from
 
 | | the stick | the badge |
