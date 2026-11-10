@@ -5,7 +5,7 @@ fit check (tools/jlc's fit3d.py is that).
 Run: uv run --python 3.11 --with cadquery --with matplotlib python cad/mono/board.py
 
 Writes out/: mono_board.stl (everything as one solid, the back down, as it prints), and the same split in
-three for a print in colours: mono_board_pcb.stl, mono_board_parts.stl, mono_board_panel.stl. Also
+four for a print in colours: mono_board_pcb.stl, mono_board_parts.stl, mono_board_panel.stl, mono_board_mark.stl. Also
 mono_board.png, a picture of it.
 
 Read from the routed board (hardware/mono/mono/mono.kicad_pcb): the outline, the holes, each fitted part's
@@ -14,7 +14,7 @@ heights, the glass and its foam are the generator's (gen_mono.py: HEIGHT, PANEL,
 datasheet figures and guesses. Drawn here, not taken from the board:
 - the glass's foam stands under all of it, 1 mm in from its edges, not on four pads, so the glass prints
   without support. The ribbon's fold is a 0.5 mm strip at the glass's right end.
-- the picture's area is cut 0.2 mm into the glass.
+- the picture's area is cut 0.2 mm into the glass, and the Picoquorum mark stands on it, raised (mark()).
 - each switch is its body to 0.9 mm and a 3 mm round plunger to its 1.5 mm.
 Not fitted, so not drawn: U7, U8, D2 and J4 (J4's five holes are). The jig's pads, the fiducials and the
 mark are copper only.
@@ -37,6 +37,8 @@ _spec.loader.exec_module(G)
 
 T = 1.6                              # the board's thickness (JLCPCB's default; the generator's stackup)
 SKIP = ("TP", "H", "FID", "LOGO", "LCD")     # copper only, holes, or the panel, drawn apart
+MARK_R = 4.8                         # the mark's circle: 11.1 mm tall, 10.7 wide, on the 24.9 x 14.9 picture
+MARK_H = dict(triangle=0.4, signed=1.0, waiting=0.6)     # how far each part stands over the glass's top
 
 
 # --- the board file ----------------------------------------------------------------------------------
@@ -192,6 +194,22 @@ def panel():
     return glass.union(foam).union(fold)
 
 
+def mark():
+    """The Picoquorum mark, raised on the picture's area (docs/BRAND.md, Geometry): five dots on a circle of
+    radius R, at -90 + 72k degrees with the first at the top; the three signed (top, lower left, lower right)
+    r/4 and tallest, the two waiting r/6 and lower, and the triangle between the signed centres lowest. It
+    stands on the floor of the picture's 0.2 mm cut; MARK_H is each part's height over the glass's top."""
+    floor = G.PANEL["foam"] + G.PANEL["thick"] - 0.2
+    cx, cy = G.XA, (up(G.GY1) + up(G.GY0)) / 2
+    pts = [(cx + MARK_R * math.cos(math.radians(90 - 72 * k)), cy + MARK_R * math.sin(math.radians(90 - 72 * k)))
+           for k in range(5)]                  # y is up here, so +90 is the top; clockwise from it
+    signed, waiting = [pts[0], pts[3], pts[2]], [pts[1], pts[4]]
+    m = cq.Workplane("XY").polyline(signed).close().extrude(MARK_H["triangle"] + 0.2).translate((0, 0, floor))
+    for (x, y), r, h in [(p, MARK_R / 4, MARK_H["signed"]) for p in signed] + [(p, MARK_R / 6, MARK_H["waiting"]) for p in waiting]:
+        m = m.union(cq.Workplane("XY").circle(r).extrude(h + 0.2).translate((x, y, floor)))
+    return m
+
+
 def picture(solids, path, size=1400):
     """The model from above, front and left, its faces shaded: a small z-buffer, for a look before printing."""
     import numpy as np
@@ -244,15 +262,18 @@ def main():
     fps = footprints()
     pcb, bits, glass = board(fps), parts(fps), panel()
     bits = bits.cut(glass)                     # J2 and its capacitors sit under the glass's foam
-    whole = pcb.union(bits).union(glass)
+    logo = mark()
+    whole = pcb.union(bits).union(glass).union(logo)
     lift = (0, 0, T)                           # the back on the bed
-    for name, s in (("mono_board", whole), ("mono_board_pcb", pcb), ("mono_board_parts", bits), ("mono_board_panel", glass)):
+    for name, s in (("mono_board", whole), ("mono_board_pcb", pcb), ("mono_board_parts", bits), ("mono_board_panel", glass),
+                    ("mono_board_mark", logo)):
         cq.exporters.export(s.translate(lift), os.path.join(OUT, name + ".stl"), tolerance=0.01, angularTolerance=0.1)
-    picture([(pcb, (0.18, 0.42, 0.25)), (bits, (0.75, 0.75, 0.72)), (glass, (0.12, 0.13, 0.16))],
+    picture([(pcb, (0.18, 0.42, 0.25)), (bits, (0.75, 0.75, 0.72)), (glass, (0.12, 0.13, 0.16)),
+             (logo, (0.37, 0.87, 0.49))],
             os.path.join(OUT, "mono_board.png"))
     bb = whole.val().BoundingBox()
     n = sum(1 for fp in fps if fp["side"] == "F" and not fp["dnp"] and not fp["ref"].startswith(SKIP) and fp["body"])
-    print(f"wrote {os.path.relpath(OUT, REPO)}/: mono_board.stl, _pcb, _parts, _panel, .png; {n} parts; "
+    print(f"wrote {os.path.relpath(OUT, REPO)}/: mono_board.stl, _pcb, _parts, _panel, _mark, .png; {n} parts; "
           f"{bb.xlen:.1f} x {bb.ylen:.1f} x {bb.zlen:.2f} mm; one solid: {len(whole.val().Solids()) == 1}")
 
 
