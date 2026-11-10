@@ -61,6 +61,12 @@ CAP_PROUD = 1.0             # over the plate
 CAP_FLANGE_T = 0.8
 CAP_LIP = 0.2               # the flange past the edge of its hole in the face, at the least (Case.lip)
 CAP_GAP = 0.2               # the flange under the plate (or its pocket) at rest: the cap's free play
+# The caps as one print (b["cap_tree"]): a bar under them, joined to each flange by a thin link, all CAP_WEB thick at
+# the flanges' foot, so they print flat in one piece and go in together. Two pins under the face go through holes in
+# the bar and hold it; a boss round each pin sits on the bar. Each link is long and thin, so a cap pressed bends it and
+# barely moves the bar or the other caps (README: "Mono, industrial").
+CAP_WEB, CAP_LINK_W = 0.4, 1.0
+TREE_PIN, TREE_HOLE, TREE_PAD, TREE_BOSS = 1.2, 1.5, 1.8, 1.5    # pin and its hole across; the bar's pad, the boss: radii
 PIN_HOLE, LED_HOLE = 1.8, 1.6   # BOOT and RESET with a paperclip; the status LED
 # The USB-C plug: a cut cable's overmold, as the handheld measured one, and its shell
 PLUG = (12.4, 5.5, 17.1)
@@ -360,6 +366,8 @@ class Case:
             t = t.union(c)
         for rx0, rx1, ry0, ry1 in b["press"]:
             t = t.union(box(rx0, rx1, ry0, ry1, 0.0, self.zu + 0.01))
+        if b.get("cap_tree"):
+            t = self.tree_pins(t)
         for x, y in b["holes"]:
             t = t.cut(cyl(x, y, M2_CLEAR / 2, -1, self.zt + 1))
             t = t.cut(cyl(x, y, M2_HEAD[0] / 2 + 0.2, self.seat, self.zt + 1))
@@ -453,6 +461,8 @@ class Case:
     def printed(self):
         """The printed parts as they sit: (name, shape, colour), and how each lies on the bed."""
         caps = [(n, s, col) for s, col, n in self.caps()]
+        if self.b.get("cap_tree"):
+            caps = [("cap tree", self.cap_tree(), PAPER)]
         if self.layout == "plate":
             return [("tub", self.tub(), TUB_C, lambda s: s), ("plate", self.plate(), PLATE_C, flip)] + \
                 [(n, s, col, lambda s: s) for n, s, col in caps]
@@ -599,6 +609,33 @@ class Case:
             out.append((c.union(stem), CAP_C.get(name, PAPER), "cap " + name))
         return out
 
+    def cap_tree(self):
+        """The three caps in one piece: each flange joined by a link to a bar below them, the bar pinned under the face
+        (b["cap_tree"]: the bar's x0, x1, y0, y1, and the pins' centres on it)."""
+        t = self.b["cap_tree"]
+        bx0, bx1, by0, by1 = t["bar"]
+        z0, z1 = self.zcap, self.zcap + CAP_WEB
+        f = self.flange_w() / 2
+        out = box(bx0, bx1, by0, by1, z0, z1)
+        for x, y in t["pins"]:
+            out = out.union(cyl(x, y, TREE_PAD, z0, z1))
+        for ref, _ in self.b["buttons"]:
+            q = self.b["parts"][ref]
+            assert bx0 <= q["x"] - CAP_LINK_W / 2 and q["x"] + CAP_LINK_W / 2 <= bx1 and by1 < q["y"] - f, "the bar misses " + ref
+            out = out.union(box(q["x"] - CAP_LINK_W / 2, q["x"] + CAP_LINK_W / 2, by1 - 0.01, q["y"] - f + 0.01, z0, z1))
+        for s, _, _ in self.caps():
+            out = out.union(s)
+        for x, y in t["pins"]:
+            out = out.cut(cyl(x, y, TREE_HOLE / 2, z0 - 1, z1 + 1))
+        return out
+
+    def tree_pins(self, t):
+        """t (the face) with the cap tree's pins under it: a boss down to the bar's top, a pin on through its hole."""
+        z1 = self.zcap + CAP_WEB
+        for x, y in self.b["cap_tree"]["pins"]:
+            t = t.union(cyl(x, y, TREE_BOSS, z1, self.zu + 0.01)).union(cyl(x, y, TREE_PIN / 2, self.zcap - 0.5, z1 + 0.01))
+        return t
+
     def screws(self):
         out = None
         for x, y in self.b["holes"]:
@@ -728,6 +765,9 @@ def build(b, out, screen_png=None):
             s = s.translate((0, 0, -c.zcap))
         stl(lie(s), os.path.join(out, "%s_%s.stl" % (name, n.replace(" ", "_"))))
     stl(dock, os.path.join(out, name + "_dock.stl"))
+    if b.get("cap_tree"):                               # the caps one by one too, to print each in its colour
+        for s, _, n in c.caps():
+            stl(s.translate((0, 0, -c.zcap)), os.path.join(out, "%s_%s.stl" % (name, n.replace(" ", "_"))))
     asm = cq.Assembly(name=name)
     for n, s, col, _ in parts:
         asm.add(s, name=n.replace(" ", "_"), color=cq.Color(*col))

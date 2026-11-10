@@ -145,9 +145,9 @@ printed, and no Mono board has been built.**
 
 ## Mono, industrial
 
-[`mono_ind.py`](mono_ind.py): Mono's case with harder edges. **A variant of the first draft, not printed.**
-Inside, it is Mono's case: the same posts, screws, caps, window, badge, back panel and dock. Only the
-outside of the front shell changes:
+[`mono_ind.py`](mono_ind.py): Mono's case with harder edges, and two things to try. **A variant of the first
+draft, not printed.** Otherwise it is Mono's case: the same posts, screws, caps, window, badge and dock.
+The outside of the front shell changes:
 - **The corners are cut off at 45°**, not rounded. At the bottom, 3 mm along each edge, as far as the
   board's corner inside allows: the wall there is 1.66 mm at its thinnest, against 2.0 along the sides.
   The script stops if a cut leaves less than 1.5 (`CORNER_WALL`). At the top, 8 mm, across the lanyard's
@@ -157,8 +157,40 @@ outside of the front shell changes:
 - **Nine V-grooves, 0.5 mm deep and 2.5 mm apart, run across each long side** where the hand holds it, 14
   to 34 mm up from the board's bottom edge. They stop short of both chamfers.
 
-The case closes at the same 44.6 × 100.1 × 10.9 mm, and the build finds no overlap. It prints face down
-like Mono's. The grooves' closed ends are 1 mm bridges.
+**The caps as one print, a cap tree** (`mono_ind_cap_tree.stl`, `shell.Case.cap_tree`). The three caps,
+each at its button, and a bar 13.5 mm under them. A link 1.0 mm wide and 7.8 mm long joins each cap's
+flange to the bar. The bar, the links and two pads on the bar are 0.4 mm thick (two layers), level with
+the flanges' foot, so the tree prints flange down in one piece.
+- **Two pins under the face hold the bar,** between the caps: 1.2 mm pins through 1.5 mm holes in its pads.
+  A boss round each pin comes down to the bar's top. So the bar can't move, and the caps hang from it.
+- **The links are long and thin so the caps stay apart.** A cap pressed bends its link and pulls on
+  nothing else. By a beam estimate (PLA at 3.5 GPa, both ends held) a link takes about 0.5 N per mm, so
+  about 0.1 N over a switch's 0.25 mm of travel. Tact switches like the TS-1187A take over 1 N. Not
+  measured: press each cap once it's in, and check that only its own switch clicks. If a neighbour
+  moves, cut the links, and the caps work as loose caps.
+- **To fit it:** lay the shell face down, and drop the tree in, caps through their holes, pins through
+  the bar.
+- **One colour.** A single-material print loses D0's red and D2's green. Paint them on a multi-material
+  printer, or print the loose caps (`mono_ind_cap_D0.stl` and the others, still written) one per colour.
+- Nothing on the board under the bar stands higher than 0.4 mm, and the bar is 1.5 mm up. Each pin ends
+  0.5 mm above the board.
+
+**The board's top end is held.** The screws are in line with the buttons, and the board runs on 24 mm
+past them under the glass. Before, only the glass's 0.15 mm gap to the face kept that end still, and
+there was 2.1 mm of room under it. Now:
+- **Pads under the face press on its front,** where nothing is fitted:
+  - left of the glass
+  - right of the glass, above the ribbon's fold
+  - along the top edge, over the glass
+
+  Each is 0.3 mm off the glass and the fold, and runs into the wall.
+- **Ribs on the back panel come up under it,** along the top edge and down both sides to the glass's foot.
+  They stop 0.1 mm short of the board (`REST_GAP`), as the rib under the buttons does.
+
+So the screws clamp the board at the buttons, and at the top end it sits between the pads and the ribs.
+
+The case closes at the same 44.6 × 100.1 × 10.9 mm, and the build finds no overlap, the cap tree and the
+pins included. It prints face down like Mono's. The grooves' closed ends are 1 mm bridges.
 
 ![Mono's case, industrial](out/mono_ind/mono_ind_front.png)
 
