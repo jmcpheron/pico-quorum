@@ -139,6 +139,7 @@ class Relay:
 
     def __init__(self):
         self.inq = b""
+        self.part = b""         # a line written in pieces (link._write: head, then the rest), so far
         self.wrote = []
         self.reqs = []
         self.faults = []
@@ -158,10 +159,12 @@ class Relay:
     def hi(self):
         self.raw('{"t":"hi"}')
 
-    def write(self, b):
-        b = bytes(b)
-        self.wrote.append(b.decode())
-        for line in b.split(b"\n"):
+    def write(self, b, off=0, n=None):
+        b = (b.encode() if isinstance(b, str) else bytes(b))[off:None if n is None else off + n]
+        self.part += b
+        *lines, self.part = self.part.split(b"\n")
+        for line in lines:
+            self.wrote.append(line.decode())
             try:
                 m = json.loads(line)
             except ValueError:
@@ -687,6 +690,37 @@ def case_unsent():
     Q._busy = False
     Q.tick(None)
     check(resets == [1] and "restart" in open("log.txt").read(), "back on home: the console restarts, and says why in log.txt")
+
+    # A heap in pieces (no PROBE_B bytes in one piece, after a collect): a restart after STARVED_N
+    # checks in a row on home or a result, never in a review, never before STARVED_UP_MS up
+    import time
+    Q.svc.lost = False
+
+    def checks(n, b):
+        Q.PROBE_B = b
+        for _ in range(n):
+            Q.probe_t = time.ticks_add(time.ticks_ms(), -Q.PROBE_MS)
+            Q._busy = False
+            Q.tick(None)
+    del resets[:]
+    Q.STARVED_UP_MS, Q.up_long, Q.starved = 0, False, 0
+    Q.open_entry(Q.queue[0])
+    checks(Q.STARVED_N + 2, 1 << 30)
+    in_review = list(resets)
+    Q.state = "home"
+    checks(Q.STARVED_N - 1, 1 << 30)
+    checks(1, 64)                           # one good check: the count starts again
+    checks(Q.STARVED_N - 1, 1 << 30)
+    early = list(resets)
+    checks(1, 1 << 30)
+    check(not in_review and not early and resets == [1] and "no 1073741824 bytes in one piece for 30 s" in open("log.txt").read(),
+          "a heap in pieces: no restart in a review, none before %d checks in a row, then a restart, and log.txt says why" % Q.STARVED_N)
+    del resets[:]
+    Q.STARVED_UP_MS, Q.up_long, Q.starved = 10 ** 9, False, 0
+    Q.state = "result"
+    checks(Q.STARVED_N * 3, 1 << 30)
+    check(not resets and Q.starved == Q.STARVED_N * 3, "the same just after a start: no restart (no loop of restarts)")
+    Q.PROBE_B = 2048
 
 
 def case_watchdog():
@@ -1951,6 +1985,83 @@ def case_relay():
     check(had and stats()["garbage"] - s0["garbage"] == 1 and stats()["overlong"] - s0["overlong"] == 1 and len(Q.queue) == 2 and Q.net_ok,
           "no bytearray.find: newlines found by the byte, garbage and an overlong line dropped, the poll good")
 
+    # An answer's body is read in place: its escapes undone in _line, a memoryview handed on, never a
+    # str the body's size (2.4 KB of them found no room on board #2, 2026-11-10)
+    def esc(t, slash=False):
+        """t as a JSON string literal, escaped the way CPython's json.dumps does (ensure_ascii)."""
+        o = ['"']
+        for ch in t:
+            c = ord(ch)
+            if ch in '"\\':
+                o.append("\\" + ch)
+            elif ch == "/" and slash:
+                o.append("\\/")
+            elif ch in "\b\f\n\r\t":
+                o.append("\\" + "bfnrt"["\b\f\n\r\t".index(ch)])
+            elif c < 0x20 or c > 0x7E:
+                if c > 0xFFFF:
+                    c -= 0x10000
+                    o.append("\\u%04x\\u%04x" % (0xD800 + (c >> 10), 0xDC00 + (c & 0x3FF)))
+                else:
+                    o.append("\\u%04x" % c)
+            else:
+                o.append(ch)
+        return "".join(o) + '"'
+
+    def take(line, want=7):
+        link._want, link._got = want, None
+        relay.raw(line)
+        link._take()
+        got = link._got
+        try:
+            return got and (type(got["body"]).__name__, json.loads(got["body"]))
+        finally:
+            link._want = link._got = None
+            link._take()
+
+    doc = {"s": 'q"b\\s/f\b\f\n\r\t\x01', "u": "\u00e9 \u20ac \U0001F600", "n": [1, 2.5, None, True, {"body": "x"}]}
+    for find in (True, False):
+        link._FIND = find
+        lines = ['{"t": "res", "id": 7, "status": 200, "body": %s}' % esc(json.dumps(doc)),
+                 '{"body":%s,"status":200,"id":7,"t":"res"}' % esc(json.dumps(doc), slash=True),
+                 '{"t":"res","note":"a \\"body\\": \\"x\\"","id":7,"status":200,"body":%s}' % esc(json.dumps(doc))]
+        got = [take(l) for l in lines]
+        check(all(g == ("memoryview", doc) for g in got),
+              "an answer's body read in place%s: every escape undone (quote, backslash, slash, b f n r t, \\u, a surrogate pair), "
+              "in three layouts, a decoy \\\"body\\\" passed over" % ("" if find else ", with no bytearray.find"))
+        s0 = stats()
+        bad = [take('{"t": "res", "id": 7, "status": 200, "body": "%s"}' % b) for b in ("\\ud800x", "\\udc00", "\\x", "a\\u12", "ab\\")]
+        check(not any(bad) and stats()["garbage"] - s0["garbage"] == 5,
+              "a lone surrogate, a bad escape, a short \\u, a body ending in a backslash: each dropped as garbage%s" % ("" if find else " (no find)"))
+    link._FIND = had
+    # the line after the answer, in the same read, waits: the body isn't written over before it is parsed
+    link._want, link._got = 7, None
+    relay.raw('{"t": "res", "id": 7, "status": 200, "body": %s}\n{"id": 61, "op": "hello"}' % esc(json.dumps(doc)))
+    link._take()
+    body_ok = link._got is not None and json.loads(link._got["body"]) == doc
+    link._want = link._got = None
+    link.pump()
+    usblink.poll()
+    link.pump()
+    check(body_ok and [m for m in relay.sent("pq") if m.get("id") == 61], "a line right behind the answer: kept until the answer is parsed, then answered")
+    # a 10 KB body: no block its size made to read it
+    import gc
+    big = json.dumps({"results": ["x" * 90 for _ in range(110)]})
+    link._want, link._got = 7, None
+    relay.inq += ('{"t": "res", "id": 7, "status": 200, "body": %s}' % esc(big)).encode()
+    link._take()                            # all of it but the newline (the fake relay's copies are its own)
+    relay.inq += b"\n"
+    gc.collect()
+    gc.disable()
+    a0 = gc.mem_alloc()
+    link._take()                            # the newline: the line handled
+    used = gc.mem_alloc() - a0
+    gc.enable()
+    ok = link._got is not None and bytes(link._got["body"]).decode() == big
+    link._want = link._got = None
+    link._take()
+    check(ok and used < 1024, "a %d-byte body read with %d bytes allocated" % (len(big), used))
+
     # An answer nobody asked for, and a wrong id first: neither is taken
     s0 = stats()
     relay.raw(json.dumps({"t": "res", "id": 9999, "status": 200, "body": "{}"}))
@@ -1961,12 +2072,16 @@ def case_relay():
     check(stats()["unsolicited"] - s0["unsolicited"] == 1 and stats()["wrong_id"] - s0["wrong_id"] == 2 and len(Q.queue) == 2
           and Q.queue[0]["h"] == good["safeTxHash"], "an unsolicited answer and a wrong id: dropped, the right answer used")
 
-    # The same id twice: the first stands, and the second, arriving late, is dropped
+    # The same id twice: the first stands, and the second is dropped. The link stops reading at the
+    # answer it waits for, so the second is read after the request has returned: no longer awaited
+    # (unsolicited), or not the next request's id (wrong id)
     s0 = stats()
     dup = lambda m: [relay.res(m), json.dumps({"t": "res", "id": m["id"], "status": 200, "body": forged})]
     poll_with(dup, dup)
-    check(stats()["dup"] - s0["dup"] == 2 and len(Q.queue) == 2 and Q.queue[0]["h"] == good["safeTxHash"],
-          "an answer sent twice: the first stands")
+    link.pump()                             # the second answer to the last request, still unread
+    late = sum(stats()[k] - s0[k] for k in ("dup", "wrong_id", "unsolicited"))
+    check(late == 2 and len(Q.queue) == 2 and Q.queue[0]["h"] == good["safeTxHash"],
+          "an answer sent twice: the first stands, the second dropped (%d)" % late)
 
     # A truncated body, a deeply nested one, a status 0, a body that isn't text: the poll fails, nothing breaks
     for name, f in (("truncated", lambda m: [relay.res(m, body='{"count": 1, "results": [{"safe": "0x5a')]),
@@ -2041,7 +2156,7 @@ def case_relay():
         link.request("DELETE", base + "/api/v1/safes/")
     except link.LinkError:
         raised += 1
-    check(raised == len(bad) + 1 and len(relay.wrote) == n,
+    check(raised == len(bad) + 1 and len(relay.wrote) == n and not relay.part,
           "off-pin, prefix tricks (basesepolia, @, ..), #, spaces, \\, non-ASCII, too long, plain http, DELETE: %d refused, nothing sent" % raised)
     check(link.pinned(base + "/api/v1/safes/") and link.pinned("https://api.safe.global/tx-service/eth/api/v1/safes/"),
           "the pinned bases themselves pass")
@@ -2084,6 +2199,36 @@ def case_relay():
     link.pump()
     check(stats()["dropped_logs"] - s0["dropped_logs"] == 5 and relay.sent("log")[-1]["m"].endswith("line %d" % (link.LOGS + 4)),
           "%d log lines at once: the last %d go out, the oldest 5 dropped and counted" % (link.LOGS + 5, link.LOGS))
+    # A status answer goes out with no copy of itself: json.dumps makes the line once, and the link
+    # writes it as it is (on board #2 six copies of 1 KB each found no room, 2026-11-10)
+    class Sink:
+        n = 0
+
+        def any(self):
+            return 0
+
+        def write(self, b, off=0, n=None):
+            self.n += len(b) - off
+            return len(b) - off
+    import gc
+    relay.raw(json.dumps({"id": 54, "op": "status"}))
+    link.pump()
+    had, sink = link._u, Sink()
+    link._u = sink
+    gc.collect()
+    gc.disable()
+    a0 = gc.mem_alloc()
+    usblink.dumps = json.dumps(Q.link_status())        # what the answer's fields cost to gather and dump
+    a1 = gc.mem_alloc()
+    usblink.poll()
+    link.pump()
+    a2 = gc.mem_alloc()
+    gc.enable()
+    del usblink.dumps
+    link._u = had
+    made, sent = a1 - a0, a2 - a1
+    check(sink.n > 500 and sent < made + sink.n,
+          "a status answer of %d bytes: %d bytes allocated to answer, %d to gather and dump its fields: no copy of the line" % (sink.n, sent, made))
     every = "\n".join(relay.wrote)
     check("test-key" not in every and "hunter2" not in every, "no API key, and not the password the wifi ask carried, in any line out")
 

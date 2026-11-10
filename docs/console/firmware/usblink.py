@@ -45,10 +45,11 @@ def send(d):
     318 bytes, every time, and in 64-byte writes whole (PicoQuorumKey, 2026-11-02). A log printed
     between two pieces could land inside the line; a host then skips that answer."""
     s = json.dumps(d)
-    line = '{"pq":%d%s%s\n' % (PROTO, "," if len(s) > 2 else "", s[1:])
+    head = '{"pq":%d%s' % (PROTO, "," if len(s) > 2 else "")
     if PORT is not None:
-        PORT.send_line(line[:-1])           # whole, at the next pump, never between two of the link's lines
+        PORT.send_line(s, head)             # whole, at the next pump, never between two of the link's lines; s not copied
         return
+    line = head + s[1:] + "\n"
     for i in range(0, len(line), PIECE):
         sys.stdout.write(line[i:i + PIECE])
 

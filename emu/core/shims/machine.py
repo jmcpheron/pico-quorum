@@ -244,8 +244,8 @@ class UART:
     def __init__(self, *a, **k):
         pass
 
-    def write(self, b):
-        return len(b)
+    def write(self, b, off=0, n=None):
+        return len(b) - off if n is None else min(n, len(b) - off)
 
     def read(self, n=-1):
         return None

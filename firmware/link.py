@@ -46,6 +46,7 @@ boot_at = begun_at = 0      # as net.py's, for quorum's "boot ms" line
 _u = None
 _line = _mv = None
 _n = 0                      # bytes of the current line so far
+_a = 0                      # where the lines after an answer read in place start (_take), else 0
 _skip = False               # dropping the rest of a line that was too long
 _id = 0
 _want = None                # the id request() waits for
@@ -53,7 +54,7 @@ _got = None                 # its answer, once here
 _seen = None                # ticks_ms of the last good line from the computer
 _ops, _out, _logs = [], [], []
 _stats = {"in": 0, "out": 0, "garbage": 0, "overlong": 0, "unsolicited": 0, "wrong_id": 0, "dup": 0, "timeouts": 0,
-          "requests": 0, "failed": 0, "ms": 0, "dropped_logs": 0, "dropped_ops": 0}
+          "requests": 0, "failed": 0, "ms": 0, "dropped_logs": 0, "dropped_ops": 0, "nomem": 0}
 
 
 class LinkError(Exception):
@@ -116,8 +117,123 @@ def pinned(url):
 
 
 # ----------------------------------------------------------------------------- in
+# An answer's body is a JSON document inside a JSON string. json.loads of the whole line made it one
+# str, as long as the body, before txservice parsed it again: a queue of two confirmed transactions
+# (2.4 KB) found no block that size in a day-old heap, every other poll (board #2, 2026-11-10). So
+# the body is read where it lies: its escapes undone in place in _line, and txservice parses that
+# memoryview, as it parses vhttp's BODY on the Wi-Fi boards. The rest of the line is parsed alone.
+_ESC = {0x22: 0x22, 0x5C: 0x5C, 0x2F: 0x2F, 0x62: 8, 0x66: 12, 0x6E: 10, 0x72: 13, 0x74: 9}
+
+
+def _body(n):
+    """(q0, q1): the quotes around the value of the line's "body" key, in _line[:n]; None for none.
+    The key is the first "body" with no backslash before it; the value ends at the first quote
+    with an even run of backslashes before it. Reads only."""
+    i = 1
+    while True:
+        i = _find(b'"body"', i, n)
+        if i < 0:
+            return None
+        if _line[i - 1] != 0x5C:
+            break
+        i += 6
+    i += 6
+    while i < n and _line[i] in (32, 9):
+        i += 1
+    if i >= n or _line[i] != 0x3A:          # ":"
+        return None
+    i += 1
+    while i < n and _line[i] in (32, 9):
+        i += 1
+    if i >= n or _line[i] != 0x22:
+        return None
+    q0 = j = i
+    while True:
+        j = _find(b'"', j + 1, n)
+        if j < 0:
+            return None
+        k = j
+        while _line[k - 1] == 0x5C:
+            k -= 1
+        if (j - k) % 2 == 0:
+            return q0, j
+
+
+def _hex4(i):
+    v = 0
+    for c in _line[i:i + 4]:
+        if 48 <= c <= 57:
+            v = v * 16 + c - 48
+        elif 65 <= c <= 70 or 97 <= c <= 102:
+            v = v * 16 + (c | 32) - 87
+        else:
+            return -1
+    return v
+
+
+def _unescape(i, q1):
+    """The JSON string _line[i:q1] with its escapes undone in place -> where its text now ends; -1
+    for a bad escape. Each escape is at least as long as what it stands for, so the writing never
+    passes the reading."""
+    o = i
+    while i < q1:
+        c = _line[i]
+        i += 1
+        if c == 0x5C:
+            if i >= q1:
+                return -1
+            e = _line[i]
+            i += 1
+            if e == 0x75:                   # \uXXXX, a surrogate pair as one character
+                v = _hex4(i) if i + 4 <= q1 else -1
+                i += 4
+                if 0xD800 <= v < 0xDC00:
+                    lo = _hex4(i + 2) if i + 6 <= q1 and _line[i] == 0x5C and _line[i + 1] == 0x75 else -1
+                    if not 0xDC00 <= lo < 0xE000:
+                        return -1
+                    v, i = 0x10000 + ((v - 0xD800) << 10) + lo - 0xDC00, i + 6
+                elif v < 0 or 0xDC00 <= v < 0xE000:
+                    return -1
+                if v < 0x80:
+                    _line[o] = v
+                    o += 1
+                elif v < 0x800:
+                    _line[o], _line[o + 1] = 0xC0 | v >> 6, 0x80 | v & 63
+                    o += 2
+                elif v < 0x10000:
+                    _line[o], _line[o + 1], _line[o + 2] = 0xE0 | v >> 12, 0x80 | v >> 6 & 63, 0x80 | v & 63
+                    o += 3
+                else:
+                    _line[o], _line[o + 1], _line[o + 2], _line[o + 3] = 0xF0 | v >> 18, 0x80 | v >> 12 & 63, 0x80 | v >> 6 & 63, 0x80 | v & 63
+                    o += 4
+                continue
+            c = _ESC.get(e)
+            if c is None:
+                return -1
+        _line[o] = c
+        o += 1
+    return o
+
+
+def _parse(mv, n):
+    """The line _line[:n] as a dict: with its "body" a memoryview of _line, read in place, when it is
+    an answer ("res"); else json.loads of it. Raises ValueError for one that isn't JSON."""
+    q = _body(n)
+    if q:
+        q0, q1 = q
+        m = json.loads(bytes(mv[:q0 + 1]) + b'"' + bytes(mv[q1 + 1:n]))    # the line without its body
+        if isinstance(m, dict) and m.get("t") == "res" and m.get("body") == "":
+            end = _unescape(q0 + 1, q1)
+            if end < 0:
+                raise ValueError("bad escape")
+            m["body"] = _mv[q0 + 1:end]
+            return m
+    return json.loads(mv)
+
+
 def _handle(mv):
-    """One line from the computer, a memoryview good only for this call."""
+    """One line from the computer, the start of _line (mv is _mv[:len]): good only for this call,
+    or, for the answer a request waits for, until the next _take."""
     global _seen, _got
     n = len(mv)
     if n and mv[n - 1] == 13:
@@ -128,7 +244,10 @@ def _handle(mv):
         _stats["garbage"] += 1
         return
     try:
-        m = json.loads(mv)
+        m = _parse(mv, n)
+    except MemoryError:
+        _stats["nomem"] += 1                # not the relay's fault: counted apart from garbage
+        return
     except Exception:
         _stats["garbage"] += 1
         return
@@ -163,13 +282,14 @@ def _handle(mv):
     _seen = time.ticks_ms()
 
 
-def _nl(s0):
-    """Where the next newline is in the line so far, from s0; -1 for none. Copies nothing: a copy
-    of each piece (up to 2 KB) to look in found no room in a day-old heap (board #2, 2026-11-10)."""
+def _find(sub, a, b):
+    """_line.find(sub, a, b): copies nothing. A copy of each piece (up to 2 KB) to look in found no
+    room in a day-old heap (board #2, 2026-11-10). By the byte where bytearray has no find."""
     if _FIND:
-        return _line.find(b"\n", s0, _n)
-    for i in range(s0, _n):
-        if _line[i] == 10:
+        return _line.find(sub, a, b)
+    c, k = sub[0], len(sub)
+    for i in range(a, b - k + 1):
+        if _line[i] == c and (k == 1 or _line[i:i + k] == sub):
             return i
     return -1
 
@@ -178,49 +298,74 @@ _FIND = hasattr(bytearray, "find")
 
 
 def _take():
-    """Whatever has come, a whole line at a time. Never blocks."""
-    global _n, _skip
-    while _u.any():
-        if _n >= MAX_LINE:                 # too long: drop it, and the rest of it up to its newline
-            _stats["overlong"] += 1
-            _n, _skip = 0, True
-        k = _u.readinto(_mv[_n:min(MAX_LINE, _n + 2048)]) or 0
-        if not k:
-            break
-        s0 = _n
-        _n += k
+    """Whatever has come, a whole line at a time. Never blocks. It stops at the answer a request
+    waits for: that answer's body is read in place (_parse), so the lines after it stay where they
+    are, not moved over it, until the next call."""
+    global _n, _skip, _a
+    s0 = 0
+    if _a:
+        rest = _n - _a
+        if rest:
+            _line[0:rest] = bytes(_mv[_a:_n])
+        _n, _a = rest, 0
+    while True:
         while True:
-            end = _nl(s0)
+            end = _find(b"\n", s0, _n)
             if end < 0:
                 break
             if _skip:
                 _skip = False
             else:
                 _handle(_mv[:end])
+                if _got is not None:
+                    _a = end + 1
+                    return
             rest = _n - end - 1
             if rest:
                 _line[0:rest] = bytes(_mv[end + 1:_n])
             _n, s0 = rest, 0
+        s0 = _n
+        if not _u.any():
+            return
+        if _n >= MAX_LINE:                 # too long: drop it, and the rest of it up to its newline
+            _stats["overlong"] += 1
+            _n, s0, _skip = 0, 0, True
+        k = _u.readinto(_mv[_n:min(MAX_LINE, _n + 2048)]) or 0
+        if not k:
+            return
+        _n += k
 
 
 # ----------------------------------------------------------------------------- out
-def _write(s):
-    _u.write(s.encode() + b"\n" if isinstance(s, str) else s + b"\n")
+REST = 1 << 24      # write(buf, off, REST): buf from off to its end, however long
+
+
+def _write(s, head=None):
+    """One line out, copied nowhere: a status answer is 1 KB, and an encode, a newline added and
+    usblink's {"pq":1, put in front each made one more copy of it. A day-old heap had no 1 KB in one
+    piece, and every answer failed until someone left the screen (board #2, 2026-11-10). head:
+    written first, then s from its second byte."""
+    if head is None:
+        _u.write(s)
+    else:
+        _u.write(head)
+        _u.write(s, 1, REST)
+    _u.write(b"\n")
     _stats["out"] += 1
 
 
 def _flush():
     while _out:
-        _write(_out.pop(0))
+        _write(*_out.pop(0))
     while _logs:
         _write(_logs.pop(0))
 
 
-def send_line(s):
-    """usblink's answers: out at the next pump, whole."""
+def send_line(s, head=None):
+    """usblink's answers: out at the next pump, whole. head: see _write."""
     if len(_out) >= OUT:
         _out.pop(0)
-    _out.append(s)
+    _out.append((s, head))
 
 
 def log(msg):
@@ -288,7 +433,7 @@ def request(method, url, body=None, timeout_ms=None):
         _want, _got = None, None
         _stats["ms"] += time.ticks_diff(time.ticks_ms(), t0)
     status, b = m.get("status"), m.get("body", "")
-    if not isinstance(status, int) or not isinstance(b, str):
+    if not isinstance(status, int) or not isinstance(b, (str, memoryview)):
         _stats["failed"] += 1
         raise LinkError("relay: not an answer")
     if status == 0:

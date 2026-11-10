@@ -1871,6 +1871,8 @@ def tick(t):
         led_tick()
         if svc and svc.lost and state in ("home", "saver"):
             restart_for_memory()
+        if state in ("home", "saver", "result") and time.ticks_diff(time.ticks_ms(), probe_t) >= PROBE_MS:
+            heap_check()
         if state == "practice":
             dirty, dirty_rows = False, None
             prac.draw()                 # its own dirty flag, through d.frames
@@ -1948,6 +1950,38 @@ def restart_for_memory():
         pass
     qlog.write("restart: the HTTPS reserve could not be taken back (heap in pieces)")
     machine.reset()
+
+
+PROBE_B, PROBE_MS, STARVED_N, STARVED_UP_MS = 2048, 5000, 6, 600000
+probe_t = started = time.ticks_ms()
+starved = 0         # heap checks in a row that found no PROBE_B bytes in one piece
+up_long = False     # up STARVED_UP_MS since boot, once seen
+
+
+def heap_check():
+    """Every PROBE_MS on home, the saver or a result: can the heap still give PROBE_B bytes in one
+    piece (an answer, a status line)? A failed allocation collects first, so a failure is a heap in
+    pieces, not garbage. STARVED_N in a row: start again with a whole heap; a signature the service
+    did not take is on flash already and goes out at the first good poll (send_saved). Not in a
+    review or a hold, and not before STARVED_UP_MS up, so it never loops (each start reads the key,
+    a use of it on a quorum v1 chip; console-rp has no clock for restart.txt's rule). Board #2,
+    2026-11-10: after a confirmation failed for memory, every status answer failed for 12 minutes,
+    the watchdog fed, until someone left the result screen."""
+    global probe_t, starved, up_long
+    probe_t = time.ticks_ms()
+    up_long = up_long or time.ticks_diff(probe_t, started) >= STARVED_UP_MS
+    try:
+        bytearray(PROBE_B)
+        starved = 0
+        return
+    except MemoryError:
+        starved += 1
+    if starved >= STARVED_N and up_long:
+        try:
+            qlog.write("restart: no %d bytes in one piece for %d s (heap in pieces)" % (PROBE_B, STARVED_N * PROBE_MS // 1000))
+        except Exception:
+            pass
+        machine.reset()
 
 
 def outside_seen():
