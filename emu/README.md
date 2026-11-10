@@ -1,7 +1,7 @@
 # emu: the console in a browser
 
 The emulator comes from Austin Griffith's [picowallet](https://github.com/austintgriffith/picowallet)
-(MIT): its runtime, shims, page and command line are his, changed since for PicoQuorum.
+(MIT): its runtime, shims, page and command line are his, changed since for Picoquorum.
 
 Real MicroPython (the WebAssembly build of 1.26, the board runs 1.26.1) running the firmware in
 `firmware/` unchanged, with the `machine`/`network`/`requests` modules replaced by shims that talk

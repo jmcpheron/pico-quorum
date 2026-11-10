@@ -8,7 +8,7 @@
 > picoquorum.app, .com, .org and .dev are bought; the repository is public. What exists today:
 > [STATUS.md](STATUS.md).
 
-PicoQuorum's own decisions should go through the same kind of Safe it secures, approved on the same
+Picoquorum's own decisions should go through the same kind of Safe it secures, approved on the same
 consoles. Those decisions are which releases the project stands behind, who controls its name, and
 later its website and funds. One Safe holds them. You hold it alone at first, and it is built to be
 handed over.

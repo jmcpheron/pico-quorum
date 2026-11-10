@@ -1,6 +1,6 @@
 # Instructions for AI coding agents
 
-PicoQuorum is a console that is one owner of a Safe multisig: it shows what a transaction does,
+Picoquorum is a console that is one owner of a Safe multisig: it shows what a transaction does,
 works out its hash itself, and has a key that can't leak sign only that hash. The README says how
 the pieces fit; read it, and the doc for the part you are changing, before you change it.
 

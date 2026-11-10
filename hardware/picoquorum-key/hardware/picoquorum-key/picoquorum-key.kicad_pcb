@@ -12121,7 +12121,7 @@
 				)
 			)
 		)
-		(property "Description" "UDFN-8 2x3 mm, as PicoQuorum's console-s3; placed by JLCPCB (extended part)"
+		(property "Description" "UDFN-8 2x3 mm, as Picoquorum's console-s3; placed by JLCPCB (extended part)"
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -18572,7 +18572,7 @@
 			)
 		)
 	)
-	(gr_text "PicoQuorum.app"
+	(gr_text "Picoquorum.app"
 		(at 139.5 66.099999 0)
 		(layer "F.SilkS")
 		(uuid "42487fee-2100-48e0-8955-de70266eebbb")
@@ -18725,7 +18725,7 @@
 			(justify mirror)
 		)
 	)
-	(gr_text "PicoQuorum.app"
+	(gr_text "Picoquorum.app"
 		(at 120.527999 76 0)
 		(layer "B.SilkS")
 		(uuid "190eb422-548b-4eea-bc0b-282b937a31a1")

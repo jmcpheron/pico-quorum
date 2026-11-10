@@ -87,7 +87,7 @@ def rail(d, labels, hold=None, bg="surface"):
 
 
 def welcome(d, frame):
-    """The dual image's first screen for a customer: the PicoQuorum mark, what happens next in
+    """The dual image's first screen for a customer: the Picoquorum mark, what happens next in
     plain words, and a blockie that changes every frame, a picture of what's coming. Each one is
     drawn from random bytes on this board, not a key: no key exists until Make."""
     import os

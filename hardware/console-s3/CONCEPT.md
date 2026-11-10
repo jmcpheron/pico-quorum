@@ -110,7 +110,7 @@ key. What follows from that:
   rails, so `RAIL_Y` means the same thing it means on the Feather.
 - **Two layers, 1.6 mm, lead-free HASL,** 0.25 mm tracks, JLCPCB's limits with margin. Nothing
   here needs four layers.
-- **Silkscreen:** the mark, the Source Location (`PicoQuorum.app`, whose home page links to the source; CERN-OHL-W
+- **Silkscreen:** the mark, the Source Location (`Picoquorum.app`, whose home page links to the source; CERN-OHL-W
   2.0) and the buttons' names.
 
 ## What JLCPCB does, what the workshop does
@@ -173,7 +173,7 @@ board beats it only from about 15 units, and the first five are a learning order
 - [x] WROOM-1-N4R2 or MINI-1-N4R2? **WROOM-1-N4R2**, on the back, where it doesn't compete with the
       panel for room. The antenna end is flush with the board's edge, with no copper under it.
       On 2026-10-24 it became the **N8R2**, the same footprint and PSRAM: cheaper, ten times the
-      stock, and PicoQuorumKey's module, so both boards share one part
+      stock, and PicoquorumKey's module, so both boards share one part
       ([the order plan](../../ORDER-PLAN-2026-10-24.md#the-module-one-part-for-both-boards)).
 - [ ] A battery later? Then the regulator becomes a low-dropout part and a charger comes back.
       Nothing in this concept blocks it; nothing in it provides for it.

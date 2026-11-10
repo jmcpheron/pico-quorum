@@ -1,4 +1,4 @@
-# Threat model: a Trust M PicoQuorum signer as one owner of a Safe
+# Threat model: a Trust M Picoquorum signer as one owner of a Safe
 
 Written for the other owners. It says what you can rely on, what you can't, and what you can
 check yourself.

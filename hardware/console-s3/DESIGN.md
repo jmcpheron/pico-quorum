@@ -100,7 +100,7 @@ firmware profile; they are BOOT (SW4, on GPIO0 beside D0) and RESET (SW5, EN to 
 are handier on a board that is flashed over its own USB. GPIO5 and GPIO6 have no connection, and the
 board was routed again ([how](#how-it-is-routed)).
 
-Then, on 2026-10-24, three changes after comparing the board with PicoQuorumKey
+Then, on 2026-10-24, three changes after comparing the board with PicoquorumKey
 ([hardware/picoquorum-key](../picoquorum-key/README.md)), drawn apart to the same spec, and the board
 was placed and routed again:
 - **The backlight runs from VBUS through 150 Ω**, not from 3.3 V through 10 Ω. With 0.2 to 0.4 V
@@ -220,7 +220,7 @@ is switched on the high side:
 
 R1 sets the current: (5 − 3.0) V / 150 Ω ≈ 13 mA for a white LED at 3.0 V. At the ends, 5.25 V and
 2.9 V, it is 16 mA, under the 20 mA maximum EastRising's ER-TFT1.14-2 datasheet gives (Vf 2.9 to
-3.1 V at 15 mA), as PicoQuorumKey's DESIGN.md quotes it. 120 Ω gives about 17 mA if it looks dim.
+3.1 V at 15 mA), as PicoquorumKey's DESIGN.md quotes it. 120 Ω gives about 17 mA if it looks dim.
 Until 2026-10-24 this was 3.3 V through 10 Ω: 0.2 to 0.4 V across the resistor, so 20 to 40 mA,
 set by the LED's Vf more than by R1. From VBUS the current also stays off U3.
 
@@ -239,7 +239,7 @@ in, as the concept's step 1 says.
 | part | NFP114H-03AF, printed on the ribbon | probots's listing, and the photo on Walfront's Amazon listing ("ST7789V LCD Display Module 1.14 Inch ... Inline Type 2Pcs"): the same part |
 | glass | 31 × 17 mm | one seller's listing (probots.co.in, "1.14 inch SPI IPS LCD display module ST7789 FPC") |
 | ribbon | 8 pins at 0.5 mm; 54 mm with the glass, so a 23 mm tail | the same listing |
-| folded reach | the tail's end 21.0 ± 0.5 mm in from the glass's edge; the fold 9.1 mm wide, 5.4 to 14.5 mm from the panel's top, at most 0.5 mm past the glass, inside its 1.6 mm | EastRising's ER-TFT1.14-2 datasheet (rev 1.0), as PicoQuorumKey's DESIGN.md reads it: a panel with the same pin order and glass |
+| folded reach | the tail's end 21.0 ± 0.5 mm in from the glass's edge; the fold 9.1 mm wide, 5.4 to 14.5 mm from the panel's top, at most 0.5 mm past the glass, inside its 1.6 mm | EastRising's ER-TFT1.14-2 datasheet (rev 1.0), as PicoquorumKey's DESIGN.md reads it: a panel with the same pin order and glass |
 | pins | 1 LEDA, 2 GND, 3 RESET, 4 RS (DC), 5 SDA, 6 SCL, 7 VDD, 8 CS | the same listing; it numbers only pins 1 and 4. The ribbon's own print marks 1 and 8: seen from the glass's front with the ribbon hanging down, 1 is at the left (Walfront's photo) |
 | active area | 24.912 × 14.864 mm, 135 rows | Waveshare's 1.14″ module |
 | controller | ST7789, 135 × 240 at column 40, row 53 of its RAM | the Feather's panel, as `board.py` drives it |
@@ -337,11 +337,11 @@ y up, in mm.
   clearance 0.2: JLCPCB's 2-layer limits with margin, set in the project's netclass.
 - **Silkscreen**, after [docs/BRAND.md](../../docs/BRAND.md). On the front: D0, D2, BOOT and RESET by
   their buttons (D1 sits between D0 and D2 and needs none: the screen's rail names every button);
-  the glass's corners; the name, PicoQuorum, centred above the glass on the labels' line; and the
+  the glass's corners; the name, Picoquorum, centred above the glass on the labels' line; and the
   mark, 5 mm tall, on the antenna end, which takes ink but no copper. On the back: the lockup, the
   mark left of the name in the panel's proportions, and under it "Nothing signs unseen" (one of
   BRAND.md's draft taglines), "console-s3 rev A · CERN-OHL-W 2.0" and
-  `PicoQuorum.app`, the Source Location (its home page links to the source); the test pads' names.
+  `Picoquorum.app`, the Source Location (its home page links to the source); the test pads' names.
   - The name is Atkinson Hyperlegible Next Bold, as on the panel, 1.3 mm to the cap height on the
     front and 2.3 mm on the back. `wordmark.py` traces it into a footprint, spaced a little wider
     than the face's own spacing: at 1.3 mm its letters are 0.16 mm apart at the closest.

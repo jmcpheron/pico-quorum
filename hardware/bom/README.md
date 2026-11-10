@@ -72,7 +72,7 @@ The board, its pin map and the ordering steps are in
 | Q1 S8050 SOT-23; R 10 Ω, 1 kΩ, 10 kΩ 0603; C 100 nF 0603 | 5 each | placed by JLCPCB, basic parts | the backlight switch and the panel's decoupling |
 | M3 screws or standoffs | 4 per board | | the holes are 3.2 mm |
 
-## First order for the PicoQuorum console and keys
+## First order for the Picoquorum console and keys
 
 From the [kickoff](../../docs/KICKOFF.md#first-parts-order). Nothing ordered yet.
 

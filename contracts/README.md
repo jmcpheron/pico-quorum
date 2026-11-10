@@ -3,7 +3,7 @@
 The Safe owner contract that lets a secure-element P-256 key sign for a Safe, with tests and
 deploy scripts.
 
-PicoQuorum contracts will go here.
+Picoquorum contracts will go here.
 
 For now there is nothing to deploy of our own. Each chip key owns a Safe through Safe's audited
 passkey signer (safe-modules passkey v0.2.1, `SafeWebAuthnSignerFactory.createSigner`). The

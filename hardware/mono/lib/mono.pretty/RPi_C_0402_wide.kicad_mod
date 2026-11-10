@@ -1,0 +1,134 @@
+(footprint "RPi_C_0402_wide"
+	(version 20260206)
+	(generator "pcbnew")
+	(generator_version "10.0")
+	(layer "F.Cu")
+	(property "Reference" "REF**"
+		(at -1.5 0 0)
+		(unlocked yes)
+		(layer "F.SilkS")
+		(uuid "8c39d914-b1b6-47e9-8c96-af71d35702e9")
+		(effects
+			(font
+				(size 0.8 0.5)
+				(thickness 0.125)
+				(bold yes)
+			)
+		)
+	)
+	(property "Value" "RPi_C_0402_wide"
+		(at 0 1 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "fd100019-3e25-4280-9084-1004783fb8b6")
+		(effects
+			(font
+				(size 0.8 0.5)
+				(thickness 0.01)
+				(bold yes)
+			)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "8f9bab91-60b0-4d89-8ff6-2fcc18edfe38")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "cde44e11-732e-41cd-add9-b8220938c5ad")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(sheetname "/")
+	(sheetfile "RPI-RP2350A-MINIMAL_R4-S1.kicad_sch")
+	(attr smd)
+	(duplicate_pad_numbers_are_jumpers no)
+	(fp_rect
+		(start -0.5 -0.25)
+		(end 0.5 0.25)
+		(stroke
+			(width 0.01)
+			(type solid)
+		)
+		(fill no)
+		(layer "F.CrtYd")
+		(uuid "822bfb23-1e12-4f08-9206-2ed8510f9f1d")
+	)
+	(fp_rect
+		(start -0.5 -0.25)
+		(end 0.5 0.25)
+		(stroke
+			(width 0.01)
+			(type solid)
+		)
+		(fill no)
+		(layer "F.Fab")
+		(uuid "fa593564-674c-43c2-bb26-018d2964a2f2")
+	)
+	(fp_rect
+		(start -0.25 -0.25)
+		(end 0.25 0.25)
+		(stroke
+			(width 0.01)
+			(type solid)
+		)
+		(fill no)
+		(layer "F.Fab")
+		(uuid "635592b1-2c6b-4838-83e2-f6de24d69b5e")
+	)
+	(fp_text user "${REFERENCE}"
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(uuid "c68685a4-7090-4c85-af11-66db04e11f6c")
+		(effects
+			(font
+				(size 0.8 0.5)
+				(thickness 0.01)
+			)
+		)
+	)
+	(pad "1" smd rect
+		(at -0.515 0)
+		(size 0.47 0.55)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(clearance 0.125)
+		(uuid "1a0d517e-50e6-4260-aaed-bb5c6d3174b1")
+	)
+	(pad "2" smd rect
+		(at 0.515 0)
+		(size 0.47 0.55)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(clearance 0.125)
+		(uuid "0187b2f7-0b36-4f0a-8dde-2fa38e09eb1b")
+	)
+	(embedded_fonts no)
+	(model "${KICAD10_3DMODEL_DIR}/Capacitor_SMD.3dshapes/C_0402_1005Metric.step"
+		(offset
+			(xyz 0 0 0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 0)
+		)
+	)
+)

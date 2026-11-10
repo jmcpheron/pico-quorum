@@ -4,26 +4,29 @@
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://api.safe.global; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <script src="coi.js"></script>
-<title>PicoQuorum · The console in your browser</title>
+<title>Picoquorum · The console in your browser</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer">
-<meta name="description" content="The PicoQuorum console in your browser: the same firmware as the Pico, with your own passkey as its key. One folder you can read, check and run from your own copy.">
+<meta name="description" content="The Picoquorum console in your browser: the same firmware as the Pico, with your own passkey as its key. One folder you can read, check and run from your own copy.">
 <link rel="icon" href="brand/mark-dark.svg" type="image/svg+xml">
 <link rel="stylesheet" href="console.css">
 </head>
 <body>
 <header class="top">
-  <a class="lockup" href="../" aria-label="PicoQuorum home">
+  <a class="lockup" href="../" aria-label="Picoquorum home">
     <picture>
       <source media="(prefers-color-scheme: light)" srcset="brand/mark-light.svg">
       <img src="brand/mark-dark.svg" width="28" height="26" alt="">
     </picture>
-    <span>PicoQuorum</span>
+    <span>Picoquorum</span>
   </a>
   <nav aria-label="Main">
-    <a href="../guide/">Guide</a>
+    <a href="../learn/">Learn</a>
+    <a href="https://github.com/jmcpheron/pico-quorum/blob/main/docs/guide/README.md">Guide</a>
+    <a href="../#hardware">Hardware</a>
     <a href="./" aria-current="page">Console</a>
     <a href="https://github.com/jmcpheron/pico-quorum">Source</a>
+    <a href="https://x.com/picoquorum" aria-label="Picoquorum on X">X</a>
   </nav>
 </header>
 
@@ -108,8 +111,8 @@
 </main>
 
 <footer>
-  <p>PicoQuorum is inspired by and built on <a href="https://github.com/austintgriffith/picowallet">picowallet</a> by Austin Griffith (MIT). Runs on Raspberry Pi Pico 2 W, and here on MicroPython for WebAssembly.</p>
-  <p class="muted">Hardware approvals for Safe · <a href="https://github.com/jmcpheron/pico-quorum">Source</a> · <a href="https://github.com/jmcpheron/pico-quorum/blob/main/docs/README.md">All the docs</a></p>
+  <p>Picoquorum is inspired by and built on <a href="https://github.com/austintgriffith/picowallet">picowallet</a> by Austin Griffith (MIT). Runs on Raspberry Pi Pico 2 W, and here on MicroPython for WebAssembly.</p>
+  <p class="muted">Hardware approvals for Safe · <a href="https://github.com/jmcpheron/pico-quorum">Source</a> · <a href="https://github.com/jmcpheron/pico-quorum/blob/main/docs/README.md">All the docs</a> · <a href="https://x.com/picoquorum">@picoquorum on X</a></p>
 </footer>
 <script type="module" src="console.js"></script>
 </body>

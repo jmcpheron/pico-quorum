@@ -1,7 +1,7 @@
 (kicad_sch (version 20250114) (generator "picoquorum_gen") (generator_version "9.0")
 (uuid "99ffb570-8d4c-4d25-b627-0780912f23ad")
 (paper "A4")
-(title_block (title "PicoQuorum key, rev A: UDFN-8, assembled") (date "2026-10-02") (rev "A") (company "PicoQuorum")
+(title_block (title "Picoquorum key, rev A: UDFN-8, assembled") (date "2026-10-02") (rev "A") (company "Picoquorum")
   (comment 1 "The PCB is the plug: see hardware/key-pcb/README.md"))
 (lib_symbols
 (symbol "picoquorum:ATECC608C-MAHDA" (pin_names (offset 1.016)) (exclude_from_sim no) (in_bom yes) (on_board yes)

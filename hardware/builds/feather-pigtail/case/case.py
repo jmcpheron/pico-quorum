@@ -222,7 +222,7 @@ def tray():
     part = part.cut(usb_cut())
     part = part.union(cradle()).cut(pocket_cut()).union(keepers()).union(lips())
     # underneath, mirrored so it reads with the tray turned over: the name and the Source Location
-    for text, y, size in (("PicoQuorum feather-pigtail v2", -1.5, 2.6), ("github.com/jmcpheron/pico-quorum", -6.0, 2.2),
+    for text, y, size in (("Picoquorum feather-pigtail v2", -1.5, 2.6), ("github.com/jmcpheron/pico-quorum", -6.0, 2.2),
                           ("plug %.1f x %.1f x %.1f" % (PLUG_W, PLUG_H, PLUG_L), -10.0, 2.2)):
         t = (cq.Workplane("XY").text(text, size, 0.4, kind="bold", halign="center", valign="center")
              .mirror("YZ").translate((0, y, -0.01)))

@@ -1,4 +1,4 @@
-// tools/quorum release-e2e: a PicoQuorum release approved by a Safe, end to end, on a real chain and
+// tools/quorum release-e2e: a Picoquorum release approved by a Safe, end to end, on a real chain and
 // no hardware (docs/GOVERNANCE.md). An Anvil fork of Base (port 8547), the forked Family Safe behind
 // the service (8799), and the console firmware on the emulator with its virtual ATECC608:
 //   1. Alice proposes that the Safe approve this checkout's release (a delegatecall to Safe's

@@ -1,6 +1,6 @@
-// Builds the app into docs/app/, the front page into docs/index.html and the handheld's page into
-// docs/handheld/, which GitHub Pages serves
-// with the rest of docs/:
+// Builds the app into docs/app/, the front page into docs/index.html, the handheld's page into
+// docs/handheld/ and the learn page into docs/learn/, which GitHub Pages serves with the rest of
+// docs/:
 //   cd web && npm ci && npm run build
 // One bundle (esbuild; viem and noble pinned in package.json), the stylesheet, the fonts, and
 // index.html with subresource-integrity hashes for both. The front page is static HTML and its own
@@ -28,7 +28,7 @@ const pinned = { viem: "viem", "@noble/curves": "@noble/curves", "@noble/hashes"
 const meta = await build({
   entryPoints: [join(HERE, "src/main.mjs")], bundle: true, minify: true, format: "esm", target: "es2022",
   outfile: join(OUT, "app.js"), legalComments: "eof", alias: pinned, logLevel: "warning", absWorkingDir: HERE,
-  banner: { js: "// PicoQuorum Execute page. Source: web/ in github.com/jmcpheron/pico-quorum" }, metafile: true,
+  banner: { js: "// Picoquorum Execute page. Source: web/ in github.com/jmcpheron/pico-quorum" }, metafile: true,
 });
 const outside = Object.keys(meta.metafile.inputs).filter((f) => /node_modules/.test(f) && !f.startsWith("node_modules/"));
 if (outside.length) throw new Error(`dependencies bundled from outside web/node_modules: ${outside.slice(0, 3).join(", ")}`);
@@ -50,7 +50,7 @@ writeFileSync(join(OUT, "index.html"), readFileSync(join(HERE, "src/index.html")
 copyFileSync(join(HERE, "src/home.css"), join(OUT, "../home.css"));
 writeFileSync(join(OUT, "../index.html"), readFileSync(join(HERE, "src/home.html"), "utf8").replace("%%HOME_CSS_SRI%%", sri("../home.css")));
 
-// The handheld's page (docs/handheld/), for links from social posts: static like the front page, with
+// The handheld's page (docs/handheld/), kept for links already shared: static like the front page, with
 // the case's own assembly pictures and its share card (web/handheld-card.py), and the front page's
 // pictures of the other hardware. All copied as they are, so a picture's source is its only copy.
 const CASE = "../hardware/builds/pico-sign-handheld/case/out/assembly/";
@@ -61,14 +61,18 @@ const pictures = {
   "../handheld/card.png": "src/handheld-card.png",
   ...Object.fromEntries(steps.map((s) => [`../handheld/img/${s}.png`, `${CASE}${s}.png`])),
   "../img/key-c.jpg": "../hardware/key-pcb/key-c-usbc/renders/key-c-P2-3q-top.jpg",
-  "../img/console-s3.jpg": "../hardware/console-s3/renders/console-s3-3q-top.jpg",
+  "../img/console-rp.jpg": "../hardware/console-rp/renders/console-rp-3q.jpg",
 };
 mkdirSync(join(OUT, "../handheld/img"), { recursive: true });
 mkdirSync(join(OUT, "../img"), { recursive: true });
 for (const [to, from] of Object.entries(pictures)) copyFileSync(join(HERE, from), join(OUT, to));
 writeFileSync(join(OUT, "../handheld/index.html"), readFileSync(join(HERE, "src/handheld.html"), "utf8").replace("%%HOME_CSS_SRI%%", sri("../home.css")));
+// The learn page (docs/learn/): a card per explainer video, each linking its script (docs/videos/).
+// Static like the other two, with no picture of its own until a video has a thumbnail.
+mkdirSync(join(OUT, "../learn"), { recursive: true });
+writeFileSync(join(OUT, "../learn/index.html"), readFileSync(join(HERE, "src/learn.html"), "utf8").replace("%%HOME_CSS_SRI%%", sri("../home.css")));
 const files = ["index.html", "app.js", "app.css", ...Object.keys(fonts).map((f) => "fonts/" + f), "../index.html", "../home.css",
-  "../handheld/index.html", ...Object.keys(pictures)];
+  "../handheld/index.html", "../learn/index.html", ...Object.keys(pictures)];
 writeFileSync(join(OUT, "BUILD.json"), JSON.stringify({
   note: "SHA-256 of every file web/build.mjs wrote (../ is docs/, the front page). Rebuild from the same commit (cd web && npm ci && npm run build) and compare.",
   build: build8, files: Object.fromEntries(files.map((f) => [f, sha(f)])),

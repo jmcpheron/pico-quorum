@@ -2,7 +2,7 @@
 
 *2026-10-25. The GPIO table rev B is built on, as wired in `tools/gen/circuit.py` and the generated
 schematic. It is a new profile under spec rule 2. The console firmware has carried it since
-2026-10-24, as `picoquorum-key` in PicoQuorum's `firmware/board.py`; it reaches a board with the
+2026-10-24, as `picoquorum-key` in Picoquorum's `firmware/board.py`; it reaches a board with the
 next release. The constants are also in
 [../firmware/profile/picoquorum_key.py](../firmware/profile/picoquorum_key.py).*
 
@@ -109,7 +109,7 @@ R6 and R7 (4.7k) pull both high, so it picks `picoquorum-key`. The Feather, cons
 wings leave both free, so they read low and stay `feather-s3`. **Keep pull-ups on 16 and 17**: a
 later revision without them would get the Feather's profile, which drives GPIO40–42 as outputs.
 
-Checked on the laptop, not yet on a board: PicoQuorum's `test-vectors/feather_s3_test.py` runs the
+Checked on the laptop, not yet on a board: Picoquorum's `test-vectors/feather_s3_test.py` runs the
 profile on a stand-in S3 with 16/17 pulled up, and `test-vectors/run-console.mjs` runs the
 three-button console on it in the emulator.
 

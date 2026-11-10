@@ -1,4 +1,4 @@
-# The PicoQuorum lockup (the mark left of the name) as SVG, for the README and anywhere else that
+# The Picoquorum lockup (the mark left of the name) as SVG, for the README and anywhere else that
 # shows an <img>: docs/brand/lockup-dark.svg and lockup-light.svg. The name is outlined from
 # Atkinson Hyperlegible Next Bold (the app's own copy, docs/app/fonts/next-700.woff2), so it looks
 # the same without the font installed. Proportions are docs/BRAND.md's: name 26 px, ring radius
@@ -17,7 +17,7 @@ ROOT = os.path.join(HERE, "..", "..")
 FONT = os.path.join(ROOT, "docs", "app", "fonts", "next-700.woff2")
 OUT = os.path.join(ROOT, "docs", "brand")
 
-NAME, SIZE, R, CX, X0, PAD = "PicoQuorum", 26, 12, 13, 34, 2
+NAME, SIZE, R, CX, X0, PAD = "Picoquorum", 26, 12, 13, 34, 2
 
 # docs/BRAND.md: text, signed green, waiting amber, and the triangle as face green mixed 55% into
 # the ground. The mark's own files (mark-dark.svg, mark-light.svg) use the same values.
@@ -55,7 +55,7 @@ def svg(theme, d, adv, cap):
         for k, (x, y) in enumerate(pts))
     w = PAD + X0 + adv + PAD
     return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w:.2f} {h:.2f}" width="{w * 4:.0f}" height="{h * 4:.0f}">\n'
-            f'<title>PicoQuorum</title>\n'
+            f'<title>Picoquorum</title>\n'
             f'<polygon points="{tri}" fill="{c["tri"]}"/>\n{dots}\n'
             f'<path transform="translate({PAD + X0} {base:.2f})" fill="{c["text"]}" d="{d}"/>\n</svg>\n')
 

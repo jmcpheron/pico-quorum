@@ -167,7 +167,7 @@ as loose pins in the console's case, plus two more magnets.
 
 ## The mark
 
-Both keys carry the PicoQuorum mark on the back, 5 mm tall, under the lanyard hole
+Both keys carry the Picoquorum mark on the back, 5 mm tall, under the lanyard hole
 (`lib/picoquorum.pretty/PicoQuorum_Mark`, drawn by `gen_cd.py` from
 [docs/BRAND.md](../../docs/BRAND.md)'s geometry). Silkscreen has one colour, so the mark shows
 "three of five" by shape:

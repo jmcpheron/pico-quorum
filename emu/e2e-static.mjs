@@ -98,7 +98,7 @@ check(await con.evaluate(() => ["key-row", "safes-row", "owner-row"].map((id) =>
 const made = JSON.parse(await con.evaluate(() => localStorage.getItem("emu.passkey")));
 check(/made for localhost/.test(await con.locator("#key").innerText()) && await con.locator(`#owner-how a[href="${SITE_APP}#/signer/${made.x}/${made.y}"]`).count() === 1,
   "the panel names the key, your passkey for this site, and (on localhost: a copy on your own computer) links an owner of the Safe to its signer's page in the app on the site, its key in the link");
-check(await con.evaluate(() => document.querySelector("header nav a").href) === "https://picoquorum.app/guide/",
+check(await con.evaluate(() => document.querySelector('header nav a[href*="#hardware"]').href) === "https://picoquorum.app/#hardware",
   "and the site's header links go to the site");
 const synced = (await cdp2.send("WebAuthn.getCredentials", { authenticatorId: auth2 })).credentials;
 // adding a Safe you already have, right there: a bad address is refused, Safe{Wallet}'s "basesep:0x…" picks the chain
@@ -162,7 +162,7 @@ const drew3 = await three.waitForFunction(() => document.querySelector("#overlay
 const lit3Now = () => three.evaluate(() => { const d = document.querySelector("#screen").getContext("2d").getImageData(0, 0, 240, 135).data; let n = 0; for (let i = 0; i < d.length; i += 4) n += d[i] + d[i + 1] + d[i + 2] > 60; return n; });
 let lit3 = drew3 ? await lit3Now() : 0;
 for (let i = 0; drew3 && i < 25 && lit3 <= 1000; i++) { await three.waitForTimeout(200); lit3 = await lit3Now(); }    // the splash draws in steps
-check(drew3 && lit3 > 1000, `and the firmware draws on it, as the PicoQuorumKey's profile (${lit3} lit pixels)`);
+check(drew3 && lit3 > 1000, `and the firmware draws on it, as the PicoquorumKey's profile (${lit3} lit pixels)`);
 await three.waitForTimeout(3000);                // past the splash
 if (process.env.SHOTS) await three.locator(".device").screenshot({ path: join(process.env.SHOTS, "console-three.png") });
 const shot3 = () => three.evaluate(() => document.querySelector("#screen").toDataURL());

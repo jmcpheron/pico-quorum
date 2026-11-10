@@ -96,7 +96,7 @@ const owners = [alice.address, chip, getAddress("0x3C44CdDdB6a900fa2b585dd299e03
 const c = await S.checkTx(fake, chainId, safe, owners, t);
 check(!c.problems.length, "checkTx: the service's hash, the fields' hash and the Safe's agree");
 check(c.valid.length === 2, "checkTx: the ECDSA and the console's contract confirmation are both valid");
-check(c.confirmations[1].console && c.confirmations[1].kind === "contract", "checkTx: the console's confirmation is a contract signature naming PicoQuorum");
+check(c.confirmations[1].console && c.confirmations[1].kind === "contract", "checkTx: the console's confirmation is a contract signature naming Picoquorum");
 
 const { signatures } = S.execCall(t, c.valid, 2);
 const sorted = [alice.address, chip].sort((a, b) => (BigInt(a) < BigInt(b) ? -1 : 1));
@@ -242,21 +242,25 @@ try {
   const built = JSON.parse(readFileSync(`${ROOT}docs/app/BUILD.json`, "utf8"));
   const sha = (await import("node:crypto")).createHash("sha256").update(readFileSync(`${ROOT}docs/app/app.js`)).digest("hex");
   check(built.files["app.js"] === sha, "docs/app/BUILD.json: matches app.js");
+  const { existsSync } = await import("node:fs");
   const home = readFileSync(`${ROOT}docs/index.html`, "utf8");
   check(/<a class="btn go big" href="app\/">Launch app/.test(home) && !/%%/.test(home) && !/<script/i.test(home),
     "docs/index.html: the front page launches the app, has no script and no unfilled placeholder");
   const hand = readFileSync(`${ROOT}docs/handheld/index.html`, "utf8");
   check(!/%%/.test(hand) && !/<script/i.test(hand) && /<meta name="twitter:card" content="summary_large_image">/.test(hand),
     "docs/handheld/index.html: no script, no unfilled placeholder, a large share card");
-  // every local picture, stylesheet and link on the two static pages is a file the site serves
-  const { existsSync } = await import("node:fs");
+  const learn = readFileSync(`${ROOT}docs/learn/index.html`, "utf8");
+  const scripts = [...learn.matchAll(/blob\/main\/(docs\/videos\/[\w-]+\.md)"/g)].map((m) => m[1]);
+  check(!/%%/.test(learn) && !/<script/i.test(learn) && scripts.length >= 10 && scripts.every((f) => existsSync(ROOT + f)),
+    "docs/learn/index.html: no script, no unfilled placeholder, and every video script it links is in docs/videos/");
+  // every local picture, stylesheet and link on the three static pages is a file the site serves
   const missing = [];
-  for (const [dir, html] of [["docs/", home], ["docs/handheld/", hand]])
+  for (const [dir, html] of [["docs/", home], ["docs/handheld/", hand], ["docs/learn/", learn]])
     for (const [, url] of html.matchAll(/(?:src|srcset|href)="([^"#:]+)(?:#[^"]*)?"/g)) {
       const f = new URL(url, `file://${ROOT}${dir}`).pathname;
       if (!existsSync(f.endsWith("/") ? f + "index.html" : f) && !existsSync(f + "README.md") && !existsSync(f + "index.md")) missing.push(dir + url);
     }
-  check(!missing.length, `the front page and the handheld's: every local picture and link is in docs/${missing.length ? `; missing: ${missing.join(", ")}` : ""}`);
+  check(!missing.length, `the front page, the handheld's and the learn page: every local picture and link is in docs/${missing.length ? `; missing: ${missing.join(", ")}` : ""}`);
 } catch (e) {
   check(false, `docs/app: ${e.message} (run npm run build)`);
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PicoQuorum key PCB, rev A: the PCB is the plug. Writes both KiCad 9 projects from scratch.
+"""Picoquorum key PCB, rev A: the PCB is the plug. Writes both KiCad 9 projects from scratch.
 
     python3 hardware/key-pcb/gen.py          (needs KiCad 9: its pcbnew Python module and kicad-cli)
 
@@ -32,14 +32,14 @@ USBLC6_DS = "https://www.st.com/resource/en/datasheet/usblc6-2.pdf"
 # 2.90 mm apart and a 1.5 x 1.3 mm centre pad, which is what KiCad's 3x2 DFN draws.
 BOARDS = {
     "key-a-soic": dict(
-        title="PicoQuorum key, rev A: SOIC-8, hand-soldered",
+        title="Picoquorum key, rev A: SOIC-8, hand-soldered",
         chip="ATECC608C-SSHDA", chip_fp="Package_SO:SOIC-8_3.9x4.9mm_P1.27mm",
         chip_lcsc="C28975195", chip_mpn="ATECC608C-SSHDA-B",
         cap_fp="Capacitor_SMD:C_0805_2012Metric", cap_lcsc="C49678",
         res_fp="Resistor_SMD:R_0805_2012Metric",
     ),
     "key-b-udfn": dict(
-        title="PicoQuorum key, rev A: UDFN-8, assembled",
+        title="Picoquorum key, rev A: UDFN-8, assembled",
         chip="ATECC608C-MAHDA", chip_fp="Package_DFN_QFN:DFN-8-1EP_3x2mm_P0.5mm_EP1.3x1.5mm",
         chip_lcsc="C23291019", chip_mpn="ATECC608C-MAHDA-S",
         cap_fp="Capacitor_SMD:C_0402_1005Metric", cap_lcsc="C1525",
@@ -237,7 +237,7 @@ class Sheet:
             f.write(f"""(kicad_sch (version 20250114) (generator "picoquorum_gen") (generator_version "9.0")
 (uuid "{self.root}")
 (paper "A4")
-(title_block (title "{title}") (date "{DATE}") (rev "A") (company "PicoQuorum")
+(title_block (title "{title}") (date "{DATE}") (rev "A") (company "Picoquorum")
   (comment 1 "The PCB is the plug: see hardware/key-pcb/README.md"))
 (lib_symbols
 {cache})
@@ -397,7 +397,7 @@ def write_blade_footprint():
            f'(fp_rect (start {-half - 0.25} 0.25) (end {half + 0.25} {-FINGER_END - 0.25}) (stroke (width 0.05) (type default)) (fill no) (layer "F.CrtYd") (uuid "{uid()}"))']
     with open(os.path.join(d, "KeyBlade_7P_P2.54mm.kicad_mod"), "w") as f:
         f.write(f"""(footprint "KeyBlade_7P_P2.54mm" (version 20241229) (generator "picoquorum_gen") (generator_version "9.0") (layer "F.Cu")
-(descr "PicoQuorum key blade: 7 fingers at 2.54 mm on the top side of an 8-position 0.062in card edge, staggered so GND mates first and DETECT last; position 6 is the keying slot (cut in Edge.Cuts by the board). The board edge is the plug.")
+(descr "Picoquorum key blade: 7 fingers at 2.54 mm on the top side of an 8-position 0.062in card edge, staggered so GND mates first and DETECT last; position 6 is the keying slot (cut in Edge.Cuts by the board). The board edge is the plug.")
 (tags "card edge gold fingers staggered")
 (property "Reference" "J1" (at 0 {-FINGER_END - 4} 0) (layer "F.SilkS") (hide yes) (uuid "{uid()}") (effects (font (size 1 1) (thickness 0.15))))
 (property "Value" "KeyBlade_7P" (at 0 1.5 0) (layer "F.Fab") (uuid "{uid()}") (effects (font (size 1 1) (thickness 0.15))))
@@ -509,7 +509,7 @@ def write_board(name, b, netlist):
     ds.m_TentViasFront = True
     ds.m_TentViasBack = True
     tb = board.GetTitleBlock()
-    tb.SetTitle(b["title"]); tb.SetDate(DATE); tb.SetRevision("A"); tb.SetCompany("PicoQuorum")
+    tb.SetTitle(b["title"]); tb.SetDate(DATE); tb.SetRevision("A"); tb.SetCompany("Picoquorum")
 
     nets = {}
     for n in sorted({net for comp in netlist.values() for net in comp["pads"].values()}):
@@ -760,8 +760,8 @@ def _text(board, s, x, y, layer, size=1.0, mirror=False):
 def _silk(board, name):
     import pcbnew
     F, B = pcbnew.F_SilkS, pcbnew.B_SilkS
-    _text(board, "PICOQUORUM", 0, -24.8, F, 1.2)
-    _text(board, "PicoQuorum key", 0, -24.8, B, 1.2, mirror=True)
+    _text(board, "Picoquorum", 0, -24.8, F, 1.2)
+    _text(board, "Picoquorum key", 0, -24.8, B, 1.2, mirror=True)
     _text(board, f"{name} rev A {DATE[:7]}", 0, -22.8, B, 0.8, mirror=True)
     _text(board, "fingers face up", 0, -12.2, B, 0.8, mirror=True)
     _text(board, "GND mates first, DETECT last", 0, -11.0, B, 0.8, mirror=True)
@@ -792,10 +792,10 @@ def read_netlist(name):
 def write_lib_tables(d):
     with open(os.path.join(d, "sym-lib-table"), "w") as f:
         f.write('(sym_lib_table\n  (version 7)\n  (lib (name "picoquorum")(type "KiCad")'
-                '(uri "${KIPRJMOD}/../lib/picoquorum.kicad_sym")(options "")(descr "PicoQuorum key parts"))\n)\n')
+                '(uri "${KIPRJMOD}/../lib/picoquorum.kicad_sym")(options "")(descr "Picoquorum key parts"))\n)\n')
     with open(os.path.join(d, "fp-lib-table"), "w") as f:
         f.write('(fp_lib_table\n  (version 7)\n  (lib (name "picoquorum")(type "KiCad")'
-                '(uri "${KIPRJMOD}/../lib/picoquorum.pretty")(options "")(descr "PicoQuorum key footprints"))\n)\n')
+                '(uri "${KIPRJMOD}/../lib/picoquorum.pretty")(options "")(descr "Picoquorum key footprints"))\n)\n')
 
 
 def main():

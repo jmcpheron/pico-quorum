@@ -2,18 +2,18 @@
 
 > **Living notes (started 2026-09-25).** Hegotá is the Ethereum fork after Glamsterdam, expected
 > in 2027. Nothing below is final. "Considered" status doesn't mean an EIP will ship. Update this
-> file as EIPs move, and move anything that changes a PicoQuorum decision into the
+> file as EIPs move, and move anything that changes a Picoquorum decision into the
 > [kickoff](KICKOFF.md).
 
 Why this matters to us: the key signs with **P-256** and only P-256. It can approve a Safe
 transaction through a P-256 owner contract, but it can't *send* one: today an ordinary secp256k1
 account holding ETH has to submit `execTransaction`. Most of the Hegotá account work is about
-letting an account's code decide what counts as a valid signature. PicoQuorum is already built
+letting an account's code decide what counts as a valid signature. Picoquorum is already built
 that way.
 
 ## Worth watching
 
-| EIP | What it is | What it could mean for PicoQuorum |
+| EIP | What it is | What it could mean for Picoquorum |
 |---|---|---|
 | [8141](https://eips.ethereum.org/EIPS/eip-8141) Frame transactions | A transaction made of frames: one validates, one approves gas payment, one executes | **The console sends the transaction itself.** A validation frame checks the chip's P-256 signature, and the account or a sponsor pays the gas, possibly in a token instead of ETH. The last approver presses Sign and the console submits over Wi-Fi: no browser wallet, no ETH-funded EOA. Simplifies [test ladder](KICKOFF.md#test-ladder) rung 3. |
 | Tx assertions via state-diff opcode (number not yet confirmed here) | A frame can assert what the transaction changed | **Enforce what the screen showed.** The console could add a closing assertion ("only 50 USDC leaves the Safe, to 0xabc…") so a hidden delegatecall or surprise side effect reverts. The chip would sign the *outcome*, not just a hash. We haven't read this EIP yet; this is from its title. |

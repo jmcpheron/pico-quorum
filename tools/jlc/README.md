@@ -45,8 +45,10 @@ nothing from it (console-s3's is in `hardware/console-s3/gen_console_s3.py`, con
 `tools/keypcb jlc --selftest <board>` breaks a copy of the board once per check (a thin track, a
 thin via ring, a via in a pad, an island, a pad on the wrong net, a hole out of the drill file, a
 row out of the CPL, parts too tall, a stale zip, a thinned track against the golden pictures) and wants
-each one caught. Their pictures go to `fab/check/selftest/`. On console-s3, 2026-10-23: 10 of 10.
-On console-s3 and console-rp, 2026-10-29: 10 of 10 each.
+each one caught. Their pictures go to `fab/check/selftest/`. The parts made too tall are the
+SOT-23s, or, on a board with none under its glass, the footprint its spec names in
+`fit.selftest_tall`. On console-s3, 2026-10-23: 10 of 10.
+On console-s3 and console-rp, 2026-10-29: 10 of 10 each. On mono, 2026-11-06: 10 of 10.
 
 ## What it needs
 

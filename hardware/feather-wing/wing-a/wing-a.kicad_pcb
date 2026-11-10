@@ -8,10 +8,10 @@
 	)
 	(paper "A4")
 	(title_block
-		(title "PicoQuorum key wing, wing-a: key-c's USB-C port behind a Feather ESP32-S3 Reverse TFT (FeatherWing-compatible)")
+		(title "Picoquorum key wing, wing-a: key-c's USB-C port behind a Feather ESP32-S3 Reverse TFT (FeatherWing-compatible)")
 		(date "2026-10-23")
 		(rev "A")
-		(company "PicoQuorum")
+		(company "Picoquorum")
 		(comment 1 "A FeatherWing-compatible key port: see hardware/feather-wing/README.md")
 	)
 	(layers
@@ -1704,7 +1704,7 @@
 		(layer "F.Cu")
 		(uuid "74483175-759f-4e20-9c8c-11bfa6b98948")
 		(at 148.2 128.57)
-		(descr "The PicoQuorum mark, one colour, for silkscreen: docs/BRAND.md")
+		(descr "The Picoquorum mark, one colour, for silkscreen: docs/BRAND.md")
 		(tags "logo")
 		(property "Reference" "LOGO1"
 			(at 0 -4 0)
@@ -4351,7 +4351,7 @@
 			(justify mirror)
 		)
 	)
-	(gr_text "PicoQuorum key wing"
+	(gr_text "Picoquorum key wing"
 		(at 125 124.6 0)
 		(layer "B.SilkS")
 		(uuid "fc5e1377-595f-47c4-a28c-37ed71ea81dc")

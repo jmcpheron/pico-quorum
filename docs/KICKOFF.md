@@ -1,4 +1,4 @@
-# PicoQuorum: Project Kickoff
+# Picoquorum: Project Kickoff
 
 > **Living draft.** The design is still changing. Edit this file as decisions get made, and move
 > settled decisions out of "Open decisions" with a one-line reason.
@@ -12,7 +12,7 @@ A physical approval device for [Safe](https://safe.global) multisig wallets. Eac
 Where things stand today, with every Safe, key and address: [STATUS.md](STATUS.md). The per-chain
 test steps: [LADDER.md](LADDER.md).
 
-This kickoff is the design: what PicoQuorum is for, the hardware and firmware layers, and the
+This kickoff is the design: what Picoquorum is for, the hardware and firmware layers, and the
 decisions still open. The hardware below (plug-in keys, the console with its guarded button and
 dial) is still being built. Until it is, the **dev console** is the build picowallet started from: a
 Pico 2 W, a Waveshare Pico-LCD-1.3 and an ATECC608 breakout
@@ -21,7 +21,7 @@ the bench ([BUILD1.md](../hardware/wiring/BUILD1.md)).
 
 ## What this is
 
-PicoQuorum is a physical approval device for Safe multisig accounts. Each signer holds a **key**: a chunky dual plug with a secure element in its handle (an ATECC608 today; the Infineon OPTIGA Trust M is still an option, see [Open decisions](#open-decisions)). The key plugs into a **console**: a Raspberry Pi Pico–based box with a screen, a paging dial, a guarded green **Sign** button and an easy red **Reject** button, both pressed with a thumb.
+Picoquorum is a physical approval device for Safe multisig accounts. Each signer holds a **key**: a chunky dual plug with a secure element in its handle (an ATECC608 today; the Infineon OPTIGA Trust M is still an option, see [Open decisions](#open-decisions)). The key plugs into a **console**: a Raspberry Pi Pico–based box with a screen, a paging dial, a guarded green **Sign** button and an easy red **Reject** button, both pressed with a thumb.
 
 The console fetches pending Safe transactions and decodes them into plain language. It computes the Safe transaction hash itself, and only then asks the key to sign. Each private key is generated inside its chip, never leaves it, and never exists as a seed phrase.
 
@@ -165,7 +165,7 @@ before real money.
 
 ## Target multisig shape (for reference)
 
-A 3-of-5 where no single technology holds more than two keys: a warm wallet (proposes transactions and pays gas), a conventional hardware wallet off-site, two PicoQuorum keys held by trusted people, and a paper seed sealed with a lawyer. More keys can move to PicoQuorum only after the hardware earns trust.
+A 3-of-5 where no single technology holds more than two keys: a warm wallet (proposes transactions and pays gas), a conventional hardware wallet off-site, two Picoquorum keys held by trusted people, and a paper seed sealed with a lawyer. More keys can move to Picoquorum only after the hardware earns trust.
 
 ## Repo layout
 
@@ -177,7 +177,7 @@ hardware/
   bom/           parts lists and sourcing notes
   key-pcb/       key board design
 firmware/        MicroPython (upstream drivers plus Safe layers; safe_tx.py so far)
-contracts/       PicoQuorum's own contracts, when there are any
+contracts/       Picoquorum's own contracts, when there are any
 tools/           mock transaction service, provisioning scripts, vector generator, emulator and board tools
 test-vectors/    Safe transactions with known-correct hashes
 ```
@@ -201,5 +201,5 @@ See [`hardware/bom/README.md`](../hardware/bom/README.md).
 - [ ] Button choice and layout (beside the screen vs. below it)
 - [ ] Flip cover vs. guard fence
 - [ ] Printed vs. aluminum enclosure
-- [ ] Faceplate name: "PicoQuorum" or just "Quorum"
+- [ ] Faceplate name: "Picoquorum" or just "Quorum"
 - [x] When to prune the inherited single-token code: done 2026-10-06 (`app/` ChipAccount/USDS, the Waveshare case, the Pi signer)

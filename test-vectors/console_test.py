@@ -1086,7 +1086,7 @@ def case_passkey():
 
 
 def case_release_approval():
-    """The project Safe approving a PicoQuorum release (release.py): a delegatecall to the pinned
+    """The project Safe approving a Picoquorum release (release.py): a delegatecall to the pinned
     SignMessageLib, its release named in the origin note. The console reads it, shows the release
     and its fingerprint's blockie (and whether this console runs it), and signs it like any other
     transaction; a note that doesn't give the calldata's digest is refused."""
@@ -1135,7 +1135,7 @@ def case_release_approval():
     check(bool(eb["why"]) and "doesn't match" in eb["why"], "a note naming another release than the calldata's digest: refused")
     serve(Q, [good, other])
     eo = [x for x in Q.queue if x["n"] == 2][0]
-    check(bool(eo["why"]) and "no PicoQuorum release" in eo["why"], "a message with no release named: refused (it signs only releases)")
+    check(bool(eo["why"]) and "no Picoquorum release" in eo["why"], "a message with no release named: refused (it signs only releases)")
 
 
 class TurningKnob:
@@ -1759,7 +1759,7 @@ def case_setup_link():
     clock = Clock()
     WS.time, usblink.time = clock, clock
     keys = Keys()
-    WS._keys, WS.ap_ssid, WS.view, WS._link = keys, "PicoQuorum-TEST", "qr", usblink
+    WS._keys, WS.ap_ssid, WS.view, WS._link = keys, "Picoquorum-TEST", "qr", usblink
     WS._draw = lambda: None
     usblink.host, usblink.mode, usblink.open_ask = WS, "setup", None
     wificfg.save("home", "a-secret-pass")
@@ -1769,7 +1769,7 @@ def case_setup_link():
         usblink.handle(json.dumps(d))
         return sent[-1] if sent else None
     r = req({"id": 1, "op": "status"})
-    check(r["mode"] == "setup" and r["hotspot"] == "PicoQuorum-TEST" and r["wifi"]["saved"] == ["home"] and "a-secret" not in json.dumps(r),
+    check(r["mode"] == "setup" and r["hotspot"] == "Picoquorum-TEST" and r["wifi"]["saved"] == ["home"] and "a-secret" not in json.dumps(r),
           "setup: status names the hotspot and saved networks, never a password")
     check(req({"id": 2, "op": "safes", "safes": [{"chainId": CHAIN, "address": OTHER, "name": "x"}]})["why"].startswith("not here"),
           "setup: only a network may be asked")

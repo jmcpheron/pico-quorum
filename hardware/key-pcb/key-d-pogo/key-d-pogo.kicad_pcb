@@ -8,10 +8,10 @@
 	)
 	(paper "A4")
 	(title_block
-		(title "PicoQuorum key, proposal D: pogo pads and magnets")
+		(title "Picoquorum key, proposal D: pogo pads and magnets")
 		(date "2026-10-02")
 		(rev "P1")
-		(company "PicoQuorum")
+		(company "Picoquorum")
 	)
 	(layers
 		(0 "F.Cu" signal)
@@ -1346,8 +1346,8 @@
 		(layer "B.Cu")
 		(uuid "02940b2e-93ae-4571-9fa4-ff25cf1f3d52")
 		(at 109 108.6 180)
-		(descr "The PicoQuorum mark, 5.0 mm tall, in one colour for silkscreen: three signed dots solid, two waiting dots as rings. docs/BRAND.md")
-		(tags "logo PicoQuorum")
+		(descr "The Picoquorum mark, 5.0 mm tall, in one colour for silkscreen: three signed dots solid, two waiting dots as rings. docs/BRAND.md")
+		(tags "logo Picoquorum")
 		(property "Reference" "LOGO1"
 			(at 0 3.5 0)
 			(layer "B.SilkS")
@@ -1478,7 +1478,7 @@
 		(layer "B.Cu")
 		(uuid "ab0800a1-341c-4b6b-992a-c89050f091f2")
 		(at 109 128.5 180)
-		(descr "PicoQuorum key contact pads: 5 round pads at 2.54 mm for spring (pogo) pins. Place it on the bottom. ENIG, no paste: nothing is soldered here.")
+		(descr "Picoquorum key contact pads: 5 round pads at 2.54 mm for spring (pogo) pins. Place it on the bottom. ENIG, no paste: nothing is soldered here.")
 		(tags "pogo contact pads")
 		(property "Reference" "J1"
 			(at 0 2 0)
@@ -1737,7 +1737,7 @@
 		(layer "Edge.Cuts")
 		(uuid "2917377a-65d6-4dad-8bf6-b9aa66701b70")
 	)
-	(gr_text "PICOQUORUM"
+	(gr_text "Picoquorum"
 		(at 109 108.5 0)
 		(layer "F.SilkS")
 		(uuid "4f4350ad-7a38-4e59-bdef-b19ecd9b9040")
@@ -1820,7 +1820,7 @@
 			(justify mirror)
 		)
 	)
-	(gr_text "PicoQuorum key"
+	(gr_text "Picoquorum key"
 		(at 109 112.2 0)
 		(layer "B.SilkS")
 		(uuid "b956993b-0c24-4a48-8667-c80bbcdffdb0")

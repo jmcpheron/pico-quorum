@@ -1,4 +1,4 @@
-# PicoQuorum Handheld: putting it together
+# Picoquorum Handheld: putting it together
 
 The build's [README](README.md) says what it is, its parts and its wiring; this page puts it together.
 

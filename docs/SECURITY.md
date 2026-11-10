@@ -4,10 +4,10 @@
 
 Please report it privately: [open a security advisory](https://github.com/jmcpheron/pico-quorum/security/advisories/new)
 on this repository. Don't open a public issue for anything that could put a Safe's funds or a key at
-risk. PicoQuorum is experimental and maintained by one person, so expect a reply within a few days,
+risk. Picoquorum is experimental and maintained by one person, so expect a reply within a few days,
 not hours.
 
-## PicoQuorum console (the production image)
+## Picoquorum console (the production image)
 
 The Pico is one owner of a Safe multisig. Losing it, or everything on it, costs one signature
 toward the threshold, never the Safe: the other owners can execute without it and rotate it out.

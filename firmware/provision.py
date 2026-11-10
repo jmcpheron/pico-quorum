@@ -1,4 +1,4 @@
-# The provisioning ceremony for a fresh ATECC608: PicoQuorum's own config, quorum v1
+# The provisioning ceremony for a fresh ATECC608: Picoquorum's own config, quorum v1
 # (chipcfg.py; the reasoning and the runbook are in docs/PROVISIONING.md). One linear screen in the
 # ceremony image. The step is worked out from the chip's own state every time, so a reboot at any
 # point resumes where the chip is.

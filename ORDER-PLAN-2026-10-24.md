@@ -1,6 +1,6 @@
 # Order plan, 2026-10-24
 
-Two boards to order from JLCPCB, five of each: console-s3, and PicoQuorumKey, designed apart to compare. Prices
+Two boards to order from JLCPCB, five of each: console-s3, and PicoquorumKey, designed apart to compare. Prices
 below are from JLCPCB's pages read on 2026-10-23 and 24 ([sources](#sources)). They are estimates, not
 quotes: the quote page fills its prices in by script, so get the real figures by uploading the files.
 
@@ -38,7 +38,7 @@ How the families compare against that. Prices and stock are from LCSC's product 
 | ESP32-H2, P4 | | | no: no Wi-Fi | |
 
 N8R2 is the cheapest part that fits, has ten times the N4R2's stock, and is already
-PicoQuorumKey's module. It has the same footprint and pins as the N4R2 and the same 2 MB quad
+PicoquorumKey's module. It has the same footprint and pins as the N4R2 and the same 2 MB quad
 PSRAM. MicroPython's `ESP32_GENERIC_S3` build finds the larger flash itself, so the console image
 doesn't change. console-s3's design files name it too; its Gerbers, BOM and CPL don't change,
 because the module isn't in them.
@@ -163,7 +163,7 @@ Write down in DESIGN.md:
 - whether the real ribbon fold is clear of SW5 and R8;
 - the voltage across R1 (150 Ω) with the backlight full on: about 2 V is 13 mA.
 
-## 2. PicoQuorumKey rev A, five boards
+## 2. PicoquorumKey rev A, five boards
 
 The board: [hardware/picoquorum-key](hardware/picoquorum-key/README.md), designed apart from console-s3
 to the same spec, ordered beside it to compare. 44 x 53 mm, the module on the back, the panel in a
@@ -186,7 +186,7 @@ and `fit-check-front-1to1.pdf`. Its own step-by-step is
 
 The same as console-s3's option A, with three differences:
 
-| | PicoQuorumKey | why |
+| | PicoquorumKey | why |
 |---|---|---|
 | Dimensions | 44 x 53 mm | no side at 30 mm or less: **no small-board fee** |
 | Assembly | Economic, top side | the module goes on by hand, as on console-s3 |

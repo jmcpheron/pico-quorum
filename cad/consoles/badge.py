@@ -1,4 +1,4 @@
-"""PicoQuorumKey rev B's case: the badge, for the board with its key port fitted. Portrait, 55 x 64 x 11 mm,
+"""PicoquorumKey rev B's case: the badge, for the board with its key port fitted. Portrait, 55 x 64 x 11 mm,
 worn on a lanyard or laid on the desk like a small handheld. A tub, and a front plate set into it flush, the
 board clamped between them by four M2 screws from the back through its four holes. On the plate: the window,
 caps on D0, D1 and D2 down its left side (Reject red, white, Sign green), holes over the LED and the key
@@ -37,7 +37,7 @@ import shell as S       # noqa: E402
 
 REV_B = os.path.join(S.REPO, "hardware", "picoquorum-key", "hardware", "out", "rev-b")
 OUT = os.path.join(HERE, "out", "badge")
-SCREEN = os.path.join(S.REPO, "docs", "quorum-ui", "feather", "03-review-head.png")
+SCREEN = os.path.join(S.REPO, "docs", "quorum-ui", "feather", "06-review-head.png")
 W, H, T = 50.0, 53.0, 0.8
 up = lambda y: H - y        # DESIGN.md's y runs down from the top edge; the placement file's, up from the bottom
 # The key port (DESIGN.md): the plug straddles a 7.90 mm paddle at X 4.05-11.95, its tip on the top edge, the board
@@ -74,7 +74,7 @@ def board():
     pz = -T / 2                                                          # the plug's and the key's axis: the board's middle
     px = sum(PADDLE) / 2
     return dict(
-        name="badge", title="The badge (PicoQuorumKey rev B, key port)",
+        name="badge", title="The badge (PicoquorumKey rev B, key port)",
         W=W, H=H, R=1.5, T=T, holes=holes(), hole_d=2.2, parts=P,
         board_cut=[(-1.0, PADDLE[0], up(NOTCH_D), H + 1), (PADDLE[1], SLOT_X1, up(NOTCH_D), H + 1)],
         extras=[((px - PLUG[0] / 2, px + PLUG[0] / 2, H - 2.7, H + PLUG[1], pz - PLUG[2] / 2, pz + PLUG[2] / 2), S.K.STEEL, "key port plug"),
@@ -95,9 +95,9 @@ def board():
         # ribs under the 0.8 mm board where it's pressed: D0-D2, and BOOT and RESET. The back's test pads are at
         # X 15-41 (y 14 and 18) and (8.4, 10), (15, 10): the ribs miss them.
         support=[(9.5, 11.5, 27.0, 45.0), (42.6, 44.6, 4.5, 16.5)],
-        face=[("mark", (21.0, 15.5, 4.5)), ("text", ("PicoQuorum", (20.0, 6.2), (26.0, 4.0)))],
+        face=[("mark", (21.0, 15.5, 4.5)), ("text", ("Picoquorum", (20.0, 6.2), (26.0, 4.0)))],
         flip="y",                   # turned over about its height to read the back
-        back_text=[("PicoQuorum", (25.0, 38.0), (30.0, 6.0), "bold"), ("PicoQuorum.app", (25.0, 31.0), (24.0, 3.0), "regular")],
+        back_text=[("Picoquorum", (25.0, 38.0), (30.0, 6.0), "bold"), ("picoquorum.app", (25.0, 31.0), (24.0, 3.0), "regular")],
         seen=("D1", "D4", "key port plug", "key-c"),
         views=dict(front=[("in the hand, a key-c in its port", 58, -78), ("the back: the name, the Source Location, four screws", -55, 110)],
                    apart=[("apart: tub, screws, board, plate, caps", 30, -60)],

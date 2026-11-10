@@ -35,7 +35,7 @@ _spec.loader.exec_module(G)        # the board's generator; it writes nothing on
 G.place_switches()
 FAB = os.path.join(S3, "console-s3", "fab")
 OUT = os.path.join(HERE, "out", "stick")
-SCREEN = os.path.join(S.REPO, "docs", "quorum-ui", "feather", "03-review-head.png")
+SCREEN = os.path.join(S.REPO, "docs", "quorum-ui", "feather", "06-review-head.png")
 MARK_R = 7.5                # the mark's circle: as big as clears the window, BOOT's pinhole and the lanyard's slot
 
 
@@ -48,7 +48,7 @@ def board():
     gx0, gy0, gx1, gy1 = G.GLASS
     aw, ah = G.PANEL["active"]
     # The active area: centred on the glass, as the board's own render draws it; ER-TFT1.14-2's drawing (as
-    # PicoQuorumKey reads it) has it 2.0 mm from the end away from the ribbon. The window shows either.
+    # PicoquorumKey reads it) has it 2.0 mm from the end away from the ribbon. The window shows either.
     cx = (gx0 + gx1) / 2
     active = (cx - aw / 2, yc - ah / 2, cx + aw / 2, yc + ah / 2)
     over = (min(cx - aw / 2, gx0 + 2.0), yc - ah / 2, max(cx + aw / 2, gx0 + 2.0 + aw), yc + ah / 2)
@@ -71,7 +71,7 @@ def board():
         face=[("mark", (P["SW5"]["x"] + MARK_R * math.cos(math.radians(54)), P["SW5"]["y"] + MARK_R * math.sin(math.radians(54)),
                         MARK_R, "SW5"))],
         flip="x",                   # turned over about its length to read the back
-        back_text=[("PicoQuorum", (33.0, yc), (40.0, 6.0), "bold")],
+        back_text=[("Picoquorum", (33.0, yc), (40.0, 6.0), "bold")],
         seen=("D1",),
         views=dict(front=[("in the hand: two screws in the face", 55, -72), ("the back panel: the name, the Source Location", -50, -120)],
                    apart=[("apart: screws, front shell, caps, board, back panel", 28, -62)],

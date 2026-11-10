@@ -1,7 +1,7 @@
 # A virtual OPTIGA Trust M on the emulator's I2C bus at 0x30, so firmware/trustm.py, trustm_q.py
 # and signer.TrustMSigner run here unchanged. Speaks the chip's registers (0x80 DATA, 0x82
 # I2C_STATE, 0x88 SOFT_RESET), the IFX data-link frames (frame and ack numbers, CRC-16 0x8408) and
-# the APDUs PicoQuorum sends: OpenApplication, GetDataObject (data and metadata), SetDataObject
+# the APDUs Picoquorum sends: OpenApplication, GetDataObject (data and metadata), SetDataObject
 # (data, erase-and-write, metadata), GenKeyPair (P-256), CalcSign (DER r,s, high s half the time
 # as a real chip may give it), GetRandom.
 #

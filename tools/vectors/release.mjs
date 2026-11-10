@@ -1,5 +1,5 @@
 // Writes test-vectors/release.json: what firmware/release.py and decode.py must compute for a
-// PicoQuorum release approval, made here by viem (tools/mock-tx-service/release.mjs). Then put to a
+// Picoquorum release approval, made here by viem (tools/mock-tx-service/release.mjs). Then put to a
 // real Safe on Ethereum, read only, nothing deployed: Safe{DAO}'s treasury (its handler hashes Safe
 // messages the same way as 1.4.1's):
 //   - the handler's getMessageHashForSafe(safe, abi.encode(D)) must equal our M for that Safe
@@ -50,7 +50,7 @@ bad += !same;
 console.log(`${same ? "pass" : "FAIL"}  SignMessageLib 1.4.1 at ${SIGN_MESSAGE_LIB}: ${same ? `the same ${(codes[0].length - 2) / 2} bytes on Ethereum, Base and Base Sepolia` : "differs or missing"}`);
 if (bad) { console.log(`${bad} FAILED; nothing written`); process.exit(1); }
 writeFileSync(new URL("test-vectors/release.json", ROOT), JSON.stringify({
-  note: "PicoQuorum release approvals (firmware/release.py, decode.py): the digest, the approval transaction and its origin note, made by viem (tools/mock-tx-service/release.mjs) and checked against Safe{DAO}'s Safe on Ethereum by tools/vectors/release.mjs.",
+  note: "Picoquorum release approvals (firmware/release.py, decode.py): the digest, the approval transaction and its origin note, made by viem (tools/mock-tx-service/release.mjs) and checked against Safe{DAO}'s Safe on Ethereum by tools/vectors/release.mjs.",
   vectors,
 }, null, 2) + "\n");
 console.log("wrote test-vectors/release.json");

@@ -8,10 +8,10 @@
 	)
 	(paper "A4")
 	(title_block
-		(title "PicoQuorum key, rev A: SOIC-8, hand-soldered")
+		(title "Picoquorum key, rev A: SOIC-8, hand-soldered")
 		(date "2026-10-02")
 		(rev "A")
-		(company "PicoQuorum")
+		(company "Picoquorum")
 	)
 	(layers
 		(0 "F.Cu" signal)
@@ -1085,7 +1085,7 @@
 		(layer "F.Cu")
 		(uuid "b83917cc-6db6-431e-90b3-d3d736a178ae")
 		(at 111.175 132)
-		(descr "PicoQuorum key blade: 7 fingers at 2.54 mm on the top side of an 8-position 0.062in card edge, staggered so GND mates first and DETECT last; position 6 is the keying slot (cut in Edge.Cuts by the board). The board edge is the plug.")
+		(descr "Picoquorum key blade: 7 fingers at 2.54 mm on the top side of an 8-position 0.062in card edge, staggered so GND mates first and DETECT last; position 6 is the keying slot (cut in Edge.Cuts by the board). The board edge is the plug.")
 		(tags "card edge gold fingers staggered")
 		(property "Reference" "J1"
 			(at 0 -12.5 0)
@@ -1574,7 +1574,7 @@
 		(layer "Edge.Cuts")
 		(uuid "0bcc6281-d48d-483a-967a-9e833b4fedc6")
 	)
-	(gr_text "PICOQUORUM"
+	(gr_text "Picoquorum"
 		(at 111.175 107.2 0)
 		(layer "F.SilkS")
 		(uuid "408e8c57-60c8-4c38-a0a3-124b9ac1d675")
@@ -1621,7 +1621,7 @@
 			(justify mirror)
 		)
 	)
-	(gr_text "PicoQuorum key"
+	(gr_text "Picoquorum key"
 		(at 111.175 107.2 0)
 		(layer "B.SilkS")
 		(uuid "564516a9-cec4-4fe5-87ba-d6d4c61d51de")

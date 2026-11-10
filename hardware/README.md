@@ -17,7 +17,7 @@ screens are bench scripts, never part of the image ([builds/](builds/README.md#f
 | [Feather pigtail](builds/feather-pigtail/README.md) | build | key-c, a USB-C cable soldered to the pins | `feather-s3`; bench `swap.py`; a case | written up, not wired |
 | [Feather knob](builds/feather-knob/README.md) | build | key-c, a USB-C adapter on the header pins | `feather-knob` (knob and Boot); bench `dial.py` | written up, not wired |
 | [pico-sign](builds/pico-sign/README.md) | build | key-c in a cartridge, in a bay | `build1` (knob, hold-to-sign switch); case concepts | written up, not wired |
-| [pico-sign-handheld](builds/pico-sign-handheld/README.md) (PicoQuorum Handheld) | build | key-c in a snap-shut cartridge, slid into a bay in the back | `build1`, `SCREEN = "2.4"`; a flat handheld case, [assembly](builds/pico-sign-handheld/ASSEMBLY.md) | written up, not wired |
+| [pico-sign-handheld](builds/pico-sign-handheld/README.md) (Picoquorum Handheld) | build | key-c in a snap-shut cartridge, slid into a bay in the back | `build1`, `SCREEN = "2.4"`; a flat handheld case, [assembly](builds/pico-sign-handheld/ASSEMBLY.md) | written up, not wired |
 | [key-c and the other keys](key-pcb/README.md) | board | — | — | key-c P2 built and working; P3 drawn |
 | [console-a (console-pcb)](console-pcb/README.md) | board | key-c, USB-C | `build1` | designed |
 | [console-a](console-a/README.md) | board | pads | `waveshare` | designed, not ordered |
@@ -75,7 +75,7 @@ The parts of each are below.
   to UART1. JLCPCB places everything but the screen. Written by a script and checked by KiCad 10:
   the schematic, and a 72 × 36 mm board routed round Raspberry Pi's own layout, with 3D renders and
   fab files that pass `tools/keypcb jlc`; not ordered
-- [`picoquorum-key/`](picoquorum-key/README.md): PicoQuorumKey, a second S3 console designed apart
+- [`picoquorum-key/`](picoquorum-key/README.md): PicoquorumKey, a second S3 console designed apart
   from console-s3, to order beside it and compare: the module on the back, the 1.14″ panel in a
   ZIF, five buttons, the UDFN ATECC608C, 44 × 53 mm. Its own generators, tests and fab files in
   `hardware/out/rev-a/`. Rev B (`hardware/out/rev-b/`) adds a key port at the top-left corner: a
@@ -87,7 +87,7 @@ The parts of each are below.
 The inherited picowallet wiring (Pico + Waveshare LCD + ATECC608 + 18650) is in
 [`wiring/SOLDERING.md`](wiring/SOLDERING.md) and `tools/wiring`.
 
-**Cases for console-s3 and PicoQuorumKey rev B**, the stick and the badge, each with a dock, are in
+**Cases for console-s3 and PicoquorumKey rev B**, the stick and the badge, each with a dock, are in
 [`cad/consoles/`](../cad/consoles/README.md): first drafts, not printed.
 
 **The enclosure** for a finished console isn't designed yet. Its open questions (button layout, a flip cover or a guard

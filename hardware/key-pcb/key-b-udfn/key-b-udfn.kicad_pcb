@@ -8,10 +8,10 @@
 	)
 	(paper "A4")
 	(title_block
-		(title "PicoQuorum key, rev A: UDFN-8, assembled")
+		(title "Picoquorum key, rev A: UDFN-8, assembled")
 		(date "2026-10-02")
 		(rev "A")
-		(company "PicoQuorum")
+		(company "Picoquorum")
 	)
 	(layers
 		(0 "F.Cu" signal)
@@ -1165,7 +1165,7 @@
 		(layer "F.Cu")
 		(uuid "f13dca64-8792-46bd-a5a4-cff759592ed7")
 		(at 111.175 132)
-		(descr "PicoQuorum key blade: 7 fingers at 2.54 mm on the top side of an 8-position 0.062in card edge, staggered so GND mates first and DETECT last; position 6 is the keying slot (cut in Edge.Cuts by the board). The board edge is the plug.")
+		(descr "Picoquorum key blade: 7 fingers at 2.54 mm on the top side of an 8-position 0.062in card edge, staggered so GND mates first and DETECT last; position 6 is the keying slot (cut in Edge.Cuts by the board). The board edge is the plug.")
 		(tags "card edge gold fingers staggered")
 		(property "Reference" "J1"
 			(at 0 -12.5 0)
@@ -1517,7 +1517,7 @@
 		(layer "Edge.Cuts")
 		(uuid "eeb0449d-8ae5-4e95-9ab6-3d607f7712eb")
 	)
-	(gr_text "PICOQUORUM"
+	(gr_text "Picoquorum"
 		(at 111.175 107.2 0)
 		(layer "F.SilkS")
 		(uuid "73d493c2-d08a-4b67-8439-7278aac1e702")
@@ -1564,7 +1564,7 @@
 			(justify mirror)
 		)
 	)
-	(gr_text "PicoQuorum key"
+	(gr_text "Picoquorum key"
 		(at 111.175 107.2 0)
 		(layer "B.SilkS")
 		(uuid "1e2a8ccf-d868-4c9d-b094-fd155124d62a")

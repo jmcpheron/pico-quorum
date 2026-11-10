@@ -24,7 +24,7 @@ FREECAD = os.environ.get("FREECADCMD") or shutil.which("freecadcmd") or next(
     (p for p in ("/Applications/FreeCAD.app/Contents/Resources/bin/freecadcmd",) if os.path.exists(p)), None)
 
 # Heights in mm, by footprint name prefix, first match. console-s3's generator gives its own
-# (jlc_spec()["fit"]["heights"]), which come first; these are PicoQuorumKey's (its
+# (jlc_spec()["fit"]["heights"]), which come first; these are PicoquorumKey's (its
 # tests/test_3d.py: switches 3.8, J1 3.2, J2 1.0) and typical datasheet figures for the rest.
 HEIGHTS = [("R_0603", 0.55), ("C_0603", 0.9), ("C_0805", 1.25), ("LED_0603", 0.8), ("SOT-223", 1.8),
            ("SOT-23-5", 1.25), ("SOT-23-6", 1.45), ("SOT-23", 1.2), ("DFN-8", 0.6), ("FPC", 1.0),

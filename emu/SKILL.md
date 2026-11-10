@@ -1,9 +1,9 @@
 ---
 name: pico-emu
-description: Write and test MicroPython for the PicoQuorum console (Pico 2 W + Waveshare Pico-LCD-1.3, 240x240 screen, joystick + A/B/X/Y) on the emulator in emu/, then put it on a real board. Use for "build X for the Pico", "make a screen/animation/game for the console", "try this on the emulator", or "put it on the Pico".
+description: Write and test MicroPython for the Picoquorum console (Pico 2 W + Waveshare Pico-LCD-1.3, 240x240 screen, joystick + A/B/X/Y) on the emulator in emu/, then put it on a real board. Use for "build X for the Pico", "make a screen/animation/game for the console", "try this on the emulator", or "put it on the Pico".
 ---
 
-# The PicoQuorum emulator
+# The Picoquorum emulator
 
 `emu/` runs the console in a browser: real MicroPython 1.26 (WebAssembly) running the same `.py`
 files a board runs, the screen and buttons drawn flat with the keyboard mapped to them, and a CLI

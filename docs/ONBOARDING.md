@@ -7,7 +7,7 @@
 
 ## The idea in one paragraph
 
-A PicoQuorum console is useful because someone other than you holds it: a parent, a sibling, a
+A Picoquorum console is useful because someone other than you holds it: a parent, a sibling, a
 co-founder, a friend who'd be there in an emergency. That person may use it once a year, or only
 once, after something has gone wrong. So the console has to explain itself after a year in a
 drawer. The person holding it has three jobs and no others: keep it, check before approving, and
@@ -69,7 +69,7 @@ Before any console goes out:
 - **Someone besides you can propose and execute.** Only an owner's wallet (or a delegate) can
   propose, and the console never proposes or executes. If every wallet key is yours, the Safe
   can't act without you. Give the helper a wallet owner key, or a delegate.
-- **At least one owner isn't a PicoQuorum**, as the README says. The 3-of-5 in
+- **At least one owner isn't a Picoquorum**, as the README says. The 3-of-5 in
   [KICKOFF.md](KICKOFF.md#target-multisig-shape-for-reference) is the long-term shape.
 - **A drill before real money:** one small transaction that every keyholder approves.
 
@@ -127,7 +127,7 @@ The organizer can't act: ill, lost their keys, or gone. The card's back says wha
 2. The helper proposes what's needed, often moving everything to a new Safe the family controls.
 3. Each keyholder approves it after a **voice** call with the helper or another owner. This is the
    moment an attacker would pick, so the voice rule matters most here.
-4. The helper executes it in the PicoQuorum app. The Safe web app can't execute a contract
+4. The helper executes it in the Picoquorum app. The Safe web app can't execute a contract
    signature once the threshold is 2 or more ([COSIGNERS.md](mainnet/COSIGNERS.md#3-execution)).
 
 ## What the console says, state by state

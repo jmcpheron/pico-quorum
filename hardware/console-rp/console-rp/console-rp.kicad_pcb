@@ -15156,8 +15156,8 @@
 		(layer "B.Cu")
 		(uuid "67c6b555-640f-4d76-8e72-275b645a0075")
 		(at 124 113 180)
-		(descr "The PicoQuorum mark, 5.0 mm tall, in one colour for silkscreen: three signed dots solid, two waiting dots as rings. docs/BRAND.md")
-		(tags "logo PicoQuorum")
+		(descr "The Picoquorum mark, 5.0 mm tall, in one colour for silkscreen: three signed dots solid, two waiting dots as rings. docs/BRAND.md")
+		(tags "logo Picoquorum")
 		(property "Reference" "LOGO1"
 			(at 0 3.5 0)
 			(layer "B.Fab")
@@ -15695,7 +15695,7 @@
 			)
 		)
 	)
-	(gr_text "PicoQuorum console-rp"
+	(gr_text "Picoquorum console-rp"
 		(at 120.5 123.35 0)
 		(layer "F.SilkS")
 		(uuid "2e302ef9-6322-44be-9177-bfa8d543210a")

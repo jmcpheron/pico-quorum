@@ -7,7 +7,7 @@ The face has the window, caps on D0, D1 and D2 in a row under it, a hole over th
 right: its two lower dots are the holes for RESET and BOOTSEL, 7.5 mm apart on the board, so the mark is drawn
 from them. The mark is a badge, its pieces printed in colour and glued into a pocket 1.0 mm deep, standing
 0.6 mm proud: the triangle green, the three signed dots blue, the two waiting dots orange. The lower two blue
-dots are rings round 1.4 mm pinholes for RESET and BOOTSEL. Over it, the name in two lines, cut 0.6 mm: print
+dots are rings round 1.4 mm pinholes for RESET and BOOTSEL. Over it, the name on one line, cut 0.6 mm: print
 the first two layers black and the rest in a colour, and the letters show the colour. The USB-C is open at the
 right end; a lanyard lug at the left. The back has the name and the Source Location, since the case covers the
 board's own. A dock holds it leaning back, its cable out of the right side. (cad/consoles/README.md)
@@ -50,10 +50,10 @@ GREEN, BLUE, ORANGE = (0.18, 0.75, 0.33), (0.17, 0.42, 0.85), (1.0, 0.42, 0.07) 
 BADGE = dict(depth=1.0, proud=0.6, gap=0.1, short=0.05, edge=0.2)
 # the mark's pocket deep, the badge's pieces proud of the face; each piece 0.1 mm in from its neighbours and the
 # pocket's walls, 0.05 mm off the pocket's floor for the glue; their top edges chamfered
-# The name over the mark, in two lines, centred on it: each line up to 16 x 4.5 mm, 1.5 mm apart, the lower 2 mm
-# over the mark's top dot. Cut 0.6 mm, three 0.2 mm layers: printed face down with its first two layers in black
+# The name over the mark, on one line (docs/BRAND.md), centred on it: up to 24 x 3.6 mm, 1.4 mm over the mark's top
+# dot, which keeps it under the top-right screw's counterbore. Cut 0.6 mm, three 0.2 mm layers: printed face down with its first two layers in black
 # and the rest in a colour, the letters' floor shows that colour. The back's text is cut as deep.
-NAME = (("Pico", "Quorum"), (16.0, 4.5), 1.5, 2.0)
+NAME = ("Picoquorum", (24.0, 3.6), 1.4)
 ENGRAVE_DEEP = 0.6
 PIN = 0.7                   # RESET's and BOOTSEL's pinholes, inside the blue rings: a paperclip, not a thumb
 
@@ -64,6 +64,7 @@ def decor(c, shell, back):
     pinholes for RESET and BOOTSEL. Each piece its own STL, face down."""
     b, P = c.b, c.b["parts"]
     cx, cy, r, *under = b["mark"]
+    pinned = dict(zip((3, 2), under))           # the dots with a pinhole: the slate's two, none on Mono (mono.py)
     pts = [(cx + r * math.cos(math.radians(90 - 72 * k)), cy + r * math.sin(math.radians(90 - 72 * k))) for k in range(5)]
     for k, ref in zip((3, 2), under):           # the lower dots, left and right: over RESET and BOOTSEL
         assert abs(pts[k][0] - P[ref]["x"]) < 0.01 and abs(pts[k][1] - P[ref]["y"]) < 0.01, "the mark's dot isn't over " + ref
@@ -82,17 +83,19 @@ def decor(c, shell, back):
     triangle = tri(-g, z0, z1)
     for k in (0, 2, 3):
         triangle = triangle.cut(S.cyl(*pts[k], rad[k] + g, z0 - 1, z1 + 1))
-    words, (w, h), gap, over = NAME
-    size = min(S.fit_text(word, w, h) for word in words)
-    y = pts[0][1] + rad[0] + over + h / 2           # the lower line's middle
-    for word in reversed(words):
-        shell = shell.cut(S.engrave_text(cq.Plane(origin=(cx, y, c.zt), xDir=(1, 0, 0), normal=(0, 0, 1)), word, size,
-                                         ENGRAVE_DEEP))
-        y += h + gap
+    word, (w, h), over = NAME
+    size = S.fit_text(word, w, h)
+    y = pts[0][1] + rad[0] + over + h / 2           # the line's middle
+    tw = size * cq.Workplane("XY").text(word, 10, 1, combine=False, kind="bold").val().BoundingBox().xlen / 10
+    for hx, hy in b["holes"]:                       # clear of each screw's counterbore by 0.5 mm
+        gap = math.hypot(max(abs(hx - cx) - tw / 2, 0), max(abs(hy - y) - h / 2, 0))
+        assert gap > S.M2_HEAD[0] / 2 + 0.2 + 0.5, "the name runs into the counterbore at %s" % ((hx, hy),)
+    shell = shell.cut(S.engrave_text(cq.Plane(origin=(cx, y, c.zt), xDir=(1, 0, 0), normal=(0, 0, 1)), word, size,
+                                     ENGRAVE_DEEP))
     out = [("badge triangle", top(triangle), GREEN, S.flip)]
     for k in (0, 2, 3):
         dot = S.cyl(*pts[k], rad[k] - g, z0, z1)
-        if k != 0:
+        if k in pinned:
             dot = dot.cut(S.cyl(*pts[k], PIN + g, z0 - 1, z1 + 1))
         out.append(("badge signed %d" % k, top(dot), BLUE, S.flip))
     for k in (1, 4):
@@ -144,8 +147,8 @@ def board():
         mark=(rs["x"] + r * math.cos(math.radians(54)), rs["y"] + r * math.sin(math.radians(54)), r, "SW4", "SW5"),
         flip="x",
         # turned over about x, the back's lower y is its top: the name, and the Source Location under it
-        back_text=[("PicoQuorum", (W / 2, H / 2 - 3.0), (44.0, 8.0), "bold"),
-                   ("PicoQuorum.app", (W / 2, H / 2 + 7.0), (30.0, 3.2), "regular")],
+        back_text=[("Picoquorum", (W / 2, H / 2 - 3.0), (44.0, 8.0), "bold"),
+                   ("picoquorum.app", (W / 2, H / 2 + 7.0), (30.0, 3.2), "regular")],
         seen=("D1",),
         views=dict(front=[("in the hand: four screws in the face", 55, -72), ("the back panel: the name, the Source Location", -50, -120)],
                    apart=[("apart: screws, front shell, caps, board, back panel", 28, -62)],

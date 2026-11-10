@@ -8,6 +8,7 @@ troubleshooting.
 - [`guide/`](guide/README.md): the owner's guide ([setup](guide/SETUP.md), [using it](guide/USING.md),
   [networks](guide/NETWORKS.md), [troubleshooting](guide/TROUBLESHOOTING.md), [the console in your
   browser](guide/BROWSER.md))
+- [`videos/`](videos/README.md): the scripts for the explainer videos on [the Learn page](learn/): why a multisig, the hardware and how it fails, and being an owner
 - [`STATUS.md`](STATUS.md): **what exists today**: the name and domains, every Safe, key and address, the
   contracts the console relies on, and what's next
 - [`RELEASES.md`](RELEASES.md): firmware versions (year.month.n), what each holds, and how to make one
@@ -22,7 +23,7 @@ troubleshooting.
 - [`KEY-RUNBOOK.md`](KEY-RUNBOOK.md): the five key-c 608Cs on the ESP32, branded or not, one session at a time
 - [`LADDER.md`](LADDER.md): the test ladder from a simulated Safe to Ethereum mainnet, and the `tools/quorum live` runbook
 - [`firmware-production/`](firmware-production/README.md) and [`quorum-ui/`](quorum-ui/README.md): screenshot walkthroughs
-- [`KICKOFF.md`](KICKOFF.md): what PicoQuorum is, goals, hardware, firmware layers, open decisions
+- [`KICKOFF.md`](KICKOFF.md): what Picoquorum is, goals, hardware, firmware layers, open decisions
 - [`UPSTREAM-TRACKING.md`](UPSTREAM-TRACKING.md): what came from picowallet, and how its fixes come across
 - [`HEGOTA-WATCH.md`](HEGOTA-WATCH.md): EIPs in the next Ethereum fork that touch the console
 - [`EMU-WEB.md`](EMU-WEB.md): the console on GitHub Pages, with your own passkey as the key: the design, and its limits
@@ -30,10 +31,10 @@ troubleshooting.
 - [`TRUSTM.md`](TRUSTM.md): the Trust M profile, its ceremony, and TM1 and TM2
 - [`releases/`](releases/README.md): the release fingerprint, and each release's manifest
 - [`BRAND.md`](BRAND.md): the name, the mark and the colours ([`TRADEMARK.md`](../TRADEMARK.md) for what you may do with them)
-- [`upstream/`](upstream/README.md): issues and fixes PicoQuorum sends to other projects (Safe{Wallet})
+- [`upstream/`](upstream/README.md): issues and fixes Picoquorum sends to other projects (Safe{Wallet})
 
 The dev console: its [build guide](../hardware/DEV-CONSOLE.md), and [`CHIPMAP.md`](CHIPMAP.md), the
-chip map on the ceremony image. PicoQuorum grew from Austin Griffith's
+chip map on the ceremony image. Picoquorum grew from Austin Griffith's
 [picowallet](https://github.com/austintgriffith/picowallet); what came from it, and how its fixes
 come across, is in [`UPSTREAM-TRACKING.md`](UPSTREAM-TRACKING.md).
 

@@ -90,7 +90,7 @@ def keyc(x, y, label, color, num):
 # ----------------------------------------------------------------------------- 1. the chip map
 def chip_map():
     W, H = 1000, 920
-    o = [header(W, "quorum v2 on an ATECC608C", "PicoQuorum's chip configuration for a branded key (proposed)")]
+    o = [header(W, "quorum v2 on an ATECC608C", "Picoquorum's chip configuration for a branded key (proposed)")]
     # legend
     lx = 32
     for color, label in ((BENCH, "written on the bench"), (USER, "made by your console"), (DEAD, "dead: zeros, never read")):
@@ -202,7 +202,7 @@ def brand_record():
     o.append(t(32, 430, "The console checks it at U1: the signature under the pinned key 0000; the record's serial, revision and CRC "
                         "against the chip; both zones locked;", 12, MUTED))
     o.append(t(32, 450, "bench 0 with no certificate. The label's picture is the blockie of the digest's first 20 bytes.", 12, MUTED))
-    return svg(W, H, "The brand record is hashed with a fixed prefix, signed by PicoQuorum key 0000, and the signature is stored in slot 8", "".join(o))
+    return svg(W, H, "The brand record is hashed with a fixed prefix, signed by Picoquorum key 0000, and the signature is stored in slot 8", "".join(o))
 
 
 # ----------------------------------------------------------------------------- 3. a chip's life
