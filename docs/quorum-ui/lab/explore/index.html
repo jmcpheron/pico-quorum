@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="Walk the Picoquorum console's three-button screens: every picture is a frame the real firmware drew in the emulator. Nothing here runs the firmware, holds a key or signs.">
+<title>UI lab · Picoquorum</title>
+<link rel="icon" href="../../../brand/mark-dark.svg" type="image/svg+xml">
+<link rel="stylesheet" href="explore.css">
+</head>
+<body>
+<header class="top">
+  <a class="lockup" href="../../../" aria-label="Picoquorum home">
+    <picture>
+      <source media="(prefers-color-scheme: light)" srcset="../../../brand/mark-light.svg">
+      <img src="../../../brand/mark-dark.svg" width="28" height="26" alt="">
+    </picture>
+    <span>Picoquorum</span>
+  </a>
+  <nav aria-label="The UI lab">
+    <a href="https://github.com/jmcpheron/pico-quorum/blob/main/docs/quorum-ui/lab/README.md">Lab notes</a>
+    <a href="https://github.com/jmcpheron/pico-quorum/blob/main/docs/quorum-ui/lab/MAP.md">Map</a>
+    <a href="https://github.com/jmcpheron/pico-quorum/blob/main/docs/quorum-ui/lab/DECISIONS.md">Decisions</a>
+    <a href="https://github.com/jmcpheron/pico-quorum/issues/new/choose">Suggest a change</a>
+  </nav>
+</header>
+
+<main>
+  <section class="intro">
+    <p class="eyebrow">UI lab</p>
+    <h1>Walk the console's screens</h1>
+    <p class="lede">The three-button console, one press at a time. Every picture is a frame the real firmware drew in the emulator, kept when the site was built. Nothing on this page runs the firmware, holds a key or signs. <a href="../../../console/">The console page</a> does that.</p>
+    <p class="muted" id="board"></p>
+  </section>
+
+  <div class="lab">
+    <nav class="flows" aria-label="Flows">
+      <h2>Flows</h2>
+      <ol id="flows"></ol>
+    </nav>
+
+    <section class="stage" aria-labelledby="title">
+      <h2 id="title"></h2>
+      <p class="muted" id="about"></p>
+      <div class="device" id="device">
+        <div class="keys" id="keys"></div>
+        <img id="screen" width="240" height="135" alt="">
+      </div>
+      <p id="note" role="status"></p>
+      <div class="bar">
+        <button type="button" id="back">Back</button>
+        <button type="button" id="step" class="go"></button>
+        <button type="button" id="again">Start again</button>
+        <span class="muted" id="count"></span>
+      </div>
+      <p class="facts" id="facts"></p>
+      <p class="muted small">Press the buttons on the picture, or 1, 2 and 3 on a keyboard. Hold D2 to sign. Hold D1 for a second to go back. A press no flow has walked says so: that is a place to <a href="https://github.com/jmcpheron/pico-quorum/blob/main/tools/uilab/flows.mjs">add a flow</a>.</p>
+    </section>
+  </div>
+
+  <section class="screens" aria-labelledby="every">
+    <h2 id="every">Every screen</h2>
+    <p class="muted">Each screen the flows reach, as first reached. Pick one to go there.</p>
+    <div class="grid" id="grid"></div>
+  </section>
+</main>
+
+<footer>
+  <p class="muted small">Built by <code>node tools/uilab/build.mjs</code> from the firmware in the same commit. Something reads wrong, or a press should do something else? <a href="https://github.com/jmcpheron/pico-quorum/issues/new/choose">Open an issue</a> and paste this page's address: it names the flow and the step.</p>
+</footer>
+<script type="module" src="explore.js"></script>
+</body>
+</html>

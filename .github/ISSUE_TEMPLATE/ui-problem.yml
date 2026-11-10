@@ -1,0 +1,47 @@
+name: A screen that reads wrong
+description: A screen that is confusing, cut off or wrong, or a button that did not do what the screen said.
+title: "UI: "
+labels: ["ui"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If this could put a Safe's funds or a key at risk (a screen that hides what a transaction does, a signature without the hold),
+        report it privately: [open a security advisory](https://github.com/jmcpheron/pico-quorum/security/advisories/new).
+        Don't paste a real address, key or Safe you care about.
+  - type: input
+    id: where
+    attributes:
+      label: Where
+      description: The explorer's address for the step (it ends like `#approve/3`), or the screen's name in MAP.md, or a photo below.
+      placeholder: https://picoquorum.app/quorum-ui/lab/explore/#approve/3
+  - type: textarea
+    id: saw
+    attributes:
+      label: What the screen showed, and what you pressed
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: dropdown
+    id: board
+    attributes:
+      label: Where you saw it
+      options:
+        - The UI lab's explorer
+        - The console page in a browser
+        - Mono or console-rp
+        - Feather or PicoquorumKey
+        - The 240 × 240 console
+        - Another board
+    validations:
+      required: true
+  - type: input
+    id: build
+    attributes:
+      label: The build
+      description: The version or release fingerprint, from the board's Device screen or from the console page.

@@ -1,0 +1,55 @@
+name: A UI idea
+description: A change to the console's screens, buttons or look, or a question about why one is as it is.
+title: "UI: "
+labels: ["ui"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The console's three-button UI is mapped in [the UI lab](https://github.com/jmcpheron/pico-quorum/blob/main/docs/quorum-ui/lab/README.md):
+        [every screen and transition](https://github.com/jmcpheron/pico-quorum/blob/main/docs/quorum-ui/lab/MAP.md),
+        and [what is decided and what is open](https://github.com/jmcpheron/pico-quorum/blob/main/docs/quorum-ui/lab/DECISIONS.md).
+        Don't paste a real address, key or Safe you care about. The lab's pictures use test ones.
+  - type: textarea
+    id: idea
+    attributes:
+      label: The idea
+      description: What should change, or what you want to know. A sketch or a photo helps.
+    validations:
+      required: true
+  - type: input
+    id: where
+    attributes:
+      label: Where
+      description: The explorer's address for the step (it ends like `#approve/3`), or the screen's name in MAP.md (`review/verify`).
+      placeholder: https://picoquorum.app/quorum-ui/lab/explore/#approve/3
+  - type: dropdown
+    id: layer
+    attributes:
+      label: Which layer
+      description: The structure is what the screens are and what a button does. The look is how a screen is drawn and how it arrives.
+      options:
+        - The structure (screens, pages, what a button does)
+        - The look (colours, type, layout, an effect between screens)
+        - Both, or not sure
+    validations:
+      required: true
+  - type: checkboxes
+    id: boards
+    attributes:
+      label: Boards
+      options:
+        - label: Mono or console-rp (buttons under the screen)
+        - label: Feather or PicoquorumKey (buttons down the left edge)
+        - label: The 240 × 240 console (joystick, A B X Y)
+        - label: All of them, or not sure
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+      description: What it makes easier, clearer or more fun, and for whom.
+  - type: textarea
+    id: rules
+    attributes:
+      label: Does it touch what a signature needs?
+      description: Every page is seen and Sign is held before the key signs, red pages stay red, and Reject stays one press. If the idea changes any of that, say how. If it doesn't, leave this empty.

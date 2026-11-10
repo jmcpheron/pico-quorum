@@ -3,7 +3,8 @@
 # comment); the token can only read.
 #
 #   firmware  the safe_tx/webauthn vectors on CPython and MicroPython, the console, the display and
-#             boot art, the image manifests
+#             boot art, the image manifests, and the UI lab's walk of the three-button screens, whose
+#             map (docs/quorum-ui/lab/) must be what is committed
 #   bench     the Trust M, ceremony and brand suites, one runner each, only when firmware/,
 #             test-vectors/, emu/ or this file changed (changes decides; a release runs them always)
 #   fwbuild   tools/fw build for each image, with mpy-cross pinned: each build.py's RELEASE must be
@@ -14,7 +15,7 @@
 #   emu-web   the console page's build (docs/console/, and docs/emu/'s redirect), the same rebuild
 #             check, then Chromium against it served like Pages (no COOP/COEP headers), signing for
 #             real against the mock Safe service, and against docs/console/ served alone, as a copy
-#             on your own computer
+#             on your own computer; then the UI lab's explorer in the same Chromium
 #
 # A change only to hardware/, cad/ or buildlog/ skips CI: nothing here builds or tests them. A change
 # that also touches anything else runs all of it.
@@ -64,6 +65,8 @@ jobs:
           node test-vectors/manifest.mjs
       - name: Console
         run: node test-vectors/run-console.mjs
+      - name: The UI lab's map is what the firmware draws (node tools/uilab/build.mjs)
+        run: node tools/uilab/build.mjs --check
       - name: Display and boot art
         run: |
           node test-vectors/run-display.mjs
@@ -234,3 +237,5 @@ jobs:
         run: |
           npx playwright-core install --with-deps chromium
           node e2e-static.mjs
+      - name: The UI lab's explorer in Chromium
+        run: node tools/uilab/e2e.mjs

@@ -19,6 +19,9 @@ reflowed per size, the code it needs, and questions for you. See [SCREENS.md](SC
 **The Feather ESP32-S3 Reverse TFT:** 240×135 and three buttons, with a rail naming what each does.
 See [feather/README.md](feather/README.md), written by `node tools/board/shots_feather.mjs`.
 
+**The UI lab:** the three-button console mapped, screen by screen and press by press, with what is
+decided and what is open, and an explorer to walk it in a browser. See [lab/README.md](lab/README.md).
+
 ## Boot screen options
 
 Four ideas for what the console shows while it starts. Each one is the real firmware drawing code

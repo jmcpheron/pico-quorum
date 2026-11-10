@@ -1,0 +1,1807 @@
+{
+ "note": "Written by tools/uilab/build.mjs from the real firmware on the emulator.",
+ "boards": [
+  {
+   "id": "feather-s3",
+   "name": "Feather ESP32-S3 Reverse TFT",
+   "about": "240 × 135, three buttons down the left edge, a rail naming each",
+   "railY": [
+    7,
+    67,
+    127
+   ],
+   "names": [
+    "D0",
+    "D1",
+    "D2"
+   ],
+   "board": "feather-s3",
+   "w": 240,
+   "tabs": [
+    "queue",
+    "owners",
+    "key",
+    "device"
+   ],
+   "h": 135,
+   "ui": "quorum_ui_s",
+   "flows": [
+    {
+     "id": "tabs",
+     "title": "Home: the four tabs",
+     "about": "D0 is level with the tabs along the top and moves to the next one, round.",
+     "start": {
+      "frame": "cb514c2bc9f3",
+      "view": "home/queue",
+      "red": false
+     },
+     "steps": [
+      {
+       "do": "D0",
+       "down": null,
+       "note": "Owners: who can approve.",
+       "frames": [
+        "17f67c6ed462"
+       ],
+       "to": "17f67c6ed462",
+       "view": "home/owners",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D0",
+       "down": null,
+       "note": "Key: this key's fingerprint and picture.",
+       "frames": [
+        "8b856f7108be"
+       ],
+       "to": "8b856f7108be",
+       "view": "home/key",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D0",
+       "down": null,
+       "note": "Device: one row each for Chip, Wi-Fi, Practice and About.",
+       "frames": [
+        "7db5e79aa4bd"
+       ],
+       "to": "7db5e79aa4bd",
+       "view": "home/device",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D0",
+       "down": null,
+       "note": "Round to Queue.",
+       "frames": [
+        "cb514c2bc9f3"
+       ],
+       "to": "cb514c2bc9f3",
+       "view": "home/queue",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      }
+     ]
+    },
+    {
+     "id": "queue",
+     "title": "Home: down the queue",
+     "about": "D1 is level with the list. A press moves down and round; held 1 s it moves up.",
+     "start": {
+      "frame": "cb514c2bc9f3",
+      "view": "home/queue",
+      "red": false
+     },
+     "steps": [
+      {
+       "do": "D1",
+       "down": null,
+       "note": "The unknown call, in red.",
+       "frames": [
+        "3b181d5feca8"
+       ],
+       "to": "3b181d5feca8",
+       "view": "home/queue",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D1",
+       "down": null,
+       "note": "The refused one.",
+       "frames": [
+        "2c9110302faa"
+       ],
+       "to": "2c9110302faa",
+       "view": "home/queue",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D1",
+       "down": null,
+       "note": "Round to the first.",
+       "frames": [
+        "cb514c2bc9f3"
+       ],
+       "to": "cb514c2bc9f3",
+       "view": "home/queue",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D1L",
+       "down": null,
+       "note": "D1 held: up, round to the last.",
+       "frames": [
+        "2c9110302faa"
+       ],
+       "to": "2c9110302faa",
+       "view": "home/queue",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      }
+     ]
+    },
+    {
+     "id": "approve",
+     "title": "Approve a send",
+     "about": "D2 does what the bar along the bottom says. On a review it shows each page not yet seen, then signs when held 2 s.",
+     "start": {
+      "frame": "cb514c2bc9f3",
+      "view": "home/queue",
+      "red": false
+     },
+     "steps": [
+      {
+       "do": "D2",
+       "down": null,
+       "note": "Open #0. The rail: Reject, Next, and See, with how many pages are left.",
+       "frames": [
+        "ec3249ef93e5"
+       ],
+       "to": "ec3249ef93e5",
+       "view": "review/head",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D2",
+       "down": null,
+       "note": "The amount.",
+       "frames": [
+        "043e3293608e"
+       ],
+       "to": "043e3293608e",
+       "view": "review/item",
+       "red": false,
+       "fx": null,
+       "msg": "See every page first · 5 more"
+      },
+      {
+       "do": "D2",
+       "down": null,
+       "note": "Who it goes to, in full, with its blockie.",
+       "frames": [
+        "cb28f4af8691"
+       ],
+       "to": "cb28f4af8691",
+       "view": "review/to",
+       "red": false,
+       "fx": null,
+       "msg": "See every page first · 4 more"
+      },
+      {
+       "do": "D2",
+       "down": null,
+       "note": "Who has approved.",
+       "frames": [
+        "b6d7a8f66c32"
+       ],
+       "to": "b6d7a8f66c32",
+       "view": "review/approvals",
+       "red": false,
+       "fx": null,
+       "msg": "See every page first · 3 more"
+      },
+      {
+       "do": "D2",
+       "down": null,
+       "note": "The verify code, worked out here.",
+       "frames": [
+        "a5ec2c7f6dce"
+       ],
+       "to": "a5ec2c7f6dce",
+       "view": "review/verify",
+       "red": false,
+       "fx": null,
+       "msg": "See every page first · 2 more"
+      },
+      {
+       "do": "D2",
+       "down": null,
+       "note": "The whole hash. Every page seen: D2 says Sign.",
+       "frames": [
+        "f4d3e08eadde"
+       ],
+       "to": "f4d3e08eadde",
+       "view": "review/hash",
+       "red": false,
+       "fx": null,
+       "msg": "See every page first · 1 more"
+      },
+      {
+       "do": "hold D2",
+       "down": "D2",
+       "note": "Held: the rail starts to fill.",
+       "frames": [
+        "8b5436e93d68"
+       ],
+       "to": "8b5436e93d68",
+       "view": "hold/hash",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "wait 700",
+       "down": "D2",
+       "note": "0.7 s.",
+       "frames": [
+        "ca20cdbf772c",
+        "cedf8880d033",
+        "6a2d4ea9392b",
+        "dacad56f81ad",
+        "3a520e7a3552",
+        "c9304b6a8450",
+        "a64ec204fff0"
+       ],
+       "to": "a64ec204fff0",
+       "view": "hold/hash",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "wait 700",
+       "down": "D2",
+       "note": "1.4 s. Let go now and nothing is signed.",
+       "frames": [
+        "4e706d504f8b",
+        "449eb1c8a3e2",
+        "d8e60940c41e",
+        "582880b3e5e9",
+        "a90d45ca4a02",
+        "7f585ddb39c1",
+        "5a8400bb7a60"
+       ],
+       "to": "5a8400bb7a60",
+       "view": "hold/hash",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "wait 600",
+       "down": "D2",
+       "note": "2 s: Signing, Sending, then Signed.",
+       "frames": [
+        "b8e3618c4bd9",
+        "89116e4a45cb",
+        "e5a63f8cc136",
+        "2bd4f7577c53",
+        "a9eb3f4d4a68",
+        "775ca99ced04",
+        "e7d59db29f20",
+        "49e41926404a"
+       ],
+       "to": "49e41926404a",
+       "view": "result/signed",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "release",
+       "down": null,
+       "note": "D2 says OK.",
+       "frames": [],
+       "to": "49e41926404a",
+       "view": "result/signed",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D2",
+       "down": null,
+       "note": "Home again.",
+       "frames": [
+        "cb514c2bc9f3"
+       ],
+       "to": "cb514c2bc9f3",
+       "view": "home/queue",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      }
+     ]
+    },
+    {
+     "id": "read",
+     "title": "Read a review with D1",
+     "about": "D1 turns the pages, round from the last to the first. Held, it goes back; held on the first page it leaves without rejecting.",
+     "start": {
+      "frame": "cb514c2bc9f3",
+      "view": "home/queue",
+      "red": false
+     },
+     "steps": [
+      {
+       "do": "D2",
+       "down": null,
+       "note": "Open #0.",
+       "frames": [
+        "ec3249ef93e5"
+       ],
+       "to": "ec3249ef93e5",
+       "view": "review/head",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D1",
+       "down": null,
+       "note": "Next page.",
+       "frames": [
+        "c02fd397847d"
+       ],
+       "to": "c02fd397847d",
+       "view": "review/item",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D1",
+       "down": null,
+       "note": "Next.",
+       "frames": [
+        "7197f7f6dade"
+       ],
+       "to": "7197f7f6dade",
+       "view": "review/to",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D1L",
+       "down": null,
+       "note": "D1 held: back one.",
+       "frames": [
+        "492f2c95ba3e"
+       ],
+       "to": "492f2c95ba3e",
+       "view": "review/item",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D1L",
+       "down": null,
+       "note": "Back to the first page.",
+       "frames": [
+        "d41196f2d452"
+       ],
+       "to": "d41196f2d452",
+       "view": "review/head",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D1L",
+       "down": null,
+       "note": "Held on the first page: out, not rejected.",
+       "frames": [
+        "cb514c2bc9f3"
+       ],
+       "to": "cb514c2bc9f3",
+       "view": "home/queue",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      }
+     ]
+    },
+    {
+     "id": "reject",
+     "title": "Reject",
+     "about": "D0 rejects with one press, on any page.",
+     "start": {
+      "frame": "cb514c2bc9f3",
+      "view": "home/queue",
+      "red": false
+     },
+     "steps": [
+      {
+       "do": "D2",
+       "down": null,
+       "note": "Open #0.",
+       "frames": [
+        "ec3249ef93e5"
+       ],
+       "to": "ec3249ef93e5",
+       "view": "review/head",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D1",
+       "down": null,
+       "note": "Any page.",
+       "frames": [
+        "c02fd397847d"
+       ],
+       "to": "c02fd397847d",
+       "view": "review/item",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D0",
+       "down": null,
+       "note": "Rejected on this console. Home says so.",
+       "frames": [
+        "424443aea58e"
+       ],
+       "to": "424443aea58e",
+       "view": "home/queue",
+       "red": false,
+       "fx": null,
+       "msg": "Rejected #0 on this console"
+      }
+     ]
+    },
+    {
+     "id": "let-go",
+     "title": "Let go early",
+     "about": "A hold that stops short signs nothing.",
+     "start": {
+      "frame": "db63b92feea1",
+      "view": "home/queue",
+      "red": false
+     },
+     "steps": [
+      {
+       "do": "D2",
+       "down": null,
+       "note": "Open.",
+       "frames": [
+        "ec3249ef93e5"
+       ],
+       "to": "ec3249ef93e5",
+       "view": "review/head",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D2",
+       "down": null,
+       "note": "",
+       "frames": [
+        "043e3293608e"
+       ],
+       "to": "043e3293608e",
+       "view": "review/item",
+       "red": false,
+       "fx": null,
+       "msg": "See every page first · 5 more"
+      },
+      {
+       "do": "D2",
+       "down": null,
+       "note": "",
+       "frames": [
+        "cb28f4af8691"
+       ],
+       "to": "cb28f4af8691",
+       "view": "review/to",
+       "red": false,
+       "fx": null,
+       "msg": "See every page first · 4 more"
+      },
+      {
+       "do": "D2",
+       "down": null,
+       "note": "",
+       "frames": [
+        "b6d7a8f66c32"
+       ],
+       "to": "b6d7a8f66c32",
+       "view": "review/approvals",
+       "red": false,
+       "fx": null,
+       "msg": "See every page first · 3 more"
+      },
+      {
+       "do": "D2",
+       "down": null,
+       "note": "",
+       "frames": [
+        "a5ec2c7f6dce"
+       ],
+       "to": "a5ec2c7f6dce",
+       "view": "review/verify",
+       "red": false,
+       "fx": null,
+       "msg": "See every page first · 2 more"
+      },
+      {
+       "do": "D2",
+       "down": null,
+       "note": "Every page seen.",
+       "frames": [
+        "f4d3e08eadde"
+       ],
+       "to": "f4d3e08eadde",
+       "view": "review/hash",
+       "red": false,
+       "fx": null,
+       "msg": "See every page first · 1 more"
+      },
+      {
+       "do": "hold D2",
+       "down": "D2",
+       "note": "Pressed.",
+       "frames": [
+        "8b5436e93d68"
+       ],
+       "to": "8b5436e93d68",
+       "view": "hold/hash",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "release",
+       "down": null,
+       "note": "A short press is a hold that ended at once: not signed.",
+       "frames": [
+        "dad8f87bf97a"
+       ],
+       "to": "dad8f87bf97a",
+       "view": "review/hash",
+       "red": false,
+       "fx": null,
+       "msg": "Let go early · not signed"
+      },
+      {
+       "do": "hold D2",
+       "down": "D2",
+       "note": "Held again.",
+       "frames": [
+        "8b5436e93d68"
+       ],
+       "to": "8b5436e93d68",
+       "view": "hold/hash",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "wait 700",
+       "down": "D2",
+       "note": "0.7 s.",
+       "frames": [
+        "ca20cdbf772c",
+        "cedf8880d033",
+        "6a2d4ea9392b",
+        "dacad56f81ad",
+        "3a520e7a3552",
+        "c9304b6a8450",
+        "a64ec204fff0"
+       ],
+       "to": "a64ec204fff0",
+       "view": "hold/hash",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "wait 700",
+       "down": "D2",
+       "note": "1.4 s.",
+       "frames": [
+        "4e706d504f8b",
+        "449eb1c8a3e2",
+        "d8e60940c41e",
+        "582880b3e5e9",
+        "a90d45ca4a02",
+        "7f585ddb39c1",
+        "5a8400bb7a60"
+       ],
+       "to": "5a8400bb7a60",
+       "view": "hold/hash",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "release",
+       "down": null,
+       "note": "Let go: not signed, and the page says so.",
+       "frames": [
+        "dad8f87bf97a"
+       ],
+       "to": "dad8f87bf97a",
+       "view": "review/hash",
+       "red": false,
+       "fx": null,
+       "msg": "Let go early · not signed"
+      }
+     ]
+    },
+    {
+     "id": "reject-held",
+     "title": "Reject while Sign is held",
+     "about": "D0 still rejects during the hold.",
+     "start": {
+      "frame": "db63b92feea1",
+      "view": "home/queue",
+      "red": false
+     },
+     "steps": [
+      {
+       "do": "D2",
+       "down": null,
+       "note": "Open.",
+       "frames": [
+        "ec3249ef93e5"
+       ],
+       "to": "ec3249ef93e5",
+       "view": "review/head",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D2",
+       "down": null,
+       "note": "",
+       "frames": [
+        "043e3293608e"
+       ],
+       "to": "043e3293608e",
+       "view": "review/item",
+       "red": false,
+       "fx": null,
+       "msg": "See every page first · 5 more"
+      },
+      {
+       "do": "D2",
+       "down": null,
+       "note": "",
+       "frames": [
+        "cb28f4af8691"
+       ],
+       "to": "cb28f4af8691",
+       "view": "review/to",
+       "red": false,
+       "fx": null,
+       "msg": "See every page first · 4 more"
+      },
+      {
+       "do": "D2",
+       "down": null,
+       "note": "",
+       "frames": [
+        "b6d7a8f66c32"
+       ],
+       "to": "b6d7a8f66c32",
+       "view": "review/approvals",
+       "red": false,
+       "fx": null,
+       "msg": "See every page first · 3 more"
+      },
+      {
+       "do": "D2",
+       "down": null,
+       "note": "",
+       "frames": [
+        "a5ec2c7f6dce"
+       ],
+       "to": "a5ec2c7f6dce",
+       "view": "review/verify",
+       "red": false,
+       "fx": null,
+       "msg": "See every page first · 2 more"
+      },
+      {
+       "do": "D2",
+       "down": null,
+       "note": "Every page seen.",
+       "frames": [
+        "f4d3e08eadde"
+       ],
+       "to": "f4d3e08eadde",
+       "view": "review/hash",
+       "red": false,
+       "fx": null,
+       "msg": "See every page first · 1 more"
+      },
+      {
+       "do": "hold D2",
+       "down": "D2",
+       "note": "Held.",
+       "frames": [
+        "8b5436e93d68"
+       ],
+       "to": "8b5436e93d68",
+       "view": "hold/hash",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "wait 700",
+       "down": "D2",
+       "note": "0.7 s.",
+       "frames": [
+        "ca20cdbf772c",
+        "cedf8880d033",
+        "6a2d4ea9392b",
+        "dacad56f81ad",
+        "3a520e7a3552",
+        "c9304b6a8450",
+        "a64ec204fff0"
+       ],
+       "to": "a64ec204fff0",
+       "view": "hold/hash",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D0",
+       "down": "D2",
+       "note": "D0 with D2 still down: rejected, nothing signed.",
+       "frames": [
+        "7151ff2d6112"
+       ],
+       "to": "7151ff2d6112",
+       "view": "home/queue",
+       "red": false,
+       "fx": null,
+       "msg": "Rejected #0 on this console"
+      },
+      {
+       "do": "release",
+       "down": null,
+       "note": "Letting go of D2 now does nothing.",
+       "frames": [
+        "45469e7b8658"
+       ],
+       "to": "45469e7b8658",
+       "view": "home/queue",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      }
+     ]
+    },
+    {
+     "id": "red",
+     "title": "A red transaction",
+     "about": "Swapping an owner is red on every page, and Sign takes 3 s.",
+     "start": {
+      "frame": "b373ebba2f20",
+      "view": "home/queue",
+      "red": false
+     },
+     "steps": [
+      {
+       "do": "D2",
+       "down": null,
+       "note": "Open: red.",
+       "frames": [
+        "c421bc708aed"
+       ],
+       "to": "c421bc708aed",
+       "view": "review/head",
+       "red": true,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D2",
+       "down": null,
+       "note": "The call.",
+       "frames": [
+        "bb5041d93eba"
+       ],
+       "to": "bb5041d93eba",
+       "view": "review/item",
+       "red": true,
+       "fx": null,
+       "msg": "See every page first · 6 more"
+      },
+      {
+       "do": "D2",
+       "down": null,
+       "note": "The owner going out.",
+       "frames": [
+        "bf99165c2353"
+       ],
+       "to": "bf99165c2353",
+       "view": "review/frm",
+       "red": true,
+       "fx": null,
+       "msg": "See every page first · 5 more"
+      },
+      {
+       "do": "D2",
+       "down": null,
+       "note": "The owner coming in.",
+       "frames": [
+        "af57fc58d3cf"
+       ],
+       "to": "af57fc58d3cf",
+       "view": "review/to",
+       "red": true,
+       "fx": null,
+       "msg": "See every page first · 4 more"
+      },
+      {
+       "do": "D2",
+       "down": null,
+       "note": "Who has approved.",
+       "frames": [
+        "205bbc4bb4a4"
+       ],
+       "to": "205bbc4bb4a4",
+       "view": "review/approvals",
+       "red": true,
+       "fx": null,
+       "msg": "See every page first · 3 more"
+      },
+      {
+       "do": "D2",
+       "down": null,
+       "note": "The verify code.",
+       "frames": [
+        "4af4b6f1c496"
+       ],
+       "to": "4af4b6f1c496",
+       "view": "review/verify",
+       "red": true,
+       "fx": null,
+       "msg": "See every page first · 2 more"
+      },
+      {
+       "do": "D2",
+       "down": null,
+       "note": "The hash. Every page seen.",
+       "frames": [
+        "7882494a463a"
+       ],
+       "to": "7882494a463a",
+       "view": "review/hash",
+       "red": true,
+       "fx": null,
+       "msg": "See every page first · 1 more"
+      },
+      {
+       "do": "hold D2",
+       "down": "D2",
+       "note": "Held: the rail fills in red.",
+       "frames": [
+        "c8b189c81c28"
+       ],
+       "to": "c8b189c81c28",
+       "view": "hold/hash",
+       "red": true,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "wait 1200",
+       "down": "D2",
+       "note": "1.2 s.",
+       "frames": [
+        "a8be8632c50f",
+        "ab8def91faa0",
+        "431c454de5d2",
+        "94065857aa28",
+        "c7b48195dc9b",
+        "7482196b778c",
+        "83d41c617b19",
+        "be72cced1c3a",
+        "a3ba1c2a54ed",
+        "3c9c6310f226",
+        "a2ce68e45e2d",
+        "8d4233208369"
+       ],
+       "to": "8d4233208369",
+       "view": "hold/hash",
+       "red": true,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "wait 1200",
+       "down": "D2",
+       "note": "2.4 s: a plain send would be signed by now.",
+       "frames": [
+        "d5f61108f1a4",
+        "284710d47b19",
+        "a098ea644deb",
+        "f8a8b8e44ed8",
+        "36d87ceaeccb",
+        "13a15dcb3a66",
+        "78e099c40734",
+        "113414dc16c9",
+        "63fe8ebb2cbe",
+        "24456b827fe6",
+        "6475e3f24e15",
+        "65f35b8c0e2f"
+       ],
+       "to": "65f35b8c0e2f",
+       "view": "hold/hash",
+       "red": true,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "wait 600",
+       "down": "D2",
+       "note": "3 s: signed.",
+       "frames": [
+        "f702bece334c",
+        "7ae31c602077",
+        "97262a574e6f",
+        "77653937b8b0",
+        "2610ea4f9dbf",
+        "f6bae37479de",
+        "3b56f128878e",
+        "ef1eac005c4e",
+        "e455fb392e1b"
+       ],
+       "to": "e455fb392e1b",
+       "view": "result/signed",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "release",
+       "down": null,
+       "note": "",
+       "frames": [],
+       "to": "e455fb392e1b",
+       "view": "result/signed",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D2",
+       "down": null,
+       "note": "Home.",
+       "frames": [
+        "b373ebba2f20"
+       ],
+       "to": "b373ebba2f20",
+       "view": "home/queue",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      }
+     ]
+    },
+    {
+     "id": "refused",
+     "title": "A refused transaction",
+     "about": "The service's hash is not the one the fields give. The console won't sign it, whatever is pressed.",
+     "start": {
+      "frame": "cb514c2bc9f3",
+      "view": "home/queue",
+      "red": false
+     },
+     "steps": [
+      {
+       "do": "D1",
+       "down": null,
+       "note": "",
+       "frames": [
+        "3b181d5feca8"
+       ],
+       "to": "3b181d5feca8",
+       "view": "home/queue",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D1",
+       "down": null,
+       "note": "The refused one.",
+       "frames": [
+        "2c9110302faa"
+       ],
+       "to": "2c9110302faa",
+       "view": "home/queue",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D2",
+       "down": null,
+       "note": "Open: Refused, and why.",
+       "frames": [
+        "2817de6e215d"
+       ],
+       "to": "2817de6e215d",
+       "view": "review/refused",
+       "red": true,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D2",
+       "down": null,
+       "note": "Sign says why it can't.",
+       "frames": [
+        "dfe9f27febd3"
+       ],
+       "to": "dfe9f27febd3",
+       "view": "review/refused",
+       "red": true,
+       "fx": null,
+       "msg": "Can't sign: refused"
+      },
+      {
+       "do": "D1",
+       "down": null,
+       "note": "What the service claims.",
+       "frames": [
+        "a06cea49bd16"
+       ],
+       "to": "a06cea49bd16",
+       "view": "review/item",
+       "red": true,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D0",
+       "down": null,
+       "note": "Reject is still one press.",
+       "frames": [
+        "ca896fe675c9"
+       ],
+       "to": "ca896fe675c9",
+       "view": "home/queue",
+       "red": false,
+       "fx": null,
+       "msg": "Rejected #2 on this console"
+      }
+     ]
+    },
+    {
+     "id": "owners",
+     "title": "Look at an owner",
+     "about": "The Owners tab lists who can approve. D2 shows the one in focus in full.",
+     "start": {
+      "frame": "cb514c2bc9f3",
+      "view": "home/queue",
+      "red": false
+     },
+     "steps": [
+      {
+       "do": "D0",
+       "down": null,
+       "note": "Owners.",
+       "frames": [
+        "17f67c6ed462"
+       ],
+       "to": "17f67c6ed462",
+       "view": "home/owners",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D1",
+       "down": null,
+       "note": "The next owner.",
+       "frames": [
+        "8db96e9f9508"
+       ],
+       "to": "8db96e9f9508",
+       "view": "home/owners",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D2",
+       "down": null,
+       "note": "In full, with its blockie.",
+       "frames": [
+        "67c51aa37a44"
+       ],
+       "to": "67c51aa37a44",
+       "view": "who",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D1",
+       "down": null,
+       "note": "Nothing: one page.",
+       "frames": [],
+       "to": "67c51aa37a44",
+       "view": "who",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D0",
+       "down": null,
+       "note": "Back to the tab.",
+       "frames": [
+        "8db96e9f9508"
+       ],
+       "to": "8db96e9f9508",
+       "view": "home/owners",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      }
+     ]
+    },
+    {
+     "id": "key",
+     "title": "This key's code",
+     "about": "The Key tab's code is the app's set-up link as a QR code.",
+     "start": {
+      "frame": "cb514c2bc9f3",
+      "view": "home/queue",
+      "red": false
+     },
+     "steps": [
+      {
+       "do": "D0",
+       "down": null,
+       "note": "",
+       "frames": [
+        "17f67c6ed462"
+       ],
+       "to": "17f67c6ed462",
+       "view": "home/owners",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D0",
+       "down": null,
+       "note": "Key.",
+       "frames": [
+        "e6fc6621a975"
+       ],
+       "to": "e6fc6621a975",
+       "view": "home/key",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D2",
+       "down": null,
+       "note": "The code.",
+       "frames": [
+        "2f78165aac93"
+       ],
+       "to": "2f78165aac93",
+       "view": "key/code",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D1",
+       "down": null,
+       "note": "The owner address in full.",
+       "frames": [
+        "636445fa9436"
+       ],
+       "to": "636445fa9436",
+       "view": "key/full",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D1",
+       "down": null,
+       "note": "The code again.",
+       "frames": [
+        "2f78165aac93"
+       ],
+       "to": "2f78165aac93",
+       "view": "key/code",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D0",
+       "down": null,
+       "note": "Back to the tab.",
+       "frames": [
+        "e6fc6621a975"
+       ],
+       "to": "e6fc6621a975",
+       "view": "home/key",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      }
+     ]
+    },
+    {
+     "id": "device",
+     "title": "Device: the chip, and About",
+     "about": "The Device tab's rows. D1 moves down them, D2 opens the one in focus.",
+     "start": {
+      "frame": "cb514c2bc9f3",
+      "view": "home/queue",
+      "red": false
+     },
+     "steps": [
+      {
+       "do": "D0",
+       "down": null,
+       "note": "",
+       "frames": [
+        "17f67c6ed462"
+       ],
+       "to": "17f67c6ed462",
+       "view": "home/owners",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D0",
+       "down": null,
+       "note": "",
+       "frames": [
+        "e6fc6621a975"
+       ],
+       "to": "e6fc6621a975",
+       "view": "home/key",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D0",
+       "down": null,
+       "note": "Device.",
+       "frames": [
+        "7db5e79aa4bd"
+       ],
+       "to": "7db5e79aa4bd",
+       "view": "home/device",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D2",
+       "down": null,
+       "note": "Chip: its own pages.",
+       "frames": [
+        "57c9f7aea77b"
+       ],
+       "to": "57c9f7aea77b",
+       "view": "chip",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D1",
+       "down": null,
+       "note": "Next page.",
+       "frames": [
+        "57c9f7aea77b"
+       ],
+       "to": "57c9f7aea77b",
+       "view": "chip",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D1L",
+       "down": null,
+       "note": "D1 held: back.",
+       "frames": [
+        "57c9f7aea77b"
+       ],
+       "to": "57c9f7aea77b",
+       "view": "chip",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D0",
+       "down": null,
+       "note": "Back to the tab.",
+       "frames": [
+        "7db5e79aa4bd"
+       ],
+       "to": "7db5e79aa4bd",
+       "view": "home/device",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D1",
+       "down": null,
+       "note": "Wi-Fi.",
+       "frames": [
+        "513f0362d9ad"
+       ],
+       "to": "513f0362d9ad",
+       "view": "home/device",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D1",
+       "down": null,
+       "note": "Practice.",
+       "frames": [
+        "a3036509bd1e"
+       ],
+       "to": "a3036509bd1e",
+       "view": "home/device",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D1",
+       "down": null,
+       "note": "About.",
+       "frames": [
+        "bf3bcbad1a5a"
+       ],
+       "to": "bf3bcbad1a5a",
+       "view": "home/device",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D2",
+       "down": null,
+       "note": "The device's facts.",
+       "frames": [
+        "cd61873719bb"
+       ],
+       "to": "cd61873719bb",
+       "view": "device",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D0",
+       "down": null,
+       "note": "Back to the tab.",
+       "frames": [
+        "bf3bcbad1a5a"
+       ],
+       "to": "bf3bcbad1a5a",
+       "view": "home/device",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D1",
+       "down": null,
+       "note": "Round to Chip.",
+       "frames": [
+        "7db5e79aa4bd"
+       ],
+       "to": "7db5e79aa4bd",
+       "view": "home/device",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      }
+     ]
+    },
+    {
+     "id": "not-sent",
+     "title": "Signed, but not sent",
+     "about": "The service doesn't answer. The signature is kept, and D2 sends it again.",
+     "start": {
+      "frame": "db63b92feea1",
+      "view": "home/queue",
+      "red": false
+     },
+     "steps": [
+      {
+       "do": "D2",
+       "down": null,
+       "note": "Open.",
+       "frames": [
+        "ec3249ef93e5"
+       ],
+       "to": "ec3249ef93e5",
+       "view": "review/head",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D2",
+       "down": null,
+       "note": "",
+       "frames": [
+        "043e3293608e"
+       ],
+       "to": "043e3293608e",
+       "view": "review/item",
+       "red": false,
+       "fx": null,
+       "msg": "See every page first · 5 more"
+      },
+      {
+       "do": "D2",
+       "down": null,
+       "note": "",
+       "frames": [
+        "cb28f4af8691"
+       ],
+       "to": "cb28f4af8691",
+       "view": "review/to",
+       "red": false,
+       "fx": null,
+       "msg": "See every page first · 4 more"
+      },
+      {
+       "do": "D2",
+       "down": null,
+       "note": "",
+       "frames": [
+        "b6d7a8f66c32"
+       ],
+       "to": "b6d7a8f66c32",
+       "view": "review/approvals",
+       "red": false,
+       "fx": null,
+       "msg": "See every page first · 3 more"
+      },
+      {
+       "do": "D2",
+       "down": null,
+       "note": "",
+       "frames": [
+        "a5ec2c7f6dce"
+       ],
+       "to": "a5ec2c7f6dce",
+       "view": "review/verify",
+       "red": false,
+       "fx": null,
+       "msg": "See every page first · 2 more"
+      },
+      {
+       "do": "D2",
+       "down": null,
+       "note": "Every page seen.",
+       "frames": [
+        "f4d3e08eadde"
+       ],
+       "to": "f4d3e08eadde",
+       "view": "review/hash",
+       "red": false,
+       "fx": null,
+       "msg": "See every page first · 1 more"
+      },
+      {
+       "do": "hold D2",
+       "down": "D2",
+       "note": "Held.",
+       "frames": [
+        "8b5436e93d68"
+       ],
+       "to": "8b5436e93d68",
+       "view": "hold/hash",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "wait 2000",
+       "down": "D2",
+       "note": "Signed, and the service did not take it.",
+       "frames": [
+        "ca20cdbf772c",
+        "cedf8880d033",
+        "6a2d4ea9392b",
+        "dacad56f81ad",
+        "3a520e7a3552",
+        "c9304b6a8450",
+        "a64ec204fff0",
+        "4e706d504f8b",
+        "449eb1c8a3e2",
+        "d8e60940c41e",
+        "582880b3e5e9",
+        "a90d45ca4a02",
+        "7f585ddb39c1",
+        "5a8400bb7a60",
+        "b8e3618c4bd9",
+        "89116e4a45cb",
+        "e5a63f8cc136",
+        "2bd4f7577c53",
+        "a9eb3f4d4a68",
+        "775ca99ced04",
+        "800b320356ae",
+        "19da6f36d30f"
+       ],
+       "to": "19da6f36d30f",
+       "view": "result/not-sent",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "release",
+       "down": null,
+       "note": "",
+       "frames": [],
+       "to": "19da6f36d30f",
+       "view": "result/not-sent",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D2",
+       "down": null,
+       "note": "Send again: still down.",
+       "frames": [
+        "41035f973563",
+        "19da6f36d30f"
+       ],
+       "to": "19da6f36d30f",
+       "view": "result/not-sent",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D0",
+       "down": null,
+       "note": "Back. The signature is kept for later.",
+       "frames": [
+        "db63b92feea1"
+       ],
+       "to": "db63b92feea1",
+       "view": "home/queue",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      }
+     ]
+    },
+    {
+     "id": "ask",
+     "title": "The computer asks",
+     "about": "An ask over the USB link is shown page by page. D0 refuses with one press.",
+     "start": {
+      "frame": "9d6c11e5e6f0",
+      "view": "ask/safes",
+      "red": false
+     },
+     "steps": [
+      {
+       "do": "wait 100",
+       "down": null,
+       "note": "The ask comes up over home.",
+       "frames": [],
+       "to": "9d6c11e5e6f0",
+       "view": "ask/safes",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D1",
+       "down": null,
+       "note": "Its next page.",
+       "frames": [
+        "9f18c189ad8e"
+       ],
+       "to": "9f18c189ad8e",
+       "view": "ask/safes",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D2",
+       "down": null,
+       "note": "See every page first.",
+       "frames": [
+        "d9b5d953d9b8"
+       ],
+       "to": "d9b5d953d9b8",
+       "view": "ask/safes",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D0",
+       "down": null,
+       "note": "Refused: nothing saved.",
+       "frames": [
+        "5b450d3194d4"
+       ],
+       "to": "5b450d3194d4",
+       "view": "home/queue",
+       "red": false,
+       "fx": null,
+       "msg": "Nothing saved"
+      }
+     ]
+    },
+    {
+     "id": "no-chip",
+     "title": "No chip",
+     "about": "No key on the bus. D2 looks again.",
+     "start": {
+      "frame": "cea3ca69e93a",
+      "view": "nochip",
+      "red": false
+     },
+     "steps": [
+      {
+       "do": "D2",
+       "down": null,
+       "note": "The chip is there: home.",
+       "frames": [
+        "cb514c2bc9f3"
+       ],
+       "to": "cb514c2bc9f3",
+       "view": "home/queue",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      }
+     ]
+    },
+    {
+     "id": "pin",
+     "title": "A chip that isn't pinned",
+     "about": "Nothing is signed with a chip the console was not told to expect. D2 checks again.",
+     "start": {
+      "frame": "38430001d842",
+      "view": "pinfail",
+      "red": false
+     },
+     "steps": [
+      {
+       "do": "D2",
+       "down": null,
+       "note": "The chip matches its pin: home.",
+       "frames": [
+        "cb514c2bc9f3"
+       ],
+       "to": "cb514c2bc9f3",
+       "view": "home/queue",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      }
+     ]
+    },
+    {
+     "id": "set-up",
+     "title": "No Safe yet",
+     "about": "A console being set up: the key is ready, and D2 shows its code.",
+     "start": {
+      "frame": "59396c6666b8",
+      "view": "unconfigured",
+      "red": false
+     },
+     "steps": [
+      {
+       "do": "D2",
+       "down": null,
+       "note": "The key's code.",
+       "frames": [
+        "2f78165aac93"
+       ],
+       "to": "2f78165aac93",
+       "view": "key/code",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      },
+      {
+       "do": "D0",
+       "down": null,
+       "note": "Back.",
+       "frames": [
+        "59396c6666b8"
+       ],
+       "to": "59396c6666b8",
+       "view": "unconfigured",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      }
+     ]
+    },
+    {
+     "id": "crashed",
+     "title": "Crashed",
+     "about": "After too many failures in a row the console stops somewhere plain that signs nothing.",
+     "start": {
+      "frame": "814fbb74bd50",
+      "view": "crashed",
+      "red": false
+     },
+     "steps": [
+      {
+       "do": "D0",
+       "down": null,
+       "note": "Nothing. Only D2, held 3 s, restarts.",
+       "frames": [],
+       "to": "814fbb74bd50",
+       "view": "crashed",
+       "red": false,
+       "fx": null,
+       "msg": ""
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

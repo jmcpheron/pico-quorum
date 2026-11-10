@@ -1,0 +1,9 @@
+# The forms offered at Issues > New issue. A plain issue is still allowed.
+blank_issues_enabled: true
+contact_links:
+  - name: A security problem
+    url: https://github.com/jmcpheron/pico-quorum/security/advisories/new
+    about: Anything that could put a Safe's funds or a key at risk goes here, privately, not in a public issue (docs/SECURITY.md).
+  - name: Walk the console's screens first
+    url: https://picoquorum.app/quorum-ui/lab/explore/
+    about: The UI lab's explorer. Its address names the flow and the step you are on, so paste it into your issue.

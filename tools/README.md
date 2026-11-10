@@ -55,6 +55,11 @@ From picowallet (Austin Griffith, MIT): `emu`, the emulator's command line
   ESP32-S3 Reverse TFT (240×135, three buttons), from the emulator, for
   [`../docs/quorum-ui/feather/`](../docs/quorum-ui/feather/README.md)
 
+- [`uilab/`](uilab/): the UI lab. `build.mjs` presses every flow in `flows.mjs` on the real
+  firmware in the emulator and writes the three-button console's map and explorer,
+  [`../docs/quorum-ui/lab/`](../docs/quorum-ui/lab/README.md); `--check` is CI's, and `e2e.mjs`
+  tries the explorer in Chromium
+
 - `fw` ([`board/fw.mjs`](board/fw.mjs)): the Pico as a production device, over USB.
   - `build console|ceremony` makes an image from `firmware/manifest.json`.
   - `backup` copies every file on the board, each checked by SHA-256, into `backups/` (gitignored).
