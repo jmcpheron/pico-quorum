@@ -1,6 +1,6 @@
 # Explainer videos: the scripts
 
-*Started 2026-11-09. Nine draft scripts. No video is recorded yet.*
+*Started 2026-11-09. Ten draft scripts. No video is recorded yet.*
 
 Short videos that explain why a multisig, and what Picoquorum adds to one. The videos are made in
 another project. This folder holds what they say: one script per video, written and checked here,
@@ -35,6 +35,13 @@ one picture and can be recorded as one.
 | 7 | [A new key, from the bench to your Safe](new-key.md) | someone about to get a key | 3:45 | draft script; mostly a plan |
 | 8 | [A key with no backup](no-backup.md) | owners | 2:10 | draft script |
 | 9 | [What it protects, and what it doesn't](threat-model.md) | owners, and their co-owners | 2:30 | draft script |
+
+**The pitch**: one short video for people who already know multisigs. First person and casual, with
+the chips and the EIPs behind it in a details section. It has no card on the Learn page yet.
+
+| | video | for | length | status |
+|---|---|---|---|---|
+| 10 | [The sealed hardware cosigner](sealed-cosigner.md) | crypto-native people | 1:40 | draft script |
 
 The lengths are targets, at about 150 spoken words a minute.
 
