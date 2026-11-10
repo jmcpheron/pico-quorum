@@ -99,44 +99,44 @@ def _codewords(data, version, level):
 
 
 def _matrix(version):
-    """Function patterns and a mask of reserved modules. Returns (grid, reserved)."""
+    """Function patterns and a mask of reserved modules, a byte per module row by row (module (row,
+    col) at row * n + col). Returns (grid, reserved)."""
     n = 17 + 4 * version
-    g = [[0] * n for _ in range(n)]
-    r = [[0] * n for _ in range(n)]
+    g = bytearray(n * n)
+    r = bytearray(n * n)
 
     def finder(x, y):
         for i in range(-1, 8):
             for j in range(-1, 8):
                 if 0 <= x + i < n and 0 <= y + j < n:
                     v = 1 if (0 <= i <= 6 and 0 <= j <= 6 and (i in (0, 6) or j in (0, 6) or (2 <= i <= 4 and 2 <= j <= 4))) else 0
-                    g[y + j][x + i] = v
-                    r[y + j][x + i] = 1
+                    g[(y + j) * n + x + i] = v
+                    r[(y + j) * n + x + i] = 1
     finder(0, 0); finder(n - 7, 0); finder(0, n - 7)
     for i in range(8, n - 8):
-        g[6][i] = g[i][6] = 1 - i % 2
-        r[6][i] = r[i][6] = 1
+        g[6 * n + i] = g[i * n + 6] = 1 - i % 2
+        r[6 * n + i] = r[i * n + 6] = 1
     if version >= 2:
         c = 4 * version + 10
         for i in range(-2, 3):
             for j in range(-2, 3):
-                g[c + j][c + i] = 1 if (abs(i) == 2 or abs(j) == 2 or (i == 0 and j == 0)) else 0
-                r[c + j][c + i] = 1
-    g[4 * version + 9][8] = 1
-    r[4 * version + 9][8] = 1
+                g[(c + j) * n + c + i] = 1 if (abs(i) == 2 or abs(j) == 2 or (i == 0 and j == 0)) else 0
+                r[(c + j) * n + c + i] = 1
+    g[(4 * version + 9) * n + 8] = 1
+    r[(4 * version + 9) * n + 8] = 1
     for i in range(9):          # format info around the top-left finder
         if i != 6:
-            r[8][i] = r[i][8] = 1
+            r[8 * n + i] = r[i * n + 8] = 1
     for i in range(8):          # its second copy: row 8 on the right, column 8 at the bottom
-        r[8][n - 1 - i] = 1
-        r[n - 1 - i][8] = 1
+        r[8 * n + n - 1 - i] = 1
+        r[(n - 1 - i) * n + 8] = 1
     return g, r
 
 
-def _place(g, r, cw):
+def _place(g, r, n, cw):
     """The codewords into the modules not reserved, most significant bit first. Each bit is read
     from cw where it goes: a list of the 1072 bits (version 5) grew to an 8 KB block, more than a
     console-rp's heap had in one piece after a while (board #2, 2026-11-07)."""
-    n = len(g)
     nbits = 8 * len(cw)
     i, up, col = 0, True, n - 1
     while col > 0:
@@ -146,35 +146,35 @@ def _place(g, r, cw):
         for row in rows:
             for dx in (0, 1):
                 x = col - dx
-                if not r[row][x]:
-                    g[row][x] = cw[i >> 3] >> (7 - (i & 7)) & 1 if i < nbits else 0
+                if not r[row * n + x]:
+                    g[row * n + x] = cw[i >> 3] >> (7 - (i & 7)) & 1 if i < nbits else 0
                     i += 1
         up = not up
         col -= 2
 
 
-def _mask(g, r, m):
-    n = len(g)
-    out = [row[:] for row in g]
+def _mask(out, g, r, n, m):
+    """g with mask m over the modules not reserved, written into out: no grid is copied."""
+    k = 0
     for i in range(n):
         for j in range(n):
-            if r[i][j]:
-                continue
-            if m == 0: f = (i + j) % 2 == 0
-            elif m == 1: f = i % 2 == 0
-            elif m == 2: f = j % 3 == 0
-            elif m == 3: f = (i + j) % 3 == 0
-            elif m == 4: f = (i // 2 + j // 3) % 2 == 0
-            elif m == 5: f = (i * j) % 2 + (i * j) % 3 == 0
-            elif m == 6: f = ((i * j) % 2 + (i * j) % 3) % 2 == 0
-            else: f = ((i + j) % 2 + (i * j) % 3) % 2 == 0
-            if f:
-                out[i][j] ^= 1
-    return out
+            v = g[k]
+            if not r[k]:
+                if m == 0: f = (i + j) % 2 == 0
+                elif m == 1: f = i % 2 == 0
+                elif m == 2: f = j % 3 == 0
+                elif m == 3: f = (i + j) % 3 == 0
+                elif m == 4: f = (i // 2 + j // 3) % 2 == 0
+                elif m == 5: f = (i * j) % 2 + (i * j) % 3 == 0
+                elif m == 6: f = ((i * j) % 2 + (i * j) % 3) % 2 == 0
+                else: f = ((i + j) % 2 + (i * j) % 3) % 2 == 0
+                if f:
+                    v ^= 1
+            out[k] = v
+            k += 1
 
 
-def _format(g, level, m):
-    n = len(g)
+def _format(g, n, level, m):
     v = (LEVEL_BITS[level] << 3) | m
     f = v << 10
     for i in range(14, 9, -1):
@@ -185,19 +185,26 @@ def _format(g, level, m):
     # around the top-left finder
     pos = [(8, 0), (8, 1), (8, 2), (8, 3), (8, 4), (8, 5), (8, 7), (8, 8), (7, 8), (5, 8), (4, 8), (3, 8), (2, 8), (1, 8), (0, 8)]
     for (row, col), b in zip(pos, bits):
-        g[row][col] = b
+        g[row * n + col] = b
     # split copy: bottom-left column 8 and top-right row 8
     for k in range(7):
-        g[n - 1 - k][8] = bits[k]
+        g[(n - 1 - k) * n + 8] = bits[k]
     for k in range(7, 15):
-        g[8][n - 15 + k] = bits[k]
+        g[8 * n + n - 15 + k] = bits[k]
 
 
-def _penalty(g):
-    n = len(g)
+_FINDER = (bytes((1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0)), bytes((0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1)))
+
+
+def _penalty(g, n):
+    """The four scores, read in place, one line of n bytes at a time. Lists of the grid's rows, the
+    columns copied out too, ran a console-rp out of memory after a day (board #2, 2026-11-10)."""
     p = 0
-    for lines in (g, [[g[i][j] for i in range(n)] for j in range(n)]):
-        for line in lines:
+    line = bytearray(n)
+    for across in (True, False):
+        for a in range(n):
+            for i in range(n):
+                line[i] = g[a * n + i] if across else g[i * n + a]
             run, prev = 0, -1
             for v in line:
                 if v == prev:
@@ -208,41 +215,54 @@ def _penalty(g):
                     run, prev = 1, v
             if run >= 5:
                 p += run - 2
-            s = "".join("1" if v else "0" for v in line)
-            p += 40 * (s.count("10111010000") + s.count("00001011101"))
+            s = bytes(line)
+            p += 40 * (s.count(_FINDER[0]) + s.count(_FINDER[1]))
     for i in range(n - 1):
-        for j in range(n - 1):
-            if g[i][j] == g[i][j + 1] == g[i + 1][j] == g[i + 1][j + 1]:
+        k = i * n
+        for j in range(k, k + n - 1):
+            if g[j] == g[j + 1] == g[j + n] == g[j + n + 1]:
                 p += 3
-    dark = sum(sum(row) for row in g)
+    dark = sum(g)
     k = abs(dark * 100 // (n * n) - 50) // 5
     return p + 10 * k
 
 
-def encode(text, level="L", max_version=6, mask=None):
-    """(n, rows) for the smallest version that fits, best mask by penalty (or `mask`, for tests)."""
+def encode_map(text, level="L", max_version=6, mask=None):
+    """(n, m) for the smallest version that fits, best mask by penalty (or `mask`, for tests): m a
+    bytearray of n * n, 1 for a dark module, row by row. Three grids of n * n bytes and one line of
+    n, whatever the mask: the grid for each mask is written over the last."""
     for version in range(1, max_version + 1):
         data = _bits(text, version, level)
         if data is not None:
             break
     else:
         raise ValueError("too long for version %d" % max_version)
+    n = 17 + 4 * version
     cw = _codewords(data, version, level)
     base, reserved = _matrix(version)
-    _place(base, reserved, cw)
+    _place(base, reserved, n, cw)
+    g = bytearray(n * n)
     best, best_p = None, None
     for m in (range(8) if mask is None else (mask,)):
-        g = _mask(base, reserved, m)
-        _format(g, level, m)
-        p = _penalty(g)
+        _mask(g, base, reserved, n, m)
+        _format(g, n, level, m)
+        p = _penalty(g, n)
         if best_p is None or p < best_p:
-            best, best_p = g, p
-    n = len(best)
+            best, best_p = m, p
+    if best != m:                   # g holds the last mask tried: make the best one again
+        _mask(g, base, reserved, n, best)
+        _format(g, n, level, best)
+    return n, g
+
+
+def encode(text, level="L", max_version=6, mask=None):
+    """(n, rows): rows[r] an int whose bit c is the dark module at column c."""
+    n, g = encode_map(text, level, max_version, mask)
     rows = []
-    for row in best:
+    for r in range(n):
         bits = 0
-        for c, v in enumerate(row):
-            if v:
+        for c in range(n):
+            if g[r * n + c]:
                 bits |= 1 << c
         rows.append(bits)
     return n, rows

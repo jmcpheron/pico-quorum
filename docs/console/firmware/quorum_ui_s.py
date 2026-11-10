@@ -826,30 +826,25 @@ def draw_chip(q):
     d.show()
 
 
-_qr = (None, 0, None, b"")
+_qr = (None, 0, b"")
 
 
 def qr_of(text):
-    """qrcode.encode, once per text: it scores all eight masks, too slow for every frame. Kept with
-    a byte per module too (_qr[3]), which draw_qr reads: a row as one int is 37 bits, past a small
-    int on a 32-bit board, so every shift of it made a new big int (76 KB of them a frame)."""
+    """qrcode.encode_map, once per text: it scores all eight masks, too slow for every frame. A byte
+    per module (_qr[2]), which draw_qr reads: a row as one int is 37 bits, past a small int on a
+    32-bit board, so every shift of it made a new big int (76 KB of them a frame)."""
     global _qr
     if _qr[0] != text:
         import qrcode
-        n, rows = qrcode.encode(text)
-        m = bytearray(n * n)
-        for r in range(n):
-            for x in range(n):
-                m[r * n + x] = rows[r] >> x & 1
-        _qr = (text, n, rows, m)
-    return _qr[1], _qr[2]
+        _qr = (text,) + qrcode.encode_map(text)
+    return _qr[1]
 
 
 def draw_qr(d, text, x0, y0, size):
     """text as a QR code, dark on white with a 2-module margin, its top left at (x0, y0). -> its
     side in px."""
-    n = qr_of(text)[0]
-    m = _qr[3]
+    n = qr_of(text)
+    m = _qr[2]
     q = 2 * size
     box = n * size + 2 * q
     d.fill_rect(x0, y0, box, box, L.WHITE)
@@ -888,7 +883,7 @@ def draw_key(q):
     d.fill(c("bg"))
     if q.kpage == 0:
         link = q.setup_link()
-        n = qr_of(link)[0]
+        n = qr_of(link)
         box = n * 3 + 12
         draw_qr(d, link, W - box, 0 if SLOTS else (H - box) // 2, 3)     # console-rp: over the footer's left
         col = W - box - 4 - M

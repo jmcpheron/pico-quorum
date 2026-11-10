@@ -163,6 +163,20 @@ def _handle(mv):
     _seen = time.ticks_ms()
 
 
+def _nl(s0):
+    """Where the next newline is in the line so far, from s0; -1 for none. Copies nothing: a copy
+    of each piece (up to 2 KB) to look in found no room in a day-old heap (board #2, 2026-11-10)."""
+    if _FIND:
+        return _line.find(b"\n", s0, _n)
+    for i in range(s0, _n):
+        if _line[i] == 10:
+            return i
+    return -1
+
+
+_FIND = hasattr(bytearray, "find")
+
+
 def _take():
     """Whatever has come, a whole line at a time. Never blocks."""
     global _n, _skip
@@ -176,10 +190,9 @@ def _take():
         s0 = _n
         _n += k
         while True:
-            i = bytes(_mv[s0:_n]).find(b"\n")
-            if i < 0:
+            end = _nl(s0)
+            if end < 0:
                 break
-            end = s0 + i
             if _skip:
                 _skip = False
             else:

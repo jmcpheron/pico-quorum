@@ -1941,6 +1941,16 @@ def case_relay():
     serve(Q, [good, red])
     check(stats()["overlong"] - s0["overlong"] == 1 and len(Q.queue) == 2 and Q.net_ok, "a line longer than %d bytes: dropped whole, the next read" % link.MAX_LINE)
 
+    # A MicroPython with no bytearray.find: the newlines found byte by byte, the same lines taken
+    had, link._FIND = link._FIND, False
+    s0 = stats()
+    relay.raw(b"hello there")
+    relay.raw(b'{"t":"hi","pad":"' + b"a" * (link.MAX_LINE + 5000) + b'"}')
+    serve(Q, [good, red])
+    link._FIND = had
+    check(had and stats()["garbage"] - s0["garbage"] == 1 and stats()["overlong"] - s0["overlong"] == 1 and len(Q.queue) == 2 and Q.net_ok,
+          "no bytearray.find: newlines found by the byte, garbage and an overlong line dropped, the poll good")
+
     # An answer nobody asked for, and a wrong id first: neither is taken
     s0 = stats()
     relay.raw(json.dumps({"t": "res", "id": 9999, "status": 200, "body": "{}"}))
