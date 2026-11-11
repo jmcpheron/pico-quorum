@@ -193,3 +193,20 @@ What was checked:
   checked against the owner contract. The board's log has no start between the refusal and the
   signature (7263 s into the same start, counter 26), so the real copy replaced the refusal without
   a restart. Chrome opening the port didn't restart the board either.
+- Board #2 on dd82e30a, the same day, with two Safes (2 of 2, and 3 of 6), the list sent from the
+  Device page: both polled in turn, 61 to 74 KB free across the runs below.
+- `relay.py --hostile big`, one real transaction in each queue: each queue of 10 came back "answer
+  too big", then 3 at a time, then one at a time with `&offset=`, which Safe's service takes. Each
+  transaction came up red as `#?`, and the next one at a time came back empty, which ends the queue.
+  About 16 minutes of it, 65 KB free or more, no restart.
+- `relay.py --hostile lose-post`: the confirmation went out and no answer came back. The console
+  showed "Not sent", with the signature kept. ▲ Retry posted the same signature (201) with no new
+  use of the key: the counter stayed at 30. The second time, the board was restarted instead of
+  retried. 8 s into the next start, at its first poll, the console sent the kept signature (201).
+- 100 restarts over SWD (`probe-rs reset`, which writes nothing), one every 13 s, with `relay.py`
+  running. 99 came back on home, pinned, with both Safes polled, 12.8 to 15.2 s after the reset.
+  The counter went up by exactly one each time, 32 to 131. 67.9 to 69.3 KB free, no link timeouts
+  or garbage, and every start's reset cause 1. The 5th came up "No chip": nothing answered on I2C
+  at the start, and the console stayed there, with ▲ Check again, until the next restart. The
+  counter didn't move. 6 minutes later SDA and SCL both read high. Why the chip didn't answer is
+  not known.

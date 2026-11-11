@@ -45,10 +45,11 @@ What can stop it:
 1. **The Key page's QR** is `https://picoquorum.app/app/#/k/<the key>`. On a phone it opens the app's
    set-up page: a new Safe with this key and the owner's wallet, or this key added to a Safe
    ([docs/ONBOARDING.md](../../docs/ONBOARDING.md), The QR code).
-2. **On the computer:** `python3 tools/relay/relay.py PORT --safes basesep:0xSAFE:Name`, with PORT
-   the CH343P (`/dev/cu.usbmodem…` on a Mac). The console shows the Safe on a page of its own, then
-   a page saying it replaces the Safes it watches. See each, then hold ▲. It writes `safes.json` and
-   restarts.
+2. **On the computer:** the app's Device page, Safes tab: tick the Safes and press "Send this list
+   to the console". Or `python3 tools/relay/relay.py PORT --safes basesep:0xSAFE:Name`, with PORT
+   the CH343P (`/dev/cu.usbmodem…` on a Mac). The console shows each Safe on a page of its own, then
+   a page saying the list replaces the Safes it watches. See each, then hold ▲. It writes
+   `safes.json` and restarts.
 3. **Then leave a relay running:** `relay.py`, or the app's Device page (`#/device`) in Chrome or
    Edge, with the CH343P picked and the tab left open. The console asks for the queue from its home
    screen. If the relay stops, it says "no relay: open the app".
@@ -79,7 +80,5 @@ the same load again: the whole filesystem.
 
 ## Not done
 
-- **The `safes` ask from the app's Device page** on a board: board #2 got its Safe from `relay.py`,
-  and the page's e2e run doesn't send one to the fake console-rp.
 - **An update for an owner:** the USB-C reaches only the CH343P, so a new image needs J3 and SWD.
 - **Frozen modules,** for more heap than the 70-80 KB free with the console running.
