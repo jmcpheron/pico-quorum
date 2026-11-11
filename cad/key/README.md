@@ -5,7 +5,7 @@ with slight float so it self-aligns in the console's bracket), so the key only g
 can't rotate, and keeps its label facing up. Also the end cap, the label band, and an optional
 translucent window for the glow LED. See [System overview](../../docs/KICKOFF.md#system-overview)
 and [Key connector](../../docs/KICKOFF.md#key-connector-draft-pinout) in the kickoff. The dev
-console's case is in [../console](../console/README.md).
+console's case is a printed one from Printables ([DEV-CONSOLE.md](../../hardware/DEV-CONSOLE.md#wiring)).
 
 ## Breakout case
 

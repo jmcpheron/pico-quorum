@@ -28,6 +28,22 @@ The computer can't reach the RP2350's REPL, reset it or hold BOOTSEL: the CH343P
 nowhere, on purpose (console-rp's README, "Why a serial bridge"). The console rebuilds every hash
 itself, and the key signs only that.
 
+## The case
+
+Two first drafts, drawn by scripts in [`cad/consoles/`](../../cad/consoles/README.md) from this
+board's generator and fab files. Neither is printed.
+
+| | script | build | outputs |
+|---|---|---|---|
+| [Mono's case](../../cad/consoles/README.md#mono): a front shell and a back panel, four M2 screws from the face | [`mono.py`](../../cad/consoles/mono.py) | `tools/case build mono` | [`out/mono/`](../../cad/consoles/out/mono/) |
+| [the industrial variant](../../cad/consoles/README.md#mono-industrial): the same inside; the corners cut at 45°, chamfered edges, nine grooves down each long side | [`mono_ind.py`](../../cad/consoles/mono_ind.py) | `tools/case build mono-industrial` | [`out/mono_ind/`](../../cad/consoles/out/mono_ind/) |
+
+![Mono's case, industrial: in the hand with four screws in the face, the back with the name, and the left side with its grooves and cut corners](../../cad/consoles/out/mono_ind/mono_ind_front.png)
+
+Both close at 44.6 × 100.1 × 10.9 mm. The case covers the jig's pads and KEY 2's holes: the back
+panel comes off to reach them. [`cad/mono/`](../../cad/mono/README.md) is this board alone as a
+print, to hold.
+
 ## What it keeps, and what is new
 
 Kept from console-rp, whose first board came up on 2026-11-04
@@ -315,4 +331,4 @@ Not checked:
   glitch attacks on the A2 stepping; check which stepping JLCPCB supplies.
 - [ ] KEY 2's firmware, and whether to fit a key there. VKEY's rise with a breakout on it,
   measured; and whether RST wants a GPIO (spares: 0, 1, 16–19, 22–24, 26–29).
-- [ ] A case: a first draft, not printed ([cad/consoles/mono.py](../../cad/consoles/README.md#mono)).
+- [ ] The case, printed and fitted: two first drafts, neither printed ([The case](#the-case)).

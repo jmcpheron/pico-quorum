@@ -1,5 +1,9 @@
 # Mono, as a print
 
+**Looking for Mono's case?** It is in [`../consoles/`](../consoles/README.md#mono):
+[`mono.py`](../consoles/mono.py), and the industrial variant, [`mono_ind.py`](../consoles/mono_ind.py)
+(`tools/case build mono-industrial`). This folder is the board alone.
+
 A rough model of [Mono](../../hardware/mono/README.md)'s board to print and hold: the 40 × 89.5 mm bar, its
 holes, a block for each part JLCPCB fits, to its height, and the panel on top. It is for a sense of the
 board's size and what stands on it, not a fit check (`tools/keypcb jlc mono` does that).
