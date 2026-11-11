@@ -24,8 +24,9 @@ From picowallet (Austin Griffith, MIT): `emu`, the emulator's command line
   Freenove's ESP32-WROVER, for [`../hardware/wiring/ESP32.md`](../hardware/wiring/ESP32.md); `--check`
   compares its pin table with ESP32.md, `firmware/board.py`'s `"esp32"` profile and both boards' headers
 
-- `keypcb`: the key PCBs in [`../hardware/key-pcb/`](../hardware/key-pcb/), with KiCad 9's
-  `kicad-cli`.
+- `keypcb`: the key PCBs in [`../hardware/key-pcb/`](../hardware/key-pcb/) and the console boards
+  ([Mono](../hardware/mono/README.md), console-rp, and by name the ones in `hardware/prototypes/`
+  and `hardware/archive/`), with KiCad's `kicad-cli`: 9 for key rev A, 10 for the rest.
   - `check` runs ERC, then DRC with schematic parity.
   - `fab` writes the Gerber zip, and the BOM and CPL in JLCPCB's format.
   - `render` draws the top and bottom of each board.
@@ -34,7 +35,9 @@ From picowallet (Austin Griffith, MIT): `emu`, the emulator's command line
 
 - `case`: the printed cases and mock-ups, rebuilt from their CadQuery scripts with uv, at pinned
   versions of CadQuery, matplotlib, Pillow and numpy.
-  - `list` shows each design: its scripts, what they write, and the pages that show it.
+  - `list` shows each design: its scripts, what they write, and the pages that show it. Mono's case
+    is `mono`, and its industrial variant `mono-industrial`
+    ([`../cad/consoles/`](../cad/consoles/README.md)).
   - `build [design]` runs a design's scripts in order (the prism: `prism.py`, then `assembly.py`'s
     step-by-step pictures).
   - `check [design]` builds, then lists every output that changed, appeared or went, and every

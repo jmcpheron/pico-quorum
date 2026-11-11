@@ -11,7 +11,7 @@ It pulls together what is already written, and adds what the console-rp changes:
 - [docs/ATTESTED-KEYS.md](docs/ATTESTED-KEYS.md): the attestation key, the registry, the relay and
   the treasury.
 - [docs/KEY-RUNBOOK.md](docs/KEY-RUNBOOK.md): the sessions on the five key-c 608Cs.
-- [CONSOLE-RP-PLAN-2026-11-04.md](CONSOLE-RP-PLAN-2026-11-04.md): the board with no radio, and the
+- [CONSOLE-RP-PLAN-2026-11-04.md](hardware/console-rp/PLAN-2026-11-04.md): the board with no radio, and the
   relay over its USB-C.
 - [LAUNCH.md](LAUNCH.md) section 6: the brand, the membership list and its Merkle root.
 
@@ -59,7 +59,7 @@ Everything below rests on the console being honest. Today nothing proves that:
   press and hold, but a person who doesn't read can still accept a bad one.
 
 So the brand proves things about the chip, not the console. Board #2's secure boot and SWD lock
-experiments ([the console-rp plan](CONSOLE-RP-PLAN-2026-11-04.md)) come before any claim that a
+experiments ([the console-rp plan](hardware/console-rp/PLAN-2026-11-04.md)) come before any claim that a
 shipped console is the one we built.
 
 ## Two keys: the customer chooses
@@ -112,7 +112,7 @@ Key 0000 signs nothing else in the brand image, and it is never a Safe owner.
 **On the console-rp, the chip is on the board.** The ATECC608C is soldered on I2C0. The key-c's
 bench unplugs the chip and plugs in key 0000 for B5 (KEY-RUNBOOK.md session 3). A console-rp can't
 do that.
-- Rev B's key port, at the top of the board ([the rev B plan](CONSOLE-RP-REV-B-PLAN-2026-11-05.md)),
+- Rev B's key port, at the top of the board ([the rev B plan](hardware/console-rp/REV-B-PLAN-2026-11-05.md)),
   is the place for key 0000. The bench plugs it into the board being branded.
 - The board's own chip and key 0000 both answer at 0x60. So the key port needs its own bus, or the
   bench must switch the board's chip off the bus while key 0000 signs.

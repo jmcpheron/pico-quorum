@@ -129,6 +129,6 @@ word on I2C.
       4.7k is safer
 - [ ] KEY ID resistor codes per key type ([open decisions](../../docs/STATUS.md#open-decisions))
 - [x] A socket breakout PCB for the console (rev B): the console boards bring the key out
-      themselves, [console-pcb](../console-pcb/README.md) as a USB-C plug, [console-a](../console-a/README.md)
-      and [console-pocket](../console-pocket/README.md) as pads
+      themselves, [console-pcb](../archive/console-pcb/README.md) as a USB-C plug, [console-a](../archive/console-a/README.md)
+      and [console-pocket](../archive/console-pocket/README.md) as pads
 - [ ] The key's shell, if any

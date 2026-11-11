@@ -1,8 +1,115 @@
 # Cases for the console boards
 
-Two cases for the two S3 boards from JLCPCB, and a dock for each:
-- **the stick**, for [console-s3](../../hardware/console-s3/DESIGN.md)
-- **the badge**, for [PicoquorumKey rev B](../../hardware/picoquorum-key/README.md) with its key port fitted
+Printed cases for the console boards, and a dock for each. Every case is drawn by a CadQuery script
+from its board's own files, and one script, [`shell.py`](shell.py), makes them all. **Mono's are the
+ones being worked on.**
+
+| case | for | script | build | where it stands |
+|---|---|---|---|---|
+| **[Mono's](#mono)** | [Mono](../../hardware/mono/README.md) | [`mono.py`](mono.py) | `tools/case build mono` | a first draft, not printed |
+| **[Mono's, industrial](#mono-industrial)** | Mono | [`mono_ind.py`](mono_ind.py) | `tools/case build mono-industrial` | a variant of the first draft, not printed |
+| [the slate](#the-slate-console-rp) | [console-rp](../../hardware/console-rp/README.md) | [`rp.py`](rp.py) | `tools/case build rp` | a first draft |
+| [the stick](#the-stick-console-s3) | [console-s3](../../hardware/prototypes/console-s3/DESIGN.md), an early prototype | [`stick.py`](stick.py) | `tools/case build stick` | a first draft, not fitted to its board |
+| [the badge](#the-badge-picoquorumkey-rev-b) | [PicoquorumKey rev B](../../hardware/prototypes/picoquorum-key/README.md), an early prototype | [`badge.py`](badge.py) | `tools/case build badge` | a first draft; the rev A plate was printed once |
+
+Each script writes a folder in [`out/`](out/): the STLs to print, a STEP of the whole assembly, and
+pictures ([Run](#run)). `tools/case check <name>` rebuilds a case and lists every output that
+changed, so a case is up to date when it lists nothing.
+
+**To change Mono's case:**
+- [`mono.py`](mono.py) holds what is Mono's own, in `board()`: the window, the caps' shapes and size,
+  the mark's place (`MARK`), the words on the back. The board's numbers come from its generator and
+  its fab files (`hardware/mono/`), so the case follows the board.
+- [`mono_ind.py`](mono_ind.py) holds the industrial variant's: `CORNER_CUT`, `GROOVES`, and the edges
+  and chamfers in `board()`.
+- [`rp.py`](rp.py) draws the badge and the name (`decor`). A change there changes the slate too.
+- [`shell.py`](shell.py) holds what every case shares: the walls, the posts, the caps' fit, the dock
+  and the checks. A change there changes every case here.
+
+## Mono
+
+[`mono.py`](mono.py), for [Mono](../../hardware/mono/README.md), the 40 × 89.5 mm board: a slender bar, 44.6 × 100.1 × 10.9 mm
+closed, in the stick's "shell" layout like console-rp's slate ([`rp.py`](rp.py)). **A first draft, not
+printed, and no Mono board has been built.**
+- **Four M2 × 8 screws from the face,** through the shell's posts and the board's four M2 holes (one either
+  side of the buttons, one at each bottom corner), into bosses on the back panel. The posts are 2.5 mm
+  across, the board's own keep-out (`HOLE_RING` in its generator). No tab: the board has no radio.
+- **The window** shows the active area where the generator puts it, centred on the board, and 0.555 mm
+  further from the ribbon, where it would be if PicoquorumKey's 2.0 mm reading of the drawing is right.
+- **The caps** are the slate's shapes, D0 a red square, D1 a white circle, D2 a green triangle, but
+  1.2 times as wide (circle 5.0 mm, square 4.6, triangle 7.2), for a thumb. Their flanges are 7.4 mm,
+  not 6.1, to hold them in: 0.3 mm off the posts beside D0 and D2. Each still sits on its switch with
+  the same 0.2 mm of play and clearance, so the switch clicks as on the slate.
+- **The name and the mark** are in the plain field under the buttons, made as the slate's are
+  (`rp.decor`): the mark is a badge in three colours glued into a pocket, and the name over it is cut to
+  show a second colour. Mono has no RESET or BOOTSEL buttons, so the mark's dots are whole, with no
+  pinholes. The script checks the mark misses the LED's hole and the name misses the counterbores.
+- **A hole over the LED** (D1), below the mark.
+- **The USB-C is open at the bottom end,** left of centre. A lanyard lug at the top.
+- **A rib on the back panel under D0–D2.** The jig's pads on the board's back are covered: take the back
+  panel off to reach them.
+- **KEY 2's five holes are covered too.** A breakout soldered there would need its own opening.
+- **The ribbon's fold** is taken as 1.5 mm past the glass's end. Mono's README reads the drawing as
+  0.5 at most; the slate allows 2.0.
+- **The dock** holds it leaning back 25°, the plug down into a slot in its lip, as the badge's.
+
+![Mono's case](out/mono/mono_front.png)
+
+![Mono's face, sliced](out/mono/mono_face.png)
+
+![Mono's case, apart](out/mono/mono_apart.png)
+
+![Mono's case on its dock](out/mono/mono_dock.png)
+
+## Mono, industrial
+
+[`mono_ind.py`](mono_ind.py): Mono's case with harder edges. **A variant of the first draft, not printed.**
+Inside, it is Mono's case: the same posts, screws, caps, window, badge, back panel and dock. Only the
+outside of the front shell changes:
+- **The corners are cut off at 45°**, not rounded. At the bottom, 3 mm along each edge, as far as the
+  board's corner inside allows: the wall there is 1.66 mm at its thinnest, against 2.0 along the sides.
+  The script stops if a cut leaves less than 1.5 (`CORNER_WALL`). At the top, 8 mm, across the lanyard's
+  lug, so the top end tapers.
+- **The face's edge is chamfered 1.6 mm**, and the back's 0.8, in place of the rounds.
+- **The screws' counterbores are chamfered 0.4 mm** at the face.
+- **Nine V-grooves, 0.5 mm deep and 2.5 mm apart, run across each long side** where the hand holds it, 14
+  to 34 mm up from the board's bottom edge. They stop short of both chamfers.
+
+The case closes at the same 44.6 × 100.1 × 10.9 mm, and the build finds no overlap. It prints face down
+like Mono's. The grooves' closed ends are 1 mm bridges.
+
+![Mono's case, industrial](out/mono_ind/mono_ind_front.png)
+
+![Mono's case, industrial, apart](out/mono_ind/mono_ind_apart.png)
+
+## The slate (console-rp)
+
+[`rp.py`](rp.py), for [console-rp](../../hardware/console-rp/README.md), the 72 × 36 mm board: a flat bar,
+79 × 41 × 11 mm, in the "shell" layout. **A first draft.** Mono's case takes its caps' shapes, its badge
+and its name from this one (`rp.decor`).
+- **Four M2 screws from the face,** through the shell's posts and the board's four M2.5 holes, into bosses on
+  the back panel. No tab: the board has no radio.
+- **The mark is at the right, drawn from RESET and BOOTSEL.** Its two lower dots are their holes, 7.5 mm
+  apart on the board. The mark is a badge, its pieces printed in colour and glued into a pocket: the
+  triangle green, the three signed dots blue, the two waiting dots orange. The lower two blue dots are rings
+  round 1.4 mm pinholes.
+- **The name is over it,** on one line, cut 0.6 mm: print the first two layers black and the rest in a
+  colour, and the letters show the colour.
+- **The USB-C is open at the right end.** A lanyard lug at the left.
+- **The dock** holds it leaning back, its cable out of the right side.
+- **The glass** is taken from the panel's datasheet, 31.0 × 17.6 mm; the board's generator still has 17.0.
+  Not measured: the foam, the switches' height, how far the USB-C's legs stand out of the back.
+
+![the slate](out/rp/rp_front.png)
+
+![the slate, apart](out/rp/rp_apart.png)
+
+## The stick and the badge
+
+The first two cases, for the two ESP32-S3 boards from JLCPCB
+([early prototypes](../../hardware/prototypes/README.md)), and a dock for each:
+- **the stick**, for [console-s3](../../hardware/prototypes/console-s3/DESIGN.md)
+- **the badge**, for [PicoquorumKey rev B](../../hardware/prototypes/picoquorum-key/README.md) with its key port fitted
 
 **Status, 2026-11-03:** a first draft of each, drawn the day the boards arrived. The first badge was
 drawn for rev A. Its plate was printed and laid on a board: the board was rev B, and the rib above
@@ -107,62 +214,6 @@ port's parts fits this case; its corner is just open.
 ![the badge on its dock](out/badge/badge_dock.png)
 
 ![the badge, apart](out/badge/badge_apart.png)
-
-## Mono
-
-[`mono.py`](mono.py), for [Mono](../../hardware/mono/README.md), the 40 × 89.5 mm board: a slender bar, 44.6 × 100.1 × 10.9 mm
-closed, in the stick's "shell" layout like console-rp's slate ([`rp.py`](rp.py)). **A first draft, not
-printed, and no Mono board has been built.**
-- **Four M2 × 8 screws from the face,** through the shell's posts and the board's four M2 holes (one either
-  side of the buttons, one at each bottom corner), into bosses on the back panel. The posts are 2.5 mm
-  across, the board's own keep-out (`HOLE_RING` in its generator). No tab: the board has no radio.
-- **The window** shows the active area where the generator puts it, centred on the board, and 0.555 mm
-  further from the ribbon, where it would be if PicoquorumKey's 2.0 mm reading of the drawing is right.
-- **The caps** are the slate's shapes, D0 a red square, D1 a white circle, D2 a green triangle, but
-  1.2 times as wide (circle 5.0 mm, square 4.6, triangle 7.2), for a thumb. Their flanges are 7.4 mm,
-  not 6.1, to hold them in: 0.3 mm off the posts beside D0 and D2. Each still sits on its switch with
-  the same 0.2 mm of play and clearance, so the switch clicks as on the slate.
-- **The name and the mark** are in the plain field under the buttons, made as the slate's are
-  (`rp.decor`): the mark is a badge in three colours glued into a pocket, and the name over it is cut to
-  show a second colour. Mono has no RESET or BOOTSEL buttons, so the mark's dots are whole, with no
-  pinholes. The script checks the mark misses the LED's hole and the name misses the counterbores.
-- **A hole over the LED** (D1), below the mark.
-- **The USB-C is open at the bottom end,** left of centre. A lanyard lug at the top.
-- **A rib on the back panel under D0–D2.** The jig's pads on the board's back are covered: take the back
-  panel off to reach them.
-- **KEY 2's five holes are covered too.** A breakout soldered there would need its own opening.
-- **The ribbon's fold** is taken as 1.5 mm past the glass's end. Mono's README reads the drawing as
-  0.5 at most; the slate allows 2.0.
-- **The dock** holds it leaning back 25°, the plug down into a slot in its lip, as the badge's.
-
-![Mono's case](out/mono/mono_front.png)
-
-![Mono's face, sliced](out/mono/mono_face.png)
-
-![Mono's case, apart](out/mono/mono_apart.png)
-
-![Mono's case on its dock](out/mono/mono_dock.png)
-
-## Mono, industrial
-
-[`mono_ind.py`](mono_ind.py): Mono's case with harder edges. **A variant of the first draft, not printed.**
-Inside, it is Mono's case: the same posts, screws, caps, window, badge, back panel and dock. Only the
-outside of the front shell changes:
-- **The corners are cut off at 45°**, not rounded. At the bottom, 3 mm along each edge, as far as the
-  board's corner inside allows: the wall there is 1.66 mm at its thinnest, against 2.0 along the sides.
-  The script stops if a cut leaves less than 1.5 (`CORNER_WALL`). At the top, 8 mm, across the lanyard's
-  lug, so the top end tapers.
-- **The face's edge is chamfered 1.6 mm**, and the back's 0.8, in place of the rounds.
-- **The screws' counterbores are chamfered 0.4 mm** at the face.
-- **Nine V-grooves, 0.5 mm deep and 2.5 mm apart, run across each long side** where the hand holds it, 14
-  to 34 mm up from the board's bottom edge. They stop short of both chamfers.
-
-The case closes at the same 44.6 × 100.1 × 10.9 mm, and the build finds no overlap. It prints face down
-like Mono's. The grooves' closed ends are 1 mm bridges.
-
-![Mono's case, industrial](out/mono_ind/mono_ind_front.png)
-
-![Mono's case, industrial, apart](out/mono_ind/mono_ind_apart.png)
 
 ## Where the numbers come from
 
@@ -269,18 +320,20 @@ four M2 × 8 screws in through the face. Glue the badge's pieces into the mark's
 ## Run
 
 ```sh
-tools/case build stick badge
+tools/case build mono-industrial      # or mono, rp, stick, badge; several at once
+tools/case check mono-industrial      # builds, then lists what changed
 ```
 
 Each script runs on its own too:
 
 ```sh
-uv run --python 3.11 --with cadquery --with matplotlib --with pillow python cad/consoles/stick.py [screen.png]
+uv run --python 3.11 --with cadquery --with matplotlib --with pillow python cad/consoles/mono_ind.py [screen.png]
 ```
 
-`tools/case build mono` builds Mono's. They write `out/stick/`, `out/badge/` and `out/mono/`:
+`tools/case` runs them at the versions the outputs were last made with (`PINS` in the tool). Each writes
+its folder in `out/` (`out/mono/`, `out/mono_ind/`, `out/rp/`, `out/stick/`, `out/badge/`):
 - the STLs to print
 - `<name>_assembly.step`, with the board's stand-ins
 - `<name>_face.png`: the face sliced just under its top, which shows the engraving
-- the other pictures, with the Feather's review screen (`docs/quorum-ui/feather/03-review-head.png`) on the
+- the other pictures, with the Feather's review screen (`docs/quorum-ui/feather/06-review-head.png`) on the
   panel, or the PNG given

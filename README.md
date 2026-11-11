@@ -32,10 +32,10 @@
   <img src="docs/quorum-ui/v2/boot/orbit-lite.gif" width="240" alt="The Picoquorum boot screen: five owners, three sign, and their triangle turns into the Ethereum diamond">
 </p>
 
-Picoquorum is a small console that is **one owner of a Safe**. Each signer holds a plug-in key with a
-secure element inside. The console shows what a transaction does on its own screen, works out the
-Safe transaction hash itself, and asks the key to sign only after you have seen every page and held
-the green **Sign** button. **Reject** is red and easy.
+Picoquorum is a small console that is **one owner of a Safe**. Each signer's key is a secure element,
+on the console's board or on a small key that plugs in. The console shows what a transaction does on
+its own screen, works out the Safe transaction hash itself, and asks the key to sign only after you
+have seen every page and held the green **Sign** button. **Reject** is red and easy.
 
 The same console also runs [in your browser](https://picoquorum.app/console/), with
 your own passkey as its key. That version is one short folder you can read, check against this
@@ -51,12 +51,51 @@ small box and their own key, and makes every approval a deliberate thing you do 
 > **Experimental.** Early design. Use a testnet first, and only small amounts on mainnet. The Safe's
 > threshold is the real control: always keep owners on the Safe that are not this console.
 
+## Mono, the reference console
+
+<p align="center">
+  <img src="hardware/mono/renders/mono-3q.jpg" width="380" alt="Mono's board: the 1.14-inch screen at the top, D0, D1 and D2 in a row under it, the key chips' sites below them, the RP2350 in the middle, and the USB-C at the bottom end">
+</p>
+
+**Mono** is the hardware Picoquorum is working toward, and the one the rest is measured against: the
+reference standard for a console. Mono is a working name.
+
+- **What it is.** A 40 × 89.5 mm bar: a 1.14″ screen, three buttons under it, an RP2350, and the
+  secure element soldered on. It has no radio at all. Its USB-C reaches a serial chip and nothing
+  else: a computer passes on Safe's queue, and has no say in what gets signed.
+- **Where it stands.** A design, written by a script and checked by KiCad and against JLCPCB's limits
+  ([hardware/mono](hardware/mono/README.md)). Not ordered, and nothing is built. The board it comes
+  from, [console-rp](hardware/console-rp/README.md), is on the bench: five boards, the first one up
+  on a bench script. The console's firmware for these two isn't written yet. Today the firmware
+  runs on the [dev console](hardware/DEV-CONSOLE.md) and [in your browser](https://picoquorum.app/console/).
+- **Its case.** Two first drafts, drawn by scripts and not printed: [the case](cad/consoles/README.md#mono),
+  and [an industrial variant](cad/consoles/README.md#mono-industrial) with cut corners, chamfered
+  edges and grooves down its sides ([`cad/consoles/mono_ind.py`](cad/consoles/mono_ind.py);
+  `tools/case build mono-industrial` rebuilds it).
+- **A dev board kit, possibly.** Mono may become a kit for developers. Nothing is for sale, and no
+  date is set.
+
+<p align="center">
+  <img src="cad/consoles/out/mono_ind/mono_ind_front.png" width="820" alt="Mono's case, industrial: in the hand with four screws in the face, the back with the name, and the left side with its grooves and cut corners">
+</p>
+
+**For developers and contributors.** We may open Mono up to a first few developers and contributors
+before anything wider. A sign-up sheet will come later. Until then, watch this repository or follow
+[@picoquorum](https://x.com/picoquorum), and try the firmware as it is today: in
+[your browser](https://picoquorum.app/console/), or on a [dev console](hardware/DEV-CONSOLE.md) you
+build for about $35.
+
+The two ESP32-S3 boards made before it, with their own Wi-Fi, are in
+[hardware/prototypes](hardware/prototypes/README.md), and the designs before those in
+[hardware/archive](hardware/archive/README.md). Every board and build, and where each stands:
+[hardware/README.md](hardware/README.md).
+
 ## Four ideas
 
 ### 1. A key that can't leak
 
-The key is a secure element on a small board you plug in. Its P-256 private key is generated inside
-the chip, never leaves it, and never exists as a seed phrase. There is nothing to write down,
+The key is a secure element: soldered on the console's board, or on a small board you plug in. Its
+P-256 private key is generated inside the chip, never leaves it, and never exists as a seed phrase. There is nothing to write down,
 photograph or phish. The chip has no command that reads a private key out, it is locked after
 provisioning, and the console asks it to sign only a hash the console worked out itself.
 
@@ -64,27 +103,31 @@ Each key owns the Safe through Safe's audited passkey signer
 ([`firmware/webauthn.py`](firmware/webauthn.py)), with the same owner address on every chain. The
 contracts it relies on were checked onchain on Base and Ethereum.
 
-**The USB-C key, in production now.** [key-c P2](hardware/key-pcb/key-c-usbc/README.md) is the key
-as a part you can hold: an ATECC608C behind a USB-C receptacle on a 16 × 36 mm board, with an ESD
+**The USB-C key.** [key-c P2](hardware/key-pcb/key-c-usbc/README.md) is the key as a part you can
+hold: an ATECC608C behind a USB-C receptacle on a 16 × 36 mm board, with an ESD
 array between the connector and the chip.
 - The receptacle is plain wires, not USB: D+ carries SDA, D− carries SCL, and VBUS is key power
   that the console switches on only when the key is fully in.
 - 5.1 kΩ on each CC pin tells the console a key is present.
-- Five boards are being assembled at JLCPCB; the first bench bring-up is next.
+- Five boards were assembled by JLCPCB and read on the bench from 2026-10-16. One went through the
+  key ceremony on 2026-10-22 and is a Safe owner.
 
 | parts side | back |
 |---|---|
 | <img src="hardware/key-pcb/key-c-usbc/renders/key-c-P2-3q-top.jpg" width="360" alt="key-c P2, parts side"> | <img src="hardware/key-pcb/key-c-usbc/renders/key-c-P2-3q-bottom.jpg" width="360" alt="key-c P2, back, with the Picoquorum mark"> |
 
-Until it arrives, the dev console's key is an Infineon OPTIGA Trust M or an ATECC608 breakout. The
-other key designs (card edge, pogo pads) are in [`hardware/key-pcb/`](hardware/key-pcb/README.md).
+Mono and console-rp carry the same chip soldered on. The dev console's key is an ATECC608 breakout or
+an Infineon OPTIGA Trust M. The other key designs (card edge, pogo pads) are in
+[`hardware/key-pcb/`](hardware/key-pcb/README.md).
 How a chip is locked: [docs/LOCKING.md](docs/LOCKING.md) and [docs/TRUSTM.md](docs/TRUSTM.md).
 What a sealed key can't protect you from: [docs/SECURITY.md](docs/SECURITY.md).
 
 ### 2. A simple console that checks on its own
 
-The console is a Raspberry Pi Pico 2 W with a 240 × 240 screen and a few buttons, running a small
-amount of MicroPython you can read. It doesn't take anyone's word for a transaction: not your
+The console is a small board with a screen and a few buttons, running a small amount of MicroPython
+you can read. Today that is the dev console, a Raspberry Pi Pico 2 W with a 240 × 240 screen;
+[Mono](#mono-the-reference-console) is the board it is headed for. It doesn't take anyone's word for
+a transaction: not your
 laptop's, not your browser's, not Safe{Wallet}'s, and not the transaction service's.
 
 - **Its own hash.** It rebuilds the Safe's EIP-712 transaction hash from the fields it shows, for
@@ -95,8 +138,10 @@ laptop's, not your browser's, not Safe{Wallet}'s, and not the transaction servic
 - **Its own screen.** You page through every screen before Sign is allowed, then hold it for two
   seconds. The verify code (the hash's last eight characters and its blockie) is there to check
   with whoever proposed it.
-- **Its own path.** It talks to the transaction service over its own Wi-Fi and TLS, checking
-  certificates against the roots it carries. Nothing on your computer is in the loop.
+- **Its own path.** The dev console talks to the transaction service over its own Wi-Fi and TLS,
+  checking certificates against the roots it carries: nothing on your computer is in the loop. Mono
+  has no radio. A computer will pass Safe's queue to it over USB, and because the console works out
+  every hash itself, that computer has no say in what gets signed.
 
 | | | | |
 |---|---|---|---|
@@ -216,8 +261,9 @@ The [test ladder](docs/LADDER.md) tracks each chain:
   console's own approval is next
 - then Ethereum mainnet, whose contracts have been checked onchain
 
-The design and the open questions are in the [kickoff](docs/KICKOFF.md), and the project Safe's plan
-in [GOVERNANCE.md](docs/GOVERNANCE.md). Dated notes and photos, mistakes included, are in
+The hardware, board by board, is in [hardware/README.md](hardware/README.md). The design and the open
+questions are in the [kickoff](docs/KICKOFF.md), and the project Safe's plan in
+[GOVERNANCE.md](docs/GOVERNANCE.md). Dated notes and photos, mistakes included, are in
 [`buildlog/`](buildlog/).
 
 ## Layout
@@ -225,12 +271,13 @@ in [GOVERNANCE.md](docs/GOVERNANCE.md). Dated notes and photos, mistakes include
 | path | what |
 |---|---|
 | `firmware/` | the console in MicroPython: `quorum.py` and `quorum_ui.py` (the console), `safe_tx.py` (the Safe hash), `decode.py`, `txservice.py`, `webauthn.py`, the chip drivers `trustm.py` and `atecc.py` |
-| `hardware/` | `key-pcb/` (the keys, [key-c](hardware/key-pcb/key-c-usbc/README.md) among them), `wiring/` ([Build 1](hardware/wiring/BUILD1.md), [perfboard](hardware/wiring/SOLDERING.md), [breadboard](hardware/wiring/BREADBOARD.md), [on an ESP32](hardware/wiring/ESP32.md)), `bom/` |
+| `hardware/` | the boards ([index](hardware/README.md)): `mono/` (the reference console) and `console-rp/` (the board on the bench); `key-pcb/` (the keys, [key-c](hardware/key-pcb/key-c-usbc/README.md) among them); the dev console and its `wiring/` ([Build 1](hardware/wiring/BUILD1.md), [perfboard](hardware/wiring/SOLDERING.md), [breadboard](hardware/wiring/BREADBOARD.md), [on an ESP32](hardware/wiring/ESP32.md)) and `bom/`; `prototypes/` (the two ESP32-S3 boards); `archive/` (earlier designs) |
+| `cad/` | the printed cases, drawn by scripts ([index](cad/README.md)): Mono's and its industrial variant in `cad/consoles/` |
 | `docs/` | everything to read ([index](docs/README.md)), and the site GitHub Pages serves: the front page, `app/`, `console/`, `brand/` |
 | `web/` | the app's source; `npm run build` writes `docs/app/` |
 | `emu/` | the console in a browser: MicroPython in WebAssembly and a virtual secure element. `build.mjs` writes the console page (`docs/console/`); `tools/emu` adds an editor and the case in 3D, for development |
 | `test-vectors/` | Safe transactions with known-correct hashes, and the suites CI runs |
-| `tools/` | `quorum` (Safes on a fork and on chain), `fw` (build and push images), `emu`, `usb`, `release`, `releases/`, `brand/`, `keypcb`, `wiring`, `wiring-esp32` |
+| `tools/` | `quorum` (Safes on a fork and on chain), `fw` (build and push images), `emu`, `usb`, `release`, `releases/`, `brand/`, `keypcb` (the boards), `case` (the printed cases), `wiring`, `wiring-esp32` |
 | `contracts/` | Picoquorum's own contracts, when there are any; today each key owns a Safe through Safe's passkey signer |
 | `buildlog/` | dated notes and photos |
 
@@ -258,7 +305,7 @@ Picoquorum runs on Raspberry Pi Pico 2 W. It is not affiliated with Raspberry Pi
 | | license |
 |---|---|
 | Code and firmware: `firmware/`, `emu/`, `web/`, `tools/`, `test-vectors/`, the built site | [MIT](LICENSE) |
-| Hardware: `hardware/` (the key boards, wiring, parts lists) | [CERN-OHL-W-2.0](LICENSE-HARDWARE) |
+| Hardware: `hardware/` (the console and key boards, wiring, parts lists) | [CERN-OHL-W-2.0](LICENSE-HARDWARE) |
 | Docs, the build log, photos and screenshots | [CC BY-SA 4.0](LICENSE-DOCS) |
 | The name Picoquorum and its mark | not licensed: [TRADEMARK.md](TRADEMARK.md) |
 
