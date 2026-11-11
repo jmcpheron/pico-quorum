@@ -209,7 +209,8 @@ What was checked:
   or garbage, and every start's reset cause 1. The 5th came up "No chip": nothing answered on I2C
   at the start, and the console stayed there, with ▲ Check again, until the next restart. The
   counter didn't move. 6 minutes later SDA and SCL both read high. Why the chip didn't answer is
-  not known.
+  not known. Since then a start that finds no chip clocks the bus free and looks again, and logs
+  why ([hardware/console-rp/SETUP.md](../hardware/console-rp/SETUP.md#no-chip)).
 - 20 unplugs of the USB-C by hand, with the SWD probe's GND, CLK and DIO still wired (no 3V3): 10
   out for about 3 s at home, 5 pulled again 2 to 3 s into the start, and 5 out for about 1 s. Every
   start after came back on home, pinned, about 7 s after its boot line, 67.5 to 67.8 KB free. The

@@ -945,8 +945,8 @@ def notice(q, ok, title, lines, press=None, d2=None):
 
 
 def draw_nochip(q):
-    notice(q, False, "No chip", ["No secure element answered on I2C.", "The console only signs with a key inside the chip."],
-           "Check again", "Check")
+    notice(q, False, "No chip", ["No secure element answered on I2C.", "The console only signs with a key inside the chip.",
+                                 "It looks again every %d s." % (q.NOCHIP_EVERY_MS // 1000)], "Check again", "Check")
 
 
 def draw_pinfail(q):

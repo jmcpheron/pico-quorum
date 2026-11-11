@@ -63,6 +63,14 @@ What can stop it:
 - A screen that only shows (Key, owners, device, recent, chip) goes back home after 2 minutes with
   no key press, so the console keeps asking.
 
+## No chip
+
+A start that finds no chip on I2C clocks the bus free (SCL pulsed until SDA is let go, nine at most, then a STOP) and
+looks again, 1.5 s apart, four looks in all. Then it shows "No chip" and looks again every 30 s on
+its own, or at ▲ Check again. A look that finds nothing costs no use of the key. Each miss goes to
+the log with its reason, the scan and whether SDA was held, so `relay.py` and the app show it. One
+start in 100 on board #2 found no chip and the next found it (docs/USB-LINK.md).
+
 ## Loading a board that has a key
 
 Never a plain load: it wipes `pin.json` and `keyflow.json`. Without them the console finds its chip

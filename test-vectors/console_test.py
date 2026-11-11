@@ -226,7 +226,8 @@ def owner_of(slot):
     return webauthn.owner_address("0x%064x" % x, "0x%064x" % y, quorum_cfg.CFG["signer"])
 
 
-def fresh(prod=True, url="https://api.safe.global/tx-service/basesep", expect="auto", extra="", safe=True, keep=False, relay=None):
+def fresh(prod=True, url="https://api.safe.global/tx-service/basesep", expect="auto", extra="", safe=True, keep=False, relay=None,
+          clock=None):
     """A newly imported console with this secrets.py (and build.py when prod), started, not polled.
     On console-rp its way out is link.py, on a Relay (relay, or a new one): RELAY[0]."""
     lines = ['WIFI_SSID = "emulator"', 'WIFI_PASS = ""', 'HOSTNAME = "emu"',
@@ -260,7 +261,7 @@ def fresh(prod=True, url="https://api.safe.global/tx-service/basesep", expect="a
     txservice.requests = SVC
     import quorum as Q
     Q.start_timer = lambda: None
-    Q.time = Clock()
+    Q.time = clock or Clock()
     RELAY[0] = None
     if rp:
         import link
@@ -609,6 +610,94 @@ def case_production():
     check(Q.state == "crashed", "A does nothing on the crashed screen")
 
 
+class FlipClock(Clock):
+    """A Clock that puts the virtual chip back on the bus at the console's first wait of `at` ms."""
+
+    def __init__(self, at):
+        Clock.__init__(self)
+        self.at = at
+
+    def sleep_ms(self, ms):
+        if ms == self.at:
+            atecc_sim.present = True
+        Clock.sleep_ms(self, ms)
+
+
+def logged_after(mark):
+    """What the console logged after mark (log.1.txt, then log.txt: a rotation can split them)."""
+    text = ""
+    for name in ("log.1.txt", "log.txt"):
+        try:
+            with open(name) as f:
+                text += f.read()
+        except OSError:
+            pass
+    return text.rsplit(mark, 1)[-1]
+
+
+def log_mark(name):
+    import time
+    mark = "-- test mark %s %d" % (name, time.ticks_ms())
+    with open("log.txt", "a") as f:
+        f.write(mark + "\n")
+    return mark
+
+
+def case_nochip():
+    """A start that finds no chip clocks the bus free and looks again, past the 608's watchdog, and
+    logs why each time (board #2, 2026-11-10: one start in 100 found none, the next found it). No
+    chip looks again by itself every 30 s; Not pinned never does: each look there reads the key."""
+    chip()
+    fresh()
+    uses = atecc_sim.chip().counters[0]     # what a plain start costs
+    chip()
+    mark = log_mark("flip")
+    atecc_sim.present = False
+    try:
+        Q = fresh(clock=FlipClock(1500))
+    finally:
+        atecc_sim.present = True
+    log = logged_after(mark)
+    check(Q.NOCHIP_GAP_MS == 1500 and Q.state == "home" and Q.sig.name == "atecc608" and Q.pin_ok,
+          "a start whose first look finds no chip looks again 1.5 s on, finds it, and comes up pinned")
+    check("no chip, look 1 of 4: nothing answers on I2C0; scan empty; SDA high" in log and "chip found on look 2 of 4" in log,
+          "it logs the miss, why, the bus, and the look that found it")
+    check(atecc_sim.chip().counters[0] == uses, "the same uses of the key as a plain start: a miss reads nothing")
+    mark = log_mark("none")
+    atecc_sim.present = False
+    try:
+        Q = fresh()
+        log = logged_after(mark)
+        check(Q.state == "nochip" and Q.time.now - 100000 >= 3 * Q.NOCHIP_GAP_MS, "no chip at all: four looks, 1.5 s apart, then No chip")
+        check(all("no chip, look %d of 4" % i in log for i in (1, 2, 3, 4)), "each look is logged")
+        Q.keys.pressed = lambda: []
+        atecc_sim.present = True
+        Q.time.now += Q.NOCHIP_EVERY_MS - 1000
+        Q.tick(None)
+        check(Q.state == "nochip", "back on the bus: No chip doesn't look before its 30 s")
+        Q.time.now += 2000
+        Q.tick(None)
+        check(Q.state == "home" and Q.pin_ok, "30 s on it looks by itself, finds the chip and comes up pinned")
+    finally:
+        atecc_sim.present = True
+    Q = fresh(expect={"serial": "0123ffffffffffffff", "slot": 0, "owner": owner_of(0), "locked": True})
+    n = list(atecc_sim.chip().counters)
+    ops = []
+    real = atecc_sim.Chip.execute
+
+    def spy(self, op, p1, p2, data):
+        ops.append(op)
+        return real(self, op, p1, p2, data)
+    atecc_sim.Chip.execute = spy
+    try:
+        Q.keys.pressed = lambda: []
+        Q.time.now += 3 * Q.NOCHIP_EVERY_MS
+        Q.tick(None)
+    finally:
+        atecc_sim.Chip.execute = real
+    check(Q.state == "pinfail" and not ops and atecc_sim.chip().counters == n, "Not pinned never looks by itself: nothing asked of the chip")
+
+
 def case_chips():
     """chips.json: each chip seen gets a number and a theme (1 dark, 2 light); the console uses it."""
     import quorum_ui
@@ -825,13 +914,14 @@ def case_safes():
     check(sign(Q, by[7], 2100) and "/tx-service/eth/" in SVC.posted[-1][0], "its confirmation goes to Ethereum's service")
     Q.handle("A")
     check(Q.state == "home" and Q.rr == 1 and Q.last_poll == 0, "back on home: that Safe is asked about next, now")
+    mark = log_mark("eth down")
     SVC.safes[ETH_SAFE]["down"] = True
     Q.WATCH[1]["need_info"] = True
     Q.net_work()
     check(not Q.net_ok and "Vault" in Q.net_err and any(e["w"]["chain"] == CHAIN for e in Q.queue),
           "Ethereum's service down: said so by name, Base Sepolia's queue still shown")
-    at = [l for l in open("log.txt").read().split("\n") if "  at " in l and "in fetch_info" in l]
-    check(len(at) == 1 and "quorum.py:" in at[0], "where the poll failed, in the log: %s" % (at[-1][-70:] if at else "none"))
+    at = [l for l in logged_after(mark).split("\n") if "  at " in l]    # this poll's, not an older case's (a rotation hid that)
+    check(len(at) == 1 and "txservice.py:" in at[0] and " in _get" in at[0], "where the poll failed, in the log: %s" % (at[-1][-70:] if at else "none"))
     SVC.safes[ETH_SAFE]["down"] = False
 
     # a signature the service did not take, for the second Safe, survives a restart and goes to its service
@@ -2460,7 +2550,7 @@ def main_rp():
     for m in ("board", "lcd", "fonts", "quorum_ui", "quorum_ui_s", "splash", "bootmark"):
         sys.modules.pop(m, None)
     LINK_THREE[0] = True                # case_practice: on this board's three buttons
-    for case in (case_three, case_relay, case_practice, case_crt):
+    for case in (case_three, case_relay, case_practice, case_crt, case_nochip):
         print("-- %s, console-rp" % case.__name__[5:])
         try:
             case()
@@ -2478,7 +2568,7 @@ def main_knob():
 
 
 def main():
-    for case in (case_pin, case_owners_pages, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_safes, case_watchdog, case_home, case_saver, case_release, case_passkey, case_release_approval, case_knob, case_link, case_setup_link, case_practice):
+    for case in (case_pin, case_owners_pages, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_safes, case_watchdog, case_home, case_saver, case_release, case_passkey, case_release_approval, case_knob, case_link, case_setup_link, case_practice, case_nochip):
         print("--", case.__name__[5:])
         try:
             case()

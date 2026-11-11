@@ -715,17 +715,23 @@ def _trustm_here(i2c, tries=40):
     return False
 
 
+why = ""            # why the last load() found no chip, with what its scan saw: for the console's log
+seen = []           # the last scan's addresses, or why it failed
+
+
 def detect():
     """The secure elements on I2C0: [("atecc608", addr), ("trustm", 0x30)], either, both or none.
     One wake token for a sleeping ATECC, one scan, then a short poll at 0x30."""
+    global seen
     try:
         import atecc
-        found = atecc.scan()
+        found = seen = atecc.scan()
         out = [("atecc608", a) for a in atecc.KEY_ADDRS if a in found][:1]
         if 0x30 in found or _trustm_here(atecc.make_i2c(atecc.SDA, atecc.SCL, 100_000)):
             out.append(("trustm", 0x30))
         return out
     except Exception as e:
+        seen = "failed: %s" % e
         print("detect:", e)
         return []
 
@@ -802,8 +808,11 @@ def load(soft=True, pins=None):
                     pass
             print("two chips on the bus, none pinned: using the %s" % found[0].name)
         return found[0]
+    global why
+    s = seen if isinstance(seen, str) else " ".join("%02x" % a for a in seen[:6]) + (" +%d" % (len(seen) - 6) if len(seen) > 6 else "")
+    why = "%s; scan %s" % (err, s or "empty")
     if not soft:
-        print("no chip (%s)" % err)
+        print("no chip (%s)" % why)
         return NoSigner()
-    print("no chip (%s), using software key" % err)
+    print("no chip (%s), using software key" % why)
     return SoftSigner()

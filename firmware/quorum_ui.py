@@ -1103,8 +1103,8 @@ def draw_nochip(q):
     mark(d, False, W // 2, 60, 22)
     txt_c(d, "No chip", 94, "bold26")
     y = 136
-    for line in ("No secure element answered on I2C.", "The console only signs with", "a key inside the chip.", "",
-                 "Wire the chip, then press " + ("the knob." if q.KNOB else "A.")):
+    for line in ("No secure element answered on I2C.", "The console only signs with", "a key inside the chip.",
+                 "It looks again every %d s." % (q.NOCHIP_EVERY_MS // 1000), "Wire the chip, then press " + ("the knob." if q.KNOB else "A.")):
         txt_c(d, line, y, "sans14", "muted")
         y += 19
     d.show()

@@ -484,9 +484,41 @@ def note_recent(n, w, what):
         print("recent:", ex)        # a full flash costs the list, never the signature
 
 
-def probe_chip():
+NOCHIP_LOOKS, NOCHIP_GAP_MS, NOCHIP_EVERY_MS = 4, 1500, 30000
+nochip_t = 0        # when a look last found no chip
+
+
+def find_chip(looks, step=None):
+    """S.load (the production image never falls back to a key on flash). After a miss the bus is
+    clocked free and, while looks are left, looked at again NOCHIP_GAP_MS on: past the 608's 1.3 s
+    watchdog. One start in 100 on board #2 found no chip and the next found it (2026-11-10). Each
+    miss is logged with its reason, which went only to print before: on console-rp the log is all
+    that reaches the computer."""
+    global nochip_t
+    for i in range(looks):
+        s = S.load(soft=not PROD, pins=EXPECTS)
+        if S.is_chip(s) or SOFT_OK:
+            if i:
+                qlog.write("chip found on look %d of %d" % (i + 1, looks))
+            return s
+        try:
+            import atecc
+            held, n = atecc.free_bus()
+            bus = "SDA held, let go after %d pulses" % n if held else "SDA high"
+        except Exception as e:
+            bus = "bus not cleared: %s" % e
+        (qlog.write if looks > 1 else qlog.once)("no chip, look %d of %d: %s; %s" % (i + 1, looks, S.why, bus))
+        nochip_t = time.ticks_ms()
+        if i < looks - 1:
+            if step:
+                step("no answer: looking again (%d of %d)" % (i + 2, looks))
+            time.sleep_ms(NOCHIP_GAP_MS)
+    return s
+
+
+def probe_chip(looks=1, step=None):
     global sig, state
-    sig = S.load(soft=not PROD, pins=EXPECTS)   # the production image never falls back to a key on flash
+    sig = find_chip(looks, step)
     if not S.is_chip(sig) and not SOFT_OK:
         state = "nochip"
         return
@@ -1297,16 +1329,22 @@ def reject():
 
 
 # ----------------------------------------------------------------------------- ui tick
+def check_again():
+    """No chip or pin fail: look again (Check again; and on No chip every NOCHIP_EVERY_MS, from tick)."""
+    global state, dirty
+    probe_chip()            # counts first (boot_count), then reads the key: on a sealed chip, a use of it
+    if state == "boot":
+        state = "home"
+        start_watch()
+    own_reads(boot_count)
+    dirty = True
+
+
 def handle(k):
     global state, sel, dirty, last_poll, chip_page, opage, hsel, browse, chip_back, rpage
     if state in ("nochip", "pinfail"):
         if k == "A":
-            probe_chip()            # counts first (boot_count), then reads the key: on a sealed chip, a use of it
-            if state == "boot":
-                state = "home"
-                start_watch()
-            own_reads(boot_count)
-            dirty = True
+            check_again()
     elif state == "crashed":
         if k == BACK:
             machine.reset()
@@ -1885,6 +1923,8 @@ def tick(t):
         if reset_at and time.ticks_diff(time.ticks_ms(), reset_at) >= 0:
             machine.reset()
         ask_tick()
+        if state == "nochip" and time.ticks_diff(time.ticks_ms(), nochip_t) >= NOCHIP_EVERY_MS:
+            check_again()       # a miss costs no use of the key: nothing answered
         polled = False
         if (state in ("home", "boot", "saver") and (last_poll == 0 or time.ticks_diff(time.ticks_ms(), last_poll) >= poll_every())
                 and time.ticks_diff(time.ticks_ms(), last_key) >= QUIET_MS):
@@ -2098,7 +2138,7 @@ def start():
     d = splash.begin()
     keys = L.Keys()
     splash.step("chip", "probing i2c...", L.GREY)
-    probe_chip()
+    probe_chip(NOCHIP_LOOKS, lambda t: splash.step("chip", t, L.GREY))
     gc.collect()                # the Trust M's certificate checks leave the heap in pieces: tidy before the next frame
     load_recent()
     mark("probe")
