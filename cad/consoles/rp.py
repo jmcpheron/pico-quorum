@@ -58,6 +58,18 @@ ENGRAVE_DEEP = 0.6
 PIN = 0.7                   # RESET's and BOOTSEL's pinholes, inside the blue rings: a paperclip, not a thumb
 
 
+def name(c, cx, top):
+    """The name's cut in the face (NAME), its line centred on cx, over top: the top edge of the mark's top dot."""
+    word, (w, h), over = NAME
+    size = S.fit_text(word, w, h)
+    y = top + over + h / 2                          # the line's middle
+    tw = size * cq.Workplane("XY").text(word, 10, 1, combine=False, kind="bold").val().BoundingBox().xlen / 10
+    for hx, hy in c.b["holes"]:                     # clear of each screw's counterbore by 0.5 mm
+        gap = math.hypot(max(abs(hx - cx) - tw / 2, 0), max(abs(hy - y) - h / 2, 0))
+        assert gap > S.M2_HEAD[0] / 2 + 0.2 + 0.5, "the name runs into the counterbore at %s" % ((hx, hy),)
+    return S.engrave_text(cq.Plane(origin=(cx, y, c.zt), xDir=(1, 0, 0), normal=(0, 0, 1)), word, size, ENGRAVE_DEEP)
+
+
 def decor(c, shell, back):
     """The mark as a badge glued into a pocket in the face, its pieces standing proud: the triangle in green, the
     three signed dots in blue, the two waiting dots in orange. The lower two signed dots are rings round the
@@ -83,15 +95,7 @@ def decor(c, shell, back):
     triangle = tri(-g, z0, z1)
     for k in (0, 2, 3):
         triangle = triangle.cut(S.cyl(*pts[k], rad[k] + g, z0 - 1, z1 + 1))
-    word, (w, h), over = NAME
-    size = S.fit_text(word, w, h)
-    y = pts[0][1] + rad[0] + over + h / 2           # the line's middle
-    tw = size * cq.Workplane("XY").text(word, 10, 1, combine=False, kind="bold").val().BoundingBox().xlen / 10
-    for hx, hy in b["holes"]:                       # clear of each screw's counterbore by 0.5 mm
-        gap = math.hypot(max(abs(hx - cx) - tw / 2, 0), max(abs(hy - y) - h / 2, 0))
-        assert gap > S.M2_HEAD[0] / 2 + 0.2 + 0.5, "the name runs into the counterbore at %s" % ((hx, hy),)
-    shell = shell.cut(S.engrave_text(cq.Plane(origin=(cx, y, c.zt), xDir=(1, 0, 0), normal=(0, 0, 1)), word, size,
-                                     ENGRAVE_DEEP))
+    shell = shell.cut(name(c, cx, pts[0][1] + rad[0]))
     out = [("badge triangle", top(triangle), GREEN, S.flip)]
     for k in (0, 2, 3):
         dot = S.cyl(*pts[k], rad[k] - g, z0, z1)
