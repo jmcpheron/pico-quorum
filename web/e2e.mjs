@@ -558,7 +558,8 @@ await step("a new key's set-up link (#/k/<compressed key>): compare, deploy from
 
 await step("#/device: a console on USB, its cards, a Safes ask accepted on it, a Wi-Fi ask refused", async () => {
   const dev = (f) => page.evaluate(f);
-  await page.evaluate((safe) => localStorage.setItem("pq.safes", JSON.stringify([{ chain: "basesep", address: safe, name: "Team" }])), SAFE);
+  const SAFE2 = "0x2222222222222222222222222222222222222222";
+  await page.evaluate((safe) => localStorage.setItem("pq.safes", JSON.stringify([{ chain: "basesep", address: safe, name: "Family" }])), SAFE2);
   await page.goto(`${BASE}app/#/device`);
   await page.getByRole("button", { name: "Connect a device" }).click();
   await page.getByText("PicoquorumKey", { exact: true }).waitFor();
@@ -573,22 +574,31 @@ await step("#/device: a console on USB, its cards, a Safes ask accepted on it, a
     "#/device: the chip's model and locks, as the console read them at boot, drawn as text");
   await shot("device-connected");
 
-  await page.locator(".checks input").first().check();
-  await page.getByRole("button", { name: "Send to the device" }).last().click();
-  await page.getByText("hold D2 for 2 s").waitFor();
+  const boxes = page.locator("li.pick input[type=checkbox]"), sendList = page.getByRole("button", { name: "Send this list to the console" });
+  check(await boxes.count() === 2 && await boxes.nth(0).isChecked() && !(await boxes.nth(1).isChecked())
+    && await page.locator("li.pick").nth(0).getByText("On the console").count() === 1 && await sendList.isDisabled(),
+    "#/device: one list: the console's Safe (never saved in this browser) ticked, the browser's Safe not; nothing to send yet");
+  await boxes.nth(1).check();
+  await page.getByText("It will watch 2 Safes: <b>Ops</b>, Family. Adds Family.").waitFor();
+  await boxes.nth(0).uncheck();
+  await page.getByText("Drops <b>Ops</b>.").waitFor();
+  check(await sendList.isEnabled(), "#/device: ticking and unticking says what the console will watch, what that adds and drops");
+  await shot("device-safes-change");
+  await sendList.click();
+  await page.getByText("Sent. On the console").waitFor();
   const ask = await dev(() => window.__dev.pending);
-  check(ask?.op === "safes" && JSON.stringify(ask.safes) === JSON.stringify([{ chainId: 84532, address: SAFE.toLowerCase(), name: "Team" }]),
-    "#/device: the safes ask carries chainId, address and name only");
+  check(ask?.op === "safes" && JSON.stringify(ask.safes) === JSON.stringify([{ chainId: 84532, address: SAFE2, name: "Family" }]),
+    "#/device: the safes ask is the ticked list, each with chainId, address and name only");
   await dev(() => window.__dev.decide(true));
   await page.getByText("Accepted on the console and saved").waitFor();
   await page.getByText("It's back").waitFor({ timeout: 15000 });
-  await page.getByText("This key is an owner").waitFor();
+  await page.getByText("Its key is an owner", { exact: true }).waitFor();
   check((await dev(() => window.__dev.opens)) === 2, "#/device: after the restart the page opens the port again, and reads the new Safes");
 
   await page.fill("#dev-ssid", "home");
   await page.fill("#dev-pass", "a long password");
   await page.getByRole("button", { name: "Send to the device" }).first().click();
-  await page.getByText("hold D2 for 2 s").waitFor();
+  await page.getByText("Sent. On the console").waitFor();
   check((await page.inputValue("#dev-pass")) === "", "#/device: the password field is emptied once sent");
   await dev(() => window.__dev.decide(false));
   await page.getByText("Not saved: refused on the device").waitFor();
@@ -608,9 +618,11 @@ await step("#/device: a console-rp, and the page as its relay", async () => {
   await page.evaluate(() => localStorage.setItem("pq.apiKey", JSON.stringify("e2e-key-5150")));
   await dev(() => { window.__dev.rp = true; });
   await page.getByRole("button", { name: "Connect a device" }).click();
-  await page.getByText("Safe's service, through this page").waitFor();
+  await page.getByText("Its way to Safe's service: this page").waitFor();
   check((await dev(() => window.__dev.baud)) === 460800, "#/device: a CH343P (WCH) opens at 460800");
   check(await page.locator("#dev-ssid").count() === 0, "#/device: a console-rp has no Wi-Fi card");
+  check(await page.getByText("the hotspot").count() === 0 && await page.getByText("How a new key is made: the ceremony").count() === 0,
+    "#/device: and no hotspot or ceremony: it has no radio, and makes its own key");
   await page.waitForFunction(() => window.__dev.his >= 2, null, { timeout: 8000 });
   check(true, "#/device: the page says hi to the console every 2 s");
 

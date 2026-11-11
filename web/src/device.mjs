@@ -173,7 +173,7 @@ export function deviceView(ui) {
 
   fill(main,
     h("section", { class: "hero" }, h("h1", { text: "Your device" }),
-      h("p", { class: "lede", text: "Plug your Picoquorum console into this computer and connect it here. The page reads what it is, and can send it your Wi-Fi and the Safes it watches." }),
+      h("p", { class: "lede", text: "Plug your Picoquorum console into this computer and connect it here. The page shows what it is and which Safes it watches, and can change them. A console with no Wi-Fi reaches Safe's service through this page: keep it open while you use the console." }),
       h("p", { class: "muted", text: "The console shows each one on its own screen and saves it only when you hold its Sign button. Nothing on this page can make it sign, read its key or change its chip." })),
     h("section", { class: "card" }, h("h2", { text: "Connect" }),
       supported
@@ -298,10 +298,10 @@ export function deviceView(ui) {
     state.relayEl = a.link ? relayParts(ui) : null;
     fill(body,
       deviceCard(ui, a, st),
-      state.relayEl ? state.relayEl.card : null,
       st.mode === "console" ? keyCard(ui, a, st) : null,
-      a.link ? null : wifiCard(ui, a, st, ask),          // a console-rp has no radio
       st.mode === "console" ? safesCard(ui, a, st, ask) : setupNote(ui, st),
+      a.link ? null : wifiCard(ui, a, st, ask),          // a console-rp has no radio
+      state.relayEl ? state.relayEl.card : null,
       h("p", { class: "row" },
         h("button", { class: "btn", type: "button", text: "Read it again", onclick: () => refresh() }),
         h("button", { class: "btn", type: "button", text: "Disconnect", onclick: async () => {
@@ -309,6 +309,7 @@ export function deviceView(ui) {
         } })));
     const p = main.querySelector("[data-practice]");
     if (p) p.replaceWith(practice(ui, a.board));
+    if (a.link) main.querySelector("[data-hotspot]")?.remove();    // no radio, so no hotspot
     showRelay();
   }
 
@@ -346,6 +347,7 @@ function deviceCard(ui, a, st) {
           a.release ? h("span", {}, h("span", { class: "muted", text: " · release " }), h("code", { class: "mono", text: shortFp(a.release) })) : null))),
     h("p", { class: "small muted" }, "The picture and the eight digits are the console's Device screen's Release. ",
       h("a", { href: "#/releases", text: "Releases" }), " says which release has them."),
+    a.link ? h("p", {}, badge("ok", "Connected through this page"), " Keep it open: its calls to Safe's service go through it (below).") : null,
     st.mode === "setup" ? h("p", {}, badge("warn", "Wi-Fi setup"), " It has no network yet, so it shows its hotspot: send it one below, or join the hotspot from a phone.") : null,
     st.mode === "stopped" ? h("p", {}, badge("bad", "Stopped"), " The console didn't start. Its screen and error.log say why; tools/fw logs reads it in maintenance.") : null);
 }
@@ -354,8 +356,8 @@ function deviceCard(ui, a, st) {
 function relayParts(ui) {
   const { h, badge } = ui;
   const counts = h("p", { class: "small muted" }), list = h("ul", { class: "relay-log" }), log = h("pre", { class: "small mono" });
-  const card = h("section", { class: "card" }, h("h2", { text: "Safe's service, through this page" }),
-    h("p", {}, badge("ok", "Relaying"), " Leave this page open. The console has no radio: it reaches Safe's service only through it."),
+  const card = h("section", { class: "card" }, h("h2", { text: "Its way to Safe's service: this page" }),
+    h("p", {}, badge("ok", "Relaying"), " Keep this page open. The console has no radio: it reaches Safe's service only through this page, which makes each call for it."),
     h("p", { class: "small muted", text: "Only the console's own calls go out: its Safes, their queue, and its confirmations, to the services it pins. The API key in Settings goes on them, and never down the cable. The console checks every answer itself, as it checks Safe's service." }),
     counts, list,
     h("details", {}, h("summary", { text: "The console's log" }), log));
@@ -420,38 +422,68 @@ function wifiCard(ui, a, st, ask) {
     h("div", { class: "row" }, send), out);
 }
 
+// The most Safes a console watches (firmware/policy.py MAX_SAFES): each is a queue and its decoded
+// transactions in its RAM.
+export const MAX_SAFES = 4;
+
+/**
+ * The console keeps one list of Safes, and a safes ask replaces all of it. So the card is that one
+ * list: what the console watches now, ticked, then the Safes saved in this browser, not ticked. What
+ * stays ticked is what it will watch, and the page says what that adds and drops before it sends.
+ * A Safe on the console that this browser never saved stays on the list: it used to have no box, so
+ * sending another Safe dropped it without a word.
+ */
+export function safeRows(now, saved, chainIds) {
+  const id = (c, a) => `${c}:${String(a).toLowerCase()}`;
+  const rows = (now || []).map((s) => ({ chainId: s.chainId, address: String(s.address).toLowerCase(), name: s.name || "Safe", on: true, live: s }));
+  for (const x of linkSafes(saved, chainIds))
+    if (!rows.some((r) => id(r.chainId, r.address) === id(x.chainId, x.address))) rows.push({ ...x, on: false, live: null });
+  return rows;
+}
+
 function safesCard(ui, a, st, ask) {
   const { h, fill, badge, ident, short } = ui;
-  const now = st.safes || [];
-  const saved = ui.savedSafes().filter((s) => ui.chainIds[s.chain]);
-  const boxes = saved.map((s, i) => h("label", { class: "check" },
-    h("input", { type: "checkbox", "data-i": String(i), checked: now.some((x) => x.address === s.address.toLowerCase() && x.chainId === ui.chainIds[s.chain]) }),
-    ident(s.address, 20), h("span", { text: ` ${s.name || short(s.address)} ` }), h("span", { class: "muted small", text: `${ui.CHAINS[s.chain].name} · ${short(s.address)}` })));
-  const out = h("div", {});
-  const send = h("button", { class: "btn go", type: "button", text: "Send to the device" });
-  send.onclick = () => {
-    const picked = boxes.map((b, i) => (b.querySelector("input").checked ? saved[i] : null)).filter(Boolean);
-    if (!picked.length) return fill(out, h("p", { class: "warn-text", text: "Pick at least one Safe." }));
-    if (picked.length > 4) return fill(out, h("p", { class: "warn-text", text: "A console watches four Safes at most." }));
-    ask("safes", { safes: linkSafes(picked, ui.chainIds) }, out);
-  };
-  return h("section", { class: "card" }, h("h2", { text: "Safes it watches" }),
-    now.length
-      ? h("ul", { class: "owners" }, ...now.map((s) => h("li", { class: "with-ident" }, ident(s.address, 28),
-          h("div", { class: "addr-body" },
-            h("div", { class: "addr-top" }, h("strong", { text: s.name }), badge("muted", ui.chainName(s.chainId)),
-              s.isOwner === true ? badge("ok", "This key is an owner") : s.isOwner === false ? badge("warn", "Not an owner yet") : null,
-              s.threshold ? badge("muted", `${s.threshold} of ${s.owners}`) : null,
-              s.waiting ? badge("warn", `${s.waiting} waiting`) : null),
-            h("div", { class: "small" }, h("code", { class: "mono", text: s.address }), s.ok ? null : h("span", { class: "muted", text: ` · ${s.err}` }))))))
-      : h("p", {}, badge("warn", "None yet"), " The console shows Your key is ready, or No Safe."),
-    st.safesFrom ? h("p", { class: "small muted", text: `From ${st.safesFrom}.` }) : null,
-    h("h3", { text: "Send it the Safes to watch" }),
-    saved.length
-      ? h("div", { class: "checks" }, ...boxes)
-      : h("p", { class: "small muted" }, "No saved Safes in this browser. ", h("a", { href: "#/", text: "Open a Safe" }), " and save it, then come back."),
-    h("p", { class: "small muted", text: "Up to four. They replace the ones it watches now. The console lists them page by page before you hold to save." }),
-    saved.length ? h("div", { class: "row" }, send) : null, out);
+  const k = keysOf(a.board);
+  const rows = safeRows(st.safes, ui.savedSafes(), ui.chainIds);
+  const out = h("div", {}), sum = h("p", {});
+  const send = h("button", { class: "btn go", type: "button", text: "Send this list to the console" });
+  const boxes = rows.map((r) => h("input", { type: "checkbox", checked: r.on, "aria-label": `${r.name} on the console` }));
+  const items = rows.map((r, i) => {
+    const s = r.live;
+    return h("li", { class: "with-ident pick" }, h("label", { class: "pick-box" }, boxes[i], ident(r.address, 28)),
+      h("div", { class: "addr-body" },
+        h("div", { class: "addr-top" }, h("strong", { text: r.name }), badge("muted", ui.chainName(r.chainId)),
+          s ? badge("ok", "On the console") : badge("muted", "Saved in this browser"),
+          s?.isOwner === true ? badge("ok", "Its key is an owner") : s?.isOwner === false ? badge("warn", "Its key isn't an owner yet") : null,
+          s?.threshold ? badge("muted", `${s.threshold} of ${s.owners}`) : null,
+          s?.waiting ? badge("warn", `${s.waiting} waiting`) : null),
+        h("div", { class: "small" }, h("code", { class: "mono", text: r.address }), s && !s.ok ? h("span", { class: "muted", text: ` · ${s.err}` }) : null)));
+  });
+  const picked = () => rows.filter((r, i) => boxes[i].checked);
+  function update() {
+    const p = picked(), adds = p.filter((r) => !r.live), drops = rows.filter((r, i) => r.live && !boxes[i].checked);
+    const names = (l) => l.map((r) => r.name).join(", ");
+    send.disabled = !p.length || p.length > MAX_SAFES || (!adds.length && !drops.length);
+    if (!p.length) return fill(sum, h("span", { class: "warn-text", text: "Tick at least one Safe." }));
+    if (p.length > MAX_SAFES) return fill(sum, h("span", { class: "warn-text", text: `A console watches ${MAX_SAFES} Safes at most: untick ${p.length - MAX_SAFES}.` }));
+    if (!adds.length && !drops.length) return fill(sum, h("span", { class: "muted", text: "That's the list it has now. Tick a Safe to add it, untick one to drop it." }));
+    fill(sum, h("strong", { text: `It will watch ${p.length === 1 ? "1 Safe" : `${p.length} Safes`}: ${names(p)}.` }),
+      adds.length ? h("span", { text: ` Adds ${names(adds)}.` }) : null,
+      drops.length ? h("span", { class: "warn-text", text: ` Drops ${names(drops)}.` }) : null);
+  }
+  for (const b of boxes) b.onchange = update;
+  update();
+  send.onclick = () => ask("safes", { safes: picked().map(({ chainId, address, name }) => ({ chainId, address, name })) }, out);
+  return h("section", { class: "card" }, h("h2", { text: "Safes on this console" }),
+    h("p", { class: "muted", text: `It watches up to ${MAX_SAFES} Safes, and signs for each one its key is an owner of. It keeps one list: sending replaces the whole list with the Safes ticked here.` }),
+    rows.length
+      ? h("ul", { class: "owners" }, ...items)
+      : h("p", {}, badge("warn", "None yet"), " The console has no Safe, and this browser has none saved."),
+    h("p", { class: "small muted" }, "To add a Safe that isn't listed, ", h("a", { href: "#/", text: "open it" }), " and save it, then come back."),
+    rows.length ? sum : null,
+    rows.length ? h("div", { class: "row" }, send) : null,
+    rows.length ? h("p", { class: "small muted", text: `The console then shows each Safe on a page of its own, and last the list it replaces. See each with ${k.page}, then hold ${k.yes} for 2 s to save it; ${k.no} says no. It restarts with the new list.` }) : null,
+    out);
 }
 
 function setupNote(ui, st) {
@@ -467,6 +499,14 @@ function practice(ui, board) {
     h("p", { class: "muted" }, "The console in your browser runs the same firmware, with a passkey as its key. Add a Safe there, then review and sign a test transaction on testnet, with the same buttons as ",
       board ? `your ${boardName(board)}.` : "your device."),
     h("p", {}, h("a", { class: "btn", href: `../console/?board=${b}`, text: "Open the console in the browser" })),
+    board === "console-rp" ? null : ceremony(ui));
+}
+
+// How a key is made on the boards an organizer sets up. A console-rp makes its own on its screen
+// (keyCard says how), so it gets none of this.
+function ceremony(ui) {
+  const { h } = ui;
+  return h("div", {},
     h("h3", { text: "How a new key is made: the ceremony" }),
     h("p", { class: "small muted", text: "The organizer makes the key before the console is handed over, on the ceremony image. The steps go like this. These are pictures of the real screens: nothing runs here, and no chip is asked anything." }),
     h("ol", { class: "shots" }, ...CEREMONY.map(([f, cap]) => h("li", {},
@@ -477,6 +517,6 @@ function practice(ui, board) {
 
 function hotspot(ui) {
   const { h } = ui;
-  return h("section", { class: "card quiet" }, h("h2", { text: "Without a computer: the hotspot" }),
+  return h("section", { class: "card quiet", "data-hotspot": "" }, h("h2", { text: "Without a computer: the hotspot" }),
     h("p", { class: "muted", text: "A console with no Wi-Fi shows a QR code and its own hotspot. Scan it with a phone, pick your network and type its password there. The console joins it, saves it and restarts." }));
 }

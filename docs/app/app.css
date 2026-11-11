@@ -199,3 +199,6 @@ details pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 16em; 
 .shots { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
 .shots li { display: grid; gap: 6px; align-content: start; }
 .shots img { width: 100%; height: auto; border-radius: 8px; image-rendering: pixelated; background: #000; }
+.owners li.pick { grid-template-columns: auto 1fr; }
+.pick-box { display: flex; gap: 10px; align-items: center; margin: 0; cursor: pointer; }
+.pick-box input { min-height: 0; width: 18px; height: 18px; }
