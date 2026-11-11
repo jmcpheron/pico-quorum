@@ -62,6 +62,10 @@ const pictures = {
   ...Object.fromEntries(steps.map((s) => [`../handheld/img/${s}.png`, `${CASE}${s}.png`])),
   "../img/key-c.jpg": "../hardware/key-pcb/key-c-usbc/renders/key-c-P2-3q-top.jpg",
   "../img/console-rp.jpg": "../hardware/console-rp/renders/console-rp-3q.jpg",
+  // Mono, the front page's device: the board as KiCad draws it, and its case's industrial variant, on its dock and apart
+  "../img/mono.jpg": "../hardware/mono/renders/mono-3q.jpg",
+  "../img/mono-dock.png": "../cad/consoles/out/mono_ind/mono_ind_dock.png",
+  "../img/mono-case.png": "../cad/consoles/out/mono_ind/mono_ind_apart.png",
 };
 mkdirSync(join(OUT, "../handheld/img"), { recursive: true });
 mkdirSync(join(OUT, "../img"), { recursive: true });

@@ -5,20 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; font-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
-<meta name="description" content="Picoquorum: a hardware approval console for Safe multisig wallets. Several people, several keys, one Safe.">
+<meta name="description" content="Picoquorum: a small hardware device that is one owner of a Safe multisig wallet. Several people, several keys, one Safe.">
 <link rel="canonical" href="https://picoquorum.app/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Picoquorum">
 <meta property="og:url" content="https://picoquorum.app/">
 <meta property="og:title" content="Picoquorum: hardware approvals for Safe">
-<meta property="og:description" content="A small console that is one owner of a Safe multisig. It shows what a transaction does, works out the hash itself, and signs with a key that never leaves its chip.">
-<meta property="og:image" content="https://picoquorum.app/quorum-ui/shots/51-trustm-home.png">
+<meta property="og:description" content="A small device that is one owner of a Safe multisig. It shows what a transaction does, works out the hash itself, and signs with a key that never leaves its chip.">
+<meta property="og:image" content="https://picoquorum.app/img/mono-dock.png">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:site" content="@picoquorum">
 <title>Picoquorum · Hardware approvals for Safe</title>
 <link rel="icon" href="brand/mark-dark.svg" type="image/svg+xml">
 <link rel="me" href="https://x.com/picoquorum">
-<link rel="stylesheet" href="home.css" integrity="sha384-0w94PRSgXSab3u/NOUlaAIZ2rvdGmdBYDkezJ/r4OvA6Hw5k5lKEdODFilEO0ud1">
+<link rel="stylesheet" href="home.css" integrity="sha384-Tk4mPFUbVxasLutTNGfoxAImBRtvJ6TP1KXmPkrrto4SiD9qOBnRkYQOp6otji3R">
 </head>
 <body>
 <header class="top">
@@ -33,7 +33,6 @@
     <a href="learn/">Learn</a>
     <a href="https://github.com/jmcpheron/pico-quorum/blob/main/docs/guide/README.md">Guide</a>
     <a href="#hardware">Hardware</a>
-    <a href="console/">Console</a>
     <a href="https://github.com/jmcpheron/pico-quorum">Source</a>
     <a href="https://x.com/picoquorum" aria-label="Picoquorum on X">X</a>
   </nav>
@@ -43,20 +42,76 @@
 <main>
   <section class="hero">
     <div class="hero-text">
-      <a class="announce" href="#hardware"><span class="tag">New</span> console-rp, the first board is up <span aria-hidden="true">↓</span></a>
+      <a class="announce" href="#hardware"><span class="tag">New</span> Mono, the reference console <span aria-hidden="true">↓</span></a>
       <p class="eyebrow">Hardware approvals for Safe</p>
       <h1>Several people, several keys, one&nbsp;Safe.</h1>
-      <p class="lede">Picoquorum is a small approval console for Safe multisig wallets. It shows what a transaction does on its own screen, works out the hash itself, and signs with a key that never leaves its chip, only when you hold Sign.</p>
+      <p class="lede">Picoquorum is a small device that is one owner of a Safe multisig. It shows what a transaction does on its own screen, works out the hash itself, and signs with a key that never leaves its chip, only when you hold Sign.</p>
       <div class="cta">
-        <a class="btn go big" href="app/">Launch app <span aria-hidden="true">→</span></a>
-        <a class="btn big" href="https://github.com/jmcpheron/pico-quorum/blob/main/docs/guide/README.md">Read the owner's guide</a>
-        <a class="btn big" href="console/">Try the console in your browser</a>
+        <a class="btn go big" href="#hardware">See the hardware <span aria-hidden="true">↓</span></a>
+        <a class="btn big" href="learn/">Learn why</a>
       </div>
-      <p class="muted small">The app runs in your browser: open any Safe, check every confirmation, and execute. It holds no key.</p>
+      <p class="muted small">Have a Safe already? <a href="app/">The app</a> opens it, checks every confirmation in your browser, and executes. It holds no key.</p>
     </div>
-    <figure class="screen">
-      <img src="quorum-ui/shots/51-trustm-home.png" width="480" height="480" alt="The console's home screen: Family Safe, 2 of 3 approvals, four transactions waiting, one refused for a bad hash.">
+    <figure class="device">
+      <div class="crop"><img src="img/mono-dock.png" width="910" height="820" alt="Mono in its case, standing on its dock: a small dark bar with a screen at the top showing Send 0.05 ETH, and three buttons under it, red, white and green."></div>
+      <figcaption>Mono in its case, on its dock. A drawing of the design: nothing is built yet.</figcaption>
     </figure>
+  </section>
+
+  <section id="hardware">
+    <div class="split">
+      <div>
+        <p class="eyebrow">The hardware</p>
+        <h2>Mono, the reference console</h2>
+        <p>Mono is the device Picoquorum is working toward, and the one the rest is measured against. Today it is a design: written by a script, routed and checked, not ordered and not built. Mono is a working name.</p>
+        <ul class="ticks">
+          <li><strong>A screen and three buttons.</strong> Reject, Next and Sign, in a row under a 1.14″ screen. Reject is red and takes one press. Sign is green and has to be held.</li>
+          <li><strong>The key is on the board.</strong> A secure element, soldered on. Its private key is made inside the chip, and no command reads it out. There is no seed phrase.</li>
+          <li><strong>No radio.</strong> No Wi-Fi and no Bluetooth on the board. Its USB-C reaches a serial chip and nothing else: a computer passes on Safe's queue, and has no say in what gets signed.</li>
+          <li><strong>Open hardware.</strong> An RP2350 on a 40 × 89.5 mm board, laid out for JLCPCB to assemble, with the screen clipped in by hand. The files to make one are in the repository.</li>
+        </ul>
+        <div class="cta">
+          <a class="btn big" href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/mono/README.md">Mono's design</a>
+          <a class="btn big" href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/README.md">Every board</a>
+        </div>
+      </div>
+      <figure class="pic">
+        <img src="img/mono.jpg" width="1376" height="1376" loading="lazy" alt="Mono's board: the screen at the top, D0, D1 and D2 in a row under it, the key chips' sites below them, the RP2350 in the middle, and the USB-C at the bottom end.">
+        <figcaption>The routed board, as KiCad draws it. The screen is a box.</figcaption>
+      </figure>
+    </div>
+
+    <ul class="hw three">
+      <li>
+        <div class="crop"><img src="img/mono-case.png" width="910" height="820" loading="lazy" alt="Mono's case, industrial, pulled apart: four screws, the front shell with its cut corners and grooved sides, the board, and the back panel."></div>
+        <div><span class="state">First drafts, not printed</span><h3><a href="https://github.com/jmcpheron/pico-quorum/blob/main/cad/consoles/README.md#mono-industrial">Mono's case</a></h3><p>A printed shell and a back panel round the board, held by four screws from the face. The caps are the brand's colours: red Reject, white Next, green Sign. The industrial variant, drawn here, has cut corners, chamfered edges and grooves down its sides.</p></div>
+      </li>
+      <li>
+        <img src="img/console-rp.jpg" width="1568" height="872" loading="lazy" alt="console-rp: a 1.14-inch screen at one end, D0, D1 and D2 in a row under it, the RP2350 and the key chip beside it, and a USB-C at the other end.">
+        <div><span class="state ok">First board up, 2026-11-04</span><h3><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/console-rp/README.md">console-rp, the board on the bench</a></h3><p>The board Mono comes from: the same chip, link, key, screen and pins, on 72 × 36 mm. Five boards from JLCPCB; the first answered on every part. The console's firmware for these two boards is next.</p></div>
+      </li>
+      <li>
+        <img src="img/key-c.jpg" width="1000" height="768" loading="lazy" alt="key-c P2: a small board with a USB-C receptacle at one end and the secure element in the middle.">
+        <div><span class="state ok">Built, on the bench</span><h3><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/key-pcb/key-c-usbc/README.md">key-c, the USB-C key</a></h3><p>An ATECC608C behind a USB-C receptacle, 16 × 36 mm: a key you carry and plug in. Boards from JLCPCB; the first one sealed through the key ceremony on 2026-10-22.</p></div>
+      </li>
+    </ul>
+    <p class="small muted">The firmware runs today on a <a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/DEV-CONSOLE.md">dev console</a> you can build for about $35 with no soldering, a Raspberry Pi Pico 2 W with its own Wi-Fi, and on ESP32-S3 boards. Every build and board, and where each stands: <a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/README.md#every-configuration">hardware/README.md</a>.</p>
+
+    <div class="facts wide">
+      <h3>For developers and contributors</h3>
+      <p>Mono may become a dev board kit. We may open it to a first few developers and contributors before anything wider, and a sign-up sheet will come later. Until then, watch <a href="https://github.com/jmcpheron/pico-quorum">the repository</a> or follow <a href="https://x.com/picoquorum">@picoquorum</a>. Nothing is for sale, and no date is set.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Nothing signs unseen</h2>
+    <p class="muted">The three-button screens, as the firmware draws them today at 240 × 135, the size of Mono's screen. The rail on the left names what each button does on that page. These were drawn for a board with its buttons down the left edge; Mono's own layout, with the buttons under the screen, is still to come.</p>
+    <div class="shots wide">
+      <figure><img src="quorum-ui/feather/06-review-head.png" width="786" height="405" alt="The first of six pages of a review: transaction 0 on Base Sepolia, a transfer, Send 0.05 ETH. The rail offers Reject, Next and See 5." loading="lazy"><figcaption><strong>Plain language.</strong> What it does and on which chain, one fact to a page.</figcaption></figure>
+      <figure><img src="quorum-ui/feather/32-swap-new-owner.png" width="786" height="405" alt="A red page, 4 of 7: swap owner. The new owner, 0x90f7…b906, is not in the address book. Its address in full, with its blockie." loading="lazy"><figcaption><strong>Red pages.</strong> Anything that changes who controls the Safe, or that it can't decode, is red all over, and Sign takes a longer hold.</figcaption></figure>
+      <figure><img src="quorum-ui/feather/10-review-verify.png" width="786" height="405" alt="Page 5 of 6: check with the proposer. The hash ends in 3120 5f57, with its blockie." loading="lazy"><figcaption><strong>A verify code.</strong> The hash's last eight characters and its picture, to check with whoever proposed it.</figcaption></figure>
+      <figure><img src="quorum-ui/feather/12-hold.png" width="786" height="405" alt="Keep holding: 0.8 s to go. The Sign button fills with green, and the whole hash is on the screen." loading="lazy"><figcaption><strong>Hold to sign.</strong> Every page seen first, then two seconds on Sign. Reject is one press, on any page.</figcaption></figure>
+    </div>
   </section>
 
   <section>
@@ -69,47 +124,23 @@
     </ol>
   </section>
 
-  <section>
-    <h2>Nothing signs unseen</h2>
-    <div class="shots">
-      <figure><img src="quorum-ui/shots/02-approve-summary.png" width="480" height="480" alt="Send 0.05 ETH to Carol, 1 of 2 signed, yours makes it 2 of 2." loading="lazy"><figcaption><strong>Plain language.</strong> What it does, who it pays, who has signed.</figcaption></figure>
-      <figure><img src="quorum-ui/shots/13-owner-red-page.png" width="480" height="480" alt="A red page: add owner 0xdead…beef, not in the address book." loading="lazy"><figcaption><strong>Red pages.</strong> Owners, thresholds and anything that can't be undone, all in red.</figcaption></figure>
-      <figure><img src="quorum-ui/shots/11-batch-verify.png" width="480" height="480" alt="Check with the proposer: the Safe tx hash ends in f924 aa08, with its blockie." loading="lazy"><figcaption><strong>A verify code.</strong> The hash's last eight characters and its picture, to check with the proposer.</figcaption></figure>
-      <figure><img src="quorum-ui/shots/05-approve-hold.png" width="480" height="480" alt="Keep holding A: a progress bar, 1.0 s to go, let go to cancel." loading="lazy"><figcaption><strong>Hold to sign.</strong> Two seconds on a guarded button. Reject is one easy press.</figcaption></figure>
-    </div>
-  </section>
-
-  <section id="hardware">
-    <h2>What we're building</h2>
-    <ul class="hw">
-      <li>
-        <img src="img/console-rp.jpg" width="1568" height="872" loading="lazy" alt="console-rp: a 1.14-inch screen at one end, D0, D1 and D2 in a row under it, the RP2350 and the key chip beside it, and a USB-C at the other end.">
-        <div><span class="state ok">First board up, 2026-11-04</span><h3><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/console-rp/README.md">console-rp, the console to build on</a></h3><p>An RP2350 with no radio, a 1.14″ screen, three buttons and the ATECC608C on the board. Its USB-C reaches only a serial chip: the computer passes on Safe's queue and can't reach the firmware. Five boards from JLCPCB; the first answered on every part. The console's firmware for it is next, then rev B, a square board for a run.</p></div>
-      </li>
-      <li>
-        <img src="img/key-c.jpg" width="1000" height="768" loading="lazy" alt="key-c P2: a small board with a USB-C receptacle at one end and the secure element in the middle.">
-        <div><span class="state ok">Built, on the bench</span><h3><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/key-pcb/key-c-usbc/README.md">key-c, the USB-C key</a></h3><p>An ATECC608C behind a USB-C receptacle, 16 × 36 mm: a key you carry and plug in. Boards from JLCPCB; the first one sealed through the key ceremony on 2026-10-22.</p></div>
-      </li>
-    </ul>
-    <p class="small muted">The console also runs on a Raspberry Pi Pico 2 W and on ESP32-S3 boards, with their own Wi-Fi. Every build and board, and where each stands: <a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/README.md#every-configuration">hardware/README.md</a>.</p>
-  </section>
-
   <section class="split">
     <div>
-      <h2>A console you can read</h2>
-      <p>The same firmware also runs in your browser, with your passkey as its key: Touch ID, Windows Hello, a phone or a security key. It is one folder that loads nothing from the rest of this site. Inside is the console image a Pico runs, about 11,600 lines of MicroPython as plain files, and 1,100 lines of JavaScript around it. It can reach Safe's transaction service and nothing else, and the browser enforces that.</p>
+      <p class="eyebrow">Learn</p>
+      <h2>Why a multisig, and why this device</h2>
+      <p>One seed phrase is one point of failure. A multisig takes it away: several owners, and nothing moves until enough of them approve. Nine short explainers say why, how the hardware works and how it fails, and what holding a key asks of you. They are written and not yet recorded, so each script is there to read.</p>
       <ul class="ticks">
-        <li><strong>Save a copy.</strong> Every file is listed with its SHA-256, in the format sha256sum checks. There is no build step: these are the files that run.</li>
-        <li><strong>Hold it up to the README.</strong> Its firmware hashes to the release fingerprint in the README, the one a Pico running that release shows on its Device screen.</li>
-        <li><strong>Sign from your copy.</strong> A passkey belongs to the site that made it, so one made on your own copy can be asked to sign by that copy, never by a later version of this site.</li>
+        <li><strong><a href="learn/#start">Start here.</a></strong> Why a multisig, what one is, and one approval from start to finish.</li>
+        <li><strong><a href="learn/#hardware">The hardware.</a></strong> The board, zone by zone, and every way it can fail.</li>
+        <li><strong><a href="learn/#owner">Being an owner.</a></strong> Getting a key, a key with no backup, and what it protects and what it doesn't.</li>
       </ul>
-      <a class="btn big" href="console/">Try the console in your browser</a>
+      <a class="btn big" href="learn/">Open Learn</a>
     </div>
     <div class="facts">
-      <h2>What it can't do</h2>
-      <p>Your computer draws its screen, and the passkey's prompt never shows the transaction. A copy you checked rules out a changed page, not malware on the computer.</p>
-      <p class="warn-note">Keep passkey owners below the Safe's threshold. The hardware console, with its own screen and its own key, is the stronger owner.</p>
-      <p class="small"><a href="https://github.com/jmcpheron/pico-quorum/blob/main/docs/guide/BROWSER.md">Save, check and run your own copy</a> · <a href="https://github.com/jmcpheron/pico-quorum/blob/main/docs/EMU-WEB.md">The design</a></p>
+      <h2>One owner, never the whole wallet</h2>
+      <p>A Picoquorum is one vote in your Safe. It is built to sit next to the others: a hardware wallet, a passkey, Safe{Wallet} in a browser, another Picoquorum in another house.</p>
+      <p class="warn-note">No technology, and no person, should hold a threshold's worth of keys. Always keep owners on the Safe that are not this device.</p>
+      <p class="small"><a href="https://github.com/jmcpheron/pico-quorum/blob/main/docs/SECURITY.md">What a sealed key can't protect you from</a></p>
     </div>
   </section>
 
@@ -142,7 +173,7 @@
 </main>
 
 <footer>
-  <p>Picoquorum is inspired by and built on <a href="https://github.com/austintgriffith/picowallet">picowallet</a> by Austin Griffith (MIT). Runs on Raspberry Pi Pico 2 W and ESP32-S3, and next on console-rp (RP2350).</p>
+  <p>Picoquorum is inspired by and built on <a href="https://github.com/austintgriffith/picowallet">picowallet</a> by Austin Griffith (MIT). The firmware runs today on a Raspberry Pi Pico 2 W and on ESP32-S3 boards; Mono, on an RP2350, is the board it is headed for. Not affiliated with Raspberry Pi or Safe.</p>
   <p class="muted">Hardware approvals for Safe · <a href="https://github.com/jmcpheron/pico-quorum">Source</a> · <a href="https://github.com/jmcpheron/pico-quorum/blob/main/docs/README.md">All the docs</a> · <a href="https://x.com/picoquorum">@picoquorum on X</a></p>
 </footer>
 </body>
