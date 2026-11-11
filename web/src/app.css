@@ -199,6 +199,26 @@ details pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 16em; 
 .shots { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
 .shots li { display: grid; gap: 6px; align-content: start; }
 .shots img { width: 100%; height: auto; border-radius: 8px; image-rendering: pixelated; background: #000; }
-.owners li.pick { grid-template-columns: auto 1fr; }
+/* the Device page: tabs, icons, the console at a glance */
+.icon { flex: none; vertical-align: middle; }
+.dtabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin: 8px 0 16px; overflow-x: auto; }
+.dtab { display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; margin-bottom: -1px; border: 0; border-bottom: 2px solid transparent;
+  background: none; color: var(--muted); font: inherit; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.dtab:hover { color: var(--text); }
+.dtab[aria-selected="true"] { color: var(--text); border-bottom-color: var(--ok); }
+.dtab .count { font-size: 12px; padding: 1px 7px; border-radius: 999px; background: var(--line); color: var(--text); }
+.dtab .count.warn { background: var(--warn-soft); color: var(--warn); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.dot.ok { background: var(--ok); }
+.dot.warn { background: var(--warn); }
+.glance, .owners.safes { list-style: none; padding: 0; margin: 14px 0 0; }
+.glance li { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+.glance-icon { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 10px;
+  background: var(--eth-soft); color: var(--eth); flex: none; }
+.glance-icon.vault { background: var(--ok-soft); color: var(--ok); }
+.glance-icon.plug { background: var(--line); color: var(--text); }
+.part { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start; padding: 12px 0; border-top: 1px solid var(--line); }
+.part .addr-body { gap: 6px; }
+.owners li.pick { grid-template-columns: auto 1fr; align-items: start; }
 .pick-box { display: flex; gap: 10px; align-items: center; margin: 0; cursor: pointer; }
 .pick-box input { min-height: 0; width: 18px; height: 18px; }

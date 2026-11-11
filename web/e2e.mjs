@@ -570,9 +570,16 @@ await step("#/device: a console on USB, its cards, a Safes ask accepted on it, a
   check(true, "#/device: the device's release fingerprint matches the console page's");
   check(await page.locator('a[href="#/k/02' + "ab".repeat(32) + '"]').count() === 1, "#/device: the key's card links to its set-up page (#/k/<key>)");
   check((await page.locator("main").innerText()).includes("<b>Ops</b>"), "#/device: a Safe's name from the device is drawn as text");
+  const tab = (name) => page.getByRole("tab", { name: new RegExp(`^${name}`) });
+  check(await page.getByRole("tab").count() === 4 && await tab("Device").getAttribute("aria-selected") === "true"
+    && await page.locator("#dpanel-safes").isHidden(), "#/device: four tabs (Device, Signer, Safes, Connection), Device first, one panel at a time");
+  await shot("device-connected");
+  await tab("Signer").click();
   check((await page.locator("main").innerText()).includes("<i>ATECC608C</i> · config locked · data locked · key slot sealed"),
     "#/device: the chip's model and locks, as the console read them at boot, drawn as text");
-  await shot("device-connected");
+  check(await page.locator("#dpanel-signer").getByRole("button", { name: "Copy" }).count() === 1, "#/device: the signer address has a Copy button");
+  await shot("device-signer");
+  await tab("Safes").click();
 
   const boxes = page.locator("li.pick input[type=checkbox]"), sendList = page.getByRole("button", { name: "Send this list to the console" });
   check(await boxes.count() === 2 && await boxes.nth(0).isChecked() && !(await boxes.nth(1).isChecked())
@@ -592,9 +599,10 @@ await step("#/device: a console on USB, its cards, a Safes ask accepted on it, a
   await dev(() => window.__dev.decide(true));
   await page.getByText("Accepted on the console and saved").waitFor();
   await page.getByText("It's back").waitFor({ timeout: 15000 });
-  await page.getByText("Its key is an owner", { exact: true }).waitFor();
+  await page.getByText("This console is one", { exact: true }).waitFor();
   check((await dev(() => window.__dev.opens)) === 2, "#/device: after the restart the page opens the port again, and reads the new Safes");
 
+  await tab("Connection").click();
   await page.fill("#dev-ssid", "home");
   await page.fill("#dev-pass", "a long password");
   await page.getByRole("button", { name: "Send to the device" }).first().click();
@@ -618,6 +626,10 @@ await step("#/device: a console-rp, and the page as its relay", async () => {
   await page.evaluate(() => localStorage.setItem("pq.apiKey", JSON.stringify("e2e-key-5150")));
   await dev(() => { window.__dev.rp = true; });
   await page.getByRole("button", { name: "Connect a device" }).click();
+  await page.getByRole("tab", { name: /^Device/ }).waitFor();
+  await shot("rp-device");
+  for (const t of ["Signer", "Safes"]) { await page.getByRole("tab", { name: new RegExp(`^${t}`) }).click(); await shot(`rp-${t.toLowerCase()}`); }
+  await page.getByRole("tab", { name: /^Connection/ }).click();
   await page.getByText("Its way to Safe's service: this page").waitFor();
   check((await dev(() => window.__dev.baud)) === 460800, "#/device: a CH343P (WCH) opens at 460800");
   check(await page.locator("#dev-ssid").count() === 0, "#/device: a console-rp has no Wi-Fi card");

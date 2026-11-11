@@ -1229,7 +1229,8 @@ const browserRelease = () => (browserReleaseP ||= fetch(new URL("../console/BUIL
   .then((r) => (r.ok ? r.json() : {})).then((b) => b.release || "").catch(() => ""));
 const chainIds = Object.fromEntries(Object.entries(CHAINS).map(([k, c]) => [k, c.id]));
 const chainName = (id) => CHAINS[chainById(id)]?.name || `chain ${id}`;
-const device = () => deviceView({ h, fill, add, badge, ident, steps, short, savedSafes, CHAINS, chainIds, chainName, releaseList, browserRelease, shortFp, serviceFor, main: $main() });
+const device = () => deviceView({ h, fill, add, badge, ident, steps, short, savedSafes, CHAINS, chainIds, chainName, releaseList, browserRelease, shortFp, serviceFor,
+  copyButton, explorer, main: $main() });
 
 function notFound() {
   fill($main(), h("section", { class: "hero" }, h("h1", { text: "Nothing here" }), h("p", {}, h("a", { href: "#/", text: "Back to the start" }))));
