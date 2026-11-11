@@ -173,3 +173,9 @@ What was checked:
 - Board #2, 2026-11-09 and 10: a 12.5 h soak with 8842 status reads and 76 polls, no link faults;
   two signatures posted through `relay.py` (201) and executed on Base Sepolia. Until 862fba4f read
   an answer's body in place, a 2.4 KB queue found no block its size in the heap, every other poll.
+- Board #2 on 0d617601, 2026-11-10, with an empty queue: each of `relay.py --hostile`'s link faults
+  (garbage, overlong, unsolicited, wrong-id, dup, late, truncate, stall, nested, chatter) on every
+  answer for a while. Each ended dropped and counted, or as one failed poll with the next one fine.
+  A body nested 5000 deep runs `json.loads` out of memory, which the poll catches. No restart, no
+  `nomem`, at least 80.8 KB free after a collection, and the largest free block 8.3 KB, read over SWD,
+  as before the faults. The forged queue needs a real transaction and isn't done yet.
