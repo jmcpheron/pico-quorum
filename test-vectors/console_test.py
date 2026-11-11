@@ -693,7 +693,7 @@ def case_unsent():
 
     # A heap in pieces (no PROBE_B bytes in one piece, after a collect): a restart after STARVED_N
     # checks in a row on home or a result, never in a review, never before STARVED_UP_MS up
-    import time
+    time = Q.time                           # quorum's clock here (Clock): every tick reads it
     Q.svc.lost = False
 
     def checks(n, b):
@@ -704,6 +704,7 @@ def case_unsent():
             Q.tick(None)
     del resets[:]
     Q.STARVED_UP_MS, Q.up_long, Q.starved = 0, False, 0
+    Q.started = time.ticks_ms()
     Q.open_entry(Q.queue[0])
     checks(Q.STARVED_N + 2, 1 << 30)
     in_review = list(resets)
@@ -717,10 +718,31 @@ def case_unsent():
           "a heap in pieces: no restart in a review, none before %d checks in a row, then a restart, and log.txt says why" % Q.STARVED_N)
     del resets[:]
     Q.STARVED_UP_MS, Q.up_long, Q.starved = 10 ** 9, False, 0
+    Q.started = time.ticks_ms()
     Q.state = "result"
     checks(Q.STARVED_N * 3, 1 << 30)
     check(not resets and Q.starved == Q.STARVED_N * 3, "the same just after a start: no restart (no loop of restarts)")
     Q.PROBE_B = 2048
+
+    # A screen that only shows, left alone: back to home after BROWSE_IDLE_MS, where it polls. Not a review
+    Q.state, Q.svc.lost = "review", False
+    Q.open_entry(Q.queue[0])
+    Q.last_key = time.ticks_add(time.ticks_ms(), -Q.BROWSE_IDLE_MS - 1000)
+    Q._busy = False
+    Q.tick(None)
+    stayed = Q.state == "review"
+    went = []
+    for s in Q.BROWSE:
+        Q.state = s
+        Q.last_key = time.ticks_add(time.ticks_ms(), -Q.BROWSE_IDLE_MS + 60000)
+        Q._busy = False
+        Q.tick(None)
+        kept = Q.state == s
+        Q.last_key = time.ticks_add(time.ticks_ms(), -Q.BROWSE_IDLE_MS - 1000)
+        Q._busy = False
+        Q.tick(None)
+        went.append(kept and Q.state in ("home", "saver"))
+    check(stayed and all(went), "%s: kept a minute after a key, home after %d s alone; a review stays" % ("/".join(Q.BROWSE), Q.BROWSE_IDLE_MS // 1000))
 
 
 def case_watchdog():

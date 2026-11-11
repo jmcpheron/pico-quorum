@@ -432,6 +432,20 @@ def wake(now):
     focus_sel()
 
 
+BROWSE = ("key", "owners", "who", "device", "recent", "chip")    # screens that only show: no decision on them
+BROWSE_IDLE_MS = 2 * 60 * 1000
+
+
+def browse_idle(now):
+    """A screen that only shows, left alone BROWSE_IDLE_MS, goes back to home: the console asks the
+    service only from there, and the screensaver comes only there. Left on the Key page, board #2
+    asked nothing for 35 minutes and kept a transaction executed meanwhile, its screen lit (2026-11-10)."""
+    global state, dirty
+    if state in BROWSE and time.ticks_diff(now, last_key) >= BROWSE_IDLE_MS:
+        state, dirty = "home", True
+        focus_sel()
+
+
 def saver_tick(now, pressed):
     """The screensaver's part of a tick. -> the keys still to handle (a key that wakes it does
     nothing else: the first press only turns the screen back on)."""
@@ -1834,6 +1848,8 @@ def tick(t):
             last_activity = last_key = time.ticks_ms()
             if polled:
                 pressed = backlog(pressed)
+        if not pressed:
+            browse_idle(time.ticks_ms())
         pressed = saver_tick(time.ticks_ms(), pressed)
         if state == "practice":
             practice_tick(pressed)
