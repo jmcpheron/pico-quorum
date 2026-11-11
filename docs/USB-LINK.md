@@ -190,4 +190,6 @@ What was checked:
   answers, and after a restart with the forged copy first, the console refused it.
 - Board #2 on a30640ce, the same day: the Device page in Chrome relayed the real queue, with
   `relay.py` stopped. The console signed nonce 2, and the app showed its confirmation, 2 of 2,
-  checked against the owner contract.
+  checked against the owner contract. The board's log has no start between the refusal and the
+  signature (7263 s into the same start, counter 26), so the real copy replaced the refusal without
+  a restart. Chrome opening the port didn't restart the board either.
