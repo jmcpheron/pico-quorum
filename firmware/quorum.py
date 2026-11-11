@@ -651,13 +651,26 @@ def fingerprint():
 
 
 # ----------------------------------------------------------------------------- the queue
+SIGNED = ("safe", "to", "value", "data", "operation", "safeTxGas", "baseGas", "gasPrice", "gasToken", "refundReceiver", "nonce")
+
+
+def signed_fields(t):
+    """The fields a Safe transaction's hash covers, as the service sent them (safe_tx.from_service)."""
+    return tuple(str(t.get(k)) for k in SIGNED)
+
+
 def entry(w, t):
     """One transaction from the service about Safe w, checked and decoded once (cached by its
-    safeTxHash). Confirmations are refreshed on every poll; the fields cannot change without the
-    hash changing. The chain in the hash is the one pinned for w, never the service's."""
+    safeTxHash). Confirmations are refreshed on every poll. An entry that checked out keeps its own
+    fields, which make its hash: other fields under that hash can only be a lie. A refusal is for the
+    fields it was given, so other fields under the same hash get their own look: a relay that forged a
+    transaction once didn't block the real one until a restart (board #2, 2026-11-10). The chain in
+    the hash is the one pinned for w, never the service's."""
     h = (t.get("safeTxHash") or "").lower()
     cache = w["cache"]
     e = cache.get(h)
+    if e is not None and e["why"] and signed_fields(e["t"]) != signed_fields(t):
+        e = None
     if e is None:
         e = {"h": h, "t": t, "n": int(t["nonce"]), "mine": "", "why": "", "w": w}
         if len(h) != 66:

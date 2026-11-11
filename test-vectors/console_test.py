@@ -2162,6 +2162,18 @@ def case_relay():
     check(refused and len(Q.queue) == 2 and len(SVC.posted) == n and states == {"review"},
           "a forged hash and another Safe's transaction through the relay: refused, D2 never starts a hold, nothing posted")
 
+    # A refusal is for the fields it was given. The real transaction after a forged one under its hash
+    # gets its own look; a checked one keeps its fields when forged ones come after it.
+    good = tx(Q, 0, value=5)
+    forged = dict(good, value=str(10 ** 18 + 5))
+    seen = []
+    for t in (forged, good, forged):
+        serve(Q, [t])
+        seen.append(Q.queue[0])
+    check(seen[0]["why"] and not seen[1]["why"] and seen[1]["mine"] == good["safeTxHash"] and seen[2] is seen[1]
+          and seen[2]["t"]["value"] == "5" and len(SVC.posted) == n,
+          "forged, then the real one under its hash: the real one checks out; forged again: the checked fields kept")
+
     # Only a pinned service, in plain ASCII: anything else raises before a byte goes out
     n = len(relay.wrote)
     bad = [base + "olia/api/v1/safes/", base, "https://api.safe.global/tx-service/basesep@evil.example/api/",
