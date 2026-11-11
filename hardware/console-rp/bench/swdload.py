@@ -25,6 +25,7 @@ import struct
 import subprocess
 import sys
 import tempfile
+import time
 
 # The MicroPython the first board was loaded with (micropython.org/download/RPI_PICO2, 2026-11-04).
 UF2_SHA256 = {"0616a3a4298a3c32c9092b71a431867dafcb4250f467245bcf2b6fe9704e4548": "RPI_PICO2 v1.26.1"}
@@ -108,16 +109,21 @@ def image_files(d, dirty_ok=False, dev=False, secrets=None):
     return out
 
 
+PAUSES = (2, 5, 10, 20)     # between tries of one piece: a dropped pogo pin came back within a minute (2026-11-10)
+
+
 def download(addr, blob, dry):
     with tempfile.NamedTemporaryFile(suffix=".bin", delete=False) as f:
         f.write(blob)
     cmd = PROBE + ["download"] + CHIP + ["--binary-format", "bin", "--base-address", hex(addr), "--verify", f.name]
     print("  %#x  %d bytes" % (addr, len(blob)))
     try:
-        for tries in range(3 if not dry else 0):    # pogo pins drop out mid-write too; --verify says so
+        for tries in range(len(PAUSES) + 1 if not dry else 0):     # pogo pins drop out mid-write too; --verify says so
             if subprocess.run(cmd).returncode == 0:
                 break
-            print("  %#x: download failed, again" % addr)
+            if tries < len(PAUSES):
+                print("  %#x: download failed; again in %d s (press J3's pins down)" % (addr, PAUSES[tries]))
+                time.sleep(PAUSES[tries])
         else:
             if not dry:
                 sys.exit("the write over SWD keeps failing: check J3's pins, then load again (the whole filesystem)")

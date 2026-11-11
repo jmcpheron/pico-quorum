@@ -4,11 +4,19 @@
 // The console shows each on its own screen and saves it only when the person holds D2 there.
 // Nothing here can make the console sign, and nothing reads its key: the link has no such request.
 // Everything the console sends is untrusted, and drawn with textContent (h() in main.mjs).
+//
+// A console-rp has no radio: while this page is open it is the console's relay (relay.mjs). The
+// console's own calls to Safe's service come up the cable as {"t":"req"} lines; the page checks each
+// as tools/relay/relay.py does, makes it with this browser's API key, and sends back {"t":"res"}.
+import { CFG } from "./config.gen.mjs";
+import { HI_MS, Relay } from "./relay.mjs";
 
 // ----------------------------------------------------------------------------- the link
 // USB vendor ids the chooser offers: Espressif (an S3's own USB), Adafruit, Raspberry Pi, WCH (CH34x).
 export const FILTERS = [0x303a, 0x239a, 0x2e8a, 0x1a86].map((usbVendorId) => ({ usbVendorId }));
 const MAX_BUF = 65536;
+const WCH = 0x1a86;         // a CH343P, wired to the console's UART1 (console-rp), runs at 460800 (firmware/link.py)
+export const baudFor = (info) => (info?.usbVendorId === WCH ? 460800 : 115200);
 
 /** One open port: JSON lines out, answers matched by id; any other line is the console's log. */
 export class Link {
@@ -20,10 +28,11 @@ export class Link {
     this.closed = false;
     this.onclose = null;
     this.onlog = null;
+    this.onreq = null;
   }
 
   async open() {
-    await this.port.open({ baudRate: 115200 });
+    await this.port.open({ baudRate: baudFor(this.port.getInfo?.()) });
     // Low and left there: on an ESP32-S3's own USB, DTR and RTS edges reset it or start its ROM
     // bootloader. The console never needs them.
     try { await this.port.setSignals({ dataTerminalReady: false, requestToSend: false }); } catch {}
@@ -55,12 +64,30 @@ export class Link {
     this.onclose?.();
   }
 
+  // An answer starts {"pq":. A console-rp's own lines carry "t", in no set key order (MicroPython's
+  // json): "req" goes to the relay, "log" is a log line. Anything else is a log line as it came.
   line(l) {
-    if (!l.startsWith('{"pq":')) { if (l) this.onlog?.(l); return; }
+    if (!l) return;
+    if (!l.startsWith("{")) { this.onlog?.(l); return; }
     let a;
-    try { a = JSON.parse(l); } catch { return; }
-    const w = this.waiting.get(a.id);
-    if (w) { this.waiting.delete(a.id); w(a); }
+    try { a = JSON.parse(l); } catch { if (!l.startsWith('{"pq":')) this.onlog?.(l); return; }
+    if (!a || typeof a !== "object" || Array.isArray(a)) return;
+    if (l.startsWith('{"pq":')) {
+      const w = this.waiting.get(a.id);
+      if (w) { this.waiting.delete(a.id); w(a); }
+    } else if (a.t === "req") {
+      this.onreq?.(a);
+    } else if (a.t === "log") {
+      this.onlog?.(String(a.m ?? ""));
+    } else {
+      this.onlog?.(l);
+    }
+  }
+
+  /** One line as it is, for the relay's answers and its hi. */
+  send(line) {
+    if (this.closed) return;
+    this.writer.write(new TextEncoder().encode(line + "\n")).catch(() => {});
   }
 
   /** One request: the answer, or null when none came in ms (or the port closed). */
@@ -102,11 +129,12 @@ export const BOARDS = {
   waveshare: ["Pico with the Waveshare 1.3\" screen", "Y", "the joystick", "A"],
   build1: ["Build 1", "B", "a turn", "the knob, pressed down"],
   esp32: ["ESP32 with a knob", "B", "a turn", "the knob, pressed down"],
+  "console-rp": ["console-rp", "■ (D0)", "● (D1)", "▲ (D2)"],
 };
 export const boardName = (b) => (BOARDS[b] || [b || "an unknown board"])[0];
 export const keysOf = (b) => { const k = BOARDS[b] || BOARDS.waveshare; return { no: k[1], page: k[2], yes: k[3] }; };
 /** The console page's body for this board: three buttons, or the Pico's. */
-export const twinBoard = (b) => (["picoquorum-key", "feather-s3", "feather-knob"].includes(b) ? (b === "feather-knob" ? "feather-s3" : b) : "waveshare");
+export const twinBoard = (b) => (["picoquorum-key", "feather-s3", "feather-knob", "console-rp"].includes(b) ? (["feather-knob", "console-rp"].includes(b) ? "feather-s3" : b) : "waveshare");
 
 /** The Safes to send, from the app's saved list ({chain, address, name}): the link's shape. */
 export function linkSafes(saved, chainIds) {
@@ -141,7 +169,7 @@ export function deviceView(ui) {
   const connect = h("button", { class: "btn go", type: "button", text: "Connect a device", disabled: !supported });
   const log = steps();
   const body = h("div", {});
-  const state = { link: null, port: null, hello: null, status: null, closing: false };
+  const state = { link: null, port: null, hello: null, status: null, closing: false, relay: null, hi: null, events: [], logs: [], relayEl: null };
 
   fill(main,
     h("section", { class: "hero" }, h("h1", { text: "Your device" }),
@@ -170,12 +198,52 @@ export function deviceView(ui) {
 
   /** The port opened and watched, or the error that stopped it. */
   async function attach(port) {
-    if (state.link) { state.closing = true; await state.link.close(); state.closing = false; state.link = null; }
+    if (state.link) { stopHi(); state.closing = true; await state.link.close(); state.closing = false; state.link = null; }
     const link = new Link(port);
     try { await link.open(); } catch (e) { return e; }
     state.link = link; state.port = port;
-    link.onclose = () => { if (!state.closing && state.link === link) lost(); };
+    link.onclose = () => { stopHi(); if (!state.closing && state.link === link) lost(); };
+    // Only a console-rp sends these. Each is checked before anything goes out (relay.mjs).
+    state.relay = new Relay({ cfg: CFG, write: (l) => link.send(l), call: (r) => callService(r), onevent: (e) => relayEvent(e) });
+    link.onreq = (m) => state.relay.handle(m);
+    link.onlog = (l) => { state.logs.push(l.slice(0, 300)); if (state.logs.length > 40) state.logs.shift(); showRelay(); };
     return null;
+  }
+
+  /** The checked request made to its chain's service with this browser's API key (Settings). */
+  function callService(r) {
+    const name = Object.keys(ui.CHAINS).find((k) => String(ui.CHAINS[k].service || "").replace(/\/+$/, "") === r.base);
+    if (!name) throw new Error("no chain here has that service");
+    return ui.serviceFor(name).raw(r.method, r.path, r.body);
+  }
+
+  /** hi every 2 s, so the console knows its relay is there (link.SEEN_MS). */
+  function startHi(max) {
+    stopHi();
+    if (Number.isInteger(max) && max > 0) state.relay.max = max;
+    const link = state.link;
+    link.send('{"t":"hi"}');
+    state.hi = setInterval(() => link.send('{"t":"hi"}'), HI_MS);
+  }
+  function stopHi() { if (state.hi) clearInterval(state.hi); state.hi = null; }
+
+  function relayEvent(e) {
+    state.events.unshift(e);
+    if (state.events.length > 8) state.events.pop();
+    showRelay();
+  }
+
+  /** The relay card's live parts, filled in place: counts, the last requests, the console's log. */
+  function showRelay() {
+    const el = state.relayEl;
+    if (!el || !state.relay) return;
+    const c = state.relay.counts;
+    el.counts.textContent = `${c.asked} asked: ${c.answered} answered, ${c.refused} refused, ${c.failed} failed`;
+    fill(el.list, ...state.events.map((e) => h("li", { class: "small" },
+      e.kind === "answered" ? badge(e.status >= 200 && e.status < 300 ? "ok" : "warn", String(e.status)) : badge("bad", e.kind),
+      h("code", { class: "mono", text: ` ${e.method || ""} ${String(e.path || e.url || "").replace(/^\/api\//, "").slice(0, 70)}` }),
+      h("span", { class: "muted", text: e.kind === "answered" ? ` ${e.bytes} bytes, ${e.ms} ms` : ` ${e.why}` }))));
+    el.log.textContent = state.logs.join("\n");
   }
 
   async function open(port) {
@@ -195,6 +263,7 @@ export function deviceView(ui) {
     }
     state.hello = a;
     log.done(w, `${boardName(a.board)}, ${a.image} ${a.version || a.build}`);
+    if (a.link) startHi(a.link.max);
     await refresh();
   }
 
@@ -226,18 +295,21 @@ export function deviceView(ui) {
 
   function render() {
     const a = state.hello, st = state.status;
+    state.relayEl = a.link ? relayParts(ui) : null;
     fill(body,
       deviceCard(ui, a, st),
+      state.relayEl ? state.relayEl.card : null,
       st.mode === "console" ? keyCard(ui, a, st) : null,
-      wifiCard(ui, a, st, ask),
+      a.link ? null : wifiCard(ui, a, st, ask),          // a console-rp has no radio
       st.mode === "console" ? safesCard(ui, a, st, ask) : setupNote(ui, st),
       h("p", { class: "row" },
         h("button", { class: "btn", type: "button", text: "Read it again", onclick: () => refresh() }),
         h("button", { class: "btn", type: "button", text: "Disconnect", onclick: async () => {
-          state.closing = true; await state.link?.close(); state.link = null; state.closing = false; fill(body); log.add("muted", "Disconnected");
+          stopHi(); state.closing = true; await state.link?.close(); state.link = null; state.closing = false; fill(body); log.add("muted", "Disconnected");
         } })));
     const p = main.querySelector("[data-practice]");
     if (p) p.replaceWith(practice(ui, a.board));
+    showRelay();
   }
 
   /** An ask: sent, then the console's answer once the person decides on its screen. */
@@ -250,6 +322,8 @@ export function deviceView(ui) {
     if (!a) return s.done(w, "No answer: the device may have restarted or been unplugged.", "bad");
     if (!a.ok) return s.done(w, `Not saved: ${a.why}`, "bad");
     s.done(w, "Accepted on the console and saved. It restarts with it now.");
+    // A console-rp restarts behind its CH343P, which stays: the port doesn't go, so ask again.
+    if (state.hello?.link) setTimeout(() => greet(), 2500);
   }
 }
 
@@ -276,6 +350,18 @@ function deviceCard(ui, a, st) {
     st.mode === "stopped" ? h("p", {}, badge("bad", "Stopped"), " The console didn't start. Its screen and error.log say why; tools/fw logs reads it in maintenance.") : null);
 }
 
+/** The relay's card (a console-rp): its parts, filled by showRelay as requests go by. */
+function relayParts(ui) {
+  const { h, badge } = ui;
+  const counts = h("p", { class: "small muted" }), list = h("ul", { class: "relay-log" }), log = h("pre", { class: "small mono" });
+  const card = h("section", { class: "card" }, h("h2", { text: "Safe's service, through this page" }),
+    h("p", {}, badge("ok", "Relaying"), " Leave this page open. The console has no radio: it reaches Safe's service only through it."),
+    h("p", { class: "small muted", text: "Only the console's own calls go out: its Safes, their queue, and its confirmations, to the services it pins. The API key in Settings goes on them, and never down the cable. The console checks every answer itself, as it checks Safe's service." }),
+    counts, list,
+    h("details", {}, h("summary", { text: "The console's log" }), log));
+  return { card, counts, list, log };
+}
+
 // The chip as the console read it at boot (status "chip"): its model and locks, in a line.
 export function chipFacts(c) {
   if (!c || !c.model) return "";
@@ -287,12 +373,15 @@ export function chipFacts(c) {
 function keyCard(ui, a, st) {
   const { h, badge, ident } = ui;
   const facts = chipFacts(st.chip);
+  const own = a.board === "console-rp";     // makes its key on its own screen, and pins itself (keypick_rp.py)
   if (!st.owner) {
     return h("section", { class: "card" }, h("h2", { text: "Key" }),
       h("p", {}, badge("warn", "No key yet"), st.serial ? ` chip ${st.serial}` : " No chip answered."),
       facts ? h("p", { class: "small muted", "data-chip": "", text: facts }) : null,
-      h("p", { class: "muted", text: "The key is made in the ceremony, before the console is handed over: the ceremony image and tools/fw ceremony start, on a computer. Nobody, this page included, ever sees the key." }),
-      h("p", { class: "small", text: "To see how it goes, practise on the device: Practice on its No key screen, or Device then Practice. The ten steps, the arm and the holds, with its own buttons. It writes nothing to the chip." }));
+      own
+        ? h("p", { class: "muted", text: "This console makes its key on its own screen: ▲ Make, then hold ▲ on the red Keep page. The chip makes it, and only its public half leaves the chip. Nobody, this page included, ever sees the key." })
+        : h("p", { class: "muted", text: "The key is made in the ceremony, before the console is handed over: the ceremony image and tools/fw ceremony start, on a computer. Nobody, this page included, ever sees the key." }),
+      own ? null : h("p", { class: "small", text: "To see how it goes, practise on the device: Practice on its No key screen, or Device then Practice. The ten steps, the arm and the holds, with its own buttons. It writes nothing to the chip." }));
   }
   return h("section", { class: "card" }, h("h2", { text: "Key" }),
     h("div", { class: "addr" }, ident(st.owner, 36),
@@ -302,7 +391,9 @@ function keyCard(ui, a, st) {
           st.counter != null ? badge("muted", `used ${st.counter} times`) : null),
         h("div", { class: "addr-line" }, h("code", { class: "mono", text: st.owner })))),
     h("p", { class: "small muted", text: `Chip ${st.serial} (${st.profile}${facts ? `: ${facts}` : ""}). The console shows this picture on its Key screen; it's a signer contract, not a wallet: never send funds to it.` }),
-    st.pinned ? null : h("p", { class: "small" }, "Not pinned: the console signs nothing until it is. ", h("code", { text: "tools/fw pin" }), " on the computer that set it up pins this chip."),
+    st.pinned ? null : own
+      ? h("p", { class: "small", text: "Not pinned: the console signs nothing until it is. Finish the key on its screen: it pins itself." })
+      : h("p", { class: "small" }, "Not pinned: the console signs nothing until it is. ", h("code", { text: "tools/fw pin" }), " on the computer that set it up pins this chip."),
     st.key ? h("p", {}, h("a", { class: "btn", href: `#/k/${st.key}`, text: "Make it an owner of a Safe" }),
       " ", h("span", { class: "small muted", text: "Deploy its signer, then propose adding it." })) : null);
 }

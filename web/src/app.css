@@ -192,6 +192,10 @@ label.btn { display: inline-flex; margin: 0; }
 /* #/device (device.mjs) */
 .checks label.check { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-weight: 400; margin: 0; padding: 6px 0; }
 .checks label.check input { min-height: 0; }
+.relay-log { list-style: none; padding: 0; margin: 8px 0; }
+.relay-log li { padding: 4px 0; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
+.relay-log li:first-child { border-top: 0; }
+details pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 16em; overflow-y: auto; }
 .shots { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
 .shots li { display: grid; gap: 6px; align-content: start; }
 .shots img { width: 100%; height: auto; border-radius: 8px; image-rendering: pixelated; background: #000; }

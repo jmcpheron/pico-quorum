@@ -350,5 +350,74 @@ try {
   srv.close();
 }
 
+// ----------------------------------------------------------------------------- the app as console-rp's relay
+// relay.mjs holds tools/relay/relay.py's rules (relay_test.py has the same cases for the CLI).
+{
+  const R = await import("./src/relay.mjs");
+  const { CFG } = await import("./src/config.gen.mjs");
+  const BASE = CFG.services["84532"], SAFE_A = "0x7a4fd15DAA7DE27203fa3F146557ae4fFB23449F", H = "0x" + "ab".repeat(32);
+  const INFO = `${BASE}/api/v1/safes/${SAFE_A}/`;
+  const QUEUE = `${BASE}/api/v2/safes/${SAFE_A}/multisig-transactions/?executed=false&nonce__gte=4&ordering=nonce&limit=3`;
+  const CONFIRM = `${BASE}/api/v1/multisig-transactions/${H}/confirmations/`;
+  const SIG = JSON.stringify({ signature: "0x" + "00".repeat(200) });
+  const req = (url, m = "GET", body, id = 7) => ({ t: "req", id, m, url, ...(body === undefined ? {} : { body }) });
+  const refused = (d) => { try { R.checkReq(d, CFG); return ""; } catch (e) { return e.message || "refused"; } };
+  check(!refused(req(INFO)) && !refused(req(QUEUE)) && !refused(req(CONFIRM, "POST", SIG)),
+    "relay: the three calls txservice makes pass: the Safe, its queue, a confirmation");
+  check(!refused(req(`${CFG.services["1"]}/api/v1/safes/${SAFE_A}/`)) && !refused(req(`${CFG.services["8453"]}/api/v1/safes/${SAFE_A}/`)),
+    "relay: on every pinned service (eth, base, basesep)");
+  const bad = {
+    "off the pin": `https://evil.example/api/v1/safes/${SAFE_A}/`, "a longer name (basesepolia)": `${BASE}olia/api/v1/safes/${SAFE_A}/`,
+    "user@host": `https://api.safe.global/tx-service/basesep@evil.example/api/v1/safes/${SAFE_A}/`,
+    "..": `${BASE}/../eth/api/v1/safes/${SAFE_A}/`, "#": INFO + "#x", "a space": INFO + " x", "\\": `${BASE}/api\\v1`,
+    "non-ASCII": INFO + "é", "too long": INFO + "a".repeat(R.MAX_URL), "plain http": INFO.replace("https", "http"),
+    "the base alone": BASE, "another path": `${BASE}/api/v1/safes/${SAFE_A}/balances/`,
+    "another query": QUEUE.replace("limit=3", "limit=3&x=1"), "the owners endpoint": `${BASE}/api/v1/owners/${SAFE_A}/safes/`,
+    "a sim path": `${BASE}/sim/device`, "not a string": 5,
+  };
+  const notRefused = Object.entries(bad).filter(([, u]) => !refused(req(u))).map(([k]) => k);
+  check(!notRefused.length, `relay: refused, nothing fetched: ${Object.keys(bad).join(", ")}${notRefused.length ? `; NOT refused: ${notRefused}` : ""}`);
+  check(refused(req(INFO, "DELETE")) && refused(req(INFO, "PUT")) && refused({ t: "res", id: 1 }) && refused(req(INFO, "GET", undefined, "7"))
+    && refused(null) && refused([req(INFO)]), "relay: DELETE, PUT, an answer, a string id, null, an array: refused");
+  check(refused(req(INFO, "GET", "{}")) && refused(req(CONFIRM, "POST")) && refused(req(CONFIRM, "POST", "x".repeat(5000))),
+    "relay: a GET with a body, a POST without one, a POST body over 4 KB: refused");
+  check(["not json", JSON.stringify({ signature: "0x00", extra: 1 }), JSON.stringify({ signature: "zz" }), JSON.stringify(["0x00"])]
+    .every((b) => refused(req(CONFIRM, "POST", b))), 'relay: a confirmation is {"signature": "0x..."} and nothing else');
+
+  const line = R.answerLine(7, 200, '{"name":"é \u20ac 😀","q":"a\\"b"}');
+  check(/^[\x20-\x7e]*$/.test(line) && JSON.parse(JSON.parse(line).body).name === "é € 😀" && JSON.parse(line).id === 7,
+    "relay: an answer goes down as ASCII (\\u escapes, a pair past 0xffff), and reads back the same");
+  const big = JSON.parse(R.answerLine(8, 200, "x".repeat(20000), 16384));
+  check(big.status === 0 && /too big/.test(big.err) && big.id === 8 && !("body" in big), "relay: an answer longer than hello's max: status 0, too big");
+
+  const out = [], calls = [], events = [];
+  let reply = { status: 200, text: '{"nonce":"2"}' };
+  const relay = new R.Relay({ cfg: CFG, write: (l) => out.push(JSON.parse(l)), onevent: (e) => events.push(e),
+    call: async (r) => { calls.push(r); if (reply instanceof Error) throw reply; return reply; } });
+  await relay.handle(req(INFO, "GET", undefined, 3));
+  check(calls.length === 1 && calls[0].path === `/api/v1/safes/${SAFE_A}/` && calls[0].base === BASE && out.at(-1).id === 3
+    && out.at(-1).status === 200 && out.at(-1).body === '{"nonce":"2"}', "relay: a pinned GET: made once, under its base, and answered under its id");
+  await relay.handle(req(`https://evil.example/api/v1/safes/${SAFE_A}/`, "GET", undefined, 4));
+  check(calls.length === 1 && out.at(-1).id === 4 && out.at(-1).status === 0 && out.at(-1).err === "not a pinned service" && events.at(-1).kind === "refused",
+    "relay: off the pin: nothing made, status 0 and why");
+  reply = { status: 201, text: "" };
+  await relay.handle(req(CONFIRM, "POST", SIG, 5));
+  check(calls.at(-1).method === "POST" && calls.at(-1).body === SIG && out.at(-1).status === 201, "relay: a confirmation: POSTed as sent, 201 back");
+  reply = Object.assign(new Error("aborted"), { name: "AbortError" });
+  await relay.handle(req(QUEUE, "GET", undefined, 6));
+  check(out.at(-1).id === 6 && out.at(-1).status === 0 && /12 s/.test(out.at(-1).err) && events.at(-1).kind === "failed",
+    "relay: the service silent past 12 s: status 0 before the console gives up (15 s)");
+  check(JSON.stringify(relay.counts) === JSON.stringify({ asked: 4, answered: 2, refused: 1, failed: 1 }), "relay: its counts");
+
+  // The key: only on Safe's own service, never in what goes down the cable.
+  const seen = [];
+  const fake = async (url, o) => { seen.push({ url, o }); return { status: 200, text: async () => "{}" }; };
+  await new S.Service("basesep", "KEY-123", fake).raw("GET", `/api/v1/safes/${SAFE_A}/`, null);
+  await new S.Service("basesep", "", fake).raw("GET", `/api/v1/safes/${SAFE_A}/`, null);
+  check(seen[0].o.headers.Authorization === "Bearer KEY-123" && !("Authorization" in seen[1].o.headers) && seen[0].o.credentials === "omit"
+    && seen[0].url === INFO, "Service.raw: the API key on Safe's service when there is one, and no cookies");
+  check(!out.some((o) => JSON.stringify(o).includes("KEY-123")), "relay: the API key in no line to the console");
+}
+
 console.log(failed ? `${failed} FAILED` : "all pass");
 process.exit(failed ? 1 : 0);
