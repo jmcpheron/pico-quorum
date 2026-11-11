@@ -1,7 +1,7 @@
 # console-rp: setting one up
 
-*What exists on 2026-11-10, as board #2 was set up. The app's relay isn't written yet, so today the
-computer runs `tools/relay/relay.py`. Every swdload line below runs from the repository's root as
+*What exists on 2026-11-10, as board #2 was set up. The relay is `tools/relay/relay.py` on the
+bench, or the app's Device page for an owner. Every swdload line below runs from the repository's root as
 `uv run --no-project --with littlefs-python==0.19.0 python hardware/console-rp/bench/swdload.py …`,
 through J3 and a debug probe ([bench/BRINGUP.md](bench/BRINGUP.md)).*
 
@@ -49,8 +49,9 @@ What can stop it:
    the CH343P (`/dev/cu.usbmodem…` on a Mac). The console shows the Safe on a page of its own, then
    a page saying it replaces the Safes it watches. See each, then hold ▲. It writes `safes.json` and
    restarts.
-3. **Then leave the relay running.** The console asks for the queue from its home screen. If the
-   relay stops, it says "no relay: open the app".
+3. **Then leave a relay running:** `relay.py`, or the app's Device page (`#/device`) in Chrome or
+   Edge, with the CH343P picked and the tab left open. The console asks for the queue from its home
+   screen. If the relay stops, it says "no relay: open the app".
 
 ## Signing
 
@@ -78,7 +79,7 @@ the same load again: the whole filesystem.
 
 ## Not done
 
-- **The app's Device page as the relay** (`#/device`) is written and checked in Chromium against a
-  fake console, but not yet on a board.
+- **The `safes` ask from the app's Device page** on a board: board #2 got its Safe from `relay.py`,
+  and the page's e2e run doesn't send one to the fake console-rp.
 - **An update for an owner:** the USB-C reaches only the CH343P, so a new image needs J3 and SWD.
 - **Frozen modules,** for more heap than the 70-80 KB free with the console running.

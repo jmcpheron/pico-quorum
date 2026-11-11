@@ -160,7 +160,7 @@ The relays:
 - The app's Device page (`#/device`: `web/src/device.mjs` and `web/src/relay.mjs`), in Chrome or
   Edge on a computer: the customer's. The same rules as the CLI, with the API key from the app's
   Settings. A CH343P (USB vendor 0x1a86) opens at 460800; the page says `hi` once hello's answer
-  carries `link`, and hides the Wi-Fi card.
+  carries `link`, and hides the Wi-Fi card. Tried on board #2 (below).
 
 What was checked:
 - `case_relay` in `test-vectors/console_test.py`, with a fake relay: poll, review, sign and POST,
@@ -178,4 +178,13 @@ What was checked:
   answer for a while. Each ended dropped and counted, or as one failed poll with the next one fine.
   A body nested 5000 deep runs `json.loads` out of memory, which the poll catches. No restart, no
   `nomem`, at least 80.8 KB free after a collection, and the largest free block 8.3 KB, read over SWD,
-  as before the faults. The forged queue needs a real transaction and isn't done yet.
+  as before the faults.
+- Board #2, 2026-11-10, the forged queue: a real transaction (nonce 2, one of two confirmations)
+  and `relay.py --hostile forge-queue`, which changes its value and keeps its hash. On 0d617601 the
+  console showed it red ("a hash these fields do not produce"), Sign dimmed, and posted nothing. But
+  the refusal stayed under the hash, so the real copy stayed refused until a restart. On a30640ce a
+  refusal holds only for the fields it was given: a checked entry kept its fields against forged
+  answers, and after a restart with the forged copy first, the console refused it.
+- Board #2 on a30640ce, the same day: the Device page in Chrome relayed the real queue, with
+  `relay.py` stopped. The console signed nonce 2, and the app showed its confirmation, 2 of 2,
+  checked against the owner contract.
