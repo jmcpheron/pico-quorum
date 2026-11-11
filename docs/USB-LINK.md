@@ -210,3 +210,10 @@ What was checked:
   at the start, and the console stayed there, with ▲ Check again, until the next restart. The
   counter didn't move. 6 minutes later SDA and SCL both read high. Why the chip didn't answer is
   not known.
+- 20 unplugs of the USB-C by hand, with the SWD probe's GND, CLK and DIO still wired (no 3V3): 10
+  out for about 3 s at home, 5 pulled again 2 to 3 s into the start, and 5 out for about 1 s. Every
+  start after came back on home, pinned, about 7 s after its boot line, 67.5 to 67.8 KB free. The
+  counter went from 131 to 152: one for each of the 20 starts, and one for the cut start that had
+  read the chip before it lost power. The other cuts came before that read and used nothing. No
+  error in the log. A dump over SWD after: every file there, `pin.json` and `keyflow.json` the same
+  bytes as before dd82e30a's load, the JSON files parsing, no broken line in `log.txt`.
