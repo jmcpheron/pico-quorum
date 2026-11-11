@@ -21,7 +21,7 @@ import cadquery as cq
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.normpath(os.path.join(HERE, "..", ".."))
-sys.path.insert(0, os.path.join(REPO, "hardware", "builds", "pico-sign", "case"))
+sys.path.insert(0, os.path.join(REPO, "hardware", "archive", "builds", "pico-sign", "case"))
 import concepts as K        # the renderer the other cases use
 
 # --- the case --------------------------------------------------------------------------------------

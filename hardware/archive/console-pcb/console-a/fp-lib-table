@@ -1,0 +1,5 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "pqconsole")(type "KiCad")(uri "${KIPRJMOD}/../lib/pqconsole.pretty")(options "")(descr "Picoquorum console footprints"))
+  (lib (name "picoquorum")(type "KiCad")(uri "${KIPRJMOD}/../../../key-pcb/lib/picoquorum.pretty")(options "")(descr "Picoquorum key footprints: the mark"))
+)

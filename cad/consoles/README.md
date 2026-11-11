@@ -1,8 +1,8 @@
 # Cases for the console boards
 
 Two cases for the two S3 boards from JLCPCB, and a dock for each:
-- **the stick**, for [console-s3](../../hardware/console-s3/DESIGN.md)
-- **the badge**, for [PicoquorumKey rev B](../../hardware/picoquorum-key/README.md) with its key port fitted
+- **the stick**, for [console-s3](../../hardware/prototypes/console-s3/DESIGN.md)
+- **the badge**, for [PicoquorumKey rev B](../../hardware/prototypes/picoquorum-key/README.md) with its key port fitted
 
 **Status, 2026-11-03:** a first draft of each, drawn the day the boards arrived. The first badge was
 drawn for rev A. Its plate was printed and laid on a board: the board was rev B, and the rib above

@@ -13,7 +13,7 @@ not written yet.*
 *KiCad's 3D render of the routed board. The panel is drawn as a box. More views are in
 [renders/](renders/).*
 
-[console-usb](../console-usb/README.md) took the radio out of use on an ESP32-S3. This board takes
+[console-usb](../archive/console-usb/README.md) took the radio out of use on an ESP32-S3. This board takes
 it out of the chip: an **RP2350A** has none. The console talks to the world only through the USB-C
 cable it is powered by. A program on the computer fetches the Safe's queue for it and posts its
 signatures. The console still rebuilds every hash itself, and the key still signs only that.
@@ -266,7 +266,7 @@ An outside review on 2026-10-29 found these, all left as they are for the first 
    Mac. Everything checked out, J3's USB aside. [bench/BRINGUP.md](bench/BRINGUP.md) has how it was
    loaded, what was checked, and the ways to load boards in numbers. What comes next (the
    firmware, the relay, a batch of 20, selling the first boards) is in
-   [CONSOLE-RP-PLAN-2026-11-04.md](../../CONSOLE-RP-PLAN-2026-11-04.md).
+   [PLAN-2026-11-04.md](PLAN-2026-11-04.md).
 4. **The firmware and the relay.** A `console-rp` profile: the QT Py's footer screens at 240 × 135
    (`claude/qtpy-cosigner`, PR #91), these pins, and the link on UART1. The relay is a new network
    path and part of the app, so it needs a yes before it's built.

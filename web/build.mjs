@@ -53,7 +53,7 @@ writeFileSync(join(OUT, "../index.html"), readFileSync(join(HERE, "src/home.html
 // The handheld's page (docs/handheld/), kept for links already shared: static like the front page, with
 // the case's own assembly pictures and its share card (web/handheld-card.py), and the front page's
 // pictures of the other hardware. All copied as they are, so a picture's source is its only copy.
-const CASE = "../hardware/builds/pico-sign-handheld/case/out/assembly/";
+const CASE = "../hardware/archive/builds/pico-sign-handheld/case/out/assembly/";
 const steps = ["00-colours", "00-exploded", "00-printed-parts", "00-hardware", "01-tub-inserts", "02-feet", "03-key-plug",
   "04-breadboard", "05-plate-inserts", "06-guard", "07-guard-in", "08-knob", "09-screen", "10-spacers", "11-carrier",
   "12-pico", "13-wires", "14-close", "15-key", "16-done"];

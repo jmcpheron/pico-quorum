@@ -2,97 +2,120 @@
 
 Console and key electronics. The goals are in [`../docs/KICKOFF.md`](../docs/KICKOFF.md).
 
+The work is on **Mono**. Everything else here is the board it comes from, the keys, the dev console
+that runs the firmware today, or kept for the record.
+
+| | what it is | where it stands |
+|---|---|---|
+| **[Mono](mono/README.md)** | the reference console: an RP2350A with no radio, the ATECC608C on the board, a 1.14″ screen and three buttons on a 40 × 89.5 mm bar | designed and routed, 2026-11-06. Its fab files pass `tools/keypcb jlc mono`. Not ordered, nothing built |
+| **[Mono's case](../cad/consoles/README.md#mono)** | a printed shell and back panel, and [the industrial variant](../cad/consoles/README.md#mono-industrial) with cut corners and grooves | first drafts, not printed |
+| [console-rp](console-rp/README.md) | the board Mono comes from: the same RP2350A, link, key, screen and pins, on 72 × 36 mm | 5 boards received 2026-11-04. The first is up on a bench script; the console's firmware for it isn't written |
+| [key-c and the other keys](key-pcb/README.md) | the key as a part you plug in: an ATECC608C behind a USB-C receptacle | key-c P2 built and working; P3 drawn |
+| [the dev console](DEV-CONSOLE.md) | a Pico 2 W, a Waveshare screen and an ATECC608 breakout, no soldering | runs the console image today |
+| [prototypes/](prototypes/README.md) | the two ESP32-S3 boards with their own Wi-Fi: console-s3 and PicoquorumKey | both made; the first board of each runs |
+| [archive/](archive/README.md) | earlier boards and builds, no longer worked on | as they were on 2026-11-11 |
+
+## Mono
+
+![Mono from above and to one side: the 1.14-inch screen at the top, D0, D1 and D2 in a row under it, the second key's site and the key that signs below them, the RP2350 in the middle, and the USB-C at the bottom end](mono/renders/mono-3q.jpg)
+
+*KiCad's 3D render of the routed board. The panel is drawn as a box.*
+
+Mono is a working name. It is the design the others are measured against:
+- **No radio.** The USB-C reaches a serial chip and nothing else. A computer passes on Safe's queue;
+  the console rebuilds every hash itself, and the key signs only that.
+- **The key on the board,** an ATECC608C, and a site for a second key on a bus and a supply of its own.
+- **Every part JLCPCB fits is on the front,** for Economic assembly; the screen goes on by hand. Nine
+  pads on the back are for a pogo jig.
+- **console-rp's pins,** so console-rp's image will run on it unchanged.
+
+**Its case** is in [`cad/consoles/`](../cad/consoles/README.md), drawn by scripts:
+
+| | script | build | outputs |
+|---|---|---|---|
+| Mono's case | [`mono.py`](../cad/consoles/mono.py) | `tools/case build mono` | [`out/mono/`](../cad/consoles/out/mono/) |
+| the industrial variant | [`mono_ind.py`](../cad/consoles/mono_ind.py) | `tools/case build mono-industrial` | [`out/mono_ind/`](../cad/consoles/out/mono_ind/) |
+
+![Mono's case, industrial: in the hand with four screws in the face, the back with the name, and the left side with its grooves and cut corners](../cad/consoles/out/mono_ind/mono_ind_front.png)
+
+[`cad/mono/`](../cad/mono/README.md) is the board itself as a print, to hold. The enclosure's open
+questions (a guard over Sign, printed or aluminum, the name on the face) are in the kickoff's
+[open decisions](../docs/KICKOFF.md#open-decisions).
+
+## What is in this folder
+
+- [`mono/`](mono/README.md): Mono's board. Its generator, the KiCad project, fab files, renders and
+  [pins](mono/PINS.md)
+- [`console-rp/`](console-rp/README.md): the first RP2350 console. Its
+  [bring-up](console-rp/bench/BRINGUP.md), [the plan](console-rp/PLAN-2026-11-04.md) written the
+  night it came up, and [a plan for a square rev B](console-rp/REV-B-PLAN-2026-11-05.md)
+- [`key-pcb/`](key-pcb/README.md): the keys' boards, [key-c](key-pcb/key-c-usbc/README.md) among
+  them, and how to order them ([ORDERING.md](key-pcb/ORDERING.md))
+- [`DEV-CONSOLE.md`](DEV-CONSOLE.md), [`bom/`](bom/README.md) and [`wiring/`](wiring/): the dev
+  console and the other builds from bought boards that the firmware has a profile for.
+  [Build 1](wiring/BUILD1.md), [on a breadboard](wiring/BREADBOARD.md),
+  [on an ESP32](wiring/ESP32.md), [on a Feather](wiring/FEATHER-S3.md), and the
+  [perfboard wiring](wiring/SOLDERING.md) from picowallet (`tools/wiring`)
+- [`prototypes/`](prototypes/README.md): console-s3 and PicoquorumKey, and the plan they were
+  ordered from
+- [`archive/`](archive/README.md): console-a (two of them), console-pocket, console-usb, the
+  Feather's wings, and four builds that were written up and not wired
+
+`tools/keypcb` checks, routes and writes fab files for the boards, wherever they are
+(`tools/keypcb check mono`). `tools/case` rebuilds the printed cases.
+
 ## Every configuration
 
 Two kinds: **builds**, put together from bought boards, and **boards** we design. The firmware
 column is the console image's `BOARD` profile (`firmware/board.py`); a build's own test and demo
-screens are bench scripts, never part of the image ([builds/](builds/README.md#firmware)).
+screens are bench scripts, never part of the image
+([archive/builds/](archive/builds/README.md#firmware)).
 
 | name | kind | the key | firmware | where it stands |
 |---|---|---|---|---|
+| **[Mono](mono/README.md)** | board | ATECC608C (SOIC-8) on the board; a second key's site, not fitted | console-rp's profile, not written | routed, not ordered |
+| [console-rp](console-rp/README.md) | board | ATECC608C (SOIC-8) on the board | a `console-rp` profile, not written | 5 received 2026-11-04 ([order](../buildlog/2026-10-29-console-rp-order.md)); the first is up on a bench script |
+| [key-c and the other keys](key-pcb/README.md) | board | — | — | key-c P2 built and working; P3 drawn |
 | [dev console](DEV-CONSOLE.md) | build | ATECC608 breakout, STEMMA QT | `waveshare` | the no-solder build |
 | [Build 1](wiring/BUILD1.md), [on a breadboard](wiring/BREADBOARD.md) | build | ATECC608 on TRRS jacks | `build1` | — |
 | [ESP32 DevKit](wiring/ESP32.md) | build | ATECC608 breakout | `esp32` | the console ran on a WROVER |
 | [Feather + adapters](wiring/FEATHER-S3.md) | build | key-c, STEMMA QT to USB-C adapters | `feather-s3`; bench in [wiring/feather-s3/](wiring/feather-s3/) | runs; chip 3 through the ceremony, 2026-10-22 |
-| [Feather pigtail](builds/feather-pigtail/README.md) | build | key-c, a USB-C cable soldered to the pins | `feather-s3`; bench `swap.py`; a case | written up, not wired |
-| [Feather knob](builds/feather-knob/README.md) | build | key-c, a USB-C adapter on the header pins | `feather-knob` (knob and Boot); bench `dial.py` | written up, not wired |
-| [pico-sign](builds/pico-sign/README.md) | build | key-c in a cartridge, in a bay | `build1` (knob, hold-to-sign switch); case concepts | written up, not wired |
-| [pico-sign-handheld](builds/pico-sign-handheld/README.md) (Picoquorum Handheld) | build | key-c in a snap-shut cartridge, slid into a bay in the back | `build1`, `SCREEN = "2.4"`; a flat handheld case, [assembly](builds/pico-sign-handheld/ASSEMBLY.md) | written up, not wired |
-| [key-c and the other keys](key-pcb/README.md) | board | — | — | key-c P2 built and working; P3 drawn |
-| [console-a (console-pcb)](console-pcb/README.md) | board | key-c, USB-C | `build1` | designed |
-| [console-a](console-a/README.md) | board | pads | `waveshare` | designed, not ordered |
-| [console-pocket](console-pocket/README.md) | board | pads | `waveshare` | not checked in KiCad, not ordered |
-| [feather-wing a, b](feather-wing/README.md) | board | key-c, USB-C | `feather-s3` | not ordered |
-| [console-s3](console-s3/DESIGN.md) | board | ATECC608C on the board | `feather-s3` | to order ([plan](../ORDER-PLAN-2026-10-24.md)) |
-| [console-usb](console-usb/README.md) | board | ATECC608C on the board | `feather-s3`, plus firmware not written | not routed |
-| [console-rp](console-rp/README.md) | board | ATECC608C (SOIC-8) on the board | a `console-rp` profile, not written | 5 ordered 2026-10-29 ([order](../buildlog/2026-10-29-console-rp-order.md)) |
-| [picoquorum-key](picoquorum-key/README.md) | board | UDFN ATECC608C on the board; rev B adds a key port for key-c | `picoquorum-key`, picked by its key bus's pull-ups; the port needs a later image | rev A to order ([plan](../ORDER-PLAN-2026-10-24.md)); rev B designed, not ordered |
 
-The parts of each are below.
+Early prototypes ([prototypes/](prototypes/README.md)):
 
-- [`DEV-CONSOLE.md`](DEV-CONSOLE.md): the no-solder dev console (Pico 2 W, Waveshare Pico-LCD-1.3,
-  an ATECC608 breakout), from picowallet
-- [`builds/`](builds/README.md): rigs put together from bought boards, one folder each (README,
-  `bench/`, `case/`); the first is the [Feather pigtail](builds/feather-pigtail/README.md)
-- [`wiring/`](wiring/): the key connector pinout and console schematics; Build 1 in
-  [`wiring/BUILD1.md`](wiring/BUILD1.md) (its build order, rules and firmware to do), and on a breadboard in [`wiring/BREADBOARD.md`](wiring/BREADBOARD.md);
-  the same parts on an ESP32 DevKit instead of a Pico in [`wiring/ESP32.md`](wiring/ESP32.md)
-- [`bom/`](bom/): the parts list and sourcing notes
-- [`key-pcb/`](key-pcb/): the key's board. Rev A makes the board itself the plug (gold fingers into
-  a card-edge socket). It has two KiCad projects, the fab files, and how to order them
-  ([ORDERING.md](key-pcb/ORDERING.md))
-- [`console-pcb/`](console-pcb/): the console on one board. console-a holds a Pico 2 W, Build 1's
-  screen, knob and buttons, and a USB-C plug for key-c. The options weighed are in
-  [OPTIONS.md](console-pcb/OPTIONS.md)
-- [`console-a/`](console-a/): a second one-board console, on the Waveshare Pico-LCD-1.3's pins
-  (a bare 1.3″ panel, a d-pad and A/B/X/Y, pads for the key), so the console image runs with the
-  default `BOARD`. JLCPCB can solder its Pico too. Designed and checked, not ordered
-  ([ORDERING.md](console-a/ORDERING.md))
-- [`console-pocket/`](console-pocket/README.md): a third, the pocket size, also on the Waveshare
-  pins: the Pico 2 W soldered on the back as a module, a bare 1.54″ panel, seven buttons and pads
-  for the key's wires, 51 × 85 mm. Written by a script, routed, self-checked; not yet checked in
-  KiCad, not ordered
-- [`feather-wing/`](feather-wing/README.md): not a console but a board for one: a FeatherWing-sized
-  board behind Adafruit's Feather ESP32-S3 Reverse TFT, on its header pins, with console-a's
-  protected USB-C port for key-c. wing-a has an upright plug; wing-b a right-angle plug at the
-  edge of a tab. Written by a script, routed, self-checked; not yet checked in KiCad, not ordered
-- [`console-s3/`](console-s3/DESIGN.md): a fourth, the S3 console: an ESP32-S3-WROOM-1 on the back,
-  the Feather's 1.14″ screen in a ZIF, five buttons, the ATECC608C soldered on and a USB-C for power
-  and serial, 64 × 22.86 mm. Economic assembly for everything but the module and the panel, which
-  the workshop fits. Three of its buttons, the screen and the key are on the Feather's pins, so
-  today's image runs on it. Written by a script, placed, routed and self-checked; ERC, DRC and
-  parity clean in KiCad; not ordered. The idea and costs: [CONCEPT.md](console-s3/CONCEPT.md);
-  what any S3 console must have, in any shape: [SPEC.md](console-s3/SPEC.md)
-- [`console-usb/`](console-usb/README.md): the console-s3 idea with no radio in use: the bare
-  ESP32-S3 chip, no antenna, three buttons on the Feather's pins, and a USB-C whose only data path
-  is a CH340C serial bridge to the S3's UART1, so the computer that relays the queue gets no REPL
-  and can't reset it. JLCPCB places everything but the screen. Written by a script and checked by
-  KiCad 9: the schematic, and a 70 × 28 mm board with every part placed and 3D renders; not routed,
-  not ordered
-- [`console-rp/`](console-rp/README.md): console-usb on an RP2350A, which has no radio at all:
-  Raspberry Pi's minimal circuit and 16 MB flash, the 1.14″ screen with D0 D1 D2 in a row under
-  it, the SOIC-8 ATECC608C, and a USB-C whose only data path is a CH343P (CDC-ACM) serial bridge
-  to UART1. JLCPCB places everything but the screen. Written by a script and checked by KiCad 10:
-  the schematic, and a 72 × 36 mm board routed round Raspberry Pi's own layout, with 3D renders and
-  fab files that pass `tools/keypcb jlc`; not ordered
-- [`picoquorum-key/`](picoquorum-key/README.md): PicoquorumKey, a second S3 console designed apart
-  from console-s3, to order beside it and compare: the module on the back, the 1.14″ panel in a
-  ZIF, five buttons, the UDFN ATECC608C, 44 × 53 mm. Its own generators, tests and fab files in
-  `hardware/out/rev-a/`. Rev B (`hardware/out/rev-b/`) adds a key port at the top-left corner: a
-  straddle USB-C plug for key-c on an I2C bus of its own, power switched and off by default, its
-  parts fitted only on the boards that want it; 50 × 53 mm, 0.8 mm thick. Its buttons aren't on the Feather's pins, so it has its own firmware
-  profile, `picoquorum-key`, which the image picks by looking at the board; in a release from
-  after 2026.10.12
+| name | kind | the key | firmware | where it stands |
+|---|---|---|---|---|
+| [console-s3](prototypes/console-s3/DESIGN.md) | board | ATECC608C on the board | `feather-s3` | 5 boards came 2026-11-02; board 1 runs ([its first day](../buildlog/2026-11-02-console-s3-first-board.md)) |
+| [picoquorum-key](prototypes/picoquorum-key/README.md) | board | UDFN ATECC608C on the board; rev B adds a key port for key-c | `picoquorum-key`, picked by its key bus's pull-ups; the port needs a later image | boards made, rev B; the first reported working, 2026-11-03 ([build log](../buildlog/BUILDLOG.md)) |
 
-The inherited picowallet wiring (Pico + Waveshare LCD + ATECC608 + 18650) is in
-[`wiring/SOLDERING.md`](wiring/SOLDERING.md) and `tools/wiring`.
+Archived ([archive/](archive/README.md)):
 
-**Cases for console-s3 and PicoquorumKey rev B**, the stick and the badge, each with a dock, are in
-[`cad/consoles/`](../cad/consoles/README.md): first drafts, not printed.
+| name | kind | the key | firmware | where it stood |
+|---|---|---|---|---|
+| [console-a (console-pcb)](archive/console-pcb/README.md) | board | key-c, USB-C | `build1` | designed |
+| [console-a](archive/console-a/README.md) | board | pads | `waveshare` | designed, not ordered |
+| [console-pocket](archive/console-pocket/README.md) | board | pads | `waveshare` | not checked in KiCad, not ordered |
+| [console-usb](archive/console-usb/README.md) | board | ATECC608C on the board | `feather-s3`, plus firmware not written | not routed |
+| [feather-wing a, b](archive/feather-wing/README.md) | board | key-c, USB-C | `feather-s3` | not ordered |
+| [Feather pigtail](archive/builds/feather-pigtail/README.md) | build | key-c, a USB-C cable soldered to the pins | `feather-s3`; bench `swap.py`; a case | written up, not wired |
+| [Feather knob](archive/builds/feather-knob/README.md) | build | key-c, a USB-C adapter on the header pins | `feather-knob` (knob and Boot); bench `dial.py` | written up, not wired |
+| [pico-sign](archive/builds/pico-sign/README.md) | build | key-c in a cartridge, in a bay | `build1` (knob, hold-to-sign switch); case concepts | written up, not wired |
+| [pico-sign-handheld](archive/builds/pico-sign-handheld/README.md) (Picoquorum Handheld) | build | key-c in a snap-shut cartridge, slid into a bay in the back | `build1`, `SCREEN = "2.4"`; a flat handheld case, [assembly](archive/builds/pico-sign-handheld/ASSEMBLY.md) | written up, not wired |
 
-**The enclosure** for a finished console isn't designed yet. Its open questions (button layout, a flip cover or a guard
-over Sign, printed or aluminum, the faceplate name) are in the kickoff's
-[open decisions](../docs/KICKOFF.md#open-decisions).
+## Moved on 2026-11-11
+
+Older notes, the build log's text and the comments in `firmware/board.py` and `firmware/lcd.py` name
+these folders where they were:
+
+| was | is |
+|---|---|
+| `hardware/console-s3/`, `hardware/picoquorum-key/` | `hardware/prototypes/` |
+| `hardware/console-a/`, `console-pcb/`, `console-pocket/`, `console-usb/`, `feather-wing/`, `builds/` | `hardware/archive/` |
+| `ORDER-PLAN-2026-10-24.md` | `hardware/prototypes/` |
+| `CONSOLE-RP-PLAN-2026-11-04.md`, `CONSOLE-RP-REV-B-PLAN-2026-11-05.md` | `hardware/console-rp/PLAN-2026-11-04.md`, `REV-B-PLAN-2026-11-05.md` |
+
+The firmware's comments wait for the next firmware change: editing them alone would be a new release
+fingerprint (AGENTS.md, rule 2).
 
 ## License
 

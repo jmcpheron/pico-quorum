@@ -3,7 +3,7 @@ at (40, 53) in the panel's RAM, its three buttons (D0 pulled up, D1 and D2 pulle
 "D1L"), and the battery gauge at 0x36 never taken for the key. MicroPython is a stand-in, as in
 esp32_test.py, with the S3's pins (0-21, 26-48) and os.uname() naming the S3. Then the same for
 PicoquorumKey ("picoquorum-key"), the S3 with pull-ups on GPIO16/17, and for the ESP32-S3 TFT
-Feather with a knob ("feather-knob", hardware/builds/feather-knob): Boot and the knob as the three
+Feather with a knob ("feather-knob", hardware/archive/builds/feather-knob): Boot and the knob as the three
 keys. Not a board: hardware/wiring/FEATHER-S3.md says what has run on one.
     python3 test-vectors/feather_s3_test.py"""
 from pathlib import Path
@@ -275,7 +275,7 @@ finally:
     os.chdir(cwd)
     sys.path.remove(str(FW))
 
-# The ESP32-S3 TFT Feather with a knob (hardware/builds/feather-knob): only when secrets.BOARD
+# The ESP32-S3 TFT Feather with a knob (hardware/archive/builds/feather-knob): only when secrets.BOARD
 # names it. Its own pins, Boot as D0 and the knob as D1, D1L and D2.
 for name in ("board", "lcd", "knob", "atecc", "signer"):
     sys.modules.pop(name, None)
