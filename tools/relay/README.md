@@ -20,7 +20,8 @@ Only what `firmware/txservice.py` asks, and only under a base in `firmware/quoru
 `"services"`. The URL rules are `link.pinned`'s: plain ASCII, no `..`, `@`, `#` or `\`. Then the path
 must be one of:
 - `GET /api/v1/safes/{safe}/`
-- `GET /api/v2/safes/{safe}/multisig-transactions/?executed=false&nonce__gte=N&ordering=nonce&limit=N`
+- `GET /api/v2/safes/{safe}/multisig-transactions/?executed=false&nonce__gte=N&ordering=nonce&limit=N`,
+  maybe with `&offset=N`: the queue a few at a time, when it is too long for one answer
 - `POST /api/v1/multisig-transactions/{hash}/confirmations/` with `{"signature": "0x…"}` and nothing
   else, at most 4 KB
 
@@ -62,5 +63,8 @@ or dropped on the console, never signed.
 | `truncate`, `nested` | the poll fails |
 | `forge-queue` | REFUSED: the value changed, the hash kept |
 | `chatter` | drop the noise around the answer |
+| `big` | read the queue a few at a time; its first transaction, padded past the line, refused as too big |
+| `lose-post` | time out on the confirmation: "Not sent", kept to send again (▲ on that screen, or after a restart) |
 
-`stall`, `late`, `truncate`, `nested` and `forge-queue` are done to GETs only.
+`stall`, `late`, `truncate`, `nested`, `forge-queue` and `big` are done to GETs only, `lose-post` to
+POSTs only.

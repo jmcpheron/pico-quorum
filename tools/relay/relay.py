@@ -45,7 +45,7 @@ DEFAULT_MAX = 16 * 1024     # the longest answer until hello says the console's 
 MAX_URL = 400
 ADDR = r"0x[0-9a-fA-F]{40}"
 PATHS = [("GET", re.compile(r"/api/v1/safes/%s/" % ADDR)),
-         ("GET", re.compile(r"/api/v2/safes/%s/multisig-transactions/\?executed=false&nonce__gte=\d{1,20}&ordering=nonce&limit=\d{1,2}" % ADDR)),
+         ("GET", re.compile(r"/api/v2/safes/%s/multisig-transactions/\?executed=false&nonce__gte=\d{1,20}&ordering=nonce&limit=\d{1,2}(&offset=\d{1,2})?" % ADDR)),
          ("POST", re.compile(r"/api/v1/multisig-transactions/0x[0-9a-fA-F]{64}/confirmations/"))]
 SIM_PATHS = [("POST", re.compile(r"/sim/device")), ("POST", re.compile(r"/sim/declined"))]   # tools/quorum's, an allowed base only
 # Each fault, and what the console should do with it.
@@ -61,8 +61,11 @@ FAULTS = {
     "forge-queue": "the first transaction's value changed, its hash kept: REFUSED on the screen",
     "nested": "a body nested 5000 deep: the poll fails, nothing signed",
     "chatter": "hi and noise around the answer: the noise dropped, the answer used",
+    "big": "the queue's first transaction padded past the console's line: read a few at a time, that one refused as too big",
+    "lose-post": "a confirmation dropped, never sent on: the console times out, shows Not sent, and keeps it to send again",
 }
-GET_ONLY = ("truncate", "stall", "late", "nested", "forge-queue")
+GET_ONLY = ("truncate", "stall", "late", "nested", "forge-queue", "big")
+POST_ONLY = ("lose-post",)
 
 
 class Refused(Exception):
@@ -340,11 +343,11 @@ class Relay:
             return
         fault = None
         if self.hostile and self.rnd.random() < self.rate:
-            fault = self.rnd.choice([f for f in self.hostile if method == "GET" or f not in GET_ONLY] or [None])
+            fault = self.rnd.choice([f for f in self.hostile if f not in (POST_ONLY if method == "GET" else GET_ONLY)] or [None])
         if fault == "late" and self.late is not None:
             fault = None                # one answer held back at a time
         rec = {"kind": "req", "id": mid, "m": method, "path": url.split("/api/", 1)[-1][:160], "fault": fault}
-        if fault == "stall":
+        if fault in ("stall", "lose-post"):
             self.counts["faults"] += 1
             self.log("relay", expect=FAULTS[fault], **rec)
             self.say("fault #%s %s: %s" % (mid, fault, FAULTS[fault]), True)
@@ -360,6 +363,8 @@ class Relay:
             self.say("#%s %s %s: no answer (%s)" % (mid, method, rec["path"][:60], err), True)
             return
         up_ms = int((self.clock() - up0) * 1000)
+        if fault == "big" and not re.search(r"&offset=0*[1-9]", url):
+            text = pad(text, self.max)
         res = {"t": "res", "id": mid, "status": status, "body": text}
         line = json.dumps(res).encode()
         if len(line) > self.max:
@@ -427,6 +432,17 @@ def forge(text):
     except (ValueError, KeyError, IndexError, TypeError):
         return text
     r["value"] = str(int(r.get("value") or 0) + 10 ** 18)
+    return json.dumps(q)
+
+
+def pad(text, n):
+    """A queue answer with its first transaction given an origin n long (Safe's service keeps the
+    proposer's note there; it isn't hashed): a transaction too long for the console to read."""
+    try:
+        q = json.loads(text)
+        q["results"][0]["origin"] = "x" * n
+    except (ValueError, KeyError, IndexError, TypeError):
+        return text
     return json.dumps(q)
 
 

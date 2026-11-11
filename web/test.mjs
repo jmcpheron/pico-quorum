@@ -364,6 +364,7 @@ try {
   const refused = (d) => { try { R.checkReq(d, CFG); return ""; } catch (e) { return e.message || "refused"; } };
   check(!refused(req(INFO)) && !refused(req(QUEUE)) && !refused(req(CONFIRM, "POST", SIG)),
     "relay: the three calls txservice makes pass: the Safe, its queue, a confirmation");
+  check(!refused(req(QUEUE + "&offset=6")), "relay: the queue a few at a time: its offset passes");
   check(!refused(req(`${CFG.services["1"]}/api/v1/safes/${SAFE_A}/`)) && !refused(req(`${CFG.services["8453"]}/api/v1/safes/${SAFE_A}/`)),
     "relay: on every pinned service (eth, base, basesep)");
   const bad = {
@@ -373,6 +374,7 @@ try {
     "non-ASCII": INFO + "é", "too long": INFO + "a".repeat(R.MAX_URL), "plain http": INFO.replace("https", "http"),
     "the base alone": BASE, "another path": `${BASE}/api/v1/safes/${SAFE_A}/balances/`,
     "another query": QUEUE.replace("limit=3", "limit=3&x=1"), "the owners endpoint": `${BASE}/api/v1/owners/${SAFE_A}/safes/`,
+    "an offset of 3 digits": QUEUE + "&offset=100", "an offset first": QUEUE.replace("limit=3", "offset=3&limit=3"),
     "a sim path": `${BASE}/sim/device`, "not a string": 5,
   };
   const notRefused = Object.entries(bad).filter(([, u]) => !refused(req(u))).map(([k]) => k);

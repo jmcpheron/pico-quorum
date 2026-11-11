@@ -14,7 +14,7 @@ export const HI_MS = 2000;                // the console counts the relay gone a
 const ADDR = "0x[0-9a-fA-F]{40}";
 export const PATHS = [
   ["GET", new RegExp(`^/api/v1/safes/${ADDR}/$`)],
-  ["GET", new RegExp(`^/api/v2/safes/${ADDR}/multisig-transactions/\\?executed=false&nonce__gte=\\d{1,20}&ordering=nonce&limit=\\d{1,2}$`)],
+  ["GET", new RegExp(`^/api/v2/safes/${ADDR}/multisig-transactions/\\?executed=false&nonce__gte=\\d{1,20}&ordering=nonce&limit=\\d{1,2}(&offset=\\d{1,2})?$`)],
   ["POST", /^\/api\/v1\/multisig-transactions\/0x[0-9a-fA-F]{64}\/confirmations\/$/],
 ];
 

@@ -44,6 +44,11 @@ def txt_c(d, s, y, font, fg="text", bg="bg", x0=X0, x1=W):
 
 
 # ----------------------------------------------------------------------------- pages
+def tag(e):
+    """#nonce, or #? for one the console couldn't read (quorum.bad_entry, big_entry)."""
+    return "#%d" % e["n"] if e["n"] >= 0 else "#?"
+
+
 def pages_of(e):
     """The small screen's pages for one transaction, in order: what it does, each call and each
     address in it on a page of its own, the calldata and its digest, who has approved, then the
@@ -261,7 +266,7 @@ def draw_home(q):
         rrect(d, X0 + 2, y, W - X0 - 4, 22, 4, fill)
         if lvl != "ok":
             d.fill_rect(X0 + 2, y + 4, 3, 14, c("bad" if lvl == "red" else "warn"))
-        x = txt(d, "#%d" % e["n"], X0 + 8, y + 2, "mono13", "warn" if q.conflicts(e) else "faint", fill)
+        x = txt(d, tag(e), X0 + 8, y + 2, "mono13", "warn" if q.conflicts(e) else "faint", fill)
         if q.signed_by_me(e):
             st, sc = "done", "ok"
         elif e["h"] in q.declined:
@@ -347,7 +352,7 @@ def tx_row(d, q, e, y, on):
     fill = row_box(d, y, on)
     if lvl != "ok":
         d.fill_rect(X0 + 2, y + 4, 3, 14, c("bad" if lvl == "red" else "warn"))
-    x = txt(d, "#%d" % e["n"], X0 + 8, y + 2, "mono13", "warn" if q.conflicts(e) else "faint", fill)
+    x = txt(d, tag(e), X0 + 8, y + 2, "mono13", "warn" if q.conflicts(e) else "faint", fill)
     if q.signed_by_me(e):
         st, sc = "done", "ok"
     elif e["h"] in q.declined:
@@ -402,7 +407,7 @@ def draw_tabs(q):
                 y1 -= 24
             rows(d, len(q.queue), q.sel, y0, y1, lambda i, y, on: tx_row(d, q, q.queue[i], y, on))
             e = q.queue[q.sel]
-            what = "Open #%d %s" % (e["n"], "Refused" if e["why"] else e["r"]["summary"])
+            what = "Open %s %s" % (tag(e), "Refused" if e["why"] else e["r"]["summary"])
     elif t == "owners":
         own = q.owners()
         safe_line(d, q, "OWNERS", "muted")
@@ -557,7 +562,7 @@ def draw_review(q):
     bg = pc["bg"]
     d.fill(c(bg))
     here = q.page + 1 if q.act is None else len(q.pages)
-    head = "#%d" % e["n"]
+    head = tag(e)
     if kind in ("item", "text", "frm", "to", "calldata", "digest"):
         head += " " + item_of(q, i)["title"]
     elif kind == "head":
@@ -701,7 +706,7 @@ def draw_working(q, title, sub):
     rrect(d, CX - 30, 24, 36, 6, 3, "stake")
     txt_c(d, title, 38, "bold18")
     if q.cur:
-        txt_c(d, fit("#%d %s" % (q.cur["n"], q.cur["r"]["summary"]), TW, "sans12"), 66, "sans12", "text")
+        txt_c(d, fit("%s %s" % (tag(q.cur), q.cur["r"]["summary"]), TW, "sans12"), 66, "sans12", "text")
     info = getattr(q, "work_info", None) or ()
     if info:                                    # the chip's own facts (quorum.chip_info): two fit here
         txt_c(d, fit(sub, TW, "sans12"), 84, "sans12", "muted")

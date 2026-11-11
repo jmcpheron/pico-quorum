@@ -67,7 +67,8 @@ class Service:
                 e, self.fail_pending = self.fail_pending, None
                 raise e
             limit = int(url.split("limit=")[1].split("&")[0]) if "limit=" in url else 10
-            return Resp(200, {"count": len(txs), "results": txs[:limit]})
+            at = int(url.split("offset=")[1].split("&")[0]) if "offset=" in url else 0
+            return Resp(200, {"count": len(txs), "results": txs[at:at + limit]})
         if "/safes/" in url:
             return Resp(200, info)
         return Resp(404, {})
@@ -143,6 +144,7 @@ class Relay:
         self.wrote = []
         self.reqs = []
         self.faults = []
+        self.max = None         # the longest answer sent, as hello's link.max tells the real relays
 
     def any(self):
         return len(self.inq)
@@ -183,7 +185,10 @@ class Relay:
             except Exception as e:
                 return json.dumps({"t": "res", "id": m["id"], "status": 0, "err": repr(e)})
             status, body = r.status_code, r.content.decode()
-        return json.dumps({"t": "res", "id": m["id"], "status": 200 if status is None else status, "body": body})
+        line = json.dumps({"t": "res", "id": m["id"], "status": 200 if status is None else status, "body": body})
+        if self.max and len(line) > self.max:
+            return json.dumps({"t": "res", "id": m["id"], "status": 0, "err": "answer too big: %d bytes" % len(line)})
+        return line
 
     def sent(self, t):
         """The lines of kind t ("req", "log", or "pq" for usblink's answers) the console wrote."""
@@ -493,7 +498,9 @@ def case_service():
     SVC.txs = [tx(Q, n) for n in range(10)]
     SVC.fail_pending = MemoryError()
     Q.net_work()
-    check(Q.truncated and len(Q.queue) == 3, "out of memory on the queue: the first 3 are shown, and it says so")
+    asked = [c[1] for c in SVC.calls if "/multisig-transactions/" in c[1]]
+    check(len(Q.queue) == 10 and [e["n"] for e in Q.queue] == list(range(10)) and not any(e["why"] for e in Q.queue)
+          and "offset=3" in asked[-3] and "offset=9" in asked[-1], "out of memory on the queue: read 3 at a time, all 10 listed")
 
 
 def case_owners_pages():
@@ -2118,6 +2125,27 @@ def case_relay():
               "%s: the poll fails (%s), the console goes on" % (name, Q.WATCH[0]["err"]))
     poll_with()
     check(Q.WATCH[0]["ok"] and len(Q.queue) == 2, "then a good answer: the Safe is back")
+    n = len(relay.reqs)
+    poll_with(lambda m: [relay.res(m)], lambda m: [relay.res(m, body="[" * 5000)])
+    asked = [r for r in relay.reqs[n:] if "/multisig-transactions/" in r["url"]]
+    check(not Q.WATCH[0]["ok"] and "nested" in Q.WATCH[0]["err"] and len(asked) == 1,
+          "a queue nested 5000 deep: refused before json.loads, not taken for one too long (%s)" % Q.WATCH[0]["err"])
+
+    # A queue longer than the console's line (link.MAX_LINE): the relay says so, the console reads it a
+    # few at a time, and one transaction too long even alone is refused in its place, the rest listed
+    import quorum_ui_s
+    relay.max = link.MAX_LINE
+    big = tx(Q, 1, data="0x" + "ab" * (link.MAX_LINE // 2))
+    n, p0 = len(relay.reqs), len(SVC.posted)
+    serve(Q, [good, big, tx(Q, 2), tx(Q, 3), tx(Q, 4)])
+    asked = [r["url"] for r in relay.reqs[n:] if "/multisig-transactions/" in r["url"]]
+    q = Q.WATCH[0]["queue"]
+    check(Q.WATCH[0]["ok"] and [e["n"] for e in q] == [0, -1, 2, 3, 4] and "too long" in q[1]["why"]
+          and quorum_ui_s.tag(q[1]) == "#?" and not Q.waiting(q[1]) and Q.waiting(q[0]) and not any(e["why"] for e in q if e is not q[1])
+          and any("limit=1&offset=1" in u for u in asked) and len(SVC.posted) == p0,
+          "one transaction past the line: the queue read 3 at a time, that one alone refused in its place (#?), the other 4 listed")
+    relay.max = None
+    serve(Q, [good, red])
 
     # A relay that stops answering: the request gives up at the timeout, the watchdog fed past it
     import watch

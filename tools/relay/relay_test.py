@@ -50,6 +50,7 @@ SIG = json.dumps({"signature": "0x" + "00" * 200})
 def case_check():
     check(not refused(req(INFO)) and not refused(req(QUEUE)) and not refused(req(CONFIRM, "POST", SIG)),
           "the three calls txservice makes pass: the Safe, its queue, a confirmation")
+    check(not refused(req(QUEUE + "&offset=6")), "the queue a few at a time: its offset passes")
     check(not refused(req(R.services()[1] + "/api/v1/safes/%s/" % SAFE)) and not refused(req(R.services()[8453] + "/api/v1/safes/%s/" % SAFE)),
           "on every pinned service (eth, base, basesep)")
     bad = {"off the pin": "https://evil.example/api/v1/safes/%s/" % SAFE,
@@ -59,6 +60,7 @@ def case_check():
            "non-ASCII": INFO + "é", "too long": INFO + "a" * R.MAX_URL, "plain http": INFO.replace("https", "http"),
            "the base alone": BASE, "another path": BASE + "/api/v1/safes/%s/balances/" % SAFE,
            "another query": QUEUE.replace("limit=3", "limit=3&x=1"), "the owners endpoint": BASE + "/api/v1/owners/%s/safes/" % SAFE,
+           "an offset of 3 digits": QUEUE + "&offset=100", "an offset first": QUEUE.replace("limit=3", "offset=3&limit=3"),
            "a sim path on Safe's service": BASE + "/sim/device", "not a string": 5}
     out = {k: refused(req(u)) for k, u in bad.items()}
     check(all(out.values()), "refused, nothing fetched: " + ", ".join(k for k, v in out.items() if v)
@@ -211,6 +213,17 @@ def case_relay():
     r, out, rec = faulted("forge-queue")
     q = json.loads(out[0]["body"])["results"][0]
     check(q["value"] == str(10 ** 18) and q["safeTxHash"] == H, "forge-queue: the value changed, the hash kept")
+    r, out, rec = faulted("big")
+    check(out[0]["status"] == 0 and out[0]["err"].startswith("answer too big") and rec[-1]["fault"] == "big",
+          "big: the queue's first transaction padded past the console's line, so the answer is too big")
+    r, out, rec = faulted("big", QUEUE + "&offset=1")
+    check(out[0]["status"] == 200 and out[0]["body"] == QUEUE_BODY, "big: an answer from further along the queue is left alone")
+    r, p, calls, clk, d = relay(hostile=["lose-post"], rate=1.0, seed=1)
+    r.feed(json.dumps(req(CONFIRM, "POST", SIG, i=41)).encode() + b"\n")
+    r.feed(json.dumps(req(QUEUE, i=42)).encode() + b"\n")
+    check(not any(c[0] == "POST" for c in calls) and [x["id"] for x in p.lines()] == [42],
+          "lose-post: no answer to the confirmation, which never goes on; a GET goes through")
+    shutil.rmtree(d)
     r, p, calls, clk, d = relay(hostile=["late"], rate=1.0, seed=1)
     r.feed(json.dumps(req(QUEUE, i=30)).encode() + b"\n")
     held = list(p.lines())

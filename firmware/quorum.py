@@ -187,7 +187,6 @@ opage = 0           # the Owners page in view: OWNERS_PER_PAGE owners a page, so
 dfoot = "chip"      # knob, on the Device screen: "chip", "wifi", "practice" or "back"
 DFOOT = ("chip", "wifi", "practice", "back") if board.RADIO else ("chip", "practice", "back")
 work_info = []      # short facts from the chip, shown under the Signing and Sending screens (sig.info)
-truncated = False   # the queue did not fit in memory: only the first few are shown
 fails = 0           # ticks in a row that raised
 saved_checked = False   # send_saved() ran after this boot
 net_ok = False
@@ -711,6 +710,14 @@ def bad_entry(w, t, i, ex):
             "r": {"summary": "Malformed", "level": "red", "items": []}}
 
 
+def big_entry(w, at):
+    """The at-th transaction in the queue, too long for the console to read even alone (vhttp's
+    BODY, link.MAX_LINE): shown in its place, refused, never signed. Its nonce is unread: #?."""
+    return {"h": "big:%d" % at, "t": {}, "n": -1, "mine": "", "conf": [], "w": w,
+            "why": "It is too long for this console to read, so it can't be checked here. Check it in the app.",
+            "r": {"summary": "Too big to check", "level": "red", "items": []}}
+
+
 def signed_by_me(e):
     return bool(me) and me in e["conf"]
 
@@ -760,7 +767,7 @@ def can_sign(e):
 
 def conflicts(e):
     """Two transactions for the same Safe with the same nonce: only one of them can execute."""
-    return sum(1 for x in queue if x["n"] == e["n"] and x["w"] is e["w"]) > 1
+    return e["n"] >= 0 and sum(1 for x in queue if x["n"] == e["n"] and x["w"] is e["w"]) > 1
 
 
 # ----------------------------------------------------------------------------- the service
@@ -796,23 +803,56 @@ def fetch_info(w):
     w["info"], w["polls"], w["need_info"] = got, 0, False
 
 
+QUEUE, FEW = 10, 3      # the most transactions listed for a Safe; how many at a time when they don't fit at once
+
+
 def fetch_queue(w):
     """The pending transactions, each checked on its own: one the service mangled is shown as
-    refused and cannot stop the others from being listed."""
-    global truncated
+    refused and cannot stop the others from being listed. A queue too long to read at once
+    (MemoryError: vhttp's BODY on Wi-Fi, link.MAX_LINE over the relay) is read FEW at a time, and a
+    page of those that is still too long, one at a time: a transaction too long even alone is
+    refused in its place (big_entry). One big batch in the queue used to leave the console with no
+    queue at all, and on Wi-Fi only the first 3 were listed."""
     nonce = int(w["info"].get("nonce", 0))
+    out = []
     try:
-        txs, truncated = svc.pending(nonce), False
+        return add(w, out, svc.pending(nonce, QUEUE))
     except MemoryError:
         gc.collect()
-        txs, truncated = svc.pending(nonce, limit=3), True
-        qlog.once("queue truncated to 3: out of memory")
-    out = []
-    for i, t in enumerate(txs):
+        qlog.once("queue too long at once: %d at a time" % FEW)
+    for at in range(0, QUEUE, FEW):
+        n = min(FEW, QUEUE - at)
+        try:
+            txs = svc.pending(nonce, n, at)
+        except MemoryError:
+            gc.collect()
+            txs = None
+        if txs is not None:
+            add(w, out, txs)
+            if len(txs) < n:
+                return out
+            continue
+        for k in range(at, at + n):
+            try:
+                one = svc.pending(nonce, 1, k)
+            except MemoryError:
+                gc.collect()
+                out.append(big_entry(w, k))
+                qlog.once("queue: #%d of it too long to read" % (k + 1))
+                continue
+            if not one:
+                return out
+            add(w, out, one)
+    return out
+
+
+def add(w, out, txs):
+    """The service's transactions, as entries, onto out. -> out."""
+    for t in txs:
         try:
             out.append(entry(w, t))
         except Exception as ex:
-            out.append(bad_entry(w, t, i, ex))
+            out.append(bad_entry(w, t, len(out), ex))
     return out
 
 

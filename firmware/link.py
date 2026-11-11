@@ -399,7 +399,8 @@ def pump():
 def request(method, url, body=None, timeout_ms=None):
     """One call to a pinned service through the computer. -> Response(status_code, content). Raises
     LinkError when the URL isn't pinned (nothing is sent), when no answer comes in time, or when the
-    answer isn't one. Writes no file while it waits: a flash write would lose the answer."""
+    answer isn't one; MemoryError when the relay says the answer is longer than MAX_LINE. Writes no
+    file while it waits: a flash write would lose the answer."""
     global _id, _want, _got, up
     if method not in ("GET", "POST") or not pinned(url):
         raise LinkError("not a pinned service")
@@ -438,7 +439,10 @@ def request(method, url, body=None, timeout_ms=None):
         raise LinkError("relay: not an answer")
     if status == 0:
         _stats["failed"] += 1
-        raise LinkError("relay: " + str(m.get("err", "failed"))[:40])
+        err = str(m.get("err", "failed"))
+        if err.startswith("answer too big"):        # longer than MAX_LINE: as vhttp's body too big, so the console asks for less
+            raise MemoryError("relay: " + err[:40])
+        raise LinkError("relay: " + err[:40])
     return Response(status, b)
 
 

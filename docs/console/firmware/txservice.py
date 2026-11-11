@@ -6,7 +6,7 @@
 #   s = Service(base_url, safe, via=transport)
 #   s.target(base_url, safe)   another Safe, maybe on another chain's service
 #   s.safe_info() -> {"nonce", "threshold", "owners", ...}
-#   s.pending(nonce) -> [transaction, ...] oldest nonce first
+#   s.pending(nonce, limit, at) -> [transaction, ...] oldest nonce first
 #   s.confirm(safe_tx_hash, signature) -> (ok, detail)
 from binascii import hexlify
 import gc
@@ -31,7 +31,10 @@ TIMEOUT_TLS = 15       # api.safe.global: a full TLS handshake on the Pico each 
 # On an ESP32 mbedTLS takes its memory from ESP-IDF's heap, not MicroPython's (rp2's takes it from
 # the GC heap), so a reserve there would only keep that memory from it: none.
 RESERVE = 0 if sys.platform == "esp32" else 40 * 1024
-BODY = 16 * 1024        # a bigger queue: MemoryError, and quorum.fetch_queue asks for 3 transactions
+BODY = 16 * 1024        # a bigger queue: MemoryError, and quorum.fetch_queue asks for a few at a time
+# Safe's answers nest about 16 deep with a batch (MultiSend) inside. A body nested thousands deep runs
+# json.loads out of memory (board #2, 2026-11-10), which would read as a queue too long: refused first.
+MAX_DEPTH = 64
 # A board checks certificates itself (vhttp.py); the emulator's `requests` is the host's curl, which
 # checks them itself. MicroPython's own `requests` on a board checks nothing, so never that.
 ON_BOARD = sys.platform in ("rp2", "esp32")
@@ -65,6 +68,30 @@ def checksum(a):
 
 class ServiceError(Exception):
     pass
+
+
+def shallow(data):
+    """Whether the JSON text data nests at most MAX_DEPTH deep, strings skipped. Reads it in place."""
+    if isinstance(data, str):
+        data = data.encode()
+    d, inside, esc = 0, False, False
+    for c in data:
+        if inside:
+            if esc:
+                esc = False
+            elif c == 92:                   # backslash
+                esc = True
+            elif c == 34:
+                inside = False
+        elif c == 34:                       # a quote
+            inside = True
+        elif c == 91 or c == 123:           # [ {
+            d += 1
+            if d > MAX_DEPTH:
+                return False
+        elif c == 93 or c == 125:
+            d -= 1
+    return True
 
 
 def why(code, out):
@@ -200,13 +227,15 @@ class Service:
         status, data = self._fetch("GET", path)
         if status != 200:
             raise ServiceError("HTTP %d" % status)
+        if not shallow(data):
+            raise ServiceError("nested too deep")
         return json.loads(data)
 
     def _post(self, path, body):
         import json
         status, data = self._fetch("POST", path, body)
         try:
-            out = json.loads(data)
+            out = json.loads(data) if shallow(data) else {}
         except ValueError:
             out = {}
         return status, out
@@ -214,8 +243,9 @@ class Service:
     def safe_info(self):
         return self._get("/api/v1/safes/%s/" % self.safe)
 
-    def pending(self, nonce, limit=10):
-        q = "?executed=false&nonce__gte=%d&ordering=nonce&limit=%d" % (nonce, limit)
+    def pending(self, nonce, limit=10, at=0):
+        """limit transactions from the at-th (the service's offset), lowest nonce first."""
+        q = "?executed=false&nonce__gte=%d&ordering=nonce&limit=%d" % (nonce, limit) + ("&offset=%d" % at if at else "")
         return self._get("/api/v2/safes/%s/multisig-transactions/%s" % (self.safe, q)).get("results", [])
 
     def confirm(self, safe_tx_hash, signature):

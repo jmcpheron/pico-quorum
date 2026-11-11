@@ -137,7 +137,10 @@ What comes back:
 - Only an answer with the id the console waits for is read. Any other line is dropped and counted:
   `garbage`, `overlong`, `unsolicited`, `wrong_id`, `dup`, `nomem`, in the status's `link`.
 - A line is at most 24 KB (`link.MAX_LINE`, hello's `link.max`). The relay sends a longer answer as
-  status 0.
+  status 0, `"answer too big: N bytes"`. The console then reads the queue 3 at a time (`&offset=`),
+  and a page still too long one at a time. A transaction too long even alone is listed red in its
+  place, "Too big to check", `#?`, and can't be signed. The rest of the queue is listed as usual.
+- A body nested more than 64 deep is refused before `json.loads` (`txservice.shallow`).
 - The console waits 15 s. The relay gives the service 12.
 - The body is checked as Safe's service is checked on the Wi-Fi boards: the console rebuilds every
   hash from the fields it shows (AGENTS.md rule 1).
