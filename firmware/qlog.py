@@ -6,6 +6,7 @@ import time
 
 FILE, OLD = "log.txt", "log.1.txt"
 MAX = 16 * 1024
+TAP = None          # given each line too, before it is written (console-rp: link.log, to the computer)
 _size = None
 _last = {}          # message -> (ticks of first sighting, repeats since): see once()
 
@@ -34,6 +35,8 @@ def write(msg):
             os.rename(FILE, OLD)
             _size = 0
         line = "%s %s\n" % (_stamp(), msg)
+        if TAP:
+            TAP(line[:-1])
         with open(FILE, "a") as f:
             f.write(line)
         _size += len(line)

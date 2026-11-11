@@ -106,7 +106,10 @@ def run():
             fonts.get(_f)
         import txservice
         txservice.reserve_early()
+        import net
+        import vhttp
         import quorum
+        quorum.NET, quorum.VIA = net, vhttp     # its way out: Wi-Fi (net.py), HTTPS checked here (vhttp.py)
         quorum.start()
         return quorum
 

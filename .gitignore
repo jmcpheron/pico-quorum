@@ -47,3 +47,6 @@ web/src/config.gen.mjs
 web/.scratch/
 # tools/keypcb jlc's tables and pictures, remade each run (fab/golden/ is kept)
 hardware/**/fab/check/
+
+# console-rp bench runs: raw link and relay logs (hardware/console-rp/bench/linkhost.py, tools/relay)
+hardware/console-rp/bench/runs/

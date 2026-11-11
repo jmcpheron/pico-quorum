@@ -335,7 +335,8 @@ function build(image, { quiet = false } = {}) {
   mkdirSync(dir, { recursive: true });
   const files = {};
   for (const f of img.files) {
-    let to = f === img.main ? "main.py" : f;
+    // main is copied to main.py; an image with a boot of its own (console-rp's boot_rp.py) to boot.py
+    let to = f === img.main ? "main.py" : f === img.boot ? "boot.py" : f;
     if (to.endsWith(".py") && to !== "main.py" && to !== "boot.py") {
       to = to.replace(/\.py$/, ".mpy");
       mpyCross(join(FIRMWARE, f), join(dir, to), f);
@@ -345,7 +346,8 @@ function build(image, { quiet = false } = {}) {
   // RELEASE: the release fingerprint of the source files just compiled (tools/releases/fingerprint.mjs),
   // the same value the emulator shows for these files; the Device screen draws its blockie.
   const release = imageFingerprint(image, (n) => readFileSync(join(FIRMWARE, n)), M);
-  const py = `# written by tools/fw build; never committed\nIMAGE = ${JSON.stringify(image)}\nVERSION = ${JSON.stringify(M.version || "")}\nBUILD = ${JSON.stringify(id)}\nDATE = ${Math.floor(Date.now() / 1000)}\nRELEASE = ${JSON.stringify(release)}\nFILES = ${JSON.stringify(files)}\n`;
+  // BOARD: an image made for one board names it (console-rp), so board.py needs no secrets.py to pick it.
+  const py = `# written by tools/fw build; never committed\nIMAGE = ${JSON.stringify(image)}\n${img.board ? `BOARD = ${JSON.stringify(img.board)}\n` : ""}VERSION = ${JSON.stringify(M.version || "")}\nBUILD = ${JSON.stringify(id)}\nDATE = ${Math.floor(Date.now() / 1000)}\nRELEASE = ${JSON.stringify(release)}\nFILES = ${JSON.stringify(files)}\n`;
   writeFileSync(join(dir, "build.py"), py);
   return { image, id, dir, release, names: [...Object.keys(files), "build.py"] };
 }

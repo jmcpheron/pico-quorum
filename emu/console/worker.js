@@ -61,7 +61,7 @@ onmessage = async ({ data: m }) => {
       onPwm: (pin, frac) => postMessage({ type: "pwm", pin, frac }),
       onReset: () => postMessage({ type: "reset" }),
     });
-    dev.run("quorum", "quorum.start()");
+    dev.run("quorum", "import net; quorum.NET = net; quorum.start()");     // its way out: the Wi-Fi shim, HTTPS by the host
   } catch (e) {
     postMessage({ type: "out", line: String((e && e.message) || e) });
   }

@@ -150,6 +150,14 @@ def thick_line(d, x0, y0, x1, y1, col, t=3):
         d.line(x0, y0 + i, x1, y1 + i, col)
 
 
+def logo_mark(d, cx, cy, s=1.0):
+    """The PicoQuorum mark: five owners, three signed, their triangle (docs/brand/mark-dark.svg)."""
+    p = lambda v: int(v * s)
+    d.poly(cx, cy, array("h", [0, p(-12), p(7), p(9.7), p(-7), p(9.7)]), c((95, 222, 126)), True)
+    for x, y, r, col in ((0, -12, 3, "ok"), (7, 9.7, 3, "ok"), (-7, 9.7, 3, "ok"), (11.4, -3.7, 2, "warn"), (-11.4, -3.7, 2, "warn")):
+        d.ellipse(cx + p(x), cy + p(y), max(1, p(r)), max(1, p(r)), c(col), True)
+
+
 def mark(d, ok, cx, cy, r):
     """A round check or cross."""
     d.ellipse(cx, cy, r, r, c("ok" if ok else "bad_bar"), True)

@@ -8,7 +8,6 @@
 #   fonts.width("0.05 ETH", "bold26"); fonts.wrap(s, 220, "sans14"); fonts.height("sans14")
 import framebuf
 import os
-import struct
 import lcd as L
 
 # Named literally, so tools/emu ship copies them to the board with any module that imports this.
@@ -19,7 +18,6 @@ FILES = {"sans12": "qf_sans12.bin", "sans14": "qf_sans14.bin", "bold14": "qf_bol
 EXTRA = {"\u2026": 127, "\u00b7": 128, "\u2014": 129}   # … · —, after "~" (tools/fonts/gen.py)
 
 _fonts = {}
-_pal = {}
 _set = None                 # a candidate font set from tools/fonts/gen.py --try, or None
 
 
@@ -33,19 +31,16 @@ class Font:
         self.height, self.ascent, self.first, self.count = b[3], b[4], b[5], b[6]
         self.buf = b
         self.data = memoryview(b)[8 + 8 * self.count:]
-        self.glyphs = {}
 
-    def glyph(self, c):
-        """(framebuffer or None, xoff, yoff, advance) for one character, built once."""
-        g = self.glyphs.get(c)
-        if g is None:
-            i = EXTRA.get(c, ord(c)) - self.first
-            if not 0 <= i < self.count:
-                i = ord("?") - self.first
-            off, w, h, xo, yo, adv = struct.unpack_from("<HBBbbB", self.buf, 8 + 8 * i)
-            fb = framebuf.FrameBuffer(self.data[off:off + h * ((w + 1) // 2)], w, h, framebuf.GS4_HMSB) if w else None
-            g = self.glyphs[c] = (fb, xo, yo, adv)
-        return g
+    def at(self, c):
+        """Where character c's metrics are in buf: 8 bytes, "<HBBbbB" (bitmap offset, width,
+        height, x and y offsets, advance). Read there each time, nothing kept: a FrameBuffer, a
+        view and a tuple a glyph, built as each was first drawn, were 172 small objects spread
+        through the heap by the end of a review (board #2, 2026-11-10)."""
+        i = EXTRA.get(c, ord(c)) - self.first
+        if not 0 <= i < self.count:
+            i = ord("?") - self.first
+        return 8 + 8 * i
 
 
 def get(name):
@@ -63,19 +58,31 @@ def use(fontset=None):
     _w.clear()
 
 
+PALS = 32
+_pals = [framebuf.FrameBuffer(bytearray(32), 16, 1, framebuf.RGB565) for _ in range(PALS)]
+_pkey = [None] * PALS
+_pal = {}                   # (fg, bg) -> its index in _pals
+_pnext = 0
+
+
 def palette(fg, bg):
-    """16 colours from bg (coverage 0) to fg (15), as the panel wants them."""
+    """16 colours from bg (coverage 0) to fg (15), as the panel wants them. PALS of them, made
+    together at import and reused oldest first: made as they were first wanted, 48 were spread
+    through the heap by the end of a review, and all made again when the 49th came."""
+    global _pnext
     k = (fg, bg)
-    p = _pal.get(k)
-    if p is None:
-        if len(_pal) > 48:
-            _pal.clear()
-        p = framebuf.FrameBuffer(bytearray(32), 16, 1, framebuf.RGB565)
-        for i in range(16):
-            p.pixel(i, 0, L.color(bg[0] + (fg[0] - bg[0]) * i // 15, bg[1] + (fg[1] - bg[1]) * i // 15,
-                                  bg[2] + (fg[2] - bg[2]) * i // 15))
-        _pal[k] = p
-    return p
+    i = _pal.get(k)
+    if i is None:
+        i = _pnext
+        _pnext = (i + 1) % PALS
+        if _pkey[i] is not None:
+            del _pal[_pkey[i]]
+        _pkey[i], _pal[k] = k, i
+        p = _pals[i]
+        for j in range(16):
+            p.pixel(j, 0, L.color(bg[0] + (fg[0] - bg[0]) * j // 15, bg[1] + (fg[1] - bg[1]) * j // 15,
+                                  bg[2] + (fg[2] - bg[2]) * j // 15))
+    return _pals[i]
 
 
 def text(d, s, x, y, font, fg, bg):
@@ -85,12 +92,19 @@ def text(d, s, x, y, font, fg, bg):
         return x + width(s, font)       # not in the band being drawn (lcd.LCD.frames)
     p = palette(fg, bg)
     key = L.color(*bg)      # coverage 0 is the background itself: leave those pixels alone
+    b, data, src = f.buf, f.data, _src
     for c in s:
-        fb, xo, yo, adv = f.glyph(c)
-        if fb:
-            d.blit(fb, x + xo, y + yo, key, p)
-        x += adv
+        o = f.at(c)
+        w, h = b[o + 2], b[o + 3]
+        if w:
+            off, xo, yo = b[o] | b[o + 1] << 8, b[o + 4], b[o + 5]
+            src[0], src[1], src[2] = data[off:off + h * ((w + 1) // 2)], w, h
+            d.blit(src, x + xo - (256 if xo > 127 else 0), y + yo - (256 if yo > 127 else 0), key, p)
+        x += b[o + 6]
     return x
+
+
+_src = [None, 0, 0, framebuf.GS4_HMSB]     # blit's source as (buffer, w, h, format), one list for every glyph
 
 
 _w = {}
@@ -103,7 +117,9 @@ def width(s, font):
     n = _w.get(k)
     if n is None:
         f = get(font)
-        n = sum(f.glyph(c)[3] for c in s)
+        b, n = f.buf, 0
+        for c in s:
+            n += b[f.at(c) + 6]
         if len(_w) >= 160:
             _w.clear()
         _w[k] = n

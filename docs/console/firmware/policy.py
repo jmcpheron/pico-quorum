@@ -15,6 +15,20 @@ def pins(expect):
     return [p for p in (expect if isinstance(expect, (list, tuple)) else [expect]) if isinstance(p, dict)]
 
 
+PIN_FILE = "pin.json"    # console-rp's pin, as QUORUM_EXPECT: written by its key flow (keyflow.py) only
+
+
+def pin_file():
+    """The pin the key flow wrote (pin.json), or None. Read only here."""
+    try:
+        import json
+        with open(PIN_FILE) as f:
+            p = json.load(f)
+        return p if isinstance(p, dict) else None
+    except Exception:
+        return None
+
+
 def pick(pinned, serial):
     """The pinned entry for the chip with this serial, or None: the board may pin several chips,
     and at boot the one on the bus says which entry applies."""

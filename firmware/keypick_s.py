@@ -91,11 +91,10 @@ def welcome(d, frame):
     plain words, and a blockie that changes every frame, a picture of what's coming. Each one is
     drawn from random bytes on this board, not a key: no key exists until Make."""
     import os
-    from brand_ui import logo_mark
     U.use("dark")
     d.fill(U.c("bg"))
-    logo_mark(d, M + 10, 14, 1.0)
-    U.txt(d, "Picoquorum", M + 25, 2, "bold18")
+    U.logo_mark(d, M + 10, 14, 1.0)
+    U.txt(d, "PicoQuorum", M + 25, 2, "bold18")
     side = 72
     bx, by = W - 5 - side, 32
     seed = "0x" + hexlify(os.urandom(20)).decode()
@@ -143,6 +142,12 @@ def groups(a):
 
 
 class UI(setup_s.UI):
+    # which button does what, the Feather's: Choose at the top (D0), New at the bottom (D2), the red
+    # Keep page held on Choose's button with D2 as Back. keypick_rp.UI has console-rp's.
+    HOLD_KEY = HOLD_KEY
+    KEEP_BACK = "D2"
+    NEW, CHOOSE = "D2", "D0"
+
     def __init__(self, d, keys, sig, theme="dark", ceremony=None):
         U.use(theme)
         super().__init__(d, keys, sig, theme, ceremony)
@@ -185,7 +190,7 @@ class UI(setup_s.UI):
         if kind is None:
             return super().tick(pressed)
         raw = self.keys.keys
-        hk = HOLD_KEY.get(kind, "D2")
+        hk = self.HOLD_KEY.get(kind, "D2")
         if not raw.held(hk):
             self.fresh_press = True
             if self.held_since is not None:
@@ -195,7 +200,7 @@ class UI(setup_s.UI):
                 self.done, self.dirty = False, True
             return None
         if kind in ("start", "keep", "finish"):
-            if ("D2" if kind == "keep" else "D0") in pressed:      # Back: the button that doesn't hold
+            if (self.KEEP_BACK if kind == "keep" else "D0") in pressed:      # Back: the button that doesn't hold
                 self.held_since, self.dirty = None, True
                 if kind == "keep":
                     self.page = "pic"
@@ -215,11 +220,11 @@ class UI(setup_s.UI):
             if "D2" in pressed and not self.need("make"):
                 self.make(st)
             return None
-        if "D2" in pressed and not self.need("make"):
+        if self.NEW in pressed and not self.need("make"):
             self.make(MAKE.get(st, st))
         elif "D1" in pressed:
             self.page, self.dirty = ("full" if self.page == "pic" else "pic"), True
-        elif "D0" in pressed:
+        elif self.CHOOSE in pressed:
             self.page, self.fresh_press, self.held_since, self.dirty = "keep", False, None, True
         return None
 

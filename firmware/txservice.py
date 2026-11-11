@@ -3,15 +3,18 @@
 # laptop and, later, to the real thing. Nothing here is trusted: quorum.py rehashes every
 # transaction from its fields and refuses any whose hash or Safe differs from what it pinned.
 #
-#   s = Service(base_url, safe)
+#   s = Service(base_url, safe, via=transport)
 #   s.target(base_url, safe)   another Safe, maybe on another chain's service
 #   s.safe_info() -> {"nonce", "threshold", "owners", ...}
-#   s.pending(nonce) -> [transaction, ...] oldest nonce first
+#   s.pending(nonce, limit, at) -> [transaction, ...] oldest nonce first
 #   s.confirm(safe_tx_hash, signature) -> (ok, detail)
 from binascii import hexlify
 import gc
 import sys
-import requests
+try:
+    import requests             # plain HTTP to tools/quorum on the LAN, and the emulator's host curl
+except ImportError:
+    requests = None             # console-rp's MicroPython has no network modules: the link is its way out
 from keccak import keccak256
 from policy import is_sim
 
@@ -28,7 +31,10 @@ TIMEOUT_TLS = 15       # api.safe.global: a full TLS handshake on the Pico each 
 # On an ESP32 mbedTLS takes its memory from ESP-IDF's heap, not MicroPython's (rp2's takes it from
 # the GC heap), so a reserve there would only keep that memory from it: none.
 RESERVE = 0 if sys.platform == "esp32" else 40 * 1024
-BODY = 16 * 1024        # a bigger queue: MemoryError, and quorum.fetch_queue asks for 3 transactions
+BODY = 16 * 1024        # a bigger queue: MemoryError, and quorum.fetch_queue asks for a few at a time
+# Safe's answers nest about 16 deep with a batch (MultiSend) inside. A body nested thousands deep runs
+# json.loads out of memory (board #2, 2026-11-10), which would read as a queue too long: refused first.
+MAX_DEPTH = 64
 # A board checks certificates itself (vhttp.py); the emulator's `requests` is the host's curl, which
 # checks them itself. MicroPython's own `requests` on a board checks nothing, so never that.
 ON_BOARD = sys.platform in ("rp2", "esp32")
@@ -64,6 +70,30 @@ class ServiceError(Exception):
     pass
 
 
+def shallow(data):
+    """Whether the JSON text data nests at most MAX_DEPTH deep, strings skipped. Reads it in place."""
+    if isinstance(data, str):
+        data = data.encode()
+    d, inside, esc = 0, False, False
+    for c in data:
+        if inside:
+            if esc:
+                esc = False
+            elif c == 92:                   # backslash
+                esc = True
+            elif c == 34:
+                inside = False
+        elif c == 34:                       # a quote
+            inside = True
+        elif c == 91 or c == 123:           # [ {
+            d += 1
+            if d > MAX_DEPTH:
+                return False
+        elif c == 93 or c == 125:
+            d -= 1
+    return True
+
+
 def why(code, out):
     """What the service said, for the screen and the log: its `detail`, else the first message it gave
     under any other name (Safe's validation errors come as {"nonFieldErrors": [...]}, {"signature": [...]}),
@@ -86,13 +116,18 @@ def why(code, out):
 
 
 class Service:
-    def __init__(self, base, safe, api_key=None, verify=True, floor=0):
+    def __init__(self, base, safe, api_key=None, verify=True, floor=0, via=None):
         """verify: check the server's certificate against the pinned roots (vhttp.py). Only a
         development board may turn it off (QUORUM_TLS_VERIFY = False); the production image cannot.
         floor: the build's date; the clock is never trusted below it.
+        via: the transport (quorum.VIA). vhttp for HTTPS on a board; link (console-rp), whose
+        computer makes the HTTPS call to the pinned service, adds its own API key, and answers over
+        UART1: no TLS here, no reserve and no key. None: requests (the LAN, the emulator).
         One Service serves every Safe the console watches (target() switches between them), so
         the TLS context and the HTTPS reserve exist once, however many Safes there are."""
-        self.api_key = api_key
+        self.via = via
+        self.link = getattr(via, "KIND", "") == "link"
+        self.api_key = None if self.link else api_key
         self.verify = verify
         self.requests = 0                # since boot, for the device screen (the real service has a monthly quota)
         self.floor = floor
@@ -112,26 +147,29 @@ class Service:
         self.safe = safe
         self.sim = is_sim(self.base)     # tools/quorum on the laptop: its /sim endpoints exist
         https = self.base.startswith("https")
-        if not https:
+        if self.link:
+            self.tls = "relay"                  # the computer's HTTPS; what comes back is checked here as ever
+        elif not https:
             self.tls = "plain"
         elif not ON_BOARD:
             self.tls = "host"
         elif self.verify:
             if self._ctx is None:
-                import vhttp
-                self._ctx = vhttp.context()      # the first https target: at start, while the heap is whole
+                if self.via is None:
+                    raise ServiceError("no HTTPS here: quorum.VIA is not set")
+                self._ctx = self.via.context()   # the first https target: at start, while the heap is whole
             self.tls = "verified"
         else:
             self.tls = "UNVERIFIED"
         # the API key goes only to Safe's own service over HTTPS, never to a laptop on the LAN
-        self.headers = {"Authorization": "Bearer " + self.api_key} if self.api_key and https else {}
+        self.headers = {"Authorization": "Bearer " + self.api_key} if self.api_key and https and not self.link else {}
         self.timeout = TIMEOUT_TLS if https else TIMEOUT
 
     def hold(self):
         """Take the reserve back (https only). If it no longer fits, `lost` says so: the heap has
         split where the reserve was, and the console restarts at its next quiet moment (quorum.py)
         rather than fail every call from then on (seen on the board, 2026-09-26)."""
-        if self._room is None and self.base.startswith("https"):
+        if self._room is None and self.base.startswith("https") and not self.link:
             gc.collect()
             try:
                 self._room = bytearray(RESERVE)
@@ -146,6 +184,8 @@ class Service:
         gc.collect()
 
     def _call(self, method, path, body=None):
+        if self.link:
+            return self.via.request(method, self.base + path, body)     # it keeps the watchdog fed itself
         try:
             import watch
             # connect and the handshake (each socket step up to the timeout), then vhttp's 40 s
@@ -154,10 +194,9 @@ class Service:
         except ImportError:
             pass
         if self._ctx is not None and self.base.startswith("https"):
-            import vhttp
-            vhttp.clock(self.floor)
-            return vhttp.request(method, self.base + path, self._ctx, body=body, headers=self.headers, timeout=self.timeout,
-                                 into=_body)
+            self.via.clock(self.floor)
+            return self.via.request(method, self.base + path, self._ctx, body=body, headers=self.headers, timeout=self.timeout,
+                                    into=_body)
         if method == "GET":
             return requests.get(self.base + path, headers=self.headers, timeout=self.timeout)
         return requests.post(self.base + path, json=body, headers=self.headers, timeout=self.timeout)
@@ -188,13 +227,15 @@ class Service:
         status, data = self._fetch("GET", path)
         if status != 200:
             raise ServiceError("HTTP %d" % status)
+        if not shallow(data):
+            raise ServiceError("nested too deep")
         return json.loads(data)
 
     def _post(self, path, body):
         import json
         status, data = self._fetch("POST", path, body)
         try:
-            out = json.loads(data)
+            out = json.loads(data) if shallow(data) else {}
         except ValueError:
             out = {}
         return status, out
@@ -202,8 +243,9 @@ class Service:
     def safe_info(self):
         return self._get("/api/v1/safes/%s/" % self.safe)
 
-    def pending(self, nonce, limit=10):
-        q = "?executed=false&nonce__gte=%d&ordering=nonce&limit=%d" % (nonce, limit)
+    def pending(self, nonce, limit=10, at=0):
+        """limit transactions from the at-th (the service's offset), lowest nonce first."""
+        q = "?executed=false&nonce__gte=%d&ordering=nonce&limit=%d" % (nonce, limit) + ("&offset=%d" % at if at else "")
         return self._get("/api/v2/safes/%s/multisig-transactions/%s" % (self.safe, q)).get("results", [])
 
     def confirm(self, safe_tx_hash, signature):

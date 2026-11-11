@@ -5,6 +5,9 @@ From picowallet (Austin Griffith, MIT): `emu`, the emulator's command line
 
 - `usb`: the board's REPL and file pushes over USB serial (mpremote), for development boards
 
+- [`relay/`](relay/): console-rp's relay. The console asks over UART1, and it calls the pinned
+  service with the API key. It logs each run and has hostile modes for the bench.
+
 - [`vectors/`](vectors/): generates the Safe hash test vectors, and what `firmware/decode.py` must
   say about each one
 - `quorum` and [`mock-tx-service/`](mock-tx-service/): the console's 2-of-3 Family Safe on the

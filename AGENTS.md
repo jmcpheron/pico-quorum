@@ -22,6 +22,10 @@ dependency, a network call or a new way to sign without asking first.
 2. **The console image is exactly what it imports.**
    - `firmware/manifest.json` lists each image. Nothing in the console image may change the chip
      (genkey, lock, write); `test-vectors/manifest.mjs` checks both.
+   - The console-rp image also carries the owner's key flow (`keyflow.py`): GenKey, the seal and the
+     data lock, allowed by the hold on its screen alone and only on a chip the bench prepared
+     (`signer.own_key_step`), and its fixed test digests. Never a config write or lock.
+     `test-vectors/manifest.mjs` checks it.
    - A firmware change is a new release fingerprint. Run `node tools/releases/badge.mjs` (the
      README's build table) and rebuild the console page; CI checks both.
 3. **Keys stay in their chips, and locks are permanent.**

@@ -99,7 +99,7 @@ function rpc(req) {
 
 // ----------------------------------------------------------------------------- Safe's transaction service
 const SERVICE = S.CHAINS.basesep.service;
-const svc = { txs: [], refuseNext: null, posts: [] };
+const svc = { txs: [], refuseNext: null, posts: [], auths: [] };
 const recovers = async (hash, signature, owner) => {
   try { return (await recoverAddress({ hash, signature })) === getAddress(owner); } catch { return false; }
 };
@@ -199,15 +199,21 @@ const WALLET_PAGE = () => {
 const FAKE_SERIAL = ({ release, safe }) => {
   const enc = new TextEncoder(), dec = new TextDecoder();
   const dev = window.__dev = { got: [], signals: [], filters: null, pending: null, down: false, opens: 0, buf: "", ctrl: null,
+    rp: false, res: [], his: 0, raw: "",      // rp: a console-rp behind a CH343P, which sends its own calls for the page to relay
     wifi: { up: true, ssid: "bench", saved: ["bench"] },
     safes: [{ chainId: 84532, address: safe.toLowerCase(), name: "<b>Ops</b>", ok: true, err: "", threshold: 2, owners: 3, nonce: 9, isOwner: false, queued: 0, waiting: 0 }] };
   const say = (o) => dev.ctrl?.enqueue(enc.encode('{"pq":1,' + JSON.stringify(o).slice(1) + "\n"));
   const status = () => ({ mode: "console", name: "Picoquorum", state: "home", ready: "ok", serial: "0123e063aa", profile: "608C",
     owner: "0x5FbDB2315678afecb367f032d93F642f64180aa3", key: "02" + "ab".repeat(32), pinned: true, pinWhy: "", counter: 3,
     chip: { model: "<i>ATECC608C</i>", keySealed: true, configLocked: true, dataLocked: true },
-    wifi: dev.wifi, safes: dev.safes, safesFrom: "safes.json", ask: dev.pending?.op || null, watchdog: true, image: "console", version: "2026.11.1" });
+    wifi: dev.rp ? undefined : dev.wifi, safes: dev.safes, safesFrom: "safes.json", ask: dev.pending?.op || null, watchdog: true,
+    image: dev.rp ? "console-rp" : "console", version: "2026.11.1" });
   function handle(m) {
+    if (m.t === "res") return dev.res.push(m);
+    if (m.t === "hi") return dev.his++;
     dev.got.push(m);
+    if (m.op === "hello" && dev.rp)
+      return say({ id: m.id, ok: true, proto: 1, mode: "console", board: "console-rp", image: "console-rp", version: "2026.11.3", release, build: "0d617601", link: { max: 24576 } });
     if (m.op === "hello") return say({ id: m.id, ok: true, proto: 1, mode: "console", board: "picoquorum-key", image: "console", version: "2026.11.1", release, build: "cdab74db" });
     if (m.op === "status") return say({ id: m.id, ok: true, ...status() });
     if (m.op === "wifi" || m.op === "safes") {
@@ -217,6 +223,9 @@ const FAKE_SERIAL = ({ release, safe }) => {
     }
     say({ id: m.id, ok: false, why: "unknown op" });
   }
+  // The console's own lines, keys in its own order (MicroPython's json keeps none).
+  dev.req = (o) => dev.ctrl?.enqueue(enc.encode(JSON.stringify(o) + "\n"));
+  dev.log = (msg) => dev.ctrl?.enqueue(enc.encode(JSON.stringify({ m: msg, t: "log" }) + "\n"));
   dev.decide = (ok) => {
     const m = dev.pending; dev.pending = null;
     if (!ok) return say({ id: m.id, ok: false, why: "refused on the device", kind: m.op });
@@ -230,13 +239,15 @@ const FAKE_SERIAL = ({ release, safe }) => {
   };
   const port = {
     readable: null, writable: null,
-    getInfo: () => ({ usbVendorId: 0x303a, usbProductId: 0x1001 }),
+    getInfo: () => (dev.rp ? { usbVendorId: 0x1a86, usbProductId: 0x55d3 } : { usbVendorId: 0x303a, usbProductId: 0x1001 }),
     async open({ baudRate }) {
       if (dev.down) throw new DOMException("Failed to open serial port.", "NetworkError");
       dev.opens++; dev.baud = baudRate;
       port.readable = new ReadableStream({ start: (c) => { dev.ctrl = c; } });
       port.writable = new WritableStream({ write(chunk) {
-        dev.buf += dec.decode(chunk);
+        const t = dec.decode(chunk);
+        dev.raw += t;
+        dev.buf += t;
         let i;
         while ((i = dev.buf.indexOf("\n")) >= 0) { const l = dev.buf.slice(0, i); dev.buf = dev.buf.slice(i + 1); handle(JSON.parse(l)); }
       } });
@@ -284,6 +295,7 @@ await ctx.route("**/*", async (route) => {
     return route.fulfill({ status: 200, headers: CORS, contentType: "application/json", body: JSON.stringify(out) });
   }
   if (url.startsWith(SERVICE)) {
+    svc.auths.push(r.headers().authorization || "");
     const [status, json] = await service(r.method(), url, r.postData() ? JSON.parse(r.postData()) : null);
     return route.fulfill({ status, headers: CORS, contentType: "application/json", body: json == null ? "" : JSON.stringify(json) });
   }
@@ -546,7 +558,8 @@ await step("a new key's set-up link (#/k/<compressed key>): compare, deploy from
 
 await step("#/device: a console on USB, its cards, a Safes ask accepted on it, a Wi-Fi ask refused", async () => {
   const dev = (f) => page.evaluate(f);
-  await page.evaluate((safe) => localStorage.setItem("pq.safes", JSON.stringify([{ chain: "basesep", address: safe, name: "Team" }])), SAFE);
+  const SAFE2 = "0x2222222222222222222222222222222222222222";
+  await page.evaluate((safe) => localStorage.setItem("pq.safes", JSON.stringify([{ chain: "basesep", address: safe, name: "Family" }])), SAFE2);
   await page.goto(`${BASE}app/#/device`);
   await page.getByRole("button", { name: "Connect a device" }).click();
   await page.getByText("PicoquorumKey", { exact: true }).waitFor();
@@ -557,32 +570,103 @@ await step("#/device: a console on USB, its cards, a Safes ask accepted on it, a
   check(true, "#/device: the device's release fingerprint matches the console page's");
   check(await page.locator('a[href="#/k/02' + "ab".repeat(32) + '"]').count() === 1, "#/device: the key's card links to its set-up page (#/k/<key>)");
   check((await page.locator("main").innerText()).includes("<b>Ops</b>"), "#/device: a Safe's name from the device is drawn as text");
+  const tab = (name) => page.getByRole("tab", { name: new RegExp(`^${name}`) });
+  check(await page.getByRole("tab").count() === 4 && await tab("Device").getAttribute("aria-selected") === "true"
+    && await page.locator("#dpanel-safes").isHidden(), "#/device: four tabs (Device, Signer, Safes, Connection), Device first, one panel at a time");
+  await shot("device-connected");
+  await tab("Signer").click();
   check((await page.locator("main").innerText()).includes("<i>ATECC608C</i> · config locked · data locked · key slot sealed"),
     "#/device: the chip's model and locks, as the console read them at boot, drawn as text");
-  await shot("device-connected");
+  check(await page.locator("#dpanel-signer").getByRole("button", { name: "Copy" }).count() === 1, "#/device: the signer address has a Copy button");
+  await shot("device-signer");
+  await tab("Safes").click();
 
-  await page.locator(".checks input").first().check();
-  await page.getByRole("button", { name: "Send to the device" }).last().click();
-  await page.getByText("hold D2 for 2 s").waitFor();
+  const boxes = page.locator("li.pick input[type=checkbox]"), sendList = page.getByRole("button", { name: "Send this list to the console" });
+  check(await boxes.count() === 2 && await boxes.nth(0).isChecked() && !(await boxes.nth(1).isChecked())
+    && await page.locator("li.pick").nth(0).getByText("On the console").count() === 1 && await sendList.isDisabled(),
+    "#/device: one list: the console's Safe (never saved in this browser) ticked, the browser's Safe not; nothing to send yet");
+  await boxes.nth(1).check();
+  await page.getByText("It will watch 2 Safes: <b>Ops</b>, Family. Adds Family.").waitFor();
+  await boxes.nth(0).uncheck();
+  await page.getByText("Drops <b>Ops</b>.").waitFor();
+  check(await sendList.isEnabled(), "#/device: ticking and unticking says what the console will watch, what that adds and drops");
+  await shot("device-safes-change");
+  await sendList.click();
+  await page.getByText("Sent. On the console").waitFor();
   const ask = await dev(() => window.__dev.pending);
-  check(ask?.op === "safes" && JSON.stringify(ask.safes) === JSON.stringify([{ chainId: 84532, address: SAFE.toLowerCase(), name: "Team" }]),
-    "#/device: the safes ask carries chainId, address and name only");
+  check(ask?.op === "safes" && JSON.stringify(ask.safes) === JSON.stringify([{ chainId: 84532, address: SAFE2, name: "Family" }]),
+    "#/device: the safes ask is the ticked list, each with chainId, address and name only");
   await dev(() => window.__dev.decide(true));
   await page.getByText("Accepted on the console and saved").waitFor();
   await page.getByText("It's back").waitFor({ timeout: 15000 });
-  await page.getByText("This key is an owner").waitFor();
+  await page.getByText("This console is one", { exact: true }).waitFor();
   check((await dev(() => window.__dev.opens)) === 2, "#/device: after the restart the page opens the port again, and reads the new Safes");
 
+  await tab("Connection").click();
   await page.fill("#dev-ssid", "home");
   await page.fill("#dev-pass", "a long password");
   await page.getByRole("button", { name: "Send to the device" }).first().click();
-  await page.getByText("hold D2 for 2 s").waitFor();
+  await page.getByText("Sent. On the console").waitFor();
   check((await page.inputValue("#dev-pass")) === "", "#/device: the password field is emptied once sent");
   await dev(() => window.__dev.decide(false));
   await page.getByText("Not saved: refused on the device").waitFor();
   const ops = await dev(() => window.__dev.got.map((m) => m.op));
   check(ops.every((o) => ["hello", "status", "wifi", "safes"].includes(o)), `#/device: the page asked only hello, status, wifi and safes (${[...new Set(ops)].join(", ")})`);
   await page.evaluate(() => localStorage.removeItem("pq.safes"));
+});
+
+await step("#/device: a console-rp, and the page as its relay", async () => {
+  const dev = (f, a) => page.evaluate(f, a);
+  const answer = async (id) => {
+    await page.waitForFunction((i) => window.__dev.res.some((r) => r.id === i), id, { timeout: 8000 });
+    return (await dev(() => window.__dev.res)).find((r) => r.id === id);
+  };
+  await page.goto("about:blank");
+  await page.goto(`${BASE}app/#/device`);
+  await page.evaluate(() => localStorage.setItem("pq.apiKey", JSON.stringify("e2e-key-5150")));
+  await dev(() => { window.__dev.rp = true; });
+  await page.getByRole("button", { name: "Connect a device" }).click();
+  await page.getByRole("tab", { name: /^Device/ }).waitFor();
+  await shot("rp-device");
+  for (const t of ["Signer", "Safes"]) { await page.getByRole("tab", { name: new RegExp(`^${t}`) }).click(); await shot(`rp-${t.toLowerCase()}`); }
+  await page.getByRole("tab", { name: /^Connection/ }).click();
+  await page.getByText("Its way to Safe's service: this page").waitFor();
+  check((await dev(() => window.__dev.baud)) === 460800, "#/device: a CH343P (WCH) opens at 460800");
+  check(await page.locator("#dev-ssid").count() === 0, "#/device: a console-rp has no Wi-Fi card");
+  check(await page.getByText("the hotspot").count() === 0 && await page.getByText("How a new key is made: the ceremony").count() === 0,
+    "#/device: and no hotspot or ceremony: it has no radio, and makes its own key");
+  await page.waitForFunction(() => window.__dev.his >= 2, null, { timeout: 8000 });
+  check(true, "#/device: the page says hi to the console every 2 s");
+
+  const n0 = svc.auths.length;
+  await dev((u) => window.__dev.req({ url: u, m: "GET", id: 11, t: "req" }), `${SERVICE}/api/v1/safes/${SAFE}/`);
+  const r11 = await answer(11);
+  check(r11.status === 200 && getAddress(JSON.parse(r11.body).address) === getAddress(SAFE), "#/device: the console's GET of its Safe made, and answered under its id");
+  check(svc.auths.length === n0 + 1 && svc.auths.at(-1) === "Bearer e2e-key-5150", "#/device: made once, with the API key from Settings");
+
+  await dev((s) => window.__dev.req({ t: "req", id: 12, m: "GET", url: `https://evil.example/api/v1/safes/${s}/` }), SAFE);
+  const r12 = await answer(12);
+  check(r12.status === 0 && r12.err === "not a pinned service" && svc.auths.length === n0 + 1 && !outside.some((u) => u.includes("evil.example")),
+    "#/device: a call off the pin: refused, status 0, nothing fetched");
+
+  const sig = "0x" + "11".repeat(65), p0 = svc.posts.length;
+  const confirm = `${SERVICE}/api/v1/multisig-transactions/0x${"cd".repeat(32)}/confirmations/`;
+  await dev(([u, b]) => window.__dev.req({ body: b, t: "req", m: "POST", url: u, id: 13 }), [confirm, JSON.stringify({ signature: sig })]);
+  const r13 = await answer(13);
+  check(svc.posts.length === p0 + 1 && JSON.stringify(svc.posts.at(-1).body) === JSON.stringify({ signature: sig }) && r13.status > 0,
+    `#/device: a confirmation POSTed as the console sent it, and the service's answer (${r13.status}) sent back`);
+  await dev(([u, b]) => window.__dev.req({ t: "req", id: 14, m: "POST", url: u, body: b }), [confirm, JSON.stringify({ signature: sig, to: SAFE })]);
+  const r14 = await answer(14);
+  check(r14.status === 0 && svc.posts.length === p0 + 1, "#/device: a POST with more than the signature: refused, nothing posted");
+
+  await dev(() => window.__dev.log("<b>signed</b> #4"));
+  await page.locator("summary", { hasText: "The console's log" }).click();
+  await page.getByText("<b>signed</b> #4").waitFor();
+  check(true, "#/device: the console's log lines, drawn as text");
+  await page.getByText("4 asked: 2 answered, 2 refused, 0 failed").waitFor();
+  check(!(await dev(() => window.__dev.raw)).includes("e2e-key-5150"), "#/device: the API key never down the cable");
+  await shot("device-relay");
+  await page.evaluate(() => localStorage.removeItem("pq.apiKey"));
 });
 
 await step("#/device without Web Serial: it says so, and still offers the console in the browser", async () => {

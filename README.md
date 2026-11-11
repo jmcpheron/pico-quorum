@@ -107,6 +107,19 @@ That independence is the point. A second check is only worth something if it fai
 the first: different hardware, different code, a different network path, a different person looking
 at it. More screens: [docs/quorum-ui](docs/quorum-ui/README.md).
 
+**The console on its own board, in bring-up now.** [console-rp](hardware/console-rp/README.md) is
+the console as one board: an RP2350A with no radio, a 1.14″ 240 × 135 screen, D0 D1 D2 under it,
+and an ATECC608C on the board. Its USB-C reaches only a CH343P serial chip, never the RP2350's own
+USB or its REPL.
+- Five came assembled from JLCPCB on 2026-11-04. The first is up on a bench script: the chip, the
+  screen, the buttons, the key and the link all answer ([bring-up](hardware/console-rp/bench/BRINGUP.md)).
+- With no Wi-Fi, a program on the computer will fetch the Safe's queue and post signatures for it.
+  The console still rebuilds every hash itself. That relay, and the console's firmware for this
+  board, aren't written yet ([the plan](CONSOLE-RP-PLAN-2026-11-04.md)).
+- What the board can do, measured: [HORSEPOWER.md](hardware/console-rp/bench/HORSEPOWER.md).
+
+<img src="hardware/console-rp/renders/console-rp-top.jpg" width="420" alt="console-rp from above: the 1.14-inch screen at the top left, D0, D1 and D2 under it, the RP2350, the flash, the CH343P and the key chip to its right, the USB-C on the right edge">
+
 ### 3. One owner in a multisig
 
 Picoquorum is never the whole wallet. It is one owner among several, and it is built to sit next to
@@ -186,10 +199,12 @@ console up to the README:
 
 | | image | release fingerprint |
 |---|---|---|
-| <img src="docs/releases/badges/console-blockie.svg" width="32" height="32" alt=""> | **console** | `1eebbf43e652aa289b9495c5dc66a7878e00a54e2f4c9bd2fbc4934a382bc033` |
-| <img src="docs/releases/badges/ceremony-blockie.svg" width="32" height="32" alt=""> | **ceremony** | `b023b563b115e06aa9250c192d3c22fa1e07107a50e41ea9462649564e6f7aea` |
-| <img src="docs/releases/badges/brand-blockie.svg" width="32" height="32" alt=""> | **brand** | `4fb1d81abf7c37040f02c0d110f9423db2202626df3c7a4a8330c3cb7a718670` |
-| <img src="docs/releases/badges/dual-blockie.svg" width="32" height="32" alt=""> | **dual** | `27b254630a065e6c7dc811374a5d2837dee3486b7cd1cc761c546a3758bb9b0d` |
+| <img src="docs/releases/badges/console-blockie.svg" width="32" height="32" alt=""> | **console** | `032333eafb1fe168e9177220de66cac2eb13ea0079b9e758ec323715221da6c9` |
+| <img src="docs/releases/badges/ceremony-blockie.svg" width="32" height="32" alt=""> | **ceremony** | `db2124719935831421bf9b96a451014f53a49d430baacf5ef7f945704117e86d` |
+| <img src="docs/releases/badges/brand-blockie.svg" width="32" height="32" alt=""> | **brand** | `1293f03d0ac07344b505c2e66cae34942c06cfc890a4d3a3e0affd55e55e6230` |
+| <img src="docs/releases/badges/dual-blockie.svg" width="32" height="32" alt=""> | **dual** | `cd35da29479360926aeae7071319f43e78e20be2dda12f5ca77e15a4baa27602` |
+| <img src="docs/releases/badges/console-rp-blockie.svg" width="32" height="32" alt=""> | **console-rp** | `389f0dfcb29a9eb4fda5b670bb26b62f32dc640cfab093b4055bce94b60431cc` |
+| <img src="docs/releases/badges/prepare-rp-blockie.svg" width="32" height="32" alt=""> | **prepare-rp** | `fca3388aea218354861cbc0af34dd2343127fa5563791ec8bdb77d86398861f3` |
 
 <!-- build:end -->
 
@@ -209,6 +224,9 @@ Picoquorum is built in public. **[docs/STATUS.md](docs/STATUS.md)** is the one p
 today: the name (picoquorum.eth) and the domains, every Safe and key with its address, the contracts
 the console relies on, and what's next.
 
+**Now:** bringing up [console-rp](hardware/console-rp/README.md), the one-board console with no
+radio, and writing its firmware.
+
 The [test ladder](docs/LADDER.md) tracks each chain:
 - ✅ a simulated Safe and a local fork, on the real Pico
 - ✅ Base Sepolia, end to end over HTTPS on the real Pico
@@ -225,7 +243,7 @@ in [GOVERNANCE.md](docs/GOVERNANCE.md). Dated notes and photos, mistakes include
 | path | what |
 |---|---|
 | `firmware/` | the console in MicroPython: `quorum.py` and `quorum_ui.py` (the console), `safe_tx.py` (the Safe hash), `decode.py`, `txservice.py`, `webauthn.py`, the chip drivers `trustm.py` and `atecc.py` |
-| `hardware/` | `key-pcb/` (the keys, [key-c](hardware/key-pcb/key-c-usbc/README.md) among them), `wiring/` ([Build 1](hardware/wiring/BUILD1.md), [perfboard](hardware/wiring/SOLDERING.md), [breadboard](hardware/wiring/BREADBOARD.md), [on an ESP32](hardware/wiring/ESP32.md)), `bom/` |
+| `hardware/` | `console-rp/` ([the one-board console](hardware/console-rp/README.md)), `key-pcb/` (the keys, [key-c](hardware/key-pcb/key-c-usbc/README.md) among them), `wiring/` ([Build 1](hardware/wiring/BUILD1.md), [perfboard](hardware/wiring/SOLDERING.md), [breadboard](hardware/wiring/BREADBOARD.md), [on an ESP32](hardware/wiring/ESP32.md)), `bom/` |
 | `docs/` | everything to read ([index](docs/README.md)), and the site GitHub Pages serves: the front page, `app/`, `console/`, `brand/` |
 | `web/` | the app's source; `npm run build` writes `docs/app/` |
 | `emu/` | the console in a browser: MicroPython in WebAssembly and a virtual secure element. `build.mjs` writes the console page (`docs/console/`); `tools/emu` adds an editor and the case in 3D, for development |

@@ -6,7 +6,6 @@
 # The kit (chip, head, card, red_card, hold_bar...) is also what tools/board/brand_screens.py draws
 # the doc's mockups with. UI is provision.UI with this drawing: the same knob and A/B/X/Y handling,
 # the same gates (ALLOW_*, the arm, a 3 s hold), only the pictures differ.
-from array import array
 import time
 import quorum_ui as U
 import chipcfg
@@ -23,12 +22,7 @@ BODY_Y = 84                     # where a step's own content starts, under the c
 
 
 # ----------------------------------------------------------------------------- the kit
-def logo_mark(d, cx, cy, s=1.0):
-    """The Picoquorum mark: five owners, three signed, their triangle (docs/brand/mark-dark.svg)."""
-    p = lambda v: int(v * s)
-    d.poly(cx, cy, array("h", [0, p(-12), p(7), p(9.7), p(-7), p(9.7)]), U.c((95, 222, 126)), True)
-    for x, y, r, col in ((0, -12, 3, "ok"), (7, 9.7, 3, "ok"), (-7, 9.7, 3, "ok"), (11.4, -3.7, 2, "warn"), (-11.4, -3.7, 2, "warn")):
-        d.ellipse(cx + p(x), cy + p(y), max(1, p(r)), max(1, p(r)), U.c(col), True)
+logo_mark = U.logo_mark          # the PicoQuorum mark, quorum_ui's (keypick_s draws it too)
 
 
 def padlock(d, x, y, shut, col):

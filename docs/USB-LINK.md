@@ -110,3 +110,86 @@ The app's page and the tools keep DTR and RTS low. Toggling them resets an S3.
 - **`tools/board/link.py`**: one request, one answer. It runs on pyserial 3.5, pinned, through
   `uv run`, as `tools/fw` and `tools/quorum live pico` call it.
 - **`emu/core/devices.mjs`**: the emulator's device list asks `hello` before anything else.
+
+## The relay (console-rp)
+
+console-rp has no radio. Its USB-C reaches only a CH343P, wired to UART1 (GPIO 20 and 21); the REPL
+and the RP2350's own USB are on J3, which isn't fitted
+([hardware/console-rp/README.md](../hardware/console-rp/README.md)). So the one port carries two
+things: the computer's requests above, and the console's own calls to Safe's service, which the
+computer makes for it (`firmware/link.py`). The computer here is the relay.
+
+- 8N1 at 460800, one JSON object a line each way.
+- **The console asks:** `{"t":"req","id":7,"m":"GET","url":"…"}`, with `"body"` on a POST. The relay
+  answers `{"t":"res","id":7,"status":200,"body":"…"}`, or status 0 and `"err"` when it couldn't.
+- **The relay says `{"t":"hi"}`** every 2 s. After 15 s of nothing the console shows "no relay: open
+  the app" and asks nothing until it hears one.
+- **Logs go out** as `{"t":"log","m":"…"}`, each line of `log.txt` as it is written. Nothing comes
+  back for them.
+- **The computer's requests** are the table above, answered `{"pq":1,…}`. Only the `safes` ask is
+  there: no `wifi`, with no radio, and no `maint`, whose REPL would be on J3, out of reach.
+
+Before it sends anything, the console checks the URL (`link.pinned`): under one of
+`quorum_cfg.py`'s `"services"`, plain ASCII, at most 400 characters, no `..`, `@`, `#` or `\`. A
+development load (no `build.py`) also allows `secrets.QUORUM_URL`, the laptop's mock.
+
+What comes back:
+- Only an answer with the id the console waits for is read. Any other line is dropped and counted:
+  `garbage`, `overlong`, `unsolicited`, `wrong_id`, `dup`, `nomem`, in the status's `link`.
+- A line is at most 24 KB (`link.MAX_LINE`, hello's `link.max`). The relay sends a longer answer as
+  status 0, `"answer too big: N bytes"`. The console then reads the queue 3 at a time (`&offset=`),
+  and a page still too long one at a time. A transaction too long even alone is listed red in its
+  place, "Too big to check", `#?`, and can't be signed. The rest of the queue is listed as usual.
+- A body nested more than 64 deep is refused before `json.loads` (`txservice.shallow`).
+- The console waits 15 s. The relay gives the service 12.
+- The body is checked as Safe's service is checked on the Wi-Fi boards: the console rebuilds every
+  hash from the fields it shows (AGENTS.md rule 1).
+
+What it never does, on top of the list at the top:
+- `link.py` imports no signer and writes no file; `test-vectors/manifest.mjs` checks both. No
+  message names the chip, a digest or a signature.
+- The console sends no API key: it has none. The relay adds its own, on requests to
+  `api.safe.global` only.
+- `pin.json` is written only by the key flow on the device, when the owner's key is sealed. No
+  request writes it.
+
+What the relay can still do is what a lying service can do: show transactions that don't exist,
+hold back ones that do, drop a signature on its way out
+([hardware/console-usb/README.md](../hardware/console-usb/README.md#the-link-what-the-computer-can-and-cant-do)).
+
+The relays:
+- `tools/relay/relay.py`, the bench's. [Its README](../tools/relay/README.md) says what it forwards,
+  what it logs, and its hostile modes.
+- The app's Device page (`#/device`: `web/src/device.mjs` and `web/src/relay.mjs`), in Chrome or
+  Edge on a computer: the customer's. The same rules as the CLI, with the API key from the app's
+  Settings. A CH343P (USB vendor 0x1a86) opens at 460800; the page says `hi` once hello's answer
+  carries `link`, and hides the Wi-Fi card. Tried on board #2 (below).
+
+What was checked:
+- `case_relay` in `test-vectors/console_test.py`, with a fake relay: poll, review, sign and POST,
+  and each hostile case, which ends dropped or refused, never signed.
+- `tools/relay/relay_test.py`: URLs off the pin, other paths, sizes, and the API key never in a log.
+- `web/test.mjs`: the same cases against `relay.mjs`, and the key only on Safe's own service.
+  `web/e2e.mjs`: a fake console-rp on the Device page in Chromium, its calls made with the Settings
+  key, one off the pin refused with nothing fetched, a confirmation posted as sent, its log drawn as
+  text, and the key never down the cable.
+- Board #2, 2026-11-09 and 10: a 12.5 h soak with 8842 status reads and 76 polls, no link faults;
+  two signatures posted through `relay.py` (201) and executed on Base Sepolia. Until 862fba4f read
+  an answer's body in place, a 2.4 KB queue found no block its size in the heap, every other poll.
+- Board #2 on 0d617601, 2026-11-10, with an empty queue: each of `relay.py --hostile`'s link faults
+  (garbage, overlong, unsolicited, wrong-id, dup, late, truncate, stall, nested, chatter) on every
+  answer for a while. Each ended dropped and counted, or as one failed poll with the next one fine.
+  A body nested 5000 deep runs `json.loads` out of memory, which the poll catches. No restart, no
+  `nomem`, at least 80.8 KB free after a collection, and the largest free block 8.3 KB, read over SWD,
+  as before the faults.
+- Board #2, 2026-11-10, the forged queue: a real transaction (nonce 2, one of two confirmations)
+  and `relay.py --hostile forge-queue`, which changes its value and keeps its hash. On 0d617601 the
+  console showed it red ("a hash these fields do not produce"), Sign dimmed, and posted nothing. But
+  the refusal stayed under the hash, so the real copy stayed refused until a restart. On a30640ce a
+  refusal holds only for the fields it was given: a checked entry kept its fields against forged
+  answers, and after a restart with the forged copy first, the console refused it.
+- Board #2 on a30640ce, the same day: the Device page in Chrome relayed the real queue, with
+  `relay.py` stopped. The console signed nonce 2, and the app showed its confirmation, 2 of 2,
+  checked against the owner contract. The board's log has no start between the refusal and the
+  signature (7263 s into the same start, counter 26), so the real copy replaced the refusal without
+  a restart. Chrome opening the port didn't restart the board either.

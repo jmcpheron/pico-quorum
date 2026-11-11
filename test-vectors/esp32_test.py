@@ -223,7 +223,7 @@ try:
 
         import txservice
         check(txservice.ON_BOARD and txservice.RESERVE == 0, "TLS checked on the board; no reserve in MicroPython's heap")
-        s = txservice.Service("https://api.safe.global/tx-service/base", "0x" + "11" * 20, verify=True)
+        s = txservice.Service("https://api.safe.global/tx-service/base", "0x" + "11" * 20, verify=True, via=__import__("vhttp"))
         check(s.tls == "verified" and s._ctx.verify_mode == 2 and len(s._ctx.roots) == 3,
               "Safe's service over TLS checked against the 3 pinned roots, never MicroPython's requests")
 

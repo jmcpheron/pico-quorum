@@ -13,6 +13,10 @@
 # an icon over a word. On a review: Reject, Next, and Sign, which fills the strip while it is held.
 # Home is four tabs (draw_tabs), each button working the strip level with it: D0 the tabs along the
 # top, D1 the list in the middle, D2 the bar along the bottom, which says what it does.
+#
+# console-rp (240x135, THREE without RAIL_Y) has its three buttons under the screen: no rail, and an
+# 18 px footer names them instead, D0 D1 D2 left to right (slots, from PR #91's QT Py footer). Sign's
+# slot fills while it is held. These are its screens with no effects, for bring-up and the tests.
 import time
 import board
 import lcd as L
@@ -22,14 +26,15 @@ import quorum_ui as B
 from quorum_ui import c, txt, txt_r, fit, para, rrect, pill, mark, warn_sign, logo, ident, short, page_colors, thick_line
 
 W, H = L.W, L.H
-RAIL = 36 if L.THREE else 0     # the Feather's rail; the screens start right of it
+SLOTS = L.THREE and not board.RAIL_Y     # three buttons, named in a footer (console-rp)
+RAIL = 36 if L.THREE and not SLOTS else 0     # the Feather's rail; the screens start right of it
 X0 = RAIL
 M = X0 + 5                      # side margin
 R = W - 5
 TW = R - M
 CX = (X0 + W) // 2              # the middle of what the screens draw on
 HEAD = 16                       # header strip
-FOOT = H if L.THREE else H - 18     # footer from here down (the Feather has none)
+FOOT = H if RAIL else H - 18    # footer from here down (the Feather has none)
 PER = 4 if L.THREE else 3       # four-character chunks a line, in an address or a hash
 use = B.use
 
@@ -39,6 +44,11 @@ def txt_c(d, s, y, font, fg="text", bg="bg", x0=X0, x1=W):
 
 
 # ----------------------------------------------------------------------------- pages
+def tag(e):
+    """#nonce, or #? for one the console couldn't read (quorum.bad_entry, big_entry)."""
+    return "#%d" % e["n"] if e["n"] >= 0 else "#?"
+
+
 def pages_of(e):
     """The small screen's pages for one transaction, in order: what it does, each call and each
     address in it on a page of its own, the calldata and its digest, who has approved, then the
@@ -84,8 +94,8 @@ def footer_msg(d, q, bg="bg"):
     when it drew."""
     if not q.msg:
         return False
-    y = H - 17 if L.THREE else FOOT
-    d.fill_rect(X0, y, W - X0, H - y, c(bg))
+    y = FOOT - 17 if L.THREE else FOOT
+    d.fill_rect(X0, y, W - X0, FOOT - y if L.THREE else H - y, c(bg))
     txt_c(d, fit(q.msg, TW, "sans12"), y + 1, "sans12", "warn", bg)
     return True
 
@@ -125,12 +135,15 @@ def icon(d, kind, cx, cy, ink):
         d.ellipse(cx, cy, 1, 1, col, True)
 
 
-def rail(d, q, labels=(None, None, None), bg="bg", hold=None):
+def rail(d, q, labels=(None, None, None), bg="bg", hold=None, span=W):
     """The Feather: what D0, D1 and D2 do here, each label level with its button (an icon over a
     word, ICONS), and the last message along the bottom. labels: three (text, fill, ink), or None
     where a button does nothing. hold: (fraction, red) while Sign is held, the strip filling from
-    the bottom."""
+    the bottom. console-rp: the same in its footer (slots), across the left span px."""
     footer_msg(d, q, bg)
+    if SLOTS:
+        slots(d, labels, bg, hold, span)
+        return
     d.fill_rect(0, 0, RAIL, H, c("surface"))
     if hold:
         h = int(H * min(1, hold[0]))
@@ -149,6 +162,48 @@ def rail(d, q, labels=(None, None, None), bg="bg", hold=None):
             txt(d, s, 1 + (RAIL - 2 - F.width(s, "sans12")) // 2, top + (14 if ic else 0), "sans12", ink, fill)
 
 
+CAPS = False                    # quorum_ui_crt: each slot starts with its button's cap, as on the case
+
+
+def cap(d, i, x, y, ink):
+    """The case's cap on D0, D1, D2 (cad/consoles/rp.py): a square, a circle, a triangle, 8 px."""
+    col = c(ink)
+    if i == 0:
+        d.fill_rect(x, y + 1, 7, 7, col)
+    elif i == 1:
+        d.ellipse(x + 3, y + 4, 3, 3, col, True)
+    else:
+        for k in range(7):
+            d.hline(x + 3 - k // 2, y + 1 + k, k // 2 * 2 + 1, col)
+
+
+def slots(d, labels, bg, hold, span=W):
+    """console-rp's footer: D0, D1 and D2 left to right, a slot each, empty where a button does
+    nothing here. While Sign is held its slot fills from the left. A narrower span (the key's QR
+    code beside it) is shared by the slots up to the last one in use."""
+    d.fill_rect(0, FOOT, span, H - FOOT, c(bg))
+    n = 3 if span >= W else 1 + max([i for i, lab in enumerate(labels) if lab] or [0])
+    sw = (span - 2 - 2 * n) // n
+    for i, lab in enumerate(labels):
+        if not lab:
+            continue
+        s, fill, ink = lab
+        x = 2 + i * (sw + 2)
+        rrect(d, x, FOOT + 1, sw, H - FOOT - 2, 4, "surface" if hold and i == 2 else fill)
+        if hold and i == 2:
+            w = int(sw * min(1, hold[0]))
+            on = "bad_bar" if hold[1] else "ok"
+            if w >= 8:
+                rrect(d, x, FOOT + 1, w, H - FOOT - 2, 4, on)
+            fill, ink = (on if 2 * w >= sw else "surface"), "text"     # light on both: it straddles the edge
+        g = 11 if CAPS else 0
+        s = fit(s, sw - 4 - g, "sans12")
+        x1 = x + (sw - F.width(s, "sans12") - g) // 2
+        if CAPS:
+            cap(d, i, x1, FOOT + 4, ink)
+        txt(d, s, x1 + g, FOOT + 1, "sans12", ink, fill)
+
+
 def footer_press(d, q, what, bg="bg"):
     """What a press does, after the knob's mark."""
     if footer_msg(d, q, bg):
@@ -160,7 +215,7 @@ def footer_press(d, q, what, bg="bg"):
 
 def choices(d, q, items, focus, bg="bg"):
     """Pills the knob (D1 on the Feather) moves onto, right-aligned, the one in focus lit."""
-    y = H - 18 if L.THREE else FOOT + 1
+    y = FOOT - 18 if L.THREE else FOOT + 1
     if not L.THREE:
         if footer_msg(d, q, bg):
             return
@@ -211,7 +266,7 @@ def draw_home(q):
         rrect(d, X0 + 2, y, W - X0 - 4, 22, 4, fill)
         if lvl != "ok":
             d.fill_rect(X0 + 2, y + 4, 3, 14, c("bad" if lvl == "red" else "warn"))
-        x = txt(d, "#%d" % e["n"], X0 + 8, y + 2, "mono13", "warn" if q.conflicts(e) else "faint", fill)
+        x = txt(d, tag(e), X0 + 8, y + 2, "mono13", "warn" if q.conflicts(e) else "faint", fill)
         if q.signed_by_me(e):
             st, sc = "done", "ok"
         elif e["h"] in q.declined:
@@ -297,7 +352,7 @@ def tx_row(d, q, e, y, on):
     fill = row_box(d, y, on)
     if lvl != "ok":
         d.fill_rect(X0 + 2, y + 4, 3, 14, c("bad" if lvl == "red" else "warn"))
-    x = txt(d, "#%d" % e["n"], X0 + 8, y + 2, "mono13", "warn" if q.conflicts(e) else "faint", fill)
+    x = txt(d, tag(e), X0 + 8, y + 2, "mono13", "warn" if q.conflicts(e) else "faint", fill)
     if q.signed_by_me(e):
         st, sc = "done", "ok"
     elif e["h"] in q.declined:
@@ -317,9 +372,10 @@ def bar(d, q, what):
     """Along the bottom, level with D2: what it does here, after its dot."""
     if not what or q.msg:
         return
-    d.fill_rect(X0 + 1, H - 18, W - X0 - 1, 18, c("raised"))
-    icon(d, "dot", M + 2, H - 9, "text")
-    txt(d, fit(what, R - M - 12, "sans12"), M + 12, H - 17, "sans12", "text", "raised")
+    y = H - 18 if RAIL else FOOT - 18   # console-rp: over its footer
+    d.fill_rect(X0 + 1, y, W - X0 - 1, 18, c("raised"))
+    icon(d, "dot", M + 2, y + 9, "text")
+    txt(d, fit(what, R - M - 12, "sans12"), M + 12, y + 1, "sans12", "text", "raised")
 
 
 def draw_tabs(q):
@@ -327,7 +383,7 @@ def draw_tabs(q):
     d.fill(c("bg"))
     tab_strip(d, q)
     t = q.TABS[q.tab]
-    y0, y1 = HEAD + 20, H - 18
+    y0, y1 = HEAD + 20, (H if RAIL else FOOT) - 18
     what = None
     if t == "queue":
         ok = q.net_ok
@@ -351,7 +407,7 @@ def draw_tabs(q):
                 y1 -= 24
             rows(d, len(q.queue), q.sel, y0, y1, lambda i, y, on: tx_row(d, q, q.queue[i], y, on))
             e = q.queue[q.sel]
-            what = "Open #%d %s" % (e["n"], "Refused" if e["why"] else e["r"]["summary"])
+            what = "Open %s %s" % (tag(e), "Refused" if e["why"] else e["r"]["summary"])
     elif t == "owners":
         own = q.owners()
         safe_line(d, q, "OWNERS", "muted")
@@ -427,7 +483,7 @@ def draw_who(q):
     for line in addr_lines(a):
         txt(d, line, M, y, "mono13", "stake")
         y += 16
-    blockies.draw(d, a.lower(), R - 40, H - 44, 5)
+    blockies.draw(d, a.lower(), R - 40, FOOT - 44 if SLOTS else H - 44, 5)
     rail(d, q, (BACK, None, None))
     d.show()
 
@@ -506,7 +562,7 @@ def draw_review(q):
     bg = pc["bg"]
     d.fill(c(bg))
     here = q.page + 1 if q.act is None else len(q.pages)
-    head = "#%d" % e["n"]
+    head = tag(e)
     if kind in ("item", "text", "frm", "to", "calldata", "digest"):
         head += " " + item_of(q, i)["title"]
     elif kind == "head":
@@ -650,7 +706,7 @@ def draw_working(q, title, sub):
     rrect(d, CX - 30, 24, 36, 6, 3, "stake")
     txt_c(d, title, 38, "bold18")
     if q.cur:
-        txt_c(d, fit("#%d %s" % (q.cur["n"], q.cur["r"]["summary"]), TW, "sans12"), 66, "sans12", "text")
+        txt_c(d, fit("%s %s" % (tag(q.cur), q.cur["r"]["summary"]), TW, "sans12"), 66, "sans12", "text")
     info = getattr(q, "work_info", None) or ()
     if info:                                    # the chip's own facts (quorum.chip_info): two fit here
         txt_c(d, fit(sub, TW, "sans12"), 84, "sans12", "muted")
@@ -775,31 +831,34 @@ def draw_chip(q):
     d.show()
 
 
-_qr = (None, 0, None)
+_qr = (None, 0, b"")
 
 
 def qr_of(text):
-    """qrcode.encode, once per text: it scores all eight masks, too slow for every frame."""
+    """qrcode.encode_map, once per text: it scores all eight masks, too slow for every frame. A byte
+    per module (_qr[2]), which draw_qr reads: a row as one int is 37 bits, past a small int on a
+    32-bit board, so every shift of it made a new big int (76 KB of them a frame)."""
     global _qr
     if _qr[0] != text:
         import qrcode
-        _qr = (text,) + qrcode.encode(text)
-    return _qr[1], _qr[2]
+        _qr = (text,) + qrcode.encode_map(text)
+    return _qr[1]
 
 
 def draw_qr(d, text, x0, y0, size):
     """text as a QR code, dark on white with a 2-module margin, its top left at (x0, y0). -> its
     side in px."""
-    n, rows = qr_of(text)
+    n = qr_of(text)
+    m = _qr[2]
     q = 2 * size
     box = n * size + 2 * q
     d.fill_rect(x0, y0, box, box, L.WHITE)
     for r in range(n):
-        bits, x = rows[r], 0
+        i, x = r * n, 0
         while x < n:                    # one rectangle per run of dark modules
-            if bits >> x & 1:
+            if m[i + x]:
                 e = x
-                while e < n and bits >> e & 1:
+                while e < n and m[i + e]:
                     e += 1
                 d.fill_rect(x0 + q + x * size, y0 + q + r * size, (e - x) * size, size, L.BLACK)
                 x = e
@@ -808,20 +867,30 @@ def draw_qr(d, text, x0, y0, size):
     return box
 
 
+_ck = (None, None)
+
+
+def checksummed(a):
+    """txservice.checksum, once per address: a keccak, ~0.5 s and its big ints on console-rp."""
+    global _ck
+    if _ck[0] != a:
+        import txservice
+        _ck = (a, txservice.checksum(a))
+    return _ck[1]
+
+
 def draw_key(q):
     """The Feather's Key screen. Page 0: the app's set-up link for this key as a QR code (97
     characters, 37 modules at 3 px, 123 px with the margin) beside the short owner address and its
     picture, to compare with the page the phone opens. Page 1: the owner address in full. D1
     switches. The link holds only the public key; the owner address is a signer, not a wallet."""
-    import txservice
     d = q.d
     d.fill(c("bg"))
-    a = txservice.checksum(q.me)
     if q.kpage == 0:
         link = q.setup_link()
-        n = qr_of(link)[0]
+        n = qr_of(link)
         box = n * 3 + 12
-        draw_qr(d, link, W - box, (H - box) // 2, 3)
+        draw_qr(d, link, W - box, 0 if SLOTS else (H - box) // 2, 3)     # console-rp: over the footer's left
         col = W - box - 4 - M
         txt(d, fit("Set it up", col, "bold14"), M, 0, "bold14")
         txt(d, fit("Scan with", col, "sans12"), M, 18, "sans12", "muted")
@@ -837,7 +906,7 @@ def draw_key(q):
     else:
         header(d, "Your key", q.chip["name"] if q.chip else "")
         y = HEAD + 3
-        for line in addr_lines(a):
+        for line in addr_lines(checksummed(q.me)):
             txt(d, line, M, y, "mono13")
             y += 16
         blockies.draw(d, q.me, R - 24, HEAD + 31, 3)      # beside the short last line
@@ -850,7 +919,7 @@ def draw_key(q):
             txt(d, line, M, y, "sans12", "warn")
             y += 14
         labels = (BACK, ("Code", "raised", "text"), None)
-    rail(d, q, labels)
+    rail(d, q, labels, span=W - box - 2 if SLOTS and q.kpage == 0 else W)
     d.show()
 
 
