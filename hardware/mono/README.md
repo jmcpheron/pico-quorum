@@ -36,7 +36,7 @@ board's generator and fab files. Neither is printed.
 | | script | build | outputs |
 |---|---|---|---|
 | [Mono's case](../../cad/consoles/README.md#mono): a front shell and a back panel, four M2 screws from the face | [`mono.py`](../../cad/consoles/mono.py) | `tools/case build mono` | [`out/mono/`](../../cad/consoles/out/mono/) |
-| [the industrial variant](../../cad/consoles/README.md#mono-industrial): the same inside; the corners cut at 45°, chamfered edges, nine grooves down each long side | [`mono_ind.py`](../../cad/consoles/mono_ind.py) | `tools/case build mono-industrial` | [`out/mono_ind/`](../../cad/consoles/out/mono_ind/) |
+| [the industrial variant](../../cad/consoles/README.md#mono-industrial): the same inside; the corners cut at 45°, chamfered edges, nine grooves down each long side, and the mark printed in the face: black lines over a green layer | [`mono_ind.py`](../../cad/consoles/mono_ind.py) | `tools/case build mono-industrial` | [`out/mono_ind/`](../../cad/consoles/out/mono_ind/) |
 
 ![Mono's case, industrial: in the hand with four screws in the face, the back with the name, and the left side with its grooves and cut corners](../../cad/consoles/out/mono_ind/mono_ind_front.png)
 

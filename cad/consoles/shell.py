@@ -699,7 +699,8 @@ def build(b, out, screen_png=None):
     os.makedirs(out, exist_ok=True)
     c = Case(b)
     name = b["name"]
-    parts = c.printed()                                 # (name, shape as it sits, colour, how it lies on the bed)
+    shown = c.printed()                                 # (name, shape as it sits, colour, how it lies on the bed)
+    parts = [p for p in shown if p[3]]                  # one that lies no way is only for the pictures (decor)
     printed = [(n, s) for n, s, _, _ in parts]
     dock, tilt = c.dock()
     screws = c.screws()
@@ -735,7 +736,7 @@ def build(b, out, screen_png=None):
     for s, col, n in things:
         asm.add(s, name="pcb_" + n.replace(" ", "_"), color=cq.Color(*col))
     asm.save(os.path.join(out, name + "_assembly.step"))
-    pictures(c, out, parts, dock, tilt, screws, things, over, screen_png)
+    pictures(c, out, shown, dock, tilt, screws, things, over, screen_png)
     for n, sh in printed + [("dock", dock)]:
         bb = sh.val().BoundingBox()
         print("  %-7s %5.1f x %5.1f x %4.1f mm, %5.2f cm3" % (n, bb.xlen, bb.ylen, bb.zlen, sh.val().Volume() / 1000))
@@ -769,7 +770,7 @@ def pictures(c, out, parts, dock, tilt, screws, things, over, screen_png):
         move = {"tub": 0, "plate": 22, "screws": -14}
     else:
         move = {"shell": 22, "back": -12, "screws": 40}
-    ex = [(s.translate((0, 0, move.get(n, 12))), col, n) for s, col, n in case] + \
+    ex = [(s.translate((0, 0, move.get(n.split()[0], 12))), col, n) for s, col, n in case] + \
         [(screws.translate((0, 0, move["screws"])), K.STEEL, "screws")] + [(s, col, n) for s, col, n in things]
     K.render(dict(title=b["title"] + ", apart", parts=ex, corners=[], views=v["apart"]), os.path.join(out, name + "_apart.png"))
     rot = lambda s: c.on_dock(s, tilt)
