@@ -696,14 +696,16 @@ def entry(w, t):
     fields, which make its hash: other fields under that hash can only be a lie. A refusal is for the
     fields it was given, so other fields under the same hash get their own look: a relay that forged a
     transaction once didn't block the real one until a restart (board #2, 2026-11-10). The chain in
-    the hash is the one pinned for w, never the service's."""
+    the hash is the one pinned for w, never the service's. An entry keeps those fields ("f"), not the
+    service's whole transaction: its confirmations carry each owner's signature, 1.3 KB for a
+    contract signature, and 9 queued kept about 50 KB (board #2, 2026-11-11)."""
     h = (t.get("safeTxHash") or "").lower()
     cache = w["cache"]
     e = cache.get(h)
-    if e is not None and e["why"] and signed_fields(e["t"]) != signed_fields(t):
+    if e is not None and e["why"] and e["f"] != signed_fields(t):
         e = None
     if e is None:
-        e = {"h": h, "t": t, "n": int(t["nonce"]), "mine": "", "why": "", "w": w}
+        e = {"h": h, "f": signed_fields(t), "n": int(t["nonce"]), "mine": "", "why": "", "w": w}
         if len(h) != 66:
             e["why"] = "It has no usable safeTxHash."
         elif (t.get("safe") or "").lower() != w["addr"]:
@@ -737,17 +739,22 @@ def bad_entry(w, t, i, ex):
         n = int(t.get("nonce"))
     except Exception:
         n = -1
-    return {"h": h.lower(), "t": {}, "n": n, "mine": "", "conf": [], "w": w,
+    return {"h": h.lower(), "f": (), "n": n, "mine": "", "conf": [], "w": w,
             "why": "The service sent something that is not a transaction: %s" % repr(ex)[:60],
             "r": {"summary": "Malformed", "level": "red", "items": []}}
 
 
-def big_entry(w, at):
-    """The at-th transaction in the queue, too long for the console to read even alone (vhttp's
-    BODY, link.MAX_LINE): shown in its place, refused, never signed. Its nonce is unread: #?."""
-    return {"h": "big:%d" % at, "t": {}, "n": -1, "mine": "", "conf": [], "w": w,
-            "why": "It is too long for this console to read, so it can't be checked here. Check it in the app.",
-            "r": {"summary": "Too big to check", "level": "red", "items": []}}
+def big_entry(w, at, why=""):
+    """The at-th transaction in the queue that could not be read even alone: too long (vhttp's BODY,
+    link.MAX_LINE: "too big"), or the heap had no room for it just then. Shown in its place,
+    refused, never signed. Its nonce is unread: #?."""
+    if "too big" in why:
+        return {"h": "big:%d" % at, "f": (), "n": -1, "mine": "", "conf": [], "w": w,
+                "why": "It is too long for this console to read, so it can't be checked here. Check it in the app.",
+                "r": {"summary": "Too big to check", "level": "red", "items": []}}
+    return {"h": "big:%d" % at, "f": (), "n": -1, "mine": "", "conf": [], "w": w,
+            "why": "The console was short of memory when it read this one. It reads it again at the next poll.",
+            "r": {"summary": "Not read: low memory", "level": "red", "items": []}}
 
 
 def signed_by_me(e):
@@ -867,10 +874,10 @@ def fetch_queue(w):
         for k in range(at, at + n):
             try:
                 one = svc.pending(nonce, 1, k)
-            except MemoryError:
+            except MemoryError as ex:
                 gc.collect()
-                out.append(big_entry(w, k))
-                qlog.once("queue: #%d of it too long to read" % (k + 1))
+                out.append(big_entry(w, k, str(ex)))
+                qlog.once("queue: #%d of it not read: %s" % (k + 1, ex))
                 continue
             if not one:
                 return out
@@ -1060,17 +1067,41 @@ def same_chip():
     return s == serial and "0x%064x" % x == qx and "0x%064x" % y == qy
 
 
+SIGN_ROOM = 4096    # in one piece before the chip signs: the signature's 1.3 KB hex, its POST line, a file
+
+
+def room(n):
+    """Can the heap give n bytes in one piece, after a collection?"""
+    gc.collect()
+    try:
+        bytearray(n)
+        return True
+    except MemoryError:
+        return False
+
+
 def sign_it():
-    global state, result, dirty, counter, outside, unsent, sec
+    """The chip signs only once the heap has room for what follows: a signature lost for memory
+    after the chip made it was a use of the key for nothing (board #2, 2026-11-11, #6 and #8)."""
+    global state, result, dirty, counter, outside, unsent, sec, reset_at
     e = cur
     state = "working"
     unsent = None           # a failure below must never offer to resend an older signature
-    work_info[:] = chip_info()
-    d.frames(U.draw_working, sys.modules[__name__], "Signing", getattr(sig, "does", "The chip signs") + " the hash computed here")
     timer.deinit()
     watch.extend(30000)
     sec0 = sec1 = None
+    used = False            # the chip has been asked to sign
     try:
+        if not room(SIGN_ROOM):
+            qlog.write("sign #%d: no %d bytes in one piece, the key not used; restarting" % (e["n"], SIGN_ROOM))
+            result = (False, "Not signed", ["The console is short of memory.", "The key was not used.",
+                                            "It restarts to free it: then sign again."])
+            reset_at = time.ticks_add(time.ticks_ms(), 8000)
+            state, dirty = "result", True
+            start_timer()
+            return
+        work_info[:] = chip_info()
+        d.frames(U.draw_working, sys.modules[__name__], "Signing", getattr(sig, "does", "The chip signs") + " the hash computed here")
         if not pin_ok or (EXPECT and sig.slot != int(EXPECT.get("slot", 0))):
             raise Exception("the key no longer matches the pin")
         c0 = read_counter()         # first: before anything this console does with the key
@@ -1084,9 +1115,11 @@ def sign_it():
         if getattr(sig, "asserts", False):
             # a passkey (the browser emulator) writes its own assertion over the same hash; it is
             # packed and checked by the Safe exactly as a chip's
+            used = True
             ad, fields, r, s = sig.assertion(e["mine"])
         else:
             ad, fields, digest = webauthn.assertion(e["mine"])    # e["mine"]: checked equal to the service's hash in entry()
+            used = True
             r, s = sig.sign(digest)
         ms = time.ticks_diff(time.ticks_ms(), t0)
         counter = read_counter()
@@ -1103,7 +1136,13 @@ def sign_it():
             result = (result[0], result[1], result[2] + ["The chip logged %d security event%s besides this signature"
                                                          % (sec_extra(sec0, sec1), "" if sec_extra(sec0, sec1) == 1 else "s")])
     except Exception as ex:
-        result = (False, "Not signed", ["The chip said:", repr(ex)[:80]])
+        if unsent:          # signed and held: ▲ sends it again (post kept it, and on flash if it could)
+            result = (False, "Not sent", ["Signed, but not sent:", repr(ex)[:80]])
+        elif used:
+            result = (False, "Not signed", ["The chip signed, then the console failed:", repr(ex)[:80],
+                                            "Nothing was sent: sign again."])
+        else:
+            result = (False, "Not signed", ["The chip said:", repr(ex)[:80]])
         _log("sign: %r" % ex)
         qlog.write("sign #%d failed: %r" % (e["n"], ex))
         if sec_extra(sec0, read_sec(), signed=0):
@@ -1224,7 +1263,7 @@ def save_unsent(e, signature):
     try:
         with open(UNSENT_FILE, "w") as f:
             json.dump({"h": e["h"], "n": e["n"], "sig": signature, "chain": e["w"]["chain"], "safe": e["w"]["addr"]}, f)
-    except OSError as ex:
+    except Exception as ex:     # OSError, or MemoryError opening it: still held in memory for ▲
         qlog.write("unsent not saved: %r" % ex)
 
 
@@ -1268,6 +1307,9 @@ def send_saved(w):
     except Exception as ex:
         ok, detail = False, NET.short_err(ex)
     if ok:
+        for x in w["queue"]:
+            if x["h"] == s["h"]:
+                mark_signed(x)
         qlog.write("confirmed #%s (the saved signature, after a restart)" % s.get("n"))
         say("Sent the saved signature for #%s" % s.get("n"), 6)
         clear_unsent()
@@ -1278,7 +1320,11 @@ def send_saved(w):
 
 def post(e, signature):
     global result, unsent
-    d.frames(U.draw_working, sys.modules[__name__], "Sending", "To the transaction service")
+    unsent = (e, signature)     # held from here: a failure below leaves it for ▲ to send again
+    try:
+        d.frames(U.draw_working, sys.modules[__name__], "Sending", "To the transaction service")
+    except MemoryError:
+        gc.collect()            # the screen can wait; the signature goes out
     watch.extend(45000)
     try:
         aim(e["w"])
@@ -1287,26 +1333,51 @@ def post(e, signature):
         ok, detail = False, NET.short_err(ex)
     if ok:
         unsent = None
-        clear_unsent(e["h"])
-        have, need = len(e["conf"]) + 1, threshold(e["w"])
-        lines = ["#%d %s" % (e["n"], e["r"]["summary"]), "Approvals now %d of %d" % (have, need)]
-        if have >= need:
-            lines += ["Ready \u00b7 the proposer executes it"]
-        else:
-            lines += ["Waiting for %d more" % (need - have)]
-        if counter is not None:
-            lines += ["Key use #%d" % counter]
-        result = (True, "Signed", lines)
+        mark_signed(e)
         e["w"]["need_info"] = True
-        _log("confirmed #%d" % e["n"])
-        qlog.write("confirmed #%d" % e["n"])
-        note_recent(e["n"], e["w"], e["r"]["summary"])
+        result = (True, "Signed", ["#%d sent" % e["n"]])     # it went out, whatever fails below
+        try:
+            clear_unsent(e["h"])
+            have, need = len(e["conf"]), threshold(e["w"])
+            lines = ["#%d %s" % (e["n"], e["r"]["summary"]), "Approvals now %d of %d" % (have, need)]
+            if have >= need:
+                lines += ["Ready \u00b7 the proposer executes it"]
+            else:
+                lines += ["Waiting for %d more" % (need - have)]
+            if counter is not None:
+                lines += ["Key use #%d" % counter]
+            result = (True, "Signed", lines)
+            _log("confirmed #%d" % e["n"])
+            qlog.write("confirmed #%d" % e["n"])
+            note_recent(e["n"], e["w"], e["r"]["summary"])
+        except MemoryError:
+            gc.collect()
     else:
         unsent = (e, signature)
         save_unsent(e, signature)
         result = (False, "Not sent", ["Signed, but the service said:", detail[:90]])
         _log("confirm #%d refused: %s" % (e["n"], detail))
         qlog.write("confirm #%d refused: %s" % (e["n"], detail[:80]))
+
+
+def mark_signed(e):
+    """The service took this key's confirmation: the row says so now, not at the next poll, and
+    the console never offers it again (board #2, 2026-11-11: #6, sent after a restart, signed twice)."""
+    if me and me not in e["conf"]:
+        e["conf"].append(me)
+
+
+def next_waiting(e):
+    """Back on home after e: the highlight on the next transaction that still wants this key, after
+    e and round the list, so ▲ opens it. None waiting: it stays where it was."""
+    global sel
+    hs = [x["h"] for x in queue]
+    i = hs.index(e["h"]) if e and e["h"] in hs else sel
+    for j in range(1, len(queue) + 1):
+        k = (i + j) % len(queue)
+        if waiting(queue[k]):
+            sel = k
+            return
 
 
 def reject():
@@ -1317,6 +1388,7 @@ def reject():
         unsent = None
     clear_unsent(e["h"])
     state, dirty = "home", True
+    next_waiting(e)
     focus_sel()
     say("Rejected #%d on this console" % e["n"])
     if svc and e["w"]["base"] and policy.is_sim(e["w"]["base"]):
@@ -1449,6 +1521,7 @@ def handle(k):
             state = "home"
             if cur:
                 poll_soon(cur["w"])          # poll now: its queue has moved
+                next_waiting(cur)
             focus_sel()
         dirty = True
 
@@ -2026,8 +2099,11 @@ def where(e):
 
 def crashed(e):
     """Too many failures in a row: stop somewhere plain that signs nothing, and say so."""
-    global state, cur
-    state, cur = "crashed", None
+    global state, cur, queue
+    state, cur, queue = "crashed", None, []
+    for w in WATCH:             # rebuilt by a poll: dropped so the screen below has room to draw
+        w["cache"], w["queue"] = {}, []
+    gc.collect()
     qlog.write("crashed after %d failed ticks: %r" % (fails, e))
     try:
         with open("error.log", "w") as f:

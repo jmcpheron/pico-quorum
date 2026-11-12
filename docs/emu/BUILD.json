@@ -1,6 +1,6 @@
 {
   "note": "The emulator's page is gone from the site: this sends its old address to ../console/. emu/build.mjs writes it.",
-  "release": "89a8907f39406dac55f0c0a40ded3c40510508c852339733b619452d0e3fc60a",
+  "release": "758b52d678da2e23bf9ce20ef324168729d670a571b37a0c1e617630b1e4f0f5",
   "files": {
     "index.html": "d54266aef1e2edd75d5faf31ece237ca91ebe9fa42bb04357411347fbc27ae0d"
   }

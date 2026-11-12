@@ -605,7 +605,8 @@ def case_production():
     at = [l for l in open("log.txt").read().split("\n") if "  at " in l and "in tick" in l]
     check(len(at) == 1 and "console_test.py:" in at[-1] and "quorum.py:" in at[-1],
           "the first failure's frames in the log, once: %s" % (at[-1][-70:] if at else "none"))
-    check(Q.can_sign(Q.queue[0])[0] and Q.state == "crashed", "(the queue is still there, but the crashed state never reaches review)")
+    check(not Q.queue and not Q.W["cache"] and Q.state == "crashed",
+          "the queue and its cache dropped, so the crashed screen has room to draw; nothing to review")
     Q.handle("A")
     check(Q.state == "crashed", "A does nothing on the crashed screen")
 
@@ -742,6 +743,71 @@ def case_multi():
     bad = dict(mine, owner=owner_of(2))
     Q = fresh(expect=[other, bad])
     check(Q.state == "pinfail" and "owner" in Q.pin_why, "its entry with the wrong owner: refused all the same")
+
+
+def case_memory():
+    """Board #2, 2026-11-11, nine queued on a 2 of 2: the console ran out of memory between the chip's
+    signature and the service. An entry keeps only its hash's fields. No room in one piece: the key is
+    not used. A signature that can't be saved for memory is still held for A. A 201 marks the row at
+    once, a saved one sent after a restart too, and the highlight goes on to the next one waiting."""
+    chip()
+    Q = fresh()
+    a, b, c = tx(Q, 0, value=1, conf=[ALICE]), tx(Q, 1, value=2, conf=[ALICE]), tx(Q, 2, value=3, conf=[ALICE])
+    serve(Q, [a, b, c])
+    e = Q.queue[0]
+    check("t" not in e and e["f"] == Q.signed_fields(a) and e["conf"] == [ALICE.lower()],
+          "an entry keeps the fields its hash covers, not the service's whole transaction")
+
+    calls = []
+    real_sign = Q.sig.sign
+    Q.sig.sign = lambda d: calls.append(1) or real_sign(d)
+    c0 = Q.read_counter()
+    Q.SIGN_ROOM = 1 << 30
+    try:
+        posted = sign(Q, e, 2100)
+    finally:
+        Q.SIGN_ROOM = 4096
+    check(not posted and not calls and Q.read_counter() == c0 and Q.state == "result" and not Q.result[0]
+          and "The key was not used." in Q.result[2] and Q.reset_at and not Q.unsent,
+          "no room in one piece before signing: the chip is never asked, nothing posted, and a restart is set")
+    Q.reset_at = 0
+
+    import builtins
+    real_post = SVC.post
+    try:
+        SVC.post = lambda url, json=None, headers=None, timeout=None: (_ for _ in ()).throw(OSError(12))
+        Q.open = lambda *x, **k: (_ for _ in ()).throw(MemoryError("memory allocation failed"))   # quorum's files only
+        posted = sign(Q, e, 2100)
+    finally:
+        SVC.post, Q.open = real_post, builtins.open
+    check(not posted and len(calls) == 1 and Q.result[1] == "Not sent" and Q.unsent and Q.unsent[0] is e,
+          "the service unreachable and the save failing for memory: Not sent, the signature held")
+    n = len(SVC.posted)
+    Q.handle(Q.SIGN)
+    check(len(SVC.posted) == n + 1 and len(calls) == 1 and Q.result[0] and not Q.unsent and Q.signed_by_me(e),
+          "A sends the held signature, with no new use of the key, and the row is marked at once")
+    Q.handle(Q.SIGN)
+    check(Q.state == "home" and Q.sel == 1, "OK: home, the highlight on the next one that waits (#1)")
+
+    posted = sign(Q, Q.queue[1], 2100)
+    Q.handle(Q.SIGN)
+    marked = Q.signed_by_me(Q.queue[1])
+    check(posted and marked and Q.sel == 2 and len(calls) == 2, "signed #1: marked, the highlight on #2")
+    Q.open_entry(Q.queue[2])
+    Q.reject()
+    check(Q.state == "home" and Q.sel == 2, "#2 rejected and nothing else waits: the highlight stays")
+
+    SVC.post = lambda url, json=None, headers=None, timeout=None: (_ for _ in ()).throw(OSError(12))
+    try:
+        posted = sign(Q, Q.queue[2], 2100)
+    finally:
+        SVC.post = real_post
+    kept = "unsent.json" in os.listdir()
+    Q = fresh(keep=True)                    # a restart: the service still lists only Alice for #2
+    serve(Q, [a, b, c])
+    check(kept and not posted and SVC.posted and c["safeTxHash"] in SVC.posted[-1][0] and Q.signed_by_me(Q.queue[2])
+          and not Q.waiting(Q.queue[2]),
+          "a saved signature sent after a restart marks its row: it is not offered again")
 
 
 def case_unsent():
@@ -2289,7 +2355,7 @@ def case_relay():
         serve(Q, [t])
         seen.append(Q.queue[0])
     check(seen[0]["why"] and not seen[1]["why"] and seen[1]["mine"] == good["safeTxHash"] and seen[2] is seen[1]
-          and seen[2]["t"]["value"] == "5" and len(SVC.posted) == n,
+          and seen[2]["f"][Q.SIGNED.index("value")] == "5" and len(SVC.posted) == n,
           "forged, then the real one under its hash: the real one checks out; forged again: the checked fields kept")
 
     # Only a pinned service, in plain ASCII: anything else raises before a byte goes out
@@ -2568,7 +2634,7 @@ def main_knob():
 
 
 def main():
-    for case in (case_pin, case_owners_pages, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_safes, case_watchdog, case_home, case_saver, case_release, case_passkey, case_release_approval, case_knob, case_link, case_setup_link, case_practice, case_nochip):
+    for case in (case_pin, case_owners_pages, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_memory, case_safes, case_watchdog, case_home, case_saver, case_release, case_passkey, case_release_approval, case_knob, case_link, case_setup_link, case_practice, case_nochip):
         print("--", case.__name__[5:])
         try:
             case()
