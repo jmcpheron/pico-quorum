@@ -69,8 +69,8 @@ reference standard for a console. Mono is a working name.
   on a bench script. The console's firmware for these two isn't written yet. Today the firmware
   runs on the [dev console](hardware/DEV-CONSOLE.md) and [in your browser](https://picoquorum.app/console/).
 - **Its case.** Two first drafts, drawn by scripts and not printed: [the case](cad/consoles/README.md#mono),
-  and [an industrial variant](cad/consoles/README.md#mono-industrial) with cut corners, chamfered
-  edges and grooves down its sides ([`cad/consoles/mono_ind.py`](cad/consoles/mono_ind.py);
+  and [an industrial variant](cad/consoles/README.md#mono-industrial) with cut corners
+  and grooves down its sides ([`cad/consoles/mono_ind.py`](cad/consoles/mono_ind.py);
   `tools/case build mono-industrial` rebuilds it).
 - **A dev board kit, possibly.** Mono may become a kit for developers. Nothing is for sale, and no
   date is set.
