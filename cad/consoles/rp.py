@@ -58,9 +58,10 @@ ENGRAVE_DEEP = 0.6
 PIN = 0.7                   # RESET's and BOOTSEL's pinholes, inside the blue rings: a paperclip, not a thumb
 
 
-def name(c, cx, top):
-    """The name's cut in the face (NAME), its line centred on cx, over top: the top edge of the mark's top dot."""
-    word, (w, h), over = NAME
+def name(c, cx, top, fit=NAME[1:]):
+    """The name's cut in the face, its line centred on cx, over top: the top edge of the mark's top dot. fit is
+    NAME's: the room for the line, and how far over top."""
+    word, ((w, h), over) = NAME[0], fit
     size = S.fit_text(word, w, h)
     y = top + over + h / 2                          # the line's middle
     tw = size * cq.Workplane("XY").text(word, 10, 1, combine=False, kind="bold").val().BoundingBox().xlen / 10
