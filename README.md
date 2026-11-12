@@ -199,12 +199,12 @@ console up to the README:
 
 | | image | release fingerprint |
 |---|---|---|
-| <img src="docs/releases/badges/console-blockie.svg" width="32" height="32" alt=""> | **console** | `56c5a922e0a18b48cfb516aae97a4439efc7cef00b2d78ac8eb72f93824016fd` |
-| <img src="docs/releases/badges/ceremony-blockie.svg" width="32" height="32" alt=""> | **ceremony** | `640a1d4df3237fd7bdb794927b8b02fd6628d870e0ec2de1846f9421e556306b` |
-| <img src="docs/releases/badges/brand-blockie.svg" width="32" height="32" alt=""> | **brand** | `30310f4cbef885c7e0db078386530313964e4c76a2d45dc9d2b1f4cd01e9452e` |
-| <img src="docs/releases/badges/dual-blockie.svg" width="32" height="32" alt=""> | **dual** | `608e30c52478860ad2a9990e36a2241e03c4d19a72f14478876f5cce45ed10dd` |
-| <img src="docs/releases/badges/console-rp-blockie.svg" width="32" height="32" alt=""> | **console-rp** | `9a2686924278eef51a5a5bf73573b4f2dabb9ef2e8d0e86b7aeeeb7aca297f20` |
-| <img src="docs/releases/badges/prepare-rp-blockie.svg" width="32" height="32" alt=""> | **prepare-rp** | `d6dbe17d4470c6026286bc010a484b4d72f634a3ad1c8194e3695c23c0bd58af` |
+| <img src="docs/releases/badges/console-blockie.svg" width="32" height="32" alt=""> | **console** | `c79cac3145ff41a832656c4eeebad22e4f8dc3719f27e9f5acd9be9e41572275` |
+| <img src="docs/releases/badges/ceremony-blockie.svg" width="32" height="32" alt=""> | **ceremony** | `381d4e8916ea331b7b8a8ef650b28c5a45d35c116fe40969c8f5c66cea223ec2` |
+| <img src="docs/releases/badges/brand-blockie.svg" width="32" height="32" alt=""> | **brand** | `f7b49688d24a2ce8dbc4f5af474a708f4b043af84049aa9b56221c76f1b9ceb3` |
+| <img src="docs/releases/badges/dual-blockie.svg" width="32" height="32" alt=""> | **dual** | `99292ecee02cdcabfd1714b7c16ab250634345925e9c6cd2764c10589be48d55` |
+| <img src="docs/releases/badges/console-rp-blockie.svg" width="32" height="32" alt=""> | **console-rp** | `bc0e7f0f5ff9ef423dc65fc00aa353daa5b427c424fe82b78823d0ff7a467fcd` |
+| <img src="docs/releases/badges/prepare-rp-blockie.svg" width="32" height="32" alt=""> | **prepare-rp** | `4e98165819acdbb148753a1e73cb04bb83bec7861b4263e9246b60531162999f` |
 
 <!-- build:end -->
 

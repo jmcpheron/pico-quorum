@@ -1,11 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="210" height="20" role="img" aria-label="console 2026.11.3 · release fingerprint 56c5a922e0a18b48cfb516aae97a4439efc7cef00b2d78ac8eb72f93824016fd">
-<title>console 2026.11.3 · release fingerprint 56c5a922e0a18b48cfb516aae97a4439efc7cef00b2d78ac8eb72f93824016fd</title>
+<svg xmlns="http://www.w3.org/2000/svg" width="210" height="20" role="img" aria-label="console 2026.11.3 · release fingerprint c79cac3145ff41a832656c4eeebad22e4f8dc3719f27e9f5acd9be9e41572275">
+<title>console 2026.11.3 · release fingerprint c79cac3145ff41a832656c4eeebad22e4f8dc3719f27e9f5acd9be9e41572275</title>
 <linearGradient id="s" x2="0" y2="100%"><stop offset="0" stop-color="#bbb" stop-opacity=".1"/><stop offset="1" stop-opacity=".1"/></linearGradient>
 <clipPath id="r"><rect width="210" height="20" rx="3" fill="#fff"/></clipPath>
 <g clip-path="url(#r)"><rect width="71" height="20" fill="#0B0D11"/><rect x="71" width="139" height="20" fill="#627EEA"/><rect width="210" height="20" fill="url(#s)"/></g>
-<g transform="translate(4 3) scale(1.75)" shape-rendering="crispEdges"><path fill="#1bf18d" d="M0 0h8v8H0z"/><path fill="#67cc73" d="M0 0h1v1h-1zM7 0h1v1h-1zM0 1h1v1h-1zM2 1h1v1h-1zM5 1h1v1h-1zM7 1h1v1h-1zM1 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM6 2h1v1h-1zM0 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1zM5 3h1v1h-1zM7 3h1v1h-1zM0 4h1v1h-1zM1 4h1v1h-1zM6 4h1v1h-1zM7 4h1v1h-1zM0 5h1v1h-1zM2 5h1v1h-1zM3 5h1v1h-1zM4 5h1v1h-1zM5 5h1v1h-1zM7 5h1v1h-1zM0 7h1v1h-1zM1 7h1v1h-1zM2 7h1v1h-1zM5 7h1v1h-1zM6 7h1v1h-1zM7 7h1v1h-1z"/><path fill="#bb83d8" d="M2 0h1v1h-1zM5 0h1v1h-1zM2 2h1v1h-1zM5 2h1v1h-1zM2 4h1v1h-1zM5 4h1v1h-1z"/></g>
+<g transform="translate(4 3) scale(1.75)" shape-rendering="crispEdges"><path fill="#449ba3" d="M0 0h8v8H0z"/><path fill="#574acc" d="M3 0h1v1h-1zM4 0h1v1h-1zM3 1h1v1h-1zM4 1h1v1h-1zM0 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM7 2h1v1h-1zM2 3h1v1h-1zM5 3h1v1h-1zM1 4h1v1h-1zM2 4h1v1h-1zM5 4h1v1h-1zM6 4h1v1h-1zM0 5h1v1h-1zM3 5h1v1h-1zM4 5h1v1h-1zM7 5h1v1h-1zM1 7h1v1h-1zM6 7h1v1h-1z"/><path fill="#7df9e9" d="M1 2h1v1h-1zM6 2h1v1h-1zM1 3h1v1h-1zM6 3h1v1h-1zM0 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1zM7 4h1v1h-1z"/></g>
 <g fill="#fff" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="11">
 <text x="22" y="14" textLength="43" lengthAdjust="spacingAndGlyphs">console</text>
-<text x="77" y="14" textLength="127" lengthAdjust="spacingAndGlyphs" font-family="DejaVu Sans Mono,Menlo,Consolas,monospace">56c5·a922…8240·16fd</text>
+<text x="77" y="14" textLength="127" lengthAdjust="spacingAndGlyphs" font-family="DejaVu Sans Mono,Menlo,Consolas,monospace">c79c·ac31…4157·2275</text>
 </g>
 </svg>

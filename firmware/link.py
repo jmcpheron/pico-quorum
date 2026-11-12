@@ -42,6 +42,7 @@ LOGS, LOG_LEN = 20, 300     # log lines waiting to go out: past that the oldest 
 
 led = None
 up = False
+STOP = None                 # quorum's, while a poll runs: called as a GET waits, it raises to end the poll for a key
 boot_at = begun_at = 0      # as net.py's, for quorum's "boot ms" line
 _u = None
 _line = _mv = None
@@ -361,6 +362,17 @@ def _flush():
         _write(_logs.pop(0))
 
 
+def flush():
+    """Everything queued sent, and on the wire before it returns: quorum's last lines before a reset."""
+    if _u is None:
+        return
+    _flush()
+    try:
+        _u.flush()
+    except AttributeError:
+        time.sleep_ms(50)
+
+
 def send_line(s, head=None):
     """usblink's answers: out at the next pump, whole. head: see _write."""
     if len(_out) >= OUT:
@@ -405,6 +417,9 @@ def request(method, url, body=None, timeout_ms=None):
     if method not in ("GET", "POST") or not pinned(url):
         raise LinkError("not a pinned service")
     timeout_ms = timeout_ms or TIMEOUT_MS
+    stop = STOP if method == "GET" else None    # a confirmation is never left half way
+    if stop:
+        stop()
     _id += 1
     _want, _got = _id, None
     req = {"t": "req", "id": _id, "m": method, "url": url}
@@ -428,6 +443,8 @@ def request(method, url, body=None, timeout_ms=None):
                 _stats["timeouts"] += 1
                 up = False                  # until it says hi again: no more waits on nobody
                 raise LinkError("relay: no answer")
+            if stop:
+                stop()                      # its answer, if it comes, is then one nobody waits for: dropped
             time.sleep_ms(2)
         m = _got
     finally:

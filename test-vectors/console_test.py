@@ -857,38 +857,103 @@ def case_unsent():
     Q.tick(None)
     check(resets == [1] and "restart" in open("log.txt").read(), "back on home: the console restarts, and says why in log.txt")
 
-    # A heap in pieces (no PROBE_B bytes in one piece, after a collect): a restart after STARVED_N
-    # checks in a row on home or a result, never in a review, never before STARVED_UP_MS up
+    # A heap in pieces (no PROBE_B bytes in one piece, after a collect) is only logged. Real work
+    # failing for memory (short) restarts: STARVED_N failures with no whole poll between, on home or
+    # a result, never in a review, never before STARVED_UP_MS up, and MEM_MAX times in a row at most
     time = Q.time                           # quorum's clock here (Clock): every tick reads it
     Q.svc.lost = False
+    if "mem-restarts.txt" in os.listdir():
+        os.remove("mem-restarts.txt")
 
-    def checks(n, b):
+    def ticks(n, b=2048, state=None):
         Q.PROBE_B = b
         for _ in range(n):
+            if state:
+                Q.state = state
             Q.probe_t = time.ticks_add(time.ticks_ms(), -Q.PROBE_MS)
+            Q.last_poll = time.ticks_ms()   # no poll in these ticks
             Q._busy = False
             Q.tick(None)
+        Q.PROBE_B = 2048
     del resets[:]
-    Q.STARVED_UP_MS, Q.up_long, Q.starved = 0, False, 0
+    Q.STARVED_UP_MS, Q.up_long, Q.starved, Q.pieces, Q.mem_n = 0, False, 0, None, None
     Q.started = time.ticks_ms()
-    Q.open_entry(Q.queue[0])
-    checks(Q.STARVED_N + 2, 1 << 30)
-    in_review = list(resets)
-    Q.state = "home"
-    checks(Q.STARVED_N - 1, 1 << 30)
-    checks(1, 64)                           # one good check: the count starts again
-    checks(Q.STARVED_N - 1, 1 << 30)
+    ticks(10, 1 << 30, "home")
+    pieces = open("log.txt").read()
+    ticks(1, 64)
+    check(not resets and pieces.count("heap: no 1073741824 bytes in one piece (largest ") == 1
+          and "heap: 64 bytes in one piece again, after " in open("log.txt").read(),
+          "a heap in pieces: logged once, with its largest piece, and again once whole; no restart for it")
+    for _ in range(Q.STARVED_N - 1):
+        Q.short("a test")
+    ticks(2, state="home")
     early = list(resets)
-    checks(1, 1 << 30)
-    check(not in_review and not early and resets == [1] and "no 1073741824 bytes in one piece for 30 s" in open("log.txt").read(),
-          "a heap in pieces: no restart in a review, none before %d checks in a row, then a restart, and log.txt says why" % Q.STARVED_N)
+    Q.short("a test")
+    Q.open_entry(Q.queue[0])
+    ticks(3)
+    in_review = list(resets)
+    ticks(1, state="result")
+    log = open("log.txt").read()
+    check(not early and not in_review and resets == [1] and "memory: a test failed (largest piece " in log
+          and "restart: %d memory failures" % Q.STARVED_N in log and open("mem-restarts.txt").read() == "1",
+          "%d memory failures in real work: no restart before them, none in a review, then one, and log.txt says why"
+          % Q.STARVED_N)
+    Q.state, Q.mem_n = "home", None         # the next start
+    serve(Q, [t])
+    check(Q.starved == 0 and "mem-restarts.txt" not in os.listdir(),
+          "a whole poll starts both counts again: the failures, and the restarts in a row")
+    with open("mem-restarts.txt", "w") as f:
+        f.write(str(Q.MEM_MAX))
+    Q.mem_n = None                          # a start after MEM_MAX of them
     del resets[:]
-    Q.STARVED_UP_MS, Q.up_long, Q.starved = 10 ** 9, False, 0
+    for _ in range(Q.STARVED_N):
+        Q.short("a test")
+    ticks(3, state="home")
+    check(not resets and "memory: no restart, %d in a row already" % Q.MEM_MAX in open("log.txt").read(),
+          "after %d memory restarts in a row with no whole poll: no more (a transaction too big for this heap, say)" % Q.MEM_MAX)
+    os.remove("mem-restarts.txt")
+    del resets[:]
+    Q.STARVED_UP_MS, Q.up_long, Q.starved, Q.mem_n = 10 ** 9, False, 0, None
     Q.started = time.ticks_ms()
-    Q.state = "result"
-    checks(Q.STARVED_N * 3, 1 << 30)
-    check(not resets and Q.starved == Q.STARVED_N * 3, "the same just after a start: no restart (no loop of restarts)")
-    Q.PROBE_B = 2048
+    for _ in range(Q.STARVED_N * 3):
+        Q.short("a test")
+    ticks(3, state="result")
+    check(not resets, "the same just after a start: no restart (no loop of restarts)")
+    Q.STARVED_UP_MS, Q.starved = 600000, 0
+    SVC.info["nonce"], Q.WATCH[0]["fit"] = 0, None
+    SVC.txs = [tx(Q, n) for n in range(10)]
+    real_pending = Q.svc.pending
+
+    def nomem(nonce, limit=10, at=0):
+        raise MemoryError("memory allocation failed, allocating 1336 bytes")
+    Q.svc.pending = nomem
+    Q.last_poll, Q.WATCH[0]["need_info"] = 0, True
+    try:
+        Q.net_work()
+    finally:
+        Q.svc.pending = real_pending
+    check(Q.starved == 1 and len(Q.queue) == 10 and all("low memory" in e["r"]["summary"] for e in Q.queue),
+          "a poll that read none of its queue for memory: each row says so, and the poll counts once")
+    Q.starved = 0
+
+    # A queue too long at once, read in pieces: later polls go straight to pieces, until the nonce moves
+    Q.WATCH[0]["fit"] = None
+    SVC.fail_pending = MemoryError()
+    Q.last_poll, Q.WATCH[0]["need_info"] = 0, True
+    Q.net_work()
+    first = [c[1] for c in SVC.calls if "/multisig-transactions/" in c[1]]
+    del SVC.calls[:]
+    Q.last_poll, Q.WATCH[0]["need_info"] = 0, True
+    Q.net_work()
+    second = [c[1] for c in SVC.calls if "/multisig-transactions/" in c[1]]
+    del SVC.calls[:]
+    SVC.info["nonce"], SVC.txs = 1, SVC.txs[1:]
+    Q.last_poll, Q.WATCH[0]["need_info"] = 0, True
+    Q.net_work()
+    moved = [c[1] for c in SVC.calls if "/multisig-transactions/" in c[1]]
+    check("limit=10" in first[0] and len(Q.queue) == 9 and second and not any("limit=10" in u for u in second)
+          and "limit=10" in moved[0],
+          "the whole queue didn't fit: the next poll asks in pieces only; once the nonce moves, for all of it again")
 
     # A screen that only shows, left alone: back to home after BROWSE_IDLE_MS, where it polls. Not a review
     Q.state, Q.svc.lost = "review", False
@@ -909,6 +974,63 @@ def case_unsent():
         Q.tick(None)
         went.append(kept and Q.state in ("home", "saver"))
     check(stayed and all(went), "%s: kept a minute after a key, home after %d s alone; a review stays" % ("/".join(Q.BROWSE), Q.BROWSE_IDLE_MS // 1000))
+
+
+def case_retry_files():
+    """Board #2, 2026-11-11: files a heap in pieces could not open. A count not saved is saved after
+    the next poll (else the next start shows uses of the key outside this console); a signature
+    rejected here and not dropped is never sent, and is dropped after the next poll or before a
+    restart."""
+    import builtins
+    chip()
+    Q = fresh()
+    a = tx(Q, 0, conf=[ALICE])
+    serve(Q, [a])
+
+    def failing(prefix):
+        def o(name, *x, **k):
+            if name.startswith(prefix):
+                raise MemoryError("memory allocation failed, allocating 1148 bytes")
+            return builtins.open(name, *x, **k)
+        return o
+    was = Q.stored_counter()
+    Q.open = failing("counter-")
+    try:
+        Q.store_counter(was + 5)
+    finally:
+        Q.open = builtins.open
+    unsaved = Q.counter_unsaved == was + 5 and Q.stored_counter() == was
+    serve(Q, [a])
+    check(unsaved and Q.counter_unsaved is None and Q.stored_counter() == was + 5,
+          "a count the file couldn't take for memory: saved after the next poll")
+    Q.store_counter(was)
+
+    real_post = SVC.post
+    SVC.post = lambda url, json=None, headers=None, timeout=None: (_ for _ in ()).throw(OSError(12))
+    try:
+        sign(Q, Q.queue[0], 2100)
+    finally:
+        SVC.post = real_post
+    kept = "unsent.json" in os.listdir()
+    Q.open_entry(Q.queue[0])
+    Q.open = failing("unsent")
+    try:
+        Q.reject()
+    finally:
+        Q.open = builtins.open
+    stale = Q.unsent_stale == a["safeTxHash"] and "unsent.json" in os.listdir() and not Q.unsent
+    n = len(SVC.posted)
+    Q.saved_checked = False                 # as at the first poll of a start: send_saved looks
+    serve(Q, [a])
+    check(kept and stale and len(SVC.posted) == n and "unsent.json" not in os.listdir() and Q.unsent_stale is None,
+          "a signature rejected here that couldn't be dropped for memory: never sent, and dropped at the next poll")
+    with open("unsent.json", "w") as f:
+        f.write('{"h": "%s", "n": 0, "sig": "0x00"}' % a["safeTxHash"])
+    Q.unsent_stale = a["safeTxHash"]
+    resets = []
+    Q.machine.reset = lambda: resets.append("unsent.json" in os.listdir())
+    Q.restart("restart: a test")
+    check(resets == [False], "a restart drops it first")
 
 
 def case_watchdog():
@@ -2471,6 +2593,57 @@ def case_relay():
           "a development load (no build.py): secrets.QUORUM_URL is pinned too, for the bench soak on the mock")
 
 
+def case_poll_keys():
+    """console-rp, board #2, 2026-11-12: polls of 6-8 s in a queue of 10, the keys unread. A key going
+    down ends a poll before its next GET, or as one waits (its answer, if it comes, is dropped); the
+    queue shown stays the last whole one, and the Safe goes next once the keys are quiet. A key held
+    from before the poll stops nothing. And a restart's reason reaches the computer before it."""
+    chip()
+    Q = fresh()
+    R = RELAY[0]
+    import link                             # after fresh(), which imports it again
+    serve(Q, [tx(Q, 0), tx(Q, 1)])
+    SVC.txs = [tx(Q, 0), tx(Q, 1), tx(Q, 2)]
+    time = Q.time
+
+    def poll_by_tick(down_now):
+        Q.keys.down_now = down_now
+        Q.state, Q.last_poll, Q.WATCH[0]["need_info"], Q._busy = "home", 0, True, False
+        Q.last_key = time.ticks_add(time.ticks_ms(), -Q.QUIET_MS - 1)
+        n = len(R.reqs)
+        Q.tick(None)
+        return len(R.reqs) - n
+    calls = [0]
+
+    def goes_down():
+        calls[0] += 1
+        return 0 if calls[0] == 1 else 4    # up as the poll begins, then one goes down
+    asked = poll_by_tick(goes_down)
+    check(asked == 0 and len(Q.queue) == 2 and Q.last_poll == 0 and Q.net_ok and Q.WATCH[0]["ok"] and link.STOP is None,
+          "a key down as a poll begins: no request, the queue kept as it was, the Safe next once the keys are quiet")
+    asked = poll_by_tick(lambda: 4)
+    check(asked >= 2 and len(Q.queue) == 3, "a key held from before the poll stops nothing: the poll reads it all")
+    calls[0] = 0
+
+    def during():
+        calls[0] += 1
+        return 0 if calls[0] <= 2 else 1    # down once the first GET waits
+    late = []
+    R.faults.append(lambda m: late.append(m) or [])
+    u0 = link._stats["unsolicited"]
+    asked = poll_by_tick(during)
+    R.raw(R.res(late[0]))
+    link.pump()
+    check(asked == 1 and link._stats["unsolicited"] == u0 + 1 and Q.last_poll == 0 and len(Q.queue) == 3 and Q.net_ok,
+          "a key down while a GET waits: the poll ends there, and the answer that comes after is dropped")
+    del Q.keys.down_now
+
+    resets = []
+    Q.machine.reset = lambda: resets.append([m["m"] for m in R.sent("log")])
+    Q.restart("restart: a test")
+    check(resets and any(m.endswith("restart: a test") for m in resets[0]), "a restart's reason is out to the computer before the reset")
+
+
 def case_crt():
     """console-rp's CRT screens (quorum_ui_crt.py, crt.py): quorum_ui_s's pages, an effect only when
     something arrives, none on a redraw or during the hold, and any press stops an effect and still
@@ -2620,7 +2793,7 @@ def main_rp():
     for m in ("board", "lcd", "fonts", "quorum_ui", "quorum_ui_s", "splash", "bootmark"):
         sys.modules.pop(m, None)
     LINK_THREE[0] = True                # case_practice: on this board's three buttons
-    for case in (case_three, case_relay, case_practice, case_crt, case_nochip):
+    for case in (case_three, case_relay, case_poll_keys, case_practice, case_crt, case_nochip):
         print("-- %s, console-rp" % case.__name__[5:])
         try:
             case()
@@ -2638,7 +2811,7 @@ def main_knob():
 
 
 def main():
-    for case in (case_pin, case_owners_pages, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_memory, case_safes, case_watchdog, case_home, case_saver, case_release, case_passkey, case_release_approval, case_knob, case_link, case_setup_link, case_practice, case_nochip):
+    for case in (case_pin, case_owners_pages, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_memory, case_retry_files, case_safes, case_watchdog, case_home, case_saver, case_release, case_passkey, case_release_approval, case_knob, case_link, case_setup_link, case_practice, case_nochip):
         print("--", case.__name__[5:])
         try:
             case()

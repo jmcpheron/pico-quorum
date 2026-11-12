@@ -92,7 +92,8 @@ def new_watch(s):
     """One watched Safe: where to ask about it, and what the service last said."""
     return {"safe": s, "chain": s["chainId"], "addr": s["address"], "name": s["name"],
             "base": s.get("url") or policy.service_url(CFG, s["chainId"], URL), "info": {}, "queue": [], "cache": {}, "ctx": None,
-            "polls": 0, "need_info": True, "seen": None, "ok": False, "err": "starting", "tried": False, "announced": 0}
+            "polls": 0, "need_info": True, "seen": None, "ok": False, "err": "starting", "tried": False, "announced": 0,
+            "fit": None}
 
 
 WATCH = [new_watch(s) for s in SAFES]
@@ -615,12 +616,19 @@ def stored_counter():
         return None
 
 
+counter_unsaved = None  # a count the file could not take (no memory to open it): retry_files tries again
+
+
 def store_counter(n):
+    global counter_unsaved
     try:
         with open(counter_file(), "w") as f:
             f.write(str(n))
+        counter_unsaved = None
     except Exception as e:
-        qlog.write("counter not saved: %r" % e)
+        if counter_unsaved is None:
+            qlog.write("counter not saved: %r" % e)
+        counter_unsaved = n
 
 
 def check_counter():
@@ -851,14 +859,19 @@ def fetch_queue(w):
     (MemoryError: vhttp's BODY on Wi-Fi, link.MAX_LINE over the relay) is read FEW at a time, and a
     page of those that is still too long, one at a time: a transaction too long even alone is
     refused in its place (big_entry). One big batch in the queue used to leave the console with no
-    queue at all, and on Wi-Fi only the first 3 were listed."""
+    queue at all, and on Wi-Fi only the first 3 were listed. Once the whole queue has not fitted,
+    later polls go straight to pieces until the nonce moves (w["fit"]): asking again cost every poll
+    a 17-21 KB answer, a parse that failed, and a second, with the keys unread (board #2,
+    2026-11-12, polls of 6-8 s once 10 transactions carried their confirmations)."""
     nonce = int(w["info"].get("nonce", 0))
     out = []
-    try:
-        return add(w, out, svc.pending(nonce, QUEUE))
-    except MemoryError:
-        gc.collect()
-        qlog.once("queue too long at once: %d at a time" % FEW)
+    if w["fit"] != nonce:
+        try:
+            return add(w, out, svc.pending(nonce, QUEUE))
+        except MemoryError:
+            gc.collect()
+            w["fit"] = nonce
+            qlog.once("queue too long at once: %d at a time" % FEW)
     for at in range(0, QUEUE, FEW):
         n = min(FEW, QUEUE - at)
         try:
@@ -878,6 +891,8 @@ def fetch_queue(w):
                 gc.collect()
                 out.append(big_entry(w, k, str(ex)))
                 qlog.once("queue: #%d of it not read: %s" % (k + 1, ex))
+                if "too big" not in str(ex):
+                    short("a transaction")      # the heap, not its size: a restart can help
                 continue
             if not one:
                 return out
@@ -895,14 +910,30 @@ def add(w, out, txs):
     return out
 
 
+held0 = 0       # the keys already down when the poll began (net_work): only one going down stops it
+
+
 def turning():
-    """The knob has moved (or is pressed) since the poll began."""
-    k = getattr(keys, "knob", None)
-    return bool(k and k.pending())
+    """The knob has moved (or is pressed) since the poll began, or a key has gone down. A key
+    held from before (a finger resting, a stuck key) stops nothing, or no poll would ever finish."""
+    k, down = getattr(keys, "knob", None), getattr(keys, "down_now", None)
+    return bool(k and k.pending()) or bool(down and down() & ~held0)
+
+
+class Later(Exception):
+    """A poll stopped for the keys (stop_for_keys): it goes on later."""
+
+
+def stop_for_keys():
+    """NET.STOP while a poll runs (console-rp: link.request calls it as it waits for each GET): a
+    key down ends the poll, so the keys answer at once. Board #2, 2026-11-12: polls of 6-8 s in
+    a queue of 10, and the presses in them were lost."""
+    if turning():
+        raise Later()
 
 
 def later(w):
-    """A poll stopped between calls for the knob: Safe w goes next, once the keys are quiet again.
+    """A poll stopped between calls for the keys: Safe w goes next, once the keys are quiet again.
     What was fetched so far is kept; the queue shown stays the last whole one."""
     global rr, last_poll
     rr, last_poll = WATCH.index(w), 0
@@ -910,11 +941,26 @@ def later(w):
 
 
 def poll(w):
-    """One Safe: its info (every INFO_EVERY polls on the real service), then its queue."""
+    """One Safe: its info (every INFO_EVERY polls on the real service), then its queue. One that
+    reads both whole, with no memory failure (short), starts starved's count again."""
+    global starved, polled_short, in_poll
     w["tried"] = True
     if not w["base"]:
         w["ok"], w["err"] = False, "no service for chain %d" % w["chain"]
         return
+    polled_short, in_poll = False, True
+    try:
+        whole = read_safe(w)
+    finally:
+        in_poll = False
+    if whole and not polled_short:
+        starved = 0             # a whole poll: the heap does its work
+        mem_whole()
+
+
+def read_safe(w):
+    """poll's work: w's info and queue, w["ok"] and w["err"] as they went. -> True when both were
+    read. A key that stops it (Later) leaves all of w as it was."""
     aim(w)
     try:
         w["polls"] += 1
@@ -942,16 +988,21 @@ def poll(w):
         w["ok"], w["err"] = True, ""
         if not saved_checked:
             send_saved(w)
+        return True
+    except Later:
+        later(w)
     except Exception as ex:
         w["ok"], w["err"] = False, NET.short_err(ex)
         _log("service %s: %r" % (w["name"], ex))
         qlog.once("service %s: %s" % (w["name"], w["err"]))
         qlog.once("  at " + where(ex))
+        if isinstance(ex, MemoryError) and "too big" not in str(ex):
+            short("a poll")
 
 
 def net_work():
     """One poll: the next Safe in turn. Runs with the timer stopped."""
-    global net_ok, net_err, queue, last_poll, last_activity, dirty, sel, _snap, declined, rr
+    global net_ok, net_err, queue, last_poll, last_activity, dirty, sel, _snap, declined, rr, held0
     last_poll = time.ticks_ms()
     watch.extend(45000)
     if svc is None:
@@ -962,6 +1013,7 @@ def net_work():
     fresh = [w for w in WATCH if not w["tried"]]
     w = fresh[0] if fresh else WATCH[rr % len(WATCH)]
     rr = (WATCH.index(w) + 1) % len(WATCH)
+    held0 = getattr(keys, "down_now", int)()
     ok, why = NET.ready(_log)
     if not ok:
         net_ok, net_err = False, why
@@ -984,6 +1036,17 @@ def net_work():
         _snap, dirty = snap, True
         last_activity = time.ticks_ms()
     gc.collect()
+    retry_files()
+
+
+def retry_files():
+    """A count or a dropped signature that could not be written for memory: tried again after each
+    poll, and before a restart. A count not saved showed as uses of the key outside this console at
+    the next start (board #2, 2026-11-11); a rejected signature not dropped would go out after it."""
+    if counter_unsaved is not None:
+        store_counter(counter_unsaved)
+    if unsent_stale is not None:
+        clear_unsent(None if unsent_stale == "*" else unsent_stale)
 
 
 # ----------------------------------------------------------------------------- review and sign
@@ -1277,21 +1340,36 @@ def save_unsent(e, signature):
     """A signature the service did not take: kept on flash (it is public once posted anyway), so a
     restart does not lose it; sent_saved() tries it again first thing after the next boot."""
     import json
+    global unsent_stale
     try:
         with open(UNSENT_FILE, "w") as f:
             json.dump({"h": e["h"], "n": e["n"], "sig": signature, "chain": e["w"]["chain"], "safe": e["w"]["addr"]}, f)
+        unsent_stale = None     # what was there to drop is written over
     except Exception as ex:     # OSError, or MemoryError opening it: still held in memory for ▲
         qlog.write("unsent not saved: %r" % ex)
 
 
+unsent_stale = None     # a saved signature to drop ("*": any) that could not be, for memory: never sent, dropped by retry_files
+
+
 def clear_unsent(h=None):
+    global unsent_stale
     import json, os
     try:
         if h is not None and json.load(open(UNSENT_FILE))["h"] != h:
+            unsent_stale = None
             return
         os.remove(UNSENT_FILE)
-    except Exception:           # none there (OSError), unreadable, or no memory to open it: nothing to clear here
-        pass
+        unsent_stale = None
+    except ValueError:          # unreadable: send_saved can't read it either
+        unsent_stale = None
+    except Exception as ex:     # none there (OSError 2); else no memory to open it (MemoryError, OSError 12)
+        if isinstance(ex, OSError) and ex.args and ex.args[0] == 2:
+            unsent_stale = None
+        else:
+            if unsent_stale is None:
+                qlog.write("unsent not dropped: %r" % ex)
+            unsent_stale = h or "*"
 
 
 def send_saved(w):
@@ -1303,7 +1381,13 @@ def send_saved(w):
     global saved_checked
     try:
         s = json.load(open(UNSENT_FILE))
-    except (OSError, ValueError):
+    except (OSError, ValueError, MemoryError) as ex:
+        if not isinstance(ex, MemoryError) and not (isinstance(ex, OSError) and ex.args and ex.args[0] == 12):
+            saved_checked = True    # none there, or unreadable; no memory to open it: the next poll looks again
+        return
+    if unsent_stale in ("*", s["h"]) or s["h"] in declined:
+        qlog.write("saved signature for #%s dropped: rejected here, or sent already" % s.get("n"))
+        clear_unsent()
         saved_checked = True
         return
     mine = [x for x in WATCH if x["chain"] == s.get("chain", WATCH[0]["chain"]) and x["addr"] == s.get("safe", WATCH[0]["addr"])]
@@ -1436,7 +1520,7 @@ def handle(k):
             check_again()
     elif state == "crashed":
         if k == BACK:
-            machine.reset()
+            restart("restart: Back on the crash screen")
     elif state in ("home", "boot") and status_home():
         if k == "down":
             hsel = min(len(WATCH) - 1, hsel + 1)
@@ -2014,7 +2098,7 @@ def tick(t):
         watch.extend(5000)
         NET.poll_accept()
         if reset_at and time.ticks_diff(time.ticks_ms(), reset_at) >= 0:
-            machine.reset()
+            restart()           # its reason is in the log already (sign_it)
         ask_tick()
         if state == "nochip" and time.ticks_diff(time.ticks_ms(), nochip_t) >= NOCHIP_EVERY_MS:
             check_again()       # a miss costs no use of the key: nothing answered
@@ -2022,10 +2106,15 @@ def tick(t):
         if (state in ("home", "boot", "saver") and (last_poll == 0 or time.ticks_diff(time.ticks_ms(), last_poll) >= poll_every())
                 and time.ticks_diff(time.ticks_ms(), last_key) >= QUIET_MS):
             timer.deinit()      # no timer events pile up while HTTP and hashing block
+            stop = hasattr(NET, "STOP")
             try:
                 check_mark(True)
+                if stop:
+                    NET.STOP = stop_for_keys
                 net_work()
             finally:
+                if stop:
+                    NET.STOP = None
                 check_mark(False)
                 start_timer()
             polled = True
@@ -2059,7 +2148,7 @@ def tick(t):
             if not keys.held(PRESS):
                 crash_t0 = None
             elif time.ticks_diff(time.ticks_ms(), crash_t0) >= CRASH_HOLD_MS:
-                machine.reset()
+                restart("restart: held on the crash screen")
         if splash_until:
             if time.ticks_diff(splash_until, time.ticks_ms()) > 0:
                 if _n % 3 == 0:
@@ -2073,8 +2162,8 @@ def tick(t):
         led_tick()
         if svc and svc.lost and state in ("home", "saver"):
             restart_for_memory()
-        if state in ("home", "saver", "result") and time.ticks_diff(time.ticks_ms(), probe_t) >= PROBE_MS:
-            heap_check()
+        if state in ("home", "saver", "result"):
+            mem_tick(time.ticks_ms())
         if state == "practice":
             dirty, dirty_rows = False, None
             prac.draw()                 # its own dirty flag, through d.frames
@@ -2153,40 +2242,140 @@ def restart_for_memory():
             f.write(str(now))
     except OSError:
         pass
-    qlog.write("restart: the HTTPS reserve could not be taken back (heap in pieces)")
+    restart("restart: the HTTPS reserve could not be taken back (heap in pieces)")
+
+
+def restart(why=None):
+    """machine.reset(), the log first: why, to log.txt and to the computer (the link's queue sent
+    and on the wire now, or the reset drops it: board #2's relay saw no restart's reason, 2026-11-12),
+    and a count or a dropped signature that could not be written before (retry_files)."""
+    if why:
+        qlog.write(why)
+    retry_files()
+    try:
+        f = getattr(NET, "flush", None)
+        if f:
+            f()
+    except Exception:
+        pass
     machine.reset()
 
 
-PROBE_B, PROBE_MS, STARVED_N, STARVED_UP_MS = 2048, 5000, 6, 600000
+PROBE_B, PROBE_MS, STARVED_N, STARVED_UP_MS = 2048, 30000, 3, 600000
 probe_t = started = time.ticks_ms()
-starved = 0         # heap checks in a row that found no PROBE_B bytes in one piece
+pieces = None       # ticks_ms of the first heap check that found no PROBE_B bytes in one piece; None while it finds them
+starved = 0         # memory failures in real work (short) since the last poll that had none
+polled_short = False    # the poll now running had one
+in_poll = False         # a poll is running (short counts it once)
 up_long = False     # up STARVED_UP_MS since boot, once seen
 
 
+def largest(hi=65536):
+    """The largest block the heap gives now, to within 64 bytes, by halving: for the log."""
+    gc.collect()
+    lo = 0
+    while hi - lo > 64:
+        mid = (lo + hi) // 2
+        try:
+            bytearray(mid)
+            lo = mid
+        except MemoryError:
+            hi = mid
+    return lo
+
+
 def heap_check():
-    """Every PROBE_MS on home, the saver or a result: can the heap still give PROBE_B bytes in one
-    piece (an answer, a status line)? A failed allocation collects first, so a failure is a heap in
-    pieces, not garbage. STARVED_N in a row: start again with a whole heap; a signature the service
-    did not take is on flash already and goes out at the first good poll (send_saved). Not in a
-    review or a hold, and not before STARVED_UP_MS up, so it never loops (each start reads the key,
-    a use of it on a quorum v1 chip; console-rp has no clock for restart.txt's rule). Board #2,
-    2026-11-10: after a confirmation failed for memory, every status answer failed for 12 minutes,
-    the watchdog fed, until someone left the result screen."""
-    global probe_t, starved, up_long
+    """Every PROBE_MS on home, the saver or a result: a look at the heap for the log, no more. The
+    first look with no PROBE_B bytes in one piece logs the largest piece and what is free, and the
+    first with them again how long it was. A failed allocation collects first, so a failure is a
+    heap in pieces, not garbage. It restarts nothing: a heap in pieces still signs (SIGN_ROOM is set
+    aside) and reads its queue in pieces. Board #2 on 5add8498, 2026-11-12: a restart for this alone
+    came 10 to 275 minutes into each start, 5 that day, mostly on an idle home screen, each a use of
+    the key. Real work failing for memory is what restarts (short, mem_tick)."""
+    global probe_t, pieces
     probe_t = time.ticks_ms()
-    up_long = up_long or time.ticks_diff(probe_t, started) >= STARVED_UP_MS
     try:
         bytearray(PROBE_B)
-        starved = 0
-        return
     except MemoryError:
-        starved += 1
-    if starved >= STARVED_N and up_long:
+        if pieces is None:
+            pieces = probe_t
+            qlog.write("heap: no %d bytes in one piece (largest %d, %d free)" % (PROBE_B, largest(), gc.mem_free()))
+        return
+    if pieces is not None:
+        qlog.write("heap: %d bytes in one piece again, after %d s" % (PROBE_B, time.ticks_diff(probe_t, pieces) // 1000))
+        pieces = None
+
+
+def short(what):
+    """Real work failed for memory: a poll read less than its Safe's queue or info, or a status
+    answer failed (usblink). STARVED_N of them with no whole poll between: mem_tick restarts."""
+    global starved, polled_short
+    if in_poll:
+        if polled_short:
+            return              # one poll counts once, however many of its reads failed
+        polled_short = True
+    starved += 1
+    if starved == 1:
         try:
-            qlog.write("restart: no %d bytes in one piece for %d s (heap in pieces)" % (PROBE_B, STARVED_N * PROBE_MS // 1000))
+            qlog.write("memory: %s failed (largest piece %d, %d free)" % (what, largest(), gc.mem_free()))
+        except MemoryError:
+            pass
+
+
+def mem_tick(now):
+    """From tick, on home, the saver or a result: the heap check, and a restart once real work has
+    failed for memory STARVED_N times since the last whole poll: start again with a whole heap; a
+    signature the service did not take is on flash already and goes out at the first good poll
+    (send_saved). Not in a review or a hold, and not before STARVED_UP_MS up, so it never loops
+    (each start reads the key, a use of it on a quorum v1 chip; console-rp has no clock for
+    restart.txt's rule). Board #2, 2026-11-10: after a confirmation failed for memory, every status
+    answer failed for 12 minutes, the watchdog fed, until someone left the result screen."""
+    global up_long, mem_n
+    if time.ticks_diff(now, probe_t) >= PROBE_MS:
+        heap_check()
+    up_long = up_long or time.ticks_diff(now, started) >= STARVED_UP_MS
+    if starved < STARVED_N or not up_long:
+        return
+    if mem_n is None:
+        mem_n = mem_restarts()
+    if mem_n >= MEM_MAX:
+        if mem_n == MEM_MAX:
+            qlog.write("memory: no restart, %d in a row already with no whole poll" % mem_n)
+            mem_n += 1          # said once
+        return
+    try:
+        with open(MEM_FILE, "w") as f:
+            f.write(str(mem_n + 1))
+    except Exception:
+        pass
+    restart("restart: %d memory failures (polls, status answers) with no whole poll between" % starved)
+
+
+MEM_FILE, MEM_MAX = "mem-restarts.txt", 2   # memory restarts in a row with no whole poll between, and the most
+mem_n = None        # what MEM_FILE says, read once a start when it matters
+
+
+def mem_restarts():
+    try:
+        return int(open(MEM_FILE).read())
+    except Exception:
+        return 0
+
+
+def mem_whole():
+    """A whole poll: memory restarts in a row start again from 0. So one transaction too big for
+    this heap even after a start (refused as "Not read: low memory" at every poll) restarts the
+    console at most MEM_MAX times, not every 10 minutes for good."""
+    global mem_n
+    if mem_n is None:
+        mem_n = mem_restarts()
+    if mem_n:
+        try:
+            import os
+            os.remove(MEM_FILE)
+            mem_n = 0
         except Exception:
             pass
-        machine.reset()
 
 
 def outside_seen():

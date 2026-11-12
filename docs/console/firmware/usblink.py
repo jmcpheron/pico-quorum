@@ -181,6 +181,8 @@ def poll(pump=False):
             try:
                 handle(line)
             except Exception as e:      # a request must never stop the loop
+                if isinstance(e, MemoryError) and hasattr(host, "short"):
+                    host.short("an answer to the computer")     # quorum counts it toward a restart
                 sys.print_exception(e)
                 send({"ok": False, "why": "failed: %r" % e})
         return
