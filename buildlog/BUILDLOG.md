@@ -937,3 +937,12 @@ and the crystal's stock limit a run before price does.
 
 Notes: [2026-10-29-console-rp-order.md](2026-10-29-console-rp-order.md). Design:
 [hardware/console-rp](../hardware/console-rp/README.md).
+
+## 2026-11-11 — a second Mono quote: assembly reads 3–4 days
+
+The order of 20 Mono boards was taking longer than the orders of five, so Jason quoted the files
+again to look, and didn't order. The quote is on Standard assembly: PCB 24 hours as before, but
+assembly 3–4 days free or 2–3 days for $49.63, where both orders of five said 1–2 days.
+$265.69 before shipping and import. The real order's own page isn't in the record yet.
+
+Notes: [2026-11-11-mono-quote-build-time.md](2026-11-11-mono-quote-build-time.md).
