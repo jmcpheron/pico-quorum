@@ -405,6 +405,18 @@ await step("a token", async () => {
   await page.locator(".done").waitFor();
   const { args } = decodeFunctionData({ abi: P.ERC20_ABI, data: svc.txs.at(-1).data });
   check(getAddress(svc.txs.at(-1).to) === USDC && args[0] === DAVE && args[1] === 1_500_000n, "token: transfer(Dave, 1.5 USDC) on the token");
+  // the next one from the same form: the nonce has moved on past the one just proposed, the fields are kept
+  const at = svc.txs.at(-1).nonce, n = svc.txs.length;
+  check((await page.locator("#f-nonce").inputValue()) === String(at + 1) && (await page.locator("#f-amount").inputValue()) === "1.5"
+    && (await text(".done .next")).includes(`#${at + 1}`), `proposed: the form's nonce moves on to #${at + 1}, with what was typed kept`);
+  await page.getByRole("button", { name: "Propose another" }).click();
+  await page.getByRole("button", { name: "Review" }).click();
+  await page.getByRole("button", { name: "Sign and propose" }).click();
+  await page.locator(".done").waitFor();
+  check(svc.txs.length === n + 1 && svc.txs.at(-1).nonce === at + 1 && (await page.locator("#f-nonce").inputValue()) === String(at + 2),
+    `proposed again: the second goes in at #${at + 1}, and the form moves on to #${at + 2}`);
+  await page.locator("#f-nonce").fill(String(at + 1));
+  check(/already has a transaction/.test(await text("#f-nonce + .hint")), `proposed again: back at #${at + 1}, the form says it is taken`);
 });
 
 await step("refusals", async () => {

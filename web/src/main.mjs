@@ -543,6 +543,19 @@ function proposeForm(body, { name, c, safe, pub, svc, s, queued, keys, back, pre
   const book = h("datalist", { id: "book" }, ...[...new Set([...s.owners, ...Object.keys(store.get("names", {})).map((a) => getAddress(a))])]
     .map((a) => h("option", { value: a, label: who(a) || short(a) })));
   const stale = () => fill(review);
+  let setNonce = () => {};                   // drawFields sets it: the nonce field back to its default
+  const foot = h("p", { class: "small muted" });
+  const showFoot = () => { foot.textContent = `${s.threshold} of ${n} · the Safe is at #${s.nonce}${queued.length ? ` · ${queued.length} queued` : ""}. Your wallet signs as one owner.`; };
+  // The form after the Safe or its queue has moved, as they have once a proposal is in: the queue
+  // read again, the new proposal added in case the service doesn't list it yet, and the nonce set
+  // for the next one. The other fields and the review stay as they are.
+  async function moveOn(now, mine) {
+    const q = (await svc.queue(safe, now.nonce).catch(() => null))?.results || queued.filter((x) => Number(x.nonce) >= now.nonce);
+    queued = [...q.filter((x) => x.safeTxHash !== mine?.safeTxHash), ...(mine ? [mine] : [])].sort((a, b) => Number(a.nonce) - Number(b.nonce));
+    s.nonce = now.nonce;
+    showFoot();
+    setNonce();
+  }
 
   const label = (id, text, hint) => [h("label", { for: id, text }), hint ? h("p", { class: "small muted hint", text: hint }) : null];
   const bind = (el, key) => { el.value = vals[key] ?? ""; el.addEventListener("input", () => { vals[key] = el.value; stale(); }); return el; };
@@ -617,6 +630,7 @@ function proposeForm(body, { name, c, safe, pub, svc, s, queued, keys, back, pre
     };
     nonceIn.addEventListener("input", showNonce);
     showNonce();
+    setNonce = () => { vals.nonce = nonceIn.value = String(defaultNonce()); nonceIn.min = String(s.nonce); showNonce(); };
     fill(fields, ...per[kind](), h("label", { for: nonceId, text: "Nonce" }), nonceIn, nonceNote);
     stale();
   }
@@ -694,7 +708,11 @@ function proposeForm(body, { name, c, safe, pub, svc, s, queued, keys, back, pre
     let st = log.run("Checking your wallet is an owner…");
     const now = await readSafe(pub, safe);
     if (!now.owners.includes(me)) { log.done(st, `Your wallet ${short(me)} isn't an owner of this Safe. Switch your wallet to an owner's account.`, "bad"); sign.disabled = false; return; }
-    if (t.nonce < now.nonce) { log.done(st, `#${t.nonce} has already run: the Safe is at #${now.nonce}. Change the nonce.`, "bad"); sign.disabled = false; return; }
+    if (t.nonce < now.nonce) {
+      await moveOn(now);
+      log.done(st, `#${t.nonce} has already run: the Safe is at #${now.nonce}. Check the form's nonce and review it again.`, "bad");
+      return;
+    }
     log.done(st, `${who(me) || short(me)} is an owner`);
     st = log.run(`Switching your wallet to ${c.name}…`);
     await wallet.ensureChain(c, rpcFor(name));
@@ -706,15 +724,17 @@ function proposeForm(body, { name, c, safe, pub, svc, s, queued, keys, back, pre
     await svc.propose(safe, proposalBody(safe, t, hash, me, sig));
     log.done(st, `Proposed as #${t.nonce}`);
     sign.textContent = "Proposed";
+    await moveOn(now, { nonce: t.nonce, safeTxHash: hash }).catch(() => {});   // it is proposed whatever happens here
     fill(done, h("div", { class: "done" },
       h("p", {}, h("strong", { text: "In the queue. " }), `Ask the other owners to approve it, and to check the verify code ${verifyCode(hash)} on the console.`),
-      h("div", { class: "row" }, h("a", { class: "btn go", href: back, text: "See it in the queue" }), copyButton(`${b.title} · #${t.nonce} · verify code ${verifyCode(hash)}`, "Copy the code for the others"))));
+      h("div", { class: "row" }, h("a", { class: "btn go", href: back, text: "See it in the queue" }), copyButton(`${b.title} · #${t.nonce} · verify code ${verifyCode(hash)}`, "Copy the code for the others"),
+        h("button", { class: "btn", type: "button", text: "Propose another", onclick: () => what.scrollIntoView({ behavior: "smooth", block: "start" }) })),
+      h("p", { class: "small muted next", text: `For another, the form above keeps what you typed, with its nonce moved on to #${vals.nonce}.` })));
   }
 
-  fill(body,
-    h("section", { class: "card" }, h("h2", { text: "What it does" }), kinds, book, form,
-      h("p", { class: "small muted", text: `${s.threshold} of ${n} · the Safe is at #${s.nonce}${queued.length ? ` · ${queued.length} queued` : ""}. Your wallet signs as one owner.` })),
-    review);
+  const what = h("section", { class: "card" }, h("h2", { text: "What it does" }), kinds, book, form, foot);
+  fill(body, what, review);
+  showFoot();
   drawFields();
 }
 
