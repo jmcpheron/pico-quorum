@@ -28,7 +28,7 @@ The board's generator says what is particular to it in `jlc_spec()`: the regulat
 and the least ground under each (`return_least`), the pads whose ground ties to count
 (`ground_ties`), the allow-list, the pads a via may sit in (`via_in_pad`) or whose holes are thermal vias
 (`thermal_vias`), each with why, and the 3D solids. A board without one gets the checks that need
-nothing from it (console-s3's is in `hardware/console-s3/gen_console_s3.py`, console-rp's in
+nothing from it (console-s3's is in `hardware/prototypes/console-s3/gen_console_s3.py`, console-rp's in
 `hardware/console-rp/gen_console_rp.py`).
 
 ## Pictures

@@ -7,7 +7,7 @@ from pathlib import Path
 from PIL import Image, ImageChops
 
 ROOT = Path(__file__).resolve().parent.parent
-PICS = ROOT / "hardware/builds/pico-sign-handheld/case/out/assembly"
+PICS = ROOT / "hardware/archive/builds/pico-sign-handheld/case/out/assembly"
 W, H, PAD = 1200, 630, 40
 WHITE = (255, 255, 255)
 

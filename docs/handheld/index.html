@@ -20,7 +20,7 @@
 <meta name="twitter:site" content="@picoquorum">
 <title>Picoquorum Handheld · Build a signing console</title>
 <link rel="icon" href="../brand/mark-dark.svg" type="image/svg+xml">
-<link rel="stylesheet" href="../home.css" integrity="sha384-DeZJkiEUtx8QswoOO/6DVj4f/11oRNbmtquFNoElv0i2j9S9SeT867ctQTA9EpK+">
+<link rel="stylesheet" href="../home.css" integrity="sha384-Tk4mPFUbVxasLutTNGfoxAImBRtvJ6TP1KXmPkrrto4SiD9qOBnRkYQOp6otji3R">
 </head>
 <body>
 <header class="top">
@@ -32,9 +32,9 @@
     <span>Picoquorum</span>
   </a>
   <nav aria-label="Main">
+    <a href="../learn/">Learn</a>
     <a href="https://github.com/jmcpheron/pico-quorum/blob/main/docs/guide/README.md">Guide</a>
     <a href="../#hardware">Hardware</a>
-    <a href="../console/">Console</a>
     <a href="https://github.com/jmcpheron/pico-quorum">Source</a>
     <a href="https://x.com/picoquorum" aria-label="Picoquorum on X">X</a>
   </nav>
@@ -49,10 +49,10 @@
       <p class="lede">A Pico 2 W, a 2.4″ screen, a knob and a Sign button under a flip cover, in a flat printed case you hold like a handheld game or lay on the desk. The key is a cartridge: it slides down into a bay in the back, and clicks onto its plug.</p>
       <div class="cta">
         <a class="btn go big" href="#build">Build it: 16 steps <span aria-hidden="true">↓</span></a>
-        <a class="btn big" href="https://github.com/jmcpheron/pico-quorum/tree/main/hardware/builds/pico-sign-handheld">The design files</a>
+        <a class="btn big" href="https://github.com/jmcpheron/pico-quorum/tree/main/hardware/archive/builds/pico-sign-handheld">The design files</a>
       </div>
       <p class="muted small">It runs the Picoquorum console image unchanged: one owner of a Safe multisig, signing only the hash it works out itself. <a href="../">What Picoquorum is</a></p>
-      <p class="warn-note">An earlier design, written up but not built. The work now is on <a href="../#hardware">console-rp</a>.</p>
+      <p class="warn-note">An earlier design, written up but not built, and archived. The work now is on <a href="../#hardware">Mono</a>.</p>
     </div>
     <figure class="pic hero-pic">
       <img src="card.png" width="1200" height="630" alt="The handheld's front plate in four colours: Picoquorum, the window, TURN and SIGN. Beside it, the back of the case, the key's cartridge sliding down into its bay.">
@@ -81,7 +81,7 @@
         <dt>Case</dt><dd>Eight printed parts and the cartridge's two, M3 screws into heat-set inserts</dd>
         <dt>Firmware</dt><dd>The console image as is: <code>BOARD = "build1"</code>, <code>SCREEN = "2.4"</code></dd>
       </dl>
-      <p class="warn-note"><strong>A first draft.</strong> Designed and checked in CAD: 243 pairs of parts clear each other, and the cartridge clears everything as it slides in. Nothing is printed, wired or run yet, and the 2.4″ screen hasn't been seen working. Measure your parts first; <a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/README.md#before-printing">the README says which</a>.</p>
+      <p class="warn-note"><strong>A first draft.</strong> Designed and checked in CAD: 243 pairs of parts clear each other, and the cartridge clears everything as it slides in. Nothing is printed, wired or run yet, and the 2.4″ screen hasn't been seen working. Measure your parts first; <a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/archive/builds/pico-sign-handheld/README.md#before-printing">the README says which</a>.</p>
     </div>
   </section>
 
@@ -115,7 +115,7 @@
     <div>
       <h2>Four colours from one plate</h2>
       <p>The front plate prints face down, so its face is its first layers. Change filament three times, at 0.6, 1.2 and 1.8 mm, and each depth of cut shows its own colour: the name in charcoal, TURN and SIGN in red, the wells in blue. No paint, no inlays.</p>
-      <p class="small muted">The depths, colours and words are settings in <a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/handheld.py"><code>handheld.py</code></a>. Not checked on a real print yet.</p>
+      <p class="small muted">The depths, colours and words are settings in <a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/archive/builds/pico-sign-handheld/case/handheld.py"><code>handheld.py</code></a>. Not checked on a real print yet.</p>
     </div>
     <figure class="pic">
       <img src="img/00-colours.png" width="1650" height="1510" loading="lazy" alt="The plate face on, with its colours: light grey face, charcoal name and frames, red words, blue well floors. Beside it, the sign well's cover, and the three stripes over the screen.">
@@ -126,23 +126,23 @@
     <h2>Build it</h2>
     <p class="lede">Sixteen steps, from printed parts to a key in its bay. Each picture is drawn from the case's own model, so it follows the CAD's numbers: new printed parts in amber, what's done in white, and what the step needs along the bottom.</p>
     <div class="cta">
-      <a class="btn big" href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/ASSEMBLY.md">The full guide, with every detail</a>
-      <a class="btn big" href="https://github.com/jmcpheron/pico-quorum/tree/main/hardware/builds/pico-sign-handheld/case/out">The STLs</a>
+      <a class="btn big" href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/archive/builds/pico-sign-handheld/ASSEMBLY.md">The full guide, with every detail</a>
+      <a class="btn big" href="https://github.com/jmcpheron/pico-quorum/tree/main/hardware/archive/builds/pico-sign-handheld/case/out">The STLs</a>
     </div>
 
     <h3 class="sub">Print it</h3>
     <p>Every file is the way up it prints, flat on the bed, with no supports to start with. GitHub shows each in 3D; its download button saves the STL. Nothing has been printed yet, so try the new parts first, in this order:</p>
     <ol class="links">
-      <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/out/cartridge_tray.stl"><code>cartridge_tray.stl</code></a>, <a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/out/cartridge_cover.stl"><code>cartridge_cover.stl</code></a>: the key's cartridge, each half on its outside face. PETG if you have it: the clips are close to PLA's limit.</li>
-      <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/out/handheld_bay_test.stl"><code>handheld_bay_test.stl</code></a>: the tub's top only: the bay, the plug's holder and two corner posts. Try the cartridge's fit here first.</li>
-      <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/out/handheld_plug_lock.stl"><code>handheld_plug_lock.stl</code></a>: holds the key's plug up in its holder.</li>
-      <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/out/handheld_plate.stl"><code>handheld_plate.stl</code></a>: the front plate, face down; four colours by filament changes.</li>
-      <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/out/handheld_body.stl"><code>handheld_body.stl</code></a>: the tub, on its back. The bay's floor is a 48.6 mm bridge: supports there only if it sags.</li>
-      <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/out/handheld_carrier.stl"><code>handheld_carrier.stl</code></a>, <a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/out/handheld_spacers.stl"><code>handheld_spacers.stl</code></a>: behind the screen, with the Pico's posts; the four spacers.</li>
-      <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/out/handheld_guard_base.stl"><code>handheld_guard_base.stl</code></a>, <a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/out/handheld_guard_cover.stl"><code>handheld_guard_cover.stl</code></a>: the Sign button's flip cover and its base.</li>
-      <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/out/handheld_sign_cap.stl"><code>handheld_sign_cap.stl</code></a>: the Sign button's cap, head down.</li>
+      <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/archive/builds/pico-sign-handheld/case/out/cartridge_tray.stl"><code>cartridge_tray.stl</code></a>, <a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/archive/builds/pico-sign-handheld/case/out/cartridge_cover.stl"><code>cartridge_cover.stl</code></a>: the key's cartridge, each half on its outside face. PETG if you have it: the clips are close to PLA's limit.</li>
+      <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/archive/builds/pico-sign-handheld/case/out/handheld_bay_test.stl"><code>handheld_bay_test.stl</code></a>: the tub's top only: the bay, the plug's holder and two corner posts. Try the cartridge's fit here first.</li>
+      <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/archive/builds/pico-sign-handheld/case/out/handheld_plug_lock.stl"><code>handheld_plug_lock.stl</code></a>: holds the key's plug up in its holder.</li>
+      <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/archive/builds/pico-sign-handheld/case/out/handheld_plate.stl"><code>handheld_plate.stl</code></a>: the front plate, face down; four colours by filament changes.</li>
+      <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/archive/builds/pico-sign-handheld/case/out/handheld_body.stl"><code>handheld_body.stl</code></a>: the tub, on its back. The bay's floor is a 48.6 mm bridge: supports there only if it sags.</li>
+      <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/archive/builds/pico-sign-handheld/case/out/handheld_carrier.stl"><code>handheld_carrier.stl</code></a>, <a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/archive/builds/pico-sign-handheld/case/out/handheld_spacers.stl"><code>handheld_spacers.stl</code></a>: behind the screen, with the Pico's posts; the four spacers.</li>
+      <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/archive/builds/pico-sign-handheld/case/out/handheld_guard_base.stl"><code>handheld_guard_base.stl</code></a>, <a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/archive/builds/pico-sign-handheld/case/out/handheld_guard_cover.stl"><code>handheld_guard_cover.stl</code></a>: the Sign button's flip cover and its base.</li>
+      <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/archive/builds/pico-sign-handheld/case/out/handheld_sign_cap.stl"><code>handheld_sign_cap.stl</code></a>: the Sign button's cap, head down.</li>
     </ol>
-    <p class="small muted">If the cartridge is tight in the bay, sand the bumps. The numbers to change are in <a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/case/handheld.py"><code>handheld.py</code></a>, and <a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/ASSEMBLY.md#printing">the guide's printing notes</a> say which.</p>
+    <p class="small muted">If the cartridge is tight in the bay, sand the bumps. The numbers to change are in <a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/archive/builds/pico-sign-handheld/case/handheld.py"><code>handheld.py</code></a>, and <a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/archive/builds/pico-sign-handheld/ASSEMBLY.md#printing">the guide's printing notes</a> say which.</p>
 
     <h3 class="sub">What you need</h3>
     <div class="need">
@@ -200,9 +200,8 @@
       <h2>More</h2>
       <ul class="links">
         <li><a href="../">Picoquorum</a>: what it is, and how an approval goes</li>
-        <li><a href="../console/">Try the console in your browser</a>, with your passkey as its key</li>
-        <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign-handheld/README.md">The handheld's README</a>: parts, wiring, the case's checks</li>
-        <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/builds/pico-sign/README.md">pico-sign</a>: the pins and wiring tables it shares</li>
+        <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/archive/builds/pico-sign-handheld/README.md">The handheld's README</a>: parts, wiring, the case's checks</li>
+        <li><a href="https://github.com/jmcpheron/pico-quorum/blob/main/hardware/archive/builds/pico-sign/README.md">pico-sign</a>: the pins and wiring tables it shares</li>
         <li><a href="https://github.com/jmcpheron/pico-quorum">The source</a>, all of it, on GitHub</li>
       </ul>
     </div>

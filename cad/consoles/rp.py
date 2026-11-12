@@ -50,15 +50,32 @@ BADGE = dict(depth=1.0, proud=0.6, gap=0.1, short=0.05, edge=0.2)
 # pocket's walls, 0.05 mm off the pocket's floor for the glue; their top edges chamfered
 # The mark: its centre and radius, in the face's open corner right of RESET and BOOTSEL, under D1 and D2
 MARK = (32.0, 20.0, 5.5)
-# The name under the mark, one line up to 22 x 4 mm, its top 2 mm under the lower dots. Cut 0.6 mm, three 0.2 mm layers: printed face down with its first two layers in black
-# and the rest in a colour, the letters' floor shows that colour. The back's text is cut as deep.
-NAME = ("Picoquorum", (22.0, 4.0), 2.0)
+# The name, on one line (docs/BRAND.md), centred on the mark. Cut 0.6 mm, three 0.2 mm layers: printed face down with
+# its first two layers in black and the rest in a colour, the letters' floor shows that colour. The back's text is
+# cut as deep. Over a mark, as on Mono's cases (mono.py, mono_ind.py): up to 24 x 3.6 mm, 1.4 mm over its top dot.
+NAME = ("Picoquorum", (24.0, 3.6), 1.4)
+# Under the bar's mark: up to 22 x 4 mm, its top 2 mm under the lower dots.
+NAME_UNDER = ("Picoquorum", (22.0, 4.0), 2.0)
 ENGRAVE_DEEP = 0.6
+
+
+def name(c, cx, edge, under=None):
+    """The name's cut in the face, its line centred on cx. Over edge, the top edge of the mark's top dot (NAME); or,
+    given under (NAME_UNDER), under edge, the bottom edge of the mark's lower dots."""
+    word, (w, h), off = under or NAME
+    size = S.fit_text(word, w, h)
+    y = edge - off - h / 2 if under else edge + off + h / 2     # the line's middle
+    tw = size * cq.Workplane("XY").text(word, 10, 1, combine=False, kind="bold").val().BoundingBox().xlen / 10
+    for hx, hy in c.b["holes"]:                     # clear of each screw's counterbore by 0.5 mm
+        gap = math.hypot(max(abs(hx - cx) - tw / 2, 0), max(abs(hy - y) - h / 2, 0))
+        assert gap > S.M2_HEAD[0] / 2 + 0.2 + 0.5, "the name runs into the counterbore at %s" % ((hx, hy),)
+    return S.engrave_text(cq.Plane(origin=(cx, y, c.zt), xDir=(1, 0, 0), normal=(0, 0, 1)), word, size, ENGRAVE_DEEP)
 
 
 def decor(c, shell, back):
     """The mark as a badge glued into a pocket in the face, its pieces standing proud: the triangle in green, the
-    three signed dots in blue, the two waiting dots in orange; the name under it. Each piece its own STL, face down."""
+    three signed dots in blue, the two waiting dots in orange; and the name, over it or, where the board gives
+    name_under, under it. Each piece its own STL, face down."""
     cx, cy, r = c.b["mark"]
     pts = [(cx + r * math.cos(math.radians(90 - 72 * k)), cy + r * math.sin(math.radians(90 - 72 * k))) for k in range(5)]
     d, g = BADGE["depth"], BADGE["gap"]
@@ -74,15 +91,8 @@ def decor(c, shell, back):
     triangle = tri(-g, z0, z1)
     for k in (0, 2, 3):
         triangle = triangle.cut(S.cyl(*pts[k], rad[k] + g, z0 - 1, z1 + 1))
-    word, (w, h), under = NAME
-    size = S.fit_text(word, w, h)
-    y = pts[3][1] - rad[3] - under - h / 2          # the line's middle
-    tw = size * cq.Workplane("XY").text(word, 10, 1, combine=False, kind="bold").val().BoundingBox().xlen / 10
-    for hx, hy in c.b["holes"]:                     # clear of each screw's counterbore by 0.5 mm
-        gap = math.hypot(max(abs(hx - cx) - tw / 2, 0), max(abs(hy - y) - h / 2, 0))
-        assert gap > S.M2_HEAD[0] / 2 + 0.2 + 0.5, "the name runs into the counterbore at %s" % ((hx, hy),)
-    shell = shell.cut(S.engrave_text(cq.Plane(origin=(cx, y, c.zt), xDir=(1, 0, 0), normal=(0, 0, 1)), word, size,
-                                     ENGRAVE_DEEP))
+    under = c.b.get("name_under")
+    shell = shell.cut(name(c, cx, pts[3][1] - rad[3], under) if under else name(c, cx, pts[0][1] + rad[0]))
     out = [("badge triangle", top(triangle), GREEN, S.flip)]
     for k in (0, 2, 3):
         out.append(("badge signed %d" % k, top(S.cyl(*pts[k], rad[k] - g, z0, z1)), BLUE, S.flip))
@@ -131,7 +141,7 @@ def board():
         # each pinhole's name under it; the mark is decor's: a badge in a pocket, and the name under it
         face=[("text", ("RESET", (rs["x"], rs["y"] - 3.6), (7.0, 2.0))), ("text", ("BOOTSEL", (bs["x"], bs["y"] - 3.6), (9.0, 2.0)))],
         engrave=ENGRAVE_DEEP,
-        mark=MARK,
+        mark=MARK, name_under=NAME_UNDER,
         flip="y",                   # turned over about its height to read the back, as the badge
         # clear of the ribs inside (the buttons' rows), which the pictures draw through the panel
         back_text=[("Picoquorum", (W / 2, 51.0), (34.0, 7.0), "bold"),

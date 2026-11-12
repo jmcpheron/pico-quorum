@@ -8,6 +8,7 @@ troubleshooting.
 - [`guide/`](guide/README.md): the owner's guide ([setup](guide/SETUP.md), [using it](guide/USING.md),
   [networks](guide/NETWORKS.md), [troubleshooting](guide/TROUBLESHOOTING.md), [the console in your
   browser](guide/BROWSER.md))
+- [`videos/`](videos/README.md): the scripts for the explainer videos on [the Learn page](learn/): why a multisig, the hardware and how it fails, and being an owner
 - [`STATUS.md`](STATUS.md): **what exists today**: the name and domains, every Safe, key and address, the
   contracts the console relies on, and what's next
 - [`RELEASES.md`](RELEASES.md): firmware versions (year.month.n), what each holds, and how to make one
@@ -32,7 +33,8 @@ troubleshooting.
 - [`BRAND.md`](BRAND.md): the name, the mark and the colours ([`TRADEMARK.md`](../TRADEMARK.md) for what you may do with them)
 - [`upstream/`](upstream/README.md): issues and fixes Picoquorum sends to other projects (Safe{Wallet})
 
-The dev console: its [build guide](../hardware/DEV-CONSOLE.md), and [`CHIPMAP.md`](CHIPMAP.md), the
+The hardware, board by board, with [Mono](../hardware/mono/README.md), the reference console, first:
+[`../hardware/README.md`](../hardware/README.md). The dev console: its [build guide](../hardware/DEV-CONSOLE.md), and [`CHIPMAP.md`](CHIPMAP.md), the
 chip map on the ceremony image. Picoquorum grew from Austin Griffith's
 [picowallet](https://github.com/austintgriffith/picowallet); what came from it, and how its fixes
 come across, is in [`UPSTREAM-TRACKING.md`](UPSTREAM-TRACKING.md).

@@ -9,9 +9,10 @@
     "fonts/next-700.woff2": "0dbe07ed7679407db9d90f747d5ca3bd1b2bb7ccbcbe41c8246cfc6d2c7bc3bc",
     "fonts/mono-500.woff2": "49efe8526ea1da079582132fcb83555b975ef79129bbf0ff669e103ed162f81f",
     "fonts/mono-700.woff2": "f30319aa2ab224c5a19d177617e2141b002fcb95c1afe233214f9d342e47687d",
-    "../index.html": "f3a46af6272297bc7c7b59a931880aa390736493fedd38de40253dcb9a808b98",
-    "../home.css": "9523e9668add152168b613d094c2256aa82e624cd023f1342b70d1fed12bd8cc",
-    "../handheld/index.html": "236b3d6bc1f9361fb4d8454d1111626e0a06d629a7309c24f64dc0aac045fd1f",
+    "../index.html": "63f807af79f15f3538e4bbdd79aab73eacd8513497a7ab6e8ed0b129b99d56c1",
+    "../home.css": "2c030864f36e9dc9181e097f8e8434db50884ec799e60ef59c8ea2413bcbfbe9",
+    "../handheld/index.html": "9a3629215dc03cb0eaa11136e3242aa1c8ccfc2870e8210b3e1c0e1a1caedc0d",
+    "../learn/index.html": "3e5a5f2c29bc8cac73069f372fa6ef59174277b3282de7dacaf9048a4cc3c745",
     "../handheld/card.png": "e5b01dc6c341fc3b29b05520bad619aad24e1cb6a0fc5e324c262635fe5c25b0",
     "../handheld/img/00-colours.png": "3c8848de64eab0e354638ed89a9ed91b2c728032a718b35708dbe08a5fd8371d",
     "../handheld/img/00-exploded.png": "c7b16ad2ba1ba0abfa74d6145cfa8c75a42a7fc6f6f6a3eadfa87c67b4b0f1b3",
@@ -34,6 +35,9 @@
     "../handheld/img/15-key.png": "6361ceedc5f910313a8e3621bba9627d864e1e36ecec291fbfaf8250fd20bffe",
     "../handheld/img/16-done.png": "33efd77af458425cbed5885caa042761214312a9e7cb937ce6ecfbd4c5886a8b",
     "../img/key-c.jpg": "0a86ec6af9644857dcb9aa06dd04b1c480ee3c607f4fff6ca5bd2c4552b74980",
-    "../img/console-rp.jpg": "6b205dbaf51e86f5cf009a5889fd1a1c5cacdbdee2fbb0325202745615019fbf"
+    "../img/console-rp.jpg": "6b205dbaf51e86f5cf009a5889fd1a1c5cacdbdee2fbb0325202745615019fbf",
+    "../img/mono.jpg": "3f546b790a799184bf082e041b791f6500bfe5508f52e0d5bebd6b5de64eab58",
+    "../img/mono-dock.png": "afea8bdaac6067de37f75c33be649adc6c1b1437f0da6a74e5aaa20d38a8337e",
+    "../img/mono-case.png": "c6aab3eccda9941e91e5da9d1d258068ea14d6a24e79ff698ab6ba72b56aa4b2"
   }
 }

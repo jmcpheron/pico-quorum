@@ -21,7 +21,7 @@ import cadquery as cq
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.normpath(os.path.join(HERE, "..", ".."))
-sys.path.insert(0, os.path.join(REPO, "hardware", "builds", "pico-sign", "case"))
+sys.path.insert(0, os.path.join(REPO, "hardware", "archive", "builds", "pico-sign", "case"))
 import concepts as K        # the renderer the other cases use
 
 # --- the case --------------------------------------------------------------------------------------
@@ -42,6 +42,12 @@ ENGRAVE = 0.5
 # The bench's kit has 4, 8, 12 and 16 mm; the longest that fits is taken.
 M2_PILOT, M2_CLEAR, M2_HEAD = 1.8, 2.4, (3.8, 2.0)
 M2_KIT = (4.0, 8.0, 12.0, 16.0)
+# A counterbore printed from the bed up ends in a ceiling with the screw's hole in it, an annulus with nothing to
+# bridge to. Two layers of steps fix it in any slicer: in the first, the hole is a strip across the counterbore, so the
+# layer is two bridges from wall to wall, along the strip; in the second, a square, bridged across the strip the
+# other way; above it, the round hole. One layer each at the slicer's layer height (b["bridge_layer"]; 0 for none).
+# The counterbore's depth must be a whole number of layers, so the steps fall on layer lines.
+BRIDGE_LAYER = 0.2
 ENGAGE = 3.0                # the least thread in the post
 POST_R = 2.2                # on the board's front: inside the 2.5 mm keep-out round each hole
 BOSS_R, BOSS_BASE = 2.3, (3.4, 1.2)     # under the board; a wider foot on the floor round the counterbore
@@ -53,6 +59,7 @@ CAP_D, CAP_HOLE = 4.2, 4.6
 CAP_SQUARE, CAP_TRI = (3.8, 0.6), (6.0, 0.8)
 CAP_PROUD = 1.0             # over the plate
 CAP_FLANGE_T = 0.8
+CAP_LIP = 0.2               # the flange past the edge of its hole in the face, at the least (Case.lip)
 CAP_GAP = 0.2               # the flange under the plate (or its pocket) at rest: the cap's free play
 PIN_HOLE, LED_HOLE = 1.8, 1.6   # BOOT and RESET with a paperclip; the status LED
 # The USB-C plug: a cut cable's overmold, as the handheld measured one, and its shell
@@ -66,6 +73,7 @@ PANEL_T = 1.6               # the back panel
 SHELL_EDGE = (1.5, 0.8)     # the face's edge rounded, the back's
 SHELL_POST_R = 3.0          # the face's posts, wider than POST_R so a counterbore fits in them
 TAB = (2.0, 1.2, 0.2)       # the back panel's tab into the end wall: long, thick, clearance round it
+CORNER_WALL = 1.5           # the wall where a cut corner (b["corner_cut"]) comes nearest the inside, at the least
 
 # Footprint -> (along x at rotation 0, along y, height), by the first prefix that matches. Datasheet sizes
 # with the leads, not measured. The receptacles' face is at the board's edge.
@@ -131,13 +139,14 @@ def parts(cpl, bom):
     return out
 
 
-def cap_shape(x, y, kind, grow, z0, z1):
-    """A cap's stem (grow 0) or its hole in the face (grow the clearance), as a solid from z0 to z1."""
+def cap_shape(x, y, kind, grow, z0, z1, scale=1.0):
+    """A cap's stem (grow 0) or its hole in the face (grow the clearance), as a solid from z0 to z1. scale makes
+    the stem's face larger (b["cap_scale"]); the clearance stays the same."""
     if kind == "square":
-        s, r = CAP_SQUARE
+        s, r = (v * scale for v in CAP_SQUARE)
         return box(x - s / 2 - grow, x + s / 2 + grow, y - s / 2 - grow, y + s / 2 + grow, z0, z1).edges("|Z").fillet(r + grow)
     if kind == "triangle":
-        s, r = CAP_TRI
+        s, r = (v * scale for v in CAP_TRI)
         h = s * math.sqrt(3) / 2
         cy = y - h / 6                      # the centroid, so the triangle's height is centred on the switch
         s += 2 * math.sqrt(3) * grow        # the same triangle moved out by grow, about its centroid
@@ -145,7 +154,7 @@ def cap_shape(x, y, kind, grow, z0, z1):
         pts = [(x - s / 2, cy - ri), (x + s / 2, cy - ri), (x, cy + 2 * ri)]
         w = cq.Workplane("XY").workplane(offset=z0).polyline(pts).close().extrude(z1 - z0)
         return w.edges("|Z").fillet(r + grow)
-    return cyl(x, y, CAP_D / 2 + grow, z0, z1)
+    return cyl(x, y, CAP_D * scale / 2 + grow, z0, z1)
 
 
 def mark(cx, cy, r, z0, z1):
@@ -291,6 +300,7 @@ class Case:
         for x, y in b["holes"]:
             t = t.cut(cyl(x, y, M2_CLEAR / 2, self.z0 - 1, self.zb + 0.1))
             t = t.cut(cyl(x, y, M2_HEAD[0] / 2 + 0.2, self.z0 - 1, self.z0 + self.cb))
+            t = self.bridge_steps(t, x, y, self.z0 + self.cb, up=True)       # the tub prints on its back
         t = t.cut(self.usb_hole())
         t = self.notch(self.lug_slot(t))
         # the back: the name, and the Source Location (CERN-OHL-W v2, section 4.1: the board's own is under the case)
@@ -331,11 +341,13 @@ class Case:
     def front(self):
         """The "shell" layout's front: the face and the walls in one piece, open at the back."""
         b = self.b
-        x0, x1, y0, y1 = self.outer
-        t = rrect(x0, x1, y0, y1, self.r_out, self.z0, self.zt)
+        t = self.outline(self.z0, self.zt)
         kind, size = b.get("face_edge", ("fillet", SHELL_EDGE[0]))     # the face's edge: rounded, or a chamfer
         t = t.faces(">Z").edges()
-        t = (t.chamfer(size) if kind == "chamfer" else t.fillet(size)).faces("<Z").edges().fillet(SHELL_EDGE[1])
+        t = t.chamfer(size) if kind == "chamfer" else t.fillet(size)
+        kind, size = b.get("back_edge", ("fillet", SHELL_EDGE[1]))     # the back's edge, the same choice
+        t = t.faces("<Z").edges()
+        t = t.chamfer(size) if kind == "chamfer" else t.fillet(size)
         ix0, ix1, iy0, iy1 = self.inner
         t = t.cut(rrect(ix0, ix1, iy0, iy1, self.r_in, self.z0 - 1, self.zu))
         # posts on the board round its holes (they run into the walls at the corners), ribs on its antenna end
@@ -351,11 +363,69 @@ class Case:
         for x, y in b["holes"]:
             t = t.cut(cyl(x, y, M2_CLEAR / 2, -1, self.zt + 1))
             t = t.cut(cyl(x, y, M2_HEAD[0] / 2 + 0.2, self.seat, self.zt + 1))
+            t = self.bridge_steps(t, x, y, self.seat, up=False)              # the shell prints face down
+            ch = b.get("cb_chamfer", 0.0)       # the counterbore's top edge chamfered
+            if ch:
+                t = t.cut(cq.Workplane("XY").workplane(offset=self.zt - ch).center(x, y).circle(M2_HEAD[0] / 2 + 0.2)
+                          .workplane(offset=ch + 0.01).circle(M2_HEAD[0] / 2 + 0.2 + ch + 0.01).loft())
         t = t.cut(self.usb_hole())
         t = self.notch(self.lug_slot(t))
+        t = self.grooves(t)
         if b.get("tab", True):
             t = t.cut(self.tab(TAB[2]))
         return self.face(t)
+
+    def bridge_steps(self, t, x, y, seat, up):
+        """t with the two bridging steps over a counterbore whose floor (the screw head's seat) is at seat, the
+        layers after it going up (up) or down from it (BRIDGE_LAYER)."""
+        L = self.b.get("bridge_layer", BRIDGE_LAYER)
+        if not L:
+            return t
+        n = self.cb / L
+        assert abs(n - round(n)) < 1e-6, "the counterbore isn't a whole number of %.2f mm layers" % L
+        rc, d, s = M2_HEAD[0] / 2 + 0.2, M2_CLEAR, 1 if up else -1
+        z1, z2 = seat + s * L, seat + 2 * s * L
+        strip = box(x - rc - 1, x + rc + 1, y - d / 2, y + d / 2, min(seat, z1) - 0.01, max(seat, z1))
+        strip = strip.intersect(cyl(x, y, rc, min(seat, z1) - 0.01, max(seat, z1)))
+        square = box(x - d / 2, x + d / 2, y - d / 2, y + d / 2, min(z1, z2) - 0.01, max(z1, z2) + 0.01)
+        return t.cut(strip).cut(square)
+
+    def outline(self, z0, z1):
+        """The case's outside from z0 to z1: the outline rounded at its corners, or with them cut off at 45 degrees
+        (b["corner_cut"]: the cut along each edge at the bottom corners, and at the top's). Checks that the wall
+        keeps CORNER_WALL where a cut comes nearest the board's corner inside."""
+        x0, x1, y0, y1 = self.outer
+        cut = self.b.get("corner_cut")
+        if not cut:
+            return rrect(x0, x1, y0, y1, self.r_out, z0, z1)
+        lo, hi = cut
+        ix0, ix1, iy0, iy1 = self.inner
+        r = self.r_in
+        # each corner of the inside is an arc of r_in; the cut's line is (lo or hi) from the outside's corner
+        dx = (ix0 + r) - x0
+        self.corner_wall = min(((dx + (iy0 + r) - y0) - lo) / math.sqrt(2) - r, ((dx + y1 - (iy1 - r)) - hi) / math.sqrt(2) - r)
+        assert self.corner_wall >= CORNER_WALL, "a cut corner leaves the wall %.2f mm" % self.corner_wall
+        pts = [(x0 + lo, y0), (x1 - lo, y0), (x1, y0 + lo), (x1, y1 - hi), (x1 - hi, y1), (x0 + hi, y1), (x0, y1 - hi),
+               (x0, y0 + lo)]
+        return cq.Workplane("XY").workplane(offset=z0).polyline(pts).close().extrude(z1 - z0)
+
+    def grooves(self, t):
+        """90-degree V-grooves across both long sides, for grip (b["grooves"]: their y, and their depth; each is twice
+        as wide as it is deep), stopping short of the face's and the back's edges."""
+        g = self.b.get("grooves")
+        if not g:
+            return t
+        ys, d = g
+        assert d <= WALL - 1.0, "a groove too deep for the wall"
+        x0, x1, _, _ = self.outer
+        a = d * math.sqrt(2)                    # a square turned 45 degrees, its corner d into the wall
+        za = self.z0 + self.b.get("back_edge", ("", SHELL_EDGE[1]))[1] + 0.8
+        zb = self.zt - self.b.get("face_edge", ("", SHELL_EDGE[0]))[1] - 0.8
+        for y in ys:
+            for x in (x0, x1):
+                v = cq.Workplane("XY").box(a, a, zb - za).rotate((0, 0, 0), (0, 0, 1), 45).translate((x, y, (za + zb) / 2))
+                t = t.cut(v)
+        return t
 
     def back(self):
         """The "shell" layout's back panel: flush in the shell's back, its tab in the end wall, two screws at the
@@ -466,7 +536,7 @@ class Case:
         for ref, name in b["buttons"]:
             q = P[ref]
             kind = b.get("cap_shapes", {}).get(name, "circle")
-            p = p.cut(cap_shape(q["x"], q["y"], kind, (CAP_HOLE - CAP_D) / 2, zu - 1, zt + 1))
+            p = p.cut(cap_shape(q["x"], q["y"], kind, (CAP_HOLE - CAP_D) / 2, zu - 1, zt + 1, b.get("cap_scale", 1.0)))
             if self.zft + CAP_GAP > zu:
                 f = self.flange_w() / 2 + 0.3
                 p = p.cut(box(q["x"] - f, q["x"] + f, q["y"] - f, q["y"] + f, zu - 0.5, self.zft + CAP_GAP))
@@ -499,7 +569,22 @@ class Case:
         at = [(P[r]["x"], P[r]["y"]) for r, _ in b["buttons"]]
         pitch = min(max(abs(a[0] - c[0]), abs(a[1] - c[1])) for i, a in enumerate(at) for c in at[i + 1:])
         sw = P[b["buttons"][0][0]]["box"]
-        return min(pitch - 0.6, (sw[1] - sw[0]) + 1.0)
+        return min(pitch - 0.6, (sw[1] - sw[0]) + b.get("flange_over", 1.0))
+
+    def lip(self, ref, name):
+        """How far the flange reaches past the edge of its cap's hole at the least, in 0.05 mm steps: what keeps the
+        cap in the face. 0 means the hole is wider than the flange somewhere."""
+        b, q = self.b, self.b["parts"][ref]
+        f = self.flange_w() / 2
+        flange = box(q["x"] - f, q["x"] + f, q["y"] - f, q["y"] + f, 0, 1).edges("|Z").fillet(0.6)
+        kind = b.get("cap_shapes", {}).get(name, "circle")
+        m = 0.0
+        while m < 3.0:
+            hole = cap_shape(q["x"], q["y"], kind, (CAP_HOLE - CAP_D) / 2 + m + 0.05, 0.2, 0.8, b.get("cap_scale", 1.0))
+            if hole.cut(flange).val().Volume() > 1e-6:
+                return m
+            m += 0.05
+        return m
 
     def caps(self):
         """Each button's cap, as it sits: flange on the switch, stem through the plate."""
@@ -509,7 +594,7 @@ class Case:
             q = self.b["parts"][ref]
             c = box(q["x"] - f, q["x"] + f, q["y"] - f, q["y"] + f, self.zcap, self.zft).edges("|Z").fillet(0.6)
             kind = self.b.get("cap_shapes", {}).get(name, "circle")
-            stem = cap_shape(q["x"], q["y"], kind, 0.0, self.zft - 0.01, self.zt + CAP_PROUD)
+            stem = cap_shape(q["x"], q["y"], kind, 0.0, self.zft - 0.01, self.zt + CAP_PROUD, self.b.get("cap_scale", 1.0))
             stem = stem.faces(">Z").edges().fillet(0.6 if kind == "circle" else 0.4)
             out.append((c.union(stem), CAP_C.get(name, PAPER), "cap " + name))
         return out
@@ -614,7 +699,8 @@ def build(b, out, screen_png=None):
     os.makedirs(out, exist_ok=True)
     c = Case(b)
     name = b["name"]
-    parts = c.printed()                                 # (name, shape as it sits, colour, how it lies on the bed)
+    shown = c.printed()                                 # (name, shape as it sits, colour, how it lies on the bed)
+    parts = [p for p in shown if p[3]]                  # one that lies no way is only for the pictures (decor)
     printed = [(n, s) for n, s, _, _ in parts]
     dock, tilt = c.dock()
     screws = c.screws()
@@ -632,6 +718,10 @@ def build(b, out, screen_png=None):
     pairs += [("screws", screws, sn, sh) for sh, _, sn in things]
     pairs += [("dock", dock, n, c.on_dock(s, tilt)) for n, s in printed + [("plug overmold", over)]]
     bad = check(pairs)
+    for ref, n in b["buttons"]:                         # the flange must reach past the hole, or the cap falls out
+        lip = c.lip(ref, n)
+        if lip < CAP_LIP:
+            bad.append("cap %s: its flange reaches %.2f mm past its hole, under %.2f" % (n, lip, CAP_LIP))
     for line in bad:
         print("CHECK:", line)
     for n, s, _, lie in parts:
@@ -646,7 +736,7 @@ def build(b, out, screen_png=None):
     for s, col, n in things:
         asm.add(s, name="pcb_" + n.replace(" ", "_"), color=cq.Color(*col))
     asm.save(os.path.join(out, name + "_assembly.step"))
-    pictures(c, out, parts, dock, tilt, screws, things, over, screen_png)
+    pictures(c, out, shown, dock, tilt, screws, things, over, screen_png)
     for n, sh in printed + [("dock", dock)]:
         bb = sh.val().BoundingBox()
         print("  %-7s %5.1f x %5.1f x %4.1f mm, %5.2f cm3" % (n, bb.xlen, bb.ylen, bb.zlen, sh.val().Volume() / 1000))
@@ -680,7 +770,7 @@ def pictures(c, out, parts, dock, tilt, screws, things, over, screen_png):
         move = {"tub": 0, "plate": 22, "screws": -14}
     else:
         move = {"shell": 22, "back": -12, "screws": 40}
-    ex = [(s.translate((0, 0, move.get(n, 12))), col, n) for s, col, n in case] + \
+    ex = [(s.translate((0, 0, move.get(n.split()[0], 12))), col, n) for s, col, n in case] + \
         [(screws.translate((0, 0, move["screws"])), K.STEEL, "screws")] + [(s, col, n) for s, col, n in things]
     K.render(dict(title=b["title"] + ", apart", parts=ex, corners=[], views=v["apart"]), os.path.join(out, name + "_apart.png"))
     rot = lambda s: c.on_dock(s, tilt)

@@ -17,7 +17,7 @@ import glob, hashlib, os, re, subprocess, sys, time
 
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 PINS = ["cadquery==2.8.0", "cadquery-ocp==7.9.3.1.1", "matplotlib==3.11.2", "pillow==13.0.0", "numpy==2.4.6"]
-PS = "hardware/builds/pico-sign"
+PS = "hardware/archive/builds/pico-sign"
 
 # name: what it is, its scripts in order, its outputs (globs), the pages that show them; and outputs that
 # come out a little different each run, which check lists but doesn't count
@@ -41,14 +41,14 @@ DESIGNS = {
         pages=[]),
     "handheld": dict(
         about="pico-sign-handheld's case: flat and portrait, for the 2.4\" screen; the carrier and the Pico; the sign button's guard; the key's cartridge and its bay in the back; the assembly pictures",
-        scripts=["hardware/builds/pico-sign-handheld/case/handheld.py", "hardware/builds/pico-sign-handheld/case/assembly.py"],
-        outputs=["hardware/builds/pico-sign-handheld/case/out/*", "hardware/builds/pico-sign-handheld/case/out/assembly/*"],
-        pages=["hardware/builds/pico-sign-handheld/README.md", "hardware/builds/pico-sign-handheld/ASSEMBLY.md"]),
+        scripts=["hardware/archive/builds/pico-sign-handheld/case/handheld.py", "hardware/archive/builds/pico-sign-handheld/case/assembly.py"],
+        outputs=["hardware/archive/builds/pico-sign-handheld/case/out/*", "hardware/archive/builds/pico-sign-handheld/case/out/assembly/*"],
+        pages=["hardware/archive/builds/pico-sign-handheld/README.md", "hardware/archive/builds/pico-sign-handheld/ASSEMBLY.md"]),
     "feather-pigtail": dict(
         about="the Feather pigtail's tray and bezel, v2",
-        scripts=["hardware/builds/feather-pigtail/case/case.py"],
-        outputs=["hardware/builds/feather-pigtail/case/out/pigtail_*_v2*"],
-        pages=["hardware/builds/feather-pigtail/README.md"]),
+        scripts=["hardware/archive/builds/feather-pigtail/case/case.py"],
+        outputs=["hardware/archive/builds/feather-pigtail/case/out/pigtail_*_v2*"],
+        pages=["hardware/archive/builds/feather-pigtail/README.md"]),
     "stick": dict(
         about="console-s3's case: the stick (a front shell and a back panel), its three caps and its dock",
         scripts=["cad/consoles/stick.py"],
@@ -58,6 +58,21 @@ DESIGNS = {
         about="PicoquorumKey rev B's case (its key port fitted): the badge, its three caps and its dock",
         scripts=["cad/consoles/badge.py"],
         outputs=["cad/consoles/out/badge/*"],
+        pages=["cad/consoles/README.md"]),
+    "rp": dict(
+        about="console-rp's case: the slate (a front shell and a back panel), its three caps, the badge's pieces and its dock",
+        scripts=["cad/consoles/rp.py"],
+        outputs=["cad/consoles/out/rp/*"],
+        pages=["cad/consoles/README.md"]),
+    "mono": dict(
+        about="Mono's case: a front shell and a back panel, its three caps, the badge's pieces and its dock",
+        scripts=["cad/consoles/mono.py"],
+        outputs=["cad/consoles/out/mono/*"],
+        pages=["cad/consoles/README.md"]),
+    "mono-industrial": dict(
+        about="Mono's case with harder edges: the corners cut off, the edges chamfered, grooves on the sides, the mark printed in the face in two colours",
+        scripts=["cad/consoles/mono_ind.py"],
+        outputs=["cad/consoles/out/mono_ind/*"],
         pages=["cad/consoles/README.md"]),
     "key-tray": dict(
         about="the snap-lid case for the ATECC608 breakout, v2 and v3",

@@ -1,6 +1,6 @@
-// Builds the app into docs/app/, the front page into docs/index.html and the handheld's page into
-// docs/handheld/, which GitHub Pages serves
-// with the rest of docs/:
+// Builds the app into docs/app/, the front page into docs/index.html, the handheld's page into
+// docs/handheld/ and the learn page into docs/learn/, which GitHub Pages serves with the rest of
+// docs/:
 //   cd web && npm ci && npm run build
 // One bundle (esbuild; viem and noble pinned in package.json), the stylesheet, the fonts, and
 // index.html with subresource-integrity hashes for both. The front page is static HTML and its own
@@ -53,7 +53,7 @@ writeFileSync(join(OUT, "../index.html"), readFileSync(join(HERE, "src/home.html
 // The handheld's page (docs/handheld/), kept for links already shared: static like the front page, with
 // the case's own assembly pictures and its share card (web/handheld-card.py), and the front page's
 // pictures of the other hardware. All copied as they are, so a picture's source is its only copy.
-const CASE = "../hardware/builds/pico-sign-handheld/case/out/assembly/";
+const CASE = "../hardware/archive/builds/pico-sign-handheld/case/out/assembly/";
 const steps = ["00-colours", "00-exploded", "00-printed-parts", "00-hardware", "01-tub-inserts", "02-feet", "03-key-plug",
   "04-breadboard", "05-plate-inserts", "06-guard", "07-guard-in", "08-knob", "09-screen", "10-spacers", "11-carrier",
   "12-pico", "13-wires", "14-close", "15-key", "16-done"];
@@ -62,13 +62,21 @@ const pictures = {
   ...Object.fromEntries(steps.map((s) => [`../handheld/img/${s}.png`, `${CASE}${s}.png`])),
   "../img/key-c.jpg": "../hardware/key-pcb/key-c-usbc/renders/key-c-P2-3q-top.jpg",
   "../img/console-rp.jpg": "../hardware/console-rp/renders/console-rp-3q.jpg",
+  // Mono, the front page's device: the board as KiCad draws it, and its case's industrial variant, on its dock and apart
+  "../img/mono.jpg": "../hardware/mono/renders/mono-3q.jpg",
+  "../img/mono-dock.png": "../cad/consoles/out/mono_ind/mono_ind_dock.png",
+  "../img/mono-case.png": "../cad/consoles/out/mono_ind/mono_ind_apart.png",
 };
 mkdirSync(join(OUT, "../handheld/img"), { recursive: true });
 mkdirSync(join(OUT, "../img"), { recursive: true });
 for (const [to, from] of Object.entries(pictures)) copyFileSync(join(HERE, from), join(OUT, to));
 writeFileSync(join(OUT, "../handheld/index.html"), readFileSync(join(HERE, "src/handheld.html"), "utf8").replace("%%HOME_CSS_SRI%%", sri("../home.css")));
+// The learn page (docs/learn/): a card per explainer video, each linking its script (docs/videos/).
+// Static like the other two, with no picture of its own until a video has a thumbnail.
+mkdirSync(join(OUT, "../learn"), { recursive: true });
+writeFileSync(join(OUT, "../learn/index.html"), readFileSync(join(HERE, "src/learn.html"), "utf8").replace("%%HOME_CSS_SRI%%", sri("../home.css")));
 const files = ["index.html", "app.js", "app.css", ...Object.keys(fonts).map((f) => "fonts/" + f), "../index.html", "../home.css",
-  "../handheld/index.html", ...Object.keys(pictures)];
+  "../handheld/index.html", "../learn/index.html", ...Object.keys(pictures)];
 writeFileSync(join(OUT, "BUILD.json"), JSON.stringify({
   note: "SHA-256 of every file web/build.mjs wrote (../ is docs/, the front page). Rebuild from the same commit (cd web && npm ci && npm run build) and compare.",
   build: build8, files: Object.fromEntries(files.map((f) => [f, sha(f)])),

@@ -35,7 +35,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import shell as S       # noqa: E402
 
-REV_B = os.path.join(S.REPO, "hardware", "picoquorum-key", "hardware", "out", "rev-b")
+REV_B = os.path.join(S.REPO, "hardware", "prototypes", "picoquorum-key", "hardware", "out", "rev-b")
 OUT = os.path.join(HERE, "out", "badge")
 SCREEN = os.path.join(S.REPO, "docs", "quorum-ui", "feather", "06-review-head.png")
 W, H, T = 50.0, 53.0, 0.8

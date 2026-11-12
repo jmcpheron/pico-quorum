@@ -89,11 +89,22 @@ host the console page may reach.
 
 ## Hardware
 
+*This section was brought up to date on 2026-11-11 from [hardware/README.md](../hardware/README.md),
+which lists every board and build. The rest of this page is as last checked.*
+
+- **Mono**, the reference console: an RP2350 with no radio, the ATECC608C on the board, 40 × 89.5 mm.
+  Designed and routed 2026-11-06; not ordered, nothing built ([Mono](../hardware/mono/README.md)).
+  Its case is two first drafts, not printed ([cases](../cad/consoles/README.md#mono)).
+- **console-rp**, the board Mono comes from: five received 2026-11-04. The first is up on a bench
+  script; the console's firmware for it isn't written ([console-rp](../hardware/console-rp/README.md)).
 - **The dev console** (Waveshare, [DEV-CONSOLE.md](../hardware/DEV-CONSOLE.md)) runs the console
   image, with chip #1 or TM1.
 - **Build 1** (2.0″ screen, knob, TRRS jacks) is on the bench ([BUILD1.md](../hardware/wiring/BUILD1.md)).
-- **key-c P2**, the USB-C key: five boards at JLCPCB, estimated to finish 2026-10-07; bring-up is
-  next ([key-c](../hardware/key-pcb/key-c-usbc/README.md)).
+- **key-c P2**, the USB-C key: five boards assembled by JLCPCB. They read on the bench from
+  2026-10-16, and chip 3 went through the key ceremony on 2026-10-22. P3 is drawn, not ordered
+  ([key-c](../hardware/key-pcb/key-c-usbc/README.md)).
+- **console-s3 and PicoquorumKey**, the two ESP32-S3 boards with their own Wi-Fi: both made, and the
+  first board of each runs. Early prototypes now ([prototypes](../hardware/prototypes/README.md)).
 - **Trust M:** TM1 sealed and approving on Base Sepolia; TM2 was the sacrificial chip (T9 done).
 
 ## The test ladder
