@@ -1290,7 +1290,7 @@ def clear_unsent(h=None):
         if h is not None and json.load(open(UNSENT_FILE))["h"] != h:
             return
         os.remove(UNSENT_FILE)
-    except (OSError, ValueError, KeyError):
+    except Exception:           # none there (OSError), unreadable, or no memory to open it: nothing to clear here
         pass
 
 

@@ -55,7 +55,8 @@ def use(fontset=None):
     global _set
     _set = fontset
     _fonts.clear()
-    _w.clear()
+    for i in range(_WN):
+        _wk[i] = None
 
 
 PALS = 32
@@ -107,22 +108,24 @@ def text(d, s, x, y, font, fg, bg):
 _src = [None, 0, 0, framebuf.GS4_HMSB]     # blit's source as (buffer, w, h, format), one list for every glyph
 
 
-_w = {}
+_WN = 128
+_wk, _wf, _wv = [None] * _WN, [None] * _WN, [0] * _WN    # the widths remembered: string, font, width
 
 
 def width(s, font):
     """Remembered: a banded screen (lcd.py) measures every string once per band, and fit() and the
-    right-aligned text measure the same ones over and over (~0.5 s a frame on Build 1, uncached)."""
-    k = (s, font)
-    n = _w.get(k)
-    if n is None:
-        f = get(font)
-        b, n = f.buf, 0
-        for c in s:
-            n += b[f.at(c) + 6]
-        if len(_w) >= 160:
-            _w.clear()
-        _w[k] = n
+    right-aligned text measure the same ones over and over (~0.5 s a frame on Build 1, uncached).
+    In a fixed table, one slot per string's hash, set aside at import: a dict here grew to a
+    1336-byte table, emptied and grew again every 160 strings, and a heap in pieces had no such
+    block for a screen, nor for the Sending screen after a signature (board #2, 2026-11-11)."""
+    i = hash(s) % _WN
+    if _wk[i] == s and _wf[i] == font:
+        return _wv[i]
+    f = get(font)
+    b, n = f.buf, 0
+    for c in s:
+        n += b[f.at(c) + 6]
+    _wk[i], _wf[i], _wv[i] = s, font, n
     return n
 
 
