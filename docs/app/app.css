@@ -184,6 +184,7 @@ label.btn { display: inline-flex; margin: 0; }
 .vbig { font-weight: 700; font-size: 28px; letter-spacing: .02em; }
 .done { margin-top: 14px; padding: 14px; border-radius: 12px; background: var(--ok-soft); }
 .done p { margin: 0 0 10px; }
+.done .next { margin: 10px 0 0; }
 @media (max-width: 560px) {
   .fieldlist { grid-template-columns: 1fr; }
   .fieldlist dt { margin-top: 6px; }
