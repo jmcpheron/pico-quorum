@@ -1068,6 +1068,21 @@ def same_chip():
 
 
 SIGN_ROOM = 4096    # in one piece before the chip signs: the signature's 1.3 KB hex, its POST line, a file
+_room = None        # SIGN_ROOM set aside while the heap is whole, given back just before the chip signs
+
+
+def keep_room():
+    """Set SIGN_ROOM aside in one piece, if the heap has it: at import (whole then), and again after
+    each signature. 62 KB free in small pieces had no 4 KB at a review (board #2, 2026-11-11)."""
+    global _room
+    if _room is None:
+        try:
+            _room = bytearray(SIGN_ROOM)
+        except MemoryError:
+            pass
+
+
+keep_room()
 
 
 def room(n):
@@ -1083,10 +1098,11 @@ def room(n):
 def sign_it():
     """The chip signs only once the heap has room for what follows: a signature lost for memory
     after the chip made it was a use of the key for nothing (board #2, 2026-11-11, #6 and #8)."""
-    global state, result, dirty, counter, outside, unsent, sec, reset_at
+    global state, result, dirty, counter, outside, unsent, sec, reset_at, _room
     e = cur
     state = "working"
     unsent = None           # a failure below must never offer to resend an older signature
+    _room = None            # the room set aside: room() below finds it free
     timer.deinit()
     watch.extend(30000)
     sec0 = sec1 = None
@@ -1149,6 +1165,7 @@ def sign_it():
             result = (False, "Not signed", result[2] + ["The chip logged a security event"])
     work_info[:] = []
     state, dirty = "result", True
+    keep_room()
     start_timer()
 
 
@@ -1413,7 +1430,7 @@ def check_again():
 
 
 def handle(k):
-    global state, sel, dirty, last_poll, chip_page, opage, hsel, browse, chip_back, rpage
+    global state, sel, dirty, last_poll, chip_page, opage, hsel, browse, chip_back, rpage, _room
     if state in ("nochip", "pinfail"):
         if k == "A":
             check_again()
@@ -1513,9 +1530,12 @@ def handle(k):
     elif state == "result":
         if k == SIGN and unsent:
             timer.deinit()
+            _room = None
+            gc.collect()
             try:
                 post(*unsent)
             finally:
+                keep_room()
                 start_timer()
         elif k in (SIGN, BACK, REJECT):
             state = "home"

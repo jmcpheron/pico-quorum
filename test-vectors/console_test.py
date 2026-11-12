@@ -788,9 +788,13 @@ def case_memory():
           "A sends the held signature, with no new use of the key, and the row is marked at once")
     Q.handle(Q.SIGN)
     check(Q.state == "home" and Q.sel == 1, "OK: home, the highlight on the next one that waits (#1)")
-
+    check(isinstance(Q._room, bytearray) and len(Q._room) == Q.SIGN_ROOM, "the signing room is set aside again after it")
+    held = Q._room
     posted = sign(Q, Q.queue[1], 2100)
+    check(posted and Q._room is not held and len(Q._room) == Q.SIGN_ROOM,
+          "a signature hands the room over before the chip signs, and takes it again after")
     Q.handle(Q.SIGN)
+
     marked = Q.signed_by_me(Q.queue[1])
     check(posted and marked and Q.sel == 2 and len(calls) == 2, "signed #1: marked, the highlight on #2")
     Q.open_entry(Q.queue[2])
