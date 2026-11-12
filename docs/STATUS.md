@@ -93,7 +93,8 @@ host the console page may reach.
 which lists every board and build. The rest of this page is as last checked.*
 
 - **Mono**, the reference console: an RP2350 with no radio, the ATECC608C on the board, 40 × 89.5 mm.
-  Designed and routed 2026-11-06; not ordered, nothing built ([Mono](../hardware/mono/README.md)).
+  Designed and routed 2026-11-06; 20 ordered 2026-11-09
+  ([the order](../buildlog/2026-11-09-mono-order.md)), none arrived ([Mono](../hardware/mono/README.md)).
   Its case is two first drafts, not printed ([cases](../cad/consoles/README.md#mono)).
 - **console-rp**, the board Mono comes from: five received 2026-11-04. The first is up on a bench
   script; the console's firmware for it isn't written ([console-rp](../hardware/console-rp/README.md)).

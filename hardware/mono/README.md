@@ -2,8 +2,9 @@
 
 *Design, 2026-11-06. Written by a script, [gen_mono.py](gen_mono.py), and read back by KiCad 10: the
 schematic (netlist and ERC) and the board, routed (DRC, with schematic parity). The fab files for
-JLCPCB are in [mono/fab/](mono/fab/) and pass `tools/keypcb jlc mono`. Not ordered, nothing built,
-and no panel folded against it yet.*
+JLCPCB are in [mono/fab/](mono/fab/) and pass `tools/keypcb jlc mono`. Twenty were ordered from
+JLCPCB on 2026-11-09 ([the order](../../buildlog/2026-11-09-mono-order.md)); none has arrived, and
+no panel fold against it is recorded.*
 
 ![Mono from above: the 1.14-inch screen across the top, D0, D1 and D2 in a row under it, an M2 hole either side; below them the second key's site on the left and the key that signs on the right, the RP2350 in the middle, and the USB-C on the bottom end, left of centre](renders/mono-top.jpg)
 
