@@ -18,14 +18,15 @@ with the page's own words. They were read from <https://jlcpcb.com/capabilities/
 | 4 | the BOM and CPL | each part in both or neither; not-fitted parts in neither; each CPL row at its part's place and side; each footprint's pad count (a plated hole numbered as one of the part's SMD pads, a thermal via, is that pad), pitch and value against the LCSC part in `parts.json`; the CPL overlay picture | `netlist_check.py`, `gerb_check.py` |
 | 5 | mask and paste | the mask web between different nets' pads; no via in or near an SMD pad's opening, but in a pad the board's `via_in_pad` names; mask- or copper-defined pads; paste area ratio for a 0.12 mm stencil | `pcb_checks.py` |
 | 6 | vias and holes | each via's ring, gap and tenting; plated and plain holes, slots (a pad's thermal vias, named in `thermal_vias`, held to the vias' ring); copper round mounting holes; hand-soldered pads joined by spokes; `holes.csv` | `pcb_checks.py` |
-| 7 | heat, pours, return path | the regulator's copper and a rough temperature, pour islands (pieces no pad, via or track of their net touches), how much of each fast net runs over ground | `pcb_checks.py` |
+| 7 | heat, pours, return path | the regulator's copper and a rough temperature, pour islands (pieces no pad, via or track of their net touches), how much of each fast net runs over ground, and where a board sets them, the least for a net (`return_least`) and for a pad's ground (`ground_ties`: the fewest ground vias that, all cut, would part it from the main pour) | `pcb_checks.py` |
 | 8 | the fit in 3D | each part's courtyard as a box to its height, plus the board's own solids (module, glass, ribbon, screws), every pair intersected; `fit.step` | `fit3d.py`, in FreeCAD |
 | 9 | golden pictures | each layer against `<board>/fab/golden/`; a change is a warning and a picture, a FAIL only with `--strict` | `gerb_check.py` |
 
 Check 10 is by hand, in [ORDERING.md](../../hardware/key-pcb/ORDERING.md).
 
-The board's generator says what is particular to it in `jlc_spec()`: the regulator, the fast nets,
-the allow-list, the pads a via may sit in (`via_in_pad`) or whose holes are thermal vias
+The board's generator says what is particular to it in `jlc_spec()`: the regulator, the fast nets
+and the least ground under each (`return_least`), the pads whose ground ties to count
+(`ground_ties`), the allow-list, the pads a via may sit in (`via_in_pad`) or whose holes are thermal vias
 (`thermal_vias`), each with why, and the 3D solids. A board without one gets the checks that need
 nothing from it (console-s3's is in `hardware/prototypes/console-s3/gen_console_s3.py`, console-rp's in
 `hardware/console-rp/gen_console_rp.py`).
@@ -45,10 +46,11 @@ nothing from it (console-s3's is in `hardware/prototypes/console-s3/gen_console_
 `tools/keypcb jlc --selftest <board>` breaks a copy of the board once per check (a thin track, a
 thin via ring, a via in a pad, an island, a pad on the wrong net, a hole out of the drill file, a
 row out of the CPL, parts too tall, a stale zip, a thinned track against the golden pictures) and wants
-each one caught. Their pictures go to `fab/check/selftest/`. The parts made too tall are the
-SOT-23s, or, on a board with none under its glass, the footprint its spec names in
-`fit.selftest_tall`. On console-s3, 2026-10-23: 10 of 10.
-On console-s3 and console-rp, 2026-10-29: 10 of 10 each. On mono, 2026-11-06: 10 of 10.
+each one caught. A board that sets `ground_ties` or `return_least` gets two more: the first pad's
+ground down to one via, and the back's ground pours taken off, each checked with only its own key.
+Their pictures go to `fab/check/selftest/`. On console-s3, 2026-10-23: 10 of 10.
+On console-s3 and console-rp, 2026-10-29: 10 of 10 each. On 2026-11-05: console-s3 10 of 10,
+console-rp 12 of 12.
 
 ## What it needs
 

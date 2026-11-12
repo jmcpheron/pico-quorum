@@ -500,17 +500,19 @@ def thermal(bd, cu, spec):
     bad |= say("FAIL" if isl else "ok", "pours: a pad, via or track of its net touches every piece" if not isl else
                f"pour islands (no pad, via or track of their net touches them): {isl[:6]}")
 
-    # return path: how much of each listed signal runs over ground on the other layer
+    # return path: how much of each listed signal runs over ground on the other layer. A net under
+    # the board's least for it (return_least, percent) fails, and so does one it names that isn't there.
     gnd = b.FindNet("GND")
-    if gnd and spec.get("return_nets"):
+    least = spec.get("return_least", {})
+    if gnd and (spec.get("return_nets") or least):
         fill = {l: pcbnew.SHAPE_POLY_SET() for l in (F, B)}
         for z in b.Zones():
             if not z.GetIsRuleArea() and z.GetNetCode() == gnd.GetNetCode():
                 for l in (F, B):
                     if z.IsOnLayer(l) and z.HasFilledPolysForLayer(l):
                         fill[l].Append(z.GetFilledPolysList(l))
-        parts = []
-        for name in spec["return_nets"]:
+        parts, low = [], [f"{name.lstrip('/')} not on the board" for name in least if not b.FindNet(name)]
+        for name in dict.fromkeys(spec.get("return_nets", []) + list(least)):
             n = b.FindNet(name)
             if not n:
                 continue
@@ -534,8 +536,74 @@ def thermal(bd, cu, spec):
                     prev = on
             if total:
                 parts.append(f"{name.lstrip('/')} {100 * over / total:.0f}% of {total:.1f} mm, off it {int(crossings)}x")
+                if name in least and 100 * over / total < least[name]:
+                    low.append(f"{name.lstrip('/')} {100 * over / total:.0f}% (least {least[name]}%)")
         say("info", "over ground on the other layer: " + "; ".join(parts))
+        if least:
+            bad |= say("FAIL" if low else "ok", "under the board's least over ground: " + "; ".join(low) if low else
+                       "over ground at the board's least or more: " + ", ".join(f"{k.lstrip('/')} {v}%" for k, v in least.items()))
+
+    # ground ties: under the board's least (ground_ties) fails: one via was all rev B's first route gave U1's pad
+    for tie in spec.get("ground_ties", []) if gnd else []:
+        flow, _ = ground_cut(bd, cu, tie["pad"])
+        if flow == -1:
+            bad |= say("FAIL", f"ground ties: {tie['pad']} isn't on the board's ground")
+            continue
+        what = "is on the main pour itself" if flow is None else f"meets the main pour by {flow} separate vias or holes at the least"
+        bad |= say("FAIL" if flow is not None and flow < tie["least"] else "ok",
+                   f"ground ties: {tie['pad']} {what} (least {tie['least']}): {tie['why']}")
     return bad
+
+
+def ground_cut(bd, cu, pad):
+    """The fewest ground vias and plated holes that, all cut, would part a pad's ground ("U1.61") from
+    the main pour, the biggest piece of ground copper on either layer, and those holes: (n, [items]).
+    (None, []) if the pad is on the main pour itself, (-1, []) if it isn't on ground. Each layer's ground
+    (pours, tracks, pads, vias) in its connected pieces; each ground via or plated hole joins the front
+    piece and the back piece it is in; then the max flow from the pad's pieces to the main one, one per hole."""
+    b = bd.b
+    gnd = b.FindNet("GND")
+    g = gnd.GetNetCode() if gnd else -1
+    pieces = {l: cu.get((l, g), pcbnew.SHAPE_POLY_SET()) for l in (F, B)}
+
+    def piece(l, pt):
+        return next(((l, i) for i in range(pieces[l].OutlineCount()) if pieces[l].Contains(pt, i)), None)
+    holes = [t for t in b.GetTracks() if t.Type() == pcbnew.PCB_VIA_T and t.GetNetCode() == g]
+    holes += [p for fp in b.GetFootprints() for p in fp.Pads() if p.GetNetCode() == g and p.HasHole()]
+    links = [(a, c, h) for a, c, h in ((piece(F, h.GetPosition()), piece(B, h.GetPosition()), h) for h in holes) if a and c]
+    main = max(((l, i) for l in (F, B) for i in range(pieces[l].OutlineCount())),
+               key=lambda k: abs(pieces[k[0]].Outline(k[1]).Area()), default=None)
+    ref, num = pad.split(".")
+    fp = b.FindFootprintByReference(ref)
+    src = {piece(l, p.GetPosition()) for p in (fp.Pads() if fp else []) if p.GetNumber() == num
+           for l in (F, B) if p.IsOnLayer(l)} - {None}
+    if not src or main is None:
+        return -1, []
+    if main in src:
+        return None, []
+    cap = {}
+    for a, c, _ in links:
+        for x, y in ((a, c), (c, a)):
+            cap.setdefault(x, {})
+            cap[x][y] = cap[x].get(y, 0) + 1
+    flow = 0
+    while True:                     # Edmonds-Karp, each hole a unit either way
+        prev, q = {s: None for s in src}, list(src)
+        while q and main not in prev:
+            n = q.pop(0)
+            for m, k in cap.get(n, {}).items():
+                if k > 0 and m not in prev:
+                    prev[m] = n
+                    q.append(m)
+        if main not in prev:
+            return flow, [h for a, c, h in links if (a in prev) != (c in prev)]
+        m = main
+        while prev[m] is not None:
+            n = prev[m]
+            cap[n][m] -= 1
+            cap[m][n] += 1
+            m = n
+        flow += 1
 
 
 # ------------------------------------------------------------------------------------------------
@@ -575,6 +643,13 @@ def mutate(kind, path):
             o.Append(int(x + pcbnew.FromMM(dx)), int(y + pcbnew.FromMM(dy)))
         b.Add(z)
         pcbnew.ZONE_FILLER(b).Fill([z])
+    elif kind.startswith("tie:"):  # a pad's ground down to one via to the main pour: the rest of its cut taken off
+        _, cut = ground_cut(bd, copper_by_net(bd), kind[4:])
+        for h in [h for h in cut if h.GetClass() == "PCB_VIA"][1:]:
+            b.Remove(h)
+    elif kind == "shadow":         # the back's ground pours taken off: nothing under the front's lines
+        for z in [z for z in b.Zones() if not z.GetIsRuleArea() and z.GetNetname() == "GND" and z.IsOnLayer(B)]:
+            b.Remove(z)
     elif kind == "net":            # one pad on the wrong net
         fp = next(fp for fp in b.GetFootprints() if fp.GetReference().startswith("R") and len(fp.Pads()) == 2)
         fp.Pads()[0].SetNet(b.FindNet("GND"))
