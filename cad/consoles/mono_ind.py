@@ -125,7 +125,7 @@ def mark_picture(c, shell):
     """The mark and the name from the front, as the three bodies print: the face's top 0.7 mm round them."""
     cx, cy, r = c.b["mark"]
     near = S.box(cx - 2.6 * r, cx + 2.6 * r, cy - 1.6 * r, cy + 2.6 * r, c.zt - 0.7, c.zt)
-    S.K.render(dict(title="Mono's case, industrial: the mark and the name, as its three bodies print", corners=[], views=[("", 89.9, -90)],
+    S.render(dict(title="Mono's case, industrial: the mark and the name, as its three bodies print", corners=[], views=[("", 89.9, -90)],
                     parts=[(shell.intersect(near), BLACK, "face")] + [(s, col, n) for n, s, col in c.shown]),
                os.path.join(OUT, "mono_ind_mark.png"))
 
