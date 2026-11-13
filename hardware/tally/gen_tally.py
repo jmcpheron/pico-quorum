@@ -689,7 +689,7 @@ PLACE = {
     "Y1": (g(74), g(62)), "C21": (g(68), g(70)), "C22": (g(80), g(70)), "R3": (g(84), g(60)),
     "U7": (g(156), g(70)), "C23": (g(170), g(68)),
     "U6": (g(158), g(14)), "C24": (g(144), g(12)), "R7": (g(174), g(12)), "R8": (g(179), g(12)),
-    "J2": (g(158), g(38)), "C25": (g(144), g(34)), "C26": (g(149), g(34)),
+    "J2": (g(158), g(38)), "C25": (g(134), g(34)), "C26": (g(139), g(34)),
     "Q1": (g(190), g(38)), "Q2": (g(182), g(50)), "R9": (g(178), g(34)), "R10": (g(172), g(52)), "R11": (g(200), g(38)),
     **{f"SW{i + 1}": (g(14 + 14 * i), g(68)) for i in range(3)}, "D1": (g(24), g(78)), "R12": (g(12), g(80)),
     "J3": (g(16), g(94)), **row(36, 94, [f"TP{i}" for i in (1, 2, 3, 4, 5, 9, 10, 11, 12, 13)], 7),
@@ -699,10 +699,10 @@ ROT = {}
 NOTES = [
     (g(4), g(5), "Power in. 5.1k on each CC. 5.7u on VBUS. U3: 5 V to 3.3 V. U4: 3.3 V to the core's 1.1 V."),
     (g(4), g(34), "The link: USB to UART1 and nothing else. DTR and RTS reach nothing."),
-    (g(80), g(5), "The RP2350A. Its own core regulator is not used: FB to ground, LX open, its supplies on 3.3 V (datasheet, figure 24)."),
+    (g(80), g(3), "The RP2350A. Its own core regulator is not used: FB to ground, LX open, its supplies on 3.3 V (datasheet, figure 24)."),
     (g(142), g(5), "The key that signs: I2C0, 4.7k pull-ups."),
     (g(142), g(27), "The screen's ribbon, and its backlight from 5 V: GPIO13 high is on."),
-    (g(146), g(60), "Not fitted: a flash, only for a build with an RP2350A at U1."),
+    (g(146), g(60), "The flash, 16 MB. Left off when U1 is an RP2354A, which has its own inside (BUILD)."),
     (g(4), g(62), "D0, D1, D2 to ground; the LED."),
     (g(4), g(88), "The way in for firmware: SWD on J3 and the pads on the back. Nothing here is reached through the USB-C."),
 ]
@@ -1557,7 +1557,7 @@ def write_fab(pcb):
                 if p.endswith(".gbrjob"):
                     continue
                 data = open(os.path.join(g, p), "rb").read()
-                data = re.sub(rb"(%TF\.CreationDate,|G04 Created by KiCad[^\n]*date |; DRILL file \{[^}]*\} date )[^*\n]*", rb"\g<1>" + DATE.encode(), data)
+                data = re.sub(rb"(TF\.CreationDate,|G04 Created by KiCad[^\n]*date |; DRILL file \{[^}]*\} date )[^*\n]*", rb"\g<1>" + DATE.encode(), data)
                 info = zipfile.ZipInfo(p, date_time=(2026, 1, 1, 0, 0, 0))      # the same bytes on every run
                 info.compress_type = zipfile.ZIP_DEFLATED
                 zf.writestr(info, data)
