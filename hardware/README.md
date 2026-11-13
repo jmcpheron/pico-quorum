@@ -8,6 +8,7 @@ that runs the firmware today, or kept for the record.
 | | what it is | where it stands |
 |---|---|---|
 | **[Mono](mono/README.md)** | the reference console: an RP2350A with no radio, the ATECC608C on the board, a 1.14″ screen and three buttons on a 40 × 89.5 mm bar | designed and routed, 2026-11-06. Its fab files pass `tools/keypcb jlc mono`. Not ordered, nothing built |
+| [Tally](tally/README.md) | Mono's console drawn again from scratch: the same bar, pins and screen; the core fed by a plain 1.1 V regulator, so no inductor; the chip's own USB not brought out | designed and routed, 2026-11-13, with KiCad 7: netlist and DRC clean. `tools/keypcb jlc` not run on it. Not ordered, nothing built |
 | **[Mono's case](../cad/consoles/README.md#mono)** | a printed shell and back panel, and [the industrial variant](../cad/consoles/README.md#mono-industrial) with cut corners and grooves | first drafts, not printed |
 | [console-rp](console-rp/README.md) | the board Mono comes from: the same RP2350A, link, key, screen and pins, on 72 × 36 mm | 5 boards received 2026-11-04. The first is up on a bench script; the console's firmware for it isn't written |
 | [key-c and the other keys](key-pcb/README.md) | the key as a part you plug in: an ATECC608C behind a USB-C receptacle | key-c P2 built and working; P3 drawn |
@@ -46,6 +47,8 @@ questions (a guard over Sign, printed or aluminum, the name on the face) are in 
 
 - [`mono/`](mono/README.md): Mono's board. Its generator, the KiCad project, fab files, renders and
   [pins](mono/PINS.md)
+- [`tally/`](tally/README.md): a second, independent design of Mono's console. Its generator, the KiCad
+  project, fab files and [pins](tally/PINS.md)
 - [`console-rp/`](console-rp/README.md): the first RP2350 console. Its
   [bring-up](console-rp/bench/BRINGUP.md), [the plan](console-rp/PLAN-2026-11-04.md) written the
   night it came up, and [a plan for a square rev B](console-rp/REV-B-PLAN-2026-11-05.md)

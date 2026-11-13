@@ -40,5 +40,9 @@
   "C20625731": {"mpn": "ABM8-272-T3", "maker": "ABRACON", "package": "SMD3225-4P", "value": "12MHz", "pads": 4, "pitch": null, "read": "2026-10-29"},
   "C435835": {"mpn": "LDL1117S33R", "maker": "ST", "package": "SOT-223-4", "value": "LDL1117S33R", "pads": 4, "pitch": 2.3, "read": "2026-11-06", "note": "three pins and the tab, which is pin 2 (VOUT)"},
   "C2158037": {"mpn": "AP22653W6-7", "maker": "DIODES", "package": "SOT-26", "value": "AP22653W6-7", "pads": 6, "pitch": 0.95, "read": "2026-11-06"},
-  "C25076": {"mpn": "0402WGF1000TCE", "maker": "UNI-ROYAL", "package": "0402", "value": "100R", "pads": 2, "pitch": null, "read": "2026-11-06"}
+  "C25076": {"mpn": "0402WGF1000TCE", "maker": "UNI-ROYAL", "package": "0402", "value": "100R", "pads": 2, "pitch": null, "read": "2026-11-06"},
+  "C485147": {"mpn": "TLV74311PDBVR", "maker": "TI", "package": "SOT-23-5", "value": "TLV74311PDBVR", "pads": 5, "pitch": 0.95, "read": "2026-11-13"},
+  "C9002": {"mpn": "X322512MSB4SI", "maker": "YXC Crystal Oscillators", "package": "SMD3225-4P", "value": "12MHz", "pads": 4, "pitch": null, "read": "2026-11-13"},
+  "C20917": {"mpn": "AO3400A", "maker": "AOS", "package": "SOT-23", "value": "AO3400A", "pads": 3, "pitch": 1.9, "read": "2026-11-13"},
+  "C160403": {"mpn": "SM03B-SRSS-TB(LF)(SN)", "maker": "JST", "package": "SMD, P=1mm, right angle", "value": "SWD", "pads": 3, "pitch": 1.0, "read": "2026-11-13", "note": "three pins; its two solder tabs are not counted"}
 }

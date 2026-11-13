@@ -1,0 +1,4 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "tally")(type "KiCad")(uri "${KIPRJMOD}/../lib/tally.pretty")(options "")(descr "Tally's own footprints"))
+)
