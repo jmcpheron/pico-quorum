@@ -220,3 +220,17 @@ What was checked:
   read the chip before it lost power. The other cuts came before that read and used nothing. No
   error in the log. A dump over SWD after: every file there, `pin.json` and `keyflow.json` the same
   bytes as before dd82e30a's load, the JSON files parsing, no broken line in `log.txt`.
+- Board #2 on 5add8498, 2026-11-12: ten transactions queued on the 2 of 2 Safe (nonces 13 to 22)
+  and signed in one start, 21 before 20. Each confirmation was posted (201) and listed by Safe's
+  service, and the counter went up by exactly one for each, 179 to 189. 48 to 53 KB free around
+  the signatures. Nonces 13 to 18 were then executed (the Safe's nonce is 19).
+- The same image restarted itself 4 times that day while idle (reset cause 3), each time because no
+  2 KB piece was free for 30 s, though every poll still read whole. Since d60dfb40 that look only
+  logs. A restart needs 3 failures in real work with no whole poll between
+  ([hardware/console-rp/SETUP.md](../hardware/console-rp/SETUP.md#low-memory)), and its reason goes
+  to the log before it. A key pressed during a poll now ends the wait, and the answer, if it comes,
+  is dropped as unsolicited. That is checked in `console_test` (case_poll_keys) only.
+- Board #2 on d60dfb40, idle on home from 15:22 the same day. At +6666 s the look found no 2 KB
+  piece (largest 1984 bytes, 56 KB free), and 30 s later found one again. Nothing restarted. A read
+  over SWD a minute later showed a 485 KB heap with 40 KB free, none of it in a run over 2.1 KB.
+  The next poll of the 2 of 2 Safe read its 9.3 KB queue whole (200, 580 ms).

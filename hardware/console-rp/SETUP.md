@@ -71,12 +71,24 @@ its own, or at ▲ Check again. A look that finds nothing costs no use of the ke
 the log with its reason, the scan and whether SDA was held, so `relay.py` and the app show it. One
 start in 100 on board #2 found no chip and the next found it (docs/USB-LINK.md).
 
+## Low memory
+
+On home the console has about 55-60 KB free, in pieces. A poll reads its answer where it lies, in a
+24 KB line set aside at the start, so it needs no big piece. Every 30 s on home the console looks for
+2 KB in one piece. It logs when it finds none and when it finds one again, and does nothing else.
+It restarts only for work that failed for memory: 3 failures (a poll, a transaction, an answer to the
+computer) with no whole poll between, at least 10 minutes into a start, and never more than 2 such
+restarts in a row (`mem-restarts.txt`). The reason goes to the log before the restart, so
+`relay.py` and the app have it.
+
 ## Loading a board that has a key
 
 Never a plain load: it wipes `pin.json` and `keyflow.json`. Without them the console finds its chip
 sealed by someone else and stops on "Sealed elsewhere", until the dumped files go back.
 
-1. `swdload.py --dump DIR` (about 4 minutes; the console keeps running).
+1. `swdload.py --dump DIR`, right before the load (about 4 minutes; the console keeps running). A
+   dump from before the console's last start holds an older `counter-<serial>.txt` and log. The next
+   start then shows the difference as uses outside the console, and the log in between is lost.
 2. `swdload.py --no-micropython --image build/console-rp-<sha> --keep DIR`. It writes the whole
    filesystem, 24 pieces of 128 KB, in about 3 minutes, with the dumped files in it. The console
    doesn't run while it writes.
@@ -89,4 +101,5 @@ the same load again: the whole filesystem.
 ## Not done
 
 - **An update for an owner:** the USB-C reaches only the CH343P, so a new image needs J3 and SWD.
-- **Frozen modules,** for more heap than the 70-80 KB free with the console running.
+- **Frozen modules,** for more heap than the 55-60 KB free on home with two Safes (board #2,
+  2026-11-12).
