@@ -7,12 +7,12 @@ working name. See README.md.
 
     python3 gen_tally.py            writes everything below, then checks it
     python3 gen_tally.py check      checks the files as they are, writing nothing
-    python3 gen_tally.py import D   once: writes lib/ afresh (D holds the two KiCad 10 footprint files)
+    python3 gen_tally.py import D   once: writes lib/tally.pretty/ afresh (D holds the two KiCad 10 footprint files)
         (written and run on KiCad 7.0.11: kicad-cli and its Python's pcbnew, nothing else)
 
 Writes, from the one table below:
   lib/tally.kicad_sym    every symbol the schematic uses, so the project needs no stock library
-  lib/tally.pretty/      every footprint the board uses, the same way
+  (lib/tally.pretty/     every footprint the board uses, the same way: written by `import` only)
   tally/tally.kicad_sch  the schematic: each pin a stub and a name, nothing drawn wire to wire
   tally/tally.kicad_pcb  the board, placed and routed: Raspberry Pi's copper round the chip
                          (rpi_minimal.json), and every other track drawn here, in wire()
@@ -20,10 +20,11 @@ Writes, from the one table below:
   tally/fab/             the Gerber and drill zip, bom.csv and cpl.csv in JLCPCB's format
   PINS.md                the RP2350's pins, as the firmware sees them
 
-Then it has KiCad read the schematic back and checks every connection against the table, every
-symbol pin against its footprint's pads, each GPIO against the RP2350's function table, the screen's
-and key's pins against firmware/board.py, and the link's wiring rules; checks the board against that netlist; and runs KiCad's DRC on the board. It
-prints each difference and exits 1.
+Then it has KiCad read the schematic back and checks every connection against the table, each GPIO
+against the RP2350's function table, the screen's and key's pins against firmware/board.py, and the
+link's wiring rules; checks the board against that netlist, pad by pad and pin by pin; runs KiCad's
+DRC on the board; and writes fab/, the project file and PINS.md again to compare. It prints each
+difference and exits 1.
 """
 import csv, hashlib, json, math, os, re, shutil, subprocess, sys, tempfile, uuid, zipfile
 
@@ -50,6 +51,19 @@ CHIP = {"RP2350A": dict(value="RP2350A", lcsc="C42411118", mpn="RP2350A"),
 FLASH = dict(lcsc="C97521", mpn="W25Q128JVSIQ") if BUILD == "RP2350A" else dict(bom=False)
 
 # =================================================================================================
+# JLCPCB lays its own footprint for a part on the CPL's point, turned by the CPL's angle. Where that
+# footprint's pin 1 is not where KiCad's is, the CPL's angle is KiCad's plus this (degrees,
+# counter-clockwise). Each is the turn that lays JLCPCB's pads, as drawn in the JLCEDA/EasyEDA
+# library on 2026-11-13, on KiCad's pads, number for number: found three times over (REVIEW.md).
+# Its package names say the same: -BL and -BR are pin 1 bottom-left and bottom-right, where KiCad
+# has it top-left. The other parts' footprints lie as KiCad's do.
+JLC_TURN = {"C7519": 270, "C485147": 270, "C28975195": 270, "C97521": 270,      # SOT-23-6, SOT-23-5, SOIC-8 x 2: -BL
+            "C2846043": 270,                                                    # the CH343P's QFN-16: -BL. A wrong turn fits its pads
+            "C435835": 180, "C15127": 180, "C20917": 180}                       # SOT-223, SOT-23 x 2: -BR
+# JLCPCB's USB-C footprint has its origin 1.394 mm nearer the pads than KiCad's, by its two pegs.
+# lib/'s copy has its anchor moved there, so the CPL's point is JLCPCB's.
+J1_ORIGIN = 1.394
+
 # The one table: every part, its LCSC number and what each of its pins connects to. A pin not listed
 # is not connected, on purpose, and gets a no-connect flag. Nets other than the four power nets are
 # local labels, which KiCad names "/<net>".
@@ -65,6 +79,7 @@ R1K = dict(value="1k", fp=R0402, lcsc="C11702", mpn="0402WGF1001TCE")
 R4K7 = dict(value="4.7k", fp=R0402, lcsc="C25900", mpn="0402WGF4701TCE")
 R5K1 = dict(value="5.1k", fp=R0402, lcsc="C25905", mpn="0402WGF5101TCE")
 R150 = dict(value="150R", fp="R_0603_1608Metric", lcsc="C22808", mpn="0603WAF1500T5E")
+R100 = dict(value="100R", fp=R0402, lcsc="C25076", mpn="0402WGF1000TCE")
 
 
 def cap(ref, a, b, spec, why="", **kw):
@@ -113,7 +128,7 @@ PARTS = [
     dict(ref="U3", sym="LDL1117S33R", value="LDL1117S33R", fp="SOT-223-3_TabPin2", lcsc="C435835", mpn="LDL1117S33R",
          nets={"3": VBUS, "2": V33, "1": GND},
          why="5 V to 3.3 V. SOT-223: about 0.1 W here. Stable on ceramics; takes 18 V in"),
-    cap("C1", VBUS, GND, C4U7, "U3's input. With C5, 5.7u on VBUS, under USB's 10u"),
+    cap("C1", VBUS, GND, C10U, "U3's input and the bulk on VBUS: 10u, which WCH asks for beside a CH343P fed from VBUS, and console-rp has"),
     cap("C2", V33, GND, C10U, "U3's output, the board's bulk"),
     dict(ref="U4", sym="TLV74311P", value="TLV74311PDBVR", fp="SOT-23-5", lcsc="C485147", mpn="TLV74311PDBVR",
          nets={"1": V33, "3": V33, "2": GND, "5": V11},
@@ -128,6 +143,7 @@ PARTS = [
     cap("C5", VBUS, GND, C1U, "CH343P VDD5"),
     cap("C6", "CH_V3", GND, C100N, "CH343P V3, its own 3.3 V"),
     cap("C7", V33, GND, C100N, "CH343P VIO: its UART pins at the RP2350's 3.3 V"),
+    res("R13", "LINK_TX", V33, R4K7, "the bridge's RXD idles high while the RP2350 is in reset, blank or not yet driving GPIO20"),
     # --- the RP2350A and what it needs ------------------------------------------------------------
     dict(ref="U1", sym="RP2350A", fp="RPi_RP2350A_QFN-60_7x7mm_P0.4mm_ThermalVias", **CHIP,
          nets=U1_NETS, why="no radio on the chip. The RP2354A is the same chip with 2 MB of flash in the package (BUILD)"),
@@ -179,8 +195,10 @@ PARTS = [
     res("R12", "LED_K", GND, R1K),
     # --- the way in for firmware: nothing here is reached through the USB-C ------------------------
     dict(ref="J3", sym="DEBUG_3P", value="SWD", fp="JST_SH_SM03B-SRSS-TB_1x03-1MP_P1.00mm_Horizontal", lcsc="C160403", mpn="SM03B-SRSS-TB(LF)(SN)",
-         nets={"1": "SWCLK", "2": GND, "3": "SWDIO", "SH": GND}, why="Raspberry Pi's 3-pin debug connector: a Debug Probe's cable plugs in"),
-    tp("TP1", "SWCLK", "the jig's pads, on the back, at Mono's places"), tp("TP2", GND, ""), tp("TP3", "SWDIO", ""),
+         nets={"1": "SWCLK_J", "2": GND, "3": "SWDIO_J", "SH": GND}, why="Raspberry Pi's 3-pin debug connector: a Debug Probe's cable plugs in"),
+    res("R14", "SWCLK", "SWCLK_J", R100, "100 R in each debug line, as Raspberry Pi's debug connector specification asks at the target: a cable goes in live"),
+    res("R15", "SWDIO", "SWDIO_J", R100),
+    tp("TP1", "SWCLK_J", "the jig's pads, on the back, at Mono's places"), tp("TP2", GND, ""), tp("TP3", "SWDIO_J", ""),
     tp("TP4", "RUN", "low resets the chip"), tp("TP5", V33, "to measure"), tp("TP9", GND, ""),
     tp("TP10", V11, "the core's supply, to measure"), tp("TP11", VBUS, "to measure"),
     tp("TP12", "LINK_TX", "the link, to watch"), tp("TP13", "LINK_RX", ""),
@@ -188,6 +206,9 @@ PARTS = [
     *[dict(ref=f"H{i}", sym="MountingHole", value="M2", fp="MountingHole_2.2mm_M2", nets={}, why="", bom=False) for i in range(1, 5)],
     *[dict(ref=f"FID{i}", sym="Fiducial", value="Fiducial", fp="Fiducial_1mm_Mask2mm", nets={}, why="", bom=False) for i in range(1, 4)],
 ]
+for _p in PARTS:
+    if _p.get("lcsc") in JLC_TURN:
+        _p["rot_offset"] = JLC_TURN[_p["lcsc"]]
 BY_REF = {p["ref"]: p for p in PARTS}
 FLAGS = (VBUS, GND)                       # nets no symbol drives: each gets a PWR_FLAG
 
@@ -504,8 +525,6 @@ def fp_to_v7(text, name=None):
         elif k == "fp_text":
             out.append(text_(str(c[1]), c[2], c))
         elif k in ("fp_line", "fp_rect", "fp_circle", "fp_poly", "fp_arc"):
-            if k == "fp_poly" and first(c, "layer")[1] == "F.SilkS":
-                continue                 # KiCad 10's filled pin-1 triangle: it sits on the pads' mask openings
             out.append(shape(c))
         elif k == "pad":
             out.append(c[:4] + [x for x in c[4:] if isinstance(x, list) and x[0] in KEEP_PAD])
@@ -517,6 +536,7 @@ def fp_to_v7(text, name=None):
 def import_footprints(kicad10_dir):
     """Writes lib/tally.pretty afresh. Run once, with KiCad 7's stock library here and the two KiCad 10 files in kicad10_dir."""
     import pcbnew
+    pcbnew.KIID.SeedGenerator(20261113)      # the same files from the same script
     tmp = os.path.join(tempfile.mkdtemp(prefix="tally-fp-"), NAME + ".pretty")
     os.makedirs(tmp)                    # pcbnew's FootprintSave wants the folder there
     for name, lib in sorted(STOCK_FP.items()):
@@ -525,6 +545,7 @@ def import_footprints(kicad10_dir):
             for pad in fp.Pads():       # the shell: SH, as KiCad 10's library and tools/jlc name it
                 if pad.GetNumber() == "S1":
                     pad.SetNumber("SH")
+            fp.MoveAnchorPosition(pcbnew.VECTOR2I(0, mm(J1_ORIGIN)))      # its anchor where JLCPCB's footprint has its origin
         if name.startswith("JST_SH"):
             for pad in fp.Pads():       # its two solder tabs, the same way: not counted as pins
                 if pad.GetNumber() == "MP":
@@ -541,7 +562,7 @@ def import_footprints(kicad10_dir):
             t = parse(txt)
             def past(c):
                 return (isinstance(c, list) and c[0] == "fp_line" and first(c, "layer")[1] == "F.SilkS"
-                        and max(first(c, "start")[2], first(c, "end")[2]) > 3.0)
+                        and max(first(c, "start")[2], first(c, "end")[2]) > 3.0 + J1_ORIGIN)
             txt = dump([c for c in t if not past(c)]) + "\n"
         txt = re.sub(r"\$\{KICAD\d+_3DMODEL_DIR\}", "${KICAD10_3DMODEL_DIR}", txt).replace('.wrl"', '.step"')
         open(p, "w").write(txt)
@@ -683,7 +704,7 @@ PLACE = {
     "J1": (g(16), g(18)), **row(30, 12, ["R1", "R2"], 5), "U2": (g(34), g(24)),
     "U3": (g(58), g(12)), "C1": (g(46), g(12)), "C2": (g(70), g(12)),
     "U4": (g(58), g(24)), "C3": (g(46), g(24)), "C4": (g(70), g(24)),
-    "U5": (g(28), g(44)), **row(6, 42, ["C5", "C6", "C7"], 5),
+    "U5": (g(28), g(44)), **row(6, 42, ["C5", "C6", "C7"], 5), "R13": (g(44), g(42)),
     "U1": (g(104), g(52)),
     **row(82, 12, ["C10", "C11", "C12", "C13", "C14", "C15", "C19", "C20"], 5), **row(124, 12, ["C16", "C17", "C18"], 5),
     "Y1": (g(74), g(62)), "C21": (g(68), g(70)), "C22": (g(80), g(70)), "R3": (g(84), g(60)),
@@ -692,7 +713,7 @@ PLACE = {
     "J2": (g(158), g(38)), "C25": (g(134), g(34)), "C26": (g(139), g(34)),
     "Q1": (g(190), g(38)), "Q2": (g(182), g(50)), "R9": (g(178), g(34)), "R10": (g(172), g(52)), "R11": (g(200), g(38)),
     **{f"SW{i + 1}": (g(14 + 14 * i), g(68)) for i in range(3)}, "D1": (g(24), g(78)), "R12": (g(12), g(80)),
-    "J3": (g(16), g(94)), **row(36, 94, [f"TP{i}" for i in (1, 2, 3, 4, 5, 9, 10, 11, 12, 13)], 7),
+    "J3": (g(16), g(94)), "R14": (g(8), g(104)), "R15": (g(16), g(104)), **row(36, 94, [f"TP{i}" for i in (1, 2, 3, 4, 5, 9, 10, 11, 12, 13)], 7),
     **row(140, 94, ["H1", "H2", "H3", "H4"], 6), **row(170, 94, ["FID1", "FID2", "FID3"], 6),
 }
 ROT = {}
@@ -805,17 +826,21 @@ def check_table():
         for net in p["nets"].values():
             count[net] = count.get(net, 0) + 1
     bad += [f"net {n} has one pin" for n, c in sorted(count.items()) if c < 2]
-    # firmware/board.py's Pico defaults for the screen and the key bus, which console-rp and Mono keep
+    # firmware/board.py's Pico defaults for the screen and the key's bus, which console-rp and Mono keep
     try:
         src = open(os.path.join(REPO, "firmware", "board.py")).read()
-        m = re.search(r"LCD_PINS\s*=\s*dict\(([^)]*)\)", src)
-        if m:
-            fw = dict((k.strip(), int(v)) for k, v in (kv.split("=") for kv in m.group(1).split(",")) if v.strip().isdigit())
-            for k, net in (("dc", "LCD_DC"), ("cs", "LCD_CS"), ("sck", "LCD_SCK"), ("mosi", "LCD_MOSI"), ("rst", "LCD_RST"), ("bl", "LCD_BL")):
-                if k in fw and fw[k] != GPIO[net]:
-                    bad.append(f"{net} is GPIO{GPIO[net]}, firmware/board.py's Pico default is {fw[k]}")
-    except OSError:
-        pass
+        a = re.search(r"^DC, CS, SCK, MOSI, RST, BL = ([\d, ]+)\n", src, re.M)
+        z = re.search(r"^SPI_ID, SDA, SCL, LED = (\d+), (\d+), (\d+),", src, re.M)
+        if not a or not z:
+            bad.append("firmware/board.py no longer sets its Pico pins on the two lines this check reads")
+        else:
+            fw = dict(zip(("LCD_DC", "LCD_CS", "LCD_SCK", "LCD_MOSI", "LCD_RST", "LCD_BL"), map(int, a.group(1).split(","))))
+            fw.update(SDA=int(z.group(2)), SCL=int(z.group(3)))
+            bad += [f"{net} is GPIO{GPIO[net]}, firmware/board.py's Pico default is {g_}" for net, g_ in fw.items() if GPIO[net] != g_]
+            if int(z.group(1)) != 1:
+                bad.append(f"firmware/board.py's SPI is {z.group(1)}, the screen is on SPI1")
+    except OSError as e:
+        bad.append(f"firmware/board.py can't be read ({e}), so the pins were not checked against it")
     return bad
 
 
@@ -843,7 +868,7 @@ XC, YC = (GX0 + GX1) / 2, (GY0 + GY1) / 2
 ZIF_X = round(GX1 - 19.5, 3)             # J2's origin 19.5 mm in from the glass's ribbon end, as console-s3's, PicoquorumKey's and Mono's
 PITCH, BY = 10.0, 24.0                   # the buttons: 10 mm apart, their row 24 mm below the top edge
 U1 = (20.0, 47.0)                        # the RP2350's centre, turned -90: pins 1-15 (screen, buttons, key) face up
-J1 = (20.0, H - 3.6)                     # the USB-C, its opening down, its face on the bottom edge
+J1 = (20.0, H - 3.6)                     # the USB-C's middle (KiCad's own anchor for it), its opening down, its face on the bottom edge
 TPY = 68.0                               # the jig's pads' row, on the back: Mono's places
 
 
@@ -862,7 +887,7 @@ def pin(n):
 
 
 def jm(x, y):
-    """A point given from J1's origin."""
+    """A point given from the USB-C's middle, J1."""
     return round(J1[0] + x, 4), round(J1[1] + y, 4)
 
 
@@ -887,7 +912,7 @@ AT = {
     "H1": (3.5, BY, 0), "H2": (W - 3.5, BY, 0), "H3": (3.5, H - 3.5, 0), "H4": (W - 3.5, H - 3.5, 0),
     # under the glass: only the screen's connector and its two capacitors
     "J2": (ZIF_X, YC, 90), "C25": (13.9, 7.45, 180), "C26": (13.9, 8.55, 180),
-    # the key under D2, its bus pins facing the chip
+    # the key under D1, its bus pins facing the buttons
     "U6": (19.6, 33.6, 90), "R7": (20.5, 28.3, 180), "R8": (19.1, 29.4, 180), "C24": (17.2, 29.4, 180),
     # the RP2350 with Raspberry Pi's parts round it
     "U1": (*U1, -90),
@@ -898,18 +923,18 @@ AT = {
     "C19": (24.9, 46.8, 0),
     # the core's regulator under the chip, by DVDD's pin 39
     "U4": (22.6, 57.2, 90), "C3": (19.8, 58.3, 180), "C4": (19.8, 56.1, 180),
-    "D1": (20.2, 62.4, 180), "R12": (22.9, 62.4, 0),
-    "J3": (4.2, 57.5, 270),
+    "D1": (20.2, 66.5, 180), "R12": (22.9, 66.5, 0),      # 10.5 mm from where Mono's case has its mark
+    "J3": (4.2, 57.5, 270), "R14": (12.0, 56.5, 180), "R15": (12.8, 58.5, 180),
     # the bottom end: the USB-C, the ESD diodes in line, the bridge, the 3.3 V regulator, the backlight's switch
-    "J1": (*J1, 0), "U2": (*jm(0.0, -8.3), 90), "R1": (*jm(-2.3, -6.25), 90), "R2": (*jm(2.2, -6.25), 90),
-    "U5": (*jm(-0.5, -14.2), 0), "C5": (15.6, 72.0, 180), "C6": (17.8, 75.1, -90), "C7": (16.6, 70.0, 180),
-    "U3": (31.2, 77.6, 0), "C1": (25.0, 79.3, 90), "C2": (25.6, 76.4, 90),
+    "J1": (J1[0], round(J1[1] - J1_ORIGIN, 4), 0), "U2": (*jm(0.0, -8.3), 90), "R1": (*jm(-2.3, -6.25), 90), "R2": (*jm(2.2, -6.25), 90),
+    "U5": (*jm(-0.5, -14.2), 0), "C5": (15.6, 71.95, 180), "C6": (17.8, 75.1, -90), "C7": (16.6, 70.0, 180), "R13": (13.3, 71.0, 180),
+    "U3": (31.2, 77.6, 0), "C1": (28.4, 82.3, 0), "C2": (25.6, 76.4, 90),
     # the backlight's switch left of the screen's lines, between the chip and D0: 5 V comes up the left edge
     "R11": (4.9, 36.5, 180), "Q1": (8.4, 36.5, 180), "R9": (8.4, 39.3, 180), "Q2": (11.3, 40.0, 180), "R10": (11.2, 42.2, 180),
     # fiducials, each 3.85 mm or more from the edge
     "FID1": (3.85, 6.0, 0), "FID2": (W - 3.85, 54.0, 0), "FID3": (9.5, H - 3.85, 0),
     **{t: (x, TPY, 0) for t, x in TP_X.items()},
-    "TP10": (22.2, 55.4, 0), "TP11": (25.6, 84.6, 0), "TP12": (12.6, 64.2, 0), "TP13": (15.8, 64.2, 0),
+    "TP10": (22.2, 55.4, 0), "TP11": (26.6, 84.6, 0), "TP12": (12.6, 64.2, 0), "TP13": (15.8, 64.2, 0),
 }
 BACK = {r for r in AT if r.startswith("TP")}
 # pads joined to the ground pours solidly: thermal spokes can't reach these from two sides
@@ -945,7 +970,8 @@ SEVERITIES = dict(annular_width="error", clearance="error", connection_width="wa
 CLASSES = [("Default", 0.2, []), ("Power", 0.3, [V33, V11, VBUS]), ("Ground", 0.3, [GND])]
 
 
-def write_project():
+def write_project(out=None):
+    out = out or OUT
     cls = [dict(name=n, clearance=CLEAR, track_width=w, via_diameter=0.6, via_drill=0.3, microvia_diameter=0.3, microvia_drill=0.1,
                 diff_pair_width=0.2, diff_pair_gap=0.25, diff_pair_via_gap=0.25, bus_width=12, wire_width=6, line_style=0,
                 pcb_color="rgba(0, 0, 0, 0.000)", schematic_color="rgba(0, 0, 0, 0.000)") for n, w, _nets in CLASSES]
@@ -956,8 +982,8 @@ def write_project():
            "net_settings": {"classes": cls, "meta": {"version": 3}, "net_colors": None, "netclass_assignments": None,
                             "netclass_patterns": [{"netclass": n, "pattern": net} for n, _w, nets in CLASSES for net in nets]},
            "pcbnew": {"page_layout_descr_file": ""}, "sheets": [], "text_variables": {}}
-    open(os.path.join(OUT, NAME + ".kicad_pro"), "w").write(json.dumps(pro, indent=2, sort_keys=True) + "\n")
-    open(os.path.join(OUT, "fp-lib-table"), "w").write(
+    open(os.path.join(out, NAME + ".kicad_pro"), "w").write(json.dumps(pro, indent=2, sort_keys=True) + "\n")
+    open(os.path.join(out, "fp-lib-table"), "w").write(
         f'(fp_lib_table\n  (version 7)\n  (lib (name "{NAME}")(type "KiCad")(uri "${{KIPRJMOD}}/../lib/{NAME}.pretty")(options "")(descr "Tally\'s own footprints"))\n)\n')
 
 
@@ -977,6 +1003,14 @@ def place_board(nets):
         fp.SetReference(p["ref"])
         fp.SetValue(p["value"])
         fp.SetPath(pcbnew.KIID_PATH("/" + uid("sym", p["ref"])))
+        for k in ("LCSC", "MPN"):            # the symbol's fields on the footprint too, as KiCad's own update does
+            if p.get(k.lower()):
+                if hasattr(fp, "SetField"):
+                    fp.SetField(k, p[k.lower()]); fp.GetField(k).SetVisible(False)
+                else:
+                    fp.SetProperty(k, p[k.lower()])
+        if hasattr(fp, "SetSheetname"):
+            fp.SetSheetname("/"); fp.SetSheetfile(NAME + ".kicad_sch")
         fp.Reference().SetLayer(pcbnew.F_Fab)           # 0402s are too close for names on the silkscreen
         fp.Value().SetLayer(pcbnew.F_Fab)
         fp.Value().SetVisible(False)
@@ -1035,7 +1069,7 @@ def netname(n):
 
 
 class Copper:
-    """Tracks, vias and zones go onto the board and into the router's picture of it together."""
+    """Tracks, vias and zones go onto the board, and into two lists that stitch() reads."""
 
     def __init__(self, b):
         import pcbnew
@@ -1081,7 +1115,8 @@ class Copper:
         if rule:                         # a keep-out: no tracks or vias; pads, footprints and pours may
             z.SetIsRuleArea(True); z.SetZoneName(rule)
             z.SetDoNotAllowTracks(True); z.SetDoNotAllowVias(True)
-            z.SetDoNotAllowPads(False); z.SetDoNotAllowFootprints(False); z.SetDoNotAllowCopperPour(False)
+            z.SetDoNotAllowPads(False); z.SetDoNotAllowFootprints(False)
+            (getattr(z, "SetDoNotAllowZoneFills", None) or z.SetDoNotAllowCopperPour)(False)       # KiCad 10's name, or 7's
         else:
             z.SetNet(self.net(net)); z.SetAssignedPriority(prio)
             z.SetLocalClearance(mm(clearance)); z.SetMinThickness(mm(min_w))
@@ -1161,9 +1196,10 @@ def wire(w):
     w.line("USB_D+", "F", [jm(-0.25, -5.35), jm(-0.25, -5.6), jm(-0.95, -6.3), "U2.1"], 0.2)
     w.line("USB_D+", "F", ["U2.1", "U2.6"], 0.2)
     w.line("USB_D+", "F", ["U2.6", jm(-0.95, -11.0), jm(-0.25, -11.7), "U5.7"], 0.2)
-    w.line("USB_D-", "F", ["J1.B7", jm(-0.75, -3.0), jm(-0.25, -2.5), jm(0.25, -3.0), "J1.A7"], 0.2)
-    w.via("USB_D-", *jm(-0.25, -2.5))
-    w.line("USB_D-", "B", [jm(-0.25, -2.5), jm(-0.25, -4.4), jm(0.95, -5.6), jm(0.95, -5.95)], 0.2)
+    # D- joined behind the pads, its via 0.37 mm short of where the connector's metal shell begins
+    w.line("USB_D-", "F", ["J1.B7", jm(-0.75, -3.15), jm(-0.45, -2.85), jm(-0.05, -2.85), jm(0.25, -3.15), "J1.A7"], 0.2)
+    w.via("USB_D-", *jm(-0.25, -2.85))
+    w.line("USB_D-", "B", [jm(-0.25, -2.85), jm(-0.25, -4.4), jm(0.95, -5.6), jm(0.95, -5.95)], 0.2)
     w.via("USB_D-", *jm(0.95, -5.95))
     w.line("USB_D-", "F", [jm(0.95, -5.95), "U2.3"], 0.2)
     w.line("USB_D-", "F", ["U2.3", "U2.4"], 0.2)
@@ -1184,9 +1220,9 @@ def wire(w):
     w.line("CH_V3", "F", ["U5.6", (19.25, 73.75), (18.5, 74.5), "C6.1"], 0.2)
     w.line("GND", "F", ["U5.2", (18.8, 71.45)], 0.25)
     w.via("GND", 19.5, 71.7)
-    w.via("VBUS", 16.85, 72.0)                                        # 5 V up from the bar on the back, to the bridge's VDD5
-    w.line("VBUS", "B", [jm(-3.1, -10.6), (16.9, 72.05), (16.85, 72.0)], 0.3)
-    w.line("VBUS", "F", ["C5.1", (16.85, 72.0), (17.6, 72.0), "U5.3"], 0.3)
+    w.via("VBUS", 16.85, 71.95)                                        # 5 V up from the bar on the back, to the bridge's VDD5
+    w.line("VBUS", "B", [jm(-3.1, -10.6), (16.9, 72.0), (16.85, 71.95)], 0.3)
+    w.line("VBUS", "F", ["C5.1", (16.85, 71.95), "U5.3"], 0.3)
     w.line("+3V3", "F", ["C7.1", (17.2, 70.52), (17.63, 70.95), "U5.1"], 0.25)
     # --- 3.3 V: the regulator, the trunk up the right of the bridge, the chip's VREG_VIN ---------------
     w.line("+3V3", "F", [(28.05, 77.6), (34.35, 77.6)], 0.6)
@@ -1209,9 +1245,12 @@ def wire(w):
     w.via("GND", 22.6, 57.0)
     # --- VBUS: to the regulator, its test pad, and up the left edge to the backlight's switch ---------
     w.line("VBUS", "F", [jm(2.9, -6.05), (28.05, 79.85)], 0.4)
+    w.line("VBUS", "F", [(27.45, 79.85), "C1.1"], 0.4)
+    w.line("GND", "F", ["C1.2", (30.6, 82.3)], 0.3)
+    w.via("GND", 30.6, 82.3)
     w.line("VBUS", "F", [(26.2, 79.85), (26.2, 81.0)], 0.3)
     w.via("VBUS", 26.2, 81.0)
-    w.line("VBUS", "B", [(26.2, 81.0), (26.2, 84.0), "TP11.1"], 0.3)
+    w.line("VBUS", "B", [(26.2, 81.0), (26.2, 84.2), "TP11.1"], 0.3)
     w.line("VBUS", "F", [(16.9, 76.5), (4.0, 76.5), (4.0, 40.2), (4.9, 39.3), (4.9, 35.55), "Q1.2"], 0.25)   # under R11, between its pads
     w.line("VBUS", "F", [(4.9, 39.3), "R9.2"], 0.25)
     # the backlight's switch
@@ -1277,21 +1316,27 @@ def wire(w):
     w.line("GND", "F", ["U7.4", (28.805, 44.2)], 0.3)
     w.via("GND", 28.805, 44.2)
     # --- the chip's left and bottom: debug, reset, the link, the LED ----------------------------------
-    w.line("SWCLK", "F", ["U1.24", (15.4, 47.4), (14.75, 48.05), (14.75, 55.6), (13.85, 56.5), "J3.1"], 0.15)
-    w.via("SWCLK", 9.5, 56.5)
-    w.line("SWCLK", "B", [(9.5, 56.5), (3.0, 63.0), "TP1.1"], 0.2)
-    w.line("SWDIO", "F", ["U1.25", (15.5, 47.8), (15.1, 48.2), (15.1, 57.6), (14.2, 58.5), "J3.3"], 0.15)
-    w.via("SWDIO", 10.3, 58.5)
-    w.line("SWDIO", "B", [(10.3, 58.5), (8.08, 60.72), "TP3.1"], 0.2)
-    w.line("RUN", "F", ["U1.26", (15.6, 48.2), (15.45, 48.35), (15.45, 59.2), (10.62, 64.03), "TP4.1"], 0.15)
-    w.via("RUN", 10.62, 68.0)
+    w.line("SWCLK", "F", ["U1.24", (15.4, 47.4), (14.75, 48.05), (14.75, 55.6), (13.85, 56.5), "R14.1"], 0.15)
+    w.line("SWCLK_J", "F", ["R14.2", "J3.1"], 0.15)
+    w.via("SWCLK_J", 9.5, 56.5)
+    w.line("SWCLK_J", "B", [(9.5, 56.5), (3.0, 63.0), "TP1.1"], 0.2)
+    w.line("SWDIO", "F", ["U1.25", (15.5, 47.8), (15.1, 48.2), (15.1, 57.6), (14.2, 58.5), "R15.1"], 0.15)
+    w.line("SWDIO_J", "F", ["R15.2", "J3.3"], 0.15)
+    w.via("SWDIO_J", 10.3, 58.5)
+    w.line("SWDIO_J", "B", [(10.3, 58.5), (8.08, 60.72), "TP3.1"], 0.2)
+    # a pad's via sits 1 mm or more off its centre, joined on the back: a pogo pin lands on copper, not in a hole
+    w.line("RUN", "F", ["U1.26", (15.6, 48.2), (15.45, 48.35), (15.45, 59.2), (10.62, 64.03), (10.62, 66.8)], 0.15)
+    w.via("RUN", 10.62, 66.8)
+    w.line("RUN", "B", [(10.62, 66.8), "TP4.1"], 0.2)
     w.via("GND", 7.5, 57.5)
     w.line("GND", "F", ["J3.2", (7.5, 57.5)], 0.25)
-    w.line("LINK_TX", "F", ["U1.32", (17.6, 51.4), (16.9, 52.1), (16.9, 59.9), "TP12.1", (14.15, 65.75), (14.15, 73.6), (14.55, 74.0), (18.45, 74.0), (18.75, 73.7), "U5.5"], 0.2)
-    w.via("LINK_TX", 12.6, 64.2)
-    w.line("LINK_RX", "F", ["U1.33", (18.0, 51.8), (17.3, 52.5), (17.3, 62.7), "TP13.1", (14.55, 65.45), (14.55, 72.6), (14.95, 73.0), (17.2, 73.0), (17.75, 72.45), "U5.4"], 0.2)
-    w.via("LINK_RX", 15.8, 64.2)
-    w.line("LED", "F", ["U1.37", (19.6, 51.5), (18.6, 52.5), (18.6, 61.59), "D1.2"], 0.2)
+    w.line("LINK_TX", "F", ["U1.32", (17.6, 51.4), (16.9, 52.1), (16.9, 61.9), (13.6, 65.2), (14.15, 65.75), (14.15, 73.6), (14.55, 74.0), (18.45, 74.0), (18.75, 73.7), "U5.5"], 0.2)
+    w.via("LINK_TX", 13.6, 65.2)
+    w.line("LINK_TX", "B", [(13.6, 65.2), "TP12.1"], 0.2)
+    w.line("LINK_RX", "F", ["U1.33", (18.0, 51.8), (17.3, 52.5), (17.3, 62.7), (15.0, 65.0), (14.55, 65.45), (14.55, 72.6), (14.95, 73.0), (17.2, 73.0), (17.75, 72.45), "U5.4"], 0.2)
+    w.via("LINK_RX", 15.0, 65.0)
+    w.line("LINK_RX", "B", [(15.0, 65.0), "TP13.1"], 0.2)
+    w.line("LED", "F", ["U1.37", (19.6, 51.5), (18.6, 52.5), (18.6, 65.69), "D1.2"], 0.2)
     w.line("LED_K", "F", ["D1.1", "R12.1"], 0.2)
     # ground where the front pour can't reach a pad from two sides
     w.line("GND", "F", ["C16.2", (21.0, 39.0), (21.5, 38.5), (21.5, 38.0)], 0.25)
@@ -1306,16 +1351,35 @@ def wire(w):
     w.via("GND", 22.2, 77.8)
     w.line("GND", "F", ["C10.2", (23.4, 38.6)], 0.25)
     w.via("GND", 23.4, 38.6)
+    # a ground via beside each capacitor the stitching grid left far from one
+    w.line("GND", "F", ["C24.2", (16.9, 28.6)], 0.25)
+    w.via("GND", 16.9, 28.6)
+    w.line("GND", "F", ["C23.2", (23.5, 34.2)], 0.25)
+    w.via("GND", 23.5, 34.2)
+    w.line("GND", "F", ["U6.4", (21.6, 34.6)], 0.25)
+    w.via("GND", 21.6, 34.6)
+    w.line("GND", "F", ["C2.2", (25.6, 74.6), (26.2, 74.0), (26.7, 74.0)], 0.3)
+    w.line("GND", "F", ["U3.1", (28.05, 74.0), (26.7, 74.0)], 0.3)
+    w.via("GND", 26.7, 74.0)
+    # the link's pull-up, fed from the 3.3 V test pad's copper on the back
+    w.line("LINK_TX", "F", ["R13.1", (14.15, 71.0)], 0.2)
+    w.line("+3V3", "F", ["R13.2", (12.79, 69.9)], 0.25)
+    w.via("+3V3", 12.79, 69.9)
+    w.line("+3V3", "B", [(12.79, 69.9), "TP5.1"], 0.3)
 
 
 # The link's rules, as exact sets: what each of these nets may reach, and nothing else.
 LINK_RULES = [
-    ("USB_D+", {"J1", "U2", "U5"}), ("USB_D-", {"J1", "U2", "U5"}),
-    ("LINK_TX", {"U1", "U5", "TP12"}), ("LINK_RX", {"U1", "U5", "TP13"}),
-    ("SWCLK", {"U1", "J3", "TP1"}), ("SWDIO", {"U1", "J3", "TP3"}), ("RUN", {"U1", "TP4"}),
+    ("USB_D+", {"J1", "U2", "U5"}), ("USB_D-", {"J1", "U2", "U5"}), ("CC1", {"J1", "R1"}), ("CC2", {"J1", "R2"}), ("CH_V3", {"U5", "C6"}),
+    ("LINK_TX", {"U1", "U5", "TP12", "R13"}), ("LINK_RX", {"U1", "U5", "TP13"}),
+    ("SWCLK", {"U1", "R14"}), ("SWCLK_J", {"R14", "J3", "TP1"}), ("SWDIO", {"U1", "R15"}), ("SWDIO_J", {"R15", "J3", "TP3"}), ("RUN", {"U1", "TP4"}),
     ("SDA", {"U1", "U6", "R7"}), ("SCL", {"U1", "U6", "R8"}),
-    ("QSPI_SS", {"U1", "U7"}),
+    ("BTN_D0", {"U1", "SW1"}), ("BTN_D1", {"U1", "SW2"}), ("BTN_D2", {"U1", "SW3"}),
+    *[(n, {"U1", "U7"}) for n in ("QSPI_SS", "QSPI_SCLK", "QSPI_SD0", "QSPI_SD1", "QSPI_SD2", "QSPI_SD3")],
 ]
+# the bridge's pins by the names on its symbol: what each must be on, None for nothing at all
+BRIDGE = {"TXD": "LINK_RX", "RXD": "LINK_TX", "VIO": V33, "VDD5": VBUS, "VBUS": VBUS, "V3": "CH_V3", "UD+": "USB_D+", "UD-": "USB_D-",
+          "GND": GND, "EP": GND, "~{ACT}": None, "~{DCD}": None, "~{DTR}": None, "~{RTS}": None, "~{DSR}": None, "~{CTS}": None, "~{RI}": None}
 
 
 def check_link():
@@ -1326,15 +1390,18 @@ def check_link():
         if got != refs:
             bad.append(f"{net} reaches {sorted(got)}, the rule says {sorted(refs)}")
     u5 = BY_REF["U5"]["nets"]
-    for pin, what in (("12", "DTR"), ("13", "RTS"), ("10", "ACT"), ("11", "DCD"), ("14", "DSR"), ("15", "CTS"), ("16", "RI")):
-        if pin in u5:
-            bad.append(f"the CH343P's {what} (pin {pin}) is connected to {u5[pin]}; it must reach nothing")
-    for pin, what in (("51", "USB_DM"), ("52", "USB_DP")):       # the chip's own USB reaches nothing at all
-        if pin in BY_REF["U1"]["nets"]:
-            bad.append(f"U1's {what} (pin {pin}) is connected to {BY_REF['U1']['nets'][pin]}; it must reach nothing")
-    # nothing but power joins the USB-C to the chip
-    j1 = {n for n in BY_REF["J1"]["nets"].values()} - set(POWER)
-    u1 = {n for n in BY_REF["U1"]["nets"].values()} - set(POWER)
+    names = {pin_: v[4] for pin_, v in sym_pins(SYMBOLS["CH343P"]).items()}
+    if set(names.values()) != set(BRIDGE):
+        bad.append(f"the CH343P's symbol has pins {sorted(set(names.values()) ^ set(BRIDGE))} the rule doesn't know")
+    for pin_, name in sorted(names.items()):
+        if u5.get(pin_) != BRIDGE.get(name):
+            bad.append(f"the CH343P's {name} (pin {pin_}) is on {u5.get(pin_)}; it must be on {BRIDGE.get(name) or 'nothing'}")
+    for pin_, what in (("51", "USB_DM"), ("52", "USB_DP")):       # the chip's own USB reaches nothing at all
+        if pin_ in BY_REF["U1"]["nets"]:
+            bad.append(f"U1's {what} (pin {pin_}) is connected to {BY_REF['U1']['nets'][pin_]}; it must reach nothing")
+    # nothing but ground joins the USB-C to the chip
+    j1 = set(BY_REF["J1"]["nets"].values()) - {GND}
+    u1 = set(BY_REF["U1"]["nets"].values()) - {GND}
     if j1 & u1:
         bad.append(f"the USB-C and the RP2350 share {sorted(j1 & u1)}")
     return bad
@@ -1477,7 +1544,7 @@ def drc(path):
     b = pcbnew.LoadBoard(path)
     with tempfile.TemporaryDirectory() as t:
         rpt = os.path.join(t, "drc.rpt")
-        pcbnew.WriteDRCReport(b, rpt, pcbnew.EDA_UNITS_MILLIMETRES, True)
+        pcbnew.WriteDRCReport(b, rpt, getattr(pcbnew, "EDA_UNITS_MM", None) or pcbnew.EDA_UNITS_MILLIMETRES, True)   # KiCad 9's name, or 7's
         txt = open(rpt).read()
     kinds = {}
     head = txt.split("** Found", 2)
@@ -1512,6 +1579,8 @@ def check_board(path, nets):
             if pad.GetNumber() and pad.GetNetname() != want.get((ref, pad.GetNumber())):
                 bad.append(f"{ref}.{pad.GetNumber()} is on {pad.GetNetname()!r}, the schematic says {want.get((ref, pad.GetNumber()))!r}")
     bad += [f"{r_} is not on the board" for r_ in sorted(set(BY_REF) - seen)]
+    have = {(fp.GetReference(), pad.GetNumber()) for fp in b.GetFootprints() for pad in fp.Pads()}
+    bad += [f"{r_}.{p_} is in the schematic, and {BY_REF[r_]['fp']} has no pad {p_}" for r_, p_ in sorted(set(want) - have) if r_ in BY_REF]
     front = [fp.GetReference() for fp in b.GetFootprints() if fp.GetLayer() == pcbnew.B_Cu and BY_REF.get(fp.GetReference(), {}).get("lcsc")]
     if front:
         bad.append(f"parts for JLCPCB on the back: {front}; Economic assembly fits one side")
@@ -1528,30 +1597,31 @@ def fitted():
 
 
 def write_bom(path):
-    """JLCPCB's BOM, as tools/keypcb writes it: Comment, Designator, Footprint, LCSC Part #."""
+    """JLCPCB's BOM, as tools/keypcb writes it: Comment, Designator, Footprint, LCSC Part #, the rows in its order."""
     rows = {}
-    for p in fitted():
-        rows.setdefault((p["value"], p["fp"], p["lcsc"]), []).append(p["ref"])
     nat = lambda r_: (re.sub(r"\d", "", r_), int(re.sub(r"\D", "", r_)))
+    for p in sorted(fitted(), key=lambda p_: nat(p_["ref"])):
+        rows.setdefault((p["value"], p["fp"], p["lcsc"]), []).append(p["ref"])
     with open(path, "w", newline="") as f:
         wr = csv.writer(f)
         wr.writerow(["Comment", "Designator", "Footprint", "LCSC Part #"])
-        for (value, fp, lcsc), refs in sorted(rows.items(), key=lambda kv: nat(sorted(kv[1], key=nat)[0])):
-            wr.writerow([value, ",".join(sorted(refs, key=nat)), fp, lcsc])
+        for (value, fp, lcsc), refs in sorted(rows.items(), key=lambda kv: kv[1]):
+            wr.writerow([value, ",".join(refs), fp, lcsc])
 
 
-def write_fab(pcb):
+def write_fab(pcb, out=None):
     """The Gerbers and drill files zipped, the BOM and the CPL, every one measured from the board's
-    bottom-left corner, with tools/keypcb's own options. JLCPCB's rotation for a part can differ from
-    KiCad's: no offsets are applied here, and their placement preview is where that is looked at."""
-    os.makedirs(FAB, exist_ok=True)
+    bottom-left corner, with tools/keypcb's own options and row order. A CPL row's rotation is KiCad's
+    plus the part's rot_offset, which the schematic carries as "JLCPCB Rotation Offset" for tools/keypcb."""
+    out = out or FAB
+    os.makedirs(out, exist_ok=True)
     with tempfile.TemporaryDirectory() as t:
         g = os.path.join(t, "g")
         os.makedirs(g)
         run = lambda *a: subprocess.run([CLI, *a], check=True, capture_output=True, text=True, env=kicad_env())
         run("pcb", "export", "gerbers", "--layers", LAYERS, "--subtract-soldermask", "--use-drill-file-origin", "-o", g + "/", pcb)
         run("pcb", "export", "drill", "--format", "excellon", "--excellon-separate-th", "--drill-origin", "plot", "-o", g + "/", pcb)
-        z = os.path.join(FAB, NAME + "-gerbers.zip")
+        z = os.path.join(out, NAME + "-gerbers.zip")
         with zipfile.ZipFile(z, "w", zipfile.ZIP_DEFLATED) as zf:
             for p in sorted(os.listdir(g)):
                 if p.endswith(".gbrjob"):
@@ -1563,39 +1633,51 @@ def write_fab(pcb):
                 zf.writestr(info, data)
         pos = os.path.join(t, "pos.csv")
         run("pcb", "export", "pos", "--format", "csv", "--units", "mm", "--side", "both", "--use-drill-file-origin", "-o", pos, pcb)
-        rows = {r_["Ref"]: r_ for r_ in csv.DictReader(open(pos))}
-    write_bom(os.path.join(FAB, "bom.csv"))
-    with open(os.path.join(FAB, "cpl.csv"), "w", newline="") as f:
+        rows = list(csv.DictReader(open(pos)))
+    write_bom(os.path.join(out, "bom.csv"))
+    offs = {p["ref"]: p.get("rot_offset", 0) for p in fitted()}
+    with open(os.path.join(out, "cpl.csv"), "w", newline="") as f:
         wr = csv.writer(f)
         wr.writerow(["Designator", "Mid X", "Mid Y", "Layer", "Rotation"])
-        for p in fitted():
-            r_ = rows[p["ref"]]
-            wr.writerow([p["ref"], f'{float(r_["PosX"]):.4f}mm', f'{float(r_["PosY"]):.4f}mm', "Top" if r_["Side"] == "top" else "Bottom",
-                         f'{float(r_["Rot"]) % 360:.0f}'])
+        for r_ in rows:
+            if r_["Ref"] in offs:
+                wr.writerow([r_["Ref"], f'{float(r_["PosX"]):.4f}mm', f'{float(r_["PosY"]):.4f}mm', "Top" if r_["Side"] == "top" else "Bottom",
+                             f'{(float(r_["Rot"]) + offs[r_["Ref"]]) % 360:.0f}'])
     return len(zipfile.ZipFile(z).namelist())
 
 
+def stripped(data):
+    """A fab file without the lines that only carry its date or KiCad's version (tools/keypcb's own rule)."""
+    return [l for l in data.decode(errors="replace").splitlines() if not re.search(r"CreationDate|GenerationSoftware|^G04 |^; |^;DRILL", l)]
+
+
 def check_fab(pcb):
-    """fab/ is this board's: the BOM is the table's, and each CPL row is its part's place."""
+    """fab/, the project file and PINS.md are this board's: each is written again into a temporary
+    folder and compared. The Gerbers are compared with their date lines left out, and the BOM and CPL
+    as sets of rows, so files that `tools/keypcb fab tally` wrote pass too."""
     bad = []
     with tempfile.TemporaryDirectory() as t:
-        write_bom(os.path.join(t, "bom.csv"))
-        if not os.path.exists(os.path.join(FAB, "bom.csv")) or open(os.path.join(FAB, "bom.csv")).read() != open(os.path.join(t, "bom.csv")).read():
-            bad.append("fab/bom.csv is not the table's")
-    try:
-        rows = {r_["Designator"]: r_ for r_ in csv.DictReader(open(os.path.join(FAB, "cpl.csv")))}
-    except FileNotFoundError:
-        return bad + ["fab/cpl.csv is missing"]
-    if set(rows) != {p["ref"] for p in fitted()}:
-        bad.append(f"fab/cpl.csv has other parts than the BOM: {sorted(set(rows) ^ {p['ref'] for p in fitted()})}")
-    for ref, r_ in rows.items():
-        x, y, rot_ = AT[ref]
-        if abs(float(r_["Mid X"][:-2]) - x) > 1e-3 or abs(float(r_["Mid Y"][:-2]) - (H - y)) > 1e-3 or r_["Layer"] != "Top":
-            bad.append(f"fab/cpl.csv: {ref} at {r_['Mid X']}, {r_['Mid Y']}, {r_['Layer']}; the board has it at {x}, {H - y:g} from the bottom-left, on top")
-        if abs((float(r_["Rotation"]) - rot_ + 180) % 360 - 180) > 0.5:
-            bad.append(f"fab/cpl.csv: {ref} turned {r_['Rotation']}, the board has {rot_}")
-    if not os.path.exists(os.path.join(FAB, NAME + "-gerbers.zip")):
-        bad.append("fab/tally-gerbers.zip is missing")
+        write_fab(pcb, out=t)
+        for n in ("bom.csv", "cpl.csv"):
+            try:
+                if sorted(csv.reader(open(os.path.join(FAB, n)))) != sorted(csv.reader(open(os.path.join(t, n)))):
+                    bad.append(f"fab/{n} is not this board's: run gen_tally.py or `tools/keypcb fab tally`")
+            except FileNotFoundError:
+                bad.append(f"fab/{n} is missing")
+        try:
+            za, zb = zipfile.ZipFile(os.path.join(FAB, NAME + "-gerbers.zip")), zipfile.ZipFile(os.path.join(t, NAME + "-gerbers.zip"))
+            diff = sorted(set(za.namelist()) ^ set(zb.namelist())) + [n for n in sorted(set(za.namelist()) & set(zb.namelist()))
+                                                                      if stripped(za.read(n)) != stripped(zb.read(n))]
+            if diff:
+                bad.append(f"fab/{NAME}-gerbers.zip is not this board's: {diff}")
+        except (FileNotFoundError, zipfile.BadZipFile):
+            bad.append(f"fab/{NAME}-gerbers.zip is missing or not a zip")
+        write_project(t)
+        write_pins(os.path.join(t, "PINS.md"))
+        for mine, there, what in ((os.path.join(t, NAME + ".kicad_pro"), os.path.join(OUT, NAME + ".kicad_pro"), "tally.kicad_pro (the DRC's rules)"),
+                                  (os.path.join(t, "PINS.md"), os.path.join(HERE, "PINS.md"), "PINS.md")):
+            if not os.path.exists(there) or open(mine).read() != open(there).read():
+                bad.append(f"{what} is not what this script writes")
     return bad
 
 
@@ -1607,7 +1689,7 @@ WHAT = {"BTN_D0": "D0, to GND: pull-up inside, pressed low", "BTN_D1": "D1, to G
         "LCD_RST": "the screen's RESET", "LCD_CS": "the screen's CS", "LCD_BL": "backlight, high is on; 4.7k down"}
 
 
-def write_pins():
+def write_pins(path=None):
     lines = ["# Tally: the RP2350's pins", "", "*Written by `gen_tally.py`; don't edit by hand.*", "",
              "console-rp's and Mono's pins, so one board profile can serve all three.", "",
              "| GPIO | RP2350A pin | net | what |", "|---|---|---|---|"]
@@ -1616,9 +1698,9 @@ def write_pins():
     used = set(GPIO.values())
     free = [g_ for g_ in range(30) if g_ not in used]
     lines += ["", "Also: QSPI to the flash (pins 55 to 60), XIN and XOUT to the crystal, and on the back's pads and J3:",
-              "SWCLK, SWDIO and RUN. The chip's own USB (pins 51 and 52) reaches nothing.",
+              "SWCLK and SWDIO (each through 100 R) and RUN. The chip's own USB (pins 51 and 52) reaches nothing.",
               f"Not connected: GPIO {', '.join(str(g_) for g_ in free)}.", ""]
-    open(os.path.join(HERE, "PINS.md"), "w").write("\n".join(lines))
+    open(path or os.path.join(HERE, "PINS.md"), "w").write("\n".join(lines))
 
 
 HEIGHT = {"C_0402_1005Metric": 0.55, "R_0402_1005Metric": 0.4, "RPi_C_0402": 0.55, "RPi_C_0402_wide": 0.55, "RPi_R_0402": 0.4,

@@ -22,5 +22,5 @@ console-rp's and Mono's pins, so one board profile can serve all three.
 | 25 | 37 | `LED` | red LED, high is on |
 
 Also: QSPI to the flash (pins 55 to 60), XIN and XOUT to the crystal, and on the back's pads and J3:
-SWCLK, SWDIO and RUN. The chip's own USB (pins 51 and 52) reaches nothing.
+SWCLK and SWDIO (each through 100 R) and RUN. The chip's own USB (pins 51 and 52) reaches nothing.
 Not connected: GPIO 0, 1, 7, 14, 15, 16, 17, 18, 19, 22, 23, 24, 26, 27, 28, 29.

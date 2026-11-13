@@ -13,6 +13,12 @@
   (fp_line (start 2.76 -2.76) (end 2.76 -2.49) (stroke (width 0.12) (type solid)) (layer "F.SilkS"))
   (fp_line (start 2.76 2.49) (end 2.76 2.76) (stroke (width 0.12) (type solid)) (layer "F.SilkS"))
   (fp_line (start 2.76 2.76) (end -2.76 2.76) (stroke (width 0.12) (type solid)) (layer "F.SilkS"))
+  (fp_poly
+    (pts (xy -3.59 -2.5) (xy -3.93 -2.97) (xy -3.25 -2.97))
+    (stroke (width 0.12) (type solid))
+    (fill solid)
+    (layer "F.SilkS")
+  )
   (fp_line (start -4.65 -2.48) (end -2.9 -2.48) (stroke (width 0.05) (type solid)) (layer "F.CrtYd"))
   (fp_line (start -4.65 2.48) (end -4.65 -2.48) (stroke (width 0.05) (type solid)) (layer "F.CrtYd"))
   (fp_line (start -2.9 -2.9) (end 2.9 -2.9) (stroke (width 0.05) (type solid)) (layer "F.CrtYd"))

@@ -44,5 +44,6 @@
   "C485147": {"mpn": "TLV74311PDBVR", "maker": "TI", "package": "SOT-23-5", "value": "TLV74311PDBVR", "pads": 5, "pitch": 0.95, "read": "2026-11-13"},
   "C9002": {"mpn": "X322512MSB4SI", "maker": "YXC Crystal Oscillators", "package": "SMD3225-4P", "value": "12MHz", "pads": 4, "pitch": null, "read": "2026-11-13"},
   "C20917": {"mpn": "AO3400A", "maker": "AOS", "package": "SOT-23", "value": "AO3400A", "pads": 3, "pitch": 1.9, "read": "2026-11-13"},
+  "C41378174": {"mpn": "RP2354A", "maker": "Raspberry Pi", "package": "QFN-60-EP(7x7)", "value": "RP2354A", "pads": 61, "pitch": 0.4, "read": "2026-11-13", "note": "the RP2350A with 2 MB of flash inside: sixty pads and the exposed pad"},
   "C160403": {"mpn": "SM03B-SRSS-TB(LF)(SN)", "maker": "JST", "package": "SMD, P=1mm, right angle", "value": "SWD", "pads": 3, "pitch": 1.0, "read": "2026-11-13", "note": "three pins; its two solder tabs are not counted"}
 }
