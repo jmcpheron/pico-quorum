@@ -64,12 +64,13 @@ def decor(c, shell, back):
     """The mark printed in the face: a pocket HATCH's depth deep, the five dots open, lines left across the
     triangle. And the name over it (rp.name). No badge: nothing more to print or glue. Leaves the shell's three
     bodies in c.bodies (COLOUR)."""
-    b = c.b
-    cx, cy, r = b["mark"]
+    b, P = c.b, c.b["parts"]
+    cx, cy, r, *under = b["mark"]       # under: the switches under the lower dots, left and right (the slate's)
     pts = [(cx + r * math.cos(math.radians(90 - 72 * k)), cy + r * math.sin(math.radians(90 - 72 * k))) for k in range(5)]
     signed, waiting = (0, 2, 3), (1, 4)
     rs, rw = r / 4, r / 6
-    d, w, n = HATCH["depth"], HATCH["line"], HATCH["pitches"]
+    hatch = dict(HATCH, **b.get("hatch", {}))
+    d, w, n = hatch["depth"], hatch["line"], hatch["pitches"]
     z0, z1 = c.zt - d, c.zt + 1
     union = lambda shapes: functools.reduce(lambda a, s: a.union(s), shapes)
     tri = lambda a, e: cq.Workplane("XY").workplane(offset=a).polyline([pts[k] for k in signed]).close().extrude(e - a)
@@ -86,8 +87,19 @@ def decor(c, shell, back):
     left = union([strip(y) for y in ys]).intersect(inside).cut(dots(signed, rs, z0 - 2, z1 + 2))
     left = left.union(dots(signed, rs + w, z0 - 1, z1 + 1).cut(dots(signed, rs, z0 - 2, z1 + 2)).intersect(inside))
     open_ = pocket.cut(left)
-    cut = RP.name(c, cx, pts[0][1] + rs, NAME_FIT)
+    cut = RP.name(c, cx, pts[0][1] + rs, b.get("name_fit", NAME_FIT))
     shell = shell.cut(open_).cut(cut)
+    # a switch under a lower dot: a pinhole through the dot's floor (rp.PIN). The colour's first layer bridges the
+    # dot, so the hole is stepped there as a counterbore's is (shell.bridge_steps): in that layer a strip right
+    # across the dot, so the layer is two bridges along it; in the next a square, bridged across the strip; then round
+    pins, L, p = [], b.get("bridge_layer", S.BRIDGE_LAYER), RP.PIN
+    for k, ref in zip((3, 2), under):
+        (px, py), q = pts[k], P[ref]
+        assert abs(px - q["x"]) < 0.01 and abs(py - q["y"]) < 0.01, "the mark's dot isn't over " + ref
+        pins.append(S.cyl(px, py, p, c.zu - 1, z1)
+                    .union(S.box(px - rs, px + rs, py - p, py + p, z0 - L, z0 + 0.01).intersect(S.cyl(px, py, rs, z0 - L, z0 + 0.01)))
+                    .union(S.box(px - p, px + p, py - p, py + p, z0 - 2 * L - 0.01, z0 - L + 0.01)))
+        shell = shell.cut(pins[-1])
     c.hatch = (len(ys), pitch, pitch - w)
     # the three bodies: a slab of colour behind the pocket's floor and the letters', the rest black
     t, m = COLOUR["thick"], COLOUR["rim"]
@@ -104,7 +116,8 @@ def decor(c, shell, back):
     # in a set order, so the pictures come out the same each run
     seen = lambda spots: cq.Workplane("XY").newObject(sorted(spots, key=lambda s: [round(v, 3) for v in s.Center().toTuple()]))
     amber = dots(waiting, rw, z0 - 1, z1)
-    c.shown = [("shell green", seen(skin(open_.cut(amber), z0) + skin(cut, zn)), GREEN),
+    floor = open_.cut(amber).cut(union(pins)) if pins else open_.cut(amber)
+    c.shown = [("shell green", seen(skin(floor, z0) + skin(cut, zn)), GREEN),
                ("shell orange", seen(skin(open_.intersect(amber), z0)), ORANGE)]
     return shell, back, [(n, s, col, None) for n, s, col in c.shown]
 
@@ -121,32 +134,32 @@ def board():
     return b
 
 
-def mark_picture(c, shell):
+def mark_picture(c, out):
     """The mark and the name from the front, as the three bodies print: the face's top 0.7 mm round them."""
-    cx, cy, r = c.b["mark"]
+    cx, cy, r = c.b["mark"][:3]
     near = S.box(cx - 2.6 * r, cx + 2.6 * r, cy - 1.6 * r, cy + 2.6 * r, c.zt - 0.7, c.zt)
-    S.render(dict(title="Mono's case, industrial: the mark and the name, as its three bodies print", corners=[], views=[("", 89.9, -90)],
-                    parts=[(shell.intersect(near), BLACK, "face")] + [(s, col, n) for n, s, col in c.shown]),
-               os.path.join(OUT, "mono_ind_mark.png"))
+    S.render(dict(title=c.b["title"] + ": the mark and the name, as its three bodies print", corners=[], views=[("", 89.9, -90)],
+                    parts=[(c.shell.intersect(near), BLACK, "face")] + [(s, col, n) for n, s, col in c.shown]),
+               os.path.join(out, c.b["name"] + "_mark.png"))
 
 
-def bodies(c):
+def bodies(c, out):
     """The shell's three bodies, each face down in the shell's own place, so a slicer puts them together. Checks
     that they add up to the shell."""
     whole = c.shell.val().Volume()
     parts = sum(s.val().Volume() for _, s in c.bodies)
     assert abs(whole - parts) < 0.01, "the shell's bodies add up to %.2f mm3, the shell %.2f" % (parts, whole)
     for n, s in c.bodies:
-        S.stl(S.flip(s), os.path.join(OUT, "mono_ind_shell_%s.stl" % n))
+        S.stl(S.flip(s), os.path.join(out, "%s_shell_%s.stl" % (c.b["name"], n)))
     return [(n, s.val().Volume()) for n, s in c.bodies]
 
 
 def main():
     bad, c = S.build(board(), OUT, sys.argv[1] if len(sys.argv) > 1 else M.SCREEN)
-    mark_picture(c, c.shell)
+    mark_picture(c, OUT)
     print("mono_ind: the wall at the cut corners %.2f mm at the least" % c.corner_wall)
     print("mono_ind: the mark's lines: %d across the triangle, %.2f mm apart, %.2f mm between them" % c.hatch)
-    print("mono_ind: the shell's bodies: " + ", ".join("%s %.1f mm3" % b for b in bodies(c)))
+    print("mono_ind: the shell's bodies: " + ", ".join("%s %.1f mm3" % b for b in bodies(c, OUT)))
     return bad
 
 

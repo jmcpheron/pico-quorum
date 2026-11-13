@@ -74,6 +74,11 @@ DESIGNS = {
         scripts=["cad/consoles/mono_ind.py"],
         outputs=["cad/consoles/out/mono_ind/*"],
         pages=["cad/consoles/README.md"]),
+    "rp-industrial": dict(
+        about="console-rp's case, thicker, with cut corners: 3.5 mm walls, the corners cut off at 45 degrees with a notch either side, grooves on the long edges, the mark and the name printed in the face in colours; the shell as one body, and as three, one a colour",
+        scripts=["cad/consoles/rp_ind.py"],
+        outputs=["cad/consoles/out/rp_ind/*"],
+        pages=["cad/consoles/README.md"]),
     "key-tray": dict(
         about="the snap-lid case for the ATECC608 breakout, v2 and v3",
         scripts=["cad/key/tray.py"],

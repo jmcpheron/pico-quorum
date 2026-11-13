@@ -9,6 +9,7 @@ ones being worked on.**
 | **[Mono's](#mono)** | [Mono](../../hardware/mono/README.md) | [`mono.py`](mono.py) | `tools/case build mono` | a first draft, not printed |
 | **[Mono's, industrial](#mono-industrial)** | Mono | [`mono_ind.py`](mono_ind.py) | `tools/case build mono-industrial` | a variant of the first draft, not printed |
 | [the slate](#the-slate-console-rp) | [console-rp](../../hardware/console-rp/README.md) | [`rp.py`](rp.py) | `tools/case build rp` | a first draft |
+| [the slate, industrial](#the-slate-industrial) | console-rp | [`rp_ind.py`](rp_ind.py) | `tools/case build rp-industrial` | a variant of the first draft, not sliced, not printed |
 | [the stick](#the-stick-console-s3) | [console-s3](../../hardware/prototypes/console-s3/DESIGN.md), an early prototype | [`stick.py`](stick.py) | `tools/case build stick` | a first draft, not fitted to its board |
 | [the badge](#the-badge-picoquorumkey-rev-b) | [PicoquorumKey rev B](../../hardware/prototypes/picoquorum-key/README.md), an early prototype | [`badge.py`](badge.py) | `tools/case build badge` | a first draft; the rev A plate was printed once |
 
@@ -21,7 +22,8 @@ changed, so a case is up to date when it lists nothing.
   the mark's place (`MARK`), the words on the back. The board's numbers come from its generator and
   its fab files (`hardware/mono/`), so the case follows the board.
 - [`mono_ind.py`](mono_ind.py) holds the industrial variant's: `CORNER_CUT`, `GROOVES`, and its own
-  mark and name, printed in the face: `MARK_R`, `HATCH`, `NAME_FIT`, `COLOUR` and `decor`.
+  mark and name, printed in the face: `MARK_R`, `HATCH`, `NAME_FIT`, `COLOUR` and `decor`. The slate's
+  industrial case uses `decor` too, so a change there changes both.
 - [`rp.py`](rp.py) draws the badge (`decor`) and the name (`name`). A change there changes the slate too.
 - [`shell.py`](shell.py) holds what every case shares: the walls, the posts, the caps' fit, the dock
   and the checks. A change there changes every case here.
@@ -138,6 +140,53 @@ and its name from this one (`rp.decor`).
 ![the slate](out/rp/rp_front.png)
 
 ![the slate, apart](out/rp/rp_apart.png)
+
+## The slate, industrial
+
+[`rp_ind.py`](rp_ind.py): the slate made thicker, with cut corners. **A variant of the first draft, not
+sliced, not printed.** Inside, it is the slate: the same posts, screws, caps, window and back panel. The
+front shell changes, and the dock follows it:
+- **The walls are 3.5 mm, not 2.0,** and the lanyard's lug 7.5 mm, not 6. It closes at
+  87.1 × 43.6 × 10.9 mm (the slate: 82.6 × 40.6 × 10.9). The bar outside the lanyard's slot is 2.45 mm,
+  not 1.7.
+- **The corners are cut off at 45°:** 4.5 mm along each edge at the USB end, and 8 mm at the other,
+  across the lug, so that end tapers. The wall at a cut is 2.72 mm at its thinnest.
+- **A notch either side of every corner,** eight in all: 2.5 mm wide, 1.2 mm deep, 1.5 mm from the cut's
+  end, from the back to the face. The wall behind each is 2.3 mm. The face's edge is rounded 1.5 mm, so
+  each notch runs out in the round: the first layer's outline is whole.
+- **Nine V-grooves, 0.8 mm deep and 2.5 mm apart, cross the top and bottom edges** over D0–D2, 20 mm of
+  each edge. They stop short of both rounds.
+- **The mark is printed with the shell, in colours, as [Mono's industrial case](#mono-industrial) has
+  it** (`mono_ind.decor`), with no badge to glue. It is still drawn from RESET and BOOTSEL, 6.4 mm in
+  radius.
+  - The pocket is 0.4 mm deep. All five dots are open: the signed 3.2 mm across, the waiting 2.1 mm.
+  - Lines 0.5 mm wide cross the triangle 1.48 mm apart, with 0.98 mm between them.
+  - **RESET and BOOTSEL are 1.4 mm pinholes through the floors of the two lower dots.** The colour's
+    first layer bridges each dot, and a round hole in a bridge has nothing to hold its edge. So the hole
+    is stepped as [the counterbores](#printing) are: in that layer a strip 1.4 mm wide right across the
+    dot, in the next a 1.4 mm square, then the round hole. From the front, the strip shows 0.2 mm deeper
+    than the dot's floor, in the same colour.
+- **The name over the mark is the slate's size,** up to 24 × 3.6 mm, cut 0.6 mm to show the colour. The
+  top-right screw's counterbore is 0.8 mm over it, so it has no room to grow as Mono's did.
+- **Two ways to print the colours,** as Mono's ([Printing](#printing)): one body, `rp_ind_shell.stl`,
+  or three, `rp_ind_shell_black.stl`, `_green.stl` and `_orange.stl`.
+
+The build finds no overlap: the printed parts, the board, a plug pushed home, the screws, and the case in
+its dock. The script stops if the three bodies' volumes don't add up to the shell's (black 14320.5 mm³,
+green 117.9, orange 10.4). It goes together as Mono's industrial case: no tab, and nothing to glue.
+
+Not sliced, and not printed, in PLA or PETG. The fits are the slate's: 0.2 mm round each cap and round
+the back panel. What to look at in a first print: whether the caps move freely, whether each 0.5 mm line
+prints as one pass, how the colour bridges the two stepped pinholes, and strings in the notches and the
+grooves.
+
+![the slate, industrial](out/rp_ind/rp_ind_front.png)
+
+![The slate's mark and name from the front, as the three bodies print: black, green, and orange in the waiting dots; a pinhole in each lower dot](out/rp_ind/rp_ind_mark.png)
+
+![the slate, industrial, apart](out/rp_ind/rp_ind_apart.png)
+
+![the slate, industrial, on its dock](out/rp_ind/rp_ind_dock.png)
 
 ## The stick and the badge
 
@@ -301,7 +350,8 @@ Every part prints without supports, judging by the shapes. They haven't been sli
 - **Mono's shell and back panel:** as the stick's. The USB-C opening's far side is a 13.2 mm bridge.
 - **Mono's badge:** its six pieces face down, the triangle green, the three signed dots blue, the two
   waiting dots orange. For the name, print the shell's first two layers black and the rest in a colour.
-- **The industrial shell's mark** has no badge. Slice at 0.2 mm, the first layer 0.2 mm too. In the
+- **The industrial shells' marks** (Mono's and the slate's) have no badge. The slate's files are named
+  `rp_ind_` where Mono's are `mono_ind_`. Slice at 0.2 mm, the first layer 0.2 mm too. In the
   slicer's preview, look for the lines in layers 1 and 2, each one pass 0.5 mm wide. A slicer that
   draws walls at a fixed width may leave them out: use its variable-width walls (Arachne), or its
   thin-wall setting. Then one of:
@@ -369,7 +419,7 @@ variant has none: its mark is printed in the face).
 ## Run
 
 ```sh
-tools/case build mono-industrial      # or mono, rp, stick, badge; several at once
+tools/case build mono-industrial      # or mono, rp, rp-industrial, stick, badge; several at once
 tools/case check mono-industrial      # builds, then lists what changed
 ```
 
@@ -380,7 +430,7 @@ uv run --python 3.11 --with cadquery --with matplotlib --with pillow python cad/
 ```
 
 `tools/case` runs them at the versions the outputs were last made with (`PINS` in the tool). Each writes
-its folder in `out/` (`out/mono/`, `out/mono_ind/`, `out/rp/`, `out/stick/`, `out/badge/`):
+its folder in `out/` (`out/mono/`, `out/mono_ind/`, `out/rp/`, `out/rp_ind/`, `out/stick/`, `out/badge/`):
 - the STLs to print
 - `<name>_assembly.step`, with the board's stand-ins
 - `<name>_face.png`: the face sliced just under its top, which shows the engraving

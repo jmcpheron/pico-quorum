@@ -204,8 +204,9 @@ class Case:
         self.plate_t = self.zt - self.zu
         # the outline: the board's, CLEAR round it inside, WALL more outside, and the lug at one end
         W, H = b["W"], b["H"]
+        wall = self.wall = b.get("wall", WALL)
         self.inner = (-CLEAR, W + CLEAR, -CLEAR, H + CLEAR)
-        x0, x1, y0, y1 = -CLEAR - WALL, W + CLEAR + WALL, -CLEAR - WALL, H + CLEAR + WALL
+        x0, x1, y0, y1 = -CLEAR - wall, W + CLEAR + wall, -CLEAR - wall, H + CLEAR + wall
         side, self.lug = b["lug"]
         if side == "right":
             x1 += self.lug
@@ -215,7 +216,7 @@ class Case:
             y1 += self.lug
         self.outer = (x0, x1, y0, y1)
         self.r_in = b["R"] + CLEAR
-        self.r_out = self.r_in + WALL
+        self.r_out = self.r_in + wall
         # the screw: the longest in the kit that stops short of the pilot hole's end with ENGAGE in the post or boss.
         # "plate": from the back, into the plate's posts. "shell": from the front, into the back panel's bosses.
         cb = M2_HEAD[1] + 0.2
@@ -311,12 +312,12 @@ class Case:
         b = self.b
         side, lug = b["lug"]
         if side == "right":
-            return t.cut(slot(b["W"] + CLEAR + WALL + lug / 2 - 0.3, b.get("lug_at", b["H"] / 2), LUG_HOLE[0], LUG_HOLE[1],
+            return t.cut(slot(b["W"] + CLEAR + self.wall + lug / 2 - 0.3, b.get("lug_at", b["H"] / 2), LUG_HOLE[0], LUG_HOLE[1],
                               self.z0 - 1, self.zt + 1, along_x=False))
         if side == "left":
-            return t.cut(slot(-CLEAR - WALL - lug / 2 + 0.3, b.get("lug_at", b["H"] / 2), LUG_HOLE[0], LUG_HOLE[1],
+            return t.cut(slot(-CLEAR - self.wall - lug / 2 + 0.3, b.get("lug_at", b["H"] / 2), LUG_HOLE[0], LUG_HOLE[1],
                               self.z0 - 1, self.zt + 1, along_x=False))
-        return t.cut(slot(b.get("lug_at", b["W"] / 2), b["H"] + CLEAR + WALL + lug / 2 - 0.3, LUG_HOLE[0], LUG_HOLE[1],
+        return t.cut(slot(b.get("lug_at", b["W"] / 2), b["H"] + CLEAR + self.wall + lug / 2 - 0.3, LUG_HOLE[0], LUG_HOLE[1],
                           self.z0 - 1, self.zt + 1))
 
     def notch(self, t):
@@ -370,7 +371,7 @@ class Case:
                           .workplane(offset=ch + 0.01).circle(M2_HEAD[0] / 2 + 0.2 + ch + 0.01).loft())
         t = t.cut(self.usb_hole())
         t = self.notch(self.lug_slot(t))
-        t = self.grooves(t)
+        t = self.corner_notches(self.grooves(t))
         if b.get("tab", True):
             t = t.cut(self.tab(TAB[2]))
         return self.face(t)
@@ -392,39 +393,67 @@ class Case:
 
     def outline(self, z0, z1):
         """The case's outside from z0 to z1: the outline rounded at its corners, or with them cut off at 45 degrees
-        (b["corner_cut"]: the cut along each edge at the bottom corners, and at the top's). Checks that the wall
-        keeps CORNER_WALL where a cut comes nearest the board's corner inside."""
+        (b["corner_cut"]: the cut along each edge at the corners, and at the two at the lug's end). Checks that the
+        wall keeps CORNER_WALL where a cut comes nearest the board's corner inside."""
         x0, x1, y0, y1 = self.outer
         cut = self.b.get("corner_cut")
         if not cut:
             return rrect(x0, x1, y0, y1, self.r_out, z0, z1)
         lo, hi = cut
+        side = self.b["lug"][0]
         ix0, ix1, iy0, iy1 = self.inner
         r = self.r_in
-        # each corner of the inside is an arc of r_in; the cut's line is (lo or hi) from the outside's corner
-        dx = (ix0 + r) - x0
-        self.corner_wall = min(((dx + (iy0 + r) - y0) - lo) / math.sqrt(2) - r, ((dx + y1 - (iy1 - r)) - hi) / math.sqrt(2) - r)
+        # bottom left, bottom right, top right, top left: each one's cut, and how far its arc's centre is in from it
+        bl, br = (hi if side == "left" else lo), (hi if side == "right" else lo)
+        tr, tl = (hi if side in ("right", "top") else lo), (hi if side in ("left", "top") else lo)
+        self.cuts = (bl, br, tr, tl)
+        ax0, ax1, ay0, ay1 = (ix0 + r) - x0, x1 - (ix1 - r), (iy0 + r) - y0, y1 - (iy1 - r)
+        # each corner of the inside is an arc of r_in; the cut's line is its cut from the outside's corner
+        self.corner_wall = min((a - c) / math.sqrt(2) - r
+                               for a, c in ((ax0 + ay0, bl), (ax1 + ay0, br), (ax1 + ay1, tr), (ax0 + ay1, tl)))
         assert self.corner_wall >= CORNER_WALL, "a cut corner leaves the wall %.2f mm" % self.corner_wall
-        pts = [(x0 + lo, y0), (x1 - lo, y0), (x1, y0 + lo), (x1, y1 - hi), (x1 - hi, y1), (x0 + hi, y1), (x0, y1 - hi),
-               (x0, y0 + lo)]
+        pts = [(x0 + bl, y0), (x1 - br, y0), (x1, y0 + br), (x1, y1 - tr), (x1 - tr, y1), (x0 + tl, y1), (x0, y1 - tl),
+               (x0, y0 + bl)]
         return cq.Workplane("XY").workplane(offset=z0).polyline(pts).close().extrude(z1 - z0)
+
+    def corner_notches(self, t):
+        """A notch either side of each cut corner, from the back to the face (b["corner_notch"]: how far from the
+        cut's end, wide, deep). The wall behind each keeps CORNER_WALL."""
+        n = self.b.get("corner_notch")
+        if not n:
+            return t
+        gap, w, d = n
+        assert self.wall - d >= CORNER_WALL, "a notch leaves the wall %.2f mm" % (self.wall - d)
+        x0, x1, y0, y1 = self.outer
+        bl, br, tr, tl = self.cuts
+        za, zb = self.z0 - 1, self.zt + 1
+        span = lambda a, c, s: sorted((a + s * (c + gap), a + s * (c + gap + w)))     # along an edge, from its corner at a
+        for (ya, yb), cl, cr in (((y0 - 1, y0 + d), bl, br), ((y1 - d, y1 + 1), tl, tr)):       # the bottom edge, the top
+            for xa, xb in (span(x0, cl, 1), span(x1, cr, -1)):
+                t = t.cut(box(xa, xb, ya, yb, za, zb))
+        for (xa, xb), cb, ct in (((x0 - 1, x0 + d), bl, tl), ((x1 - d, x1 + 1), br, tr)):       # the left end, the right
+            for ya, yb in (span(y0, cb, 1), span(y1, ct, -1)):
+                t = t.cut(box(xa, xb, ya, yb, za, zb))
+        return t
 
     def grooves(self, t):
         """90-degree V-grooves across both long sides, for grip (b["grooves"]: their y, and their depth; each is twice
-        as wide as it is deep), stopping short of the face's and the back's edges."""
-        g = self.b.get("grooves")
-        if not g:
-            return t
-        ys, d = g
-        assert d <= WALL - 1.0, "a groove too deep for the wall"
-        x0, x1, _, _ = self.outer
-        a = d * math.sqrt(2)                    # a square turned 45 degrees, its corner d into the wall
-        za = self.z0 + self.b.get("back_edge", ("", SHELL_EDGE[1]))[1] + 0.8
-        zb = self.zt - self.b.get("face_edge", ("", SHELL_EDGE[0]))[1] - 0.8
-        for y in ys:
-            for x in (x0, x1):
-                v = cq.Workplane("XY").box(a, a, zb - za).rotate((0, 0, 0), (0, 0, 1), 45).translate((x, y, (za + zb) / 2))
-                t = t.cut(v)
+        as wide as it is deep), stopping short of the face's and the back's edges. b["grooves_x"]: the same across
+        the top and bottom edges, at their x."""
+        for key in ("grooves", "grooves_x"):
+            g = self.b.get(key)
+            if not g:
+                continue
+            at, d = g
+            assert d <= self.wall - 1.0, "a groove too deep for the wall"
+            x0, x1, y0, y1 = self.outer
+            a = d * math.sqrt(2)                    # a square turned 45 degrees, its corner d into the wall
+            za = self.z0 + self.b.get("back_edge", ("", SHELL_EDGE[1]))[1] + 0.8
+            zb = self.zt - self.b.get("face_edge", ("", SHELL_EDGE[0]))[1] - 0.8
+            for u in at:
+                for x, y in ([(x0, u), (x1, u)] if key == "grooves" else [(u, y0), (u, y1)]):
+                    v = cq.Workplane("XY").box(a, a, zb - za).rotate((0, 0, 0), (0, 0, 1), 45).translate((x, y, (za + zb) / 2))
+                    t = t.cut(v)
         return t
 
     def back(self):
