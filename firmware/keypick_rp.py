@@ -209,11 +209,14 @@ class UI(keypick_s.UI):
         Q.slots(self.d, labels, "bad_bg" if red else "bg", hold)
 
     # --- the busy page: the chip at work, and Keep's steps ----------------------------
+    BUSY = {"Keeping it": "Sealing it"}     # keypick_s's titles, in this board's words (Seal, not Keep)
+
     def _busy_page(self, title, sub):
         self.spin_stop()
         d = self.d
         d.fill(B.c("bg"))
         Q.header(d, "Your key", "")
+        title = self.BUSY.get(title, title)
         B.txt(d, B.fit(title + "…", R - RX, "bold14"), RX, HEAD + 4, "bold14")
         self._busy = True
         if self._todo:
@@ -321,7 +324,7 @@ class UI(keypick_s.UI):
         bx, by = R - side, HEAD + 6
         B.rrect(d, bx - 3, by - 3, side + 6, side + 6, 6, "raised")
         blockies.draw(d, self._seed, bx, by, side // 8)
-        B.para(d, "Inside this chip, and it never leaves it. Make as many as you like.", M, HEAD + 32, bx - 10 - M,
+        B.para(d, "Inside this chip, and it never leaves it. Each try replaces the last.", M, HEAD + 32, bx - 10 - M,
                "sans12", "muted", "bg", 14, FOOT - 22)
         y = FOOT - 18
         if why:
@@ -355,8 +358,8 @@ class UI(keypick_s.UI):
             C.show(d)
             return
         keypick_s.ends(d, a, x, HEAD + 10)
-        B.para(d, "Like it? Choose it. Or make another.", x, HEAD + 50, R - x, "sans12", "muted", "bg", 14, FOOT - 2)
-        self.foot((None if why else ("New", "raised", "text"), ("Full", "raised", "text"), ("Choose", "ok", "on_ok")))
+        B.para(d, "Like it? Seal it in your signer. Or replace it.", x, HEAD + 50, R - x, "sans12", "muted", "bg", 14, FOOT - 2)
+        self.foot((None if why else ("Replace", "raised", "text"), ("Full", "raised", "text"), ("Seal", "ok", "on_ok")))
         self.show()
 
     def _full(self, st):
@@ -369,13 +372,13 @@ class UI(keypick_s.UI):
             y += 17
         blockies.draw(d, a, R - 32, FOOT - 36, 4)
         B.para(d, "A signer, not a wallet: never send funds to it.", M, y + 4, TW - 40, "sans12", "warn", "bg", 14, FOOT - 2)
-        self.foot((None if why else ("New", "raised", "text"), ("Pic", "raised", "text"), ("Choose", "ok", "on_ok")))
+        self.foot((None if why else ("Replace", "raised", "text"), ("Pic", "raised", "text"), ("Seal", "ok", "on_ok")))
         self.show()
 
     def _keep(self, st):
         d, a, why = self.d, self.addr(), self.need("keep")
         d.fill(B.c("bad_bg"))
-        Q.header(d, "Keep this key?", "for good", "bad_head", "on_bad", "bad_text")
+        Q.header(d, "Seal this key?", "for good", "bad_head", "on_bad", "bad_text")
         blockies.draw(d, a, R - 48, HEAD + 6, 6)
         B.txt(d, a[:6] + "…" + a[-4:], M, HEAD + 6, "mono13", "bad_text", "bad_bg")
         B.para(d, "It's sealed in the chip, then the chip locks: it can never be changed.", M, HEAD + 26, TW - 58,
@@ -383,9 +386,9 @@ class UI(keypick_s.UI):
         if why:
             B.txt(d, B.fit(why, TW, "sans12"), M, FOOT - 17, "sans12", "bad_text", "bad_bg")
         else:
-            B.txt(d, "Hold Keep 3 s", M, FOOT - 19, "bold14", "bad_text", "bad_bg")
+            B.txt(d, "Hold Seal 3 s", M, FOOT - 19, "bold14", "bad_text", "bad_bg")
         hold = self._hold()
-        self.foot((BACK, None, None if why else ("Keep", "bad_bar", "on_bad")), True, (hold, True) if hold is not None else None)
+        self.foot((BACK, None, None if why else ("Seal", "bad_bar", "on_bad")), True, (hold, True) if hold is not None else None)
         self.show(True)
 
     def _finish(self, st):

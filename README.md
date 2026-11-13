@@ -203,7 +203,7 @@ console up to the README:
 | <img src="docs/releases/badges/ceremony-blockie.svg" width="32" height="32" alt=""> | **ceremony** | `381d4e8916ea331b7b8a8ef650b28c5a45d35c116fe40969c8f5c66cea223ec2` |
 | <img src="docs/releases/badges/brand-blockie.svg" width="32" height="32" alt=""> | **brand** | `f7b49688d24a2ce8dbc4f5af474a708f4b043af84049aa9b56221c76f1b9ceb3` |
 | <img src="docs/releases/badges/dual-blockie.svg" width="32" height="32" alt=""> | **dual** | `99292ecee02cdcabfd1714b7c16ab250634345925e9c6cd2764c10589be48d55` |
-| <img src="docs/releases/badges/console-rp-blockie.svg" width="32" height="32" alt=""> | **console-rp** | `bc0e7f0f5ff9ef423dc65fc00aa353daa5b427c424fe82b78823d0ff7a467fcd` |
+| <img src="docs/releases/badges/console-rp-blockie.svg" width="32" height="32" alt=""> | **console-rp** | `f24d22db5f3916c11f6bbcc5a934885ea6593c7a132d318e042c1f4617094505` |
 | <img src="docs/releases/badges/prepare-rp-blockie.svg" width="32" height="32" alt=""> | **prepare-rp** | `4e98165819acdbb148753a1e73cb04bb83bec7861b4263e9246b60531162999f` |
 
 <!-- build:end -->

@@ -25,16 +25,17 @@ The key is made in the chip, on the owner's press; only its public half ever lea
 ■ (D0: back, reject), ● (D1: next) and ▲ (D2: do).
 
 1. **▲ Make.** The chip makes the key in slot 0. Its blockie and owner address come up.
-2. **■ New** makes another, **● Full** shows the address in full, and **▲ Choose** takes it.
-3. **Keep is red: hold ▲ 3 s.** The console tests the key on fixed digests (five signatures), seals
-   slot 0, writes the record, locks the data zone, checks the chip and writes `pin.json`, about 20 s.
-   All of it is permanent. ■ Back before the hold changes nothing.
+2. **■ Replace** makes another key in its place. The chip holds one key, so the one passed over is
+   gone for good. **● Full** shows the address in full, and **▲ Seal** takes it.
+3. **"Seal this key?" is red: hold ▲ Seal 3 s.** The console tests the key on fixed digests (five
+   signatures), seals slot 0, writes the record, locks the data zone, checks the chip and writes
+   `pin.json`, about 20 s. All of it is permanent. ■ Back before the hold changes nothing.
 4. **"Your key: pinned": ▲ Start.** The console restarts, pinned to its chip.
 
 What can stop it:
-- **A restart between Make and Keep:** the key from before is replaced. Make is forced again, so a
-  key put in while the data zone was open can't survive.
-- **A restart during Keep:** after the seal, a red Finish (hold ▲ 3 s) locks the data zone; after
+- **A restart between Make and the seal:** the key from before is replaced. Make is forced again,
+  so a key put in while the data zone was open can't survive.
+- **A restart during the seal:** after it, a red Finish (hold ▲ 3 s) locks the data zone; after
   the data lock, ▲ Check pins it. Either goes on only if the record (`keyflow.json`) matches.
 - **"Not prepared"** (red): the chip was never set up at the bench. Nothing on it changed.
 - **"Sealed elsewhere"** (red): its key was sealed, but not by this console. Nothing is locked or

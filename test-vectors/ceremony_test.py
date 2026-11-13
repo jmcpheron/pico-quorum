@@ -823,7 +823,7 @@ class Keys:
 
 def case_own_key():
     """The owner makes the key on console-rp (keyflow.OwnKey on keypick_rp.UI), through tick alone on
-    a fake clock: K0, Make (replacing a key written in before), New, Full, Choose, the hold that
+    a fake clock: K0, Make (replacing a key written in before), Replace, Full, Seal, the hold that
     seals and locks, the pin, and the console on that pin. Then what a restart in between finds."""
     no_files()
     sim = prepared()
@@ -852,24 +852,51 @@ def case_own_key():
         keys.down.discard("D2")
         tick()
 
+    import fonts
+    said, text0 = [], fonts.text
+
+    def text(d, t, *a):
+        said.append(t)
+        return text0(d, t, *a)
+
+    def shown():
+        """Every string the page draws now, in order: a paragraph's lines join back with spaces, so a
+        cut one (quorum_ui.para stops at its bottom with no sign) is missing its end."""
+        said[:] = []
+        ui.dirty = True
+        ui.draw()
+        return said[:]
+    fonts.text = text
+
     check(c.step() == "K0", "first: K0, read only")
     tick()
     check(c.step() == "C4" and c.had_key and c.checked and not all(k for _, k in c.checked),
           "K0 says a key is in slot 0 already, and Make comes before anything else")
+    on = shown()
+    check("it never leaves it. Each try replaces the last." in " ".join(on) and "Make" in on,
+          "the first page whole: each try replaces the last")
     hold()
     check(sim.cfg[88] & 1 and c.step() == "C4", "a hold on Make does nothing: Make is one press")
     tick("D2")
     k1 = sim.keys.get(0)
     check(k1 not in (None, planted) and c.step() == "C5" and ui.tries == 1, "Make (D2): GenKey replaced the key that was there")
+    on = shown()
+    check("Like it? Seal it in your signer. Or replace it." in " ".join(on) and "Replace" in on and "Seal" in on
+          and "New" not in on, "the pick page whole: Seal (D2), or Replace (D0), not New")
     tick("D0")
-    check(sim.keys.get(0) not in (None, k1, planted) and ui.tries == 2, "New (D0): another key")
+    check(sim.keys.get(0) not in (None, k1, planted) and ui.tries == 2, "Replace (D0): another key in its place")
     tick("D1")
     full = ui.page
+    on = shown()
     tick("D1")
-    check(full == "full" and ui.page == "pic", "Full (D1) and back")
+    check(full == "full" and ui.page == "pic" and "Replace" in on and "Seal" in on, "Full (D1), the same Replace and Seal, and back")
     keys.down.add("D2")
     tick("D2")
-    check(ui.page == "keep", "Choose (D2): the red Keep page")
+    check(ui.page == "keep", "Seal (D2): the red page")
+    on = shown()
+    fonts.text = text0
+    check("Seal this key?" in on and "Hold Seal 3 s" in on and "Seal" in on and "Keep" not in " ".join(on),
+          "the red page says Seal: its title, the hold and D2")
     for _ in range(40):
         T.now += 100
         tick()
