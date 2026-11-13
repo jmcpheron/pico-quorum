@@ -748,6 +748,98 @@ def build(b, out, screen_png=None):
     return 1 if bad else 0, c
 
 
+def render(c, path, screen_png=None):
+    """K.render's pictures, with a depth for every pixel. K.render has matplotlib paint whole triangles, the far
+    ones first by their middles, so a long thin triangle of a flat face shows through whatever is in front of it.
+    Here the nearest triangle wins at each pixel. The views, the light and the colours are K.render's; each pixel
+    is the mean of SS x SS samples."""
+    import numpy as np
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import proj3d
+    from PIL import Image, ImageDraw
+
+    SS, BG = 3, (0.94, 0.93, 0.95)
+    light = np.array([0.35, -0.55, 0.75]); light /= np.linalg.norm(light)
+    pts, cols = [], []
+    for shape, color, _ in c["parts"]:
+        for sol in shape.vals():
+            vs, ts = sol.tessellate(0.2, 0.3)
+            if not ts:
+                continue
+            tri = np.array([v.toTuple() for v in vs])[np.array(ts)]
+            n = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0]); nn = np.linalg.norm(n, axis=1)
+            ok = nn > 1e-9
+            lit = 0.35 + 0.65 * np.abs(n[ok] @ light) / nn[ok]
+            pts.append(tri[ok]); cols.append(np.minimum(1, lit[:, None] * np.array(color)[None, :]))
+    pts, cols = np.concatenate(pts), np.concatenate(cols)
+    allp = pts.reshape(-1, 3)
+    lo, hi = allp.min(0), allp.max(0)
+    ctr, r = (lo + hi) / 2, (hi - lo).max() / 2 * 0.9
+    tiles = []
+    for i, (title, elev, azim) in enumerate(c["views"]):
+        fig = plt.figure(figsize=(7, 6), dpi=130)
+        ax = fig.add_axes([0, 0, 1, 1], projection="3d")
+        ax.set_xlim(ctr[0] - r, ctr[0] + r); ax.set_ylim(ctr[1] - r, ctr[1] + r); ax.set_zlim(ctr[2] - r, ctr[2] + r)
+        ax.set_box_aspect((1, 1, 1)); ax.view_init(elev=elev, azim=azim); ax.set_axis_off()
+        fig.canvas.draw()
+        proj = ax.get_proj()
+        w, h = int(round(fig.bbox.width)), int(round(fig.bbox.height))
+
+        def place(p):
+            """Points to pixels from the picture's top left, and a depth: more is further."""
+            p = np.asarray(p, float)
+            x2, y2, z2 = proj3d.proj_transform(p[:, 0], p[:, 1], p[:, 2], proj)
+            d = ax.transData.transform(np.column_stack([x2, y2]))
+            return np.column_stack([d[:, 0], fig.bbox.height - d[:, 1], z2])
+
+        s = place(allp).reshape(-1, 3, 3)
+        s[:, :, :2] *= SS
+        W, H = w * SS, h * SS
+        img = np.empty((H, W, 3)); img[:] = BG
+        depth = np.full((H, W), np.inf)
+        for (a, b_, c_), col in zip(s, cols):
+            x0 = max(int(math.ceil(min(a[0], b_[0], c_[0]) - 0.5)), 0); x1 = min(int(math.floor(max(a[0], b_[0], c_[0]) - 0.5)), W - 1)
+            y0 = max(int(math.ceil(min(a[1], b_[1], c_[1]) - 0.5)), 0); y1 = min(int(math.floor(max(a[1], b_[1], c_[1]) - 0.5)), H - 1)
+            if x1 < x0 or y1 < y0:
+                continue
+            area = (b_[0] - a[0]) * (c_[1] - a[1]) - (b_[1] - a[1]) * (c_[0] - a[0])
+            if abs(area) < 1e-12:
+                continue
+            px = np.arange(x0, x1 + 1)[None, :] + 0.5; py = np.arange(y0, y1 + 1)[:, None] + 0.5
+            u = ((b_[0] - px) * (c_[1] - py) - (b_[1] - py) * (c_[0] - px)) / area      # a's weight, then b's
+            v = ((c_[0] - px) * (a[1] - py) - (c_[1] - py) * (a[0] - px)) / area
+            z = u * a[2] + v * b_[2] + (1 - u - v) * c_[2]
+            d = depth[y0:y1 + 1, x0:x1 + 1]
+            hit = (u >= -1e-9) & (v >= -1e-9) & (u + v <= 1 + 1e-9) & (z < d)
+            d[hit] = z[hit]
+            img[y0:y1 + 1, x0:x1 + 1][hit] = col
+        plt.close(fig)
+        img = img.reshape(h, SS, w, SS, 3).mean(axis=(1, 3))
+        im = Image.fromarray((img * 255 + 0.5).astype(np.uint8), "RGB").convert("RGBA")
+        if screen_png and i == 0:
+            quad = [tuple(q[:2]) for q in place(c["corners"])]
+            shot = Image.open(screen_png).convert("RGBA")
+            shot = shot.resize((shot.width * 4, shot.height * 4), Image.NEAREST)
+            src = [(0, 0), (shot.width, 0), (shot.width, shot.height), (0, shot.height)]
+            m = []
+            for (x, y), (u, v) in zip(quad, src):
+                m += [[x, y, 1, 0, 0, 0, -u * x, -u * y], [0, 0, 0, x, y, 1, -v * x, -v * y]]
+            k = np.linalg.solve(np.array(m, float), np.array(src, float).reshape(8)).tolist()
+            im.paste(shot.transform(im.size, Image.PERSPECTIVE, k, Image.BILINEAR), (0, 0),
+                     Image.new("L", shot.size, 255).transform(im.size, Image.PERSPECTIVE, k, Image.BILINEAR))
+        tiles.append((title, im))
+    sheet = Image.new("RGB", (sum(t.width for _, t in tiles), tiles[0][1].height + 40), (240, 239, 242))
+    dr = ImageDraw.Draw(sheet)
+    x = 0
+    for title, t in tiles:
+        sheet.paste(t, (x, 40))
+        dr.text((x + 16, 12), (c["title"] + ": " + title) if x == 0 else title, fill=(20, 20, 24))
+        x += t.width
+    sheet.save(path)
+
+
 def pictures(c, out, parts, dock, tilt, screws, things, over, screen_png):
     b, name = c.b, c.b["name"]
     ax0, ay0, ax1, ay1 = b["active"]
@@ -756,14 +848,14 @@ def pictures(c, out, parts, dock, tilt, screws, things, over, screen_png):
     seen = [p for p in things if p[2] in ("glass",) or p[2] in b.get("seen", ())]
     case = [(s, col, n) for n, s, col, _ in parts]
     v = b["views"]
-    K.render(dict(title=b["title"], parts=case + seen + [(screws, K.STEEL, "screws")], corners=corners, views=v["front"]),
+    render(dict(title=b["title"], parts=case + seen + [(screws, K.STEEL, "screws")], corners=corners, views=v["front"]),
              os.path.join(out, name + "_front.png"), screen_png)
     # the face from above, sliced just under its top: every opening and the engraving, which a picture of the
     # dark plastic doesn't show
     x0, x1, y0, y1 = c.outer
     face = case[0][0] if c.layout == "shell" else case[1][0]
     cut = face.intersect(box(x0 - 1, x1 + 1, y0 - 1, y1 + 1, c.zt - 0.3, c.zt - 0.2))
-    K.render(dict(title=b["title"] + ": the face, sliced 0.25 mm under its top", parts=[(cut, (0.80, 0.80, 0.78), "face")],
+    render(dict(title=b["title"] + ": the face, sliced 0.25 mm under its top", parts=[(cut, (0.80, 0.80, 0.78), "face")],
                   corners=[], views=[("", 89.9, -90)]), os.path.join(out, name + "_face.png"))
     # apart: each part moved off the board the way it goes on
     if c.layout == "plate":
@@ -772,12 +864,12 @@ def pictures(c, out, parts, dock, tilt, screws, things, over, screen_png):
         move = {"shell": 22, "back": -12, "screws": 40}
     ex = [(s.translate((0, 0, move.get(n.split()[0], 12))), col, n) for s, col, n in case] + \
         [(screws.translate((0, 0, move["screws"])), K.STEEL, "screws")] + [(s, col, n) for s, col, n in things]
-    K.render(dict(title=b["title"] + ", apart", parts=ex, corners=[], views=v["apart"]), os.path.join(out, name + "_apart.png"))
+    render(dict(title=b["title"] + ", apart", parts=ex, corners=[], views=v["apart"]), os.path.join(out, name + "_apart.png"))
     rot = lambda s: c.on_dock(s, tilt)
     docked = [(dock, K.MID, "dock")] + [(rot(s), col, n) for s, col, n in case + seen] + \
         [(rot(screws), K.STEEL, "screws"), (rot(over), K.BLACK, "plug")]
     dc = [rot_pt(c, p, tilt) for p in corners]
-    K.render(dict(title=b["title"] + " on its dock", parts=docked, corners=dc, views=v["dock"]),
+    render(dict(title=b["title"] + " on its dock", parts=docked, corners=dc, views=v["dock"]),
              os.path.join(out, name + "_dock.png"), screen_png)
 
 
