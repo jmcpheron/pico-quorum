@@ -718,6 +718,53 @@ def stl(shape, path, tol=0.05):
     cq.exporters.export(shape, path, tolerance=tol, angularTolerance=0.2)
 
 
+def threemf(bodies, path, title):
+    """One 3MF for a slicer: the bodies (name, its STL, colour) as the parts of one object, each in its own place,
+    so each part can be given a filament. The meshes are the STLs', their points merged, moved up so the lowest
+    stands on z 0. Each part carries its colour as a 3MF base material, which a slicer may not read. The file is
+    the same every run."""
+    import struct
+    import zipfile
+    meshes = []
+    for name, f, col in bodies:
+        d = open(f, "rb").read()
+        at, tris = {}, []
+        for i in range(struct.unpack("<I", d[80:84])[0]):
+            o = 84 + 50 * i + 12
+            t = [at.setdefault(struct.unpack("<3f", d[o + 12 * k:o + 12 * k + 12]), len(at)) for k in range(3)]
+            if len(set(t)) == 3:
+                tris.append(t)
+        meshes.append((name, col, list(at), tris))
+    low = min(v[2] for _, _, vs, _ in meshes for v in vs)
+    x = ['<?xml version="1.0" encoding="UTF-8"?>',
+         '<model unit="millimeter" xml:lang="en-US" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">',
+         '<metadata name="Title">%s</metadata>' % title, '<resources>', '<basematerials id="1">']
+    x += ['<base name="%s" displaycolor="#%02X%02X%02XFF"/>' % ((n,) + tuple(int(round(255 * v)) for v in col)) for n, col, _, _ in meshes]
+    x.append('</basematerials>')
+    for i, (n, _, vs, tris) in enumerate(meshes):
+        x.append('<object id="%d" type="model" name="%s" pid="1" pindex="%d"><mesh><vertices>' % (i + 2, n, i))
+        x += ['<vertex x="%.9g" y="%.9g" z="%.9g"/>' % (v[0], v[1], v[2] - low) for v in vs]
+        x.append('</vertices><triangles>')
+        x += ['<triangle v1="%d" v2="%d" v3="%d"/>' % tuple(t) for t in tris]
+        x.append('</triangles></mesh></object>')
+    whole = len(meshes) + 2
+    x.append('<object id="%d" type="model" name="%s"><components>' % (whole, title))
+    x += ['<component objectid="%d"/>' % (i + 2) for i in range(len(meshes))]
+    x += ['</components></object>', '</resources>', '<build><item objectid="%d"/></build>' % whole, '</model>']
+    files = [("[Content_Types].xml", '<?xml version="1.0" encoding="UTF-8"?>'
+              '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+              '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+              '<Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/></Types>'),
+             ("_rels/.rels", '<?xml version="1.0" encoding="UTF-8"?>'
+              '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+              '<Relationship Target="/3D/3dmodel.model" Id="rel0" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/>'
+              '</Relationships>'),
+             ("3D/3dmodel.model", "\n".join(x) + "\n")]
+    with zipfile.ZipFile(path, "w") as z:
+        for n, text in files:           # a set date, so the file is the same every run
+            z.writestr(zipfile.ZipInfo(n, date_time=(1980, 1, 1, 0, 0, 0)), text, zipfile.ZIP_DEFLATED)
+
+
 def flip(shape):
     """Face down, as the plate prints."""
     return shape.rotate((0, 0, 0), (1, 0, 0), 180)
