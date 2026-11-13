@@ -234,3 +234,7 @@ What was checked:
   piece (largest 1984 bytes, 56 KB free), and 30 s later found one again. Nothing restarted. A read
   over SWD a minute later showed a 485 KB heap with 40 KB free, none of it in a run over 2.1 KB.
   The next poll of the 2 of 2 Safe read its 9.3 KB queue whole (200, 580 ms).
+- Board #2 moved to 0f908638 the same night, with a dump right before and `--keep`
+  ([SETUP.md](../hardware/console-rp/SETUP.md#loading-a-board-that-has-a-key)): `pin.json` and
+  `keyflow.json` the same bytes as in the dump before d60dfb40. It started pinned to the same owner,
+  watchdog on, both Safes read, counter 197 to 198 for the start, 59 KB free.

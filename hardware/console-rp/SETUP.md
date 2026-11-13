@@ -1,6 +1,6 @@
 # console-rp: setting one up
 
-*What exists on 2026-11-10, as board #2 was set up. The relay is `tools/relay/relay.py` on the
+*What exists on 2026-11-12, as boards #2, #3 and #4 were set up ([the boards](README.md#the-boards)). The relay is `tools/relay/relay.py` on the
 bench, or the app's Device page for an owner. Every swdload line below runs from the repository's root as
 `uv run --no-project --with littlefs-python==0.19.0 python hardware/console-rp/bench/swdload.py …`,
 through J3 and a debug probe ([bench/BRINGUP.md](bench/BRINGUP.md)).*
@@ -21,10 +21,11 @@ The bench prepares the chip and never makes a key in it.
 3. **`console-rp`, with no `secrets.py`:** `swdload.py --no-micropython --image
    build/console-rp-<sha>`. The board comes up on "Your key: No key yet: a new chip".
 
-Board #3 went this way on 2026-11-12, from a blank flash: C1-C3 and P4 passed, and its config CRC
-(e32f) was the same from `tools/check_config --summary` on the dumped snapshot. A CRC differs per
-chip (byte 14 of the factory config), so check each against its own snapshot. Then console-rp
-0f908638: nine keys made and replaced, counter 0 at 0 throughout, none sealed.
+Boards #3 and #4 went this way on 2026-11-12, from a blank flash: C1-C3 and P4 passed, and each
+config CRC (e32f, f7dc) was the same from `tools/check_config --summary` on the dumped snapshot. A
+CRC differs per chip (byte 14 of the factory config), so check each against its own snapshot. Then
+console-rp 0f908638. On board #3, nine keys made and replaced, counter 0 at 0 throughout, none
+sealed.
 
 ## The owner, on the device
 

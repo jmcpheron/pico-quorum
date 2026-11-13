@@ -180,17 +180,17 @@ PAGE = bytes(FULL)
 FULL[:] = SNAP["C4"]`);
 shot("key-making", "Make: the chip at work, a light running round its legs and hex flickering in its body (a timer moves that corner alone while GenKey runs). Nothing to press.");
 py(`FULL[:] = PAGE`);
-shot("key-pick", "A key: its owner address's blockie and two ends, landed after a shuffle, locking in. D0 ■ New makes another, as many as anyone likes; D1 ● Full; D2 ▲ Choose.");
+shot("key-pick", "A key: its owner address's blockie and two ends, landed after a shuffle, locking in. D0 ■ Replace makes another in its place: the chip holds one key, so the one passed over is gone. D1 ● Full; D2 ▲ Seal.");
 py(`tick("D1")`);
 shot("key-pick-full", "Full: the whole owner address.");
 py(`tick("D1")\ntick("D2")`);
-shot("key-keep", "Keep: red, it arrives torn. D2 ▲ held 3 s seals the key and locks the chip, for good. D0 ■ goes back.");
-py(`tick()                      # D2 let go after Choose: only a new press can start the hold
+shot("key-keep", "Seal this key?: red, it arrives torn. D2 ▲ Seal held 3 s seals the key and locks the chip, for good. D0 ■ goes back.");
+py(`tick()                      # D2 let go after Seal: only a new press can start the hold
 keys.down.add("D2")
 tick()
 clock.now += 1600
 tick()`);
-shot("key-keep-hold", "Keep, held: its slot fills. Let go before 3 s and nothing happens.");
+shot("key-keep-hold", "Seal, held: its slot fills. Let go before 3 s and nothing happens.");
 py(`import board
 board.unix = lambda: 1609459200
 clock.now += 1600
@@ -200,7 +200,7 @@ tick()
 sys.modules["keypick_s"].UI.step_run = _run
 PAGE = bytes(FULL)
 FULL[:] = SNAP["C6"]`);
-shot("key-keeping", "Keep, let go of at 3 s: the chip at work, and Keep's steps beside it, ticked off as each one passes. The test signatures passed; the seal is running.");
+shot("key-keeping", "Seal, let go of at 3 s: the chip at work (Sealing it), and the steps beside it, ticked off as each one passes. The test signatures passed; the seal is running.");
 py(`FULL[:] = SNAP["C9"]`);
 shot("key-locking", "Then the chip's record and its data lock, under the same list: the seal passed, the data lock is running. Then the pin.");
 py(`FULL[:] = PAGE`);

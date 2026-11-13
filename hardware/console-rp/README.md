@@ -4,10 +4,9 @@
 and the board, routed (DRC). The fab files for JLCPCB are in [console-rp/fab/](console-rp/fab/) and
 pass `tools/keypcb jlc console-rp`. Two real panels were checked against J2 ([The panel](#the-panel)).
 Five ordered from JLCPCB on 2026-10-29, fully assembled
-([the order](../../buildlog/2026-10-29-console-rp-order.md)), and received on 2026-11-04. The first
-one is up on a bench script ([bench/BRINGUP.md](bench/BRINGUP.md)), and what it can do is measured
-([bench/HORSEPOWER.md](bench/HORSEPOWER.md)); the console's firmware for it is
-not written yet.*
+([the order](../../buildlog/2026-10-29-console-rp-order.md)), and received on 2026-11-04. Four of
+them run the console's own image, and one is broken: [The boards and the
+firmware](#the-boards-and-the-firmware) has each board and where its notes are.*
 
 ![console-rp from above: a warning triangle and EXPERIMENTAL HARDWARE COSIGNER over the 1.14-inch screen at the top left, PicoQuorum console-rp under it, and D0, D1 and D2 in a row below that; the flash, the RP2350, the crystal, the CH343P, and the key chip with an 8-bit key pointing at it, to its right; the USB-C on the right edge, RESET and BOOTSEL at the bottom right, and the bench header's holes along the top](renders/console-rp-top.jpg)
 
@@ -254,6 +253,51 @@ An outside review on 2026-10-29 found these, all left as they are for the first 
   also meet the 3V3 ring under the chip and its six 100n capacitors.
 - U3's heat (below, under Open) needs a measurement.
 
+## The boards and the firmware
+
+The console's image for this board is `console-rp` (`firmware/main_rp.py`, in
+`firmware/manifest.json`), on the branch `claude/console-rp-image`, pull request #113. The last
+build is 0f908638, release f24d·22db. There is no signed release of it yet (`tools/release`,
+[docs/RELEASES.md](../../docs/RELEASES.md)).
+- **The owner makes the key on the board.** The bench only prepares the chip: its config written
+  and locked, no key. The holds on the screen are the permission to make, seal and lock it, and the
+  console pins itself to that chip.
+- **The relay:** the console asks for Safe's queue over the USB-C, and a program on the computer
+  fetches it from the pinned service: `tools/relay/relay.py`, or the app's Device page in Chrome
+  or Edge. The console rebuilds every hash itself.
+- **The screens** are in the CRT look, with the caps ■ ● ▲ drawn over D0, D1 and D2.
+
+The notes:
+- [SETUP.md](SETUP.md): setting one up. The bench's prepare, the owner's key on the device, a Safe,
+  signing, low memory, and loading a board that has a key.
+- [docs/USB-LINK.md](../../docs/USB-LINK.md#the-relay-console-rp): the link and the relay, and what
+  was checked on the boards (soaks, hostile relays, 100 restarts, 20 unplugs, signatures).
+- [tools/relay/README.md](../../tools/relay/README.md): the bench's relay, its logs and its hostile
+  modes.
+- [docs/quorum-ui/console-rp](../../docs/quorum-ui/console-rp/README.md): every screen, drawn by the
+  firmware on the emulator.
+- [bench/BRINGUP.md](bench/BRINGUP.md): loading over SWD through J3, and the first board's checks.
+- [bench/HORSEPOWER.md](bench/HORSEPOWER.md): what the board can do, measured.
+- [CONSOLE-RP-PLAN-2026-11-04.md](../../CONSOLE-RP-PLAN-2026-11-04.md): the plan written at bring-up.
+
+### The boards
+
+The five from the order, on 2026-11-12. The key chip's serial is what the console logs and its
+Device page shows. The USB serial is the CH343P's, the end of the port's name on a Mac
+(`/dev/cu.usbmodem5CF90874531`), so a board can be told apart before anything talks to it.
+
+| Board | Key chip (ATECC608C) | USB serial | Firmware | State |
+|---|---|---|---|---|
+| #1 | `01234ed5a949900dee` | `5CF90874511` | console-rp c77d4f85 (2026-11-05) | Prepared 2026-11-05 (config CRC 3935). A key made, not sealed. In a case. |
+| #2 | `0123e378cc054cecee` | `5CF90874531` | console-rp 0f908638 | Sealed and pinned 2026-11-06, owner `0x1324…eDd4`. Signs for two Base Sepolia Safes. The test board: the soaks, 100 restarts, 20 unplugs, ten signatures in one start ([docs/USB-LINK.md](../../docs/USB-LINK.md#the-relay-console-rp)). |
+| #3 | `012337ad43ae97ccee` | `5CF90874501` | console-rp 0f908638 | Prepared 2026-11-12 (config CRC e32f). Keys made and replaced, none sealed. In a case. |
+| #4 | `012384d55c003106ee` | `5CF90874561` | console-rp 0f908638 | Prepared 2026-11-12 (config CRC f7dc). No key yet. |
+| #5 | not read | `5CF90874521` | not known | Broken. Its screen's connector is damaged, and SWD never answered (2026-11-12). Its CH343P still shows up on USB. |
+
+A board with a sealed key (#2) is never loaded plainly: that wipes its pin. Dump it right before
+and load with `--keep` ([SETUP.md](SETUP.md#loading-a-board-that-has-a-key)). A board with no
+sealed key (#1, #3, #4) takes a plain load and comes back on the key pick.
+
 ## Steps to a board
 
 1. **Panels:** two bought and checked by hand on 2026-10-29 ([The panel](#the-panel)).
@@ -268,9 +312,9 @@ An outside review on 2026-10-29 found these, all left as they are for the first 
    loaded, what was checked, and the ways to load boards in numbers. What comes next (the
    firmware, the relay, a batch of 20, selling the first boards) is in
    [CONSOLE-RP-PLAN-2026-11-04.md](../../CONSOLE-RP-PLAN-2026-11-04.md).
-4. **The firmware and the relay.** A `console-rp` profile: the QT Py's footer screens at 240 × 135
-   (`claude/qtpy-cosigner`, PR #91), these pins, and the link on UART1. The relay is a new network
-   path and part of the app, so it needs a yes before it's built.
+4. **The firmware and the relay.** Done on the branch, and on four boards
+   ([The boards and the firmware](#the-boards-and-the-firmware)). Next: pull request #113 merged,
+   then a signed release.
 
 ## Open
 
@@ -278,7 +322,7 @@ An outside review on 2026-10-29 found these, all left as they are for the first 
   showed 0 afterwards (2026-10-29).
 - [ ] U3, the XC6206: about 82 °C over the air at 0.12 A by the datasheet's figure. The board
   draws less, but a measurement would say.
-- [ ] The relay: a Web Serial page in the app, a command-line tool, or both?
+- [x] The relay: both, `tools/relay/relay.py` and the app's Device page.
 - [ ] The 27 Ω pair: keep, or a Basic 22 Ω?
 - [ ] A case, and the Sign button's guard.
 - [ ] picoquorum.dev, printed on the back, must lead to the site and the source before boards ship.

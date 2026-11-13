@@ -141,7 +141,7 @@ Make: the chip at work, a light running round its legs and hex flickering in its
 
 ### key pick
 
-A key: its owner address's blockie and two ends, landed after a shuffle, locking in. D0 ■ New makes another, as many as anyone likes; D1 ● Full; D2 ▲ Choose.
+A key: its owner address's blockie and two ends, landed after a shuffle, locking in. D0 ■ Replace makes another in its place: the chip holds one key, so the one passed over is gone. D1 ● Full; D2 ▲ Seal.
 
 ![22-key-pick](22-key-pick.png)
 
@@ -153,19 +153,19 @@ Full: the whole owner address.
 
 ### key keep
 
-Keep: red, it arrives torn. D2 ▲ held 3 s seals the key and locks the chip, for good. D0 ■ goes back.
+Seal this key?: red, it arrives torn. D2 ▲ Seal held 3 s seals the key and locks the chip, for good. D0 ■ goes back.
 
 ![24-key-keep](24-key-keep.png)
 
 ### key keep hold
 
-Keep, held: its slot fills. Let go before 3 s and nothing happens.
+Seal, held: its slot fills. Let go before 3 s and nothing happens.
 
 ![25-key-keep-hold](25-key-keep-hold.png)
 
 ### key keeping
 
-Keep, let go of at 3 s: the chip at work, and Keep's steps beside it, ticked off as each one passes. The test signatures passed; the seal is running.
+Seal, let go of at 3 s: the chip at work (Sealing it), and the steps beside it, ticked off as each one passes. The test signatures passed; the seal is running.
 
 ![26-key-keeping](26-key-keeping.png)
 

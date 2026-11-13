@@ -107,16 +107,17 @@ That independence is the point. A second check is only worth something if it fai
 the first: different hardware, different code, a different network path, a different person looking
 at it. More screens: [docs/quorum-ui](docs/quorum-ui/README.md).
 
-**The console on its own board, in bring-up now.** [console-rp](hardware/console-rp/README.md) is
+**The console on its own board.** [console-rp](hardware/console-rp/README.md) is
 the console as one board: an RP2350A with no radio, a 1.14″ 240 × 135 screen, D0 D1 D2 under it,
 and an ATECC608C on the board. Its USB-C reaches only a CH343P serial chip, never the RP2350's own
 USB or its REPL.
-- Five came assembled from JLCPCB on 2026-11-04. The first is up on a bench script: the chip, the
-  screen, the buttons, the key and the link all answer ([bring-up](hardware/console-rp/bench/BRINGUP.md)).
-- With no Wi-Fi, a program on the computer will fetch the Safe's queue and post signatures for it.
-  The console still rebuilds every hash itself. That relay, and the console's firmware for this
-  board, aren't written yet ([the plan](CONSOLE-RP-PLAN-2026-11-04.md)).
-- What the board can do, measured: [HORSEPOWER.md](hardware/console-rp/bench/HORSEPOWER.md).
+- Five came assembled from JLCPCB on 2026-11-04. Four run the console's own image and one is
+  broken ([the boards](hardware/console-rp/README.md#the-boards-and-the-firmware)).
+- The owner makes the key on the board, and the console pins itself to that chip
+  ([setting one up](hardware/console-rp/SETUP.md)).
+- With no Wi-Fi, a relay on the computer fetches the Safe's queue and posts the console's
+  signatures: `tools/relay/relay.py`, or the app's Device page. The console still rebuilds every
+  hash itself ([the relay](docs/USB-LINK.md#the-relay-console-rp)).
 
 <img src="hardware/console-rp/renders/console-rp-top.jpg" width="420" alt="console-rp from above: the 1.14-inch screen at the top left, D0, D1 and D2 under it, the RP2350, the flash, the CH343P and the key chip to its right, the USB-C on the right edge">
 
@@ -224,8 +225,8 @@ Picoquorum is built in public. **[docs/STATUS.md](docs/STATUS.md)** is the one p
 today: the name (picoquorum.eth) and the domains, every Safe and key with its address, the contracts
 the console relies on, and what's next.
 
-**Now:** bringing up [console-rp](hardware/console-rp/README.md), the one-board console with no
-radio, and writing its firmware.
+**Now:** [console-rp](hardware/console-rp/README.md), the one-board console with no radio. Its
+firmware runs on four boards and is in review (pull request #113).
 
 The [test ladder](docs/LADDER.md) tracks each chain:
 - ✅ a simulated Safe and a local fork, on the real Pico
