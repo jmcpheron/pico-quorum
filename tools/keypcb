@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # The key PCBs in hardware/key-pcb (see its README.md and ORDERING.md), and the console boards:
-# hardware/mono and hardware/console-rp; the early prototype hardware/prototypes/console-s3; and,
+# hardware/mono, hardware/tally and hardware/console-rp; the early prototype hardware/prototypes/console-s3; and,
 # in hardware/archive/, console-pcb, console-a, console-pocket and the Feather's wing (feather-wing).
 # Needs KiCad's kicad-cli: 9 for rev A, 10 for the rest.
 #
@@ -44,8 +44,10 @@
 #                                 rewriting it
 #   tools/keypcb gen-mono [check|tidy] [render]  rewrites mono (the slender RP2350 bar, placed) from
 #                                 hardware/mono/gen_mono.py, the same way; `route mono` routes it
+#   tools/keypcb gen-tally [check]  rewrites tally (Mono's bar drawn again, no inductor) from
+#                                 hardware/tally/gen_tally.py, routed: its tracks are in the script
 #
-# board is one of the key-*, console-*, mono or wing-* folders; without one, every board. A name used in two
+# board is one of the key-*, console-*, mono, tally or wing-* folders; without one, every board. A name used in two
 # folders (console-a) is written with its folder: console-pcb/console-a, console-a/console-a.
 # check on a board whose folder has a gen.py also runs `gen.py check` (its pin map against the
 # firmware). Run from anywhere.
@@ -55,6 +57,7 @@ ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "hardware"
 ROOT = os.path.normpath(ROOT)
 CONSOLE_RP = os.path.join(os.path.dirname(ROOT), "console-rp")
 MONO = os.path.join(os.path.dirname(ROOT), "mono")
+TALLY = os.path.join(os.path.dirname(ROOT), "tally")
 CONSOLE_S3 = os.path.join(os.path.dirname(ROOT), "prototypes", "console-s3")    # an early prototype
 ARCHIVE = os.path.join(os.path.dirname(ROOT), "archive")        # boards no longer worked on (hardware/archive/README.md)
 CONSOLE = os.path.join(ARCHIVE, "console-pcb")
@@ -74,6 +77,7 @@ def _board_dirs():
                   + glob.glob(os.path.join(CONSOLE_A, "console-*")) + glob.glob(os.path.join(CONSOLE_POCKET, "console-*"))
                   + glob.glob(os.path.join(FEATHER_WING, "wing-*")) + glob.glob(os.path.join(CONSOLE_S3, "console-*"))
                   + glob.glob(os.path.join(CONSOLE_RP, "console-*")) + glob.glob(os.path.join(MONO, "mono"))
+                  + glob.glob(os.path.join(TALLY, "tally"))
                   if os.path.isdir(d))
     base = [os.path.basename(d) for d in dirs]
     return {(b if base.count(b) == 1 else os.path.basename(os.path.dirname(d)) + "/" + b): d for b, d in zip(base, dirs)}
@@ -703,7 +707,8 @@ def main():
             "gen-feather-wing": os.path.join(FEATHER_WING, "gen_wing.py"),
             "gen-console-s3": os.path.join(CONSOLE_S3, "gen_console_s3.py"),
             "gen-console-rp": os.path.join(CONSOLE_RP, "gen_console_rp.py"),
-            "gen-mono": os.path.join(MONO, "gen_mono.py")}
+            "gen-mono": os.path.join(MONO, "gen_mono.py"),
+            "gen-tally": os.path.join(TALLY, "gen_tally.py")}
     if len(sys.argv) > 1 and sys.argv[1] in gens:
         py = KICAD_PY if sys.argv[1] not in ("gen-console-pocket", "gen-feather-wing", "gen-console-s3") else "python3"
         os.execvp(py, [py, gens[sys.argv[1]], *sys.argv[2:]])
