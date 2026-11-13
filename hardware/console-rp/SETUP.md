@@ -10,7 +10,9 @@ through J3 and a debug probe ([bench/BRINGUP.md](bench/BRINGUP.md)).*
 The bench prepares the chip and never makes a key in it.
 
 1. **`prepare-rp`, with a bench `secrets.py`** that holds only `ALLOW_LOCK = True`, made in a temp
-   folder and never committed: `swdload.py --image build/prepare-rp-<sha> --secrets PATH`. On the
+   folder and never committed: `swdload.py RPI_PICO2-20250911-v1.26.1.uf2 --image
+   build/prepare-rp-<sha> --secrets PATH`, MicroPython and the image in one load (about 3.5 minutes;
+   [bench/BRINGUP.md](bench/BRINGUP.md) has the UF2's hash). On the
    screen it writes the chip's config (C1-C3, the quorum v1 table) and locks it. That lock is
    permanent ([docs/LOCKING.md](../../docs/LOCKING.md)). Then P4 reads and changes nothing: the
    config locked, the data zone open, slot 0 not sealed, no key in it, counter 0 at 0. It writes
@@ -18,6 +20,11 @@ The bench prepares the chip and never makes a key in it.
 2. **`swdload.py --dump DIR`**, read only: `prep-log.txt` and the chip's config, to keep.
 3. **`console-rp`, with no `secrets.py`:** `swdload.py --no-micropython --image
    build/console-rp-<sha>`. The board comes up on "Your key: No key yet: a new chip".
+
+Board #3 went this way on 2026-11-12, from a blank flash: C1-C3 and P4 passed, and its config CRC
+(e32f) was the same from `tools/check_config --summary` on the dumped snapshot. A CRC differs per
+chip (byte 14 of the factory config), so check each against its own snapshot. Then console-rp
+0f908638: nine keys made and replaced, counter 0 at 0 throughout, none sealed.
 
 ## The owner, on the device
 

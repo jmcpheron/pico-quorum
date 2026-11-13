@@ -37,7 +37,8 @@ What worked is SWD, through J3's CLK, DIO and GND:
    (hold its BOOTSEL as it is plugged in). It uses GP2 for SWCLK and GP3 for SWDIO; the W's LED does
    nothing, its radio is not used. Raspberry Pi's own Debug Probe does the same job.
 2. **Wires.** Pico GP2 (pin 4) to CLK, GP3 (pin 5) to DIO, GND (pin 3) to J3's square GND pad. No
-   power between the boards: each has its own USB cable, the console-rp on its USB-C.
+   power between the boards: each has its own USB cable, the console-rp on its USB-C. With CLK and
+   DIO swapped, probe-rs says "No target responded to the debug port", at every speed (board #3).
 3. **probe-rs** on the Mac: `brew install probe-rs-tools` (0.32.0). Homebrew's OpenOCD 0.12 doesn't
    know the RP2350.
 4. **MicroPython** for the Pico 2 (not the 2 W), v1.26.1, `RPI_PICO2-20250911-v1.26.1.uf2` from
