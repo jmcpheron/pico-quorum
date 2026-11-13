@@ -1,6 +1,6 @@
 # Tally: the review of 2026-11-13
 
-Ten agents read the design the day it was drawn. Five reviewed one area each: the RP2350 and what
+Ten agents read the design the day it was drawn; two more then worked out the placement angles again. Five reviewed one area each: the RP2350 and what
 it needs, pin by pin against its datasheet; the USB, power, bridge, key, screen and buttons against
 theirs; the layout, measured from the board file; the fab files, read back from the zip; and the
 board against the rest of this repository. Then five more each took one reviewer's findings and
@@ -83,16 +83,33 @@ that lays its pads on KiCad's.
 As first written, U5's VIO would have been laid on LINK_TX and its VDD5 on D+.
 
 How far to trust it:
-- The same table came out three times: from the second reader, and from two scripts written
-  afterwards without its code, one matching pads by number and one by shape alone.
-- The method gives −90° for the USBLC6, which this repository had already recorded from the same
-  library (`hardware/archive/console-pcb/gen_console.py`), and it gives the quarter turn that
-  key-c's order showed in JLCPCB's preview for a SOIC-8 and a SOT-23-6.
-- It rests on JLCPCB's machine following its library's drawing. That was seen on two parts of one
-  order. console-rp had this CH343P at KiCad's angle with no offset, and its link works, so somebody
-  turned it; the record does not say who.
-- So: the offsets are in `cpl.csv`, the two chips have their marks back, and the preview is still
-  the check.
+- **The same table came out four times from JLCPCB's footprints:** from the second reader; from
+  two scripts written afterwards without its code, one matching pads by number and one by shape
+  alone; and from another agent that fetched the footprints again itself and was kept from the
+  earlier answers.
+- **A fifth agent used no footprints**, only the published KiCad-to-JLCPCB rotation tables
+  (JLCKicadTools, Fabrication Toolkit, KiBot) and this repository's order history. It agrees on
+  fourteen parts of fifteen. It scored those tables against 14 known answers: 8, 11 and 11 right,
+  so none is safe alone, because JLCPCB draws parts of one package both ways.
+- **The one disagreement is U4**, the TLV74311P. Its own JLCPCB footprint (`SOT-23-5...-BL`) says a
+  quarter turn, so the CPL reads 0. The package-level tables and a JLCPCB help figure for SOT-23-5
+  say a half turn, which would read 270. The part's own footprint is the better evidence, and
+  `cpl.csv` follows it. Either wrong turn shows at once: leads across the pads.
+- **What it reproduces.** −90° for the USBLC6, which this repository had recorded from the same
+  library (`hardware/archive/console-pcb/gen_console.py`); the quarter turn key-c's order showed in
+  JLCPCB's preview for a SOIC-8 and a SOT-23-6; and JLCPCB's own figure of a SOIC-8 at zero, pin 1
+  bottom-left. Another project's record of this RP2350A part, on a footprint with these pads, has it
+  right with no offset; another's has a QFN-16 of this pad numbering right at 270.
+- **What it does not prove.** No QFN has a preview on record in this repository. console-rp and
+  console-s3 went up with KiCad's angles and work, the two parts key-c saw turned among them, so
+  JLCPCB's engineers turned them to the silkscreen; the logs do not say which. That is why the two
+  missing marks mattered. JLCPCB also edits its footprints: these are as fetched on 2026-11-13.
+- **J1's point** is JLCPCB's origin by laying its two pegs on the board's two holes. By its shell
+  slots it is 0.03 mm more; by a pad fit, 0.18 mm, along the pads.
+
+So the offsets are in `cpl.csv`, the two chips have their marks back, and JLCPCB's preview is still
+the check. Look first at U5 and U1, where a wrong quarter turn fits every pad; then U6, U7, U2 and
+D1, where a half turn fits; then U4.
 
 ## Left as it is, and why
 

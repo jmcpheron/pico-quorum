@@ -173,9 +173,10 @@ Read from JLCPCB's and LCSC's listings on 2026-11-13. Stock and prices move dail
   Q1 and Q2 a half. `cpl.csv` carries those turns. The schematic has them as the field
   `JLCPCB Rotation Offset`, which `tools/keypcb fab` reads too. J1's point is where JLCPCB's
   footprint has its origin, 1.4 mm from KiCad's. All of it comes from JLCPCB's own footprints,
-  laid pad for pad on KiCad's ([REVIEW.md](REVIEW.md#the-placement-file)). None of it is proven on a
-  board. **U5 is the one to watch:** a QFN-16 fits its pads at every quarter turn. In JLCPCB's
-  placement preview, hold each IC's dot against the silkscreen's mark before paying.
+  laid pad for pad on KiCad's, four times over; the published rotation tables agree but for U4
+  ([REVIEW.md](REVIEW.md#the-placement-file)). None of it is proven on a board. In JLCPCB's
+  placement preview, hold each IC's dot against the silkscreen's mark before paying: **U5 and U1
+  first**, where a wrong quarter turn fits every pad; then U6, U7, U2 and D1; then U4.
 
 ## Routing
 
