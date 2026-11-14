@@ -158,7 +158,7 @@ class SSLContext:
 
 
 mods = {"machine": machine, "time": mptime, "micropython": types.SimpleNamespace(alloc_emergency_exception_buf=lambda n: None),
-        "framebuf": types.SimpleNamespace(FrameBuffer=FrameBuffer, RGB565=1, MONO_HLSB=0),
+        "framebuf": types.SimpleNamespace(FrameBuffer=FrameBuffer, RGB565=1, MONO_HLSB=0, GS4_HMSB=2),   # fonts.py names GS4_HMSB at import
         "network": types.SimpleNamespace(STA_IF=0, AP_IF=1, hostname=lambda *a: None),
         "requests": types.SimpleNamespace(), "secrets": types.SimpleNamespace(),
         "tls": types.SimpleNamespace(SSLContext=SSLContext, PROTOCOL_TLS_CLIENT=0, CERT_REQUIRED=2)}
