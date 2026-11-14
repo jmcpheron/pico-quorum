@@ -271,7 +271,9 @@ The notes:
 - [SETUP.md](SETUP.md): setting one up. The bench's prepare, the owner's key on the device, a Safe,
   signing, low memory, and loading a board that has a key.
 - [docs/USB-LINK.md](../../docs/USB-LINK.md#the-relay-console-rp): the link and the relay, and what
-  was checked on the boards (soaks, hostile relays, 100 restarts, 20 unplugs, signatures).
+  was checked on the boards (soaks, hostile relays, the Key page's QR, memory while signing, 100
+  restarts, 20 unplugs, signatures).
+- [DISCUSSIONS.md](DISCUSSIONS.md): the questions about the customer image, open and decided.
 - [tools/relay/README.md](../../tools/relay/README.md): the bench's relay, its logs and its hostile
   modes.
 - [docs/quorum-ui/console-rp](../../docs/quorum-ui/console-rp/README.md): every screen, drawn by the
@@ -297,6 +299,16 @@ Device page shows. The USB serial is the CH343P's, the end of the port's name on
 A board with a sealed key (#2) is never loaded plainly: that wipes its pin. Dump it right before
 and load with `--keep` ([SETUP.md](SETUP.md#loading-a-board-that-has-a-key)). A board with no
 sealed key (#1, #3, #4) takes a plain load and comes back on the key pick.
+
+## The customer image: discussions
+
+[DISCUSSIONS.md](DISCUSSIONS.md) keeps the questions about the image an owner gets, each open,
+decided or set aside. A decided one says when, why, and the commit that did it. Open on
+2026-11-14, among others:
+- how an owner gets an update, when the USB-C reaches only the CH343P;
+- frozen modules for more heap, and the RP2350's own locks;
+- a review of the own-key gate by someone else;
+- a signed release, after pull request #113 is merged.
 
 ## Steps to a board
 

@@ -176,6 +176,12 @@ What was checked:
 - Board #2, 2026-11-09 and 10: a 12.5 h soak with 8842 status reads and 76 polls, no link faults;
   two signatures posted through `relay.py` (201) and executed on Base Sepolia. Until 862fba4f read
   an answer's body in place, a 2.4 KB queue found no block its size in the heap, every other poll.
+- Board #2, 2026-11-07 to 10, the Key page's QR code. On c524e008 it failed for memory on every
+  tick (8 KB, then 4 KB: qrcode's list of 1072 bits). On 1e448c3b it drew once, then failed
+  (256 bytes) at every later opening: big ints on every frame. On 88605681, which has e62e1278's
+  fix for those, `encode`'s grids, about 35 KB of small lists, failed it. Since b92fa8c3 each grid
+  is a bytearray, and the Key page drew on board #2. Old and new encoders agree on 5832 encodings
+  on CPython.
 - Board #2 on 0d617601, 2026-11-10, with an empty queue: each of `relay.py --hostile`'s link faults
   (garbage, overlong, unsolicited, wrong-id, dup, late, truncate, stall, nested, chatter) on every
   answer for a while. Each ended dropped and counted, or as one failed poll with the next one fine.
@@ -220,6 +226,33 @@ What was checked:
   read the chip before it lost power. The other cuts came before that read and used nothing. No
   error in the log. A dump over SWD after: every file there, `pin.json` and `keyflow.json` the same
   bytes as before dd82e30a's load, the JSON files parsing, no broken line in `log.txt`.
+- The night after, on dd82e30a: 10.5 h on home from the last of those starts (22:44 to 09:14),
+  18,257 status reads and 40 polls, each 200. No link fault of any kind, 69.2 to 69.3 KB free
+  throughout, the counter still at 152.
+- Board #2 on f95d12fd, 2026-11-11: first 9.8 h on home, with 6984 status reads and 54 polls (53
+  answered 200, one 503 from Safe's service, logged). No link fault, 43 to 70 KB free.
+- That evening nine transactions on the 2 of 2 Safe were signed in turn, and two signatures in the
+  heap ran out of pieces. Each queue entry still held the service's whole transaction, its 1.3 KB
+  contract signatures included: about 50 KB for nine.
+  - #6's first signature was lost before it was sent (MemoryError, 1336 bytes). Its second
+    signature's post failed. After the restart that followed (reset cause 3) the console sent the
+    saved signature (201), then offered #6 again and signed it a third time (201).
+  - #7 was posted (201) but shown as not signed.
+  - #8 failed twice after the chip signed. Then no screen could draw: after 20 failed ticks the
+    console stopped on its crash screen.
+  - Three of those signatures' counts weren't saved. So the next start reported 3 uses of the key
+    outside the console: they were its own.
+- 9b790f9a, the same evening: an entry keeps only the fields its hash is made from. The chip is
+  asked only when 4 KB in one piece is free after a collection. With nine queued there was 56 to
+  62 KB free but no such piece once the queue was read: #8 was refused twice before the chip was
+  asked ("the key not used"), with a restart each time.
+- 8c33db6c: those 4 KB are set aside at the start and handed over just before the chip signs.
+  #8 to #11 were signed and posted in one start (201, counter 168 to 171). Then #12's review froze
+  on its last frame: no 1336-byte piece for the font width cache's table, which every 1336 that
+  day had been. After a restart #12 was signed and posted (201, counter 173). All nine of the
+  evening's transactions were confirmed. 5add8498 made that cache a fixed table. 8c33db6c also
+  restarted itself twice more on home that night (reset cause 3). Before d60dfb40 no reason went
+  to the log.
 - Board #2 on 5add8498, 2026-11-12: ten transactions queued on the 2 of 2 Safe (nonces 13 to 22)
   and signed in one start, 21 before 20. Each confirmation was posted (201) and listed by Safe's
   service, and the counter went up by exactly one for each, 179 to 189. 48 to 53 KB free around
