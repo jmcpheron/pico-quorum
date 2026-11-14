@@ -85,7 +85,7 @@ Early prototypes ([prototypes/](prototypes/README.md)):
 
 | name | kind | the key | firmware | where it stands |
 |---|---|---|---|---|
-| [console-s3](prototypes/console-s3/DESIGN.md) | board | ATECC608C on the board | `feather-s3` | 5 boards came 2026-11-02; board 1 runs ([its first day](../buildlog/2026-11-02-console-s3-first-board.md)) |
+| [console-s3](prototypes/console-s3/DESIGN.md) | board | ATECC608C on the board | `feather-s3` | 5 boards came 2026-11-02; boards 1 and 2 run ([board 1's first day](../buildlog/2026-11-02-console-s3-first-board.md), [board 2](../buildlog/2026-11-13-console-s3-second-board.md)) |
 | [picoquorum-key](prototypes/picoquorum-key/README.md) | board | UDFN ATECC608C on the board; rev B adds a key port for key-c | `picoquorum-key`, picked by its key bus's pull-ups; the port needs a later image | boards made, rev B; the first reported working, 2026-11-03 ([build log](../buildlog/BUILDLOG.md)) |
 
 Archived ([archive/](archive/README.md)):

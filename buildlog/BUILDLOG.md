@@ -937,3 +937,14 @@ and the crystal's stock limit a run before price does.
 
 Notes: [2026-10-29-console-rp-order.md](2026-10-29-console-rp-order.md). Design:
 [hardware/console-rp](../hardware/console-rp/README.md).
+
+## 2026-11-13 — the second console-s3 board: D0 bridged to MOSI again, reflowed
+
+Jason soldered a module onto a second console-s3 board. MicroPython 1.26.1 and `newboard.py`'s
+check: everything passed but D0, which read pressed from the moment the screen's SPI started. GPIO0
+followed GPIO35 and no other pin, the first board's bridge between pads 27 and 28. The console image
+of main 9f0d93df (2026.11.3, release 1eeb·bf43) went on with a new `tools/board/rawcopy.py`, 55
+files each checked on the board, since mpremote wedges on these boards. After Jason's reflow the
+check passed, 15 of 15. Its ATECC608C (`0123182000ec297dee`) is factory fresh and wasn't written.
+
+Notes: [2026-11-13-console-s3-second-board.md](2026-11-13-console-s3-second-board.md).
