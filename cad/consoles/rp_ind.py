@@ -84,10 +84,7 @@ def main():
     print("rp_ind: the wall at the cut corners %.2f mm at the least, behind a notch %.2f" % (c.corner_wall, WALL - NOTCH[2]))
     print("rp_ind: the mark's lines: %d across the triangle, %.2f mm apart, %.2f mm between them" % c.hatch)
     print("rp_ind: the shell's bodies: " + ", ".join("%s %.1f mm3" % b for b in MI.bodies(c, OUT)))
-    S.threemf([(n, os.path.join(OUT, "rp_ind_shell_%s.stl" % n), col)
-               for n, col in (("black", MI.BLACK), ("green", MI.GREEN), ("orange", MI.ORANGE))],
-              os.path.join(OUT, "rp_ind_shell_colours.3mf"), "rp_ind_shell")
-    print("wrote", os.path.relpath(os.path.join(OUT, "rp_ind_shell_colours.3mf"), S.REPO))
+    MI.threemf(c, OUT)
     return bad
 
 

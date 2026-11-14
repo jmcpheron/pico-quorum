@@ -8,9 +8,11 @@ ones being worked on.**
 |---|---|---|---|---|
 | **[Mono's](#mono)** | [Mono](../../hardware/mono/README.md) | [`mono.py`](mono.py) | `tools/case build mono` | a first draft, not printed |
 | **[Mono's, industrial](#mono-industrial)** | Mono | [`mono_ind.py`](mono_ind.py) | `tools/case build mono-industrial` | a variant of the first draft, not printed |
+| [Mono's, industrial, in colours](#mono-industrial-in-colours) | Mono | [`mono_ind_inlay.py`](mono_ind_inlay.py) | `tools/case build mono-industrial-inlay` | the industrial variant with its mark and name in three colours, flush; not sliced, not printed |
 | [the slate](#the-slate-console-rp) | [console-rp](../../hardware/console-rp/README.md) | [`rp.py`](rp.py) | `tools/case build rp` | a first draft |
 | [the slate, industrial](#the-slate-industrial) | console-rp | [`rp_ind.py`](rp_ind.py) | `tools/case build rp-industrial` | a variant of the first draft, not sliced, not printed |
 | [the stick](#the-stick-console-s3) | [console-s3](../../hardware/prototypes/console-s3/DESIGN.md), an early prototype | [`stick.py`](stick.py) | `tools/case build stick` | a first draft, not fitted to its board |
+| [the stick, in colours](#the-stick-in-colours) | console-s3 | [`stick_inlay.py`](stick_inlay.py) | `tools/case build stick-inlay` | the stick with its mark in three colours, not sliced, not printed |
 | [the badge](#the-badge-picoquorumkey-rev-b) | [PicoquorumKey rev B](../../hardware/prototypes/picoquorum-key/README.md), an early prototype | [`badge.py`](badge.py) | `tools/case build badge` | a first draft; the rev A plate was printed once |
 
 Each script writes a folder in [`out/`](out/): the STLs to print, a STEP of the whole assembly, and
@@ -23,7 +25,8 @@ changed, so a case is up to date when it lists nothing.
   its fab files (`hardware/mono/`), so the case follows the board.
 - [`mono_ind.py`](mono_ind.py) holds the industrial variant's: `CORNER_CUT`, `GROOVES`, and its own
   mark and name, printed in the face: `MARK_R`, `HATCH`, `NAME_FIT`, `COLOUR` and `decor`. The slate's
-  industrial case uses `decor` too, so a change there changes both.
+  industrial case, the stick in colours and Mono's industrial case in colours use `decor` too, so a
+  change there changes them all.
 - [`rp.py`](rp.py) draws the badge (`decor`) and the name (`name`). A change there changes the slate too.
 - [`shell.py`](shell.py) holds what every case shares: the walls, the posts, the caps' fit, the dock
   and the checks. A change there changes every case here.
@@ -118,6 +121,32 @@ how the lines hold on the bed, and how a slicer takes the three bodies are not k
 ![Mono's case, industrial](out/mono_ind/mono_ind_front.png)
 
 ![Mono's case, industrial, apart](out/mono_ind/mono_ind_apart.png)
+
+## Mono, industrial, in colours
+
+[`mono_ind_inlay.py`](mono_ind_inlay.py): Mono's industrial case with its mark and name printed flush in
+the face in three colours, for a printer that changes filament itself. **Not sliced, not printed.** The
+case is the industrial one: the same cut corners, edges, grooves, window, caps and screws, and the same
+mark and name, at the same size and place. Its back panel, caps and dock come out the same files as
+`mono_ind.py`'s built on the same machine. Only how the mark and the name are made changes:
+- **Nothing is cut into the face.** Green fills the triangle, the three signed dots and the name, orange
+  the two waiting dots, each 0.6 mm deep from the face: layers 1 to 3, the first on the bed. The face is
+  flat.
+- **The lines across the triangle and the ring round each signed dot are black through that depth,**
+  0.6 mm, not 0.4 mm over the colour. They are the same lines: 0.5 mm wide, 1.53 mm apart.
+- **Two ways to load the colours** ([Printing](#printing)): `mono_ind_inlay_shell_colours.3mf`, one
+  object of three parts; or `mono_ind_inlay_shell_black.stl`, `_green.stl` and `_orange.stl`, loaded
+  together as one object. `mono_ind_inlay_shell.stl` is the three as one body, its face plain: for one
+  filament change, print the industrial case's own shell.
+
+The build finds no overlap, as for the industrial case. The script stops if the three bodies' volumes
+don't add up to the shell's (black 13070.8 mm³, green 86.1, orange 6.7). The 3MF was read back: its three
+meshes are closed, their volumes are the STLs', and each colour lies on the bed (green 143 mm² of it,
+orange 11) and ends 0.6 mm up. No slicer has opened it.
+
+![Mono's mark and name from the front, as the three bodies print flush: black, green, and orange in the waiting dots](out/mono_ind_inlay/mono_ind_inlay_mark.png)
+
+![Mono's case, industrial, in colours](out/mono_ind_inlay/mono_ind_inlay_front.png)
 
 ## The slate (console-rp)
 
@@ -285,6 +314,37 @@ Everything else is the same:
 
 ![the stick on its dock](out/stick/stick_dock.png)
 
+## The stick, in colours
+
+[`stick_inlay.py`](stick_inlay.py): the stick with its mark printed flush in the face in three colours,
+for a printer that changes filament itself. **Not sliced, not printed.** The case is the stick's: the
+same outline, edges, window, caps, screws and lug. Its back panel, caps and dock come out the same files,
+byte for byte. Only the mark in the front shell changes:
+- **It is not engraved.** Green fills the triangle and the three signed dots, orange the two waiting
+  dots, each 0.6 mm deep from the face: layers 1 to 3, the first on the bed. The face is flat. The mark
+  is the stick's size and place, 7.5 mm in radius.
+- **Black lines 0.5 mm wide cross the green triangle** 1.44 mm apart, with 0.94 mm of green between
+  them, and a black ring 0.5 mm wide goes round each signed dot inside the triangle, as on
+  [the slate's industrial case](#the-slate-industrial) (`mono_ind.decor`, with `inlay`).
+- **RESET is a 1.8 mm pinhole through the lower-left dot,** as BOOT's is, not the whole dot (the stick's
+  is 3.75 mm). The dot is a green ring 1 mm wide round it. A paperclip reaches RESET; a pen's tip no
+  longer does.
+- **The green stands 0.8 mm back from the LED's hole,** which is 0.4 mm from the triangle's left edge:
+  a bite 0.4 mm deep in that edge.
+- **Two ways to load the colours,** as the slate's ([Printing](#printing)):
+  `stick_inlay_shell_colours.3mf`, one object of three parts; or `stick_inlay_shell_black.stl`,
+  `_green.stl` and `_orange.stl`, loaded together as one object. `stick_inlay_shell.stl` is the three as
+  one body, its face plain: for one filament, print the stick's own shell.
+
+The build finds no overlap, as for the stick. The script stops if the three bodies' volumes don't add up
+to the shell's (black 7931.0 mm³, green 38.5, orange 5.9). The 3MF was read back: its three meshes are
+closed, their volumes are the STLs', and each colour lies on the bed (green 64 mm² of it, orange 10) and
+ends 0.6 mm up. No slicer has opened it. It goes together as the stick.
+
+![The stick's mark from the front, as the three bodies print: black, green, and orange in the waiting dots; RESET's pinhole in the lower-left dot, BOOT's and the LED's holes left of the triangle](out/stick_inlay/stick_inlay_mark.png)
+
+![the stick, in colours](out/stick_inlay/stick_inlay_front.png)
+
 ## The badge (PicoquorumKey rev B)
 
 [`badge.py`](badge.py). Portrait, like a small handheld, with a lug for a lanyard.
@@ -378,10 +438,12 @@ Every part prints without supports, judging by the shapes. They haven't been sli
     changes filament itself: load the three as one object with three parts, not three objects, so
     they keep their places, and give each its filament. The colours are in layers 3 to 6 (0.4 to
     1.2 mm). The rest is black.
-  - **the slate's colours** come to the face, so it has no one-body way: use its three bodies, or its
-    3MF (`rp_ind_shell_colours.3mf`), the same three as one object of three parts. Each part carries
+  - **the colours that come to the face** (the slate's industrial case, the stick in colours, Mono's
+    industrial case in colours) have no one-body way: use the three bodies, or the 3MF
+    (`rp_ind_shell_colours.3mf`, `stick_inlay_shell_colours.3mf`,
+    `mono_ind_inlay_shell_colours.3mf`), the same three as one object of three parts. Each part carries
     its colour as a 3MF material, which a slicer may not read: give each part its filament by hand.
-    Its colours are in layers 1 to 3 (to 0.6 mm), and its lines too. The rest is black.
+    The colours are in layers 1 to 3 (to 0.6 mm), and the lines too. The rest is black.
 - **caps:** flange down, one STL each, so each can be its own colour.
 - **dock:** on its base, as written.
 - PLA or PETG, 0.2 mm layers. The engraving is 0.5 mm deep.
@@ -437,7 +499,7 @@ variant has none: its mark is printed in the face).
 ## Run
 
 ```sh
-tools/case build mono-industrial      # or mono, rp, rp-industrial, stick, badge; several at once
+tools/case build mono-industrial      # or mono, mono-industrial-inlay, rp, rp-industrial, stick, stick-inlay, badge; several at once
 tools/case check mono-industrial      # builds, then lists what changed
 ```
 
@@ -448,7 +510,8 @@ uv run --python 3.11 --with cadquery --with matplotlib --with pillow python cad/
 ```
 
 `tools/case` runs them at the versions the outputs were last made with (`PINS` in the tool). Each writes
-its folder in `out/` (`out/mono/`, `out/mono_ind/`, `out/rp/`, `out/rp_ind/`, `out/stick/`, `out/badge/`):
+its folder in `out/` (`out/mono/`, `out/mono_ind/`, `out/mono_ind_inlay/`, `out/rp/`, `out/rp_ind/`, `out/stick/`, `out/stick_inlay/`,
+`out/badge/`):
 - the STLs to print
 - `<name>_assembly.step`, with the board's stand-ins
 - `<name>_face.png`: the face sliced just under its top, which shows the engraving

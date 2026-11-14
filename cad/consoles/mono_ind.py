@@ -65,7 +65,8 @@ BLACK, GREEN, ORANGE = (0.10, 0.10, 0.11), S.GREEN, RP.ORANGE   # the pictures':
 def decor(c, shell, back):
     """The mark printed in the face: a pocket HATCH's depth deep, the five dots open, lines left across the
     triangle. And the name over it (rp.name). No badge: nothing more to print or glue. Leaves the shell's three
-    bodies in c.bodies (COLOUR). With b["inlay"] (the slate's) nothing is cut: the colours come to the face."""
+    bodies in c.bodies (COLOUR). With b["inlay"] (the slate's, the stick's) nothing is cut: the colours come to the
+    face. There b["name_fit"] None leaves the name out, and b["keep"] (x, y, radius) keeps the colours off a hole."""
     b = c.b
     cx, cy, r = b["mark"]
     pts = [(cx + r * math.cos(math.radians(90 - 72 * k)), cy + r * math.sin(math.radians(90 - 72 * k))) for k in range(5)]
@@ -89,7 +90,8 @@ def decor(c, shell, back):
     left = union([strip(y) for y in ys]).intersect(inside).cut(dots(signed, rs, z0 - 2, z1 + 2))
     left = left.union(dots(signed, rs + w, z0 - 1, z1 + 1).cut(dots(signed, rs, z0 - 2, z1 + 2)).intersect(inside))
     open_ = pocket.cut(left)
-    cut = RP.name(c, b.get("name_x", cx), pts[0][1] + rs, b.get("name_fit", NAME_FIT))     # name_x: not over the mark's centre
+    fit = b.get("name_fit", NAME_FIT)
+    cut = RP.name(c, b.get("name_x", cx), pts[0][1] + rs, fit) if fit else None     # name_x: not over the mark's centre
     c.hatch = (len(ys), pitch, pitch - w)
     # for the pictures: each colour where it shows
     skin = lambda shape, z: shape.intersect(S.box(cx - 30, cx + 30, cy - 30, cy + 30, z, z + 0.05)).solids().vals()
@@ -100,7 +102,14 @@ def decor(c, shell, back):
         # the colours flush with the face, for a printer that changes filament itself: the face stays whole, and each
         # colour fills its opening from the face down, HATCH's depth for the mark and the name's cut for the name.
         # The lines across the triangle are the black left between
-        green, orange = open_.cut(amber).union(cut).intersect(shell), open_.intersect(amber).intersect(shell)
+        green = (open_.cut(amber).union(cut) if cut else open_.cut(amber)).intersect(shell)
+        orange = open_.intersect(amber).intersect(shell)
+        for kx, ky, kr in b.get("keep", []):
+            green, orange = green.cut(S.cyl(kx, ky, kr, z0 - 1, z1)), orange.cut(S.cyl(kx, ky, kr, z0 - 1, z1))
+        # each colour is many pieces, and OpenCASCADE lists them in a different order from run to run: in a set order,
+        # so the STLs come out the same each run
+        one = lambda body: cq.Workplane("XY").newObject([cq.Compound.makeCompound(seen(body.solids().vals()).vals())])
+        green, orange = one(green), one(orange)
         c.shell, c.bodies = shell, [("black", shell.cut(green).cut(orange)), ("green", green), ("orange", orange)]
         lift = lambda body: seen([s.translate(cq.Vector(0, 0, 0.06)) for s in skin(body, c.zt - 0.05)])    # a hair over the face
         c.shown = [("shell green", lift(green), GREEN), ("shell orange", lift(orange), ORANGE)]
@@ -138,7 +147,8 @@ def mark_picture(c, out):
     """The mark and the name from the front, as the three bodies print: the face's top 0.7 mm round them."""
     cx, cy, r = c.b["mark"]
     near = S.box(cx - 2.6 * r, cx + 2.6 * r, cy - 1.6 * r, cy + 2.6 * r, c.zt - 0.7, c.zt)
-    S.render(dict(title=c.b["title"] + ": the mark and the name, as its three bodies print", corners=[], views=[("", 89.9, -90)],
+    what = "the mark and the name" if c.b.get("name_fit", NAME_FIT) else "the mark"
+    S.render(dict(title=c.b["title"] + ": %s, as its three bodies print" % what, corners=[], views=[("", 89.9, -90)],
                     parts=[(c.shell.intersect(near), BLACK, "face")] + [(s, col, n) for n, s, col in c.shown]),
                os.path.join(out, c.b["name"] + "_mark.png"))
 
@@ -152,6 +162,15 @@ def bodies(c, out):
     for n, s in c.bodies:
         S.stl(S.flip(s), os.path.join(out, "%s_shell_%s.stl" % (c.b["name"], n)))
     return [(n, s.val().Volume()) for n, s in c.bodies]
+
+
+def threemf(c, out):
+    """The three bodies' STLs (bodies) as one 3MF, the parts of one object (shell.threemf)."""
+    name = c.b["name"] + "_shell"
+    path = os.path.join(out, name + "_colours.3mf")
+    S.threemf([(n, os.path.join(out, "%s_%s.stl" % (name, n)), col) for n, col in (("black", BLACK), ("green", GREEN), ("orange", ORANGE))],
+              path, name)
+    print("wrote", os.path.relpath(path, S.REPO))
 
 
 def main():
