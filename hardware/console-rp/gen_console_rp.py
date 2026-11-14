@@ -964,8 +964,8 @@ def write_footprints():
     picoquorum.pretty, the mark."""
     os.makedirs(os.path.join(LIB, "pqrp.pretty"), exist_ok=True)
     os.makedirs(MARK, exist_ok=True)
-    shutil.copy(os.path.join(REPO, "hardware", "console-pocket", "lib", "picoquorum.pretty", "PicoQuorum_Mark.kicad_mod"), MARK)
-    src = os.path.join(REPO, "hardware", "console-s3", "lib", "pqs3.pretty", "FPC_ZIF_8P_P0.5mm_HDGC_0.5K-HX-8PWB.kicad_mod")
+    shutil.copy(os.path.join(REPO, "hardware", "archive", "console-pocket", "lib", "picoquorum.pretty", "PicoQuorum_Mark.kicad_mod"), MARK)
+    src = os.path.join(REPO, "hardware", "prototypes", "console-s3", "lib", "pqs3.pretty", "FPC_ZIF_8P_P0.5mm_HDGC_0.5K-HX-8PWB.kicad_mod")
     zif = open(src).read().replace(
         "\t(embedded_fonts no)",
         '\t(model "${KIPRJMOD}/../lib/pqrp.3dshapes/FPC_ZIF_8P_HDGC_0.5K-HX-8PWB.wrl" (offset (xyz 0 0 0)) (scale (xyz 1 1 1)) (rotate (xyz 0 0 0)))\n'

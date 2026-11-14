@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# The relay: the computer's end of console-rp's link (firmware/link.py; hardware/console-usb/README.md,
+# The relay: the computer's end of console-rp's link (firmware/link.py; hardware/archive/console-usb/README.md,
 # "The link"). The console asks, one JSON line on UART1; this checks the ask, makes the HTTPS call to
 # the pinned service with the API key, and sends back what the service said. Nothing it sends is
 # trusted: the console checks every answer as it checks Safe's service.

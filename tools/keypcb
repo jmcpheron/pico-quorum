@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-# The key PCBs in hardware/key-pcb (see its README.md and ORDERING.md), and the console boards in
-# hardware/console-pcb, hardware/console-a, hardware/console-pocket, hardware/console-s3,
-# hardware/console-rp and hardware/mono, and the Feather's wing in hardware/feather-wing. Needs
-# KiCad's kicad-cli: 9 for rev A, 10 for the rest.
+# The key PCBs in hardware/key-pcb (see its README.md and ORDERING.md), and the console boards:
+# hardware/mono and hardware/console-rp; the early prototype hardware/prototypes/console-s3; and,
+# in hardware/archive/, console-pcb, console-a, console-pocket and the Feather's wing (feather-wing).
+# Needs KiCad's kicad-cli: 9 for rev A, 10 for the rest.
 #
 #   tools/keypcb check [board]    ERC on the schematic, then DRC with schematic parity on the board
 #   tools/keypcb fab [board]      writes <board>/fab/: the Gerber + drill zip, and the BOM and CPL
@@ -26,17 +26,17 @@
 #                                 (hardware/key-pcb/keycalc.py, run with uv; needs no KiCad)
 #   tools/keypcb gen-cd [board]   rewrites proposals key-c-usbc and key-d-pogo from gen_cd.py (KiCad's own
 #                                 Python, for pcbnew), or only the one named; rev A's boards are never touched
-#   tools/keypcb gen-console      rewrites console-pcb/console-a from hardware/console-pcb/gen_console.py,
+#   tools/keypcb gen-console      rewrites console-pcb/console-a from hardware/archive/console-pcb/gen_console.py,
 #                                 the same way
 #   tools/keypcb gen-console-a    rewrites console-a/console-a (the Waveshare-pin board) from
-#                                 hardware/console-a/gen.py
+#                                 hardware/archive/console-a/gen.py
 #   tools/keypcb gen-console-pocket  rewrites console-pocket (the Pico-on-the-back board) from
-#                                 hardware/console-pocket/gen_console.py: plain Python, no KiCad,
+#                                 hardware/archive/console-pocket/gen_console.py: plain Python, no KiCad,
 #                                 and it ends with its own self-check
 #   tools/keypcb gen-feather-wing a|b  rewrites feather-wing/wing-a (or wing-b) from
-#                                 hardware/feather-wing/gen_wing.py, the same way: plain Python, its own self-check
+#                                 hardware/archive/feather-wing/gen_wing.py, the same way: plain Python, its own self-check
 #   tools/keypcb gen-console-s3   rewrites console-s3 (the S3 module on the back, placed, not routed) from
-#                                 hardware/console-s3/gen_console_s3.py, the same way; `route console-s3`
+#                                 hardware/prototypes/console-s3/gen_console_s3.py, the same way; `route console-s3`
 #                                 routes it
 #   tools/keypcb gen-console-rp [check] [render]  rewrites console-rp (the RP2350 console, placed) from
 #                                 hardware/console-rp/gen_console_rp.py (KiCad's own Python) and checks it;
@@ -53,13 +53,14 @@ import builtins, csv, glob, io, json, os, re, shutil, subprocess, sys, tempfile,
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "hardware", "key-pcb")
 ROOT = os.path.normpath(ROOT)
-CONSOLE = os.path.join(os.path.dirname(ROOT), "console-pcb")
-CONSOLE_A = os.path.join(os.path.dirname(ROOT), "console-a")
-CONSOLE_POCKET = os.path.join(os.path.dirname(ROOT), "console-pocket")
-FEATHER_WING = os.path.join(os.path.dirname(ROOT), "feather-wing")
-CONSOLE_S3 = os.path.join(os.path.dirname(ROOT), "console-s3")
 CONSOLE_RP = os.path.join(os.path.dirname(ROOT), "console-rp")
 MONO = os.path.join(os.path.dirname(ROOT), "mono")
+CONSOLE_S3 = os.path.join(os.path.dirname(ROOT), "prototypes", "console-s3")    # an early prototype
+ARCHIVE = os.path.join(os.path.dirname(ROOT), "archive")        # boards no longer worked on (hardware/archive/README.md)
+CONSOLE = os.path.join(ARCHIVE, "console-pcb")
+CONSOLE_A = os.path.join(ARCHIVE, "console-a")
+CONSOLE_POCKET = os.path.join(ARCHIVE, "console-pocket")
+FEATHER_WING = os.path.join(ARCHIVE, "feather-wing")
 
 # Gerber layers JLCPCB wants for a 2-layer board. Paste layers are only used for assembly orders,
 # and harmless on a bare-board order.

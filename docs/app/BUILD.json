@@ -1,18 +1,18 @@
 {
   "note": "SHA-256 of every file web/build.mjs wrote (../ is docs/, the front page). Rebuild from the same commit (cd web && npm ci && npm run build) and compare.",
-  "build": "dfe80340",
+  "build": "8281918e",
   "files": {
-    "index.html": "2d6d80be4cc2e75de276daa92b1f1851c29e397d7dee75836ae34421528ed624",
-    "app.js": "dfe80340f5e7b9e931e25645b2ffe340d5fead8b73f2cf84d24c20b53c3fa59f",
-    "app.css": "8294eeb004471d0cca7387b506c4174993b1268ab908e1070757d49ca83ff24d",
+    "index.html": "c8ef824af29b4322e6303956dacb54e8290e8ee64e45414f466b37f2b23ca96c",
+    "app.js": "8281918e2273e9e5dedfd0a95ce5e9eda9b3d7f985dd17ab5ba62907736bf386",
+    "app.css": "eda12cab724bbc030ae3626886a44bcfdd63b2bef4890143373818b8667b8c85",
     "fonts/next-400.woff2": "5cb240a4d99ab7e6fc3a4d4e6d11d89789fdffe9c86a8384000d662c53283f6f",
     "fonts/next-700.woff2": "0dbe07ed7679407db9d90f747d5ca3bd1b2bb7ccbcbe41c8246cfc6d2c7bc3bc",
     "fonts/mono-500.woff2": "49efe8526ea1da079582132fcb83555b975ef79129bbf0ff669e103ed162f81f",
     "fonts/mono-700.woff2": "f30319aa2ab224c5a19d177617e2141b002fcb95c1afe233214f9d342e47687d",
-    "../index.html": "6a7b9bb54cfa91e4d99ec2b660560aa5c39a0ac6d43b53d682a61c16fd1851cf",
-    "../home.css": "039ee9982aa056d82a08985fcc792ee3bbd421760632058d23c2779be9ae46a4",
-    "../handheld/index.html": "3fda2442dbdb9fc05315e5cca6ffe60025a9635371226fc8ce86b2d25448e9e3",
-    "../learn/index.html": "8764abb8cee0140ea657384fcbab2079e66c6ce7137121948c305f3eddfe0e34",
+    "../index.html": "d6c5f44e35bdc160fdbdf0aea4af730568cd9814930bfba4fefa0c338f5ce687",
+    "../home.css": "2c030864f36e9dc9181e097f8e8434db50884ec799e60ef59c8ea2413bcbfbe9",
+    "../handheld/index.html": "9a3629215dc03cb0eaa11136e3242aa1c8ccfc2870e8210b3e1c0e1a1caedc0d",
+    "../learn/index.html": "3e5a5f2c29bc8cac73069f372fa6ef59174277b3282de7dacaf9048a4cc3c745",
     "../handheld/card.png": "e5b01dc6c341fc3b29b05520bad619aad24e1cb6a0fc5e324c262635fe5c25b0",
     "../handheld/img/00-colours.png": "3c8848de64eab0e354638ed89a9ed91b2c728032a718b35708dbe08a5fd8371d",
     "../handheld/img/00-exploded.png": "c7b16ad2ba1ba0abfa74d6145cfa8c75a42a7fc6f6f6a3eadfa87c67b4b0f1b3",
@@ -35,6 +35,9 @@
     "../handheld/img/15-key.png": "6361ceedc5f910313a8e3621bba9627d864e1e36ecec291fbfaf8250fd20bffe",
     "../handheld/img/16-done.png": "33efd77af458425cbed5885caa042761214312a9e7cb937ce6ecfbd4c5886a8b",
     "../img/key-c.jpg": "0a86ec6af9644857dcb9aa06dd04b1c480ee3c607f4fff6ca5bd2c4552b74980",
-    "../img/console-rp.jpg": "67387cf73f9de6fb2068b64ff62ebcfb04b1fd965152a094b001ecf981ac53f3"
+    "../img/console-rp.jpg": "67387cf73f9de6fb2068b64ff62ebcfb04b1fd965152a094b001ecf981ac53f3",
+    "../img/mono.jpg": "3f546b790a799184bf082e041b791f6500bfe5508f52e0d5bebd6b5de64eab58",
+    "../img/mono-dock.png": "9166fb0e5186b4163945ed51601b43152a1d8138de1b8409b0e9843b7cf18c21",
+    "../img/mono-case.png": "ded0b747b82604f81ab2ff7fdfe2eed96df1a353e5832aa98fb5ad91ad9680d0"
   }
 }

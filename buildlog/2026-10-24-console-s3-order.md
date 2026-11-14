@@ -1,8 +1,8 @@
 # console-s3 rev A ordered: five boards
 
-The first console board ordered: [hardware/console-s3](../hardware/console-s3/DESIGN.md), five made
+The first console board ordered: [hardware/console-s3](../hardware/prototypes/console-s3/DESIGN.md), five made
 and assembled by JLCPCB, the module still to go on by hand. This is option A from
-[ORDER-PLAN-2026-10-24.md](../ORDER-PLAN-2026-10-24.md): Economic assembly, front only. PicoQuorumKey
+[ORDER-PLAN-2026-10-24.md](../hardware/prototypes/ORDER-PLAN-2026-10-24.md): Economic assembly, front only. PicoQuorumKey
 isn't in this order.
 
 What this page is from: the PCB and PCBA lines of the order, the PCBA's price breakdown (a

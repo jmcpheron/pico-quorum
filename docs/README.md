@@ -33,7 +33,8 @@ troubleshooting.
 - [`BRAND.md`](BRAND.md): the name, the mark and the colours ([`TRADEMARK.md`](../TRADEMARK.md) for what you may do with them)
 - [`upstream/`](upstream/README.md): issues and fixes Picoquorum sends to other projects (Safe{Wallet})
 
-The dev console: its [build guide](../hardware/DEV-CONSOLE.md), and [`CHIPMAP.md`](CHIPMAP.md), the
+The hardware, board by board, with [Mono](../hardware/mono/README.md), the reference console, first:
+[`../hardware/README.md`](../hardware/README.md). The dev console: its [build guide](../hardware/DEV-CONSOLE.md), and [`CHIPMAP.md`](CHIPMAP.md), the
 chip map on the ceremony image. Picoquorum grew from Austin Griffith's
 [picowallet](https://github.com/austintgriffith/picowallet); what came from it, and how its fixes
 come across, is in [`UPSTREAM-TRACKING.md`](UPSTREAM-TRACKING.md).

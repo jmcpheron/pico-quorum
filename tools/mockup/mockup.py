@@ -36,15 +36,15 @@ MODULE = {"w": 18.0, "l": 25.5, "t": 3.1, "pcb": 0.8, "ant": 6.0, "shield_inset"
 
 def console_s3():
     import importlib.util
-    path = os.path.join(ROOT, "hardware", "console-s3", "gen_console_s3.py")
+    path = os.path.join(ROOT, "hardware", "prototypes", "console-s3", "gen_console_s3.py")
     s = importlib.util.spec_from_file_location("gen_console_s3", path)
     g = importlib.util.module_from_spec(s)
     s.loader.exec_module(g)
     fit = g.jlc_spec()["fit"]
     solids = {x["name"]: x for x in fit["solids"]}
     panel = [solids["glass"]["box"], solids["ribbon fold"]["box"]]
-    return {"pcb": os.path.join(ROOT, "hardware", "console-s3", "console-s3", "console-s3.kicad_pcb"),
-            "out": os.path.join(ROOT, "hardware", "console-s3", "mockup"),
+    return {"pcb": os.path.join(ROOT, "hardware", "prototypes", "console-s3", "console-s3", "console-s3.kicad_pcb"),
+            "out": os.path.join(ROOT, "hardware", "prototypes", "console-s3", "mockup"),
             "heights": list(fit["heights"].items()), "default_height": fit["default_height"],
             "panel": panel, "panel_top": solids["glass"]["z"][1]}
 
@@ -53,7 +53,7 @@ def picoquorum_key():
     # Its generator's numbers are y down from the top-left corner; the board's (facts.py) y up from
     # the bottom-left. The panel: 1.5 mm foam tape and the panel's 1.6 mm "with FPC folded"
     # (DESIGN.md, tests/test_3d.py); the fold up to 0.5 mm proud of the glass's end.
-    base = os.path.join(ROOT, "hardware", "picoquorum-key")
+    base = os.path.join(ROOT, "hardware", "prototypes", "picoquorum-key")
     src = open(os.path.join(base, "tools", "gen", "gen_pcb.py")).read()
     c = {}
     for name in ("W, H, CORNER", "GLASS", "FOLD_Y"):

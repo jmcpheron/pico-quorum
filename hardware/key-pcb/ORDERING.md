@@ -179,7 +179,7 @@ fingers and small boards weren't checked here.
 ## 9. console-s3: before the order
 
 `tools/keypcb jlc console-s3` does what a script can ([tools/jlc](../../tools/jlc/README.md)). These
-steps it can't do. Write down what each one shows in [console-s3's DESIGN.md](../console-s3/DESIGN.md#checking-it).
+steps it can't do. Write down what each one shows in [console-s3's DESIGN.md](../prototypes/console-s3/DESIGN.md#checking-it).
 
 1. **Run it first:** `tools/keypcb fab console-s3`, then `tools/keypcb jlc console-s3`. Every
    check should pass. Read the two warnings (U3's heat, R8 under the ribbon's guessed fold) again
@@ -195,5 +195,5 @@ steps it can't do. Write down what each one shows in [console-s3's DESIGN.md](..
    check the page still says so.
 5. **A 1:1 print.** In KiCad, **File → Print** the front copper, silk and edge at scale 1:1, and
    measure the print's outline: 64 x 22.86 mm. Lay a panel and a module on it.
-6. **Board and assembly options:** [ORDER-PLAN-2026-10-24.md](../../ORDER-PLAN-2026-10-24.md) lists
+6. **Board and assembly options:** [ORDER-PLAN-2026-10-24.md](../prototypes/ORDER-PLAN-2026-10-24.md) lists
    each one, and the choice of Economic (the module by hand) or Standard (JLCPCB fits it too).

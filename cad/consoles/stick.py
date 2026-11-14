@@ -15,7 +15,7 @@ Run: uv run --python 3.11 --with cadquery --with matplotlib --with pillow \\
 Writes out/stick/: stick_shell.stl (face down, as it prints), stick_back.stl (outside down), stick_cap_D0/D1/D2.stl
 (flange down), stick_dock.stl, stick_assembly.step, stick_front.png, stick_apart.png, stick_dock.png.
 
-The board's numbers are its generator's (hardware/console-s3/gen_console_s3.py) and the placement file JLCPCB
+The board's numbers are its generator's (hardware/prototypes/console-s3/gen_console_s3.py) and the placement file JLCPCB
 built it from (console-s3/fab/cpl.csv), checked against each other. Not measured: the panel (glass, tape,
 where its active area sits), the switches' height, the module. A first draft to print and try.
 """
@@ -28,7 +28,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import shell as S       # noqa: E402
 
-S3 = os.path.join(S.REPO, "hardware", "console-s3")
+S3 = os.path.join(S.REPO, "hardware", "prototypes", "console-s3")
 _spec = importlib.util.spec_from_file_location("s3", os.path.join(S3, "gen_console_s3.py"))
 G = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(G)        # the board's generator; it writes nothing on import

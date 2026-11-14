@@ -917,8 +917,8 @@ hand. $96.72 with shipping and import, of which the boards are $50.85. The modul
 panels ($16.28, Amazon) are bought apart and not in that figure. Production file not confirmed; parts placement is.
 
 Notes: [2026-10-24-console-s3-order.md](2026-10-24-console-s3-order.md). Plan:
-[ORDER-PLAN-2026-10-24.md](../ORDER-PLAN-2026-10-24.md). Design:
-[hardware/console-s3](../hardware/console-s3/DESIGN.md).
+[ORDER-PLAN-2026-10-24.md](../hardware/prototypes/ORDER-PLAN-2026-10-24.md). Design:
+[hardware/console-s3](../hardware/prototypes/console-s3/DESIGN.md).
 
 ## 2026-11-03 — 100 panels ordered from BuyDisplay
 

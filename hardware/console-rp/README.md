@@ -13,7 +13,7 @@ firmware](#the-boards-and-the-firmware) has each board and where its notes are.*
 *KiCad's 3D render of the routed board. The panel is drawn as a box. More views are in
 [renders/](renders/).*
 
-[console-usb](../console-usb/README.md) took the radio out of use on an ESP32-S3. This board takes
+[console-usb](../archive/console-usb/README.md) took the radio out of use on an ESP32-S3. This board takes
 it out of the chip: an **RP2350A** has none. The console talks to the world only through the USB-C
 cable it is powered by. A program on the computer fetches the Safe's queue for it and posts its
 signatures. The console still rebuilds every hash itself, and the key still signs only that.
@@ -278,7 +278,7 @@ The notes:
   firmware on the emulator.
 - [bench/BRINGUP.md](bench/BRINGUP.md): loading over SWD through J3, and the first board's checks.
 - [bench/HORSEPOWER.md](bench/HORSEPOWER.md): what the board can do, measured.
-- [CONSOLE-RP-PLAN-2026-11-04.md](../../CONSOLE-RP-PLAN-2026-11-04.md): the plan written at bring-up.
+- [PLAN-2026-11-04.md](PLAN-2026-11-04.md): the plan written at bring-up.
 
 ### The boards
 
@@ -311,7 +311,7 @@ sealed key (#1, #3, #4) takes a plain load and comes back on the key pick.
    Mac. Everything checked out, J3's USB aside. [bench/BRINGUP.md](bench/BRINGUP.md) has how it was
    loaded, what was checked, and the ways to load boards in numbers. What comes next (the
    firmware, the relay, a batch of 20, selling the first boards) is in
-   [CONSOLE-RP-PLAN-2026-11-04.md](../../CONSOLE-RP-PLAN-2026-11-04.md).
+   [PLAN-2026-11-04.md](PLAN-2026-11-04.md).
 4. **The firmware and the relay.** Done on the branch, and on four boards
    ([The boards and the firmware](#the-boards-and-the-firmware)). Next: pull request #113 merged,
    then a signed release.

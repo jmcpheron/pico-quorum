@@ -20,7 +20,7 @@ P3 adds two parts, D1 and R3, and changes nothing else in the circuit:
   limits whatever a plug puts on SBU. D1's cathode goes to ground.
 
 **The console lights it.** wing-a joins its plug's A8 and B8 and drives them from D13 through
-100 Ω ([feather-wing/README.md](../../feather-wing/README.md)). D13 is the console's status LED
+100 Ω ([feather-wing/README.md](../../archive/feather-wing/README.md)). D13 is the console's status LED
 pin: today's image blinks it while a transaction waits for this key and keeps it on while Wi-Fi
 is up (`led_tick` in `firmware/quorum.py`). So the key's LED does the same with no firmware change.
 At 3.3 V that is about 1 mA, which this LED shows plainly; its datasheet rates it at 3.3 V,
@@ -43,7 +43,7 @@ cable, and nothing on the key depends on SBU.
 
 The rest of hot-swap is the console's: keep the key off until CC shows one, then turn it on. That
 needs D5/D6 and D9 in the firmware, a new release
-([feather-wing/README.md](../../feather-wing/README.md#open)).
+([feather-wing/README.md](../../archive/feather-wing/README.md#open)).
 
 **Checked** (KiCad 10.0.6, `tools/keypcb check key-c-usbc`): ERC 0, DRC 0, 0 unconnected,
 schematic parity clean. `gen_cd.py` was first checked to rebuild P2 exactly: every footprint, pad,

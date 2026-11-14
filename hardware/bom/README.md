@@ -52,16 +52,16 @@ The order itself is in [key-pcb/ORDERING.md](../key-pcb/ORDERING.md).
 | Card-edge socket, 0.100″, 0.062″ card, 8/16 positions | 1–2 | Sullins EBC08DRXN (the 5/10 size is Digi-Key S9641-ND) | the console side; hand-solder, never reflow |
 | Sullins PLA-K1 polarizing key | 2 | Digi-Key PLA-K1-ND | optional; check which way it sits |
 
-## Console board on the Waveshare pins (hardware/console-a)
+## Console board on the Waveshare pins (hardware/archive/console-a)
 
 The parts JLCPCB places, with LCSC numbers, and the ones you buy yourself (a Pico 2 W without
-headers, the 24-pin panel) are in [console-a/ORDERING.md](../console-a/ORDERING.md). JLCPCB can also
+headers, the 24-pin panel) are in [console-a/ORDERING.md](../archive/console-a/ORDERING.md). JLCPCB can also
 solder the Pico itself (LCSC C42394205), from `fab/factory-pico/`.
 
-## The pocket console board (hardware/console-pocket)
+## The pocket console board (hardware/archive/console-pocket)
 
 The board, its pin map and the ordering steps are in
-[console-pocket/README.md](../console-pocket/README.md). Prices and LCSC numbers looked up 2026-10-07.
+[console-pocket/README.md](../archive/console-pocket/README.md). Prices and LCSC numbers looked up 2026-10-07.
 
 | part | qty for 5 | source | notes |
 |---|---|---|---|

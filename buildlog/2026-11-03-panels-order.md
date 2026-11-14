@@ -1,8 +1,8 @@
 # 100 panels ordered from BuyDisplay
 
 The panels for the demo batches and a possible developer pre-sale: 100 of the 1.14″ ER-TFT1.14-2,
-the panel [console-s3](../hardware/console-s3/DESIGN.md)'s J2 was placed for
-([ORDER-PLAN-2026-10-24.md](../ORDER-PLAN-2026-10-24.md)).
+the panel [console-s3](../hardware/prototypes/console-s3/DESIGN.md)'s J2 was placed for
+([ORDER-PLAN-2026-10-24.md](../hardware/prototypes/ORDER-PLAN-2026-10-24.md)).
 
 What this page is from: BuyDisplay's order confirmation email and PayPal's payment receipt, both
 pasted by Jason McPheron, and what Jason said about the boards. Name, address, phone, email, the

@@ -155,7 +155,7 @@ What it never does, on top of the list at the top:
 
 What the relay can still do is what a lying service can do: show transactions that don't exist,
 hold back ones that do, drop a signature on its way out
-([hardware/console-usb/README.md](../hardware/console-usb/README.md#the-link-what-the-computer-can-and-cant-do)).
+([hardware/archive/console-usb/README.md](../hardware/archive/console-usb/README.md#the-link-what-the-computer-can-and-cant-do)).
 
 The relays:
 - `tools/relay/relay.py`, the bench's. [Its README](../tools/relay/README.md) says what it forwards,

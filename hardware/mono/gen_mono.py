@@ -1288,8 +1288,8 @@ def write_footprints():
         if fn.startswith("RPi_"):
             shutil.copy(os.path.join(src, fn), MONO_FP)
     shutil.copy(os.path.join(CONSOLE_RP, "lib", "RPI-MINIMAL-LICENSE.txt"), LIB)
-    shutil.copy(os.path.join(REPO, "hardware", "console-pocket", "lib", "picoquorum.pretty", "PicoQuorum_Mark.kicad_mod"), MARK)
-    zsrc = os.path.join(REPO, "hardware", "console-s3", "lib", "pqs3.pretty", "FPC_ZIF_8P_P0.5mm_HDGC_0.5K-HX-8PWB.kicad_mod")
+    shutil.copy(os.path.join(REPO, "hardware", "archive", "console-pocket", "lib", "picoquorum.pretty", "PicoQuorum_Mark.kicad_mod"), MARK)
+    zsrc = os.path.join(REPO, "hardware", "prototypes", "console-s3", "lib", "pqs3.pretty", "FPC_ZIF_8P_P0.5mm_HDGC_0.5K-HX-8PWB.kicad_mod")
     zif = open(zsrc).read().replace(
         "\t(embedded_fonts no)",
         '\t(model "${KIPRJMOD}/../lib/mono.3dshapes/FPC_ZIF_8P_HDGC_0.5K-HX-8PWB.wrl" (offset (xyz 0 0 0)) (scale (xyz 1 1 1)) (rotate (xyz 0 0 0)))\n'
