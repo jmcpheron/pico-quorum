@@ -9,7 +9,7 @@ that runs the firmware today, or kept for the record.
 |---|---|---|
 | **[Mono](mono/README.md)** | the reference console: an RP2350A with no radio, the ATECC608C on the board, a 1.14″ screen and three buttons on a 40 × 89.5 mm bar | designed and routed, 2026-11-06. Its fab files pass `tools/keypcb jlc mono`. Not ordered, nothing built |
 | **[Mono's case](../cad/consoles/README.md#mono)** | a printed shell and back panel, and [the industrial variant](../cad/consoles/README.md#mono-industrial) with cut corners and grooves | first drafts, not printed |
-| [console-rp](console-rp/README.md) | the board Mono comes from: the same RP2350A, link, key, screen and pins, on 72 × 36 mm | 5 boards received 2026-11-04. The first is up on a bench script; the console's firmware for it isn't written |
+| [console-rp](console-rp/README.md) | the board Mono comes from: the same RP2350A, link, key, screen and pins, on 72 × 36 mm | 5 boards received 2026-11-04; 4 run the console's own image (pull request #113), 1 is broken ([the boards](console-rp/README.md#the-boards-and-the-firmware)) |
 | [key-c and the other keys](key-pcb/README.md) | the key as a part you plug in: an ATECC608C behind a USB-C receptacle | key-c P2 built and working; P3 drawn |
 | [the dev console](DEV-CONSOLE.md) | a Pico 2 W, a Waveshare screen and an ATECC608 breakout, no soldering | runs the console image today |
 | [prototypes/](prototypes/README.md) | the two ESP32-S3 boards with their own Wi-Fi: console-s3 and PicoquorumKey | both made; the first board of each runs |
@@ -73,8 +73,8 @@ screens are bench scripts, never part of the image
 
 | name | kind | the key | firmware | where it stands |
 |---|---|---|---|---|
-| **[Mono](mono/README.md)** | board | ATECC608C (SOIC-8) on the board; a second key's site, not fitted | console-rp's profile, not written | routed, not ordered |
-| [console-rp](console-rp/README.md) | board | ATECC608C (SOIC-8) on the board | a `console-rp` profile, not written | 5 received 2026-11-04 ([order](../buildlog/2026-10-29-console-rp-order.md)); the first is up on a bench script |
+| **[Mono](mono/README.md)** | board | ATECC608C (SOIC-8) on the board; a second key's site, not fitted | console-rp's image (pull request #113) | routed, not ordered |
+| [console-rp](console-rp/README.md) | board | ATECC608C (SOIC-8) on the board | `console-rp`, its own image (pull request #113) | 5 received 2026-11-04 ([order](../buildlog/2026-10-29-console-rp-order.md)); 4 run the image, 1 broken ([the boards](console-rp/README.md#the-boards-and-the-firmware)) |
 | [key-c and the other keys](key-pcb/README.md) | board | — | — | key-c P2 built and working; P3 drawn |
 | [dev console](DEV-CONSOLE.md) | build | ATECC608 breakout, STEMMA QT | `waveshare` | the no-solder build |
 | [Build 1](wiring/BUILD1.md), [on a breadboard](wiring/BREADBOARD.md) | build | ATECC608 on TRRS jacks | `build1` | — |

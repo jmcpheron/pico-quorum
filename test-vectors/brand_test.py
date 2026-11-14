@@ -25,7 +25,7 @@ def secrets(lock=True, genkey=True):
         os.remove("build.py")
     except OSError:
         pass
-    for m in ("secrets", "build", "image", "signer", "atecc", "chipcfg", "ceremony_ui", "provision", "brand", "claim"):
+    for m in ("secrets", "build", "image", "signer", "atecc", "chipcfg", "ceremony_ui", "keyflow", "provision", "brand", "claim"):
         sys.modules.pop(m, None)
 
 

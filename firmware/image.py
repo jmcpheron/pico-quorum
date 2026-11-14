@@ -3,12 +3,13 @@
 # can use the chip), "ceremony" (the chip map and provisioning, for a fresh chip), "brand" (the
 # bench half of a branded key, brand.py, on the ceremony's screen), or "dual" (both,
 # for while a new chip is being set up: main_dual.py picks one at each boot from the chip on the
-# bus). Without build.py this is a development board or the emulator, and everything stays as
-# flexible as before.
+# bus), or "console-rp" (the console for hardware/console-rp, with no radio: the link on UART1 is
+# its way out, main_rp.py). Without build.py this is a development board or the emulator, and
+# everything stays as flexible as before.
 #
 # PRODUCTION: the console's rules (the ALLOW_* flags and the software key ignored, no network
-# console). On by default for "dual"; main_dual.py turns it off only for the ceremony, and only
-# when the chip on the bus is fresh.
+# console). On for "console" and "console-rp", and by default for "dual"; main_dual.py turns it
+# off only for the ceremony, and only when the chip on the bus is fresh.
 # VERSION: the release, year.month.n (firmware/manifest.json "version"; git tag fw-<version>);
 # BUILD: the commit it was built from.
 # RELEASE: the release fingerprint, a SHA-256 of the image's source files (tools/releases/fingerprint.mjs).
@@ -25,4 +26,4 @@ except ImportError:
 SEED = "0x" + RELEASE if RELEASE else ""          # the release's blockie
 SHORT = RELEASE[:4] + "\u00b7" + RELEASE[4:8] if RELEASE else ""     # how screens name it: 4c86·c754
 
-PRODUCTION = IMAGE in ("console", "dual")
+PRODUCTION = IMAGE in ("console", "dual", "console-rp")

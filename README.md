@@ -65,8 +65,9 @@ reference standard for a console. Mono is a working name.
   else: a computer passes on Safe's queue, and has no say in what gets signed.
 - **Where it stands.** A design, written by a script and checked by KiCad and against JLCPCB's limits
   ([hardware/mono](hardware/mono/README.md)). Not ordered, and nothing is built. The board it comes
-  from, [console-rp](hardware/console-rp/README.md), is on the bench: five boards, the first one up
-  on a bench script. The console's firmware for these two isn't written yet. Today the firmware
+  from, [console-rp](hardware/console-rp/README.md), is on the bench: five boards, four running
+  the console's own image (in review, pull request #113) and one broken
+  ([the boards](hardware/console-rp/README.md#the-boards-and-the-firmware)). The firmware also
   runs on the [dev console](hardware/DEV-CONSOLE.md) and [in your browser](https://picoquorum.app/console/).
 - **Its case.** Two first drafts, drawn by scripts and not printed: [the case](cad/consoles/README.md#mono),
   and [an industrial variant](cad/consoles/README.md#mono-industrial) with cut corners
@@ -152,6 +153,20 @@ That independence is the point. A second check is only worth something if it fai
 the first: different hardware, different code, a different network path, a different person looking
 at it. More screens: [docs/quorum-ui](docs/quorum-ui/README.md).
 
+**The console on its own board.** [console-rp](hardware/console-rp/README.md) is
+the console as one board: an RP2350A with no radio, a 1.14″ 240 × 135 screen, D0 D1 D2 under it,
+and an ATECC608C on the board. Its USB-C reaches only a CH343P serial chip, never the RP2350's own
+USB or its REPL.
+- Five came assembled from JLCPCB on 2026-11-04. Four run the console's own image and one is
+  broken ([the boards](hardware/console-rp/README.md#the-boards-and-the-firmware)).
+- The owner makes the key on the board, and the console pins itself to that chip
+  ([setting one up](hardware/console-rp/SETUP.md)).
+- With no Wi-Fi, a relay on the computer fetches the Safe's queue and posts the console's
+  signatures: `tools/relay/relay.py`, or the app's Device page. The console still rebuilds every
+  hash itself ([the relay](docs/USB-LINK.md#the-relay-console-rp)).
+
+<img src="hardware/console-rp/renders/console-rp-top.jpg" width="420" alt="console-rp from above: the 1.14-inch screen at the top left, D0, D1 and D2 under it, the RP2350, the flash, the CH343P and the key chip to its right, the USB-C on the right edge">
+
 ### 3. One owner in a multisig
 
 Picoquorum is never the whole wallet. It is one owner among several, and it is built to sit next to
@@ -231,10 +246,12 @@ console up to the README:
 
 | | image | release fingerprint |
 |---|---|---|
-| <img src="docs/releases/badges/console-blockie.svg" width="32" height="32" alt=""> | **console** | `1eebbf43e652aa289b9495c5dc66a7878e00a54e2f4c9bd2fbc4934a382bc033` |
-| <img src="docs/releases/badges/ceremony-blockie.svg" width="32" height="32" alt=""> | **ceremony** | `b023b563b115e06aa9250c192d3c22fa1e07107a50e41ea9462649564e6f7aea` |
-| <img src="docs/releases/badges/brand-blockie.svg" width="32" height="32" alt=""> | **brand** | `4fb1d81abf7c37040f02c0d110f9423db2202626df3c7a4a8330c3cb7a718670` |
-| <img src="docs/releases/badges/dual-blockie.svg" width="32" height="32" alt=""> | **dual** | `27b254630a065e6c7dc811374a5d2837dee3486b7cd1cc761c546a3758bb9b0d` |
+| <img src="docs/releases/badges/console-blockie.svg" width="32" height="32" alt=""> | **console** | `c79cac3145ff41a832656c4eeebad22e4f8dc3719f27e9f5acd9be9e41572275` |
+| <img src="docs/releases/badges/ceremony-blockie.svg" width="32" height="32" alt=""> | **ceremony** | `381d4e8916ea331b7b8a8ef650b28c5a45d35c116fe40969c8f5c66cea223ec2` |
+| <img src="docs/releases/badges/brand-blockie.svg" width="32" height="32" alt=""> | **brand** | `f7b49688d24a2ce8dbc4f5af474a708f4b043af84049aa9b56221c76f1b9ceb3` |
+| <img src="docs/releases/badges/dual-blockie.svg" width="32" height="32" alt=""> | **dual** | `99292ecee02cdcabfd1714b7c16ab250634345925e9c6cd2764c10589be48d55` |
+| <img src="docs/releases/badges/console-rp-blockie.svg" width="32" height="32" alt=""> | **console-rp** | `f24d22db5f3916c11f6bbcc5a934885ea6593c7a132d318e042c1f4617094505` |
+| <img src="docs/releases/badges/prepare-rp-blockie.svg" width="32" height="32" alt=""> | **prepare-rp** | `4e98165819acdbb148753a1e73cb04bb83bec7861b4263e9246b60531162999f` |
 
 <!-- build:end -->
 
@@ -253,6 +270,9 @@ How a release is trusted ([docs/RELEASES.md](docs/RELEASES.md)):
 Picoquorum is built in public. **[docs/STATUS.md](docs/STATUS.md)** is the one page for what exists
 today: the name (picoquorum.eth) and the domains, every Safe and key with its address, the contracts
 the console relies on, and what's next.
+
+**Now:** [console-rp](hardware/console-rp/README.md), the one-board console with no radio. Its
+firmware runs on four boards and is in review (pull request #113).
 
 The [test ladder](docs/LADDER.md) tracks each chain:
 - ✅ a simulated Safe and a local fork, on the real Pico

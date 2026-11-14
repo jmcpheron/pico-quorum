@@ -23,8 +23,11 @@ if board.DIAL:
     ARM, DO = "Boot", "push"
 RAIL = 36
 X0 = RAIL + 3
-COLS = (board.W - X0) // 8
 H = board.H
+FOOT = H                        # where the page ends: the Feather's rail is down the side
+if board.RAIL_Y is None:        # console-rp: the buttons' words in a row along the bottom, the page above it
+    X0, FOOT = 3, H - 10
+COLS = (board.W - X0) // 8
 
 
 def wrap(s, width):
@@ -70,6 +73,14 @@ class UI(ceremony_ui.UI):
         d, p = self.d, self.p
         if board.DIAL:                  # Boot arms, the turn (D1's row) goes back
             labels = ("Arm" if "Arm" in labels[:2] else None, "Back" if labels[0] == "Back" else None, labels[2])
+        if board.RAIL_Y is None:        # console-rp: its buttons under the screen, their words along the bottom
+            d.fill_rect(0, H - 10, board.W, 10, p["dim"])
+            if fill:
+                d.fill_rect(0, H - 10, int(board.W * min(1, max(0, fill[0]))), 10, fill[1])
+            for i, lab in enumerate(labels):
+                if lab:
+                    d.text(lab, i * board.W // 3 + (board.W // 3 - 8 * len(lab)) // 2, H - 9, p["fg"])
+            return
         d.fill_rect(0, 0, RAIL, H, p["dim"])
         if fill:
             h = int(H * min(1, max(0, fill[0])))
@@ -115,7 +126,7 @@ class UI(ceremony_ui.UI):
                 [(k, p["muted"])] + ([(note[:COLS], p["muted"])] if note else [])
         elif note:
             tail.append((note[:COLS], p["muted"]))
-        room = (108 - y) // 10 - len(tail)
+        room = (FOOT - 27 - y) // 10 - len(tail)
         for line in wrap(c.WHAT[st], COLS)[:room]:
             d.text(line, X0, y, p["fg"])
             y += 10
@@ -165,7 +176,7 @@ class UI(ceremony_ui.UI):
             labels = ("Back", "Arm", None)
             lines = [("Not armed", p["accent"]), ("Arm: hold %s 3 s" % ARM, p["fg"])]
         self.rail(labels, fill)
-        y = 124 - 11 * (len(lines) - 1)
+        y = FOOT - 11 - 11 * (len(lines) - 1)
         for s, col in lines:
             d.text(s[:COLS], X0, y, col)
             y += 11
@@ -180,13 +191,13 @@ class UI(ceremony_ui.UI):
         d.text(c.TITLES[st][:COLS - len(head) - 1], X0 + 8 * (len(head) + 1), 2, p["muted"])
         y = 14
         for label, good in checks:
-            if y > H - 22:
+            if y > FOOT - 22:
                 break
             d.fill_rect(X0, y + 1, 6, 6, p["ok"] if good else p["bad"])
             d.text(label[:COLS - 1], X0 + 9, y, p["fg"] if good else p["bad"])
             y += 10
         y += 2
-        for line in wrap(msg, COLS - 5 if pic else COLS)[:max(0, (H - y) // 10)]:
+        for line in wrap(msg, COLS - 5 if pic else COLS)[:max(0, (FOOT - y) // 10)]:
             d.text(line, X0, y, p["fg"])
             y += 10
         if pic:

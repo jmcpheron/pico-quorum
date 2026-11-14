@@ -1,6 +1,6 @@
 # Picoquorum's console: the Safe's queue, each transaction in plain language, and a signature from
 # the chip only after the person has seen every page and held A. Polls Safe's transaction service
-# over WiFi (for now tools/quorum's simulated Safe on the laptop).
+# over Wi-Fi, or on console-rp through the computer on its UART1 (NET, below).
 #
 # The loop is picowallet's (its wallet.py): one 50 ms Timer, keys every tick, redraw only when something changed,
 # and the timer stopped around anything that blocks (HTTP, hashing, the chip). X shows the device:
@@ -9,7 +9,8 @@
 #
 # Pinned: secrets.QUORUM_EXPECT names each chip this board may use (one, or a list): its serial,
 # the slot and the owner address its key must produce. At boot the chip on the bus picks its entry. The production image (image.PRODUCTION) signs nothing until they all match, and
-# the check runs again right before every signature.
+# the check runs again right before every signature. On console-rp, which has no secrets.py, the pin
+# is pin.json (policy.pin_file), written by its key flow (keyflow.py) when the owner's key is sealed.
 #
 # Safes: secrets.QUORUM_SAFES lists the Safes this console signs for (up to 4, any mix of chains;
 # QUORUM_SAFE, one, still works). Each is asked about at its own chain's service (quorum_cfg.py
@@ -21,11 +22,10 @@
 # signs the hash computed here, never a string the service sent: wrapped as a WebAuthn assertion
 # (webauthn.py), because onchain this key owns the Safe through Safe's passkey signer.
 #
-#   import lcd; import quorum; quorum.start()      (main_console.py does this)
-import sys, time, machine, network, gc, json
+#   import lcd; import quorum; quorum.NET, quorum.VIA = net, vhttp; quorum.start()      (main_console.py does this)
+import sys, time, machine, gc, json
 import board
 import lcd as L
-import net
 import image
 import policy
 import qlog
@@ -48,6 +48,13 @@ except ImportError:
     secrets = None
 
 CFG = quorum_cfg.CFG
+# The way out to Safe's service, set by the image's main file before start(): net (Wi-Fi, net.py) or
+# link (console-rp: UART1 to the computer, which relays to the pinned services, link.py). Both answer
+# the same few calls: KIND, up, led, boot_at, begun_at, short_err, ready, status, poll_accept and
+# boot_join. VIA is the transport txservice.Service calls: vhttp on a board with Wi-Fi, link on
+# console-rp, None where `requests` does (the LAN, the emulator).
+NET = None
+VIA = None
 PROD = image.PRODUCTION
 SAFES_FILE = "safes.json"   # written only by a safes ask over USB that the person accepted here (usblink.py)
 
@@ -85,7 +92,8 @@ def new_watch(s):
     """One watched Safe: where to ask about it, and what the service last said."""
     return {"safe": s, "chain": s["chainId"], "addr": s["address"], "name": s["name"],
             "base": s.get("url") or policy.service_url(CFG, s["chainId"], URL), "info": {}, "queue": [], "cache": {}, "ctx": None,
-            "polls": 0, "need_info": True, "seen": None, "ok": False, "err": "starting", "tried": False, "announced": 0}
+            "polls": 0, "need_info": True, "seen": None, "ok": False, "err": "starting", "tried": False, "announced": 0,
+            "fit": None}
 
 
 WATCH = [new_watch(s) for s in SAFES]
@@ -94,7 +102,7 @@ WATCH = [new_watch(s) for s in SAFES]
 W = WATCH[0]
 SAFE, CHAIN, SAFE_ADDR, BASE = W["safe"], W["chain"], W["addr"], W["base"]
 API_KEY = getattr(secrets, "QUORUM_API_KEY", None) if secrets else None
-EXPECTS = policy.pins(getattr(secrets, "QUORUM_EXPECT", None) if secrets else None)
+EXPECTS = policy.pins(getattr(secrets, "QUORUM_EXPECT", None) if secrets else None) or policy.pins(policy.pin_file())
 EXPECT = None       # the entry for the chip on the bus (probe_chip), from EXPECTS
 NAME = getattr(secrets, "DEVICE_NAME", "picoquorum") if secrets else "picoquorum"
 SOFT_OK = not PROD and bool(getattr(secrets, "ALLOW_SOFT_KEY", False) if secrets else False)
@@ -178,9 +186,8 @@ chip_pages = []     # the Chip pages (sig.details), read off the chip when they 
 chip_page = 0
 opage = 0           # the Owners page in view: OWNERS_PER_PAGE owners a page, so a 3-of-5 or longer scrolls
 dfoot = "chip"      # knob, on the Device screen: "chip", "wifi", "practice" or "back"
-DFOOT = ("chip", "wifi", "practice", "back")
+DFOOT = ("chip", "wifi", "practice", "back") if board.RADIO else ("chip", "practice", "back")
 work_info = []      # short facts from the chip, shown under the Signing and Sending screens (sig.info)
-truncated = False   # the queue did not fit in memory: only the first few are shown
 fails = 0           # ticks in a row that raised
 saved_checked = False   # send_saved() ran after this boot
 net_ok = False
@@ -214,13 +221,15 @@ rpage = 0           # the Recent screen's page
 # Home on three buttons: four tabs along the top (quorum_ui_s.draw_tabs). D0 is level with them and
 # moves to the next, D1 moves in the list below, D2 does what the bar along the bottom says.
 TABS = ("queue", "owners", "key", "device")
-DTAB = ("chip", "wifi", "practice", "about")     # the Device tab's rows; About is the Device screen
+DTAB = ("chip", "wifi", "practice", "about") if board.RADIO else ("chip", "practice", "about")     # the Device tab's rows; About is the Device screen
 tab = 0             # the tab in view (an index into TABS)
 osel = 0            # the Owners tab: the owner in focus
 dsel = 0            # the Device tab: the row in focus (DTAB)
 who = ""            # the owner the Owner screen (state "who") shows in full
 # An ask from the USB link (usblink.py): Wi-Fi, the Safes, or maintenance, on screen page by page.
-LINK_ASKS = ("wifi", "safes", "maint")
+# No radio, no REPL the USB-C can reach (console-rp): only the Safes. A maint ask there would leave
+# the board in a REPL nobody could open.
+LINK_ASKS = ("wifi", "safes", "maint") if board.RADIO else ("safes",)
 ASK_FROM = ("home", "boot", "saver", "unconfigured", "nochip", "pinfail", "owners", "device", "recent", "key", "chip")
 ask = None          # {"kind", "item", "pages": [{"title", "lines", "addr"?, "red"?}], "back": the state it came over}
 apage = 0           # its page in view
@@ -423,6 +432,20 @@ def wake(now):
     focus_sel()
 
 
+BROWSE = ("key", "owners", "who", "device", "recent", "chip")    # screens that only show: no decision on them
+BROWSE_IDLE_MS = 2 * 60 * 1000
+
+
+def browse_idle(now):
+    """A screen that only shows, left alone BROWSE_IDLE_MS, goes back to home: the console asks the
+    service only from there, and the screensaver comes only there. Left on the Key page, board #2
+    asked nothing for 35 minutes and kept a transaction executed meanwhile, its screen lit (2026-11-10)."""
+    global state, dirty
+    if state in BROWSE and time.ticks_diff(now, last_key) >= BROWSE_IDLE_MS:
+        state, dirty = "home", True
+        focus_sel()
+
+
 def saver_tick(now, pressed):
     """The screensaver's part of a tick. -> the keys still to handle (a key that wakes it does
     nothing else: the first press only turns the screen back on)."""
@@ -462,9 +485,41 @@ def note_recent(n, w, what):
         print("recent:", ex)        # a full flash costs the list, never the signature
 
 
-def probe_chip():
+NOCHIP_LOOKS, NOCHIP_GAP_MS, NOCHIP_EVERY_MS = 4, 1500, 30000
+nochip_t = 0        # when a look last found no chip
+
+
+def find_chip(looks, step=None):
+    """S.load (the production image never falls back to a key on flash). After a miss the bus is
+    clocked free and, while looks are left, looked at again NOCHIP_GAP_MS on: past the 608's 1.3 s
+    watchdog. One start in 100 on board #2 found no chip and the next found it (2026-11-10). Each
+    miss is logged with its reason, which went only to print before: on console-rp the log is all
+    that reaches the computer."""
+    global nochip_t
+    for i in range(looks):
+        s = S.load(soft=not PROD, pins=EXPECTS)
+        if S.is_chip(s) or SOFT_OK:
+            if i:
+                qlog.write("chip found on look %d of %d" % (i + 1, looks))
+            return s
+        try:
+            import atecc
+            held, n = atecc.free_bus()
+            bus = "SDA held, let go after %d pulses" % n if held else "SDA high"
+        except Exception as e:
+            bus = "bus not cleared: %s" % e
+        (qlog.write if looks > 1 else qlog.once)("no chip, look %d of %d: %s; %s" % (i + 1, looks, S.why, bus))
+        nochip_t = time.ticks_ms()
+        if i < looks - 1:
+            if step:
+                step("no answer: looking again (%d of %d)" % (i + 2, looks))
+            time.sleep_ms(NOCHIP_GAP_MS)
+    return s
+
+
+def probe_chip(looks=1, step=None):
     global sig, state
-    sig = S.load(soft=not PROD, pins=EXPECTS)   # the production image never falls back to a key on flash
+    sig = find_chip(looks, step)
     if not S.is_chip(sig) and not SOFT_OK:
         state = "nochip"
         return
@@ -522,7 +577,7 @@ def check_pin():
     elif EXPECTS:
         pin_ok, pin_why = False, "this chip is not one of the %d pinned" % len(EXPECTS)
     elif PROD:
-        pin_ok, pin_why = False, "secrets.py has no QUORUM_EXPECT"
+        pin_ok, pin_why = False, "no pin yet: the key is made on this device" if image.IMAGE == "console-rp" else "secrets.py has no QUORUM_EXPECT"
     else:
         pin_ok, pin_why = True, ""      # a development board without a pin signs as before
     qlog.write("pin %s: chip %s slot %d owner %s%s" % ("ok" if pin_ok else "FAIL", serial or sig.name, sig.slot, me or "none",
@@ -561,12 +616,19 @@ def stored_counter():
         return None
 
 
+counter_unsaved = None  # a count the file could not take (no memory to open it): retry_files tries again
+
+
 def store_counter(n):
+    global counter_unsaved
     try:
         with open(counter_file(), "w") as f:
             f.write(str(n))
+        counter_unsaved = None
     except Exception as e:
-        qlog.write("counter not saved: %r" % e)
+        if counter_unsaved is None:
+            qlog.write("counter not saved: %r" % e)
+        counter_unsaved = n
 
 
 def check_counter():
@@ -628,15 +690,30 @@ def fingerprint():
 
 
 # ----------------------------------------------------------------------------- the queue
+SIGNED = ("safe", "to", "value", "data", "operation", "safeTxGas", "baseGas", "gasPrice", "gasToken", "refundReceiver", "nonce")
+
+
+def signed_fields(t):
+    """The fields a Safe transaction's hash covers, as the service sent them (safe_tx.from_service)."""
+    return tuple(str(t.get(k)) for k in SIGNED)
+
+
 def entry(w, t):
     """One transaction from the service about Safe w, checked and decoded once (cached by its
-    safeTxHash). Confirmations are refreshed on every poll; the fields cannot change without the
-    hash changing. The chain in the hash is the one pinned for w, never the service's."""
+    safeTxHash). Confirmations are refreshed on every poll. An entry that checked out keeps its own
+    fields, which make its hash: other fields under that hash can only be a lie. A refusal is for the
+    fields it was given, so other fields under the same hash get their own look: a relay that forged a
+    transaction once didn't block the real one until a restart (board #2, 2026-11-10). The chain in
+    the hash is the one pinned for w, never the service's. An entry keeps those fields ("f"), not the
+    service's whole transaction: its confirmations carry each owner's signature, 1.3 KB for a
+    contract signature, and 9 queued kept about 50 KB (board #2, 2026-11-11)."""
     h = (t.get("safeTxHash") or "").lower()
     cache = w["cache"]
     e = cache.get(h)
+    if e is not None and e["why"] and e["f"] != signed_fields(t):
+        e = None
     if e is None:
-        e = {"h": h, "t": t, "n": int(t["nonce"]), "mine": "", "why": "", "w": w}
+        e = {"h": h, "f": signed_fields(t), "n": int(t["nonce"]), "mine": "", "why": "", "w": w}
         if len(h) != 66:
             e["why"] = "It has no usable safeTxHash."
         elif (t.get("safe") or "").lower() != w["addr"]:
@@ -670,9 +747,22 @@ def bad_entry(w, t, i, ex):
         n = int(t.get("nonce"))
     except Exception:
         n = -1
-    return {"h": h.lower(), "t": {}, "n": n, "mine": "", "conf": [], "w": w,
+    return {"h": h.lower(), "f": (), "n": n, "mine": "", "conf": [], "w": w,
             "why": "The service sent something that is not a transaction: %s" % repr(ex)[:60],
             "r": {"summary": "Malformed", "level": "red", "items": []}}
+
+
+def big_entry(w, at, why=""):
+    """The at-th transaction in the queue that could not be read even alone: too long (vhttp's BODY,
+    link.MAX_LINE: "too big"), or the heap had no room for it just then. Shown in its place,
+    refused, never signed. Its nonce is unread: #?."""
+    if "too big" in why:
+        return {"h": "big:%d" % at, "f": (), "n": -1, "mine": "", "conf": [], "w": w,
+                "why": "It is too long for this console to read, so it can't be checked here. Check it in the app.",
+                "r": {"summary": "Too big to check", "level": "red", "items": []}}
+    return {"h": "big:%d" % at, "f": (), "n": -1, "mine": "", "conf": [], "w": w,
+            "why": "The console was short of memory when it read this one. It reads it again at the next poll.",
+            "r": {"summary": "Not read: low memory", "level": "red", "items": []}}
 
 
 def signed_by_me(e):
@@ -724,7 +814,7 @@ def can_sign(e):
 
 def conflicts(e):
     """Two transactions for the same Safe with the same nonce: only one of them can execute."""
-    return sum(1 for x in queue if x["n"] == e["n"] and x["w"] is e["w"]) > 1
+    return e["n"] >= 0 and sum(1 for x in queue if x["n"] == e["n"] and x["w"] is e["w"]) > 1
 
 
 # ----------------------------------------------------------------------------- the service
@@ -760,34 +850,90 @@ def fetch_info(w):
     w["info"], w["polls"], w["need_info"] = got, 0, False
 
 
+QUEUE, FEW = 10, 3      # the most transactions listed for a Safe; how many at a time when they don't fit at once
+
+
 def fetch_queue(w):
     """The pending transactions, each checked on its own: one the service mangled is shown as
-    refused and cannot stop the others from being listed."""
-    global truncated
+    refused and cannot stop the others from being listed. A queue too long to read at once
+    (MemoryError: vhttp's BODY on Wi-Fi, link.MAX_LINE over the relay) is read FEW at a time, and a
+    page of those that is still too long, one at a time: a transaction too long even alone is
+    refused in its place (big_entry). One big batch in the queue used to leave the console with no
+    queue at all, and on Wi-Fi only the first 3 were listed. Once the whole queue has not fitted,
+    later polls go straight to pieces until the nonce moves (w["fit"]): asking again cost every poll
+    a 17-21 KB answer, a parse that failed, and a second, with the keys unread (board #2,
+    2026-11-12, polls of 6-8 s once 10 transactions carried their confirmations)."""
     nonce = int(w["info"].get("nonce", 0))
-    try:
-        txs, truncated = svc.pending(nonce), False
-    except MemoryError:
-        gc.collect()
-        txs, truncated = svc.pending(nonce, limit=3), True
-        qlog.once("queue truncated to 3: out of memory")
     out = []
-    for i, t in enumerate(txs):
+    if w["fit"] != nonce:
         try:
-            out.append(entry(w, t))
-        except Exception as ex:
-            out.append(bad_entry(w, t, i, ex))
+            return add(w, out, svc.pending(nonce, QUEUE))
+        except MemoryError:
+            gc.collect()
+            w["fit"] = nonce
+            qlog.once("queue too long at once: %d at a time" % FEW)
+    for at in range(0, QUEUE, FEW):
+        n = min(FEW, QUEUE - at)
+        try:
+            txs = svc.pending(nonce, n, at)
+        except MemoryError:
+            gc.collect()
+            txs = None
+        if txs is not None:
+            add(w, out, txs)
+            if len(txs) < n:
+                return out
+            continue
+        for k in range(at, at + n):
+            try:
+                one = svc.pending(nonce, 1, k)
+            except MemoryError as ex:
+                gc.collect()
+                out.append(big_entry(w, k, str(ex)))
+                qlog.once("queue: #%d of it not read: %s" % (k + 1, ex))
+                if "too big" not in str(ex):
+                    short("a transaction")      # the heap, not its size: a restart can help
+                continue
+            if not one:
+                return out
+            add(w, out, one)
     return out
 
 
+def add(w, out, txs):
+    """The service's transactions, as entries, onto out. -> out."""
+    for t in txs:
+        try:
+            out.append(entry(w, t))
+        except Exception as ex:
+            out.append(bad_entry(w, t, len(out), ex))
+    return out
+
+
+held0 = 0       # the keys already down when the poll began (net_work): only one going down stops it
+
+
 def turning():
-    """The knob has moved (or is pressed) since the poll began."""
-    k = getattr(keys, "knob", None)
-    return bool(k and k.pending())
+    """The knob has moved (or is pressed) since the poll began, or a key has gone down. A key
+    held from before (a finger resting, a stuck key) stops nothing, or no poll would ever finish."""
+    k, down = getattr(keys, "knob", None), getattr(keys, "down_now", None)
+    return bool(k and k.pending()) or bool(down and down() & ~held0)
+
+
+class Later(Exception):
+    """A poll stopped for the keys (stop_for_keys): it goes on later."""
+
+
+def stop_for_keys():
+    """NET.STOP while a poll runs (console-rp: link.request calls it as it waits for each GET): a
+    key down ends the poll, so the keys answer at once. Board #2, 2026-11-12: polls of 6-8 s in
+    a queue of 10, and the presses in them were lost."""
+    if turning():
+        raise Later()
 
 
 def later(w):
-    """A poll stopped between calls for the knob: Safe w goes next, once the keys are quiet again.
+    """A poll stopped between calls for the keys: Safe w goes next, once the keys are quiet again.
     What was fetched so far is kept; the queue shown stays the last whole one."""
     global rr, last_poll
     rr, last_poll = WATCH.index(w), 0
@@ -795,11 +941,26 @@ def later(w):
 
 
 def poll(w):
-    """One Safe: its info (every INFO_EVERY polls on the real service), then its queue."""
+    """One Safe: its info (every INFO_EVERY polls on the real service), then its queue. One that
+    reads both whole, with no memory failure (short), starts starved's count again."""
+    global starved, polled_short, in_poll
     w["tried"] = True
     if not w["base"]:
         w["ok"], w["err"] = False, "no service for chain %d" % w["chain"]
         return
+    polled_short, in_poll = False, True
+    try:
+        whole = read_safe(w)
+    finally:
+        in_poll = False
+    if whole and not polled_short:
+        starved = 0             # a whole poll: the heap does its work
+        mem_whole()
+
+
+def read_safe(w):
+    """poll's work: w's info and queue, w["ok"] and w["err"] as they went. -> True when both were
+    read. A key that stops it (Later) leaves all of w as it was."""
     aim(w)
     try:
         w["polls"] += 1
@@ -827,15 +988,21 @@ def poll(w):
         w["ok"], w["err"] = True, ""
         if not saved_checked:
             send_saved(w)
+        return True
+    except Later:
+        later(w)
     except Exception as ex:
-        w["ok"], w["err"] = False, net.short_err(ex)
+        w["ok"], w["err"] = False, NET.short_err(ex)
         _log("service %s: %r" % (w["name"], ex))
         qlog.once("service %s: %s" % (w["name"], w["err"]))
+        qlog.once("  at " + where(ex))
+        if isinstance(ex, MemoryError) and "too big" not in str(ex):
+            short("a poll")
 
 
 def net_work():
     """One poll: the next Safe in turn. Runs with the timer stopped."""
-    global net_ok, net_err, queue, last_poll, last_activity, dirty, sel, _snap, declined, rr
+    global net_ok, net_err, queue, last_poll, last_activity, dirty, sel, _snap, declined, rr, held0
     last_poll = time.ticks_ms()
     watch.extend(45000)
     if svc is None:
@@ -846,17 +1013,13 @@ def net_work():
     fresh = [w for w in WATCH if not w["tried"]]
     w = fresh[0] if fresh else WATCH[rr % len(WATCH)]
     rr = (WATCH.index(w) + 1) % len(WATCH)
-    wlan = network.WLAN(network.STA_IF)
-    if not wlan.isconnected():
-        if time.ticks_diff(time.ticks_ms(), net.last_try) > 30000:
-            net.retry()
-            _log("wifi: retrying " + net.ssid())
-        net_ok, net_err = False, "no wifi"
-        for x in WATCH:                     # no wifi: every Safe is offline, and waits the poll period
-            x["tried"], x["ok"], x["err"] = True, False, "no wifi"
+    held0 = getattr(keys, "down_now", int)()
+    ok, why = NET.ready(_log)
+    if not ok:
+        net_ok, net_err = False, why
+        for x in WATCH:                     # no way out: every Safe is offline, and waits the poll period
+            x["tried"], x["ok"], x["err"] = True, False, why
     else:
-        if not net.up:
-            net.joined()
         poll(w)
         down = [x for x in WATCH if not x["ok"] and x["tried"]]
         net_ok = not down
@@ -873,6 +1036,17 @@ def net_work():
         _snap, dirty = snap, True
         last_activity = time.ticks_ms()
     gc.collect()
+    retry_files()
+
+
+def retry_files():
+    """A count or a dropped signature that could not be written for memory: tried again after each
+    poll, and before a restart. A count not saved showed as uses of the key outside this console at
+    the next start (board #2, 2026-11-11); a rejected signature not dropped would go out after it."""
+    if counter_unsaved is not None:
+        store_counter(counter_unsaved)
+    if unsent_stale is not None:
+        clear_unsent(None if unsent_stale == "*" else unsent_stale)
 
 
 # ----------------------------------------------------------------------------- review and sign
@@ -956,17 +1130,57 @@ def same_chip():
     return s == serial and "0x%064x" % x == qx and "0x%064x" % y == qy
 
 
+SIGN_ROOM = 4096    # in one piece before the chip signs: the signature's 1.3 KB hex, its POST line, a file
+_room = None        # SIGN_ROOM set aside while the heap is whole, given back just before the chip signs
+
+
+def keep_room():
+    """Set SIGN_ROOM aside in one piece, if the heap has it: at import (whole then), and again after
+    each signature. 62 KB free in small pieces had no 4 KB at a review (board #2, 2026-11-11)."""
+    global _room
+    if _room is None:
+        try:
+            _room = bytearray(SIGN_ROOM)
+        except MemoryError:
+            pass
+
+
+keep_room()
+
+
+def room(n):
+    """Can the heap give n bytes in one piece, after a collection?"""
+    gc.collect()
+    try:
+        bytearray(n)
+        return True
+    except MemoryError:
+        return False
+
+
 def sign_it():
-    global state, result, dirty, counter, outside, unsent, sec
+    """The chip signs only once the heap has room for what follows: a signature lost for memory
+    after the chip made it was a use of the key for nothing (board #2, 2026-11-11, #6 and #8)."""
+    global state, result, dirty, counter, outside, unsent, sec, reset_at, _room
     e = cur
     state = "working"
     unsent = None           # a failure below must never offer to resend an older signature
-    work_info[:] = chip_info()
-    d.frames(U.draw_working, sys.modules[__name__], "Signing", getattr(sig, "does", "The chip signs") + " the hash computed here")
+    _room = None            # the room set aside: room() below finds it free
     timer.deinit()
     watch.extend(30000)
     sec0 = sec1 = None
+    used = False            # the chip has been asked to sign
     try:
+        if not room(SIGN_ROOM):
+            qlog.write("sign #%d: no %d bytes in one piece, the key not used; restarting" % (e["n"], SIGN_ROOM))
+            result = (False, "Not signed", ["The console is short of memory.", "The key was not used.",
+                                            "It restarts to free it: then sign again."])
+            reset_at = time.ticks_add(time.ticks_ms(), 8000)
+            state, dirty = "result", True
+            start_timer()
+            return
+        work_info[:] = chip_info()
+        d.frames(U.draw_working, sys.modules[__name__], "Signing", getattr(sig, "does", "The chip signs") + " the hash computed here")
         if not pin_ok or (EXPECT and sig.slot != int(EXPECT.get("slot", 0))):
             raise Exception("the key no longer matches the pin")
         c0 = read_counter()         # first: before anything this console does with the key
@@ -980,9 +1194,11 @@ def sign_it():
         if getattr(sig, "asserts", False):
             # a passkey (the browser emulator) writes its own assertion over the same hash; it is
             # packed and checked by the Safe exactly as a chip's
+            used = True
             ad, fields, r, s = sig.assertion(e["mine"])
         else:
             ad, fields, digest = webauthn.assertion(e["mine"])    # e["mine"]: checked equal to the service's hash in entry()
+            used = True
             r, s = sig.sign(digest)
         ms = time.ticks_diff(time.ticks_ms(), t0)
         counter = read_counter()
@@ -999,13 +1215,20 @@ def sign_it():
             result = (result[0], result[1], result[2] + ["The chip logged %d security event%s besides this signature"
                                                          % (sec_extra(sec0, sec1), "" if sec_extra(sec0, sec1) == 1 else "s")])
     except Exception as ex:
-        result = (False, "Not signed", ["The chip said:", repr(ex)[:80]])
+        if unsent:          # signed and held: ▲ sends it again (post kept it, and on flash if it could)
+            result = (False, "Not sent", ["Signed, but not sent:", repr(ex)[:80]])
+        elif used:
+            result = (False, "Not signed", ["The chip signed, then the console failed:", repr(ex)[:80],
+                                            "Nothing was sent: sign again."])
+        else:
+            result = (False, "Not signed", ["The chip said:", repr(ex)[:80]])
         _log("sign: %r" % ex)
         qlog.write("sign #%d failed: %r" % (e["n"], ex))
         if sec_extra(sec0, read_sec(), signed=0):
             result = (False, "Not signed", result[2] + ["The chip logged a security event"])
     work_info[:] = []
     state, dirty = "result", True
+    keep_room()
     start_timer()
 
 
@@ -1117,21 +1340,36 @@ def save_unsent(e, signature):
     """A signature the service did not take: kept on flash (it is public once posted anyway), so a
     restart does not lose it; sent_saved() tries it again first thing after the next boot."""
     import json
+    global unsent_stale
     try:
         with open(UNSENT_FILE, "w") as f:
             json.dump({"h": e["h"], "n": e["n"], "sig": signature, "chain": e["w"]["chain"], "safe": e["w"]["addr"]}, f)
-    except OSError as ex:
+        unsent_stale = None     # what was there to drop is written over
+    except Exception as ex:     # OSError, or MemoryError opening it: still held in memory for ▲
         qlog.write("unsent not saved: %r" % ex)
 
 
+unsent_stale = None     # a saved signature to drop ("*": any) that could not be, for memory: never sent, dropped by retry_files
+
+
 def clear_unsent(h=None):
+    global unsent_stale
     import json, os
     try:
         if h is not None and json.load(open(UNSENT_FILE))["h"] != h:
+            unsent_stale = None
             return
         os.remove(UNSENT_FILE)
-    except (OSError, ValueError, KeyError):
-        pass
+        unsent_stale = None
+    except ValueError:          # unreadable: send_saved can't read it either
+        unsent_stale = None
+    except Exception as ex:     # none there (OSError 2); else no memory to open it (MemoryError, OSError 12)
+        if isinstance(ex, OSError) and ex.args and ex.args[0] == 2:
+            unsent_stale = None
+        else:
+            if unsent_stale is None:
+                qlog.write("unsent not dropped: %r" % ex)
+            unsent_stale = h or "*"
 
 
 def send_saved(w):
@@ -1143,7 +1381,13 @@ def send_saved(w):
     global saved_checked
     try:
         s = json.load(open(UNSENT_FILE))
-    except (OSError, ValueError):
+    except (OSError, ValueError, MemoryError) as ex:
+        if not isinstance(ex, MemoryError) and not (isinstance(ex, OSError) and ex.args and ex.args[0] == 12):
+            saved_checked = True    # none there, or unreadable; no memory to open it: the next poll looks again
+        return
+    if unsent_stale in ("*", s["h"]) or s["h"] in declined:
+        qlog.write("saved signature for #%s dropped: rejected here, or sent already" % s.get("n"))
+        clear_unsent()
         saved_checked = True
         return
     mine = [x for x in WATCH if x["chain"] == s.get("chain", WATCH[0]["chain"]) and x["addr"] == s.get("safe", WATCH[0]["addr"])]
@@ -1162,8 +1406,11 @@ def send_saved(w):
     try:
         ok, detail = svc.confirm(s["h"], s["sig"])
     except Exception as ex:
-        ok, detail = False, net.short_err(ex)
+        ok, detail = False, NET.short_err(ex)
     if ok:
+        for x in w["queue"]:
+            if x["h"] == s["h"]:
+                mark_signed(x)
         qlog.write("confirmed #%s (the saved signature, after a restart)" % s.get("n"))
         say("Sent the saved signature for #%s" % s.get("n"), 6)
         clear_unsent()
@@ -1174,35 +1421,64 @@ def send_saved(w):
 
 def post(e, signature):
     global result, unsent
-    d.frames(U.draw_working, sys.modules[__name__], "Sending", "To the transaction service")
+    unsent = (e, signature)     # held from here: a failure below leaves it for ▲ to send again
+    try:
+        d.frames(U.draw_working, sys.modules[__name__], "Sending", "To the transaction service")
+    except MemoryError:
+        gc.collect()            # the screen can wait; the signature goes out
     watch.extend(45000)
     try:
         aim(e["w"])
         ok, detail = svc.confirm(e["h"], signature)
     except Exception as ex:
-        ok, detail = False, net.short_err(ex)
+        ok, detail = False, NET.short_err(ex)
     if ok:
         unsent = None
-        clear_unsent(e["h"])
-        have, need = len(e["conf"]) + 1, threshold(e["w"])
-        lines = ["#%d %s" % (e["n"], e["r"]["summary"]), "Approvals now %d of %d" % (have, need)]
-        if have >= need:
-            lines += ["Ready \u00b7 the proposer executes it"]
-        else:
-            lines += ["Waiting for %d more" % (need - have)]
-        if counter is not None:
-            lines += ["Key use #%d" % counter]
-        result = (True, "Signed", lines)
+        mark_signed(e)
         e["w"]["need_info"] = True
-        _log("confirmed #%d" % e["n"])
-        qlog.write("confirmed #%d" % e["n"])
-        note_recent(e["n"], e["w"], e["r"]["summary"])
+        result = (True, "Signed", ["#%d sent" % e["n"]])     # it went out, whatever fails below
+        try:
+            clear_unsent(e["h"])
+            have, need = len(e["conf"]), threshold(e["w"])
+            lines = ["#%d %s" % (e["n"], e["r"]["summary"]), "Approvals now %d of %d" % (have, need)]
+            if have >= need:
+                lines += ["Ready \u00b7 the proposer executes it"]
+            else:
+                lines += ["Waiting for %d more" % (need - have)]
+            if counter is not None:
+                lines += ["Key use #%d" % counter]
+            result = (True, "Signed", lines)
+            _log("confirmed #%d" % e["n"])
+            qlog.write("confirmed #%d" % e["n"])
+            note_recent(e["n"], e["w"], e["r"]["summary"])
+        except MemoryError:
+            gc.collect()
     else:
         unsent = (e, signature)
         save_unsent(e, signature)
         result = (False, "Not sent", ["Signed, but the service said:", detail[:90]])
         _log("confirm #%d refused: %s" % (e["n"], detail))
         qlog.write("confirm #%d refused: %s" % (e["n"], detail[:80]))
+
+
+def mark_signed(e):
+    """The service took this key's confirmation: the row says so now, not at the next poll, and
+    the console never offers it again (board #2, 2026-11-11: #6, sent after a restart, signed twice)."""
+    if me and me not in e["conf"]:
+        e["conf"].append(me)
+
+
+def next_waiting(e):
+    """Back on home after e: the highlight on the next transaction that still wants this key, after
+    e and round the list, so ▲ opens it. None waiting: it stays where it was."""
+    global sel
+    hs = [x["h"] for x in queue]
+    i = hs.index(e["h"]) if e and e["h"] in hs else sel
+    for j in range(1, len(queue) + 1):
+        k = (i + j) % len(queue)
+        if waiting(queue[k]):
+            sel = k
+            return
 
 
 def reject():
@@ -1213,6 +1489,7 @@ def reject():
         unsent = None
     clear_unsent(e["h"])
     state, dirty = "home", True
+    next_waiting(e)
     focus_sel()
     say("Rejected #%d on this console" % e["n"])
     if svc and e["w"]["base"] and policy.is_sim(e["w"]["base"]):
@@ -1225,19 +1502,25 @@ def reject():
 
 
 # ----------------------------------------------------------------------------- ui tick
+def check_again():
+    """No chip or pin fail: look again (Check again; and on No chip every NOCHIP_EVERY_MS, from tick)."""
+    global state, dirty
+    probe_chip()            # counts first (boot_count), then reads the key: on a sealed chip, a use of it
+    if state == "boot":
+        state = "home"
+        start_watch()
+    own_reads(boot_count)
+    dirty = True
+
+
 def handle(k):
-    global state, sel, dirty, last_poll, chip_page, opage, hsel, browse, chip_back, rpage
+    global state, sel, dirty, last_poll, chip_page, opage, hsel, browse, chip_back, rpage, _room
     if state in ("nochip", "pinfail"):
         if k == "A":
-            probe_chip()            # counts first (boot_count), then reads the key: on a sealed chip, a use of it
-            if state == "boot":
-                state = "home"
-                start_watch()
-            own_reads(boot_count)
-            dirty = True
+            check_again()
     elif state == "crashed":
         if k == BACK:
-            machine.reset()
+            restart("restart: Back on the crash screen")
     elif state in ("home", "boot") and status_home():
         if k == "down":
             hsel = min(len(WATCH) - 1, hsel + 1)
@@ -1331,14 +1614,18 @@ def handle(k):
     elif state == "result":
         if k == SIGN and unsent:
             timer.deinit()
+            _room = None
+            gc.collect()
             try:
                 post(*unsent)
             finally:
+                keep_room()
                 start_timer()
         elif k in (SIGN, BACK, REJECT):
             state = "home"
             if cur:
                 poll_soon(cur["w"])          # poll now: its queue has moved
+                next_waiting(cur)
             focus_sel()
         dirty = True
 
@@ -1626,9 +1913,9 @@ def check_mark(on):
 def led_tick():
     if any(waiting(e) for e in queue):
         if _n % 10 == 0:
-            net.led.toggle()        # blinks while something waits for this key
+            NET.led.toggle()        # blinks while something waits for this key
     elif _n % 20 == 0:
-        net.led.value(1 if net.up else 0)
+        NET.led.value(1 if NET.up else 0)
 
 
 # ----------------------------------------------------------------------------- the USB link's asks
@@ -1657,11 +1944,12 @@ def link_status():
                     "threshold": threshold(w) if info else None, "owners": len(owners(w)) if info else None,
                     "nonce": info.get("nonce"), "isOwner": (bool(me) and me in owners(w)) if info else None,
                     "queued": n, "waiting": mine})
-    return {"mode": "console", "name": NAME, "state": state, "ready": readiness(), "serial": serial, "profile": profile,
-            "chip": facts, "owner": me, "key": compressed(), "pinned": bool(EXPECT) and pin_ok, "pinWhy": pin_why, "counter": counter,
-            "wifi": {"up": net.up, "ssid": net.ssid() if net.up else "", "saved": [x[0] for x in net.networks()]},
-            "safes": out, "safesFrom": "" if UNCONFIGURED else SAFES_FROM, "ask": ask["kind"] if ask else None,
-            "watchdog": watch.running(), "image": image.IMAGE, "version": image.VERSION}
+    st = {"mode": "console", "name": NAME, "state": state, "ready": readiness(), "serial": serial, "profile": profile,
+          "chip": facts, "owner": me, "key": compressed(), "pinned": bool(EXPECT) and pin_ok, "pinWhy": pin_why, "counter": counter,
+          "safes": out, "safesFrom": "" if UNCONFIGURED else SAFES_FROM, "ask": ask["kind"] if ask else None,
+          "watchdog": watch.running(), "image": image.IMAGE, "version": image.VERSION}
+    st.update(NET.status())         # "wifi" {up, ssid, saved}, or "link" on console-rp
+    return st
 
 
 def link_ask(kind, item):
@@ -1808,26 +2096,35 @@ def tick(t):
     try:
         _n += 1
         watch.extend(5000)
-        net.poll_accept()
+        NET.poll_accept()
         if reset_at and time.ticks_diff(time.ticks_ms(), reset_at) >= 0:
-            machine.reset()
+            restart()           # its reason is in the log already (sign_it)
         ask_tick()
+        if state == "nochip" and time.ticks_diff(time.ticks_ms(), nochip_t) >= NOCHIP_EVERY_MS:
+            check_again()       # a miss costs no use of the key: nothing answered
         polled = False
         if (state in ("home", "boot", "saver") and (last_poll == 0 or time.ticks_diff(time.ticks_ms(), last_poll) >= poll_every())
                 and time.ticks_diff(time.ticks_ms(), last_key) >= QUIET_MS):
             timer.deinit()      # no timer events pile up while HTTP and hashing block
+            stop = hasattr(NET, "STOP")
             try:
                 check_mark(True)
+                if stop:
+                    NET.STOP = stop_for_keys
                 net_work()
             finally:
+                if stop:
+                    NET.STOP = None
                 check_mark(False)
                 start_timer()
             polled = True
-        pressed = keys.pressed()
+        pressed = getattr(U, "take_pressed", list)() + keys.pressed()    # console-rp: presses that stopped an effect first
         if pressed:
             last_activity = last_key = time.ticks_ms()
             if polled:
                 pressed = backlog(pressed)
+        if not pressed:
+            browse_idle(time.ticks_ms())
         pressed = saver_tick(time.ticks_ms(), pressed)
         if state == "practice":
             practice_tick(pressed)
@@ -1851,7 +2148,7 @@ def tick(t):
             if not keys.held(PRESS):
                 crash_t0 = None
             elif time.ticks_diff(time.ticks_ms(), crash_t0) >= CRASH_HOLD_MS:
-                machine.reset()
+                restart("restart: held on the crash screen")
         if splash_until:
             if time.ticks_diff(splash_until, time.ticks_ms()) > 0:
                 if _n % 3 == 0:
@@ -1865,6 +2162,8 @@ def tick(t):
         led_tick()
         if svc and svc.lost and state in ("home", "saver"):
             restart_for_memory()
+        if state in ("home", "saver", "result"):
+            mem_tick(time.ticks_ms())
         if state == "practice":
             dirty, dirty_rows = False, None
             prac.draw()                 # its own dirty flag, through d.frames
@@ -1882,16 +2181,38 @@ def tick(t):
         fails += 1
         if fails == 1:
             qlog.write("tick: %r" % e)
+            qlog.write("  at " + where(e))
         if fails >= CRASH_AFTER and state != "crashed":
             crashed(e)
     finally:
         _busy = False
 
 
+def where(e):
+    """The failure's last frames, innermost first, as one log line: "file:line in function < ...".
+    console-rp's print_exception goes to the native USB, which nothing reaches."""
+    try:
+        import io
+        s = io.StringIO()
+        sys.print_exception(e, s)
+        out = []
+        for l in s.getvalue().split("\n"):
+            l = l.strip()
+            if l.startswith("File "):
+                p = l[5:].replace('"', "").split(", ")
+                out.append("%s:%s %s" % (p[0], p[1].replace("line ", ""), p[2] if len(p) > 2 else ""))
+        return " < ".join(out[-4:][::-1]) or "?"
+    except Exception as x:
+        return "? (%r)" % x
+
+
 def crashed(e):
     """Too many failures in a row: stop somewhere plain that signs nothing, and say so."""
-    global state, cur
-    state, cur = "crashed", None
+    global state, cur, queue
+    state, cur, queue = "crashed", None, []
+    for w in WATCH:             # rebuilt by a poll: dropped so the screen below has room to draw
+        w["cache"], w["queue"] = {}, []
+    gc.collect()
     qlog.write("crashed after %d failed ticks: %r" % (fails, e))
     try:
         with open("error.log", "w") as f:
@@ -1921,8 +2242,140 @@ def restart_for_memory():
             f.write(str(now))
     except OSError:
         pass
-    qlog.write("restart: the HTTPS reserve could not be taken back (heap in pieces)")
+    restart("restart: the HTTPS reserve could not be taken back (heap in pieces)")
+
+
+def restart(why=None):
+    """machine.reset(), the log first: why, to log.txt and to the computer (the link's queue sent
+    and on the wire now, or the reset drops it: board #2's relay saw no restart's reason, 2026-11-12),
+    and a count or a dropped signature that could not be written before (retry_files)."""
+    if why:
+        qlog.write(why)
+    retry_files()
+    try:
+        f = getattr(NET, "flush", None)
+        if f:
+            f()
+    except Exception:
+        pass
     machine.reset()
+
+
+PROBE_B, PROBE_MS, STARVED_N, STARVED_UP_MS = 2048, 30000, 3, 600000
+probe_t = started = time.ticks_ms()
+pieces = None       # ticks_ms of the first heap check that found no PROBE_B bytes in one piece; None while it finds them
+starved = 0         # memory failures in real work (short) since the last poll that had none
+polled_short = False    # the poll now running had one
+in_poll = False         # a poll is running (short counts it once)
+up_long = False     # up STARVED_UP_MS since boot, once seen
+
+
+def largest(hi=65536):
+    """The largest block the heap gives now, to within 64 bytes, by halving: for the log."""
+    gc.collect()
+    lo = 0
+    while hi - lo > 64:
+        mid = (lo + hi) // 2
+        try:
+            bytearray(mid)
+            lo = mid
+        except MemoryError:
+            hi = mid
+    return lo
+
+
+def heap_check():
+    """Every PROBE_MS on home, the saver or a result: a look at the heap for the log, no more. The
+    first look with no PROBE_B bytes in one piece logs the largest piece and what is free, and the
+    first with them again how long it was. A failed allocation collects first, so a failure is a
+    heap in pieces, not garbage. It restarts nothing: a heap in pieces still signs (SIGN_ROOM is set
+    aside) and reads its queue in pieces. Board #2 on 5add8498, 2026-11-12: a restart for this alone
+    came 10 to 275 minutes into each start, 5 that day, mostly on an idle home screen, each a use of
+    the key. Real work failing for memory is what restarts (short, mem_tick)."""
+    global probe_t, pieces
+    probe_t = time.ticks_ms()
+    try:
+        bytearray(PROBE_B)
+    except MemoryError:
+        if pieces is None:
+            pieces = probe_t
+            qlog.write("heap: no %d bytes in one piece (largest %d, %d free)" % (PROBE_B, largest(), gc.mem_free()))
+        return
+    if pieces is not None:
+        qlog.write("heap: %d bytes in one piece again, after %d s" % (PROBE_B, time.ticks_diff(probe_t, pieces) // 1000))
+        pieces = None
+
+
+def short(what):
+    """Real work failed for memory: a poll read less than its Safe's queue or info, or a status
+    answer failed (usblink). STARVED_N of them with no whole poll between: mem_tick restarts."""
+    global starved, polled_short
+    if in_poll:
+        if polled_short:
+            return              # one poll counts once, however many of its reads failed
+        polled_short = True
+    starved += 1
+    if starved == 1:
+        try:
+            qlog.write("memory: %s failed (largest piece %d, %d free)" % (what, largest(), gc.mem_free()))
+        except MemoryError:
+            pass
+
+
+def mem_tick(now):
+    """From tick, on home, the saver or a result: the heap check, and a restart once real work has
+    failed for memory STARVED_N times since the last whole poll: start again with a whole heap; a
+    signature the service did not take is on flash already and goes out at the first good poll
+    (send_saved). Not in a review or a hold, and not before STARVED_UP_MS up, so it never loops
+    (each start reads the key, a use of it on a quorum v1 chip; console-rp has no clock for
+    restart.txt's rule). Board #2, 2026-11-10: after a confirmation failed for memory, every status
+    answer failed for 12 minutes, the watchdog fed, until someone left the result screen."""
+    global up_long, mem_n
+    if time.ticks_diff(now, probe_t) >= PROBE_MS:
+        heap_check()
+    up_long = up_long or time.ticks_diff(now, started) >= STARVED_UP_MS
+    if starved < STARVED_N or not up_long:
+        return
+    if mem_n is None:
+        mem_n = mem_restarts()
+    if mem_n >= MEM_MAX:
+        if mem_n == MEM_MAX:
+            qlog.write("memory: no restart, %d in a row already with no whole poll" % mem_n)
+            mem_n += 1          # said once
+        return
+    try:
+        with open(MEM_FILE, "w") as f:
+            f.write(str(mem_n + 1))
+    except Exception:
+        pass
+    restart("restart: %d memory failures (polls, status answers) with no whole poll between" % starved)
+
+
+MEM_FILE, MEM_MAX = "mem-restarts.txt", 2   # memory restarts in a row with no whole poll between, and the most
+mem_n = None        # what MEM_FILE says, read once a start when it matters
+
+
+def mem_restarts():
+    try:
+        return int(open(MEM_FILE).read())
+    except Exception:
+        return 0
+
+
+def mem_whole():
+    """A whole poll: memory restarts in a row start again from 0. So one transaction too big for
+    this heap even after a start (refused as "Not read: low memory" at every poll) restarts the
+    console at most MEM_MAX times, not every 10 minutes for good."""
+    global mem_n
+    if mem_n is None:
+        mem_n = mem_restarts()
+    if mem_n:
+        try:
+            import os
+            os.remove(MEM_FILE)
+            mem_n = 0
+        except Exception:
+            pass
 
 
 def outside_seen():
@@ -1949,7 +2402,7 @@ def start():
     # Where the boot goes, one line in log.txt at the end: "boot ms: boot 900 radio 1200 art 2100 wifi
     # 4800 start 6012 fonts 40 probe 310 ...": when boot.py started, the radio was asked to join,
     # the boot art started, WiFi was up and this began, in ms since reset, then each step's own time.
-    marks, last = ["boot %d radio %d art %d wifi %d start %d" % (net.boot_at, net.begun_at, splash._t0, getattr(splash, "wifi_at", 0),
+    marks, last = ["boot %d radio %d art %d wifi %d start %d" % (NET.boot_at, NET.begun_at, splash._t0, getattr(splash, "wifi_at", 0),
                                                                time.ticks_ms())], [time.ticks_ms()]
 
     def mark(what):
@@ -1970,7 +2423,7 @@ def start():
     d = splash.begin()
     keys = L.Keys()
     splash.step("chip", "probing i2c...", L.GREY)
-    probe_chip()
+    probe_chip(NOCHIP_LOOKS, lambda t: splash.step("chip", t, L.GREY))
     gc.collect()                # the Trust M's certificate checks leave the heap in pieces: tidy before the next frame
     load_recent()
     mark("probe")
@@ -1984,16 +2437,9 @@ def start():
             splash.chip(me, "%s%s\u2026%s" % (name, me[:6], me[-4:]), pin_ok)
         check_counter()
     mark("counter")
-    w = network.WLAN(network.STA_IF)
-    if net.networks() and not w.isconnected() and not net.tried:
-        try:
-            skip = " press skips" if KNOB else " any button skips"
-            net.connect(progress=lambda ms: splash.spin("wifi", ("join " + net.ssid())[:12] + skip) or bool(keys.pressed()))
-        except Exception as e:
-            print("wifi:", e)
-    splash.wifi_row(w, net.ssid())
+    up_at = NET.boot_join(splash, keys, KNOB)
     mark("wifi")
-    marks.append("up %d" % (time.ticks_ms() if w.isconnected() else 0))   # WiFi joined, ms since reset
+    marks.append("up %d" % up_at)   # WiFi joined (or the relay heard), ms since reset
     served = [x for x in WATCH if x["base"]]
     first = ([x for x in served if x["base"].startswith("https")] or served or [None])[0]
     if len(WATCH) > 1:
@@ -2007,7 +2453,9 @@ def start():
         state = "unconfigured"
     elif first:
         verify = PROD or bool(getattr(secrets, "QUORUM_TLS_VERIFY", True))
-        svc = txservice.Service(first["base"], txservice.checksum(first["addr"]), API_KEY, verify=verify, floor=image.DATE)
+        # The API key goes only over this board's own HTTPS. Through the link, the computer's relay adds its own.
+        svc = txservice.Service(first["base"], txservice.checksum(first["addr"]), API_KEY if NET.KIND == "wifi" else None,
+                                verify=verify, floor=image.DATE, via=VIA)
     mark("service")
     if state == "boot":
         splash.step("app", "Starting console", L.GREY)

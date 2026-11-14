@@ -150,6 +150,14 @@ def thick_line(d, x0, y0, x1, y1, col, t=3):
         d.line(x0, y0 + i, x1, y1 + i, col)
 
 
+def logo_mark(d, cx, cy, s=1.0):
+    """The PicoQuorum mark: five owners, three signed, their triangle (docs/brand/mark-dark.svg)."""
+    p = lambda v: int(v * s)
+    d.poly(cx, cy, array("h", [0, p(-12), p(7), p(9.7), p(-7), p(9.7)]), c((95, 222, 126)), True)
+    for x, y, r, col in ((0, -12, 3, "ok"), (7, 9.7, 3, "ok"), (-7, 9.7, 3, "ok"), (11.4, -3.7, 2, "warn"), (-11.4, -3.7, 2, "warn")):
+        d.ellipse(cx + p(x), cy + p(y), max(1, p(r)), max(1, p(r)), c(col), True)
+
+
 def mark(d, ok, cx, cy, r):
     """A round check or cross."""
     d.ellipse(cx, cy, r, r, c("ok" if ok else "bad_bar"), True)
@@ -1095,8 +1103,8 @@ def draw_nochip(q):
     mark(d, False, W // 2, 60, 22)
     txt_c(d, "No chip", 94, "bold26")
     y = 136
-    for line in ("No secure element answered on I2C.", "The console only signs with", "a key inside the chip.", "",
-                 "Wire the chip, then press " + ("the knob." if q.KNOB else "A.")):
+    for line in ("No secure element answered on I2C.", "The console only signs with", "a key inside the chip.",
+                 "It looks again every %d s." % (q.NOCHIP_EVERY_MS // 1000), "Wire the chip, then press " + ("the knob." if q.KNOB else "A.")):
         txt_c(d, line, y, "sans14", "muted")
         y += 19
     d.show()

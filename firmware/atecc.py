@@ -186,6 +186,26 @@ def scan(sda=None, scl=None, freq=100_000):
     return i2c.scan()
 
 
+def free_bus(sda=None, scl=None):
+    """Clock a held bus free (UM10204 3.1.16): SCL pulsed until SDA is let go, nine at most, then a
+    STOP. A part cut off mid-byte by a restart lets go within nine. Both lines open-drain, so nothing
+    is driven high against a part. The next make_i2c() takes the pins back. -> (SDA was low, pulses)"""
+    d = Pin(SDA if sda is None else sda, Pin.OPEN_DRAIN, pull=Pin.PULL_UP, value=1)
+    c = Pin(SCL if scl is None else scl, Pin.OPEN_DRAIN, pull=Pin.PULL_UP, value=1)
+    time.sleep_us(10)
+    held, n = d.value() == 0, 0
+    while d.value() == 0 and n < 9:
+        c.value(0)
+        time.sleep_us(5)
+        c.value(1)
+        time.sleep_us(5)
+        n += 1
+    for line, v in ((c, 0), (d, 0), (c, 1), (d, 1)):    # the STOP: SDA rises while SCL is high
+        line.value(v)
+        time.sleep_us(5)
+    return held, n
+
+
 class ATECC608:
     def __init__(self, sda=None, scl=None, addr=None, freq=100_000):
         """addr None: use 0x60 if it answers, else the first known ATECC address on the bus."""

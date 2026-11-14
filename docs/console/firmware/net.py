@@ -190,6 +190,45 @@ def console(port=PORT):
     print("console listening on", port)
 
 
+# ----------------------------------------------------------------------------- the console's way out
+# quorum.py reaches Safe's service through quorum.NET, this module on a board with Wi-Fi, link.py on
+# console-rp. These are the calls both answer. The HTTPS itself is vhttp's, which the image's main file
+# hands quorum as quorum.VIA: the ceremony images carry this file but no TLS.
+KIND = "wifi"
+
+
+def ready(log):
+    """(ok, why) before a poll: joined, or not, with a retry every 30 s that doesn't block."""
+    wlan = network.WLAN(network.STA_IF)
+    if not wlan.isconnected():
+        if time.ticks_diff(time.ticks_ms(), last_try) > 30000:
+            retry()
+            log("wifi: retrying " + ssid())
+        return False, "no wifi"
+    if not up:
+        joined()
+    return True, ""
+
+
+def status():
+    """For usblink's status: names of networks only, never a password."""
+    return {"wifi": {"up": up, "ssid": ssid() if up else "", "saved": [x[0] for x in networks()]}}
+
+
+def boot_join(splash, keys, knob):
+    """quorum.start: join now if boot.py didn't, any key skipping the wait; the Wi-Fi row on the boot
+    screen. -> ms since reset when joined, else 0."""
+    w = network.WLAN(network.STA_IF)
+    if networks() and not w.isconnected() and not tried:
+        try:
+            skip = " press skips" if knob else " any button skips"
+            connect(progress=lambda ms: splash.spin("wifi", ("join " + ssid())[:12] + skip) or bool(keys.pressed()))
+        except Exception as e:
+            print("wifi:", e)
+    splash.wifi_row(w, ssid())
+    return time.ticks_ms() if w.isconnected() else 0
+
+
 def start(progress=None):
     wlan = connect(progress=progress)
     if wlan.isconnected():
