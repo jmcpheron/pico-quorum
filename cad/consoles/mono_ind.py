@@ -20,6 +20,8 @@ Two ways to print the colours:
   load them as one object, a filament each. Green behind the triangle, the signed dots and the name, orange behind
   the waiting dots, each COLOUR's thickness and no wider than it shows, but for a rim
 
+decor also draws the slate's industrial mark (rp_ind.py), there with the colours flush with the face (b["inlay"]).
+
 (cad/consoles/README.md, "Mono, industrial")
 
 Run: uv run --python 3.11 --with cadquery --with matplotlib --with pillow \\
@@ -63,7 +65,7 @@ BLACK, GREEN, ORANGE = (0.10, 0.10, 0.11), S.GREEN, RP.ORANGE   # the pictures':
 def decor(c, shell, back):
     """The mark printed in the face: a pocket HATCH's depth deep, the five dots open, lines left across the
     triangle. And the name over it (rp.name). No badge: nothing more to print or glue. Leaves the shell's three
-    bodies in c.bodies (COLOUR)."""
+    bodies in c.bodies (COLOUR). With b["inlay"] (the slate's) nothing is cut: the colours come to the face."""
     b = c.b
     cx, cy, r = b["mark"]
     pts = [(cx + r * math.cos(math.radians(90 - 72 * k)), cy + r * math.sin(math.radians(90 - 72 * k))) for k in range(5)]
@@ -88,8 +90,22 @@ def decor(c, shell, back):
     left = left.union(dots(signed, rs + w, z0 - 1, z1 + 1).cut(dots(signed, rs, z0 - 2, z1 + 2)).intersect(inside))
     open_ = pocket.cut(left)
     cut = RP.name(c, b.get("name_x", cx), pts[0][1] + rs, b.get("name_fit", NAME_FIT))     # name_x: not over the mark's centre
-    shell = shell.cut(open_).cut(cut)
     c.hatch = (len(ys), pitch, pitch - w)
+    # for the pictures: each colour where it shows
+    skin = lambda shape, z: shape.intersect(S.box(cx - 30, cx + 30, cy - 30, cy + 30, z, z + 0.05)).solids().vals()
+    # in a set order, so the pictures come out the same each run
+    seen = lambda spots: cq.Workplane("XY").newObject(sorted(spots, key=lambda s: [round(v, 3) for v in s.Center().toTuple()]))
+    amber = dots(waiting, rw, z0 - 1, z1)
+    if b.get("inlay"):
+        # the colours flush with the face, for a printer that changes filament itself: the face stays whole, and each
+        # colour fills its opening from the face down, HATCH's depth for the mark and the name's cut for the name.
+        # The lines across the triangle are the black left between
+        green, orange = open_.cut(amber).union(cut).intersect(shell), open_.intersect(amber).intersect(shell)
+        c.shell, c.bodies = shell, [("black", shell.cut(green).cut(orange)), ("green", green), ("orange", orange)]
+        lift = lambda body: seen([s.translate(cq.Vector(0, 0, 0.06)) for s in skin(body, c.zt - 0.05)])    # a hair over the face
+        c.shown = [("shell green", lift(green), GREEN), ("shell orange", lift(orange), ORANGE)]
+        return shell, back, [(n, s, col, None) for n, s, col in c.shown]
+    shell = shell.cut(open_).cut(cut)
     # the three bodies: a slab of colour behind the pocket's floor and the letters', the rest black
     t, m = COLOUR["thick"], COLOUR["rim"]
     zn = c.zt - RP.ENGRAVE_DEEP
@@ -100,11 +116,7 @@ def decor(c, shell, back):
              .union(S.box(nb.xmin - m, nb.xmax + m, nb.ymin - m, nb.ymax + m, zn - t, zn))).intersect(shell)
     orange = dots(waiting, rw + m, z0 - t, z0).intersect(shell)
     c.shell, c.bodies = shell, [("black", shell.cut(green).cut(orange)), ("green", green), ("orange", orange)]
-    # for the pictures: each colour where it shows, on the pocket's floor and the letters'
-    skin = lambda shape, z: shape.intersect(S.box(cx - 30, cx + 30, cy - 30, cy + 30, z, z + 0.05)).solids().vals()
-    # in a set order, so the pictures come out the same each run
-    seen = lambda spots: cq.Workplane("XY").newObject(sorted(spots, key=lambda s: [round(v, 3) for v in s.Center().toTuple()]))
-    amber = dots(waiting, rw, z0 - 1, z1)
+    # on the pocket's floor and the letters'
     c.shown = [("shell green", seen(skin(open_.cut(amber), z0) + skin(cut, zn)), GREEN),
                ("shell orange", seen(skin(open_.intersect(amber), z0)), ORANGE)]
     return shell, back, [(n, s, col, None) for n, s, col in c.shown]

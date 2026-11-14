@@ -7,15 +7,16 @@ posts, screws, caps, window and back panel. What changes is the front shell, and
 - a notch either side of every corner, eight in all: 2.5 mm wide, 1.2 deep, 1.5 mm from the cut's end, from the back
   to the face. The face's rounded edge is 1.5 mm, so each notch runs out in it and the face's outline stays whole
 - nine V-grooves, 0.8 mm deep, across the top and bottom edges over D0-D2, where the hand holds it
-- the mark and the name big, in the plain field right of the screen, printed with the shell in colours as Mono's
-  industrial case has them (mono_ind.decor), not a badge glued in. The mark is 9.5 mm in radius (rp.py's: 6.4),
-  the name up to 33 x 5.5 mm (rp.py's: 24 x 3.6), in a line over it, their left edges level
+- the mark and the name big, in the plain field right of the screen, their colours flush with the face, for a
+  printer that changes filament itself (mono_ind.decor's inlay): nothing cut, nothing glued. Each colour is 0.6 mm
+  deep from the face, three layers, the first on the bed. The mark is 9.5 mm in radius (rp.py's: 6.4), the name
+  up to 33 x 5.5 mm (rp.py's: 24 x 3.6), in a line over it, their left edges level
 - no holes for RESET and BOOTSEL: the face covers both switches, 2.2 mm over them. The mark is no longer drawn
   from them; it is placed to miss the LED's hole, which is right of the triangle
 
-The colours, three ways: rp_ind_shell_colours.3mf, one object of three parts, black, green and orange;
-rp_ind_shell_black.stl, _green.stl and _orange.stl, the same three, each in the shell's own place; or
-rp_ind_shell.stl, one body, the first two layers black and then green.
+The colours, two ways: rp_ind_shell_colours.3mf, one object of three parts, black, green and orange; or
+rp_ind_shell_black.stl, _green.stl and _orange.stl, the same three, each in the shell's own place.
+rp_ind_shell.stl is the three as one body: its face is plain.
 
 (cad/consoles/README.md, "The slate, industrial")
 
@@ -46,11 +47,13 @@ GROOVES = (10.448, 2.5, 9, 0.8)     # the first groove's x, the pitch, how many,
 # y up from its bottom. The LED (D1) is in the middle of that field, so the mark is left of the middle: the LED's
 # hole is in the face right of the triangle, 1.2 mm from its edge and 2.0 mm from the lower right dot
 MARK = (47.5, 13.0, 9.5)
-HATCH = dict(pitches=7)     # the lines across the triangle: 1.55 mm apart at this size (mono_ind.HATCH: 6)
+# The colours come to the face (mono_ind.decor's inlay): three 0.2 mm layers deep, the first on the bed. The lines
+# across the triangle are black through that depth, 1.55 mm apart at this size (mono_ind.HATCH: 6 pitches, 0.4 deep)
+HATCH = dict(pitches=7, depth=RP.ENGRAVE_DEEP)
 # The name: the room for its line, its middle's x, and its bottom edge's y. Its left end is level with the mark's left
 # waiting dot. The top-right screw is under its right end: 30.0 is 0.9 mm over that counterbore
 NAME = ((33.0, 5.5), 53.4, 30.0)
-WHOLE = 1.0                 # the face with no pocket this close to the LED's hole, at the least
+WHOLE = 1.0                 # the face black this close to the LED's hole, at the least
 
 
 def board():
@@ -60,17 +63,17 @@ def board():
     fit, nx, ny = NAME
     b.update(name="rp_ind", title="The slate, industrial", wall=WALL, lug=("left", LUG), decor=MI.decor,
              corner_cut=CORNER_CUT, corner_notch=NOTCH, grooves_x=([x + pitch * k for k in range(n)], depth),
-             mark=MARK, hatch=HATCH, name_x=nx, name_fit=(fit, ny - (cy + r + r / 4)))
+             mark=MARK, hatch=HATCH, inlay=True, name_x=nx, name_fit=(fit, ny - (cy + r + r / 4)))
     b["views"] = dict(b["views"], front=b["views"]["front"] + [("the USB end: the cut corners, a notch either side", 22, -28)])
     return b
 
 
 def whole(c):
-    """Checks the face has no pocket within WHOLE of the LED's hole."""
+    """Checks no colour comes within WHOLE of the LED's hole."""
     led = c.b["parts"][c.b["led"]]
     r = S.LED_HOLE / 2
     ring = S.cyl(led["x"], led["y"], r + WHOLE, c.zt - 0.3, c.zt - 0.1).cut(S.cyl(led["x"], led["y"], r + 0.05, c.zt - 1, c.zt))
-    gone = ring.val().Volume() - ring.intersect(c.shell).val().Volume()
+    gone = ring.val().Volume() - ring.intersect(dict(c.bodies)["black"]).val().Volume()
     assert gone < 1e-3, "the mark or the name comes within %.1f mm of the LED's hole" % WHOLE
 
 

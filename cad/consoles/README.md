@@ -156,39 +156,43 @@ front shell changes, and the dock follows it:
   each notch runs out in the round: the first layer's outline is whole.
 - **Nine V-grooves, 0.8 mm deep and 2.5 mm apart, cross the top and bottom edges** over D0–D2, 20 mm of
   each edge. They stop short of both rounds.
-- **The mark and the name are big, in the plain field right of the screen,** printed with the shell in
-  colours as [Mono's industrial case](#mono-industrial) has them (`mono_ind.decor`), with no badge to
-  glue.
-  - The mark is 9.5 mm in radius (the slate's: 6.4). Its pocket is 0.4 mm deep. All five dots are open:
-    the signed 4.75 mm across, the waiting 3.2 mm. Lines 0.5 mm wide cross the triangle 1.55 mm apart,
-    with 1.05 mm between them.
-  - The name is up to 33 × 5.5 mm (the slate's: 24 × 3.6), in a line over the mark, cut 0.6 mm to show
-    the colour. Its left end is level with the mark's left waiting dot. The top-right screw is under
-    its right end, 0.9 mm from its counterbore.
+- **The mark and the name are big, in the plain field right of the screen, and their colours come to
+  the face,** for a printer that changes filament itself (`mono_ind.decor`, with `inlay`). Nothing is cut
+  into the face and nothing is glued: the face is flat, and on the bed the first layer is black, green
+  and orange.
+  - The mark is 9.5 mm in radius (the slate's: 6.4). The signed dots are 4.75 mm across, the waiting
+    3.2 mm. Black lines 0.5 mm wide cross the green triangle 1.55 mm apart, with 1.05 mm of green between
+    them, and a black ring 0.5 mm wide goes round each signed dot inside the triangle.
+  - The name is up to 33 × 5.5 mm (the slate's: 24 × 3.6), in a line over the mark. Its left end is
+    level with the mark's left waiting dot. The top-right screw is under its right end, 0.9 mm from its
+    counterbore.
+  - Each colour is 0.6 mm deep from the face: layers 1 to 3. Behind it the shell is black.
   - **The LED is in the middle of that field, so the mark is left of the middle.** The LED's hole is in
     the black right of the triangle, 1.2 mm from its edge and 2.0 mm from the lower right dot. The script
-    stops if a pocket comes within 1.0 mm of it (`WHOLE`).
+    stops if a colour comes within 1.0 mm of it (`WHOLE`).
 - **No holes for RESET and BOOTSEL.** The face covers both switches, 2.2 mm over them. To press one,
   take the four screws out and lift the shell. The mark is no longer drawn from them.
-- **Three ways to print the colours** ([Printing](#printing)):
+- **Two ways to load the colours** ([Printing](#printing)):
   - `rp_ind_shell_colours.3mf`: one object of three parts, black, green and orange, each in its place,
     standing on the bed face down. Open it and give each part a filament.
   - `rp_ind_shell_black.stl`, `_green.stl` and `_orange.stl`: the same three bodies. Load them together
     as one object with three parts.
-  - `rp_ind_shell.stl`: one body, for one filament change. All five dots come out one colour.
 
-  Green lies behind the triangle, the three signed dots and the name; orange behind the two waiting
-  dots. Each is 0.6 mm thick, layers 3 to 5 behind the mark and 4 to 6 behind the name.
+  Green is the triangle, the three signed dots and the name; orange the two waiting dots.
+  `rp_ind_shell.stl` is the three as one body, for one filament: its face is plain, with no mark and no
+  name.
 
 The build finds no overlap: the printed parts, the board, a plug pushed home, the screws, and the case in
-its dock. The script stops if the three bodies' volumes don't add up to the shell's (black 14140.9 mm³,
-green 247.3, orange 18.0). The 3MF was read back: its three meshes are closed, and their volumes are the
-STLs'. It goes together as Mono's industrial case: no tab, and nothing to glue.
+its dock. The script stops if the three bodies' volumes don't add up to the shell's (black 14381.0 mm³,
+green 101.5, orange 9.5). The 3MF was read back: its three meshes are closed, their volumes are the
+STLs', and each colour lies on the bed (green 169 mm² of it, orange 16) and ends 0.6 mm up. It goes
+together as Mono's industrial case: no tab, and nothing to glue.
 
 Not sliced, and not printed, in PLA or PETG: no slicer has opened the 3MF or the STLs. The fits are the
-slate's: 0.2 mm round each cap and round the back panel. What to look at in a first print: whether the
-slicer shows three parts in their places, whether each 0.5 mm line prints as one pass, whether the caps
-move freely, and strings in the notches and the grooves.
+slate's: 0.2 mm round each cap and round the back panel. What to look at in the slicer: three parts in
+their places, and in layers 1 to 3 each black line across the triangle drawn as one pass 0.5 mm wide,
+with no gap left where one was dropped. In a first print: whether the three colours' first layer holds
+on the bed, whether the caps move freely, and strings in the notches and the grooves.
 
 ![the slate, industrial](out/rp_ind/rp_ind_front.png)
 
@@ -374,9 +378,10 @@ Every part prints without supports, judging by the shapes. They haven't been sli
     changes filament itself: load the three as one object with three parts, not three objects, so
     they keep their places, and give each its filament. The colours are in layers 3 to 6 (0.4 to
     1.2 mm). The rest is black.
-  - **the slate's 3MF** (`rp_ind_shell_colours.3mf`): the same three bodies as one object of three
-    parts. Each part carries its colour as a 3MF material, which a slicer may not read: give each part
-    its filament by hand.
+  - **the slate's colours** come to the face, so it has no one-body way: use its three bodies, or its
+    3MF (`rp_ind_shell_colours.3mf`), the same three as one object of three parts. Each part carries
+    its colour as a 3MF material, which a slicer may not read: give each part its filament by hand.
+    Its colours are in layers 1 to 3 (to 0.6 mm), and its lines too. The rest is black.
 - **caps:** flange down, one STL each, so each can be its own colour.
 - **dock:** on its base, as written.
 - PLA or PETG, 0.2 mm layers. The engraving is 0.5 mm deep.
