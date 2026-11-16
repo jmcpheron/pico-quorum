@@ -12,7 +12,7 @@ under D0-D2 and under BOOT and RESET, clear of the test pads. The USB-C is open 
 lanyard's lug is at the top right. A dock holds it leaning back on the desk, the plug in a slot in its lip.
 (cad/consoles/README.md)
 
-Run: uv run --python 3.11 --with cadquery --with matplotlib --with pillow \\
+Run: uv run --python 3.11 --with cadquery --with matplotlib --with pillow --with fonttools --with brotli \\
          python cad/consoles/badge.py [screen.png]
 (or tools/case build badge)
 

@@ -14,7 +14,7 @@ mono_ind_inlay_shell.stl is the three as one body: its face is plain. For one fi
 
 (cad/consoles/README.md, "Mono, industrial, in colours")
 
-Run: uv run --python 3.11 --with cadquery --with matplotlib --with pillow \\
+Run: uv run --python 3.11 --with cadquery --with matplotlib --with pillow --with fonttools --with brotli \\
          python cad/consoles/mono_ind_inlay.py [screen.png]
 (or tools/case build mono-industrial-inlay)
 

@@ -29,7 +29,9 @@ changed, so a case is up to date when it lists nothing.
   change there changes them all.
 - [`rp.py`](rp.py) draws the badge (`decor`) and the name (`name`). A change there changes the slate too.
 - [`shell.py`](shell.py) holds what every case shares: the walls, the posts, the caps' fit, the dock
-  and the checks. A change there changes every case here.
+  and the checks. A change there changes every case here. It sets the name in the brand's typeface,
+  Atkinson Hyperlegible Next, from the app's own copy (`docs/app/fonts/`), so it is the same on every
+  machine.
 
 ## Mono
 
@@ -140,8 +142,8 @@ mark and name, at the same size and place. Its back panel, caps and dock come ou
   filament change, print the industrial case's own shell.
 
 The build finds no overlap, as for the industrial case. The script stops if the three bodies' volumes
-don't add up to the shell's (black 13070.8 mm³, green 86.1, orange 6.7). The 3MF was read back: its three
-meshes are closed, their volumes are the STLs', and each colour lies on the bed (green 143 mm² of it,
+don't add up to the shell's (black 13072.3 mm³, green 84.6, orange 6.7). The 3MF was read back: its three
+meshes are closed, their volumes are the STLs', and each colour lies on the bed (green 141 mm² of it,
 orange 11) and ends 0.6 mm up. No slicer has opened it.
 
 ![Mono's mark and name from the front, as the three bodies print flush: black, green, and orange in the waiting dots](out/mono_ind_inlay/mono_ind_inlay_mark.png)
@@ -212,9 +214,9 @@ front shell changes, and the dock follows it:
   name.
 
 The build finds no overlap: the printed parts, the board, a plug pushed home, the screws, and the case in
-its dock. The script stops if the three bodies' volumes don't add up to the shell's (black 14381.0 mm³,
-green 101.5, orange 9.5). The 3MF was read back: its three meshes are closed, their volumes are the
-STLs', and each colour lies on the bed (green 169 mm² of it, orange 16) and ends 0.6 mm up. It goes
+its dock. The script stops if the three bodies' volumes don't add up to the shell's (black 14382.4 mm³,
+green 100.1, orange 9.5). The 3MF was read back: its three meshes are closed, their volumes are the
+STLs', and each colour lies on the bed (green 167 mm² of it, orange 16) and ends 0.6 mm up. It goes
 together as Mono's industrial case: no tab, and nothing to glue.
 
 Not sliced, and not printed, in PLA or PETG: no slicer has opened the 3MF or the STLs. The fits are the
@@ -506,7 +508,7 @@ tools/case check mono-industrial      # builds, then lists what changed
 Each script runs on its own too:
 
 ```sh
-uv run --python 3.11 --with cadquery --with matplotlib --with pillow python cad/consoles/mono_ind.py [screen.png]
+uv run --python 3.11 --with cadquery --with matplotlib --with pillow --with fonttools --with brotli python cad/consoles/mono_ind.py [screen.png]
 ```
 
 `tools/case` runs them at the versions the outputs were last made with (`PINS` in the tool). Each writes

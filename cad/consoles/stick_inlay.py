@@ -16,7 +16,7 @@ stick_inlay_shell.stl is the three as one body: its face is plain. For one filam
 
 (cad/consoles/README.md, "The stick, in colours")
 
-Run: uv run --python 3.11 --with cadquery --with matplotlib --with pillow \\
+Run: uv run --python 3.11 --with cadquery --with matplotlib --with pillow --with fonttools --with brotli \\
          python cad/consoles/stick_inlay.py [screen.png]
 (or tools/case build stick-inlay)
 

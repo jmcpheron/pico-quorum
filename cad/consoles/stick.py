@@ -8,7 +8,7 @@ hole over the LED, and the mark, big, at the antenna end: its lower-left dot is 
 is open at the left end; a lanyard lug at the right. A dock holds it leaning back on the desk, its cable
 out of the left side. (cad/consoles/README.md)
 
-Run: uv run --python 3.11 --with cadquery --with matplotlib --with pillow \\
+Run: uv run --python 3.11 --with cadquery --with matplotlib --with pillow --with fonttools --with brotli \\
          python cad/consoles/stick.py [screen.png]
 (or tools/case build stick)
 

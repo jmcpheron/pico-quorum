@@ -16,7 +16,8 @@
 import glob, hashlib, os, re, subprocess, sys, time
 
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-PINS = ["cadquery==2.8.0", "cadquery-ocp==7.9.3.1.1", "matplotlib==3.11.2", "pillow==13.0.0", "numpy==2.4.6"]
+PINS = ["cadquery==2.8.0", "cadquery-ocp==7.9.3.1.1", "matplotlib==3.11.2", "pillow==13.0.0", "numpy==2.4.6",
+        "fonttools==4.68.0", "brotli==1.2.1"]     # the last two unpack the name's typeface (cad/consoles/shell.py)
 PS = "hardware/archive/builds/pico-sign"
 
 # name: what it is, its scripts in order, its outputs (globs), the pages that show them; and outputs that

@@ -20,7 +20,7 @@ rp_ind_shell.stl is the three as one body: its face is plain.
 
 (cad/consoles/README.md, "The slate, industrial")
 
-Run: uv run --python 3.11 --with cadquery --with matplotlib --with pillow \\
+Run: uv run --python 3.11 --with cadquery --with matplotlib --with pillow --with fonttools --with brotli \\
          python cad/consoles/rp_ind.py [screen.png]
 (or tools/case build rp-industrial)
 

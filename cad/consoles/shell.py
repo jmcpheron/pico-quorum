@@ -168,14 +168,36 @@ def mark(cx, cy, r, z0, z1):
     return m
 
 
+# The name's typeface: Atkinson Hyperlegible Next (docs/BRAND.md), the app's own copies, so the name is the same
+# on every machine. Without one, OpenCASCADE takes the machine's Arial, or what stands in for it
+FONTS = {"bold": "next-700.woff2", "regular": "next-400.woff2"}
+_ttf = {}
+
+
+def font(kind="bold"):
+    """The typeface for kind as a TTF, which OpenCASCADE can read: the app's WOFF2, unpacked into a temporary folder."""
+    if kind not in _ttf:
+        import tempfile
+        from fontTools.ttLib import TTFont      # reads WOFF2 with brotli
+        f = TTFont(os.path.join(REPO, "docs", "app", "fonts", FONTS[kind]))
+        f.flavor = None
+        _ttf[kind] = os.path.join(tempfile.mkdtemp(prefix="pq-font-"), FONTS[kind].replace(".woff2", ".ttf"))
+        f.save(_ttf[kind])
+    return _ttf[kind]
+
+
+def text_width(words, size, kind="bold"):
+    return size * cq.Workplane("XY").text(words, 10, 1, combine=False, kind=kind, fontPath=font(kind)).val().BoundingBox().xlen / 10
+
+
 def fit_text(words, width, height, kind="bold"):
     """The text size that fits words in width x height."""
-    bb = cq.Workplane("XY").text(words, 10, 1, combine=False, kind=kind).val().BoundingBox()
+    bb = cq.Workplane("XY").text(words, 10, 1, combine=False, kind=kind, fontPath=font(kind)).val().BoundingBox()
     return min(10 * width / bb.xlen, 10 * height / bb.ylen)
 
 
 def engrave_text(plane, words, size, depth, kind="bold"):
-    return cq.Workplane(plane).text(words, size, -depth, combine=False, kind=kind, halign="center", valign="center")
+    return cq.Workplane(plane).text(words, size, -depth, combine=False, kind=kind, fontPath=font(kind), halign="center", valign="center")
 
 
 class Case:

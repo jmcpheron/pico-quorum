@@ -10,7 +10,7 @@ with no pinholes. A hole over the LED. The USB-C is open at the bottom end, left
 The back has the name and the Source Location, since the case covers the board's own. A dock holds it leaning back,
 its plug down into a slot in the lip. (cad/consoles/README.md)
 
-Run: uv run --python 3.11 --with cadquery --with matplotlib --with pillow \\
+Run: uv run --python 3.11 --with cadquery --with matplotlib --with pillow --with fonttools --with brotli \\
          python cad/consoles/mono.py [screen.png]
 (or tools/case build mono)
 

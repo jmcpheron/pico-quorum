@@ -24,7 +24,7 @@ decor also draws the slate's industrial mark (rp_ind.py), there with the colours
 
 (cad/consoles/README.md, "Mono, industrial")
 
-Run: uv run --python 3.11 --with cadquery --with matplotlib --with pillow \\
+Run: uv run --python 3.11 --with cadquery --with matplotlib --with pillow --with fonttools --with brotli \\
          python cad/consoles/mono_ind.py [screen.png]
 (or tools/case build mono-industrial)
 
