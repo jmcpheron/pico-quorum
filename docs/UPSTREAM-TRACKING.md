@@ -39,6 +39,14 @@ provisions a blank virtual chip; `forge test` 40/40, including TrustMAttest 6/6.
 anything on real hardware, and `trustm.py` has not run against a Trust M in this repo. (It has
 since: 2026-09-28, unchanged, under `trustm_q.py`. See docs/TRUSTM.md.)
 
+## Upstream has moved to wedgie
+
+picowallet's last commit is `91c94e7` (2026-10-02). Austin's work on this hardware now goes into
+[wedgie](https://github.com/clawdbotatg/wedgie-dev) (wedgie.dev), kept by his agent account
+clawdbotatg. Its `firmware/` carries on from picowallet's drivers, so a fix to `trustm.py`,
+`atecc.py`, `p256.py` or `lcd.py` now shows up there, not in picowallet. What wedgie is, how it
+compares, and the two `trustm.py` fixes it has that we don't: [WEDGIE.md](WEDGIE.md).
+
 ## What is still from picowallet
 
 These files started in picowallet, by Austin Griffith (MIT), and each says so at its top:
@@ -84,6 +92,17 @@ A change to a console-image file changes the release fingerprint: rebuild the pa
 `firmware/atecc.py`, `firmware/trustm.py`, `firmware/keccak.py`, `firmware/p256.py`, and upstream's
 `SECURITY.md`.
 
+In wedgie ([WEDGIE.md](WEDGIE.md)): the same four files in
+[wedgie-dev](https://github.com/clawdbotatg/wedgie-dev)'s `firmware/` (keccak is `safe_keccak.py` in
+[wedgie-safe](https://github.com/clawdbotatg/wedgie-safe)), `firmware/optiga.py`, and
+`public/security.md`. wedgie's files have moved away from picowallet's (`import wedgie`, its chip
+gate), so compare by hand rather than with `git apply`:
+
+```sh
+git clone --depth 1 https://github.com/clawdbotatg/wedgie-dev ../wedgie-dev   # beside this repo
+diff firmware/trustm.py ../wedgie-dev/firmware/trustm.py
+```
+
 ## Log
 
 - 2026-09-24: forked as Picoquorum. Upstream checked at `72539d5`, nothing merged yet.
@@ -93,3 +112,6 @@ A change to a console-image file changes the release fingerprint: rebuild the pa
   carried into `docs/picowallet.md`.
 - 2026-10-06: before going public, removed the picowallet-only files listed above, and credited
   picowallet at the top of every file still from it. Nothing merged; upstream not checked.
+- 2026-11-17: upstream checked. picowallet has not moved since `91c94e7` (2026-10-02); its work
+  carries on in wedgie. Read wedgie-dev at `089868f` and wedgie-safe at `edf7186`, and wrote
+  [WEDGIE.md](WEDGIE.md). Nothing merged.

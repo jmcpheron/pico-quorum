@@ -25,6 +25,7 @@ troubleshooting.
 - [`firmware-production/`](firmware-production/README.md) and [`quorum-ui/`](quorum-ui/README.md): screenshot walkthroughs
 - [`KICKOFF.md`](KICKOFF.md): what Picoquorum is, goals, hardware, firmware layers, open decisions
 - [`UPSTREAM-TRACKING.md`](UPSTREAM-TRACKING.md): what came from picowallet, and how its fixes come across
+- [`WEDGIE.md`](WEDGIE.md): wedgie (wedgie.dev), Austin Griffith's project that carries picowallet's hardware on: what it is, how it compares, what to watch
 - [`HEGOTA-WATCH.md`](HEGOTA-WATCH.md): EIPs in the next Ethereum fork that touch the console
 - [`EMU-WEB.md`](EMU-WEB.md): the console on GitHub Pages, with your own passkey as the key: the design, and its limits
 - [`GOVERNANCE.md`](GOVERNANCE.md): the project Safe (Ethereum and Base), release approvals, the ENS name, and handing it over
@@ -37,5 +38,6 @@ The hardware, board by board, with [Mono](../hardware/mono/README.md), the refer
 [`../hardware/README.md`](../hardware/README.md). The dev console: its [build guide](../hardware/DEV-CONSOLE.md), and [`CHIPMAP.md`](CHIPMAP.md), the
 chip map on the ceremony image. Picoquorum grew from Austin Griffith's
 [picowallet](https://github.com/austintgriffith/picowallet); what came from it, and how its fixes
-come across, is in [`UPSTREAM-TRACKING.md`](UPSTREAM-TRACKING.md).
+come across, is in [`UPSTREAM-TRACKING.md`](UPSTREAM-TRACKING.md). Austin's work on the same three
+parts now goes on in [wedgie](https://wedgie.dev): [`WEDGIE.md`](WEDGIE.md).
 
