@@ -316,8 +316,9 @@ Not checked:
 2. Check L1's stock, and the new parts' tiers.
 3. `tools/keypcb jlc mono`, then upload `mono/fab/mono-gerbers.zip`, `bom.csv` and `cpl.csv`:
    Economic, one side. Check the placement preview, U9, U2, U10 and D1 above all.
-4. Bring one up over SWD, as console-rp's board 1 ([BRINGUP.md](../console-rp/bench/BRINGUP.md)),
-   with console-rp's image.
+4. Bring the boards up over SWD, through the pads: [bench/BRINGUP.md](bench/BRINGUP.md) has the
+   plan for the first batch, written before they came. A bench script first, then console-rp's
+   image, then the chip prepared. Each board's row goes in [bench/BOARDS.md](bench/BOARDS.md).
 
 ## Open
 

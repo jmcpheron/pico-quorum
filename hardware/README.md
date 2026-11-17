@@ -45,7 +45,7 @@ questions (a guard over Sign, printed or aluminum, the name on the face) are in 
 ## What is in this folder
 
 - [`mono/`](mono/README.md): Mono's board. Its generator, the KiCad project, fab files, renders and
-  [pins](mono/PINS.md)
+  [pins](mono/PINS.md), and [the plan for bringing up the first boards](mono/bench/BRINGUP.md)
 - [`console-rp/`](console-rp/README.md): the first RP2350 console. Its
   [bring-up](console-rp/bench/BRINGUP.md), [the plan](console-rp/PLAN-2026-11-04.md) written the
   night it came up, and [a plan for a square rev B](console-rp/REV-B-PLAN-2026-11-05.md)
