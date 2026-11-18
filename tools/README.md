@@ -36,7 +36,7 @@ From picowallet (Austin Griffith, MIT): `emu`, the emulator's command line
 - `case`: the printed cases and mock-ups, rebuilt from their CadQuery scripts with uv, at pinned
   versions of CadQuery, matplotlib, Pillow and numpy.
   - `list` shows each design: its scripts, what they write, and the pages that show it. Mono's case
-    is `mono`, and its industrial variant `mono-industrial`
+    is `mono`, and its industrial variant `mono-industrial`; console-rp's is `rp`, and `rp-industrial`
     ([`../cad/consoles/`](../cad/consoles/README.md)).
   - `build [design]` runs a design's scripts in order (the prism: `prism.py`, then `assembly.py`'s
     step-by-step pictures).

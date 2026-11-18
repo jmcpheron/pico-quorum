@@ -16,7 +16,8 @@
 import glob, hashlib, os, re, subprocess, sys, time
 
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-PINS = ["cadquery==2.8.0", "cadquery-ocp==7.9.3.1.1", "matplotlib==3.11.2", "pillow==13.0.0", "numpy==2.4.6"]
+PINS = ["cadquery==2.8.0", "cadquery-ocp==7.9.3.1.1", "matplotlib==3.11.2", "pillow==13.0.0", "numpy==2.4.6",
+        "fonttools==4.68.0", "brotli==1.2.1"]     # the last two unpack the name's typeface (cad/consoles/shell.py)
 PS = "hardware/archive/builds/pico-sign"
 
 # name: what it is, its scripts in order, its outputs (globs), the pages that show them; and outputs that
@@ -54,6 +55,11 @@ DESIGNS = {
         scripts=["cad/consoles/stick.py"],
         outputs=["cad/consoles/out/stick/*"],
         pages=["cad/consoles/README.md"]),
+    "stick-inlay": dict(
+        about="console-s3's case, the stick, its mark in colours flush with the face: the shell as three bodies, one a colour, the three in one 3MF, and as one plain body",
+        scripts=["cad/consoles/stick_inlay.py"],
+        outputs=["cad/consoles/out/stick_inlay/*"],
+        pages=["cad/consoles/README.md"]),
     "badge": dict(
         about="PicoquorumKey rev B's case (its key port fitted): the badge, its three caps and its dock",
         scripts=["cad/consoles/badge.py"],
@@ -73,6 +79,16 @@ DESIGNS = {
         about="Mono's case with cut corners: the corners cut off at 45 degrees, grooves on the sides, the mark and the name printed in the face in colours; the shell as one body, and as three, one a colour",
         scripts=["cad/consoles/mono_ind.py"],
         outputs=["cad/consoles/out/mono_ind/*"],
+        pages=["cad/consoles/README.md"]),
+    "rp-industrial": dict(
+        about="console-rp's case, thicker, with cut corners: 3.5 mm walls, the corners cut off at 45 degrees with a notch either side, grooves on the long edges, the mark and the name big, their colours flush with the face; the shell as three bodies, one a colour, the three in one 3MF, and as one plain body",
+        scripts=["cad/consoles/rp_ind.py"],
+        outputs=["cad/consoles/out/rp_ind/*"],
+        pages=["cad/consoles/README.md"]),
+    "mono-industrial-inlay": dict(
+        about="Mono's industrial case, its mark and name in colours flush with the face: the shell as three bodies, one a colour, the three in one 3MF, and as one plain body",
+        scripts=["cad/consoles/mono_ind_inlay.py"],
+        outputs=["cad/consoles/out/mono_ind_inlay/*"],
         pages=["cad/consoles/README.md"]),
     "key-tray": dict(
         about="the snap-lid case for the ATECC608 breakout, v2 and v3",

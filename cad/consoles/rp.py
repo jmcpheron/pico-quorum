@@ -12,7 +12,7 @@ the first two layers black and the rest in a colour, and the letters show the co
 right end; a lanyard lug at the left. The back has the name and the Source Location, since the case covers the
 board's own. A dock holds it leaning back, its cable out of the right side. (cad/consoles/README.md)
 
-Run: uv run --python 3.11 --with cadquery --with matplotlib --with pillow \\
+Run: uv run --python 3.11 --with cadquery --with matplotlib --with pillow --with fonttools --with brotli \\
          python cad/consoles/rp.py [screen.png]
 (or tools/case build rp)
 
@@ -64,7 +64,7 @@ def name(c, cx, top, fit=NAME[1:]):
     word, ((w, h), over) = NAME[0], fit
     size = S.fit_text(word, w, h)
     y = top + over + h / 2                          # the line's middle
-    tw = size * cq.Workplane("XY").text(word, 10, 1, combine=False, kind="bold").val().BoundingBox().xlen / 10
+    tw = S.text_width(word, size)
     for hx, hy in c.b["holes"]:                     # clear of each screw's counterbore by 0.5 mm
         gap = math.hypot(max(abs(hx - cx) - tw / 2, 0), max(abs(hy - y) - h / 2, 0))
         assert gap > S.M2_HEAD[0] / 2 + 0.2 + 0.5, "the name runs into the counterbore at %s" % ((hx, hy),)
