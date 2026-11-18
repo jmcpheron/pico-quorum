@@ -37,3 +37,38 @@ dots. A 0.12 mm layer shows them better, or scale the print 2:1. The M2 holes ar
 printer may close them a little.
 
 Not printed yet.
+
+## A clip for the SWD pads
+
+[`clip.py`](clip.py) draws a clip that holds a 3-pin strip of 2.54 mm header on TP1, TP2 and TP3 (SWCLK,
+GND, SWDIO), for [the bring-up](../../hardware/mono/bench/BRINGUP.md) when there are no pogo pins.
+
+![The clip on the board's left edge, front: an arm with a window over the pads' row, and a leg down to the bottom-left corner](out/mono_clip.png)
+![The same from the back: the header's three long pins standing out of the back jaw](out/mono_clip_back.png)
+
+```sh
+uv run --python 3.11 --with cadquery --with matplotlib python cad/mono/clip.py
+```
+
+It writes `out/mono_clip.stl`, 20 × 11.3 × 31.5 mm as it prints: on its side, the jaws on the bed, the
+leg up, no support. The two roofs it bridges are 8 mm and 8.5 mm long.
+
+- **The header** goes in through the window in the front arm, long pins first. Its plastic sits on a
+  ledge in the back jaw. The long pins stand 5 mm out of the back for jumper wires; the short ones
+  touch the pads. Nothing else touches the board's back.
+- **To fit it:** the front facing you, slide it onto the left edge, 21.5 mm up from the USB-C's end,
+  lifting the arm's tip with a nail so the pins don't drag. Push it in to the edge and up until the leg's
+  slanted face meets the bottom-left corner.
+- **The wires:** the pin nearest the clip's spine is SWCLK, the middle one GND, the far one SWDIO.
+- **The spring** is the front arm: its two bumps press the front 0.6 mm further than a 1.6 mm board
+  leaves room for. By the beam formula that is about 2 N a pin in PLA, a rough figure.
+
+`clip.py` reads the pads' places from the routed board, and checks that they are one row 2.54 mm apart
+and that the parts under the arm (R15, C22, U4) are lower than it and none is under a bump. The header's
+sizes are the usual strip's: plastic 2.54 mm square, 3.0 mm of pin below it and 6.0 above. Measure yours.
+
+Printed once, 2026-11-17, from the first drawing, which left the bump's bar across the window: it was
+cut out by hand. The drawing here has the window cut through and has not been printed. On one board the
+clip's pins, and the same pins held by hand, got no answer over SWD, and the cause isn't known; board 1
+was loaded through soldered wires. So the clip has not yet worked on a board. Three stiff pins on three pads: if one doesn't touch, push
+the pins level in their plastic against a table. Check each with a meter before a load.
