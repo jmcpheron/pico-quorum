@@ -13,12 +13,12 @@ mono.py's: the same board, posts, screws, caps, window, back panel and dock. Wha
   dots are the colour, and the triangle the colour behind black lines
 
 Two ways to print the colours:
-- from mono_ind_shell.stl, one body: the first two layers black, then green. All five dots come out green, which
-  docs/BRAND.md says not to do
-- from mono_ind_shell.3mf, the same shell as three bodies in one file, or mono_ind_shell_black.stl, _green.stl and
-  _orange.stl, the same three, in the same place: load them as one object, a filament each. Green behind the
-  triangle and the signed dots, orange behind the waiting dots, each COLOUR's thickness and no wider than it shows,
-  but for a rim
+- from mono_ind_shell.stl, one body, its pocket open: the first two layers black, then green. The colours lie 0.4 mm
+  under the face. All five dots come out green, which docs/BRAND.md says not to do
+- from mono_ind_shell.3mf, three bodies in one file, or mono_ind_shell_black.stl, _green.stl and _orange.stl, the
+  same three, in the same place: load them as one object, a filament each. Here the colours fill the pocket, flush
+  with the face: green in the triangle's openings and the signed dots, orange in the waiting dots, each going on
+  COLOUR's thickness behind the pocket's floor, a rim wider there than it shows
 
 (cad/consoles/README.md, "Mono, industrial")
 
@@ -62,7 +62,7 @@ BLACK, GREEN, ORANGE = S.BLACK, S.GREEN, RP.ORANGE   # the pictures': the face, 
 def decor(c, shell, back):
     """The mark printed in the face: a pocket HATCH's depth deep, the five dots open, lines left across the
     triangle. No name over it, and no badge: nothing more to print or glue. Leaves the shell's three bodies in
-    c.bodies (COLOUR)."""
+    c.bodies (COLOUR): in them the colours fill the pocket, flush with the face."""
     b = c.b
     cx, cy, r = b["mark"]
     pts = [(cx + r * math.cos(math.radians(90 - 72 * k)), cy + r * math.sin(math.radians(90 - 72 * k))) for k in range(5)]
@@ -92,13 +92,18 @@ def decor(c, shell, back):
     open_ = pocket.cut(left)
     shell = shell.cut(open_)
     c.hatch = (len(ys), pitch, pitch - w)
-    # the three bodies: a slab of colour behind the pocket's floor, the rest black
+    # the three bodies: a slab of colour behind the pocket's floor, the rest black; and each colour on from its
+    # slab through the pocket's openings to the face, flush with it. The black body is the shell less the slabs,
+    # so it is the same with the pocket filled or not. The one-body shell keeps its pocket open
     t, m = COLOUR["thick"], COLOUR["rim"]
     assert z0 - t - c.zu >= 0.4, "the colour behind the mark leaves %.2f mm of the face" % (z0 - t - c.zu)
     green = (cq.Workplane("XY").workplane(offset=z0 - t).polyline([pts[k] for k in signed]).close().offset2D(m).extrude(t)
              .union(dots(signed, rs + m, z0 - t, z0))).intersect(shell)
     orange = dots(waiting, rw + m, z0 - t, z0).intersect(shell)
-    c.shell, c.bodies = shell, [("black", shell.cut(green).cut(orange)), ("green", green), ("orange", orange)]
+    fill = open_.intersect(S.box(cx - 2 * r, cx + 2 * r, cy - 2 * r, cy + 2 * r, z0, c.zt))
+    wait = dots(waiting, rw, z0 - 1, z1)
+    c.shell, c.filled = shell, shell.union(fill)
+    c.bodies = [("black", shell.cut(green).cut(orange)), ("green", green.union(fill.cut(wait))), ("orange", orange.union(fill.intersect(wait)))]
     # for the pictures: each colour where it shows, on the pocket's floor
     skin = lambda shape, z: shape.intersect(S.box(cx - 30, cx + 30, cy - 30, cy + 30, z, z + 0.05)).solids().vals()
     # in a set order, so the pictures come out the same each run
@@ -132,10 +137,12 @@ def mark_picture(c, shell):
 
 def bodies(c):
     """The shell's three bodies, each face down in the shell's own place, so a slicer puts them together: an STL
-    each, and the three in one 3MF. Checks that they add up to the shell."""
-    whole = c.shell.val().Volume()
+    each, and the three in one 3MF. Checks that they add up to the shell with its pocket filled, and that the
+    black one is the shell less the colour behind the pocket."""
+    whole = c.filled.val().Volume()
     parts = sum(s.val().Volume() for _, s in c.bodies)
-    assert abs(whole - parts) < 0.01, "the shell's bodies add up to %.2f mm3, the shell %.2f" % (parts, whole)
+    assert abs(whole - parts) < 0.01, "the shell's bodies add up to %.2f mm3, the filled shell %.2f" % (parts, whole)
+    assert S.overlap(c.bodies[1][1], c.bodies[2][1]) < 1e-3 and S.overlap(c.bodies[0][1], c.filled.cut(c.shell)) < 1e-3
     for n, s in c.bodies:
         S.stl(S.flip(s), os.path.join(OUT, "mono_ind_shell_%s.stl" % n))
     colour = dict(black=BLACK, green=GREEN, orange=ORANGE)

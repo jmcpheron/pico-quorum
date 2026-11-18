@@ -119,30 +119,37 @@ front shell changes:
   - Lines of the face's plastic, 0.5 mm wide, cross the triangle 1.71 mm apart, with 1.21 mm between
     them: 11 lines. A ring 0.5 mm wide goes round each signed dot inside the triangle, so every line
     ends on a wall or a ring.
-  - The colour lies behind, on the lines, and bridges 1.2 mm at a time. From the front the dots are
-    the colour, and the triangle is the colour behind black lines, so darker.
+  - In the one-body shell the pocket is open, and the colour lies behind it, on the lines, bridging
+    1.2 mm at a time. In the three bodies the colours fill the pocket, flush with the face. Either
+    way, from the front the dots are the colour, and the triangle is the colour between black lines,
+    so darker.
   - The script stops if two lines come closer than 0.8 mm (`HATCH_GAP`), or if a line stops that
     close under the top dot's ring without joining it, which leaves a sliver of an opening.
 - **Two ways to print the colours** ([Printing](#printing)):
   - **One body, one filament change:** `mono_ind_shell.stl`, the first two layers black, then green.
+    The colours lie 0.4 mm under the face, in the pocket.
     All five dots come out green, and [the mark is never five green dots](../../docs/BRAND.md#dont).
     The whole of those layers is green too, so it shows as a band round the face's edge.
-  - **Three bodies, a filament each:** `mono_ind_shell.3mf`, the three in one file, or
-    `mono_ind_shell_black.stl`, `_green.stl` and `_orange.stl`. They are the same shell cut in three,
-    each in the shell's own place. Green lies behind the triangle and the signed dots; orange behind
-    the two waiting dots. Each is 0.6 mm thick, three layers, and reaches 0.6 mm under the face round
-    its opening, so its edge lies on the black (`COLOUR`).
+  - **Three bodies, a filament each, the colours flush with the face:** `mono_ind_shell.3mf`, the
+    three in one file, or `mono_ind_shell_black.stl`, `_green.stl` and `_orange.stl`, each in the
+    shell's own place. Green fills the triangle's openings and the signed dots, orange the two
+    waiting dots, each from the face 1.0 mm in, five layers: the pocket's 0.4 mm, and 0.6 mm behind
+    its floor, where it reaches 0.6 mm under the black round its opening (`COLOUR`). The black body
+    is the same as when the colours began at the pocket's floor, 0.4 mm in: printed so, they came
+    out short of the face.
 - **The back is Mono's:** `picoquorum.app` along it, cut in `mono_ind_back.stl`, in green and orange in
   `mono_ind_back.3mf`. With the shell's 3MF, the whole case prints in the same three filaments.
 
 The case closes at the same 44.6 × 100.1 × 10.9 mm, and the build finds no overlap. It prints face down
 like Mono's. The grooves' closed ends are 1 mm bridges.
 
-Checked on the shell's three bodies as built, at 15 points: open in two signed dots, in each waiting
-dot and between two lines; green 0.7 mm under the face in two signed dots and between two lines;
-orange in each waiting dot, and under the black 0.3 mm outside one; black on a line, beside the mark,
-behind the colour, and where the name was. The script stops if the three bodies' volumes don't add up
-to the shell's. The three STLs span the same place as the one.
+Checked on the shell's three bodies as built, at 40 points: in each of the three signed dots and
+between two lines, green at 0.01, 0.2, 0.39 and 0.7 mm under the face, and black at 1.2; the same in
+each waiting dot, in orange; black on a line and on the top dot's ring, with green 0.7 mm under the
+line; orange under the black 0.3 mm outside a waiting dot; black beside the mark; nothing over the
+face. In the one-body shell the pocket is open at 0.2 mm and solid at 0.5. The script stops if the
+three bodies' volumes don't add up to the shell's with its pocket filled, or if a colour overlaps
+another. In the 3MF the green and the orange start at 0, on the bed.
 
 Checked on the back's three bodies as built, along three lines down its length, a point every 0.5 mm:
 at 0.3 mm in, each of 513 points is in one body and no other, black, green or orange; at 0.8 mm in,
@@ -369,7 +376,8 @@ Every part prints without supports, judging by the shapes. They haven't been sli
   - **three bodies**, on a printer that changes filament itself: `mono_ind_shell.3mf`, one object of
     three parts, as the back's; or `mono_ind_shell_black.stl`, `_green.stl` and `_orange.stl`, loaded
     as one object with three parts, not three objects, so they keep their places. Give each its
-    filament. The colours are in layers 3 to 5 (0.4 to 1.0 mm). The rest is black.
+    filament. The colours are in layers 1 to 5 (to 1.0 mm), from the bed up, so they come out flush
+    with the face. The rest is black.
 - **caps:** flange down, one STL each, so each can be its own colour.
 - **dock:** on its base, as written.
 - PLA or PETG, 0.2 mm layers. The engraving is 0.5 mm deep.
