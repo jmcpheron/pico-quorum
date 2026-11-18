@@ -33,8 +33,8 @@ warm, or if it draws more than the 0.2 A printed on its back.
 - **A debug probe.** console-rp's: a Pico 2 W with `debugprobe_on_pico2.uf2`, GP2 for SWCLK, GP3 for
   SWDIO ([its BRINGUP.md](../../console-rp/bench/BRINGUP.md#how-it-was-loaded), steps 1 to 4, has
   the probe, `probe-rs`, and MicroPython's UF2 with its hash).
-- **Pogo pins on three pads:** SWDIO, GND and SWCLK, side by side at 2.54 mm. There is no jig yet. A
-  load takes about 3.5 minutes with MicroPython and about 3 without, since `swdload.py` writes the
+- **Pogo pins on three pads:** SWDIO, GND and SWCLK, side by side at 2.54 mm. A jig is drawn, not
+  built ([JIG.md](JIG.md)). A load takes about 3.5 minutes with MicroPython and about 3 without, since `swdload.py` writes the
   whole filesystem. That is long to hold pins by hand. For the first board, which gets the most
   loads, three thin wires soldered to the pads are steadier. `swdload.py` tries a piece again when
   contact drops, and says so.
@@ -47,7 +47,7 @@ warm, or if it draws more than the 0.2 A printed on its back.
 
 ## The pads
 
-On the back, in one row 19.5 mm up from the USB-C's edge, each named in the silkscreen. With the
+On the back, in one row 21.5 mm up from the USB-C's edge, each named in the silkscreen. With the
 back facing you and the USB-C down:
 
 ```

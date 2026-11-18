@@ -324,8 +324,8 @@ Not checked:
 
 - [ ] The panel's fold and the ZIF's depth, measured.
 - [ ] L1's stock.
-- [ ] The jig: a pogo fixture for the nine pads, located on the M2 holes. It powers the board
-  through the USB-C; TP5 only measures.
+- [ ] The jig: a pogo fixture for the nine pads. Drawn, located by the board's outline, not
+  printed ([bench/JIG.md](bench/JIG.md)). It powers the board through the USB-C; TP5 only measures.
 - [ ] The RP2350's own USB on TP7 and TP8, unproven, as on console-rp.
 - [ ] Secure boot. The RP2350 can boot only images signed with a key in its OTP. It is one-way,
   and console-rp's plan tries it on a spare board first. Raspberry Pi's RP2350-E24 erratum is about

@@ -72,3 +72,46 @@ cut out by hand. The drawing here has the window cut through and has not been pr
 clip's pins, and the same pins held by hand, got no answer over SWD, and the cause isn't known; board 1
 was loaded through soldered wires. So the clip has not yet worked on a board. Three stiff pins on three pads: if one doesn't touch, push
 the pins level in their plastic against a table. Check each with a meter before a load.
+
+## A jig for the nine pads
+
+[`jig.py`](jig.py) draws a block that holds the board face up on nine spring probes, one under each
+pad, with two latches and two headers. [The bench's page](../../hardware/mono/bench/JIG.md) says what
+it is for, how the headers are wired, how a batch could be loaded, and what to buy.
+
+![The jig with a board in it](out/mono_jig.png)
+![The jig empty: the nine probes' tips standing out of the deck, the latches turned off the pocket](out/mono_jig_empty.png)
+![The jig from underneath: the room under the pads' row, and its two arms up to the headers](out/mono_jig_under.png)
+
+```sh
+uv run --python 3.11 --with cadquery --with matplotlib python cad/mono/jig.py
+```
+
+It writes `out/`:
+- `mono_jig_base.stl`, 60 × 97.5 × 24.6 mm, as it prints: the open bottom on the bed, no support. The
+  room's roof is a 12 mm bridge, and each arm's a 5 mm one.
+- `mono_jig_latch.stl`: print two, flat.
+- `mono_jig_gauge.stl`: a bar with a groove 1.7 mm deep. It prints the groove up.
+
+To build one:
+1. **Drill the nine bores** by hand, a pin vise and a bit the receptacle's size, until a receptacle
+   pushes in and stays. They are drawn 1.5 mm and print smaller.
+2. **Set the inserts** in the two landings with an iron.
+3. **Solder a wire to each receptacle's tail** before it goes in, 12 cm, and push each receptacle up
+   its bore from underneath. Put a probe in each.
+4. **Set the height.** Lay the gauge on the deck, its groove over the row. Push each receptacle up
+   until its probe's tip just touches the groove's roof, the spring not pressed. Then a drop of thin
+   glue where each receptacle leaves the plastic underneath.
+5. **The headers.** Bring each wire along the room, up its arm and out through the header's slot.
+   Solder it to its short pin, in [the page's order](../../hardware/mono/bench/JIG.md#the-headers),
+   then let the wires back down and press the strip into its pocket, onto the ledge. A drop of glue.
+6. **The latches:** a screw and a washer each, tight enough that the latch stays where it is put.
+7. **Meter it** with a bare board in and the latches shut: each header pin to its pad's net, and
+   none to its neighbour.
+
+`jig.py` reads the pads' places and the USB-C's body from the routed board. It checks that the pads
+are one row in two groups at 2.54 mm, that nothing is fitted on the back, that no part is under a
+latch (the nearest, C22, is 5.8 mm from the tip), that the base touches neither the board's model
+nor its parts, and that a latch turned a quarter is off the board and inside its landing.
+
+Not printed.
