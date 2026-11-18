@@ -50,9 +50,14 @@ printed, and no Mono board has been built.**
 - **The window** shows the active area where the generator puts it, centred on the board, and 0.555 mm
   further from the ribbon, where it would be if PicoquorumKey's 2.0 mm reading of the drawing is right.
 - **The caps** are the slate's shapes, D0 a red square, D1 a white circle, D2 a green triangle, but
-  1.2 times as wide (circle 5.0 mm, square 4.6, triangle 7.2), for a thumb. Their flanges are 7.4 mm,
-  not 6.1, to hold them in: 0.3 mm off the posts beside D0 and D2. Each still sits on its switch with
-  the same 0.2 mm of play and clearance, so the switch clicks as on the slate.
+  1.2 times as wide, for a thumb. Their flanges are 7.4 mm, not 6.1, to hold them in: 0.3 mm off the
+  posts beside D0 and D2. Each still sits on its switch with the slate's 0.2 mm of play up and down,
+  so the switch clicks as on the slate.
+- **Each cap has 0.4 mm round it in its hole,** not the slate's 0.2 (`cap_clear` in `mono.py`). Printed
+  at 0.2, the caps were a bit too big for their holes: the holes are in the shell's first layers, which
+  spread on the bed. The stems are smaller now (circle 4.6 mm, square 4.2, triangle 6.5 a side) and the
+  holes are as they were (5.4, 5.0, 7.9), so a shell already printed takes the new caps. Measured on
+  the built parts: 0.40 mm from each stem to its hole's wall. The new caps are not printed.
 - **The mark is alone in the plain field under the buttons,** with no name on the face. It is a badge
   in three colours glued into a pocket, as the slate's is (`rp.decor`), 9 mm in radius, 1.5 times the
   slate's near enough, and midway between the caps' holes and the LED's hole: 11.4 mm under the one

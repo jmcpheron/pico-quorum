@@ -58,6 +58,8 @@ POST_R = 2.2                # on the board's front: inside the 2.5 mm keep-out r
 BOSS_R, BOSS_BASE = 2.3, (3.4, 1.2)     # under the board; a wider foot on the floor round the counterbore
 # The caps on D0, D1, D2: a round stem through the plate and a square flange under it that keeps it in.
 CAP_D, CAP_HOLE = 4.2, 4.6
+# The gap round a stem in its hole is half their difference, 0.2 mm. A board can ask for more (b["cap_clear"]):
+# then its stems are made smaller and its holes stay, so only the caps are printed again
 # Shaped caps (b["cap_shapes"]: name -> shape), each about a round cap's area (14 mm2), so none is harder to hit:
 # a square of 3.8 mm, corners rounded 0.6; an equilateral triangle of 6.0 mm, point up, corners rounded 0.8,
 # centred on its height. A shaped stem in its own shaped hole can't turn.
@@ -656,7 +658,9 @@ class Case:
             q = self.b["parts"][ref]
             c = box(q["x"] - f, q["x"] + f, q["y"] - f, q["y"] + f, self.zcap, self.zft).edges("|Z").fillet(0.6)
             kind = self.b.get("cap_shapes", {}).get(name, "circle")
-            stem = cap_shape(q["x"], q["y"], kind, 0.0, self.zft - 0.01, self.zt + CAP_PROUD, self.b.get("cap_scale", 1.0))
+            less = self.b.get("cap_clear", (CAP_HOLE - CAP_D) / 2) - (CAP_HOLE - CAP_D) / 2
+            assert less >= 0, "cap_clear is under the holes' own %.2f mm" % ((CAP_HOLE - CAP_D) / 2)
+            stem = cap_shape(q["x"], q["y"], kind, -less, self.zft - 0.01, self.zt + CAP_PROUD, self.b.get("cap_scale", 1.0))
             stem = stem.faces(">Z").edges().fillet(0.6 if kind == "circle" else 0.4)
             out.append((c.union(stem), CAP_C.get(name, PAPER), "cap " + name))
         return out
