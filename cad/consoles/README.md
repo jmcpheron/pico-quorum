@@ -46,7 +46,12 @@ printed, and no Mono board has been built.**
     script stops under 2 mm.
   - **Two tabs on the panel's top edge,** each 10 mm wide and 2 mm into a slot in the top wall, 0.2 mm
     clear all round, either side of the lanyard's slot. Without them nothing holds the panel's top
-    end, and its ribs there bear on nothing.
+    end, and its ribs there bear on nothing. Each tab is a wedge (`TAB_TOP` in `shell.py`): its
+    underside leaves the panel's edge 0.7 mm over the back's outside and climbs 45° to a tip 0.5 mm
+    thick; its top is flat, 3.4 mm up, 0.3 mm under the board's back; and it stands on the panel
+    from 1.2 mm inside the board's edge, against the top rib. The slot has the same slope. The first
+    tabs were flat, 1.2 mm thick and 1 mm over the bed: printed, their undersides hung. A back with
+    wedge tabs doesn't fit a shell with the flat tabs' slots, nor the other way round.
 - **The window** shows the active area where the generator puts it, centred on the board, and 0.555 mm
   further from the ribbon, where it would be if PicoquorumKey's 2.0 mm reading of the drawing is right.
 - **The caps** are the slate's shapes, D0 a red square, D1 a white circle, D2 a green triangle, but
@@ -83,7 +88,9 @@ Checked on the shell and the back panel as built, at 25 points, in both of Mono'
 solid from the board's front to the face and open past its ends; each rib solid to 0.15 mm under the
 board and open at 0.05; the tabs solid, their slots open, and the wall solid round the slots and between
 them. Measured on the solids: the blocks 0.50 mm from the glass, the tabs 0.20 mm from the shell, their
-slots 2.62 mm from the lanyard's. The rests' heights follow the board at 1.6 mm and the glass 3.6 mm
+slots 2.62 mm from the lanyard's, the lip under a slot 0.64 mm thick at its mouth. Measured on the
+STLs as they lie on the bed: round the tabs, and in the top wall round the slots, no face hangs
+flatter than 45°. The flat tabs had 44 mm² of flat underside, and their slots 46 mm² of flat roof. The rests' heights follow the board at 1.6 mm and the glass 3.6 mm
 over it, neither measured on a board. Not printed.
 
 ![Mono's case](out/mono/mono_front.png)
@@ -353,8 +360,9 @@ Every part prints without supports, judging by the shapes. They haven't been sli
 - **the badge's tub:** on its back, as written. The opening over the USB-C is a short bridge.
 - **the badge's plate:** face down, as written. The posts, ribs and pockets point up.
 - **Mono's shell and back panel:** as the stick's. The USB-C opening's far side is a 13.2 mm bridge.
-  Each tab's slot in the top wall is a 10.4 mm bridge, 0.8 mm thick. The tabs stand 2.2 mm out of the
-  panel's edge, 1 mm over the bed, as the stick's does.
+  The tabs stand 2.2 mm out of the panel's edge, their undersides at 45° from 0.7 mm over the bed,
+  and each slot's roof in the top wall is a 45° overhang, 10.4 mm wide: neither is a bridge, and
+  neither wants supports.
 - **Mono's badge:** its six pieces face down, the triangle green, the three signed dots blue, the two
   waiting dots orange. The shell is one colour: its face has no name to show a second.
 - **Mono's back, either case's:** outside down, so its words are in the first three layers.

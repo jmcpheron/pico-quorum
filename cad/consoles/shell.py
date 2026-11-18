@@ -80,6 +80,11 @@ PANEL_T = 1.6               # the back panel
 SHELL_EDGE = (1.5, 0.8)     # the face's edge rounded, the back's
 SHELL_POST_R = 3.0          # the face's posts, wider than POST_R so a counterbore fits in them
 TAB = (2.0, 1.2, 0.2)       # the back panel's tab into the end wall: long, thick, clearance round it
+# A tab into the top wall (b["tab"]: "top") is a wedge, so it prints with nothing hanging: its underside leaves the
+# panel's edge this far over the back's outside and climbs 45 degrees to a tip this thick, TAB's length into the
+# wall; its top is flat, and it stands on the panel from this far inside the board's edge. Its slot has the same
+# slope, so in the shell, printed face down, the slot's roof is a 45-degree overhang, not a bridge
+TAB_TOP = dict(under=0.7, tip=0.5, root=1.2)
 CORNER_WALL = 1.5           # the wall where a cut corner (b["corner_cut"]) comes nearest the inside, at the least
 
 # Footprint -> (along x at rotation 0, along y, height), by the first prefix that matches. Datasheet sizes
@@ -361,9 +366,18 @@ class Case:
         L, t, _ = TAB
         ix1 = self.inner[1]
         if b.get("tab", True) is not True:
+            # the wedge's outline, along the case and up from the back's outside (TAB_TOP)
+            edge, tip = self.inner[3] - PLATE_CLEAR, self.inner[3] + L          # the panel's edge, the tab's end
+            under = self.z0 + TAB_TOP["under"]
+            top = under + (tip - edge) + TAB_TOP["tip"]
+            assert top <= self.zb - REST_GAP, "a tab stands %.2f mm into the board's back" % (top - self.zb)
+            root = b["H"] - TAB_TOP["root"]
+            pts = [(root, self.zf - 0.01), (root, top), (tip, top), (tip, top - TAB_TOP["tip"]), (edge, under),
+                   (edge - 0.3, under)]
             out = None
             for x0, x1 in b["tab"][1]:
-                s = box(x0 - grow, x1 + grow, b["H"] - grow, self.inner[3] + L + grow, self.zf - t / 2 - grow, self.zf + t / 2 + grow)
+                w = cq.Workplane("YZ").workplane(offset=x0 - grow).polyline(pts).close()
+                s = (w.offset2D(grow, "intersection") if grow else w).extrude(x1 - x0 + 2 * grow)
                 out = s if out is None else out.union(s)
             return out
         y0, y1 = 4.0 - grow, b["H"] - 4.0 + grow
