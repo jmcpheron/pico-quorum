@@ -65,12 +65,12 @@ DESIGNS = {
         outputs=["cad/consoles/out/rp/*"],
         pages=["cad/consoles/README.md"]),
     "mono": dict(
-        about="Mono's case: a front shell and a back panel, its three caps, the badge's pieces and its dock",
+        about="Mono's case: a front shell and a back panel, the back also as a 3MF with its words in two colours, its three caps, the badge's pieces and its dock",
         scripts=["cad/consoles/mono.py"],
         outputs=["cad/consoles/out/mono/*"],
         pages=["cad/consoles/README.md"]),
     "mono-industrial": dict(
-        about="Mono's case with cut corners: the corners cut off at 45 degrees, grooves on the sides, the mark and the name printed in the face in colours; the shell as one body, and as three, one a colour",
+        about="Mono's case with cut corners: the corners cut off at 45 degrees, grooves on the sides, the mark printed in the face in colours; the shell as one body, and as three, one a colour, in STLs and a 3MF",
         scripts=["cad/consoles/mono_ind.py"],
         outputs=["cad/consoles/out/mono_ind/*"],
         pages=["cad/consoles/README.md"]),

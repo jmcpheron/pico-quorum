@@ -18,10 +18,10 @@ changed, so a case is up to date when it lists nothing.
 
 **To change Mono's case:**
 - [`mono.py`](mono.py) holds what is Mono's own, in `board()`: the window, the caps' shapes and size,
-  the mark's place (`MARK`), the words on the back. The board's numbers come from its generator and
+  the mark's place and size (`MARK`), the words on the back (`BACK_WORDS`). The board's numbers come from its generator and
   its fab files (`hardware/mono/`), so the case follows the board.
 - [`mono_ind.py`](mono_ind.py) holds the industrial variant's: `CORNER_CUT`, `GROOVES`, and its own
-  mark and name, printed in the face: `MARK_R`, `HATCH`, `NAME_FIT`, `COLOUR` and `decor`.
+  mark, printed in the face: `MARK_R`, `HATCH`, `COLOUR` and `decor`.
 - [`rp.py`](rp.py) draws the badge (`decor`) and the name (`name`). A change there changes the slate too.
 - [`shell.py`](shell.py) holds what every case shares: the walls, the posts, the caps' fit, the dock
   and the checks. A change there changes every case here.
@@ -53,10 +53,19 @@ printed, and no Mono board has been built.**
   1.2 times as wide (circle 5.0 mm, square 4.6, triangle 7.2), for a thumb. Their flanges are 7.4 mm,
   not 6.1, to hold them in: 0.3 mm off the posts beside D0 and D2. Each still sits on its switch with
   the same 0.2 mm of play and clearance, so the switch clicks as on the slate.
-- **The name and the mark** are in the plain field under the buttons, made as the slate's are
-  (`rp.decor`): the mark is a badge in three colours glued into a pocket, and the name over it is cut to
-  show a second colour. Mono has no RESET or BOOTSEL buttons, so the mark's dots are whole, with no
-  pinholes. The script checks the mark misses the LED's hole and the name misses the counterbores.
+- **The mark is alone in the plain field under the buttons,** with no name on the face. It is a badge
+  in three colours glued into a pocket, as the slate's is (`rp.decor`), 9 mm in radius, 1.5 times the
+  slate's near enough, and midway between the caps' holes and the LED's hole: 11.4 mm under the one
+  and 10.7 mm over the other. Its pocket leaves a triangle 10.6 × 16.3 mm to bridge. Mono has no
+  RESET or BOOTSEL buttons, so the mark's dots are whole, with no pinholes. The script checks the
+  mark misses the LED's hole.
+- **The back has `picoquorum.app` along its length,** one line in Bold, 76 mm long and 9.4 mm across,
+  6.75 mm from each end of the board, reading from the top end down: level when the case lies on its side, top end
+  to the left. It is the name and the Source Location both (CERN-OHL-W v2, section 4.1), and an
+  address, so lower case. Two ways to print it ([Printing](#printing)):
+  - **One body:** `mono_back.stl`, the letters cut 0.6 mm into the back, 1.0 mm of it left behind them.
+  - **Three bodies in one file:** `mono_back.3mf`. The back in black, `picoquorum` in green and `.app`
+    in orange, each letter filling its cut flush with the back. The 3MF names each body's colour.
 - **A hole over the LED** (D1), below the mark.
 - **The USB-C is open at the bottom end,** left of centre. A lanyard lug at the top.
 - **The jig's pads on the board's back are covered:** take the back panel off to reach them.
@@ -96,42 +105,50 @@ front shell changes:
 - **Nine V-grooves, 0.5 mm deep and 2.5 mm apart, run across each long side** where the hand holds it, 14
   to 34 mm up from the board's bottom edge. They stop short of both rounds.
 
-- **The mark is printed with the shell, in colours, with no badge to glue in.** It is 8 mm in
-  radius (Mono's badge: 6), at the same centre. Its lowest edge is 5.7 mm over the LED's hole.
+- **The mark is printed with the shell, in colours, with no badge to glue in, and no name over it.**
+  It is 12 mm in radius (Mono's badge: 9), at the same centre, 26.8 mm across its waiting dots: 7.7 mm
+  under the caps' holes, and its lowest edge 7.5 mm over the LED's hole.
   - Its pocket is 0.4 mm deep, the shell's first two layers, not the badge's 1.0 mm. The badge's
-    pocket left a triangle 7 × 11 mm to bridge.
-  - All five dots are open: the signed 4 mm across, the waiting 2.7 mm.
-  - Lines of the face's plastic, 0.5 mm wide, cross the triangle 1.53 mm apart, with 1.03 mm between
-    them. A ring 0.5 mm wide goes round each signed dot inside the triangle, so every line ends on a
-    wall or a ring.
-  - The colour lies behind, on the lines, and bridges 1 mm at a time. From the front the dots are
+    pocket leaves a triangle 10.6 × 16.3 mm to bridge.
+  - All five dots are open: the signed 6 mm across, the waiting 4 mm.
+  - Lines of the face's plastic, 0.5 mm wide, cross the triangle 1.71 mm apart, with 1.21 mm between
+    them: 11 lines. A ring 0.5 mm wide goes round each signed dot inside the triangle, so every line
+    ends on a wall or a ring.
+  - The colour lies behind, on the lines, and bridges 1.2 mm at a time. From the front the dots are
     the colour, and the triangle is the colour behind black lines, so darker.
-  - The script stops if two lines come closer than 0.8 mm (`HATCH_GAP`).
-- **The name over the mark is 34.4 mm wide and 5.8 mm tall** (Mono's: 21.4 × 3.6), cut 0.6 mm to show
-  the same colour. Its room is 36 mm wide, as wide as the screws' counterbores, outside to outside,
-  near enough (37.2 mm); the letters fill its height first. The face is flat for 3.6 mm past each
-  end, and the caps' holes are 11 mm over it.
+  - The script stops if two lines come closer than 0.8 mm (`HATCH_GAP`), or if a line stops that
+    close under the top dot's ring without joining it, which leaves a sliver of an opening.
 - **Two ways to print the colours** ([Printing](#printing)):
   - **One body, one filament change:** `mono_ind_shell.stl`, the first two layers black, then green.
     All five dots come out green, and [the mark is never five green dots](../../docs/BRAND.md#dont).
     The whole of those layers is green too, so it shows as a band round the face's edge.
-  - **Three bodies, a filament each:** `mono_ind_shell_black.stl`, `_green.stl` and `_orange.stl`. They
-    are the same shell cut in three, each in the shell's own place. Green lies behind the triangle,
-    the signed dots and the name; orange behind the two waiting dots. Each is 0.6 mm thick, three
-    layers, and reaches 0.6 mm under the face round its opening, so its edge lies on the black
-    (`COLOUR`). Behind the name the green is one block, 35.6 × 7.0 mm.
+  - **Three bodies, a filament each:** `mono_ind_shell.3mf`, the three in one file, or
+    `mono_ind_shell_black.stl`, `_green.stl` and `_orange.stl`. They are the same shell cut in three,
+    each in the shell's own place. Green lies behind the triangle and the signed dots; orange behind
+    the two waiting dots. Each is 0.6 mm thick, three layers, and reaches 0.6 mm under the face round
+    its opening, so its edge lies on the black (`COLOUR`).
+- **The back is Mono's:** `picoquorum.app` along it, cut in `mono_ind_back.stl`, in green and orange in
+  `mono_ind_back.3mf`. With the shell's 3MF, the whole case prints in the same three filaments.
 
 The case closes at the same 44.6 × 100.1 × 10.9 mm, and the build finds no overlap. It prints face down
 like Mono's. The grooves' closed ends are 1 mm bridges.
 
-Checked on the shell as built, at 13 points: open in a signed dot and in each waiting dot; green
-0.6 mm under the face in a signed dot, in the triangle and in a letter; orange in a waiting dot, and
-under the black 0.3 mm outside it; black beside the mark, over the name and behind both colours. The
-script stops if the three bodies' volumes don't add up to the shell's. The three STLs span the same
-place as the one. Not sliced, and not printed: whether a slicer draws each 0.5 mm line as one pass,
-how the lines hold on the bed, and how a slicer takes the three bodies are not known.
+Checked on the shell's three bodies as built, at 15 points: open in two signed dots, in each waiting
+dot and between two lines; green 0.7 mm under the face in two signed dots and between two lines;
+orange in each waiting dot, and under the black 0.3 mm outside one; black on a line, beside the mark,
+behind the colour, and where the name was. The script stops if the three bodies' volumes don't add up
+to the shell's. The three STLs span the same place as the one.
 
-![The mark and the name from the front, as the three bodies print: black, green, and orange in the waiting dots](out/mono_ind/mono_ind_mark.png)
+Checked on the back's three bodies as built, along three lines down its length, a point every 0.5 mm:
+at 0.3 mm in, each of 513 points is in one body and no other, black, green or orange; at 0.8 mm in,
+all are black. The letters' bodies don't overlap the back's.
+
+Each 3MF read back: one object of three parts, each part a closed skin, with its name and colour, and
+the same volume and triangles as its STL. **Not opened in a slicer, not sliced, and not printed:**
+how a slicer takes a 3MF's parts and colours, whether it draws each 0.5 mm line as one pass, and how
+the lines and the letters hold on the bed are not known.
+
+![The mark from the front, as the three bodies print: black, green, and orange in the waiting dots](out/mono_ind/mono_ind_mark.png)
 
 ![Mono's case, industrial](out/mono_ind/mono_ind_front.png)
 
@@ -327,20 +344,27 @@ Every part prints without supports, judging by the shapes. They haven't been sli
   Each tab's slot in the top wall is a 10.4 mm bridge, 0.8 mm thick. The tabs stand 2.2 mm out of the
   panel's edge, 1 mm over the bed, as the stick's does.
 - **Mono's badge:** its six pieces face down, the triangle green, the three signed dots blue, the two
-  waiting dots orange. For the name, print the shell's first two layers black and the rest in a colour.
+  waiting dots orange. The shell is one colour: its face has no name to show a second.
+- **Mono's back, either case's:** outside down, so its words are in the first three layers.
+  - **one body** (`mono_back.stl`, `mono_ind_back.stl`): the words are cut in, in the back's own colour.
+  - **three bodies** (`mono_back.3mf`, `mono_ind_back.3mf`), on a printer that changes filament itself.
+    The file is one object of three parts, named black, green and orange, each with its colour. If
+    the slicer loads it as one part, split it to parts; if it asks about filaments, give each part
+    its own. For two colours, not three, give green and orange the same filament. The colours are in
+    layers 1 to 3 (to 0.6 mm), flush with the back. The rest is black.
 - **The industrial shell's mark** has no badge. Slice at 0.2 mm, the first layer 0.2 mm too. In the
   slicer's preview, look for the lines in layers 1 and 2, each one pass 0.5 mm wide. A slicer that
   draws walls at a fixed width may leave them out: use its variable-width walls (Arachne), or its
   thin-wall setting. Then one of:
   - **one body** (`mono_ind_shell.stl`), on a printer with one filament:
     - layers 1 and 2 (to 0.4 mm) black: the face, and the lines across the triangle
-    - change to green at layer 3 (0.4 mm), and stay green to the end of layer 4 (0.8 mm) at the least:
-      layer 3 is the mark's floor, layer 4 the letters'
+    - change to green at layer 3 (0.4 mm), the mark's floor, and stay green to the end of layer 4
+      (0.8 mm) at the least, so the colour is two layers thick
     - after that, black again or any colour: none of it shows from the front
-  - **three bodies** (`mono_ind_shell_black.stl`, `_green.stl`, `_orange.stl`), on a printer that
-    changes filament itself: load the three as one object with three parts, not three objects, so
-    they keep their places, and give each its filament. The colours are in layers 3 to 6 (0.4 to
-    1.2 mm). The rest is black.
+  - **three bodies**, on a printer that changes filament itself: `mono_ind_shell.3mf`, one object of
+    three parts, as the back's; or `mono_ind_shell_black.stl`, `_green.stl` and `_orange.stl`, loaded
+    as one object with three parts, not three objects, so they keep their places. Give each its
+    filament. The colours are in layers 3 to 5 (0.4 to 1.0 mm). The rest is black.
 - **caps:** flange down, one STL each, so each can be its own colour.
 - **dock:** on its base, as written.
 - PLA or PETG, 0.2 mm layers. The engraving is 0.5 mm deep.
@@ -409,7 +433,8 @@ uv run --python 3.11 --with cadquery --with matplotlib --with pillow python cad/
 
 `tools/case` runs them at the versions the outputs were last made with (`PINS` in the tool). Each writes
 its folder in `out/` (`out/mono/`, `out/mono_ind/`, `out/rp/`, `out/stick/`, `out/badge/`):
-- the STLs to print
+- the STLs to print, and for Mono's cases the 3MFs: a part as several bodies, a colour each
+  (`threemf` in `shell.py`). A 3MF holds no date and isn't compressed, so a rebuild writes the same file
 - `<name>_assembly.step`, with the board's stand-ins
 - `<name>_face.png`: the face sliced just under its top, which shows the engraving
 - the other pictures, with the Feather's review screen (`docs/quorum-ui/feather/06-review-head.png`) on the

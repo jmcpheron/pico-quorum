@@ -16,6 +16,7 @@ import csv
 import math
 import os
 import sys
+import zipfile
 
 import cadquery as cq
 
@@ -101,6 +102,7 @@ WROOM = (25.5, 18.0, 3.1)   # ESP32-S3-WROOM-1: long, across, thick (Espressif's
 # Colours for the pictures: the brand's Reject red and Sign green on their caps (docs/BRAND.md)
 TUB_C, PLATE_C = K.DARK, (0.74, 0.73, 0.70)
 RED, GREEN, PAPER = (1.0, 0.36, 0.33), (0.20, 0.78, 0.35), (0.90, 0.90, 0.88)
+BLACK = (0.10, 0.10, 0.11)  # a multi-colour print's ground
 CAP_C = {"D0": RED, "D1": PAPER, "D2": GREEN}
 BOARD_C, PART_C, GLASS_C, MOD_C = (0.10, 0.36, 0.20), (0.15, 0.15, 0.17), (0.05, 0.05, 0.07), (0.70, 0.70, 0.72)
 
@@ -487,6 +489,7 @@ class Case:
         front, back, extra = self.front(), self.back(), []
         if self.b.get("decor"):     # the board's own touches: (shell, back) -> (shell, back, [(name, shape, colour, lie)])
             front, back, extra = self.b["decor"](self, front, back)
+        extra = extra + [("back " + n, s, col, None) for n, col, s in self.inlays]    # for the pictures
         return [("shell", front, TUB_C, flip), ("back", back, PLATE_C, lambda s: s)] + \
             [(n, s, col, lambda s: s) for n, s, col in caps] + extra
 
@@ -507,16 +510,47 @@ class Case:
         return box(xc - w / 2, xc + w / 2, y0 - 1, 0.0, z - h / 2, z + h / 2).edges("|Y").fillet(r)
 
     def back_text(self):
+        """The back's words, as the cut that engraves them. A line may carry a fifth item, how: along (1 or -1) sets
+        it along the case's length, reading toward the top end or from it; parts ([(words, name, colour), ...])
+        splits it into pieces to print in colours of their own. Those are left in self.inlays: (name, colour,
+        shape), each the letters as solids, filling their cut flush with the back."""
         b = self.b
         flip = b["flip"]                      # how the case is turned over to read its back: about "x" or "y"
         xdir = (1, 0, 0) if flip == "x" else (-1, 0, 0)
-        cut = None
-        for words, (cx, cy), (w, h), kind in b["back_text"]:
+        depth = b.get("engrave", ENGRAVE)
+        cut, self.inlays = None, []
+        for words, (cx, cy), (w, h), kind, *how in b["back_text"]:
             size = fit_text(words, w, h, kind)
-            pl = cq.Plane(origin=(cx, cy, self.z0), xDir=xdir, normal=(0, 0, -1))
-            c = engrave_text(pl, words, size, b.get("engrave", ENGRAVE), kind)
+            if not how:
+                pl = cq.Plane(origin=(cx, cy, self.z0), xDir=xdir, normal=(0, 0, -1))
+                c = engrave_text(pl, words, size, depth, kind)
+            else:
+                c = self.back_line(words, cx, cy, size, depth, kind, **how[0])
             cut = c if cut is None else cut.union(c)
         return cut
+
+    def back_line(self, words, cx, cy, size, depth, kind, along, parts):
+        """One line of the back's words along the case's length, its middle at (cx, cy), in pieces (back_text)."""
+        assert "".join(p[0] for p in parts) == words, "the pieces don't make up %r" % words
+        pl = cq.Plane(origin=(cx, cy, self.z0), xDir=(0, along, 0), normal=(0, 0, -1))
+        line = letters(pl, words, size, -depth, kind, halign="left", valign="center")
+        bb = line.val().BoundingBox()
+        shift = cy - (bb.ymin + bb.ymax) / 2            # the line starts at cy: move its middle there
+        # a letter belongs to the first piece whose words, set alone from the same start, reach past its middle
+        ends, so_far = [], ""
+        for w, _, _ in parts[:-1]:
+            so_far += w
+            ends.append(letters("XY", so_far, size, 1, kind, halign="left").val().BoundingBox().xmax)
+        mine = [[] for _ in parts]
+        for s in line.val().Solids():
+            u = along * (s.Center().y - cy)
+            mine[next((i for i, e in enumerate(ends) if u <= e), len(ends))].append(s.translate((0, shift, 0)))
+        for (w, name, colour), solids in zip(parts, mine):
+            assert solids, "no letters in %r" % w
+            # in a set order: OpenCASCADE hands the letters over in a different one each run
+            solids.sort(key=lambda s: [round(v, 3) for v in s.Center().toTuple()])
+            self.inlays.append((name, colour, cq.Workplane("XY").add(cq.Compound.makeCompound(solids))))
+        return line.translate((0, shift, 0))
 
     # --- the plate -----------------------------------------------------------------------------------
     def plate(self):
@@ -717,6 +751,57 @@ def stl(shape, path, tol=0.05):
     cq.exporters.export(shape, path, tolerance=tol, angularTolerance=0.2)
 
 
+def threemf(path, title, bodies, tol=0.05):
+    """One object of several bodies, a colour each, as a 3MF: bodies is [(name, (r, g, b), shape)], each where it
+    lies on the bed. A slicer loads it as one object with parts, and each part takes a filament. The bodies keep
+    their places to each other; the whole is moved so its lowest corner is at 0, 0, 0. Written the same every
+    time: no date, nothing compressed (a zip's compressed bytes differ from one zlib to the next)."""
+    meshes = []
+    for name, colour, shape in bodies:
+        vs, ts = shape.val().tessellate(tol, 0.2)
+        index, pts, tris = {}, [], []
+        for v in vs:                            # the faces' own points, joined where they meet: one closed skin
+            k = (round(v.x, 5), round(v.y, 5), round(v.z, 5))
+            if k not in index:
+                index[k] = len(pts)
+                pts.append(k)
+        at = [index[(round(v.x, 5), round(v.y, 5), round(v.z, 5))] for v in vs]
+        for a, b, c in ts:
+            a, b, c = at[a], at[b], at[c]
+            if a != b and b != c and a != c:
+                tris.append((a, b, c))
+        meshes.append((name, colour, pts, tris))
+    lo = [min(p[k] for _, _, pts, _ in meshes for p in pts) for k in range(3)]
+    num = lambda v: ("%.5f" % v).rstrip("0").rstrip(".") or "0"
+    hexc = lambda c: "#%02X%02X%02XFF" % tuple(int(round(255 * v)) for v in c)
+    x = ['<?xml version="1.0" encoding="UTF-8"?>',
+         '<model unit="millimeter" xml:lang="en-US" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">',
+         '<metadata name="Title">%s</metadata>' % title,
+         '<metadata name="Application">Picoquorum cad/consoles/shell.py</metadata>',
+         '<resources>', '<basematerials id="1">']
+    x += ['<base name="%s" displaycolor="%s"/>' % (name, hexc(colour)) for name, colour, _, _ in meshes]
+    x.append('</basematerials>')
+    for i, (name, _, pts, tris) in enumerate(meshes):
+        x.append('<object id="%d" name="%s" type="model" pid="1" pindex="%d"><mesh><vertices>' % (i + 2, name, i))
+        x += ['<vertex x="%s" y="%s" z="%s"/>' % tuple(num(p[k] - lo[k]) for k in range(3)) for p in pts]
+        x.append('</vertices><triangles>')
+        x += ['<triangle v1="%d" v2="%d" v3="%d"/>' % t for t in tris]
+        x.append('</triangles></mesh></object>')
+    whole = len(meshes) + 2
+    x.append('<object id="%d" name="%s" type="model"><components>' % (whole, title))
+    x += ['<component objectid="%d"/>' % (i + 2) for i in range(len(meshes))]
+    x += ['</components></object>', '</resources>', '<build><item objectid="%d"/></build>' % whole, '</model>', '']
+    files = [("[Content_Types].xml", '<?xml version="1.0" encoding="UTF-8"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+              '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+              '<Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/></Types>\n'),
+             ("_rels/.rels", '<?xml version="1.0" encoding="UTF-8"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+              '<Relationship Target="/3D/3dmodel.model" Id="rel0" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/></Relationships>\n'),
+             ("3D/3dmodel.model", "\n".join(x))]
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_STORED) as z:
+        for name, text in files:
+            z.writestr(zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0)), text.encode("utf-8"))
+
+
 def flip(shape):
     """Face down, as the plate prints."""
     return shape.rotate((0, 0, 0), (1, 0, 0), 180)
@@ -744,6 +829,7 @@ def build(b, out, screen_png=None):
         for qn, qs in printed[i + 1:]:
             pairs.append((pn, ps, qn, qs))
     pairs += [("screws", screws, sn, sh) for sh, _, sn in things]
+    pairs += [("back", ps, "the back's letters, " + n, s) for pn, ps in printed if pn == "back" for n, _, s in c.inlays]
     pairs += [("dock", dock, n, c.on_dock(s, tilt)) for n, s in printed + [("plug overmold", over)]]
     bad = check(pairs)
     for ref, n in b["buttons"]:                         # the flange must reach past the hole, or the cap falls out
@@ -757,6 +843,10 @@ def build(b, out, screen_png=None):
             s = s.translate((0, 0, -c.zcap))
         stl(lie(s), os.path.join(out, "%s_%s.stl" % (name, n.replace(" ", "_"))))
     stl(dock, os.path.join(out, name + "_dock.stl"))
+    if c.inlays:                                        # the back with its letters in their colours, outside down
+        back = [s for n, s in printed if n == "back"]
+        threemf(os.path.join(out, name + "_back.3mf"), b["title"] + ": the back",
+                [("black", BLACK, back[0])] + [(n, col, s) for n, col, s in c.inlays])
     asm = cq.Assembly(name=name)
     for n, s, col, _ in parts:
         asm.add(s, name=n.replace(" ", "_"), color=cq.Color(*col))

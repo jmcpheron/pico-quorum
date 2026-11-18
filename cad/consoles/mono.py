@@ -9,19 +9,21 @@ and one midway between the screws' rows. Two tabs hold the panel's top end in sl
 the lanyard's slot, so its ribs can bear.
 
 The face has the window at the top, caps on D0, D1 and D2 in a row under it, and in the plain field below them the
-name and the mark, as on the slate: the mark a badge, its pieces printed in colour and glued into a pocket, the name
-over it cut to show a second colour (rp.decor). Mono has no RESET or BOOTSEL buttons, so the mark's dots are whole,
-with no pinholes. A hole over the LED. The USB-C is open at the bottom end, left of centre; a lanyard lug at the top.
-The back has the name and the Source Location, since the case covers the board's own. A dock holds it leaning back,
-its plug down into a slot in the lip. (cad/consoles/README.md)
+mark alone, with no name: a badge, its pieces printed in colour and glued into a pocket (rp.decor), 9 mm in radius,
+in the middle of the field. Mono has no RESET or BOOTSEL buttons, so the mark's dots are whole, with no pinholes.
+A hole over the LED. The USB-C is open at the bottom end, left of centre; a lanyard lug at the top.
+The back has picoquorum.app along its length, which is the name and the Source Location both, since the case covers
+the board's own: cut 0.6 mm in mono_back.stl, and in mono_back.3mf filled flush in two colours, picoquorum in one
+and .app in another. A dock holds it leaning back, its plug down into a slot in the lip. (cad/consoles/README.md)
 
 Run: uv run --python 3.11 --with cadquery --with matplotlib --with pillow \\
          python cad/consoles/mono.py [screen.png]
 (or tools/case build mono)
 
-Writes out/mono/: mono_shell.stl (face down, as it prints), mono_back.stl (outside down), mono_cap_D0/D1/D2.stl
-(flange down), mono_badge_*.stl (the badge's six pieces, face down), mono_dock.stl, mono_assembly.step,
-mono_front.png, mono_face.png, mono_apart.png, mono_dock.png.
+Writes out/mono/: mono_shell.stl (face down, as it prints), mono_back.stl (outside down), mono_back.3mf (the back
+as three bodies: black, and its words in green and orange), mono_cap_D0/D1/D2.stl (flange down), mono_badge_*.stl
+(the badge's six pieces, face down), mono_dock.stl, mono_assembly.step, mono_front.png, mono_face.png,
+mono_apart.png, mono_dock.png.
 
 The board's numbers are its generator's (hardware/mono/gen_mono.py) and the placement file made for JLCPCB
 (mono/fab/cpl.csv), checked against each other. The glass and the active area are the generator's, from the
@@ -46,10 +48,14 @@ FAB = os.path.join(MONO, "mono", "fab")
 OUT = os.path.join(HERE, "out", "mono")
 SCREEN = os.path.join(S.REPO, "docs", "quorum-ui", "feather", "06-review-head.png")
 BACK_ROOM = 1.6             # under the board: the USB-C's shell legs, and the bosses' height for the M2 thread
-# The mark in the field under the buttons, over the RP2350: its centre and radius, the slate's size near enough
-# (r 6.4 there, from RESET and BOOTSEL; here nothing fixes it). The name goes over it (rp.NAME).
+# The mark in the field under the buttons, alone: its centre and radius. The centre puts the mark midway between
+# the caps' holes and the LED's hole, for any radius (the mark's own middle is 0.0955 r over its centre). The radius
+# is 1.5 times the slate's, near enough (r 6.4 there, from RESET and BOOTSEL; here nothing fixes it).
 # Given in the generator's frame (y down), so it keeps its place to the parts when the board changes.
-MARK = (20.0, 58.0, 6.0)
+MARK = (20.0, 52.0, 9.0)
+# The back's words: picoquorum.app along the length, its room (long, tall), and which way it reads: -1 is from the
+# top end down, so it reads level with the case on its side, top end to the left
+BACK_WORDS = ((76.0, 10.0), -1)
 FOLD = 1.5                  # the ribbon's fold past the glass's right end: the README reads the drawing as 0.5 at
                             # most; the slate allows 2.0. 1.5 leaves the wall 1.8 mm clear
 # The top end, where no screw is. The shell's rests on the board's front, one in each top corner: this far down from
@@ -117,15 +123,16 @@ def board():
         led="D1", usb="J1", usb_edge="bottom", dock_depth=55.0, dock_plug=20.0,
         lug=("top", 6.0), tab=("top", TABS),
         post_r=G.HOLE_RING,         # the board's own keep-out round each hole
-        rest=[], support=support, press=press, decor=RP.decor,
+        rest=[], support=support, press=press, decor=RP.decor, face_name=False,
         face=[],                    # the mark is decor's: a badge in a pocket, and the name over it
         engrave=RP.ENGRAVE_DEEP,
         mark=(cx, cy, r),           # no switch under its dots
         flip="y",                   # turned over about its length to read the back, as the badge
-        back_text=[("Picoquorum", (W / 2, H - 42.0), (30.0, 6.0), "bold"),
-                   ("picoquorum.app", (W / 2, H - 50.0), (24.0, 3.0), "regular")],
+        # one line, in two pieces to print in two colours (the 3MF); an address, so lower case (docs/BRAND.md)
+        back_text=[("picoquorum.app", (W / 2, hb / 2), BACK_WORDS[0], "bold",
+                    dict(along=BACK_WORDS[1], parts=[("picoquorum", "green", S.GREEN), (".app", "orange", RP.ORANGE)]))],
         seen=("D1",),
-        views=dict(front=[("in the hand: four screws in the face", 58, -78), ("the back: the name, the Source Location", -55, 110)],
+        views=dict(front=[("in the hand: four screws in the face", 58, -78), ("the back: picoquorum.app, in two colours", -55, 110)],
                    apart=[("apart: screws, front shell, caps, board, back panel", 30, -60)],
                    dock=[("on its dock, the plug in the lip", 20, -68)]),
     )

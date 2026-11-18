@@ -96,7 +96,8 @@ def decor(c, shell, back):
     triangle = tri(-g, z0, z1)
     for k in (0, 2, 3):
         triangle = triangle.cut(S.cyl(*pts[k], rad[k] + g, z0 - 1, z1 + 1))
-    shell = shell.cut(name(c, cx, pts[0][1] + rad[0]))
+    if b.get("face_name", True):                # Mono's face has the mark alone (mono.py)
+        shell = shell.cut(name(c, cx, pts[0][1] + rad[0]))
     out = [("badge triangle", top(triangle), GREEN, S.flip)]
     for k in (0, 2, 3):
         dot = S.cyl(*pts[k], rad[k] - g, z0, z1)
