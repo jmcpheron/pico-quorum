@@ -330,10 +330,17 @@ class Case:
         return t.cut(n.edges("|Z").fillet(0.8))
 
     def tab(self, grow=0.0):
-        """The back panel's tab at the antenna end (the lug's side), into a slot in the end wall; grow makes the slot."""
+        """The back panel's tab at the antenna end (the lug's side), into a slot in the end wall; grow makes the slot.
+        Or tabs into the top wall, at the end no screw holds (b["tab"]: ("top", [(x0, x1), ...]))."""
         b = self.b
         L, t, _ = TAB
         ix1 = self.inner[1]
+        if b.get("tab", True) is not True:
+            out = None
+            for x0, x1 in b["tab"][1]:
+                s = box(x0 - grow, x1 + grow, b["H"] - grow, self.inner[3] + L + grow, self.zf - t / 2 - grow, self.zf + t / 2 + grow)
+                out = s if out is None else out.union(s)
+            return out
         y0, y1 = 4.0 - grow, b["H"] - 4.0 + grow
         # from the board's edge on: the module's antenna end is flush with it, and the tab stands above the panel
         return box(b["W"] - grow, ix1 + L + grow, y0, y1, self.zf - t / 2 - grow, self.zf + t / 2 + grow)

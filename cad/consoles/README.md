@@ -33,7 +33,20 @@ closed, in the stick's "shell" layout like console-rp's slate ([`rp.py`](rp.py))
 printed, and no Mono board has been built.**
 - **Four M2 × 8 screws from the face,** through the shell's posts and the board's four M2 holes (one either
   side of the buttons, one at each bottom corner), into bosses on the back panel. The posts are 2.5 mm
-  across, the board's own keep-out (`HOLE_RING` in its generator). No tab: the board has no radio.
+  across, the board's own keep-out (`HOLE_RING` in its generator).
+- **No screw holds the top end,** behind the screen: the two beside the buttons are 24 mm from the top
+  edge. So the board lies between rests there, and the back panel's top end is held:
+  - **In the shell, a block in each top corner,** beside the glass, on the board's front. Each is 4 mm
+    down the side from the top edge, and stops 0.5 mm off the glass's end. The right one is 3.55 mm
+    over the ribbon's fold, the left one 2.0 mm from FID1's centre.
+  - **On the back panel, four ribs across the board's back,** 1.6 mm wide, each 0.1 mm short of it:
+    under D0–D2, where it is pressed; behind the glass's lower foam pads; behind its top pads, and on
+    to the corners, behind the shell's blocks; and midway between the two rows of screws, so the back
+    doesn't give in the hand. The nearest is 12 mm from KEY 2's holes and from the jig's pads. The
+    script stops under 2 mm.
+  - **Two tabs on the panel's top edge,** each 10 mm wide and 2 mm into a slot in the top wall, 0.2 mm
+    clear all round, either side of the lanyard's slot. Without them nothing holds the panel's top
+    end, and its ribs there bear on nothing.
 - **The window** shows the active area where the generator puts it, centred on the board, and 0.555 mm
   further from the ribbon, where it would be if PicoquorumKey's 2.0 mm reading of the drawing is right.
 - **The caps** are the slate's shapes, D0 a red square, D1 a white circle, D2 a green triangle, but
@@ -46,12 +59,18 @@ printed, and no Mono board has been built.**
   pinholes. The script checks the mark misses the LED's hole and the name misses the counterbores.
 - **A hole over the LED** (D1), below the mark.
 - **The USB-C is open at the bottom end,** left of centre. A lanyard lug at the top.
-- **A rib on the back panel under D0–D2.** The jig's pads on the board's back are covered: take the back
-  panel off to reach them.
+- **The jig's pads on the board's back are covered:** take the back panel off to reach them.
 - **KEY 2's five holes are covered too.** A breakout soldered there would need its own opening.
 - **The ribbon's fold** is taken as 1.5 mm past the glass's end. Mono's README reads the drawing as
   0.5 at most; the slate allows 2.0.
 - **The dock** holds it leaning back 25°, the plug down into a slot in its lip, as the badge's.
+
+Checked on the shell and the back panel as built, at 25 points, in both of Mono's cases: each block
+solid from the board's front to the face and open past its ends; each rib solid to 0.15 mm under the
+board and open at 0.05; the tabs solid, their slots open, and the wall solid round the slots and between
+them. Measured on the solids: the blocks 0.50 mm from the glass, the tabs 0.20 mm from the shell, their
+slots 2.62 mm from the lanyard's. The rests' heights follow the board at 1.6 mm and the glass 3.6 mm
+over it, neither measured on a board. Not printed.
 
 ![Mono's case](out/mono/mono_front.png)
 
@@ -64,8 +83,8 @@ printed, and no Mono board has been built.**
 ## Mono, industrial
 
 [`mono_ind.py`](mono_ind.py): Mono's case with cut corners. **A variant of the first draft, not printed.**
-Inside, it is Mono's case: the same posts, screws, caps, window, back panel and dock. Only the front
-shell changes:
+Inside, it is Mono's case: the same posts, rests, screws, caps, window, back panel and dock. Only the
+front shell changes:
 - **The corners are cut off at 45°**, not rounded. At the bottom, 3 mm along each edge, as far as the
   board's corner inside allows: the wall there is 1.66 mm at its thinnest, against 2.0 along the sides.
   The script stops if a cut leaves less than 1.5 (`CORNER_WALL`). At the top, 8 mm, across the lanyard's
@@ -91,6 +110,8 @@ shell changes:
 - **The name over the mark is 36 mm wide and 5.8 mm tall** (Mono's: 22.5 × 3.6), cut 0.6 mm to show
   the same colour. That is as wide as the screws' counterbores, outside to outside, near enough
   (37.2 mm). The face is flat for 2.8 mm past each end, and the caps' holes are 11 mm over it.
+  The letters are the build machine's bold sans, so the width follows the machine: the STLs here were
+  built with FreeSans Bold, which fills the height first, and their name is 34.8 × 5.8 mm.
 - **Two ways to print the colours** ([Printing](#printing)):
   - **One body, one filament change:** `mono_ind_shell.stl`, the first two layers black, then green.
     All five dots come out green, and [the mark is never five green dots](../../docs/BRAND.md#dont).
@@ -99,7 +120,7 @@ shell changes:
     are the same shell cut in three, each in the shell's own place. Green lies behind the triangle,
     the signed dots and the name; orange behind the two waiting dots. Each is 0.6 mm thick, three
     layers, and reaches 0.6 mm under the face round its opening, so its edge lies on the black
-    (`COLOUR`). Behind the name the green is one block, 37.2 × 7.0 mm.
+    (`COLOUR`). Behind the name the green is one block, 36.0 × 7.0 mm in the STLs here.
 
 The case closes at the same 44.6 × 100.1 × 10.9 mm, and the build finds no overlap. It prints face down
 like Mono's. The grooves' closed ends are 1 mm bridges.
@@ -299,6 +320,8 @@ Every part prints without supports, judging by the shapes. They haven't been sli
 - **the badge's tub:** on its back, as written. The opening over the USB-C is a short bridge.
 - **the badge's plate:** face down, as written. The posts, ribs and pockets point up.
 - **Mono's shell and back panel:** as the stick's. The USB-C opening's far side is a 13.2 mm bridge.
+  Each tab's slot in the top wall is a 10.4 mm bridge, 0.8 mm thick. The tabs stand 2.2 mm out of the
+  panel's edge, 1 mm over the bed, as the stick's does.
 - **Mono's badge:** its six pieces face down, the triangle green, the three signed dots blue, the two
   waiting dots orange. For the name, print the shell's first two layers black and the rest in a colour.
 - **The industrial shell's mark** has no badge. Slice at 0.2 mm, the first layer 0.2 mm too. In the
@@ -362,8 +385,9 @@ its shell, so print the shell first and lay the board in it. Either way, check t
 5. Turn each screw until it is snug, no tighter: it cuts its own thread in the post.
 6. Press each cap. It should click and come back.
 
-**Mono:** as the stick, but with no tab. Lay the board in face down, lay the back panel on, and put the
-four M2 × 8 screws in through the face. Glue the badge's pieces into the mark's pocket (the industrial
+**Mono:** as the stick. Lay the board in face down: its top corners lie on the two blocks. Put the back
+panel's two tabs into the slots in the top wall, then lower the USB end onto the board, and put the four
+M2 × 8 screws in through the face. Glue the badge's pieces into the mark's pocket (the industrial
 variant has none: its mark is printed in the face).
 
 ## Run

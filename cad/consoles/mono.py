@@ -1,7 +1,12 @@
 """Mono's case. A slender bar round the 40 x 89.5 mm board, in the slate's "shell" layout: the face and the walls are
 one front shell, and a flat panel closes the back. Four M2 screws go in from the front, through the shell's posts
-and the board's four M2 holes, into bosses on the back panel. The board has no radio, so no end is kept free of
-metal, and no tab.
+and the board's four M2 holes, into bosses on the back panel.
+
+No screw holds the top end, behind the screen: the two beside the buttons are 24 mm from the top edge. So the board
+lies between rests there. In the shell, a block in each top corner, beside the glass, on the board's front. On the
+back panel, ribs across the board's back: one behind each row of the glass's foam pads, the one under the buttons,
+and one midway between the screws' rows. Two tabs hold the panel's top end in slots in the top wall, either side of
+the lanyard's slot, so its ribs can bear.
 
 The face has the window at the top, caps on D0, D1 and D2 in a row under it, and in the plain field below them the
 name and the mark, as on the slate: the mark a badge, its pieces printed in colour and glued into a pocket, the name
@@ -47,6 +52,12 @@ BACK_ROOM = 1.6             # under the board: the USB-C's shell legs, and the b
 MARK = (20.0, 58.0, 6.0)
 FOLD = 1.5                  # the ribbon's fold past the glass's right end: the README reads the drawing as 0.5 at
                             # most; the slate allows 2.0. 1.5 leaves the wall 1.8 mm clear
+# The top end, where no screw is. The shell's rests on the board's front, one in each top corner: this far down from
+# the top edge, and this far off the glass's ends (where the glass lies on its foam isn't measured)
+REST_TOP, REST_OFF = 4.0, 0.5
+REST_MISS = 1.5             # a rest in the shell from FID1's centre and the ribbon's fold, a tab from the lanyard's slot: at the least
+RIB_MISS = 2.0              # a rib on the back from KEY 2's holes (a header's pins would stand out) and the jig's pads
+TABS = [(4.0, 14.0), (26.0, 36.0)]      # the back panel's tabs into the top wall: x, either side of the lanyard's slot
 
 
 def board():
@@ -70,6 +81,26 @@ def board():
     cx, cy, r = MARK[0], H - MARK[1], MARK[2]
     led = P["D1"]
     assert math.hypot(led["x"] - cx, led["y"] - cy) > r + r / 4 + S.LED_HOLE, "the mark runs into the LED's hole"
+    hb = H - G.TOP                  # the board's top edge
+    far = lambda box, at: math.hypot(max(box[0] - at[0], at[0] - box[1], 0), max(box[2] - at[1], at[1] - box[3], 0))
+    # the shell's rests: from 0.5 mm into the walls to REST_OFF off the glass's ends
+    press = [(-0.5, glass[0] - REST_OFF, hb - REST_TOP, hb + 0.5), (glass[2] + REST_OFF, W + 0.5, hb - REST_TOP, hb + 0.5)]
+    for q in press:
+        assert far(q, up(G.AT["FID1"][:2])) >= REST_MISS, "a rest in the shell is on FID1"
+        assert q[2] - (yc + rw / 2) >= REST_MISS, "a rest in the shell is on the ribbon's fold"
+    # the back panel's ribs: under the buttons, where the board is pressed; behind the glass's foam pads, its lower
+    # row and its top row, the top one on to the corners, behind the shell's rests; and one midway between the
+    # screws' rows, so the panel doesn't give when the case is held
+    pad, hw = G.PANEL["pad"] / 2, S.REST_W / 2
+    bar = lambda x0, x1, y: (x0, x1, y - hw, y + hw)
+    support = [bar(P["SW1"]["x"] - 3.0, P["SW3"]["x"] + 3.0, P["SW1"]["y"]),
+               bar(glass[0], glass[2], glass[1] + pad), bar(1.0, W - 1.0, glass[3] - pad),
+               bar(P["SW1"]["x"] - 3.0, P["SW3"]["x"] + 3.0, (holes[0][1] + holes[2][1]) / 2)]
+    miss = [up((x, G.TPY)) for x in G.TP_X.values()] + [up((G.AT["J4"][0] + 2.54 * i, G.AT["J4"][1])) for i in range(5)]
+    for q in support:
+        assert min(far(q, at) for at in miss) >= RIB_MISS, "a rib on the back is on the jig's pads or KEY 2's holes"
+    lug = (W / 2 - S.LUG_HOLE[0] / 2, W / 2 + S.LUG_HOLE[0] / 2)
+    assert all(x1 <= lug[0] - REST_MISS or x0 >= lug[1] + REST_MISS for x0, x1 in TABS), "a tab's slot is by the lanyard's"
     return dict(
         name="mono", title="Mono's case", layout="shell",
         W=W, H=H - G.TOP, R=G.CORNER, T=1.6, holes=holes, hole_d=2.2, parts=P,
@@ -84,12 +115,9 @@ def board():
         # with the slate's play and clearance, and reaches 0.35 mm past its hole at the least (the slate's: 0.25)
         cap_scale=1.2, flange_over=2.3,
         led="D1", usb="J1", usb_edge="bottom", dock_depth=55.0, dock_plug=20.0,
-        lug=("top", 6.0), tab=False,
+        lug=("top", 6.0), tab=("top", TABS),
         post_r=G.HOLE_RING,         # the board's own keep-out round each hole
-        rest=[],
-        # a rib under the back where it's pressed: the three buttons. The jig's pads are lower down, under U1
-        support=[(P["SW1"]["x"] - 3.0, P["SW3"]["x"] + 3.0, P["SW1"]["y"] - S.REST_W / 2, P["SW1"]["y"] + S.REST_W / 2)],
-        press=[], decor=RP.decor,
+        rest=[], support=support, press=press, decor=RP.decor,
         face=[],                    # the mark is decor's: a badge in a pocket, and the name over it
         engrave=RP.ENGRAVE_DEEP,
         mark=(cx, cy, r),           # no switch under its dots
