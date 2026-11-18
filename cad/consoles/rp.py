@@ -64,7 +64,7 @@ def name(c, cx, top, fit=NAME[1:]):
     word, ((w, h), over) = NAME[0], fit
     size = S.fit_text(word, w, h)
     y = top + over + h / 2                          # the line's middle
-    tw = size * cq.Workplane("XY").text(word, 10, 1, combine=False, kind="bold").val().BoundingBox().xlen / 10
+    tw = size * S.letters("XY", word, 10, 1).val().BoundingBox().xlen / 10
     for hx, hy in c.b["holes"]:                     # clear of each screw's counterbore by 0.5 mm
         gap = math.hypot(max(abs(hx - cx) - tw / 2, 0), max(abs(hy - y) - h / 2, 0))
         assert gap > S.M2_HEAD[0] / 2 + 0.2 + 0.5, "the name runs into the counterbore at %s" % ((hx, hy),)

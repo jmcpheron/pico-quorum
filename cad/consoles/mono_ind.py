@@ -11,7 +11,7 @@ mono.py's: the same board, posts, screws, caps, window, back panel and dock. Wha
   a ring of it goes round each signed dot inside the triangle. The colour lies behind, on the lines, so it bridges
   1 mm at a time, 4 mm across a signed dot and 2.7 across a waiting one. From the front the dots are the colour,
   and the triangle the colour behind black lines
-- the name over it, 36 mm wide (mono.py's: 22.5), cut to show the same colour (rp.name)
+- the name over it, 34.4 mm wide (mono.py's: 21.4), cut to show the same colour (rp.name)
 
 Two ways to print the colours:
 - from mono_ind_shell.stl, one body: the first two layers black, then green. All five dots come out green, which
@@ -52,7 +52,8 @@ MARK_R = 8.0                # the mark's radius, at mono.py's centre
 HATCH = dict(depth=0.4, line=0.5, pitches=6)
 HATCH_GAP = 0.8             # between two lines at the least: narrower, and the first layer closes it
 # The name: the room for its line, and how far over the mark's top dot (rp.NAME's: 24 x 3.6, 1.4 over). 36 mm is
-# the screws' counterbores, outside to outside, near enough (37.2); the face is flat for 2.8 mm past each end
+# the screws' counterbores, outside to outside, near enough (37.2). The letters fill the height first: 34.4 mm
+# wide, the face flat for 3.6 mm past each end
 NAME_FIT = ((36.0, 5.8), 2.2)
 # The shell as three bodies: the colour behind each opening, three 0.2 mm layers thick, and its rim under the face
 # round the opening, so its edge lies on the black

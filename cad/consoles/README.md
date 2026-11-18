@@ -107,11 +107,10 @@ front shell changes:
   - The colour lies behind, on the lines, and bridges 1 mm at a time. From the front the dots are
     the colour, and the triangle is the colour behind black lines, so darker.
   - The script stops if two lines come closer than 0.8 mm (`HATCH_GAP`).
-- **The name over the mark is 36 mm wide and 5.8 mm tall** (Mono's: 22.5 × 3.6), cut 0.6 mm to show
-  the same colour. That is as wide as the screws' counterbores, outside to outside, near enough
-  (37.2 mm). The face is flat for 2.8 mm past each end, and the caps' holes are 11 mm over it.
-  The letters are the build machine's bold sans, so the width follows the machine: the STLs here were
-  built with FreeSans Bold, which fills the height first, and their name is 34.8 × 5.8 mm.
+- **The name over the mark is 34.4 mm wide and 5.8 mm tall** (Mono's: 21.4 × 3.6), cut 0.6 mm to show
+  the same colour. Its room is 36 mm wide, as wide as the screws' counterbores, outside to outside,
+  near enough (37.2 mm); the letters fill its height first. The face is flat for 3.6 mm past each
+  end, and the caps' holes are 11 mm over it.
 - **Two ways to print the colours** ([Printing](#printing)):
   - **One body, one filament change:** `mono_ind_shell.stl`, the first two layers black, then green.
     All five dots come out green, and [the mark is never five green dots](../../docs/BRAND.md#dont).
@@ -120,7 +119,7 @@ front shell changes:
     are the same shell cut in three, each in the shell's own place. Green lies behind the triangle,
     the signed dots and the name; orange behind the two waiting dots. Each is 0.6 mm thick, three
     layers, and reaches 0.6 mm under the face round its opening, so its edge lies on the black
-    (`COLOUR`). Behind the name the green is one block, 36.0 × 7.0 mm in the STLs here.
+    (`COLOUR`). Behind the name the green is one block, 35.6 × 7.0 mm.
 
 The case closes at the same 44.6 × 100.1 × 10.9 mm, and the build finds no overlap. It prints face down
 like Mono's. The grooves' closed ends are 1 mm bridges.
@@ -284,6 +283,11 @@ port's parts fits this case; its corner is just open.
 
 Each part is a box, at its footprint's usual size and height (`PACKAGES` in `shell.py`). These are not
 the makers' models.
+
+**The letters** on every face and back are Atkinson Hyperlegible Next, the brand's typeface for words
+([BRAND.md](../../docs/BRAND.md#type)), cut from the two files in [`cad/fonts/`](../fonts/README.md):
+Bold for the name, Regular for `picoquorum.app`. The script never takes a font from the machine, so
+the name is the same size wherever a case is built. It stops if a file is missing or unreadable.
 
 ## What the script checks, and what it doesn't
 

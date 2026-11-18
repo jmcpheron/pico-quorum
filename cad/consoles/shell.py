@@ -38,6 +38,10 @@ WINDOW_MARGIN = 0.5         # the window round the active area
 GLASS_LIP = 0.8             # the plate over the glass's edge, at the least
 WINDOW_C = 0.8              # the window's top edge chamfered
 ENGRAVE = 0.5
+# The letters: Atkinson Hyperlegible Next (docs/BRAND.md), from the files in cad/fonts/ (its README), never the
+# machine's own fonts. Given no file, or one it can't read, CadQuery takes whatever sans the machine has, and says
+# nothing: the same script then cuts a different name on each machine. font() stops instead.
+FONTS = {"bold": "AtkinsonHyperlegibleNext-Bold.ttf", "regular": "AtkinsonHyperlegibleNext-Regular.ttf"}
 # The screws: M2 socket heads, self-tapping into a 1.8 mm hole in the plate's posts, as the handheld's are.
 # The bench's kit has 4, 8, 12 and 16 mm; the longest that fits is taken.
 M2_PILOT, M2_CLEAR, M2_HEAD = 1.8, 2.4, (3.8, 2.0)
@@ -168,14 +172,31 @@ def mark(cx, cy, r, z0, z1):
     return m
 
 
+def font(kind):
+    """The file kind's letters are cut from (FONTS). Stops if it isn't there, or OpenCASCADE can't read it."""
+    from OCP.Font import Font_FontMgr
+    from OCP.TCollection import TCollection_AsciiString
+    path = os.path.join(REPO, "cad", "fonts", FONTS[kind])
+    if not os.path.isfile(path):
+        sys.exit("the %s letters' font isn't there: %s (cad/fonts/README.md)" % (kind, os.path.relpath(path, REPO)))
+    if not Font_FontMgr.GetInstance_s().CheckFont(TCollection_AsciiString(path).ToCString()):
+        sys.exit("OpenCASCADE can't read the %s letters' font: %s" % (kind, os.path.relpath(path, REPO)))
+    return path
+
+
+def letters(plane, words, size, depth, kind="bold", **how):
+    """words as solids on plane, in the cases' own font."""
+    return cq.Workplane(plane).text(words, size, depth, combine=False, kind=kind, fontPath=font(kind), **how)
+
+
 def fit_text(words, width, height, kind="bold"):
     """The text size that fits words in width x height."""
-    bb = cq.Workplane("XY").text(words, 10, 1, combine=False, kind=kind).val().BoundingBox()
+    bb = letters("XY", words, 10, 1, kind).val().BoundingBox()
     return min(10 * width / bb.xlen, 10 * height / bb.ylen)
 
 
 def engrave_text(plane, words, size, depth, kind="bold"):
-    return cq.Workplane(plane).text(words, size, -depth, combine=False, kind=kind, halign="center", valign="center")
+    return letters(plane, words, size, -depth, kind, halign="center", valign="center")
 
 
 class Case:
