@@ -3,7 +3,7 @@
   "release": "1eebbf43e652aa289b9495c5dc66a7878e00a54e2f4c9bd2fbc4934a382bc033",
   "files": {
     "LICENSE": "84d2bd6f4370ad28bb4f23f9ebf7a9f659b3ccc043120566711c2325a5858800",
-    "SHA256SUMS": "45ed961ec24eae0c90171197d61db14121e8db5adc9b81d6a3bba7e71c583d01",
+    "SHA256SUMS": "fb36dd67cc0401c80e1db66655758f30414368fee73f6621083707dcbc54aed1",
     "boot.json": "acacb5d6d2e25fb295c86da9bdab4f55b6d818ca300b58c6ef37430e984d449d",
     "brand/mark-dark.svg": "1ce07ad4b194958c746a8cb31055ae4ed135d16bd8ecb6e6f7ec7175256cb27d",
     "brand/mark-light.svg": "cfdd3cb049e4e25489ce01528fb53b2656f3cbb3ab34623c63bb5f5fbdb2911b",
@@ -71,7 +71,7 @@
     "fonts/mono-500.woff2": "49efe8526ea1da079582132fcb83555b975ef79129bbf0ff669e103ed162f81f",
     "fonts/next-400.woff2": "5cb240a4d99ab7e6fc3a4d4e6d11d89789fdffe9c86a8384000d662c53283f6f",
     "fonts/next-700.woff2": "0dbe07ed7679407db9d90f747d5ca3bd1b2bb7ccbcbe41c8246cfc6d2c7bc3bc",
-    "index.html": "3a7d6b0f449904ed2d8d212b3c938824eba964ff662f59831d3de97d91a0cf98",
+    "index.html": "cffb8293c73f1dae99368222bf0747ddcb66e75b7842f063e85dabbb195016d1",
     "shared/blockies.mjs": "45e8ad4cda19b5e53c0aaffc1fbcb2a081b1e7c121ad6f1545c86b3516f64750",
     "shims/bootstrap.py": "3c01e1034b4677c7469e830753453e1186a94f85296dbe8717babc8d890be159",
     "shims/machine.py": "71d753c890c1dc29319df1c0b9a265e60fa11a81bb119eaf399cc096abd00993",

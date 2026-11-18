@@ -298,6 +298,16 @@ Each of those files says so on its first line, under Austin's MIT license. Fixes
 back upstream ([docs/UPSTREAM-TRACKING.md](docs/UPSTREAM-TRACKING.md)). Everything else this project
 uses is credited in [NOTICE](NOTICE).
 
+Austin has since taken the same three parts further as **[wedgie](https://wedgie.dev)**
+([source](https://github.com/clawdbotatg/wedgie-dev), kept by his agent account clawdbotatg): a
+pocket computer with a secure chip wedged between the Pico and its screen, sold built or as a kit,
+that runs one app at a time. One of its apps, Safe Signer, makes a wedgie an owner of a Safe the
+same way a Picoquorum key is one: a P-256 key in the chip, behind Safe's passkey signer, signing a
+hash the device worked out itself. If you want one device for games, tools and a Safe, look there.
+Picoquorum stays a console that only approves, with an image you can hold up to a fingerprint.
+How the two compare, and what we watch in wedgie: [docs/WEDGIE.md](docs/WEDGIE.md). No wedgie code
+is in this repository.
+
 Picoquorum runs on Raspberry Pi Pico 2 W. It is not affiliated with Raspberry Pi or Safe.
 
 ## License
