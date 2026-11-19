@@ -719,7 +719,7 @@ def as_image(name):
 
 
 def no_files():
-    for f in ("pin.json", "keyflow.json"):
+    for f in ("pin.json", "keyflow.json", "starts.json"):
         try:
             os.remove(f)
         except OSError:
@@ -875,11 +875,16 @@ def case_own_key():
     on = shown()
     check("it never leaves it. Each try replaces the last." in " ".join(on) and "Make" in on,
           "the first page whole: each try replaces the last")
+    check("An old key: Make replaces it" in on and ui.starts == 1 and K.read_json("starts.json") == {"n": 1},
+          "the first page says an old key is there, whatever the count of starts; this start is counted, 1")
     hold()
-    check(sim.cfg[88] & 1 and c.step() == "C4", "a hold on Make does nothing: Make is one press")
     tick("D2")
+    tick("D1")
+    check(sim.cfg[88] & 1 and c.step() == "C4" and sim.keys.get(0) == planted and ui.tries == 0,
+          "D2 and D1 do nothing on Make, pressed or held")
+    tick("D0")
     k1 = sim.keys.get(0)
-    check(k1 not in (None, planted) and c.step() == "C5" and ui.tries == 1, "Make (D2): GenKey replaced the key that was there")
+    check(k1 not in (None, planted) and c.step() == "C5" and ui.tries == 1, "Make (D0): GenKey replaced the key that was there")
     on = shown()
     check("Like it? Seal it in your signer. Or replace it." in " ".join(on) and "Replace" in on and "Seal" in on
           and "New" not in on, "the pick page whole: Seal (D2), or Replace (D0), not New")
@@ -1010,6 +1015,78 @@ def bench_image(lock=True):
         sys.modules.pop(m, None)
     import signer, prepare
     return signer.ChipSigner(), signer, prepare
+
+
+def case_own_key_starts():
+    """The Make page says which start this is: the bench's, the first since, or a later one, counted in
+    starts.json; a key in slot 0 is said first, whatever the count; nothing is counted where Make isn't."""
+    no_files()
+    prepared()
+    import crt, splash, fonts
+    crt.FX = False
+    said, text0 = [], fonts.text
+    full = [False]                          # starts.json can't be written
+
+    def text(d, t, *a):
+        said.append(t)
+        return text0(d, t, *a)
+
+    def start(press=()):
+        """A restart: the signer and the key's screens imported afresh, so they share one signer (its arm)."""
+        s, S, K = as_image("console-rp")
+        for m in ("setup_s", "keypick_s", "keypick_rp"):
+            sys.modules.pop(m, None)
+        import keypick_rp
+        write = K.write_json
+
+        def write_json(path, obj):
+            if full[0] and path == "starts.json":
+                raise OSError(28)
+            write(path, obj)
+        K.write_json = write_json
+        ui = keypick_rp.UI(splash.begin(), Keys(), s, K.OwnKey(s))
+        ui.tick([])                         # K0
+        said[:] = []
+        ui.draw()
+        on = list(said)
+        if press:
+            ui.tick(list(press))
+        return ui, on
+    import keyflow
+    read = keyflow.read_json
+    fonts.text = text
+    try:
+        ui, on = start()
+        check(ui.starts == 1 and "At the bench: no key, start 1" in on, "a prepared chip's first start is the bench's, and says so")
+        ui, on = start()
+        check(ui.starts == 2 and "New: first start since the bench" in on and read("starts.json") == {"n": 2},
+              "the second: new, the first start since the bench")
+        ui, on = start()
+        ui, on2 = start(["D0"])
+        check("Not new: started 1 time before" in on and "Not new: started 2 times before" in on2 and ui.starts == 4,
+              "the third and fourth: not new, and how many starts came before")
+        ui, on = start()
+        check(ui.starts == 5 and "An old key: Make replaces it" in on, "a key made at an earlier start is said first, whatever the count")
+        no_files()
+        ui, on = start()
+        check(ui.starts == 1 and "An old key: Make replaces it" in on,
+              "starts.json gone (a new load): the count is 1 again, and the chip still says a key was made")
+        prepared()
+        with open("starts.json", "w") as f:
+            f.write("not json")
+        ui, on = start()
+        check(ui.starts == 1 and "At the bench: no key, start 1" in on, "a starts.json that doesn't read counts from 1")
+        full[0] = True
+        ui, on = start()
+        full[0] = False
+        check(ui.starts == 0 and "No key yet. Starts not counted" in on and not any(t.startswith("New") for t in on),
+              "a count that can't be written is said as not counted, never as a first start")
+        fresh_chip("608c")
+        no_files()
+        ui, on = start()
+        check(ui.starts is None and read("starts.json") is None, "a chip the bench never prepared: Not prepared, nothing counted")
+    finally:
+        fonts.text = text0
 
 
 def case_prepare():
@@ -1148,7 +1225,7 @@ def main_rp():
         f.write('BOARD = "console-rp"\n')
     for m in ("board", "lcd", "splash", "bootmark"):
         sys.modules.pop(m, None)
-    for case in (case_own_key_gate, case_own_key, case_prepare):
+    for case in (case_own_key_gate, case_own_key, case_own_key_starts, case_prepare):
         print("--", case.__name__[5:])
         try:
             case()

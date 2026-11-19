@@ -178,7 +178,7 @@ uv run --no-project --with littlefs-python==0.19.0 python hardware/console-rp/be
 **This is the first permanent step.** `prepare-rp` writes the chip's config and locks it, and that
 lock can't be undone ([docs/LOCKING.md](../../../docs/LOCKING.md)). It is
 [SETUP.md](../../console-rp/SETUP.md)'s "At the bench", steps 1 to 3, as written there: prepare,
-dump, then the console's image again, which now comes up on "Your key: No key yet".
+dump, then the console's image again, which now comes up on "Your key", ■ Make.
 
 Take one board through it, then make a key on it and replace it, without sealing, as console-rp's
 boards #1 and #3 did. That is the first time a Mono's chip makes a key. Prepare the rest after that.

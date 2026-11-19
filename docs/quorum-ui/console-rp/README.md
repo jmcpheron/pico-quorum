@@ -129,7 +129,7 @@ The owner address in full.
 
 ### key make
 
-The key, at the first start: K0 has read the chip (no key in slot 0, counter 0 at 0) and that locks in. D2 ▲ Make: the chip makes a key inside itself. The picture is random bytes, not a key.
+The key, at the first start after a load, which is the bench's: K0 has read the chip (no key in slot 0, counter 0 at 0) and that locks in. D0 ■ Make: the chip makes a key inside itself. The picture is random bytes, not a key.
 
 ![20-key-make](20-key-make.png)
 
@@ -141,7 +141,7 @@ Make: the chip at work, a light running round its legs and hex flickering in its
 
 ### key pick
 
-A key: its owner address's blockie and two ends, landed after a shuffle, locking in. D0 ■ Replace makes another in its place: the chip holds one key, so the one passed over is gone. D1 ● Full; D2 ▲ Seal.
+A key: its owner address's blockie and two ends, landed after a shuffle, locking in. D0 ■ Replace, the button Make was on, makes another in its place: the chip holds one key, so the one passed over is gone. D1 ● Full; D2 ▲ Seal.
 
 ![22-key-pick](22-key-pick.png)
 
@@ -204,3 +204,15 @@ The same chip with no keyflow.json: sealed elsewhere. Nothing here locks or pins
 A factory chip: never prepared at the bench. Nothing here can change it.
 
 ![32-key-not-prepared](32-key-not-prepared.png)
+
+### key make new
+
+The second start after a load, the first since the bench: new. The count of starts is a file (starts.json); the USB-C can't write it.
+
+![33-key-make-new](33-key-make-new.png)
+
+### key make started
+
+A third start, with no key made: it was started once before this, and the page says so.
+
+![34-key-make-started](34-key-make-started.png)
