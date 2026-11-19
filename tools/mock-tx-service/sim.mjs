@@ -336,6 +336,6 @@ export function apiList(st, q) {
   if (q.has("nonce__gte")) r = r.filter((t) => Number(t.nonce) >= Number(q.get("nonce__gte")));
   if (q.has("nonce")) r = r.filter((t) => Number(t.nonce) === Number(q.get("nonce")));
   r = [...r].sort((a, b) => (q.get("ordering") === "-nonce" ? -1 : 1) * (Number(a.nonce) - Number(b.nonce)));
-  const limit = Number(q.get("limit") || 20);
-  return { count: r.length, next: null, previous: null, results: r.slice(0, limit).map((t) => apiTx(st, t)) };
+  const limit = Number(q.get("limit") || 20), offset = Number(q.get("offset") || 0);
+  return { count: r.length, next: null, previous: null, results: r.slice(offset, offset + limit).map((t) => apiTx(st, t)) };
 }

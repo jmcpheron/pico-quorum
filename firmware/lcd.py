@@ -210,6 +210,15 @@ class Keys:
             return self.knob.held()
         return self.pins[k].value() == self.down[k]
 
+    def down_now(self):
+        """The keys down now, one bit each (the knob aside): one going down stops a poll (quorum.turning)."""
+        n, b = 0, 1
+        for k, p in self.pins.items():
+            if p.value() == self.down[k]:
+                n |= b
+            b <<= 1
+        return n
+
 
 class BandLCD(LCD):
     """LCD for board.BANDS > 1: every call takes screen coordinates and lands in the current band.

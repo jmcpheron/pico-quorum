@@ -67,7 +67,8 @@ class Service:
                 e, self.fail_pending = self.fail_pending, None
                 raise e
             limit = int(url.split("limit=")[1].split("&")[0]) if "limit=" in url else 10
-            return Resp(200, {"count": len(txs), "results": txs[:limit]})
+            at = int(url.split("offset=")[1].split("&")[0]) if "offset=" in url else 0
+            return Resp(200, {"count": len(txs), "results": txs[at:at + limit]})
         if "/safes/" in url:
             return Resp(200, info)
         return Resp(404, {})
@@ -131,6 +132,80 @@ class Timer:
 SVC = Service()
 
 
+class Relay:
+    """The computer on console-rp's UART1 (link.py), as the port link.start takes: it answers each
+    request from SVC as tools/relay would, and does to the next answers whatever a test puts in
+    faults (each a function of the request -> the raw lines to send instead). Every line the
+    console wrote is kept, as text."""
+
+    def __init__(self):
+        self.inq = b""
+        self.part = b""         # a line written in pieces (link._write: head, then the rest), so far
+        self.wrote = []
+        self.reqs = []
+        self.faults = []
+        self.max = None         # the longest answer sent, as hello's link.max tells the real relays
+
+    def any(self):
+        return len(self.inq)
+
+    def readinto(self, mv):
+        n = min(len(mv), len(self.inq))
+        mv[0:n] = self.inq[:n]
+        self.inq = self.inq[n:]
+        return n
+
+    def raw(self, b):
+        self.inq += (b.encode() if isinstance(b, str) else b) + b"\n"
+
+    def hi(self):
+        self.raw('{"t":"hi"}')
+
+    def write(self, b, off=0, n=None):
+        b = (b.encode() if isinstance(b, str) else bytes(b))[off:None if n is None else off + n]
+        self.part += b
+        *lines, self.part = self.part.split(b"\n")
+        for line in lines:
+            self.wrote.append(line.decode())
+            try:
+                m = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(m, dict) and m.get("t") == "req":
+                self.reqs.append(m)
+                for out in (self.faults.pop(0)(m) if self.faults else [self.res(m)]):
+                    self.raw(out)
+        return len(b)
+
+    def res(self, m, body=None, status=None):
+        """The answer SVC gives to m, as the relay sends it."""
+        if body is None:
+            try:
+                r = SVC.get(m["url"]) if m["m"] == "GET" else SVC.post(m["url"], json=json.loads(m.get("body", "null")))
+            except Exception as e:
+                return json.dumps({"t": "res", "id": m["id"], "status": 0, "err": repr(e)})
+            status, body = r.status_code, r.content.decode()
+        line = json.dumps({"t": "res", "id": m["id"], "status": 200 if status is None else status, "body": body})
+        if self.max and len(line) > self.max:
+            return json.dumps({"t": "res", "id": m["id"], "status": 0, "err": "answer too big: %d bytes" % len(line)})
+        return line
+
+    def sent(self, t):
+        """The lines of kind t ("req", "log", or "pq" for usblink's answers) the console wrote."""
+        out = []
+        for w in self.wrote:
+            try:
+                m = json.loads(w)
+            except ValueError:
+                continue
+            if m.get("t") == t or (t == "pq" and "pq" in m):
+                out.append(m)
+        return out
+
+
+RELAY = [None]          # fresh's Relay on console-rp: serve() has it say hi before each poll
+
+
 # ----------------------------------------------------------------------------- setup
 def chip(legacy=True, lock0=True, counter=0):
     """The virtual chip: chip #1's test table with a fresh key in slot 0 (and slot 2), slot 0 locked."""
@@ -151,8 +226,10 @@ def owner_of(slot):
     return webauthn.owner_address("0x%064x" % x, "0x%064x" % y, quorum_cfg.CFG["signer"])
 
 
-def fresh(prod=True, url="https://api.safe.global/tx-service/basesep", expect="auto", extra="", safe=True, keep=False):
-    """A newly imported console with this secrets.py (and build.py when prod), started, not polled."""
+def fresh(prod=True, url="https://api.safe.global/tx-service/basesep", expect="auto", extra="", safe=True, keep=False, relay=None,
+          clock=None):
+    """A newly imported console with this secrets.py (and build.py when prod), started, not polled.
+    On console-rp its way out is link.py, on a Relay (relay, or a new one): RELAY[0]."""
     lines = ['WIFI_SSID = "emulator"', 'WIFI_PASS = ""', 'HOSTNAME = "emu"',
              'QUORUM_API_KEY = "test-key"', "ALLOW_LOCK = True", "ALLOW_GENKEY = True", "ALLOW_SOFT_KEY = True"]
     if url:
@@ -165,15 +242,17 @@ def fresh(prod=True, url="https://api.safe.global/tx-service/basesep", expect="a
         lines.append("QUORUM_EXPECT = " + json.dumps(expect).replace("true", "True").replace("false", "False"))
     with open("secrets.py", "w") as f:
         f.write("\n".join(lines) + "\n" + extra + "\n")
+    import board
+    rp = board.BOARD == "console-rp"
     if prod:
         with open("build.py", "w") as f:
-            f.write('IMAGE = "console"\nBUILD = "test"\nDATE = 1790000000\n')
+            f.write('IMAGE = "%s"\nBUILD = "test"\nDATE = 1790000000\n' % ("console-rp" if rp else "console"))
     else:
         try:
             os.remove("build.py")
         except OSError:
             pass
-    for m in ("secrets", "build", "image", "quorum", "signer", "net", "txservice", "atecc", "qlog", "watch"):
+    for m in ("secrets", "build", "image", "quorum", "signer", "net", "link", "txservice", "atecc", "qlog", "watch"):
         sys.modules.pop(m, None)
     for f in os.listdir():
         if not keep and (f.startswith("counter-") or f in ("slot.txt", "safes.json")):
@@ -182,7 +261,20 @@ def fresh(prod=True, url="https://api.safe.global/tx-service/basesep", expect="a
     txservice.requests = SVC
     import quorum as Q
     Q.start_timer = lambda: None
-    Q.time = Clock()
+    Q.time = clock or Clock()
+    RELAY[0] = None
+    if rp:
+        import link
+        import qlog
+        RELAY[0] = relay = relay or Relay()
+        link.time = Q.time
+        link.start(port=relay)
+        qlog.TAP = link.log
+        relay.hi()                      # a relay already running: start() hears it
+        Q.NET = Q.VIA = link
+    else:
+        import net
+        Q.NET = net
     Q.start()
     Q.keys = Keys()
     Q.timer = Timer()
@@ -211,6 +303,8 @@ def serve(Q, txs, owners=None, threshold=2, version="1.4.1"):
     SVC.info = {"address": SAFE, "nonce": 0, "threshold": threshold, "version": version,
                 "owners": owners if owners is not None else [Q.me, ALICE, BOB]}
     SVC.txs = txs
+    if RELAY[0]:
+        RELAY[0].hi()
     Q.last_poll = 0
     Q.WATCH[0]["need_info"] = True
     Q.net_work()
@@ -405,7 +499,9 @@ def case_service():
     SVC.txs = [tx(Q, n) for n in range(10)]
     SVC.fail_pending = MemoryError()
     Q.net_work()
-    check(Q.truncated and len(Q.queue) == 3, "out of memory on the queue: the first 3 are shown, and it says so")
+    asked = [c[1] for c in SVC.calls if "/multisig-transactions/" in c[1]]
+    check(len(Q.queue) == 10 and [e["n"] for e in Q.queue] == list(range(10)) and not any(e["why"] for e in Q.queue)
+          and "offset=3" in asked[-3] and "offset=9" in asked[-1], "out of memory on the queue: read 3 at a time, all 10 listed")
 
 
 def case_owners_pages():
@@ -506,9 +602,101 @@ def case_production():
         Q.tick(None)
     Q.U.draw = bad
     check(Q.state == "crashed", "20 failed ticks in a row: the crashed screen")
-    check(Q.can_sign(Q.queue[0])[0] and Q.state == "crashed", "(the queue is still there, but the crashed state never reaches review)")
+    at = [l for l in open("log.txt").read().split("\n") if "  at " in l and "in tick" in l]
+    check(len(at) == 1 and "console_test.py:" in at[-1] and "quorum.py:" in at[-1],
+          "the first failure's frames in the log, once: %s" % (at[-1][-70:] if at else "none"))
+    check(not Q.queue and not Q.W["cache"] and Q.state == "crashed",
+          "the queue and its cache dropped, so the crashed screen has room to draw; nothing to review")
     Q.handle("A")
     check(Q.state == "crashed", "A does nothing on the crashed screen")
+
+
+class FlipClock(Clock):
+    """A Clock that puts the virtual chip back on the bus at the console's first wait of `at` ms."""
+
+    def __init__(self, at):
+        Clock.__init__(self)
+        self.at = at
+
+    def sleep_ms(self, ms):
+        if ms == self.at:
+            atecc_sim.present = True
+        Clock.sleep_ms(self, ms)
+
+
+def logged_after(mark):
+    """What the console logged after mark (log.1.txt, then log.txt: a rotation can split them)."""
+    text = ""
+    for name in ("log.1.txt", "log.txt"):
+        try:
+            with open(name) as f:
+                text += f.read()
+        except OSError:
+            pass
+    return text.rsplit(mark, 1)[-1]
+
+
+def log_mark(name):
+    import time
+    mark = "-- test mark %s %d" % (name, time.ticks_ms())
+    with open("log.txt", "a") as f:
+        f.write(mark + "\n")
+    return mark
+
+
+def case_nochip():
+    """A start that finds no chip clocks the bus free and looks again, past the 608's watchdog, and
+    logs why each time (board #2, 2026-11-10: one start in 100 found none, the next found it). No
+    chip looks again by itself every 30 s; Not pinned never does: each look there reads the key."""
+    chip()
+    fresh()
+    uses = atecc_sim.chip().counters[0]     # what a plain start costs
+    chip()
+    mark = log_mark("flip")
+    atecc_sim.present = False
+    try:
+        Q = fresh(clock=FlipClock(1500))
+    finally:
+        atecc_sim.present = True
+    log = logged_after(mark)
+    check(Q.NOCHIP_GAP_MS == 1500 and Q.state == "home" and Q.sig.name == "atecc608" and Q.pin_ok,
+          "a start whose first look finds no chip looks again 1.5 s on, finds it, and comes up pinned")
+    check("no chip, look 1 of 4: nothing answers on I2C0; scan empty; SDA high" in log and "chip found on look 2 of 4" in log,
+          "it logs the miss, why, the bus, and the look that found it")
+    check(atecc_sim.chip().counters[0] == uses, "the same uses of the key as a plain start: a miss reads nothing")
+    mark = log_mark("none")
+    atecc_sim.present = False
+    try:
+        Q = fresh()
+        log = logged_after(mark)
+        check(Q.state == "nochip" and Q.time.now - 100000 >= 3 * Q.NOCHIP_GAP_MS, "no chip at all: four looks, 1.5 s apart, then No chip")
+        check(all("no chip, look %d of 4" % i in log for i in (1, 2, 3, 4)), "each look is logged")
+        Q.keys.pressed = lambda: []
+        atecc_sim.present = True
+        Q.time.now += Q.NOCHIP_EVERY_MS - 1000
+        Q.tick(None)
+        check(Q.state == "nochip", "back on the bus: No chip doesn't look before its 30 s")
+        Q.time.now += 2000
+        Q.tick(None)
+        check(Q.state == "home" and Q.pin_ok, "30 s on it looks by itself, finds the chip and comes up pinned")
+    finally:
+        atecc_sim.present = True
+    Q = fresh(expect={"serial": "0123ffffffffffffff", "slot": 0, "owner": owner_of(0), "locked": True})
+    n = list(atecc_sim.chip().counters)
+    ops = []
+    real = atecc_sim.Chip.execute
+
+    def spy(self, op, p1, p2, data):
+        ops.append(op)
+        return real(self, op, p1, p2, data)
+    atecc_sim.Chip.execute = spy
+    try:
+        Q.keys.pressed = lambda: []
+        Q.time.now += 3 * Q.NOCHIP_EVERY_MS
+        Q.tick(None)
+    finally:
+        atecc_sim.Chip.execute = real
+    check(Q.state == "pinfail" and not ops and atecc_sim.chip().counters == n, "Not pinned never looks by itself: nothing asked of the chip")
 
 
 def case_chips():
@@ -557,6 +745,75 @@ def case_multi():
     check(Q.state == "pinfail" and "owner" in Q.pin_why, "its entry with the wrong owner: refused all the same")
 
 
+def case_memory():
+    """Board #2, 2026-11-11, nine queued on a 2 of 2: the console ran out of memory between the chip's
+    signature and the service. An entry keeps only its hash's fields. No room in one piece: the key is
+    not used. A signature that can't be saved for memory is still held for A. A 201 marks the row at
+    once, a saved one sent after a restart too, and the highlight goes on to the next one waiting."""
+    chip()
+    Q = fresh()
+    a, b, c = tx(Q, 0, value=1, conf=[ALICE]), tx(Q, 1, value=2, conf=[ALICE]), tx(Q, 2, value=3, conf=[ALICE])
+    serve(Q, [a, b, c])
+    e = Q.queue[0]
+    check("t" not in e and e["f"] == Q.signed_fields(a) and e["conf"] == [ALICE.lower()],
+          "an entry keeps the fields its hash covers, not the service's whole transaction")
+
+    calls = []
+    real_sign = Q.sig.sign
+    Q.sig.sign = lambda d: calls.append(1) or real_sign(d)
+    c0 = Q.read_counter()
+    Q.SIGN_ROOM = 1 << 30
+    try:
+        posted = sign(Q, e, 2100)
+    finally:
+        Q.SIGN_ROOM = 4096
+    check(not posted and not calls and Q.read_counter() == c0 and Q.state == "result" and not Q.result[0]
+          and "The key was not used." in Q.result[2] and Q.reset_at and not Q.unsent,
+          "no room in one piece before signing: the chip is never asked, nothing posted, and a restart is set")
+    Q.reset_at = 0
+
+    import builtins
+    real_post = SVC.post
+    try:
+        SVC.post = lambda url, json=None, headers=None, timeout=None: (_ for _ in ()).throw(OSError(12))
+        Q.open = lambda *x, **k: (_ for _ in ()).throw(MemoryError("memory allocation failed"))   # quorum's files only
+        posted = sign(Q, e, 2100)
+    finally:
+        SVC.post, Q.open = real_post, builtins.open
+    check(not posted and len(calls) == 1 and Q.result[1] == "Not sent" and Q.unsent and Q.unsent[0] is e,
+          "the service unreachable and the save failing for memory: Not sent, the signature held")
+    n = len(SVC.posted)
+    Q.handle(Q.SIGN)
+    check(len(SVC.posted) == n + 1 and len(calls) == 1 and Q.result[0] and not Q.unsent and Q.signed_by_me(e),
+          "A sends the held signature, with no new use of the key, and the row is marked at once")
+    Q.handle(Q.SIGN)
+    check(Q.state == "home" and Q.sel == 1, "OK: home, the highlight on the next one that waits (#1)")
+    check(isinstance(Q._room, bytearray) and len(Q._room) == Q.SIGN_ROOM, "the signing room is set aside again after it")
+    held = Q._room
+    posted = sign(Q, Q.queue[1], 2100)
+    check(posted and Q._room is not held and len(Q._room) == Q.SIGN_ROOM,
+          "a signature hands the room over before the chip signs, and takes it again after")
+    Q.handle(Q.SIGN)
+
+    marked = Q.signed_by_me(Q.queue[1])
+    check(posted and marked and Q.sel == 2 and len(calls) == 2, "signed #1: marked, the highlight on #2")
+    Q.open_entry(Q.queue[2])
+    Q.reject()
+    check(Q.state == "home" and Q.sel == 2, "#2 rejected and nothing else waits: the highlight stays")
+
+    SVC.post = lambda url, json=None, headers=None, timeout=None: (_ for _ in ()).throw(OSError(12))
+    try:
+        posted = sign(Q, Q.queue[2], 2100)
+    finally:
+        SVC.post = real_post
+    kept = "unsent.json" in os.listdir()
+    Q = fresh(keep=True)                    # a restart: the service still lists only Alice for #2
+    serve(Q, [a, b, c])
+    check(kept and not posted and SVC.posted and c["safeTxHash"] in SVC.posted[-1][0] and Q.signed_by_me(Q.queue[2])
+          and not Q.waiting(Q.queue[2]),
+          "a saved signature sent after a restart marks its row: it is not offered again")
+
+
 def case_unsent():
     """A signature the service did not take survives a restart and goes out after the next boot;
     a lost HTTPS reserve restarts the console, but only on home."""
@@ -599,6 +856,181 @@ def case_unsent():
     Q._busy = False
     Q.tick(None)
     check(resets == [1] and "restart" in open("log.txt").read(), "back on home: the console restarts, and says why in log.txt")
+
+    # A heap in pieces (no PROBE_B bytes in one piece, after a collect) is only logged. Real work
+    # failing for memory (short) restarts: STARVED_N failures with no whole poll between, on home or
+    # a result, never in a review, never before STARVED_UP_MS up, and MEM_MAX times in a row at most
+    time = Q.time                           # quorum's clock here (Clock): every tick reads it
+    Q.svc.lost = False
+    if "mem-restarts.txt" in os.listdir():
+        os.remove("mem-restarts.txt")
+
+    def ticks(n, b=2048, state=None):
+        Q.PROBE_B = b
+        for _ in range(n):
+            if state:
+                Q.state = state
+            Q.probe_t = time.ticks_add(time.ticks_ms(), -Q.PROBE_MS)
+            Q.last_poll = time.ticks_ms()   # no poll in these ticks
+            Q._busy = False
+            Q.tick(None)
+        Q.PROBE_B = 2048
+    del resets[:]
+    Q.STARVED_UP_MS, Q.up_long, Q.starved, Q.pieces, Q.mem_n = 0, False, 0, None, None
+    Q.started = time.ticks_ms()
+    ticks(10, 1 << 30, "home")
+    pieces = open("log.txt").read()
+    ticks(1, 64)
+    check(not resets and pieces.count("heap: no 1073741824 bytes in one piece (largest ") == 1
+          and "heap: 64 bytes in one piece again, after " in open("log.txt").read(),
+          "a heap in pieces: logged once, with its largest piece, and again once whole; no restart for it")
+    for _ in range(Q.STARVED_N - 1):
+        Q.short("a test")
+    ticks(2, state="home")
+    early = list(resets)
+    Q.short("a test")
+    Q.open_entry(Q.queue[0])
+    ticks(3)
+    in_review = list(resets)
+    ticks(1, state="result")
+    log = open("log.txt").read()
+    check(not early and not in_review and resets == [1] and "memory: a test failed (largest piece " in log
+          and "restart: %d memory failures" % Q.STARVED_N in log and open("mem-restarts.txt").read() == "1",
+          "%d memory failures in real work: no restart before them, none in a review, then one, and log.txt says why"
+          % Q.STARVED_N)
+    Q.state, Q.mem_n = "home", None         # the next start
+    serve(Q, [t])
+    check(Q.starved == 0 and "mem-restarts.txt" not in os.listdir(),
+          "a whole poll starts both counts again: the failures, and the restarts in a row")
+    with open("mem-restarts.txt", "w") as f:
+        f.write(str(Q.MEM_MAX))
+    Q.mem_n = None                          # a start after MEM_MAX of them
+    del resets[:]
+    for _ in range(Q.STARVED_N):
+        Q.short("a test")
+    ticks(3, state="home")
+    check(not resets and "memory: no restart, %d in a row already" % Q.MEM_MAX in open("log.txt").read(),
+          "after %d memory restarts in a row with no whole poll: no more (a transaction too big for this heap, say)" % Q.MEM_MAX)
+    os.remove("mem-restarts.txt")
+    del resets[:]
+    Q.STARVED_UP_MS, Q.up_long, Q.starved, Q.mem_n = 10 ** 9, False, 0, None
+    Q.started = time.ticks_ms()
+    for _ in range(Q.STARVED_N * 3):
+        Q.short("a test")
+    ticks(3, state="result")
+    check(not resets, "the same just after a start: no restart (no loop of restarts)")
+    Q.STARVED_UP_MS, Q.starved = 600000, 0
+    SVC.info["nonce"], Q.WATCH[0]["fit"] = 0, None
+    SVC.txs = [tx(Q, n) for n in range(10)]
+    real_pending = Q.svc.pending
+
+    def nomem(nonce, limit=10, at=0):
+        raise MemoryError("memory allocation failed, allocating 1336 bytes")
+    Q.svc.pending = nomem
+    Q.last_poll, Q.WATCH[0]["need_info"] = 0, True
+    try:
+        Q.net_work()
+    finally:
+        Q.svc.pending = real_pending
+    check(Q.starved == 1 and len(Q.queue) == 10 and all("low memory" in e["r"]["summary"] for e in Q.queue),
+          "a poll that read none of its queue for memory: each row says so, and the poll counts once")
+    Q.starved = 0
+
+    # A queue too long at once, read in pieces: later polls go straight to pieces, until the nonce moves
+    Q.WATCH[0]["fit"] = None
+    SVC.fail_pending = MemoryError()
+    Q.last_poll, Q.WATCH[0]["need_info"] = 0, True
+    Q.net_work()
+    first = [c[1] for c in SVC.calls if "/multisig-transactions/" in c[1]]
+    del SVC.calls[:]
+    Q.last_poll, Q.WATCH[0]["need_info"] = 0, True
+    Q.net_work()
+    second = [c[1] for c in SVC.calls if "/multisig-transactions/" in c[1]]
+    del SVC.calls[:]
+    SVC.info["nonce"], SVC.txs = 1, SVC.txs[1:]
+    Q.last_poll, Q.WATCH[0]["need_info"] = 0, True
+    Q.net_work()
+    moved = [c[1] for c in SVC.calls if "/multisig-transactions/" in c[1]]
+    check("limit=10" in first[0] and len(Q.queue) == 9 and second and not any("limit=10" in u for u in second)
+          and "limit=10" in moved[0],
+          "the whole queue didn't fit: the next poll asks in pieces only; once the nonce moves, for all of it again")
+
+    # A screen that only shows, left alone: back to home after BROWSE_IDLE_MS, where it polls. Not a review
+    Q.state, Q.svc.lost = "review", False
+    Q.open_entry(Q.queue[0])
+    Q.last_key = time.ticks_add(time.ticks_ms(), -Q.BROWSE_IDLE_MS - 1000)
+    Q._busy = False
+    Q.tick(None)
+    stayed = Q.state == "review"
+    went = []
+    for s in Q.BROWSE:
+        Q.state = s
+        Q.last_key = time.ticks_add(time.ticks_ms(), -Q.BROWSE_IDLE_MS + 60000)
+        Q._busy = False
+        Q.tick(None)
+        kept = Q.state == s
+        Q.last_key = time.ticks_add(time.ticks_ms(), -Q.BROWSE_IDLE_MS - 1000)
+        Q._busy = False
+        Q.tick(None)
+        went.append(kept and Q.state in ("home", "saver"))
+    check(stayed and all(went), "%s: kept a minute after a key, home after %d s alone; a review stays" % ("/".join(Q.BROWSE), Q.BROWSE_IDLE_MS // 1000))
+
+
+def case_retry_files():
+    """Board #2, 2026-11-11: files a heap in pieces could not open. A count not saved is saved after
+    the next poll (else the next start shows uses of the key outside this console); a signature
+    rejected here and not dropped is never sent, and is dropped after the next poll or before a
+    restart."""
+    import builtins
+    chip()
+    Q = fresh()
+    a = tx(Q, 0, conf=[ALICE])
+    serve(Q, [a])
+
+    def failing(prefix):
+        def o(name, *x, **k):
+            if name.startswith(prefix):
+                raise MemoryError("memory allocation failed, allocating 1148 bytes")
+            return builtins.open(name, *x, **k)
+        return o
+    was = Q.stored_counter()
+    Q.open = failing("counter-")
+    try:
+        Q.store_counter(was + 5)
+    finally:
+        Q.open = builtins.open
+    unsaved = Q.counter_unsaved == was + 5 and Q.stored_counter() == was
+    serve(Q, [a])
+    check(unsaved and Q.counter_unsaved is None and Q.stored_counter() == was + 5,
+          "a count the file couldn't take for memory: saved after the next poll")
+    Q.store_counter(was)
+
+    real_post = SVC.post
+    SVC.post = lambda url, json=None, headers=None, timeout=None: (_ for _ in ()).throw(OSError(12))
+    try:
+        sign(Q, Q.queue[0], 2100)
+    finally:
+        SVC.post = real_post
+    kept = "unsent.json" in os.listdir()
+    Q.open_entry(Q.queue[0])
+    Q.open = failing("unsent")
+    try:
+        Q.reject()
+    finally:
+        Q.open = builtins.open
+    stale = Q.unsent_stale == a["safeTxHash"] and "unsent.json" in os.listdir() and not Q.unsent
+    n = len(SVC.posted)
+    Q.saved_checked = False                 # as at the first poll of a start: send_saved looks
+    serve(Q, [a])
+    check(kept and stale and len(SVC.posted) == n and "unsent.json" not in os.listdir() and Q.unsent_stale is None,
+          "a signature rejected here that couldn't be dropped for memory: never sent, and dropped at the next poll")
+    with open("unsent.json", "w") as f:
+        f.write('{"h": "%s", "n": 0, "sig": "0x00"}' % a["safeTxHash"])
+    Q.unsent_stale = a["safeTxHash"]
+    resets = []
+    Q.machine.reset = lambda: resets.append("unsent.json" in os.listdir())
+    Q.restart("restart: a test")
+    check(resets == [False], "a restart drops it first")
 
 
 def case_watchdog():
@@ -674,11 +1106,14 @@ def case_safes():
     check(sign(Q, by[7], 2100) and "/tx-service/eth/" in SVC.posted[-1][0], "its confirmation goes to Ethereum's service")
     Q.handle("A")
     check(Q.state == "home" and Q.rr == 1 and Q.last_poll == 0, "back on home: that Safe is asked about next, now")
+    mark = log_mark("eth down")
     SVC.safes[ETH_SAFE]["down"] = True
     Q.WATCH[1]["need_info"] = True
     Q.net_work()
     check(not Q.net_ok and "Vault" in Q.net_err and any(e["w"]["chain"] == CHAIN for e in Q.queue),
           "Ethereum's service down: said so by name, Base Sepolia's queue still shown")
+    at = [l for l in logged_after(mark).split("\n") if "  at " in l]    # this poll's, not an older case's (a rotation hid that)
+    check(len(at) == 1 and "txservice.py:" in at[0] and " in _get" in at[0], "where the poll failed, in the log: %s" % (at[-1][-70:] if at else "none"))
     SVC.safes[ETH_SAFE]["down"] = False
 
     # a signature the service did not take, for the second Safe, survives a restart and goes to its service
@@ -1150,14 +1585,21 @@ def case_three():
     rejects with one press on any review page, even during the hold, and goes back elsewhere; D1
     moves on and, held (D1L), moves back; D2 opens, walks the pages not yet seen, and held signs:
     2 s, 3 s when a page is red. Run in a device of its own (main_three): board.py is read once.
-    The same for PicoquorumKey (main_pqk): the Feather's buttons and screen on other pins. And for
-    the knob Feather (main_knob), where Boot is D0 and the knob's detents and push are D1, D1L, D2."""
+    The same for PicoQuorumKey (main_pqk): the Feather's buttons and screen on other pins. And for
+    the knob Feather (main_knob), where Boot is D0 and the knob's detents and push are D1, D1L, D2.
+    And for console-rp (main_rp): its buttons under the screen, named in a footer, and every call
+    to the service through the relay on UART1."""
     chip()
     Q = fresh(extra='BOARD = "%s"' % THREE_BOARD[0])
     if THREE_BOARD[0] == "feather-knob":
         import board
         check(board.DIAL and board.NAMES["D2"] == "push" and (board.SDA, board.SCL) == (42, 41),
               "the knob Feather: Boot and the knob as D0-D2, the key on 42/41")
+    if THREE_BOARD[0] == "console-rp":
+        import board
+        check(Q.U.SLOTS and not Q.U.RAIL and board.KEYS == {"D0": 2, "D1": 3, "D2": 6} and not board.HIGH
+              and (board.SDA, board.SCL, board.LINK) == (4, 5, (1, 20, 21)) and not board.RADIO and Q.NET.KIND == "link",
+              "console-rp: D0 D1 D2 on 2/3/6 pressed low, the key on 4/5, a footer, no rail, no radio, the link on UART1")
     check(Q.L.BOARD == THREE_BOARD[0] and Q.THREE and (Q.L.W, Q.L.H) == (240, 135) and Q.U.__name__ == "quorum_ui_s" and Q.PRESS == "D2",
           THREE_BOARD[0] + ": three buttons, 240x135, the small screens' UI")
     good, red = tx(Q, 0), tx(Q, 1, to=OTHER, data="0xdeadbeef")
@@ -1272,10 +1714,10 @@ def case_three():
     check(Q.state == "chip" and Q.chip_back == "home", "Device: D2 on Chip opens the chip pages")
     tick("D0")
     check(Q.state == "home" and Q.tab == 3, "D0: back on the Device tab")
-    for _ in range(3):
+    for _ in range(len(Q.DTAB) - 1):
         tick("D1")
     tick("D2")
-    check(Q.state == "device", "Device: D1 three times, D2: About, the device's facts")
+    check(Q.state == "device", "Device: D1 to the last row, D2: About, the device's facts")
     tick("D0")
     tick("D0")
     check(Q.state == "home" and Q.tab == 0, "D0: back on the tab; D0 again: round to Queue")
@@ -1294,44 +1736,49 @@ def case_three():
             fonts.text = real
         return out
 
-    rail = Q.U.RAIL
+    rail, foot = Q.U.RAIL, Q.U.FOOT if Q.U.SLOTS else Q.L.H
+
+    def edge(x, y):
+        """Where the buttons are named: left of the Feather's rail, or in console-rp's footer."""
+        return x < rail or y >= foot
+
     Q.msg = ""
     Q.open_entry(e)
     t = drawn()
-    left = [s for s, x, y, f in t if x < rail]
+    left = [s for s, x, y, f in t if edge(x, y)]
     check(left == ["Reject", "Next", "See %d" % len(Q.unseen())], "the rail on a review: Reject, Next, See %d" % len(Q.unseen()))
     while Q.unseen():
         Q.three("D1")
-    check([s for s, x, y, f in drawn() if x < rail] == ["Reject", "Next", "Sign"], "every page seen: Sign")
+    check([s for s, x, y, f in drawn() if edge(x, y)] == ["Reject", "Next", "Sign"], "every page seen: Sign")
     ok = True
     for p in range(len(Q.pages)):
         Q.page = p
         for s, x, y, f in drawn():
-            if y + fonts.height(f) > Q.L.H + 3 or (x < rail and s not in ("Reject", "Next", "Sign")):
+            if y + fonts.height(f) > Q.L.H + 3 or (edge(x, y) and s not in ("Reject", "Next", "Sign")):
                 ok = False
                 print("      page %d: %r at (%d, %d) in %s" % (p + 1, s, x, y, f))
-    check(ok, "every page of a review fits 240x135, and only the rail is drawn left of it")
+    check(ok, "every page of a review fits 240x135, and only the buttons' names are drawn by them")
     Q.state, Q.tab = "home", 0
-    check([s for s, x, y, f in drawn() if x < rail] == ["Tab", "Next", "Open"], "the rail on home: Tab, Next, Open")
+    check([s for s, x, y, f in drawn() if edge(x, y)] == ["Tab", "Next", "Open"], "the rail on home: Tab, Next, Open")
     ok = True
     for Q.tab in range(len(Q.TABS)):
         t = drawn()
         if not any(s.startswith("Queue") for s, x, y, f in t) or not any(s == "Device" for s, x, y, f in t):
             ok = False
         for s, x, y, f in t:
-            if y + fonts.height(f) > Q.L.H + 3 or x + fonts.width(s, f) > Q.L.W + 1 or (x < rail and s not in ("Tab", "Next", "Open")):
+            if y + fonts.height(f) > Q.L.H + 3 or x + fonts.width(s, f) > Q.L.W + 1 or (edge(x, y) and s not in ("Tab", "Next", "Open")):
                 ok = False
                 print("      tab %s: %r at (%d, %d) in %s" % (Q.TABS[Q.tab], s, x, y, f))
     Q.tab = 0
     check(ok, "each tab fits 240x135, the tabs along its top, only the rail left of it")
     Q.state = "pinfail"
-    t = [s for s, x, y, f in drawn() if x < rail]
+    t = [s for s, x, y, f in drawn() if edge(x, y)]
     check(t == ["Check"], "the rail on Not pinned: Check (%r)" % t)
 
     # The Key screen (docs/ONBOARDING.md): this key's owner address as a QR code, then in full
     def fits(where):
         bad = [(s, x, y) for s, x, y, f in drawn() if y + fonts.height(f) > Q.L.H + 3 or x + fonts.width(s, f) > Q.L.W
-               or (x < rail and s not in ("Back", "Full", "Code", "Next", "Open"))]
+               or (edge(x, y) and s not in ("Back", "Full", "Code", "Next", "Open"))]
         if bad:
             print("      %s: %r" % (where, bad[:3]))
         return not bad
@@ -1347,7 +1794,7 @@ def case_three():
           "D2 on Key: the app's set-up link (the compressed key), as a 37-module QR code")
     t = " ".join(s for s, x, y, f in t)
     check(Q.me[:6] in t and Q.me[-4:] in t and "not a wallet." in t, "beside it: the short owner address, and a signer, not a wallet")
-    check([s for s, x, y, f in drawn() if x < rail] == ["Back", "Full"] and fits("key code"), "the code page: rail Back, Full; it fits")
+    check([s for s, x, y, f in drawn() if edge(x, y)] == ["Back", "Full"] and fits("key code"), "the code page: rail Back, Full; it fits")
     tick("D1")
     t = " ".join(s for s, x, y, f in drawn())
     check(Q.kpage == 1 and Q.me[2:6] in t and "not a wallet" in t and fits("key full"),
@@ -1392,7 +1839,7 @@ def case_three():
         return out, t
 
     def clear(pics, t):
-        bad = [p for p in pics if p[1] < rail or p[1] + p[3] > Q.L.W or p[2] < Q.U.HEAD or p[2] + p[3] > Q.L.H]
+        bad = [p for p in pics if p[1] < rail or p[1] + p[3] > Q.L.W or p[2] < Q.U.HEAD or p[2] + p[3] > foot]
         for s, x, y, f in t:
             bad += [(s, p) for p in pics if x < p[1] + p[3] and p[1] < x + fonts.width(s, f) and y < p[2] + p[3] and p[2] < y + fonts.height(f)]
         return bad
@@ -1741,14 +2188,14 @@ def case_practice():
         check(Q.state == "unconfigured" and Q.prac is None, "back: where it came from")
         if three:
             Q.state, Q.tab, Q.dsel = "home", Q.TABS.index("device"), 0
-            tick("D1")
-            tick("D1")
+            for _ in range(Q.DTAB.index("practice")):      # its row: no Wi-Fi row on console-rp
+                tick("D1")
         else:
             Q.state, Q.dfoot = "device", "chip"
         tick("D2" if three else "X")
         back = "home" if three else "device"
         check(Q.state == "practice" and Q.prac_back == back,
-              "%s: %s opens the practice" % ("the Device tab" if three else "Device", "D1 D1 D2" if three else "X"))
+              "%s: %s opens the practice" % ("the Device tab" if three else "Device", "D1 to it, D2" if three else "X"))
         check(Q.link_ask("wifi", {"ssid": "x", "pass": ""}) and Q.incoming is None, "a USB ask waits while it is open")
         tick(BACK)
         check(Q.state == back, "back: " + ("the Device tab" if three else "Device"))
@@ -1762,6 +2209,536 @@ def case_practice():
           and not any(f.startswith("snapshot-") for f in os.listdir()),
           "the chip is as it was: config, keys, counters, OTP and data; no snapshot saved")
     check(Q.S.armed() == 0 and Q.S._armed_until is None, "the signer was never armed")
+
+
+def case_relay():
+    """console-rp's way out (link.py): every call to Safe's service goes as a line on UART1 to the
+    computer, which relays it to a pinned service and adds its own API key. What comes back is
+    untrusted, as the service is: each hostile answer ends refused or dropped, never signed, and
+    the console goes on. Nothing goes out but to a pinned service, and never the API key."""
+    import usblink
+    chip()
+    relay = Relay()
+    Q = fresh(relay=relay)
+    import link                         # fresh's own, imported anew
+    import qlog
+    base = "https://api.safe.global/tx-service/basesep"
+    check(Q.NET is link and Q.VIA is link and Q.svc.link and Q.svc.api_key is None and Q.svc.headers == {} and Q.svc.tls == "relay"
+          and link.up, "the console's way out is the link: no API key, no headers, no TLS here; the relay said hi at start")
+    check("network" not in sys.modules and "net" not in sys.modules and "vhttp" not in sys.modules and "wifisetup" not in sys.modules,
+          "no network, net, vhttp or wifisetup module was imported")
+    good, red = tx(Q, 0), tx(Q, 1, to=OTHER, data="0xdeadbeef")
+    serve(Q, [good, red])
+    reqs = relay.sent("req")
+    check(len(Q.queue) == 2 and Q.net_ok and len(reqs) >= 2 and all(r["url"].startswith(base + "/api/") and r["m"] == "GET" for r in reqs)
+          and any("/safes/" in r["url"] for r in reqs) and any("/multisig-transactions/" in r["url"] for r in reqs),
+          "polled through the relay: the Safe and its queue, GETs under the pinned base only")
+
+    # Signing: the confirmation is a POST through the relay, with the signature and nothing else
+    usblink.PORT, usblink.host, usblink.mode, usblink.time = link, Q, "console", Q.time
+    by = {e["n"]: e for e in Q.queue}
+    Q.open_entry(by[0])
+    for _ in range(40):
+        Q.three("D2")
+        if Q.state == "hold":
+            break
+    Q.keys.down.add("D2")
+    Q.time.now += 2000
+    Q.hold_tick()
+    Q.keys.down.discard("D2")
+    if Q.state == "hold":
+        Q.hold_tick()
+    post = [r for r in relay.sent("req") if r["m"] == "POST"]
+    check(len(SVC.posted) == 1 and len(post) == 1 and post[0]["url"] == base + "/api/v1/multisig-transactions/%s/confirmations/" % by[0]["h"]
+          and list(json.loads(post[0]["body"])) == ["signature"], "signed with D2 held: one POST through the relay, the signature only")
+    every = "\n".join(relay.wrote)
+    check("test-key" not in every and "Authorization" not in every and "Bearer" not in every,
+          "secrets.py's API key never goes down the link: the relay adds its own")
+    logs = relay.sent("log")
+    check(any("confirmed" in m["m"] or "signed" in m["m"] for m in logs) and all(len(m["m"]) <= link.LOG_LEN for m in logs),
+          "the log's lines go to the computer too, %d so far, each at most %d characters" % (len(logs), link.LOG_LEN))
+
+    def poll_with(*faults):
+        """One poll, the relay doing faults to the next answers. -> the requests it saw."""
+        n = len(relay.reqs)
+        relay.faults = list(faults)
+        relay.hi()
+        Q.last_poll = 0
+        Q.WATCH[0]["need_info"] = True
+        Q.net_work()
+        relay.faults = []
+        return relay.reqs[n:]
+
+    def stats():
+        return dict(link._stats)
+
+    # Garbage, NUL, bytes that aren't UTF-8, JSON that isn't ours: each dropped and counted
+    s0 = stats()
+    for junk in (b"\x00\x00\x00", b"\xff\xfe\x80{", b"hello there", b"[1, 2, 3]", b'{"t":"zzz"}', b"{not json", b'"a string"', b"\r"):
+        relay.raw(junk)
+    serve(Q, [good, red])
+    check(stats()["garbage"] - s0["garbage"] == 7 and len(Q.queue) == 2 and Q.net_ok,
+          "garbage, NULs, non-UTF-8 and foreign JSON: dropped and counted, the poll still good")
+
+    # A line longer than the buffer: dropped to its newline, the next line read whole
+    s0 = stats()
+    relay.raw(b'{"t":"hi","pad":"' + b"a" * (link.MAX_LINE + 5000) + b'"}')
+    serve(Q, [good, red])
+    check(stats()["overlong"] - s0["overlong"] == 1 and len(Q.queue) == 2 and Q.net_ok, "a line longer than %d bytes: dropped whole, the next read" % link.MAX_LINE)
+
+    # A MicroPython with no bytearray.find: the newlines found byte by byte, the same lines taken
+    had, link._FIND = link._FIND, False
+    s0 = stats()
+    relay.raw(b"hello there")
+    relay.raw(b'{"t":"hi","pad":"' + b"a" * (link.MAX_LINE + 5000) + b'"}')
+    serve(Q, [good, red])
+    link._FIND = had
+    check(had and stats()["garbage"] - s0["garbage"] == 1 and stats()["overlong"] - s0["overlong"] == 1 and len(Q.queue) == 2 and Q.net_ok,
+          "no bytearray.find: newlines found by the byte, garbage and an overlong line dropped, the poll good")
+
+    # An answer's body is read in place: its escapes undone in _line, a memoryview handed on, never a
+    # str the body's size (2.4 KB of them found no room on board #2, 2026-11-10)
+    def esc(t, slash=False):
+        """t as a JSON string literal, escaped the way CPython's json.dumps does (ensure_ascii)."""
+        o = ['"']
+        for ch in t:
+            c = ord(ch)
+            if ch in '"\\':
+                o.append("\\" + ch)
+            elif ch == "/" and slash:
+                o.append("\\/")
+            elif ch in "\b\f\n\r\t":
+                o.append("\\" + "bfnrt"["\b\f\n\r\t".index(ch)])
+            elif c < 0x20 or c > 0x7E:
+                if c > 0xFFFF:
+                    c -= 0x10000
+                    o.append("\\u%04x\\u%04x" % (0xD800 + (c >> 10), 0xDC00 + (c & 0x3FF)))
+                else:
+                    o.append("\\u%04x" % c)
+            else:
+                o.append(ch)
+        return "".join(o) + '"'
+
+    def take(line, want=7):
+        link._want, link._got = want, None
+        relay.raw(line)
+        link._take()
+        got = link._got
+        try:
+            return got and (type(got["body"]).__name__, json.loads(got["body"]))
+        finally:
+            link._want = link._got = None
+            link._take()
+
+    doc = {"s": 'q"b\\s/f\b\f\n\r\t\x01', "u": "\u00e9 \u20ac \U0001F600", "n": [1, 2.5, None, True, {"body": "x"}]}
+    for find in (True, False):
+        link._FIND = find
+        lines = ['{"t": "res", "id": 7, "status": 200, "body": %s}' % esc(json.dumps(doc)),
+                 '{"body":%s,"status":200,"id":7,"t":"res"}' % esc(json.dumps(doc), slash=True),
+                 '{"t":"res","note":"a \\"body\\": \\"x\\"","id":7,"status":200,"body":%s}' % esc(json.dumps(doc))]
+        got = [take(l) for l in lines]
+        check(all(g == ("memoryview", doc) for g in got),
+              "an answer's body read in place%s: every escape undone (quote, backslash, slash, b f n r t, \\u, a surrogate pair), "
+              "in three layouts, a decoy \\\"body\\\" passed over" % ("" if find else ", with no bytearray.find"))
+        s0 = stats()
+        bad = [take('{"t": "res", "id": 7, "status": 200, "body": "%s"}' % b) for b in ("\\ud800x", "\\udc00", "\\x", "a\\u12", "ab\\")]
+        check(not any(bad) and stats()["garbage"] - s0["garbage"] == 5,
+              "a lone surrogate, a bad escape, a short \\u, a body ending in a backslash: each dropped as garbage%s" % ("" if find else " (no find)"))
+    link._FIND = had
+    # the line after the answer, in the same read, waits: the body isn't written over before it is parsed
+    link._want, link._got = 7, None
+    relay.raw('{"t": "res", "id": 7, "status": 200, "body": %s}\n{"id": 61, "op": "hello"}' % esc(json.dumps(doc)))
+    link._take()
+    body_ok = link._got is not None and json.loads(link._got["body"]) == doc
+    link._want = link._got = None
+    link.pump()
+    usblink.poll()
+    link.pump()
+    check(body_ok and [m for m in relay.sent("pq") if m.get("id") == 61], "a line right behind the answer: kept until the answer is parsed, then answered")
+    # a 10 KB body: no block its size made to read it
+    import gc
+    big = json.dumps({"results": ["x" * 90 for _ in range(110)]})
+    link._want, link._got = 7, None
+    relay.inq += ('{"t": "res", "id": 7, "status": 200, "body": %s}' % esc(big)).encode()
+    link._take()                            # all of it but the newline (the fake relay's copies are its own)
+    relay.inq += b"\n"
+    gc.collect()
+    gc.disable()
+    a0 = gc.mem_alloc()
+    link._take()                            # the newline: the line handled
+    used = gc.mem_alloc() - a0
+    gc.enable()
+    ok = link._got is not None and bytes(link._got["body"]).decode() == big
+    link._want = link._got = None
+    link._take()
+    check(ok and used < 1024, "a %d-byte body read with %d bytes allocated" % (len(big), used))
+
+    # An answer nobody asked for, and a wrong id first: neither is taken
+    s0 = stats()
+    relay.raw(json.dumps({"t": "res", "id": 9999, "status": 200, "body": "{}"}))
+    link.pump()
+    forged = json.dumps({"count": 1, "results": [tx(Q, 0, to=OTHER, value=10**18)]})
+    wrong = lambda m: [json.dumps({"t": "res", "id": m["id"] + 7, "status": 200, "body": forged}), relay.res(m)]
+    poll_with(wrong, wrong)
+    check(stats()["unsolicited"] - s0["unsolicited"] == 1 and stats()["wrong_id"] - s0["wrong_id"] == 2 and len(Q.queue) == 2
+          and Q.queue[0]["h"] == good["safeTxHash"], "an unsolicited answer and a wrong id: dropped, the right answer used")
+
+    # The same id twice: the first stands, and the second is dropped. The link stops reading at the
+    # answer it waits for, so the second is read after the request has returned: no longer awaited
+    # (unsolicited), or not the next request's id (wrong id)
+    s0 = stats()
+    dup = lambda m: [relay.res(m), json.dumps({"t": "res", "id": m["id"], "status": 200, "body": forged})]
+    poll_with(dup, dup)
+    link.pump()                             # the second answer to the last request, still unread
+    late = sum(stats()[k] - s0[k] for k in ("dup", "wrong_id", "unsolicited"))
+    check(late == 2 and len(Q.queue) == 2 and Q.queue[0]["h"] == good["safeTxHash"],
+          "an answer sent twice: the first stands, the second dropped (%d)" % late)
+
+    # A truncated body, a deeply nested one, a status 0, a body that isn't text: the poll fails, nothing breaks
+    for name, f in (("truncated", lambda m: [relay.res(m, body='{"count": 1, "results": [{"safe": "0x5a')]),
+                    ("nested", lambda m: [relay.res(m, body="[" * 3000)]),
+                    ("status 0", lambda m: [json.dumps({"t": "res", "id": m["id"], "status": 0, "err": "upstream timeout"})]),
+                    ("not text", lambda m: [json.dumps({"t": "res", "id": m["id"], "status": 200, "body": 5})]),
+                    ("status as text", lambda m: [json.dumps({"t": "res", "id": m["id"], "status": "200", "body": "{}"})])):
+        n = len(SVC.posted)
+        poll_with(f, f)
+        st = Q.state
+        check(not Q.WATCH[0]["ok"] and Q.WATCH[0]["err"] and st not in ("crashed",) and len(SVC.posted) == n,
+              "%s: the poll fails (%s), the console goes on" % (name, Q.WATCH[0]["err"]))
+    poll_with()
+    check(Q.WATCH[0]["ok"] and len(Q.queue) == 2, "then a good answer: the Safe is back")
+    n = len(relay.reqs)
+    poll_with(lambda m: [relay.res(m)], lambda m: [relay.res(m, body="[" * 5000)])
+    asked = [r for r in relay.reqs[n:] if "/multisig-transactions/" in r["url"]]
+    check(not Q.WATCH[0]["ok"] and "nested" in Q.WATCH[0]["err"] and len(asked) == 1,
+          "a queue nested 5000 deep: refused before json.loads, not taken for one too long (%s)" % Q.WATCH[0]["err"])
+
+    # A queue longer than the console's line (link.MAX_LINE): the relay says so, the console reads it a
+    # few at a time, and one transaction too long even alone is refused in its place, the rest listed
+    import quorum_ui_s
+    relay.max = link.MAX_LINE
+    big = tx(Q, 1, data="0x" + "ab" * (link.MAX_LINE // 2))
+    n, p0 = len(relay.reqs), len(SVC.posted)
+    serve(Q, [good, big, tx(Q, 2), tx(Q, 3), tx(Q, 4)])
+    asked = [r["url"] for r in relay.reqs[n:] if "/multisig-transactions/" in r["url"]]
+    q = Q.WATCH[0]["queue"]
+    check(Q.WATCH[0]["ok"] and [e["n"] for e in q] == [0, -1, 2, 3, 4] and "too long" in q[1]["why"]
+          and quorum_ui_s.tag(q[1]) == "#?" and not Q.waiting(q[1]) and Q.waiting(q[0]) and not any(e["why"] for e in q if e is not q[1])
+          and any("limit=1&offset=1" in u for u in asked) and len(SVC.posted) == p0,
+          "one transaction past the line: the queue read 3 at a time, that one alone refused in its place (#?), the other 4 listed")
+    relay.max = None
+    serve(Q, [good, red])
+
+    # A relay that stops answering: the request gives up at the timeout, the watchdog fed past it
+    import watch
+    fed, real_extend = [], watch.extend
+    watch.extend = lambda ms: (fed.append(ms), real_extend(ms))
+    s0 = stats()
+    t0 = Q.time.now
+    poll_with(lambda m: [])
+    watch.extend = real_extend
+    check(stats()["timeouts"] - s0["timeouts"] == 1 and Q.time.now - t0 >= link.TIMEOUT_MS and not Q.WATCH[0]["ok"]
+          and link.TIMEOUT_MS + 5000 in fed and not link.up, "a relay that stops: the request gives up after %d ms, the watchdog extended "
+          "past it, and the link is down until it says hi" % link.TIMEOUT_MS)
+    n = len(relay.reqs)
+    Q.last_poll = 0
+    Q.net_work()
+    check(len(relay.reqs) == n and not Q.net_ok and "relay" in Q.net_err, "down: no request waits on nobody (%s)" % Q.net_err)
+    poll_with()
+    check(Q.net_ok and len(Q.queue) == 2, "it says hi again: polled")
+
+    # A forged queue through the relay: refused here, as from the service, and nothing posted. Through
+    # the console's own tick: D2 pressed, then held 5 s.
+    def tick(*pressed):
+        Q.keys.pressed = lambda: list(pressed)
+        Q._busy, Q.last_poll, Q.splash_until = False, Q.time.now, 0
+        Q.tick(None)
+    n = len(SVC.posted)
+    serve(Q, [tx(Q, 0, tamper=True), tx(Q, 1, safe=OTHER)])
+    refused = all(e["why"] for e in Q.queue)
+    states = set()
+    for e in Q.queue:
+        Q.open_entry(e)
+        for _ in range(10):
+            tick("D2")
+            states.add(Q.state)
+        Q.keys.down.add("D2")
+        for _ in range(50):
+            Q.time.now += 100
+            tick()
+            states.add(Q.state)
+        Q.keys.down.discard("D2")
+        Q.state = "home"
+    check(refused and len(Q.queue) == 2 and len(SVC.posted) == n and states == {"review"},
+          "a forged hash and another Safe's transaction through the relay: refused, D2 never starts a hold, nothing posted")
+
+    # A refusal is for the fields it was given. The real transaction after a forged one under its hash
+    # gets its own look; a checked one keeps its fields when forged ones come after it.
+    good = tx(Q, 0, value=5)
+    forged = dict(good, value=str(10 ** 18 + 5))
+    seen = []
+    for t in (forged, good, forged):
+        serve(Q, [t])
+        seen.append(Q.queue[0])
+    check(seen[0]["why"] and not seen[1]["why"] and seen[1]["mine"] == good["safeTxHash"] and seen[2] is seen[1]
+          and seen[2]["f"][Q.SIGNED.index("value")] == "5" and len(SVC.posted) == n,
+          "forged, then the real one under its hash: the real one checks out; forged again: the checked fields kept")
+
+    # Only a pinned service, in plain ASCII: anything else raises before a byte goes out
+    n = len(relay.wrote)
+    bad = [base + "olia/api/v1/safes/", base, "https://api.safe.global/tx-service/basesep@evil.example/api/",
+           base + "/../eth/api/v1/safes/", base + "/api/v1/safes/#x", base + "/api/v1/safes/ x", base + "/api\\v1",
+           base + "/api/v1/safes/\u00e9", base + "/api/" + "a" * link.MAX_URL, "https://evil.example/api/v1/safes/",
+           "http://api.safe.global/tx-service/basesep/api/v1/safes/", 5, None]
+    raised = 0
+    for u in bad:
+        try:
+            link.request("GET", u)
+        except link.LinkError:
+            raised += 1
+    try:
+        link.request("DELETE", base + "/api/v1/safes/")
+    except link.LinkError:
+        raised += 1
+    check(raised == len(bad) + 1 and len(relay.wrote) == n and not relay.part,
+          "off-pin, prefix tricks (basesepolia, @, ..), #, spaces, \\, non-ASCII, too long, plain http, DELETE: %d refused, nothing sent" % raised)
+    check(link.pinned(base + "/api/v1/safes/") and link.pinned("https://api.safe.global/tx-service/eth/api/v1/safes/"),
+          "the pinned bases themselves pass")
+
+    # The link's asks while a request waits: queued, then answered once it is done
+    def op_in(m):
+        return [json.dumps({"id": 41, "op": "hello"}), json.dumps({"id": 42, "op": "status"}), relay.res(m)]
+    poll_with(op_in)
+    usblink.poll()
+    link.pump()
+    pq = {m["id"]: m for m in relay.sent("pq") if m.get("id") in (41, 42)}
+    check(set(pq) == {41, 42} and pq[41]["link"]["max"] == link.MAX_LINE and pq[41]["image"] == "console-rp"
+          and "link" in pq[42] and "wifi" not in pq[42] and pq[42]["link"]["requests"] > 0,
+          "hello and status sent mid-request: queued, answered after; hello says the longest line, status the link's counts")
+
+    def op(d):
+        n = len(relay.wrote)
+        relay.raw(json.dumps(d))
+        link.pump()
+        usblink.poll()
+        link.pump()
+        out = [m for m in relay.sent("pq") if m.get("id") == d["id"]]
+        return out[-1] if out else None
+
+    a = op({"id": 51, "op": "wifi", "ssid": "x", "password": "hunter2hunter2"})
+    b = op({"id": 52, "op": "maint"})
+    check(a and not a["ok"] and b and not b["ok"] and "wifi.json" not in os.listdir() and "maint" not in os.listdir() and Q.ask is None,
+          "the wifi and maint asks: refused on console-rp, nothing written")
+    Q.open_entry(Q.queue[0])
+    c = op({"id": 53, "op": "safes", "safes": [{"chainId": CHAIN, "address": SAFE, "name": "x"}]})
+    Q.tick(None)
+    check(c and not c["ok"] and "busy" in c.get("why", "") and Q.state == "review", "a safes ask during a review: busy, the review stays")
+    Q.state = "home"
+    usblink.open_ask = None
+
+    # The log copy never blocks: past LOGS waiting, the oldest goes
+    s0 = stats()
+    for i in range(link.LOGS + 5):
+        qlog.write("line %d" % i)
+    link.pump()
+    check(stats()["dropped_logs"] - s0["dropped_logs"] == 5 and relay.sent("log")[-1]["m"].endswith("line %d" % (link.LOGS + 4)),
+          "%d log lines at once: the last %d go out, the oldest 5 dropped and counted" % (link.LOGS + 5, link.LOGS))
+    # A status answer goes out with no copy of itself: json.dumps makes the line once, and the link
+    # writes it as it is (on board #2 six copies of 1 KB each found no room, 2026-11-10)
+    class Sink:
+        n = 0
+
+        def any(self):
+            return 0
+
+        def write(self, b, off=0, n=None):
+            self.n += len(b) - off
+            return len(b) - off
+    import gc
+    relay.raw(json.dumps({"id": 54, "op": "status"}))
+    link.pump()
+    had, sink = link._u, Sink()
+    link._u = sink
+    gc.collect()
+    gc.disable()
+    a0 = gc.mem_alloc()
+    usblink.dumps = json.dumps(Q.link_status())        # what the answer's fields cost to gather and dump
+    a1 = gc.mem_alloc()
+    usblink.poll()
+    link.pump()
+    a2 = gc.mem_alloc()
+    gc.enable()
+    del usblink.dumps
+    link._u = had
+    made, sent = a1 - a0, a2 - a1
+    check(sink.n > 500 and sent < made + sink.n,
+          "a status answer of %d bytes: %d bytes allocated to answer, %d to gather and dump its fields: no copy of the line" % (sink.n, sent, made))
+    every = "\n".join(relay.wrote)
+    check("test-key" not in every and "hunter2" not in every, "no API key, and not the password the wifi ask carried, in any line out")
+
+    # A base that isn't pinned (secrets.QUORUM_URL): the console polls nothing, and nothing goes out
+    relay = Relay()
+    Q = fresh(url="https://evil.example/tx-service", relay=relay)
+    serve(Q, [tx(Q, 0)])
+    check(not relay.sent("req") and not Q.net_ok and "pinned" in Q.WATCH[0]["err"],
+          "a QUORUM_URL off the pin: no request goes out (%s)" % Q.WATCH[0]["err"])
+    relay = Relay()
+    Q = fresh(url="http://127.0.0.1:8787", relay=relay)
+    serve(Q, [tx(Q, 0)])
+    check(not relay.sent("req") and not Q.net_ok, "the laptop's mock in QUORUM_URL, on a production image: refused too")
+    relay = Relay()
+    Q = fresh(prod=False, url="http://127.0.0.1:8787", relay=relay)
+    serve(Q, [tx(Q, 0)])
+    check(Q.net_ok and len(Q.queue) == 1 and all(r["url"].startswith("http://127.0.0.1:8787/") for r in relay.sent("req")),
+          "a development load (no build.py): secrets.QUORUM_URL is pinned too, for the bench soak on the mock")
+
+
+def case_poll_keys():
+    """console-rp, board #2, 2026-11-12: polls of 6-8 s in a queue of 10, the keys unread. A key going
+    down ends a poll before its next GET, or as one waits (its answer, if it comes, is dropped); the
+    queue shown stays the last whole one, and the Safe goes next once the keys are quiet. A key held
+    from before the poll stops nothing. And a restart's reason reaches the computer before it."""
+    chip()
+    Q = fresh()
+    R = RELAY[0]
+    import link                             # after fresh(), which imports it again
+    serve(Q, [tx(Q, 0), tx(Q, 1)])
+    SVC.txs = [tx(Q, 0), tx(Q, 1), tx(Q, 2)]
+    time = Q.time
+
+    def poll_by_tick(down_now):
+        Q.keys.down_now = down_now
+        Q.state, Q.last_poll, Q.WATCH[0]["need_info"], Q._busy = "home", 0, True, False
+        Q.last_key = time.ticks_add(time.ticks_ms(), -Q.QUIET_MS - 1)
+        n = len(R.reqs)
+        Q.tick(None)
+        return len(R.reqs) - n
+    calls = [0]
+
+    def goes_down():
+        calls[0] += 1
+        return 0 if calls[0] == 1 else 4    # up as the poll begins, then one goes down
+    asked = poll_by_tick(goes_down)
+    check(asked == 0 and len(Q.queue) == 2 and Q.last_poll == 0 and Q.net_ok and Q.WATCH[0]["ok"] and link.STOP is None,
+          "a key down as a poll begins: no request, the queue kept as it was, the Safe next once the keys are quiet")
+    asked = poll_by_tick(lambda: 4)
+    check(asked >= 2 and len(Q.queue) == 3, "a key held from before the poll stops nothing: the poll reads it all")
+    calls[0] = 0
+
+    def during():
+        calls[0] += 1
+        return 0 if calls[0] <= 2 else 1    # down once the first GET waits
+    late = []
+    R.faults.append(lambda m: late.append(m) or [])
+    u0 = link._stats["unsolicited"]
+    asked = poll_by_tick(during)
+    R.raw(R.res(late[0]))
+    link.pump()
+    check(asked == 1 and link._stats["unsolicited"] == u0 + 1 and Q.last_poll == 0 and len(Q.queue) == 3 and Q.net_ok,
+          "a key down while a GET waits: the poll ends there, and the answer that comes after is dropped")
+    del Q.keys.down_now
+
+    resets = []
+    Q.machine.reset = lambda: resets.append([m["m"] for m in R.sent("log")])
+    Q.restart("restart: a test")
+    check(resets and any(m.endswith("restart: a test") for m in resets[0]), "a restart's reason is out to the computer before the reset")
+
+
+def case_crt():
+    """console-rp's CRT screens (quorum_ui_crt.py, crt.py): quorum_ui_s's pages, an effect only when
+    something arrives, none on a redraw or during the hold, and any press stops an effect and still
+    reaches the console: D0 during a red page's tear rejects it, with one press."""
+    import fonts
+    chip()
+    Q = fresh(relay=Relay())
+    import quorum_ui_crt, quorum_ui_s, crt
+    Q.U = quorum_ui_crt
+    Q.U.use("dark")
+    crt.time = Q.time
+    played, real_play = [], crt.play
+    crt.play = lambda d, fx, *a, **k: (played.append(fx), real_play(d, fx, *a, **k))[1]
+    good, red = tx(Q, 0), tx(Q, 1, to=OTHER, data="0xdeadbeef")
+    serve(Q, [good, red])
+    by = {e["n"]: e for e in Q.queue}
+
+    def fx(do=None):
+        del played[:]
+        if do:
+            do()
+        Q.U.draw(Q)
+        return played[-1] if played else None
+    Q.state, Q.tab = "home", 0
+    fx()
+    check(fx() is None, "home drawn again, nothing changed: no effect")
+    check(fx(lambda: Q.open_entry(by[0])) == "tear", "a transaction opens: tear")
+    check(fx(lambda: Q.three("D1")) == "short", "a page turn: a short tear")
+    check(fx() is None, "the same page again: still")
+    v = [k for k, i in Q.pages].index("verify")
+    check(fx(lambda: setattr(Q, "page", v)) == "lock", "the verify code, worked out here: lock")
+    Q.seen.update(range(len(Q.pages)))
+    Q.press_sign()
+    check(Q.state == "hold" and fx() is None and fx() is None, "the hold: no effect while it fills")
+    Q.state = "home"
+    Q.declined.discard(by[1]["h"])
+    check(fx(lambda: Q.open_entry(by[1])) == "strong" and Q.U._bg == Q.U.B.c("bad_bg"), "a red transaction: a strong tear, on red")
+    Q.state, Q.kpage = "key", 0
+    check(fx() == "lock", "the key's code: lock")
+    Q.state, Q.result = "result", (True, "Signed", ["#0"])
+    check(fx() == "lock", "Signed: lock")
+    Q.state, Q.tab = "home", 0
+    fx()
+    check(fx(lambda: setattr(Q, "tab", 1)) == "short", "another tab: a short tear")
+    Q.tab = 0
+    fx()
+    serve(Q, [good, red, tx(Q, 2)])
+    check(fx() == "tear", "a new transaction on home: tear")
+
+    # D0 during a red page's tear: the tear stops, the page goes out whole, and the press rejects it
+    Q.state = "home"
+    Q.U.draw(Q)
+    r = [e for e in Q.queue if e["n"] == 1][0]
+    Q.declined.discard(r["h"])
+    calls = [0]
+
+    def pressed():
+        calls[0] += 1
+        return ["D0"] if calls[0] == 2 else []
+    Q.keys.pressed = pressed
+    t0 = Q.time.now
+    Q.open_entry(r)
+    Q.U.draw(Q)
+    took = Q.time.now - t0
+    held = crt.take_pressed()
+    crt._taken.extend(held)
+    check(held == ["D0"] and took < 200, "D0 during the tear: it stops after %d ms, the press kept" % took)
+    Q.keys.pressed = lambda: []
+    Q._busy, Q.last_poll, Q.splash_until = False, Q.time.now, 0
+    Q.tick(None)
+    check(Q.state == "home" and r["h"] in Q.declined and not crt.take_pressed(), "and the tick takes it: rejected, with that one press")
+
+    # Every screen draws in the CRT look, its footer with the caps
+    caps, real_cap = [], quorum_ui_s.cap
+    quorum_ui_s.cap = lambda d, i, x, y, ink: (caps.append(i), real_cap(d, i, x, y, ink))[1]
+    crt.FX = False
+    ok = True
+    for st in ("home", "owners", "device", "chip", "key", "who", "result", "pinfail", "nochip", "unconfigured", "review"):
+        Q.state = st
+        if st == "review":
+            Q.open_entry(Q.queue[0])
+        if st == "chip":
+            Q.open_chip()
+        if st == "who":
+            Q.who = Q.owners()[0]
+        try:
+            Q.U.draw(Q)
+        except Exception as e:
+            ok = False
+            print("      %s: %r" % (st, e))
+    check(ok and set(caps) == {0, 1, 2}, "every screen draws in the CRT look; the footer's caps ■ ● ▲ on D0 D1 D2")
+    quorum_ui_s.cap = real_cap
+    crt.FX = True
+    crt.play = real_play
+    Q.state = "home"
 
 
 LINK_THREE = [False]
@@ -1806,12 +2783,35 @@ def main_pqk():
     return main_three("picoquorum-key")
 
 
+def main_rp():
+    """console-rp alone in a device: the three-button case on its footer and over the relay, the
+    relay's own case, and the practice on its bottom row. Not case_link: its Wi-Fi and maint asks
+    are the radio boards'; case_relay checks they are refused here."""
+    THREE_BOARD[0] = "console-rp"
+    with open("secrets.py", "w") as f:
+        f.write('BOARD = "console-rp"\n')
+    for m in ("board", "lcd", "fonts", "quorum_ui", "quorum_ui_s", "splash", "bootmark"):
+        sys.modules.pop(m, None)
+    LINK_THREE[0] = True                # case_practice: on this board's three buttons
+    for case in (case_three, case_relay, case_poll_keys, case_practice, case_crt, case_nochip):
+        print("-- %s, console-rp" % case.__name__[5:])
+        try:
+            case()
+        except Exception as e:
+            failed[0] += 1
+            print("FAIL  %s raised" % case.__name__)
+            sys.print_exception(e)
+    LINK_THREE[0] = False
+    print("console-rp: %d failed" % failed[0])
+    return failed[0]
+
+
 def main_knob():
     return main_three("feather-knob")
 
 
 def main():
-    for case in (case_pin, case_owners_pages, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_safes, case_watchdog, case_home, case_saver, case_release, case_passkey, case_release_approval, case_knob, case_link, case_setup_link, case_practice):
+    for case in (case_pin, case_owners_pages, case_refusals, case_sign, case_service, case_production, case_chips, case_multi, case_unsent, case_memory, case_retry_files, case_safes, case_watchdog, case_home, case_saver, case_release, case_passkey, case_release_approval, case_knob, case_link, case_setup_link, case_practice, case_nochip):
         print("--", case.__name__[5:])
         try:
             case()

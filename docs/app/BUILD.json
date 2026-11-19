@@ -1,10 +1,10 @@
 {
   "note": "SHA-256 of every file web/build.mjs wrote (../ is docs/, the front page). Rebuild from the same commit (cd web && npm ci && npm run build) and compare.",
-  "build": "244cc8b4",
+  "build": "8281918e",
   "files": {
-    "index.html": "57494b9ae4809e75d0c3fa2f6b29417d5daf65e24f7ada49452547f4ee4c0387",
-    "app.js": "244cc8b48599b6c767062119d486aed943b13afb6e52108f15454c46a349f0e4",
-    "app.css": "eef52349c808b943ebd31a59e09c0c10db8ad023ba9585d3ebfb50e19106653b",
+    "index.html": "c8ef824af29b4322e6303956dacb54e8290e8ee64e45414f466b37f2b23ca96c",
+    "app.js": "8281918e2273e9e5dedfd0a95ce5e9eda9b3d7f985dd17ab5ba62907736bf386",
+    "app.css": "eda12cab724bbc030ae3626886a44bcfdd63b2bef4890143373818b8667b8c85",
     "fonts/next-400.woff2": "5cb240a4d99ab7e6fc3a4d4e6d11d89789fdffe9c86a8384000d662c53283f6f",
     "fonts/next-700.woff2": "0dbe07ed7679407db9d90f747d5ca3bd1b2bb7ccbcbe41c8246cfc6d2c7bc3bc",
     "fonts/mono-500.woff2": "49efe8526ea1da079582132fcb83555b975ef79129bbf0ff669e103ed162f81f",

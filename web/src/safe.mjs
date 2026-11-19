@@ -102,6 +102,21 @@ export class Service {
     try { why = Object.values(JSON.parse(text)).flat(Infinity).filter((x) => typeof x === "string" || typeof x === "number").join(" "); } catch {}
     throw new Error(`Safe's transaction service refused it (HTTP ${r.status})${why ? `: ${why.slice(0, 400)}` : ""}`);
   }
+  // A console-rp's own call, relayed (relay.mjs checked it): what the service said, whatever it
+  // said, for the console to check. The key only to Safe's own service, as tools/relay/relay.py.
+  async raw(method, path, body, ms = 12000) {
+    const headers = { Accept: "application/json" };
+    if (body != null) headers["Content-Type"] = "application/json";
+    if (this.key && this.url.startsWith("https://api.safe.global/")) headers.Authorization = "Bearer " + this.key;
+    const ac = new AbortController();
+    const t = setTimeout(() => ac.abort(), ms);
+    try {
+      const r = await this.fetch(this.url + path, { method, headers, body: body ?? undefined, signal: ac.signal, credentials: "omit" });
+      return { status: r.status, text: await r.text() };
+    } finally {
+      clearTimeout(t);
+    }
+  }
   info(safe) { return this.get(`/api/v1/safes/${safe}/`); }
   propose(safe, body) { return this.post(`/api/v2/safes/${safe}/multisig-transactions/`, body); }
   confirm(hash, signature) { return this.post(`/api/v1/multisig-transactions/${hash}/confirmations/`, { signature }); }

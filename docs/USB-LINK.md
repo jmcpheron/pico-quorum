@@ -110,3 +110,164 @@ The app's page and the tools keep DTR and RTS low. Toggling them resets an S3.
 - **`tools/board/link.py`**: one request, one answer. It runs on pyserial 3.5, pinned, through
   `uv run`, as `tools/fw` and `tools/quorum live pico` call it.
 - **`emu/core/devices.mjs`**: the emulator's device list asks `hello` before anything else.
+
+## The relay (console-rp)
+
+console-rp has no radio. Its USB-C reaches only a CH343P, wired to UART1 (GPIO 20 and 21); the REPL
+and the RP2350's own USB are on J3, which isn't fitted
+([hardware/console-rp/README.md](../hardware/console-rp/README.md)). So the one port carries two
+things: the computer's requests above, and the console's own calls to Safe's service, which the
+computer makes for it (`firmware/link.py`). The computer here is the relay.
+
+- 8N1 at 460800, one JSON object a line each way.
+- **The console asks:** `{"t":"req","id":7,"m":"GET","url":"…"}`, with `"body"` on a POST. The relay
+  answers `{"t":"res","id":7,"status":200,"body":"…"}`, or status 0 and `"err"` when it couldn't.
+- **The relay says `{"t":"hi"}`** every 2 s. After 15 s of nothing the console shows "no relay: open
+  the app" and asks nothing until it hears one.
+- **Logs go out** as `{"t":"log","m":"…"}`, each line of `log.txt` as it is written. Nothing comes
+  back for them.
+- **The computer's requests** are the table above, answered `{"pq":1,…}`. Only the `safes` ask is
+  there: no `wifi`, with no radio, and no `maint`, whose REPL would be on J3, out of reach.
+
+Before it sends anything, the console checks the URL (`link.pinned`): under one of
+`quorum_cfg.py`'s `"services"`, plain ASCII, at most 400 characters, no `..`, `@`, `#` or `\`. A
+development load (no `build.py`) also allows `secrets.QUORUM_URL`, the laptop's mock.
+
+What comes back:
+- Only an answer with the id the console waits for is read. Any other line is dropped and counted:
+  `garbage`, `overlong`, `unsolicited`, `wrong_id`, `dup`, `nomem`, in the status's `link`.
+- A line is at most 24 KB (`link.MAX_LINE`, hello's `link.max`). The relay sends a longer answer as
+  status 0, `"answer too big: N bytes"`. The console then reads the queue 3 at a time (`&offset=`),
+  and a page still too long one at a time. A transaction too long even alone is listed red in its
+  place, "Too big to check", `#?`, and can't be signed. The rest of the queue is listed as usual.
+- A body nested more than 64 deep is refused before `json.loads` (`txservice.shallow`).
+- The console waits 15 s. The relay gives the service 12.
+- The body is checked as Safe's service is checked on the Wi-Fi boards: the console rebuilds every
+  hash from the fields it shows (AGENTS.md rule 1).
+
+What it never does, on top of the list at the top:
+- `link.py` imports no signer and writes no file; `test-vectors/manifest.mjs` checks both. No
+  message names the chip, a digest or a signature.
+- The console sends no API key: it has none. The relay adds its own, on requests to
+  `api.safe.global` only.
+- `pin.json` is written only by the key flow on the device, when the owner's key is sealed. No
+  request writes it.
+
+What the relay can still do is what a lying service can do: show transactions that don't exist,
+hold back ones that do, drop a signature on its way out
+([hardware/archive/console-usb/README.md](../hardware/archive/console-usb/README.md#the-link-what-the-computer-can-and-cant-do)).
+
+The relays:
+- `tools/relay/relay.py`, the bench's. [Its README](../tools/relay/README.md) says what it forwards,
+  what it logs, and its hostile modes.
+- The app's Device page (`#/device`: `web/src/device.mjs` and `web/src/relay.mjs`), in Chrome or
+  Edge on a computer: the customer's. The same rules as the CLI, with the API key from the app's
+  Settings. A CH343P (USB vendor 0x1a86) opens at 460800; the page says `hi` once hello's answer
+  carries `link`, and hides the Wi-Fi card. Tried on board #2 (below).
+
+What was checked:
+- `case_relay` in `test-vectors/console_test.py`, with a fake relay: poll, review, sign and POST,
+  and each hostile case, which ends dropped or refused, never signed.
+- `tools/relay/relay_test.py`: URLs off the pin, other paths, sizes, and the API key never in a log.
+- `web/test.mjs`: the same cases against `relay.mjs`, and the key only on Safe's own service.
+  `web/e2e.mjs`: a fake console-rp on the Device page in Chromium, its calls made with the Settings
+  key, one off the pin refused with nothing fetched, a confirmation posted as sent, its log drawn as
+  text, and the key never down the cable.
+- Board #2, 2026-11-09 and 10: a 12.5 h soak with 8842 status reads and 76 polls, no link faults;
+  two signatures posted through `relay.py` (201) and executed on Base Sepolia. Until 862fba4f read
+  an answer's body in place, a 2.4 KB queue found no block its size in the heap, every other poll.
+- Board #2, 2026-11-07 to 10, the Key page's QR code. On c524e008 it failed for memory on every
+  tick (8 KB, then 4 KB: qrcode's list of 1072 bits). On 1e448c3b it drew once, then failed
+  (256 bytes) at every later opening: big ints on every frame. On 88605681, which has e62e1278's
+  fix for those, `encode`'s grids, about 35 KB of small lists, failed it. Since b92fa8c3 each grid
+  is a bytearray, and the Key page drew on board #2. Old and new encoders agree on 5832 encodings
+  on CPython.
+- Board #2 on 0d617601, 2026-11-10, with an empty queue: each of `relay.py --hostile`'s link faults
+  (garbage, overlong, unsolicited, wrong-id, dup, late, truncate, stall, nested, chatter) on every
+  answer for a while. Each ended dropped and counted, or as one failed poll with the next one fine.
+  A body nested 5000 deep runs `json.loads` out of memory, which the poll catches. No restart, no
+  `nomem`, at least 80.8 KB free after a collection, and the largest free block 8.3 KB, read over SWD,
+  as before the faults.
+- Board #2, 2026-11-10, the forged queue: a real transaction (nonce 2, one of two confirmations)
+  and `relay.py --hostile forge-queue`, which changes its value and keeps its hash. On 0d617601 the
+  console showed it red ("a hash these fields do not produce"), Sign dimmed, and posted nothing. But
+  the refusal stayed under the hash, so the real copy stayed refused until a restart. On a30640ce a
+  refusal holds only for the fields it was given: a checked entry kept its fields against forged
+  answers, and after a restart with the forged copy first, the console refused it.
+- Board #2 on a30640ce, the same day: the Device page in Chrome relayed the real queue, with
+  `relay.py` stopped. The console signed nonce 2, and the app showed its confirmation, 2 of 2,
+  checked against the owner contract. The board's log has no start between the refusal and the
+  signature (7263 s into the same start, counter 26), so the real copy replaced the refusal without
+  a restart. Chrome opening the port didn't restart the board either.
+- Board #2 on dd82e30a, the same day, with two Safes (2 of 2, and 3 of 6), the list sent from the
+  Device page: both polled in turn, 61 to 74 KB free across the runs below.
+- `relay.py --hostile big`, one real transaction in each queue: each queue of 10 came back "answer
+  too big", then 3 at a time, then one at a time with `&offset=`, which Safe's service takes. Each
+  transaction came up red as `#?`, and the next one at a time came back empty, which ends the queue.
+  About 16 minutes of it, 65 KB free or more, no restart.
+- `relay.py --hostile lose-post`: the confirmation went out and no answer came back. The console
+  showed "Not sent", with the signature kept. ▲ Retry posted the same signature (201) with no new
+  use of the key: the counter stayed at 30. The second time, the board was restarted instead of
+  retried. 8 s into the next start, at its first poll, the console sent the kept signature (201).
+- 100 restarts over SWD (`probe-rs reset`, which writes nothing), one every 13 s, with `relay.py`
+  running. 99 came back on home, pinned, with both Safes polled, 12.8 to 15.2 s after the reset.
+  The counter went up by exactly one each time, 32 to 131. 67.9 to 69.3 KB free, no link timeouts
+  or garbage, and every start's reset cause 1. The 5th came up "No chip": nothing answered on I2C
+  at the start, and the console stayed there, with ▲ Check again, until the next restart. The
+  counter didn't move. 6 minutes later SDA and SCL both read high. Why the chip didn't answer is
+  not known. Since f95d12fd a start that finds no chip clocks the bus free and looks again, and
+  logs why ([hardware/console-rp/SETUP.md](../hardware/console-rp/SETUP.md#no-chip)). Board #2 runs
+  f95d12fd since 2026-11-11 and its first start was as before (pinned, counter 153). No start has
+  missed the chip since, so the looks again are checked in `console_test` (case_nochip) only.
+- 20 unplugs of the USB-C by hand, with the SWD probe's GND, CLK and DIO still wired (no 3V3): 10
+  out for about 3 s at home, 5 pulled again 2 to 3 s into the start, and 5 out for about 1 s. Every
+  start after came back on home, pinned, about 7 s after its boot line, 67.5 to 67.8 KB free. The
+  counter went from 131 to 152: one for each of the 20 starts, and one for the cut start that had
+  read the chip before it lost power. The other cuts came before that read and used nothing. No
+  error in the log. A dump over SWD after: every file there, `pin.json` and `keyflow.json` the same
+  bytes as before dd82e30a's load, the JSON files parsing, no broken line in `log.txt`.
+- The night after, on dd82e30a: 10.5 h on home from the last of those starts (22:44 to 09:14),
+  18,257 status reads and 40 polls, each 200. No link fault of any kind, 69.2 to 69.3 KB free
+  throughout, the counter still at 152.
+- Board #2 on f95d12fd, 2026-11-11: first 9.8 h on home, with 6984 status reads and 54 polls (53
+  answered 200, one 503 from Safe's service, logged). No link fault, 43 to 70 KB free.
+- That evening nine transactions on the 2 of 2 Safe were signed in turn, and two signatures in the
+  heap ran out of pieces. Each queue entry still held the service's whole transaction, its 1.3 KB
+  contract signatures included: about 50 KB for nine.
+  - #6's first signature was lost before it was sent (MemoryError, 1336 bytes). Its second
+    signature's post failed. After the restart that followed (reset cause 3) the console sent the
+    saved signature (201), then offered #6 again and signed it a third time (201).
+  - #7 was posted (201) but shown as not signed.
+  - #8 failed twice after the chip signed. Then no screen could draw: after 20 failed ticks the
+    console stopped on its crash screen.
+  - Three of those signatures' counts weren't saved. So the next start reported 3 uses of the key
+    outside the console: they were its own.
+- 9b790f9a, the same evening: an entry keeps only the fields its hash is made from. The chip is
+  asked only when 4 KB in one piece is free after a collection. With nine queued there was 56 to
+  62 KB free but no such piece once the queue was read: #8 was refused twice before the chip was
+  asked ("the key not used"), with a restart each time.
+- 8c33db6c: those 4 KB are set aside at the start and handed over just before the chip signs.
+  #8 to #11 were signed and posted in one start (201, counter 168 to 171). Then #12's review froze
+  on its last frame: no 1336-byte piece for the font width cache's table, which every 1336 that
+  day had been. After a restart #12 was signed and posted (201, counter 173). All nine of the
+  evening's transactions were confirmed. 5add8498 made that cache a fixed table. 8c33db6c also
+  restarted itself twice more on home that night (reset cause 3). Before d60dfb40 no reason went
+  to the log.
+- Board #2 on 5add8498, 2026-11-12: ten transactions queued on the 2 of 2 Safe (nonces 13 to 22)
+  and signed in one start, 21 before 20. Each confirmation was posted (201) and listed by Safe's
+  service, and the counter went up by exactly one for each, 179 to 189. 48 to 53 KB free around
+  the signatures. Nonces 13 to 18 were then executed (the Safe's nonce is 19).
+- The same image restarted itself 4 times that day while idle (reset cause 3), each time because no
+  2 KB piece was free for 30 s, though every poll still read whole. Since d60dfb40 that look only
+  logs. A restart needs 3 failures in real work with no whole poll between
+  ([hardware/console-rp/SETUP.md](../hardware/console-rp/SETUP.md#low-memory)), and its reason goes
+  to the log before it. A key pressed during a poll now ends the wait, and the answer, if it comes,
+  is dropped as unsolicited. That is checked in `console_test` (case_poll_keys) only.
+- Board #2 on d60dfb40, idle on home from 15:22 the same day. At +6666 s the look found no 2 KB
+  piece (largest 1984 bytes, 56 KB free), and 30 s later found one again. Nothing restarted. A read
+  over SWD a minute later showed a 485 KB heap with 40 KB free, none of it in a run over 2.1 KB.
+  The next poll of the 2 of 2 Safe read its 9.3 KB queue whole (200, 580 ms).
+- Board #2 moved to 0f908638 the same night, with a dump right before and `--keep`
+  ([SETUP.md](../hardware/console-rp/SETUP.md#loading-a-board-that-has-a-key)): `pin.json` and
+  `keyflow.json` the same bytes as in the dump before d60dfb40. It started pinned to the same owner,
+  watchdog on, both Safes read, counter 197 to 198 for the start, 59 KB free.

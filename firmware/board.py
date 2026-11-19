@@ -22,6 +22,10 @@
 #            only button. The Feather's three keys come from Boot and the knob (DIAL), so the console
 #            and the ceremony run as on feather-s3. Only when secrets.BOARD names it, which comes
 #            before the look at GPIO16/17: they are its knob's A2 and A1.
+#   "console-rp": hardware/console-rp (PINS.md): an RP2350 with no radio, the Feather's 240x135 screen
+#            and D0 D1 D2 in a row under it (THREE, no rail), the key on I2C0, and its USB-C reaching only
+#            a CH343P on UART1, the link (LINK, link.py). Its image names it (build.BOARD), so no
+#            secrets.py is needed; a stale secrets.BOARD can't move its pins.
 # W x H is what the apps draw, X_OFF where that sits on the panel (0 when they draw all of it).
 # BANDS: retain full native resolution, but only buffer 30 rows at a time (19,200 bytes at 320 wide,
 # 14,400 at 240). Any panel whose whole frame would be over 45 KB is drawn this way: the 240x240
@@ -44,6 +48,11 @@ try:
     SCREEN = getattr(_s, "SCREEN", "2.8")
 except ImportError:
     BOARD, SCREEN = "waveshare", "2.8"
+try:
+    import build as _b          # written by tools/fw build; an image made for one board names it
+    BOARD = getattr(_b, "BOARD", "") or BOARD
+except ImportError:
+    pass
 
 
 def _pulled_up(*pins):
@@ -61,13 +70,13 @@ def _pulled_up(*pins):
 if ESP32:
     BOARD = ("feather-knob" if BOARD == "feather-knob" else "picoquorum-key" if _pulled_up(16, 17) else "feather-s3") \
         if S3 else "esp32"
-elif BOARD not in ("waveshare", "build1", "feather-s3", "picoquorum-key", "feather-knob"):
+elif BOARD not in ("waveshare", "build1", "feather-s3", "picoquorum-key", "feather-knob", "console-rp"):
     print("board: unknown BOARD %r, using waveshare" % BOARD)
     BOARD = "waveshare"
 
 KNOB = BOARD in ("build1", "esp32")
 DIAL = BOARD == "feather-knob"
-THREE = BOARD in ("feather-s3", "picoquorum-key") or DIAL
+THREE = BOARD in ("feather-s3", "picoquorum-key", "console-rp") or DIAL
 DC, CS, SCK, MOSI, RST, BL = 8, 9, 10, 11, 12, 13
 BUTTONS = {"A": 15, "B": 17, "X": 19, "Y": 21}
 SPI_ID, SDA, SCL, LED = 1, 4, 5, "LED"      # SDA, SCL: the key's I2C (atecc.py); LED: the status LED
@@ -77,6 +86,8 @@ NOT_KEYS = ()               # I2C addresses on the key's bus that are never a ke
 POWER = None                # a pin that must be high for the screen and the key's bus to have power
 RAIL_Y = None               # THREE: the screen row level with each button, top to bottom (quorum_ui_s.rail)
 NAMES = {"D0": "D0", "D1": "D1", "D2": "D2"}    # THREE: what the screens call each key
+LINK = None                 # (UART id, TX, RX) of the link to the computer when it isn't the USB REPL's (link.py)
+RADIO = True                # Wi-Fi: every board but console-rp
 INIT = "plain" if KNOB else "waveshare"     # lcd.py's panel start-up
 if ESP32:
     # tools/wiring-esp32 --check compares these with hardware/wiring/ESP32.md. The screen's clock
@@ -130,6 +141,23 @@ if BOARD == "picoquorum-key":
     NOT_KEYS, POWER = (), None
     KEYS = dict(BUTTONS)
     MAINT, SETUP = BUTTONS["D1"], BUTTONS["D2"]
+if BOARD == "console-rp":
+    # hardware/console-rp/PINS.md, checked on the first board (bench/stage0.py, 2026-11-04). The screen on
+    # SPI1's own pins, which top out at 24 MHz on an RP2350 (bench/HORSEPOWER.md); lcd.py gives SPI1 no
+    # MISO, whose default pin is DC. D0 D1 D2 under the screen, to ground with the RP2350's pull-ups.
+    # The key on I2C0 with the board's pull-ups. The red LED on GPIO25. No radio: the link is UART1 on
+    # GPIO20/21, through the CH343P to the USB-C. No maintenance key and no Wi-Fi setup: the USB-C
+    # can't reach a REPL, and the image comes and goes over SWD (bench/swdload.py).
+    DC, CS, SCK, MOSI, RST, BL = 8, 9, 10, 11, 12, 13
+    BUTTONS = {"D0": 2, "D1": 3, "D2": 6}
+    HIGH = ()
+    SPI_ID, SDA, SCL, LED = 1, 4, 5, 25
+    NOT_KEYS, POWER = (), None
+    SPI_BAUD = 24_000_000
+    KEYS = dict(BUTTONS)
+    MAINT = SETUP = None
+    RAIL_Y = None           # the buttons are under the screen: the screens put their labels in a footer
+    LINK, RADIO = (1, 20, 21), False
 if KNOB:
     # A on GP2 and B on GP3 as wired (BREADBOARD.md); read the other way round, because this knob
     # counted clockwise as anticlockwise (2026-09-27). Swapping the two wires does the same.
@@ -174,7 +202,10 @@ if POWER is not None:
 
 def key_down(pin):
     """Whether the button on pin is held now, read with its own pull: a pulled-up button reads 0
-    when pressed, one in HIGH (the Feather's D1 and D2, pulled down on the board) reads 1."""
+    when pressed, one in HIGH (the Feather's D1 and D2, pulled down on the board) reads 1. No pin
+    (console-rp's MAINT and SETUP): never."""
+    if pin is None:
+        return False
     from machine import Pin
     if pin in HIGH:
         return Pin(pin, Pin.IN, Pin.PULL_DOWN).value() == 1

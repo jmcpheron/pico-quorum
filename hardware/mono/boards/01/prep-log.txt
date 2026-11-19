@@ -1,0 +1,6 @@
+prepare 012338eb2797f690ee C1 ok: answers at 0x60 ok; rev 00006005 ATECC608C ok; zones unlocked (55 55) ok; no slot locked (FF FF) ok; I2C address byte C0 ok; Random: unlocked pattern ok; self-test passes ok; table: factory ok | factory config saved as snapshot-012338eb2797f690ee.bin
+prepare 012338eb2797f690ee C2 ok: written, 34 bytes changed ok; reads back as quorum v1 ok; config CRC e382 ok | compare the CRC on the laptop: tools/check_config --summary <snapshot>
+prepare 012338eb2797f690ee C3 ok: config locked (87 = 00) ok; still quorum v1 ok; Random is live ok; slot 0: P-256, ext sign ok | config zone locked (CRC e382)
+prepare 012338eb2797f690ee P4 ok: config locked (87 = 00) ok; table: quorum-v1 ok; data zone open (86 = 55) ok; slot 0 not sealed (88 = FF) ok; slot 0 empty (KeyValid 0) ok; counter 0 at 0 ok | ready for the console-rp image
+prepare 012338eb2797f690ee ready ok: config locked (87 = 00) ok; table: quorum-v1 ok; data zone open (86 = 55) ok; slot 0 not sealed (88 = FF) ok; slot 0 empty (KeyValid 0) ok; counter 0 at 0 ok | ready for the console-rp image
+prepare 012338eb2797f690ee ready ok: config locked (87 = 00) ok; table: quorum-v1 ok; data zone open (86 = 55) ok; slot 0 not sealed (88 = FF) ok; slot 0 empty (KeyValid 0) ok; counter 0 at 0 ok | ready for the console-rp image

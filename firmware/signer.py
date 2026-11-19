@@ -109,6 +109,35 @@ def _allowed(name):
     return flag(name) and armed() > 0
 
 
+def own_key_step(cfg, op):
+    """console-rp's own key (keyflow.OwnKey, docs/BRANDED-KEYS.md section 9): there the holds on the
+    key's screen (keypick_rp.py) are the permission, with no secrets.py. True only on the console-rp
+    image, for an ATECC608 the bench prepared as quorum v1 (config locked, data zone open), and only
+    for the owner's key's next step: GenKey in slot 0 or its seal while slot 0 is open ("genkey0",
+    "lock_slot0"), the data lock once it is sealed ("lock_data"). Never a config write or lock."""
+    import image
+    if image.IMAGE != "console-rp" or not cfg or len(cfg) < 128 or cfg[87] != 0x00 or cfg[86] != 0x55:
+        return False
+    import chipcfg
+    if chipcfg.identify(cfg) != "quorum-v1":
+        return False
+    if cfg[88] & 1:
+        return op in ("genkey0", "lock_slot0")
+    return op == "lock_data"
+
+
+def _may(name, op, chip):
+    """_allowed(name), or on console-rp the arm alone for own_key_step's steps, read off the chip now."""
+    if _allowed(name):
+        return True
+    if not armed():
+        return False
+    try:
+        return own_key_step(chip.read_config_all(), op)
+    except Exception:
+        return False
+
+
 def _refused(what):
     return "%s refused: %s" % (what, gate(what))
 
@@ -332,7 +361,7 @@ class ChipSigner:
         """Only when secrets.ALLOW_GENKEY is True: this REPLACES the key in the slot. A vault paired
         to the old key can never be spent again."""
         slot = self.slot if slot is None else slot
-        if not _allowed("ALLOW_GENKEY"):
+        if not _may("ALLOW_GENKEY", "genkey%d" % slot, self.chip):
             raise Exception(_refused("genkey"))
         self._slots = None
         self._pub.pop(slot, None)
@@ -403,7 +432,7 @@ class ChipSigner:
         return "data zone locked"
 
     def lock_slot(self, slot):
-        if not _allowed("ALLOW_LOCK"):
+        if not _may("ALLOW_LOCK", "lock_slot%d" % slot, self.chip):
             raise Exception(_refused("lock"))
         self._slots = None
         self.chip.lock_slot(slot)
@@ -686,17 +715,23 @@ def _trustm_here(i2c, tries=40):
     return False
 
 
+why = ""            # why the last load() found no chip, with what its scan saw: for the console's log
+seen = []           # the last scan's addresses, or why it failed
+
+
 def detect():
     """The secure elements on I2C0: [("atecc608", addr), ("trustm", 0x30)], either, both or none.
     One wake token for a sleeping ATECC, one scan, then a short poll at 0x30."""
+    global seen
     try:
         import atecc
-        found = atecc.scan()
+        found = seen = atecc.scan()
         out = [("atecc608", a) for a in atecc.KEY_ADDRS if a in found][:1]
         if 0x30 in found or _trustm_here(atecc.make_i2c(atecc.SDA, atecc.SCL, 100_000)):
             out.append(("trustm", 0x30))
         return out
     except Exception as e:
+        seen = "failed: %s" % e
         print("detect:", e)
         return []
 
@@ -773,8 +808,11 @@ def load(soft=True, pins=None):
                     pass
             print("two chips on the bus, none pinned: using the %s" % found[0].name)
         return found[0]
+    global why
+    s = seen if isinstance(seen, str) else " ".join("%02x" % a for a in seen[:6]) + (" +%d" % (len(seen) - 6) if len(seen) > 6 else "")
+    why = "%s; scan %s" % (err, s or "empty")
     if not soft:
-        print("no chip (%s)" % err)
+        print("no chip (%s)" % why)
         return NoSigner()
-    print("no chip (%s), using software key" % err)
+    print("no chip (%s), using software key" % why)
     return SoftSigner()
