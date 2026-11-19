@@ -116,39 +116,45 @@ nor its parts, and that a latch turned a quarter is off the board and inside its
 
 Not printed.
 
-## A cradle for three wires, until the probes come
+## A cradle with a header, until the probes come
 
-[`cradle.py`](cradle.py) draws the jig's bottom end alone, shallow: the same pocket, the same opening
-for the USB-C's plug and the same latches, with a hole under each of TP1, TP2 and TP3 (SWCLK, GND,
-SWDIO) for a jumper wire. The stripped end of the wire, spread over the hole's mouth, is the contact.
+[`cradle.py`](cradle.py) draws the jig's bottom end alone: the same pocket, the same opening for the
+USB-C's plug and the same latches, with a 3-pin strip of 2.54 mm header under TP1, TP2 and TP3 (SWCLK,
+GND, SWDIO). The short pins stand out of the deck, where the pads come down on them, and the long pins
+hang underneath for jumper wires.
 
 ![The cradle under the board's bottom end, a latch over each edge, the rest of the board standing out past it](out/mono_cradle.png)
-![The cradle from underneath: the wires' channel from the three holes out of the top end](out/mono_cradle_under.png)
+![The cradle empty: the three short pins' tips in their pocket in the deck, the latches turned off the pocket](out/mono_cradle_empty.png)
+![The cradle from underneath: the room under the pads' row, open to the left side, the long pins hanging in it](out/mono_cradle_under.png)
 
 ```sh
 uv run --python 3.11 --with cadquery --with matplotlib python cad/mono/cradle.py
 ```
 
-It writes `out/mono_cradle.stl`, 60 × 40 × 8.6 mm, as it prints, no support. The latches are the
-jig's: `mono_jig_latch.stl`, two.
+It writes `out/mono_cradle.stl`, 60 × 40 × 30.6 mm, as it prints, no support: the room's roof is a
+12 mm bridge. The latches are the jig's: `mono_jig_latch.stl`, two.
 
 To build one:
-1. **Clear the three holes** with a 1.5 to 2 mm bit if a wire won't pass. They are drawn 1.9 mm, and
-   the walls between them are 0.64 mm: go gently.
-2. **Cut one end off three jumper wires** and strip 2 to 3 mm. Keep the socket or pin on the other
-   end for the probe.
-3. **Push each wire up its hole** from underneath until the insulation is level with the deck. Spread
-   the strands flat over the hole's mouth and trim them to about 1 mm round it: a pad is 1.5 mm
-   across and the next one is 2.54 mm away, so no strand may reach a neighbour's.
-4. **Lay the wires in the channel** underneath, out of the top end, and fix them there with tape or a
-   drop of glue, so a pull on a wire doesn't drag its end down the hole.
-5. **The latches:** an M3 × 8 screw and a washer each, straight into the printed holes, which the
+1. **Break three pins off a strip** and push them level in their plastic against a table.
+2. **Drop the strip into the pocket in the deck,** long pins first. Its plastic sits on a ledge,
+   5.24 mm down, and the short pins' tips stand 0.3 mm over the deck. The pocket is 7.92 × 2.84 mm;
+   a file opens it if the print is tight. No glue: the board holds the strip down.
+3. **The wires:** a jumper's socket on each long pin, from underneath, out of the left side. From the
+   left edge in, the pins are SWCLK, GND, SWDIO.
+4. **The latches:** an M3 × 8 screw and a washer each, straight into the printed holes, which the
    screw threads. With no screws, a rubber band round the cradle and the board, lying in the two
    landings, holds the board down.
-6. **Meter it** with a board in: each wire's far end to its pad's net (SWCLK and SWDIO read 100 Ω
-   to the RP2350's side of R15 and R16; GND to the USB-C's shell), and no wire to the next.
+5. **Meter it** with a board in and the latches shut: each long pin to its pad's net (GND to the
+   USB-C's shell), and no pin to the next.
 
-From the left edge in, the wires are SWCLK, GND, SWDIO. The board stands 53.5 mm out past the cradle,
-with nothing under the screen or the buttons: put a finger under it before pressing one.
+If a pin doesn't touch, the strip is low or not level: a slip of paper under its plastic raises it,
+and a bit of rubber band there lets it give and rock. The header's sizes are the usual strip's
+(3.0 mm of pin over 2.54 mm of plastic); measure yours and set `HEADER` or `PROUD`.
 
-Not printed. Whether squashed strands hold a contact for a three-minute load isn't known.
+The board stands 53.5 mm out past the cradle, with nothing under the screen or the buttons: put a
+finger under it before pressing one.
+
+The first drawing had three 1.9 mm holes for jumper wires, their stripped ends spread over the holes'
+mouths. It was printed on 2026-11-19 and the wires didn't make contact. This drawing isn't printed.
+Three stiff pins in a row touch on the tallest two, as on the clip above, so it may be no better
+without the paper or the rubber.
