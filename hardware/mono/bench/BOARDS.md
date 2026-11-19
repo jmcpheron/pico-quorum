@@ -15,7 +15,7 @@ board's last state. The number is written on the board's back. Kept out of the r
 <!-- states: boardlog.py writes between these lines -->
 | board | since | state | its log |
 |---|---|---|---|
-| 1 | 2026-11-17 | Prepared 2026-11-17 (quorum v1, config CRC e382). No key | [boards/01](../boards/01/LOG.md) |
+| 1 | 2026-11-18 | Prepared 2026-11-17 (quorum v1, config CRC e382). A key made, not sealed | [boards/01](../boards/01/LOG.md) |
 <!-- /states -->
 
 ## Bring-up

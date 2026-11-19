@@ -42,3 +42,10 @@ console-rp's image again, build daaa14e, release f24d·22db, loaded with swdload
 The link at the console's rate, 460800, read through the USB-C: a hi and a status ask, four asks, four answers. The status: image console-rp, version 2026.11.3, profile quorum-v1, state C4, mode key, serial 012338eb2797f690ee, counter 0, ok true; the link up, 94064 bytes free, no garbage, timeouts or drops. Asked by a few lines using relay.py's open_serial, with no network; relay.py itself was not run. CHIP_ID still reads 30004927 through the soldered wires. This is the first time a Mono's link answered at 460800. Not seen by anyone yet: what the screen shows.
 
 - repository at `c7da2a5`
+
+## 2026-11-18 23:14
+
+A photo of the screen under console-rp f24d·22db: Your key, Made here, 'An old key: Make replaces it', ▲ Make; the picture upright and whole. Over the link the state was C5 before this load: a key had been made on that image, not sealed, counter 0. Then console-rp build d3821ed, release cec2·b7ac, loaded with swdload.py --no-micropython and no secrets.py: Make on D0, and the Make page counts its starts. Loaded twice, the second by my mistake (the same image, written whole again); every piece went on the first try both times. After the second: the log over the link says 'start 1 at Make' at +5 s, then at +13 s 'C4 ok: new key 15bc0b8f; KeyValid ok; public key reads back ok; GenKey on slot 1 refused ok', so a press on the board made a key under the new image; state C5, counter 0. Not sealed. Not yet said by the person at the bench: what the new screens look like, and which button was pressed.
+
+- repository at `d3821ed`
+- state: Prepared 2026-11-17 (quorum v1, config CRC e382). A key made, not sealed
