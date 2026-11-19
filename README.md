@@ -64,7 +64,9 @@ reference standard for a console. Mono is a working name.
   secure element soldered on. It has no radio at all. Its USB-C reaches a serial chip and nothing
   else: a computer passes on Safe's queue, and has no say in what gets signed.
 - **Where it stands.** A design, written by a script and checked by KiCad and against JLCPCB's limits
-  ([hardware/mono](hardware/mono/README.md)). Not ordered, and nothing is built. The board it comes
+  ([hardware/mono](hardware/mono/README.md)), and 20 boards at the bench. The first was brought up on
+  2026-11-17 and runs console-rp's image; it has not made a key or signed yet
+  ([the boards](hardware/mono/bench/BOARDS.md)). The board it comes
   from, [console-rp](hardware/console-rp/README.md), is on the bench: five boards, four running
   the console's own image (in review, pull request #113) and one broken
   ([the boards](hardware/console-rp/README.md#the-boards-and-the-firmware)). The firmware also
@@ -250,7 +252,7 @@ console up to the README:
 | <img src="docs/releases/badges/ceremony-blockie.svg" width="32" height="32" alt=""> | **ceremony** | `381d4e8916ea331b7b8a8ef650b28c5a45d35c116fe40969c8f5c66cea223ec2` |
 | <img src="docs/releases/badges/brand-blockie.svg" width="32" height="32" alt=""> | **brand** | `f7b49688d24a2ce8dbc4f5af474a708f4b043af84049aa9b56221c76f1b9ceb3` |
 | <img src="docs/releases/badges/dual-blockie.svg" width="32" height="32" alt=""> | **dual** | `99292ecee02cdcabfd1714b7c16ab250634345925e9c6cd2764c10589be48d55` |
-| <img src="docs/releases/badges/console-rp-blockie.svg" width="32" height="32" alt=""> | **console-rp** | `f24d22db5f3916c11f6bbcc5a934885ea6593c7a132d318e042c1f4617094505` |
+| <img src="docs/releases/badges/console-rp-blockie.svg" width="32" height="32" alt=""> | **console-rp** | `cec2b7ace5033222f9d2ac563ec29f01aab5cd5b64eb30b8d638db2377a39da6` |
 | <img src="docs/releases/badges/prepare-rp-blockie.svg" width="32" height="32" alt=""> | **prepare-rp** | `4e98165819acdbb148753a1e73cb04bb83bec7861b4263e9246b60531162999f` |
 
 <!-- build:end -->
@@ -317,6 +319,16 @@ built on it:
 Each of those files says so on its first line, under Austin's MIT license. Fixes to the drivers go
 back upstream ([docs/UPSTREAM-TRACKING.md](docs/UPSTREAM-TRACKING.md)). Everything else this project
 uses is credited in [NOTICE](NOTICE).
+
+Austin has since taken the same three parts further as **[wedgie](https://wedgie.dev)**
+([source](https://github.com/clawdbotatg/wedgie-dev), kept by his agent account clawdbotatg): a
+pocket computer with a secure chip wedged between the Pico and its screen, sold built or as a kit,
+that runs one app at a time. One of its apps, Safe Signer, makes a wedgie an owner of a Safe the
+same way a Picoquorum key is one: a P-256 key in the chip, behind Safe's passkey signer, signing a
+hash the device worked out itself. If you want one device for games, tools and a Safe, look there.
+Picoquorum stays a console that only approves, with an image you can hold up to a fingerprint.
+How the two compare, and what we watch in wedgie: [docs/WEDGIE.md](docs/WEDGIE.md). No wedgie code
+is in this repository.
 
 Picoquorum runs on Raspberry Pi Pico 2 W. It is not affiliated with Raspberry Pi or Safe.
 

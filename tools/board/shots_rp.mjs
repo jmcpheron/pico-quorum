@@ -167,7 +167,7 @@ def tick(*p):
 start()
 tick()
 tick()`);
-shot("key-make", "The key, at the first start: K0 has read the chip (no key in slot 0, counter 0 at 0) and that locks in. D2 ▲ Make: the chip makes a key inside itself. The picture is random bytes, not a key.");
+shot("key-make", "The key, at the first start after a load, which is the bench's: K0 has read the chip (no key in slot 0, counter 0 at 0) and that locks in. D0 ■ Make: the chip makes a key inside itself. The picture is random bytes, not a key.");
 py(`SNAP = {}                   # the busy page as each step starts, its list as the step saw it
 _run = sys.modules["keypick_s"].UI.step_run
 def _snap(self, step):
@@ -175,12 +175,12 @@ def _snap(self, step):
     SNAP[step] = bytes(FULL)
     return _run(self, step)
 sys.modules["keypick_s"].UI.step_run = _snap
-tick("D2")
+tick("D0")
 PAGE = bytes(FULL)
 FULL[:] = SNAP["C4"]`);
 shot("key-making", "Make: the chip at work, a light running round its legs and hex flickering in its body (a timer moves that corner alone while GenKey runs). Nothing to press.");
 py(`FULL[:] = PAGE`);
-shot("key-pick", "A key: its owner address's blockie and two ends, landed after a shuffle, locking in. D0 ■ Replace makes another in its place: the chip holds one key, so the one passed over is gone. D1 ● Full; D2 ▲ Seal.");
+shot("key-pick", "A key: its owner address's blockie and two ends, landed after a shuffle, locking in. D0 ■ Replace, the button Make was on, makes another in its place: the chip holds one key, so the one passed over is gone. D1 ● Full; D2 ▲ Seal.");
 py(`tick("D1")`);
 shot("key-pick-full", "Full: the whole owner address.");
 py(`tick("D1")\ntick("D2")`);
@@ -229,6 +229,17 @@ py(`CT.fresh_chip("608c")
 start()
 tick()`);
 shot("key-not-prepared", "A factory chip: never prepared at the bench. Nothing here can change it.");
+py(`CT.no_files()
+sim = CT.prepared()
+start()
+start()
+tick()
+tick()`);
+shot("key-make-new", "The second start after a load, the first since the bench: new. The count of starts is a file (starts.json); the USB-C can't write it.");
+py(`start()
+tick()
+tick()`);
+shot("key-make-started", "A third start, with no key made: it was started once before this, and the page says so.");
 dev.dispose();
 
 const md = ["# The console on console-rp", "",

@@ -1,10 +1,24 @@
 # Mono: the boards
 
-One row a board, added by [`check.py`](check.py) at step 4 of [BRINGUP.md](BRINGUP.md): what
+Under [Bring-up](#bring-up), one row a board, added by [`check.py`](check.py) at step 4 of [BRINGUP.md](BRINGUP.md): what
 `stage0.py` read and what the person at the bench saw. The USB serial is the CH343P's, the end of
 the port's name on a Mac. The key chip's serial is what the console logs later. What happens to a
-board after bring-up (prepared, a key made, sealed) goes in [the README](../README.md), as
-console-rp's does.
+board after bring-up (prepared, a key made, sealed) goes in its own log, below.
+
+## Where each stands
+
+Each board's history is in its own folder, [`../boards/NN/`](../boards/), written by
+[`boardlog.py`](boardlog.py): an entry a step, with the files that step left. This table is each
+board's last state. The number is written on the board's back. Kept out of the repository: a board's
+`secrets.py`, `pin.json`, `keyflow.json` and `safes.json`, raw relay logs, and an owner's address.
+
+<!-- states: boardlog.py writes between these lines -->
+| board | since | state | its log |
+|---|---|---|---|
+| 1 | 2026-11-18 | Prepared 2026-11-17 (quorum v1, config CRC e382). A key made, not sealed | [boards/01](../boards/01/LOG.md) |
+<!-- /states -->
+
+## Bring-up
 
 | board | date | USB serial | RP2350 id | key chip | key | KEY 2 | buttons | by eye | result |
 |---|---|---|---|---|---|---|---|---|---|

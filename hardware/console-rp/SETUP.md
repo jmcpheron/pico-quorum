@@ -19,7 +19,21 @@ The bench prepares the chip and never makes a key in it.
    `prep-log.txt` and stops.
 2. **`swdload.py --dump DIR`**, read only: `prep-log.txt` and the chip's config, to keep.
 3. **`console-rp`, with no `secrets.py`:** `swdload.py --no-micropython --image
-   build/console-rp-<sha>`. The board comes up on "Your key: No key yet: a new chip".
+   build/console-rp-<sha>`. The board comes up on "Your key", and under it "At the bench: no key,
+   start 1". Look once, then unplug it: that was the bench's start.
+
+**Is it new?** The Make page counts the starts that reach it, in `starts.json`, and says which this
+is (from the image after 2026.11.3's f24d·22db):
+- start 1, "At the bench": the look above;
+- start 2, "New: first start since the bench": what the owner should see;
+- any later start, "Not new: started N times before". So a second start at the bench means loading
+  again, or the owner is told the board isn't new.
+
+A key made at any earlier start is said in its place, "An old key: Make replaces it", and that one
+is the chip's own word: a key in slot 0 can be replaced, never taken out, so no load brings "New"
+back. The count is only a file. The USB-C can't write it, by wiring; a probe on the pads can, and
+could load another image too, since secure boot isn't on. Checked on the emulator
+(`case_own_key_starts`), not yet on a board.
 
 Boards #3 and #4 went this way on 2026-11-12, from a blank flash: C1-C3 and P4 passed, and each
 config CRC (e32f, f7dc) was the same from `tools/check_config --summary` on the dumped snapshot. A
@@ -30,10 +44,10 @@ sealed.
 ## The owner, on the device
 
 The key is made in the chip, on the owner's press; only its public half ever leaves it. The caps are
-■ (D0: back, reject), ● (D1: next) and ▲ (D2: do).
+■ (D0: back, reject), ● (D1: next) and ▲ (D2: do). ■ is also the key's roll, in a colour of its own.
 
-1. **▲ Make.** The chip makes the key in slot 0. Its blockie and owner address come up.
-2. **■ Replace** makes another key in its place. The chip holds one key, so the one passed over is
+1. **■ Make.** The chip makes the key in slot 0. Its blockie and owner address come up.
+2. **■ Replace**, the same button, makes another key in its place. The chip holds one key, so the one passed over is
    gone for good. **● Full** shows the address in full, and **▲ Seal** takes it.
 3. **"Seal this key?" is red: hold ▲ Seal 3 s.** The console tests the key on fixed digests (five
    signatures), seals slot 0, writes the record, locks the data zone, checks the chip and writes

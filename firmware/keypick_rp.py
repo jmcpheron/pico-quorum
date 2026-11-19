@@ -1,11 +1,11 @@
 # The owner's key on console-rp: keypick_s's Make, Pick and Keep in the console's CRT look
 # (quorum_ui_crt.py), on keyflow.OwnKey, the buttons under the screen as the console has them:
-# D0 ■ out, D1 ● next, D2 ▲ do.
-#   Make     what K0 found (no key yet, or one from before that Make replaces), then ▲ Make. The chip
-#            makes the key; nothing leaves it but the public half.
-#   Pick     the owner address's blockie, big, and its two ends, landed after a shuffle. ■ New makes
+# D0 ■ out, D1 ● next, D2 ▲ do. D0 is also the key's roll: ■ Make, then ■ Replace, in one colour (ROLL).
+#   Make     what K0 found (no key yet, or one from before that Make replaces) and which start this
+#            is (count_start), then ■ Make. The chip makes the key; nothing leaves it but the public half.
+#   Pick     the owner address's blockie, big, and its two ends, landed after a shuffle. ■ Replace makes
 #            another, as many times as anyone likes (until the seal no key here has signed for a Safe),
-#            ● Full shows the address in full, ▲ Choose goes on to Keep.
+#            ● Full shows the address in full, ▲ Seal goes on to Keep.
 #   Keep     a red page: ▲ held 3 s runs the test signatures (C5), the seal (C6) and the data lock
 #            (C7-C9) in one go, forever. ■ goes back.
 #   Finish   (after a restart between the seal and the data lock) ▲ held 3 s: C7-C9.
@@ -14,7 +14,7 @@
 #   Stop     red, nothing to press: a chip the bench never prepared, one set up as something else,
 #            or one sealed by something other than this flow (keyflow.OwnKey).
 # The permission is signer.own_key_step: on the console-rp image, a prepared quorum v1 chip, and this
-# screen's arm, given for one call alone by the ▲ press (Make, New) or the 3 s hold (Keep, Finish),
+# screen's arm, given for one call alone by the ■ press (Make, Replace) or the 3 s hold (Keep, Finish),
 # exactly as keypick_s.step_run gives it. Nothing else on the image arms the signer.
 #
 # The effects (crt.py): a K0 that found nothing locks in, a key lands and locks in, Sealed locks in;
@@ -27,6 +27,11 @@
 # Beside it, Keep's steps tick off as each one passes: what the steps returned, not a show. Each
 # step's result, K0's too, goes to the log (qlog: log.txt, and the computer over the link) as
 # prepare.py's do.
+#
+# Is it new? The Make page says, from two things. The chip: a key in slot 0 or a count on counter 0
+# (K0) means someone made a key here before, and nothing takes that back. And starts.json, a count of
+# the starts that came to Make: 1 is the bench's look after the load, 2 the first start since, more
+# is said as a warning. The count is a file: the USB-C can't write it, a probe on the pads can.
 import os
 import time
 from binascii import hexlify
@@ -40,6 +45,7 @@ import quorum_ui_s as Q
 import quorum_ui_crt as C
 import signer as S
 import keypick_s
+import keyflow
 
 W, H, M, R, TW, HEAD, FOOT = Q.W, Q.H, Q.M, Q.R, Q.TW, Q.HEAD, Q.FOOT
 KEEP = (("C5", "Test signatures"), ("C6", "Seal"), ("C8", "Record"), ("C9", "Data lock"), ("C10", "Pin"))
@@ -57,6 +63,8 @@ STOP = {"unprepared": ("Not prepared", "This chip was never set up at the bench,
 TITLES = dict(ceremony_ui.TITLES, K0="No-key check")
 OK = ("OK", "ok", "on_ok")
 BACK = ("Back", "raised", "text")
+ROLL = ("stake", "bg")              # Make and Replace, D0: its fill and ink
+STARTS_FILE = "starts.json"         # {"n": the starts that came to Make, this one counted}
 
 
 class UI(keypick_s.UI):
@@ -74,6 +82,21 @@ class UI(keypick_s.UI):
         self._todo, self._ok, self._now = (), set(), None        # the busy page's steps, passed, running
         self._busy = self._paint = False                         # the busy page up; the page going out
         self._tm, self._tile, self._f, self._col = None, None, 0, None
+        self.starts = self.count_start()
+
+    def count_start(self):
+        """Which start this is, of those that came to Make (a prepared chip, slot 0 not sealed): counted
+        in starts.json before anything is drawn. None where Make isn't offered; 0 if the file can't be
+        written, so a count that didn't go up is never shown as a first start."""
+        if self.c.step() != "K0":
+            return None
+        try:
+            n = int((keyflow.read_json(STARTS_FILE) or {}).get("n", 0)) + 1
+            keyflow.write_json(STARTS_FILE, {"n": n})
+        except Exception:
+            n = 0
+        qlog.write("key %s start %s at Make" % (self.c.serial, n or "not counted"))
+        return n
 
     def arm(self):
         pass                        # no 60 s arm here (ceremony_ui's D0+D1 hold): only step_run's, per call
@@ -116,6 +139,9 @@ class UI(keypick_s.UI):
         elif kind == "done":
             if "D2" in pressed:
                 return "console"
+        elif kind == "make":
+            if self.NEW in pressed and not self.need("make"):
+                self.make(st)                               # D0, where Replace is after it
         elif kind != "stop":
             super().tick(pressed)
         return None
@@ -329,14 +355,24 @@ class UI(keypick_s.UI):
         y = FOOT - 18
         if why:
             B.txt(d, B.fit(why, TW, "sans12"), M, y, "sans12", "bad")
-        elif c.checked and all(k for _, k in c.checked):
-            B.mark(d, True, M + 6, y + 8, 6)
-            B.txt(d, B.fit("No key yet: a new chip", TW - 16, "sans12"), M + 16, y + 1, "sans12", "ok")
         elif c.checked:
-            B.warn_sign(d, M + 6, y + 8, 6)
-            old = "Old key, %d uses" % c.counter if c.counter else "An old key"
-            B.txt(d, B.fit(old + ": Make replaces it", TW - 16, "sans12"), M + 16, y + 1, "sans12", "warn")
-        self.foot((None, None, None if why else ("Make", "ok", "on_ok")))
+            n = self.starts
+            if not all(k for _, k in c.checked):
+                new, say = False, ("Old key, %d uses" % c.counter if c.counter else "An old key") + ": Make replaces it"
+            elif n == 1:
+                new, say = True, "At the bench: no key, start 1"
+            elif n == 2:
+                new, say = True, "New: first start since the bench"
+            elif n:
+                new, say = False, "Not new: started %d time%s before" % (n - 2, "" if n == 3 else "s")
+            else:
+                new, say = False, "No key yet. Starts not counted"
+            if new:
+                B.mark(d, True, M + 6, y + 8, 6)
+            else:
+                B.warn_sign(d, M + 6, y + 8, 6)
+            B.txt(d, B.fit(say, TW - 16, "sans12"), M + 16, y + 1, "sans12", "ok" if new else "warn")
+        self.foot((None if why else ("Make",) + ROLL, None, None))
         self.show()
 
     def _pick(self, st):
@@ -359,7 +395,7 @@ class UI(keypick_s.UI):
             return
         keypick_s.ends(d, a, x, HEAD + 10)
         B.para(d, "Like it? Seal it in your signer. Or replace it.", x, HEAD + 50, R - x, "sans12", "muted", "bg", 14, FOOT - 2)
-        self.foot((None if why else ("Replace", "raised", "text"), ("Full", "raised", "text"), ("Seal", "ok", "on_ok")))
+        self.foot((None if why else ("Replace",) + ROLL, ("Full", "raised", "text"), ("Seal", "ok", "on_ok")))
         self.show()
 
     def _full(self, st):
@@ -372,7 +408,7 @@ class UI(keypick_s.UI):
             y += 17
         blockies.draw(d, a, R - 32, FOOT - 36, 4)
         B.para(d, "A signer, not a wallet: never send funds to it.", M, y + 4, TW - 40, "sans12", "warn", "bg", 14, FOOT - 2)
-        self.foot((None if why else ("Replace", "raised", "text"), ("Pic", "raised", "text"), ("Seal", "ok", "on_ok")))
+        self.foot((None if why else ("Replace",) + ROLL, ("Pic", "raised", "text"), ("Seal", "ok", "on_ok")))
         self.show()
 
     def _keep(self, st):

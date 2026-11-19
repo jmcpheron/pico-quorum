@@ -1,7 +1,7 @@
 # Mono: bringing up the first boards
 
-*Written 2026-11-17, before the first boards came. Nothing here has run on a Mono. The two scripts
-were run on the emulator and against a made-up board ([What was checked](#what-was-checked)). The
+*Written 2026-11-17, before the first boards came. Board 1 went through steps 1 to 4, 6 and the
+bench's half of 7 that day ([What was checked](#what-was-checked), [its log](../boards/01/LOG.md)). The
 way in is console-rp's, which four console-rp boards have been through: its
 [bring-up](../../console-rp/bench/BRINGUP.md) and its [set-up](../../console-rp/SETUP.md).*
 
@@ -178,7 +178,7 @@ uv run --no-project --with littlefs-python==0.19.0 python hardware/console-rp/be
 **This is the first permanent step.** `prepare-rp` writes the chip's config and locks it, and that
 lock can't be undone ([docs/LOCKING.md](../../../docs/LOCKING.md)). It is
 [SETUP.md](../../console-rp/SETUP.md)'s "At the bench", steps 1 to 3, as written there: prepare,
-dump, then the console's image again, which now comes up on "Your key: No key yet".
+dump, then the console's image again, which now comes up on "Your key", ■ Make.
 
 Take one board through it, then make a key on it and replace it, without sealing, as console-rp's
 boards #1 and #3 did. That is the first time a Mono's chip makes a key. Prepare the rest after that.
@@ -214,9 +214,14 @@ put a REPL on the USB-C for a bench board. Take it off before the board holds a 
   `python3 hardware/mono/bench/check_test.py`
 - CI doesn't run either: it skips `hardware/`.
 
+On board 1, 2026-11-17 and 18 ([its log](../boards/01/LOG.md)):
+- steps 1 to 4, loaded through three wires soldered to the pads. CHIP_ID read `30004927` at the
+  address in step 3, and XOSC_STATUS `81001000`. KEY 2 read `off 00 on 11, empty`;
+- step 6: a red Not prepared, then after step 7 the link answered at 460800 with the chip's serial;
+- step 7's bench half: C1 to C3 and P4 passed, and the config CRC matched the snapshot's.
+
 Not checked:
-- anything on a board;
-- KEY 2's read on the real parts: that its lines read low through 5.3k with VKEY off;
-- an ER-TFT1.14-2 in J2;
-- `swdload.py` through pogo pins on Mono's pads;
-- the CHIP_ID address in step 3.
+- step 5's figures, the footer's caps, and a key made and replaced, on any board;
+- which kind of panel is in board 1's J2;
+- a whole load through pins that aren't soldered: held by hand on a second board they answer reads
+  and drop during the load.

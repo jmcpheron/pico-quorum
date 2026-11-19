@@ -2,8 +2,11 @@
 
 *Design, 2026-11-06. Written by a script, [gen_mono.py](gen_mono.py), and read back by KiCad 10: the
 schematic (netlist and ERC) and the board, routed (DRC, with schematic parity). The fab files for
-JLCPCB are in [mono/fab/](mono/fab/) and pass `tools/keypcb jlc mono`. Not ordered, nothing built,
-and no panel folded against it yet.*
+JLCPCB are in [mono/fab/](mono/fab/) and pass `tools/keypcb jlc mono`.*
+
+*Built: 20 boards are at the bench. Board 1 was brought up on 2026-11-17, runs console-rp's image, and
+has its chip prepared; [bench/BOARDS.md](bench/BOARDS.md) has each board's row and where it stands, and
+[Open](#open) what is not yet checked on a board.*
 
 ![Mono from above: the 1.14-inch screen across the top, D0, D1 and D2 in a row under it, an M2 hole either side; below them the second key's site on the left and the key that signs on the right, the RP2350 in the middle, and the USB-C on the bottom end, left of centre](renders/mono-top.jpg)
 
@@ -38,7 +41,7 @@ board's generator and fab files. Neither is printed.
 | [Mono's case](../../cad/consoles/README.md#mono): a front shell and a back panel, four M2 screws from the face | [`mono.py`](../../cad/consoles/mono.py) | `tools/case build mono` | [`out/mono/`](../../cad/consoles/out/mono/) |
 | [the industrial variant](../../cad/consoles/README.md#mono-industrial): the same inside; the corners cut at 45°, nine grooves down each long side, and the mark printed in the face: black lines over green, the waiting dots orange | [`mono_ind.py`](../../cad/consoles/mono_ind.py) | `tools/case build mono-industrial` | [`out/mono_ind/`](../../cad/consoles/out/mono_ind/) |
 
-![Mono's case, industrial: in the hand with four screws in the face, the back with the name, and the left side with its grooves and cut corners](../../cad/consoles/out/mono_ind/mono_ind_front.png)
+![Mono's case, industrial: in the hand with four screws in the face, the back with picoquorum.app along it in green and orange, and the left side with its grooves and cut corners](../../cad/consoles/out/mono_ind/mono_ind_front.png)
 
 Both close at 44.6 × 100.1 × 10.9 mm. The case covers the jig's pads and KEY 2's holes: the back
 panel comes off to reach them. [`cad/mono/`](../../cad/mono/README.md) is this board alone as a
@@ -89,10 +92,14 @@ New:
   the bottom right of the chip.
 - The bottom end: the USB-C left of centre, its ESD diodes and the CH343P above it, and the LDL1117
   on the right.
-- The silkscreen on the front is only the buttons' names and KEY 2's labels. On the back:
-  EXPERIMENTAL HARDWARE COSIGNER, "nothing is fitted on this side", "no radio: USB serial only",
-  the revision, picoquorum.app (the Source Location), the licence, the census of the parts, the
-  current to expect, and the jig's pads' names.
+- The silkscreen on the front is the buttons' names, KEY 2's labels and two drawings. The
+  key-forge, a hammer over a key on an anvil, is the owner's drawing traced into keyforge.json. It
+  sits between D2's name and U5, the key that signs. Some ground vias are under it; they're tented,
+  so it prints over them. The dragon from Atari's Adventure, 4 × 10 mm, is under the glass's left
+  end, where the panel hides it; it prints over tented ground vias too. On the back: EXPERIMENTAL
+  HARDWARE COSIGNER, "nothing is fitted on this side", "no radio: USB serial only", the revision,
+  picoquorum.dev (the Source Location), the licence, the census of the parts, the current to expect,
+  and the jig's pads' names.
 
 Every part JLCPCB fits is on the front, because Economic assembly does one side. So the field below
 the buttons holds the electronics. A case's face would cover them.
@@ -258,6 +265,9 @@ same for the next route:
   of the jig's names. The route's top row of ground vias, now off the board, came out, and 15 more
   where the two halves met, too near each other or other copper: 29 in all. The pours were filled
   again.
+- **The silkscreen's drawings and address** (2026-11-08). The key-forge and the dragon were drawn
+  onto the board by the generator's own `art()`, and the back's address became picoquorum.dev. Only
+  the two silkscreen layers changed.
 
 ## What is checked, and how
 
@@ -274,24 +284,29 @@ checks the routed one as it is. Both run:
 - **Every symbol pin has a pad** in its footprint, and every pad a pin.
 - **Each GPIO's function** (UART1, I2C0, I2C1, SPI1) against the RP2350's table; the screen's and
   key's pins against `firmware/board.py`; KEY 2's pair against `make_i2c`.
-- **DRC** on the placed board, and on the routed one with schematic parity. The one finding left
-  is expected: J1 differs from its library's copy, since its silkscreen past the edge is left out.
+- **DRC** on the placed board, and on the routed one with schematic parity. The five findings left
+  are expected, each a footprint that differs from its library's copy. J1's silkscreen past the edge
+  is left out. FID1–3 and U4 differ from KiCad 10.0.8's library, which came after the route: it
+  tags the fiducials' pads as fiducials, a Gerber attribute, and moves the CH343P's pin-1 mark to
+  its corner. Their copper, mask and paste are the same.
 - **Raspberry Pi's areas:** no other net's copper in their regulator's or crystal's corner, or under
   the chip or the crystal on the back.
 - **Under the glass:** each part's height and place.
 
 `tools/keypcb fab mono` writes the files to upload: `mono-gerbers.zip`, `bom.csv` and `cpl.csv` in
 [mono/fab/](mono/fab/). `tools/keypcb jlc mono` ([tools/jlc](../../tools/jlc/README.md)) passed
-every check on 2026-11-06, before the board was made shorter and after, `--strict` against the
-golden pictures included (written again for the shorter board): DRC at JLCPCB's limits, the Gerbers
-and drills read back, the netlist, the BOM and CPL against LCSC's parts, mask and paste, holes,
-pours and the 3D fit. Its self-test caught 10 of 10 broken copies. For the fit, its broken
-copy makes J2's ZIF 3 mm tall, since no SOT-23 sits under Mono's glass (`selftest_tall` in the spec;
-other boards' copies still raise their SOT-23s). What its spec (`jlc_spec()`) lets through, each
-with why:
-- 26 DRC findings: Raspberry Pi's footprints and the ZIF don't match the stock symbols' footprint
+every check: DRC at JLCPCB's limits, the Gerbers and drills read back, the netlist, the BOM and
+CPL against LCSC's parts, mask and paste, holes, pours and the 3D fit. It passed on 2026-11-06,
+before the board was made shorter and after, and on 2026-11-08 after the drawings, with KiCad
+10.0.8, each time with `--strict` against the golden pictures (written again for the shorter
+board, then the silkscreen's for the drawings). Its self-test caught 10 of 10 broken copies. For
+the fit, its broken copy makes J2's ZIF 3 mm tall, since no SOT-23 sits under Mono's glass
+(`selftest_tall` in the spec; other boards' copies still raise their SOT-23s). What its spec
+(`jlc_spec()`) lets through, each with why:
+- 30 DRC findings: Raspberry Pi's footprints and the ZIF don't match the stock symbols' footprint
   filters (23), U1 is an SMD part with holes in its pad, J1's silkscreen past the edge is left out,
-  and the panel has no courtyard (the fit's glass stands in).
+  FID1–3 and U4 differ from KiCad 10.0.8's library (above), and the panel has no courtyard (the
+  fit's glass stands in).
 - U1's nine thermal-via holes are held to the vias' ring (0.15 mm), not a component hole's 0.2.
 - The one via in the CH343P's exposed pad, the only via not tented.
 
@@ -308,7 +323,7 @@ No warnings are left. Worth reading in its output:
 Not checked:
 - the Trust M's land pattern (KiCad's Microchip USON-10) against Infineon's package drawing;
 - the SOT-223's height (1.8 mm assumed) and the 3D fit's other guessed sizes;
-- anything on a real board.
+- on a real board, more than [bench/BOARDS.md](bench/BOARDS.md) and [the boards' logs](boards/) say.
 
 ## Steps to a board
 
@@ -316,14 +331,21 @@ Not checked:
 2. Check L1's stock, and the new parts' tiers.
 3. `tools/keypcb jlc mono`, then upload `mono/fab/mono-gerbers.zip`, `bom.csv` and `cpl.csv`:
    Economic, one side. Check the placement preview, U9, U2, U10 and D1 above all.
-4. Bring the boards up over SWD, through the pads: [bench/BRINGUP.md](bench/BRINGUP.md) has the
-   plan for the first batch, written before they came. A bench script first, then console-rp's
-   image, then the chip prepared. Each board's row goes in [bench/BOARDS.md](bench/BOARDS.md).
+4. Bring the boards up over SWD, through the pads: [bench/BRINGUP.md](bench/BRINGUP.md), which
+   board 1 went through on 2026-11-17. A bench script first, then console-rp's image, then the chip
+   prepared. Each board's row goes in [bench/BOARDS.md](bench/BOARDS.md), and what is done to it
+   after in its own log, [boards/](boards/).
 
 ## Open
 
-- [ ] The panel's fold and the ZIF's depth, measured.
-- [ ] L1's stock.
+- [ ] The panel's fold and the ZIF's depth, measured. A panel is in board 1's J2 and shows the
+  picture upright and whole; nothing was measured.
+- [ ] On a board, still: a key made and replaced, a Safe, a signature; the current at the USB-C and
+  the regulator's warmth; the footer's caps over the buttons
+  ([board 1's log](boards/01/LOG.md)).
+- [ ] A way to hold pins on the SWD pads for a whole load. Board 1 has soldered wires. Pins held by
+  hand answer a read and drop during a load, and the printed clip has not made contact
+  ([cad/mono](../../cad/mono/README.md)).
 - [ ] The jig: a pogo fixture for the nine pads. Drawn, located by the board's outline, not
   printed ([bench/JIG.md](bench/JIG.md)). It powers the board through the USB-C; TP5 only measures.
 - [ ] The RP2350's own USB on TP7 and TP8, unproven, as on console-rp.

@@ -460,7 +460,7 @@ function signerCard(ui, a, st) {
         h("p", {}, badge("warn", "No key yet"), st.serial ? ` chip ${st.serial}` : " No chip answered."),
         facts ? h("p", { class: "small muted", "data-chip": "", text: facts }) : null,
         own
-          ? h("p", { class: "muted", text: "This console makes its key on its own screen: ▲ Make, then hold ▲ on the red Keep page. The chip makes it, and only its public half leaves the chip. Nobody, this page included, ever sees the key." })
+          ? h("p", { class: "muted", text: "This console makes its key on its own screen: ■ Make, then ▲ Seal and hold ▲ on the red page. The chip makes it, and only its public half leaves the chip. Nobody, this page included, ever sees the key." })
           : h("p", { class: "muted", text: "The key is made in the ceremony, before the console is handed over: the ceremony image and tools/fw ceremony start, on a computer. Nobody, this page included, ever sees the key." }),
         own ? null : h("p", { class: "small", text: "To see how it goes, practise on the device: Practice on its No key screen, or Device then Practice. The ten steps, the arm and the holds, with its own buttons. It writes nothing to the chip." })));
   }
