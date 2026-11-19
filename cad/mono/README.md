@@ -115,3 +115,40 @@ latch (the nearest, C22, is 5.8 mm from the tip), that the base touches neither 
 nor its parts, and that a latch turned a quarter is off the board and inside its landing.
 
 Not printed.
+
+## A cradle for three wires, until the probes come
+
+[`cradle.py`](cradle.py) draws the jig's bottom end alone, shallow: the same pocket, the same opening
+for the USB-C's plug and the same latches, with a hole under each of TP1, TP2 and TP3 (SWCLK, GND,
+SWDIO) for a jumper wire. The stripped end of the wire, spread over the hole's mouth, is the contact.
+
+![The cradle under the board's bottom end, a latch over each edge, the rest of the board standing out past it](out/mono_cradle.png)
+![The cradle from underneath: the wires' channel from the three holes out of the top end](out/mono_cradle_under.png)
+
+```sh
+uv run --python 3.11 --with cadquery --with matplotlib python cad/mono/cradle.py
+```
+
+It writes `out/mono_cradle.stl`, 60 × 40 × 8.6 mm, as it prints, no support. The latches are the
+jig's: `mono_jig_latch.stl`, two.
+
+To build one:
+1. **Clear the three holes** with a 1.5 to 2 mm bit if a wire won't pass. They are drawn 1.9 mm, and
+   the walls between them are 0.64 mm: go gently.
+2. **Cut one end off three jumper wires** and strip 2 to 3 mm. Keep the socket or pin on the other
+   end for the probe.
+3. **Push each wire up its hole** from underneath until the insulation is level with the deck. Spread
+   the strands flat over the hole's mouth and trim them to about 1 mm round it: a pad is 1.5 mm
+   across and the next one is 2.54 mm away, so no strand may reach a neighbour's.
+4. **Lay the wires in the channel** underneath, out of the top end, and fix them there with tape or a
+   drop of glue, so a pull on a wire doesn't drag its end down the hole.
+5. **The latches:** an M3 × 8 screw and a washer each, straight into the printed holes, which the
+   screw threads. With no screws, a rubber band round the cradle and the board, lying in the two
+   landings, holds the board down.
+6. **Meter it** with a board in: each wire's far end to its pad's net (SWCLK and SWDIO read 100 Ω
+   to the RP2350's side of R15 and R16; GND to the USB-C's shell), and no wire to the next.
+
+From the left edge in, the wires are SWCLK, GND, SWDIO. The board stands 53.5 mm out past the cradle,
+with nothing under the screen or the buttons: put a finger under it before pressing one.
+
+Not printed. Whether squashed strands hold a contact for a three-minute load isn't known.
