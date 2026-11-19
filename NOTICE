@@ -36,6 +36,10 @@ Copyright (c) 2026 Austin Griffith.
   point: upstream commit 87c717c (2026-09-13); upstream merged through 72539d5 (2026-09-24). See
   docs/UPSTREAM-TRACKING.md.
 
+wedgie (https://github.com/clawdbotatg/wedgie-dev, https://wedgie.dev), MIT, Copyright (c) 2026
+  Austin Griffith: where picowallet's work carries on. No file here comes from it. docs/WEDGIE.md
+  says how the two projects compare.
+
 ATECC608-demo (https://github.com/clawdbotatg/ATECC608-demo): the Raspberry Pi signer picowallet
   grew out of. The legacy-test config table in firmware/atecc.py is byte for byte the one its
   provision.py wrote, which is Microchip's ATECC608 reference configuration from cryptoauthlib's

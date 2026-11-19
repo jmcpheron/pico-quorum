@@ -9,10 +9,10 @@
     "fonts/next-700.woff2": "0dbe07ed7679407db9d90f747d5ca3bd1b2bb7ccbcbe41c8246cfc6d2c7bc3bc",
     "fonts/mono-500.woff2": "49efe8526ea1da079582132fcb83555b975ef79129bbf0ff669e103ed162f81f",
     "fonts/mono-700.woff2": "f30319aa2ab224c5a19d177617e2141b002fcb95c1afe233214f9d342e47687d",
-    "../index.html": "d6c5f44e35bdc160fdbdf0aea4af730568cd9814930bfba4fefa0c338f5ce687",
+    "../index.html": "4586d3ac06d22b6fd25bf924747f5b5032c6464ec83718975030fb0c92b5f8cd",
     "../home.css": "2c030864f36e9dc9181e097f8e8434db50884ec799e60ef59c8ea2413bcbfbe9",
-    "../handheld/index.html": "9a3629215dc03cb0eaa11136e3242aa1c8ccfc2870e8210b3e1c0e1a1caedc0d",
-    "../learn/index.html": "3e5a5f2c29bc8cac73069f372fa6ef59174277b3282de7dacaf9048a4cc3c745",
+    "../handheld/index.html": "a7b149052ebf49e2ee8bd5952771815a7f24568b188d948d0df76b8653caf8e8",
+    "../learn/index.html": "968963df2b15ecd39e715816ce881e92f0a35587bd1dabca1cad4098b25a8698",
     "../handheld/card.png": "e5b01dc6c341fc3b29b05520bad619aad24e1cb6a0fc5e324c262635fe5c25b0",
     "../handheld/img/00-colours.png": "3c8848de64eab0e354638ed89a9ed91b2c728032a718b35708dbe08a5fd8371d",
     "../handheld/img/00-exploded.png": "c7b16ad2ba1ba0abfa74d6145cfa8c75a42a7fc6f6f6a3eadfa87c67b4b0f1b3",
@@ -36,8 +36,8 @@
     "../handheld/img/16-done.png": "33efd77af458425cbed5885caa042761214312a9e7cb937ce6ecfbd4c5886a8b",
     "../img/key-c.jpg": "0a86ec6af9644857dcb9aa06dd04b1c480ee3c607f4fff6ca5bd2c4552b74980",
     "../img/console-rp.jpg": "67387cf73f9de6fb2068b64ff62ebcfb04b1fd965152a094b001ecf981ac53f3",
-    "../img/mono.jpg": "3f546b790a799184bf082e041b791f6500bfe5508f52e0d5bebd6b5de64eab58",
-    "../img/mono-dock.png": "9166fb0e5186b4163945ed51601b43152a1d8138de1b8409b0e9843b7cf18c21",
-    "../img/mono-case.png": "ded0b747b82604f81ab2ff7fdfe2eed96df1a353e5832aa98fb5ad91ad9680d0"
+    "../img/mono.jpg": "40837898307b383b9b79e5f971442d1faf10497147c13a9e483172aa2889531b",
+    "../img/mono-dock.png": "044239b7bb648588a1326e1ff12b0c89f3139c1d10a044475d501f386b9a9a7b",
+    "../img/mono-case.png": "262a91b89861f40a3ba76d401567fb92f9a664c006682ab47413e005dc1d8bb1"
   }
 }
