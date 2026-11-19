@@ -64,7 +64,7 @@ def name(c, cx, top, fit=NAME[1:]):
     word, ((w, h), over) = NAME[0], fit
     size = S.fit_text(word, w, h)
     y = top + over + h / 2                          # the line's middle
-    tw = size * cq.Workplane("XY").text(word, 10, 1, combine=False, kind="bold").val().BoundingBox().xlen / 10
+    tw = size * S.letters("XY", word, 10, 1).val().BoundingBox().xlen / 10
     for hx, hy in c.b["holes"]:                     # clear of each screw's counterbore by 0.5 mm
         gap = math.hypot(max(abs(hx - cx) - tw / 2, 0), max(abs(hy - y) - h / 2, 0))
         assert gap > S.M2_HEAD[0] / 2 + 0.2 + 0.5, "the name runs into the counterbore at %s" % ((hx, hy),)
@@ -96,7 +96,8 @@ def decor(c, shell, back):
     triangle = tri(-g, z0, z1)
     for k in (0, 2, 3):
         triangle = triangle.cut(S.cyl(*pts[k], rad[k] + g, z0 - 1, z1 + 1))
-    shell = shell.cut(name(c, cx, pts[0][1] + rad[0]))
+    if b.get("face_name", True):                # Mono's face has the mark alone (mono.py)
+        shell = shell.cut(name(c, cx, pts[0][1] + rad[0]))
     out = [("badge triangle", top(triangle), GREEN, S.flip)]
     for k in (0, 2, 3):
         dot = S.cyl(*pts[k], rad[k] - g, z0, z1)

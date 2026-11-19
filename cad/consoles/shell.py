@@ -16,6 +16,7 @@ import csv
 import math
 import os
 import sys
+import zipfile
 
 import cadquery as cq
 
@@ -38,6 +39,10 @@ WINDOW_MARGIN = 0.5         # the window round the active area
 GLASS_LIP = 0.8             # the plate over the glass's edge, at the least
 WINDOW_C = 0.8              # the window's top edge chamfered
 ENGRAVE = 0.5
+# The letters: Atkinson Hyperlegible Next (docs/BRAND.md), from the files in cad/fonts/ (its README), never the
+# machine's own fonts. Given no file, or one it can't read, CadQuery takes whatever sans the machine has, and says
+# nothing: the same script then cuts a different name on each machine. font() stops instead.
+FONTS = {"bold": "AtkinsonHyperlegibleNext-Bold.ttf", "regular": "AtkinsonHyperlegibleNext-Regular.ttf"}
 # The screws: M2 socket heads, self-tapping into a 1.8 mm hole in the plate's posts, as the handheld's are.
 # The bench's kit has 4, 8, 12 and 16 mm; the longest that fits is taken.
 M2_PILOT, M2_CLEAR, M2_HEAD = 1.8, 2.4, (3.8, 2.0)
@@ -53,6 +58,8 @@ POST_R = 2.2                # on the board's front: inside the 2.5 mm keep-out r
 BOSS_R, BOSS_BASE = 2.3, (3.4, 1.2)     # under the board; a wider foot on the floor round the counterbore
 # The caps on D0, D1, D2: a round stem through the plate and a square flange under it that keeps it in.
 CAP_D, CAP_HOLE = 4.2, 4.6
+# The gap round a stem in its hole is half their difference, 0.2 mm. A board can ask for more (b["cap_clear"]):
+# then its stems are made smaller and its holes stay, so only the caps are printed again
 # Shaped caps (b["cap_shapes"]: name -> shape), each about a round cap's area (14 mm2), so none is harder to hit:
 # a square of 3.8 mm, corners rounded 0.6; an equilateral triangle of 6.0 mm, point up, corners rounded 0.8,
 # centred on its height. A shaped stem in its own shaped hole can't turn.
@@ -73,6 +80,11 @@ PANEL_T = 1.6               # the back panel
 SHELL_EDGE = (1.5, 0.8)     # the face's edge rounded, the back's
 SHELL_POST_R = 3.0          # the face's posts, wider than POST_R so a counterbore fits in them
 TAB = (2.0, 1.2, 0.2)       # the back panel's tab into the end wall: long, thick, clearance round it
+# A tab into the top wall (b["tab"]: "top") is a wedge, so it prints with nothing hanging: its underside leaves the
+# panel's edge this far over the back's outside and climbs 45 degrees to a tip this thick, TAB's length into the
+# wall; its top is flat, and it stands on the panel from this far inside the board's edge. Its slot has the same
+# slope, so in the shell, printed face down, the slot's roof is a 45-degree overhang, not a bridge
+TAB_TOP = dict(under=0.7, tip=0.5, root=1.2)
 CORNER_WALL = 1.5           # the wall where a cut corner (b["corner_cut"]) comes nearest the inside, at the least
 
 # Footprint -> (along x at rotation 0, along y, height), by the first prefix that matches. Datasheet sizes
@@ -97,6 +109,7 @@ WROOM = (25.5, 18.0, 3.1)   # ESP32-S3-WROOM-1: long, across, thick (Espressif's
 # Colours for the pictures: the brand's Reject red and Sign green on their caps (docs/BRAND.md)
 TUB_C, PLATE_C = K.DARK, (0.74, 0.73, 0.70)
 RED, GREEN, PAPER = (1.0, 0.36, 0.33), (0.20, 0.78, 0.35), (0.90, 0.90, 0.88)
+BLACK = (0.10, 0.10, 0.11)  # a multi-colour print's ground
 CAP_C = {"D0": RED, "D1": PAPER, "D2": GREEN}
 BOARD_C, PART_C, GLASS_C, MOD_C = (0.10, 0.36, 0.20), (0.15, 0.15, 0.17), (0.05, 0.05, 0.07), (0.70, 0.70, 0.72)
 
@@ -168,14 +181,31 @@ def mark(cx, cy, r, z0, z1):
     return m
 
 
+def font(kind):
+    """The file kind's letters are cut from (FONTS). Stops if it isn't there, or OpenCASCADE can't read it."""
+    from OCP.Font import Font_FontMgr
+    from OCP.TCollection import TCollection_AsciiString
+    path = os.path.join(REPO, "cad", "fonts", FONTS[kind])
+    if not os.path.isfile(path):
+        sys.exit("the %s letters' font isn't there: %s (cad/fonts/README.md)" % (kind, os.path.relpath(path, REPO)))
+    if not Font_FontMgr.GetInstance_s().CheckFont(TCollection_AsciiString(path).ToCString()):
+        sys.exit("OpenCASCADE can't read the %s letters' font: %s" % (kind, os.path.relpath(path, REPO)))
+    return path
+
+
+def letters(plane, words, size, depth, kind="bold", **how):
+    """words as solids on plane, in the cases' own font."""
+    return cq.Workplane(plane).text(words, size, depth, combine=False, kind=kind, fontPath=font(kind), **how)
+
+
 def fit_text(words, width, height, kind="bold"):
     """The text size that fits words in width x height."""
-    bb = cq.Workplane("XY").text(words, 10, 1, combine=False, kind=kind).val().BoundingBox()
+    bb = letters("XY", words, 10, 1, kind).val().BoundingBox()
     return min(10 * width / bb.xlen, 10 * height / bb.ylen)
 
 
 def engrave_text(plane, words, size, depth, kind="bold"):
-    return cq.Workplane(plane).text(words, size, -depth, combine=False, kind=kind, halign="center", valign="center")
+    return letters(plane, words, size, -depth, kind, halign="center", valign="center")
 
 
 class Case:
@@ -330,10 +360,26 @@ class Case:
         return t.cut(n.edges("|Z").fillet(0.8))
 
     def tab(self, grow=0.0):
-        """The back panel's tab at the antenna end (the lug's side), into a slot in the end wall; grow makes the slot."""
+        """The back panel's tab at the antenna end (the lug's side), into a slot in the end wall; grow makes the slot.
+        Or tabs into the top wall, at the end no screw holds (b["tab"]: ("top", [(x0, x1), ...]))."""
         b = self.b
         L, t, _ = TAB
         ix1 = self.inner[1]
+        if b.get("tab", True) is not True:
+            # the wedge's outline, along the case and up from the back's outside (TAB_TOP)
+            edge, tip = self.inner[3] - PLATE_CLEAR, self.inner[3] + L          # the panel's edge, the tab's end
+            under = self.z0 + TAB_TOP["under"]
+            top = under + (tip - edge) + TAB_TOP["tip"]
+            assert top <= self.zb - REST_GAP, "a tab stands %.2f mm into the board's back" % (top - self.zb)
+            root = b["H"] - TAB_TOP["root"]
+            pts = [(root, self.zf - 0.01), (root, top), (tip, top), (tip, top - TAB_TOP["tip"]), (edge, under),
+                   (edge - 0.3, under)]
+            out = None
+            for x0, x1 in b["tab"][1]:
+                w = cq.Workplane("YZ").workplane(offset=x0 - grow).polyline(pts).close()
+                s = (w.offset2D(grow, "intersection") if grow else w).extrude(x1 - x0 + 2 * grow)
+                out = s if out is None else out.union(s)
+            return out
         y0, y1 = 4.0 - grow, b["H"] - 4.0 + grow
         # from the board's edge on: the module's antenna end is flush with it, and the tab stands above the panel
         return box(b["W"] - grow, ix1 + L + grow, y0, y1, self.zf - t / 2 - grow, self.zf + t / 2 + grow)
@@ -459,6 +505,7 @@ class Case:
         front, back, extra = self.front(), self.back(), []
         if self.b.get("decor"):     # the board's own touches: (shell, back) -> (shell, back, [(name, shape, colour, lie)])
             front, back, extra = self.b["decor"](self, front, back)
+        extra = extra + [("back " + n, s, col, None) for n, col, s in self.inlays]    # for the pictures
         return [("shell", front, TUB_C, flip), ("back", back, PLATE_C, lambda s: s)] + \
             [(n, s, col, lambda s: s) for n, s, col in caps] + extra
 
@@ -479,16 +526,47 @@ class Case:
         return box(xc - w / 2, xc + w / 2, y0 - 1, 0.0, z - h / 2, z + h / 2).edges("|Y").fillet(r)
 
     def back_text(self):
+        """The back's words, as the cut that engraves them. A line may carry a fifth item, how: along (1 or -1) sets
+        it along the case's length, reading toward the top end or from it; parts ([(words, name, colour), ...])
+        splits it into pieces to print in colours of their own. Those are left in self.inlays: (name, colour,
+        shape), each the letters as solids, filling their cut flush with the back."""
         b = self.b
         flip = b["flip"]                      # how the case is turned over to read its back: about "x" or "y"
         xdir = (1, 0, 0) if flip == "x" else (-1, 0, 0)
-        cut = None
-        for words, (cx, cy), (w, h), kind in b["back_text"]:
+        depth = b.get("engrave", ENGRAVE)
+        cut, self.inlays = None, []
+        for words, (cx, cy), (w, h), kind, *how in b["back_text"]:
             size = fit_text(words, w, h, kind)
-            pl = cq.Plane(origin=(cx, cy, self.z0), xDir=xdir, normal=(0, 0, -1))
-            c = engrave_text(pl, words, size, b.get("engrave", ENGRAVE), kind)
+            if not how:
+                pl = cq.Plane(origin=(cx, cy, self.z0), xDir=xdir, normal=(0, 0, -1))
+                c = engrave_text(pl, words, size, depth, kind)
+            else:
+                c = self.back_line(words, cx, cy, size, depth, kind, **how[0])
             cut = c if cut is None else cut.union(c)
         return cut
+
+    def back_line(self, words, cx, cy, size, depth, kind, along, parts):
+        """One line of the back's words along the case's length, its middle at (cx, cy), in pieces (back_text)."""
+        assert "".join(p[0] for p in parts) == words, "the pieces don't make up %r" % words
+        pl = cq.Plane(origin=(cx, cy, self.z0), xDir=(0, along, 0), normal=(0, 0, -1))
+        line = letters(pl, words, size, -depth, kind, halign="left", valign="center")
+        bb = line.val().BoundingBox()
+        shift = cy - (bb.ymin + bb.ymax) / 2            # the line starts at cy: move its middle there
+        # a letter belongs to the first piece whose words, set alone from the same start, reach past its middle
+        ends, so_far = [], ""
+        for w, _, _ in parts[:-1]:
+            so_far += w
+            ends.append(letters("XY", so_far, size, 1, kind, halign="left").val().BoundingBox().xmax)
+        mine = [[] for _ in parts]
+        for s in line.val().Solids():
+            u = along * (s.Center().y - cy)
+            mine[next((i for i, e in enumerate(ends) if u <= e), len(ends))].append(s.translate((0, shift, 0)))
+        for (w, name, colour), solids in zip(parts, mine):
+            assert solids, "no letters in %r" % w
+            # in a set order: OpenCASCADE hands the letters over in a different one each run
+            solids.sort(key=lambda s: [round(v, 3) for v in s.Center().toTuple()])
+            self.inlays.append((name, colour, cq.Workplane("XY").add(cq.Compound.makeCompound(solids))))
+        return line.translate((0, shift, 0))
 
     # --- the plate -----------------------------------------------------------------------------------
     def plate(self):
@@ -594,7 +672,9 @@ class Case:
             q = self.b["parts"][ref]
             c = box(q["x"] - f, q["x"] + f, q["y"] - f, q["y"] + f, self.zcap, self.zft).edges("|Z").fillet(0.6)
             kind = self.b.get("cap_shapes", {}).get(name, "circle")
-            stem = cap_shape(q["x"], q["y"], kind, 0.0, self.zft - 0.01, self.zt + CAP_PROUD, self.b.get("cap_scale", 1.0))
+            less = self.b.get("cap_clear", (CAP_HOLE - CAP_D) / 2) - (CAP_HOLE - CAP_D) / 2
+            assert less >= 0, "cap_clear is under the holes' own %.2f mm" % ((CAP_HOLE - CAP_D) / 2)
+            stem = cap_shape(q["x"], q["y"], kind, -less, self.zft - 0.01, self.zt + CAP_PROUD, self.b.get("cap_scale", 1.0))
             stem = stem.faces(">Z").edges().fillet(0.6 if kind == "circle" else 0.4)
             out.append((c.union(stem), CAP_C.get(name, PAPER), "cap " + name))
         return out
@@ -689,6 +769,57 @@ def stl(shape, path, tol=0.05):
     cq.exporters.export(shape, path, tolerance=tol, angularTolerance=0.2)
 
 
+def threemf(path, title, bodies, tol=0.05):
+    """One object of several bodies, a colour each, as a 3MF: bodies is [(name, (r, g, b), shape)], each where it
+    lies on the bed. A slicer loads it as one object with parts, and each part takes a filament. The bodies keep
+    their places to each other; the whole is moved so its lowest corner is at 0, 0, 0. Written the same every
+    time: no date, nothing compressed (a zip's compressed bytes differ from one zlib to the next)."""
+    meshes = []
+    for name, colour, shape in bodies:
+        vs, ts = shape.val().tessellate(tol, 0.2)
+        index, pts, tris = {}, [], []
+        for v in vs:                            # the faces' own points, joined where they meet: one closed skin
+            k = (round(v.x, 5), round(v.y, 5), round(v.z, 5))
+            if k not in index:
+                index[k] = len(pts)
+                pts.append(k)
+        at = [index[(round(v.x, 5), round(v.y, 5), round(v.z, 5))] for v in vs]
+        for a, b, c in ts:
+            a, b, c = at[a], at[b], at[c]
+            if a != b and b != c and a != c:
+                tris.append((a, b, c))
+        meshes.append((name, colour, pts, tris))
+    lo = [min(p[k] for _, _, pts, _ in meshes for p in pts) for k in range(3)]
+    num = lambda v: ("%.5f" % v).rstrip("0").rstrip(".") or "0"
+    hexc = lambda c: "#%02X%02X%02XFF" % tuple(int(round(255 * v)) for v in c)
+    x = ['<?xml version="1.0" encoding="UTF-8"?>',
+         '<model unit="millimeter" xml:lang="en-US" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">',
+         '<metadata name="Title">%s</metadata>' % title,
+         '<metadata name="Application">Picoquorum cad/consoles/shell.py</metadata>',
+         '<resources>', '<basematerials id="1">']
+    x += ['<base name="%s" displaycolor="%s"/>' % (name, hexc(colour)) for name, colour, _, _ in meshes]
+    x.append('</basematerials>')
+    for i, (name, _, pts, tris) in enumerate(meshes):
+        x.append('<object id="%d" name="%s" type="model" pid="1" pindex="%d"><mesh><vertices>' % (i + 2, name, i))
+        x += ['<vertex x="%s" y="%s" z="%s"/>' % tuple(num(p[k] - lo[k]) for k in range(3)) for p in pts]
+        x.append('</vertices><triangles>')
+        x += ['<triangle v1="%d" v2="%d" v3="%d"/>' % t for t in tris]
+        x.append('</triangles></mesh></object>')
+    whole = len(meshes) + 2
+    x.append('<object id="%d" name="%s" type="model"><components>' % (whole, title))
+    x += ['<component objectid="%d"/>' % (i + 2) for i in range(len(meshes))]
+    x += ['</components></object>', '</resources>', '<build><item objectid="%d"/></build>' % whole, '</model>', '']
+    files = [("[Content_Types].xml", '<?xml version="1.0" encoding="UTF-8"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+              '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+              '<Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/></Types>\n'),
+             ("_rels/.rels", '<?xml version="1.0" encoding="UTF-8"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+              '<Relationship Target="/3D/3dmodel.model" Id="rel0" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/></Relationships>\n'),
+             ("3D/3dmodel.model", "\n".join(x))]
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_STORED) as z:
+        for name, text in files:
+            z.writestr(zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0)), text.encode("utf-8"))
+
+
 def flip(shape):
     """Face down, as the plate prints."""
     return shape.rotate((0, 0, 0), (1, 0, 0), 180)
@@ -716,6 +847,7 @@ def build(b, out, screen_png=None):
         for qn, qs in printed[i + 1:]:
             pairs.append((pn, ps, qn, qs))
     pairs += [("screws", screws, sn, sh) for sh, _, sn in things]
+    pairs += [("back", ps, "the back's letters, " + n, s) for pn, ps in printed if pn == "back" for n, _, s in c.inlays]
     pairs += [("dock", dock, n, c.on_dock(s, tilt)) for n, s in printed + [("plug overmold", over)]]
     bad = check(pairs)
     for ref, n in b["buttons"]:                         # the flange must reach past the hole, or the cap falls out
@@ -729,6 +861,10 @@ def build(b, out, screen_png=None):
             s = s.translate((0, 0, -c.zcap))
         stl(lie(s), os.path.join(out, "%s_%s.stl" % (name, n.replace(" ", "_"))))
     stl(dock, os.path.join(out, name + "_dock.stl"))
+    if c.inlays:                                        # the back with its letters in their colours, outside down
+        back = [s for n, s in printed if n == "back"]
+        threemf(os.path.join(out, name + "_back.3mf"), b["title"] + ": the back",
+                [("black", BLACK, back[0])] + [(n, col, s) for n, col, s in c.inlays])
     asm = cq.Assembly(name=name)
     for n, s, col, _ in parts:
         asm.add(s, name=n.replace(" ", "_"), color=cq.Color(*col))
