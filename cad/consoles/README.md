@@ -144,6 +144,10 @@ front shell changes:
     its floor, where it reaches 0.6 mm under the black round its opening (`COLOUR`). The black body
     is the same as when the colours began at the pocket's floor, 0.4 mm in: printed so, they came
     out short of the face.
+- **Or no mark at all:** `mono_ind_shell_plain.stl` is the same shell with a plain face, for one
+  colour: the window, the caps' holes, the LED's hole and the screws, nothing else. It is the three
+  bodies as one, so it has the same walls, grooves, rests and slots for the back's tabs. Checked: solid
+  at 21 points where the pocket was, and the script stops if its volume isn't the three bodies'.
 - **The back is Mono's:** `picoquorum.app` along it, cut in `mono_ind_back.stl`, in green and orange in
   `mono_ind_back.3mf`. With the shell's 3MF, the whole case prints in the same three filaments.
 
@@ -372,6 +376,7 @@ Every part prints without supports, judging by the shapes. They haven't been sli
     the slicer loads it as one part, split it to parts; if it asks about filaments, give each part
     its own. For two colours, not three, give green and orange the same filament. The colours are in
     layers 1 to 3 (to 0.6 mm), flush with the back. The rest is black.
+- **The industrial shell with no mark** (`mono_ind_shell_plain.stl`): face down, one colour, as Mono's.
 - **The industrial shell's mark** has no badge. Slice at 0.2 mm, the first layer 0.2 mm too. In the
   slicer's preview, look for the lines in layers 1 and 2, each one pass 0.5 mm wide. A slicer that
   draws walls at a fixed width may leave them out: use its variable-width walls (Arachne), or its

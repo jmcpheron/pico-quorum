@@ -27,8 +27,8 @@ Run: uv run --python 3.11 --with cadquery --with matplotlib --with pillow \\
 (or tools/case build mono-industrial)
 
 Writes out/mono_ind/, the same files as mono.py with mono_ind_ in place of mono_, but no badge; the shell's three
-bodies, as three STLs and as mono_ind_shell.3mf; and mono_ind_mark.png: the mark from the front, in the three
-colours. Not printed.
+bodies, as three STLs and as mono_ind_shell.3mf; mono_ind_shell_plain.stl, the same shell with no mark, its face
+plain, for one colour; and mono_ind_mark.png: the mark from the front, in the three colours. Not printed.
 """
 import functools
 import math
@@ -90,6 +90,7 @@ def decor(c, shell, back):
     left = union([strip(y) for y in ys]).intersect(inside).cut(dots(signed, rs, z0 - 2, z1 + 2))
     left = left.union(dots(signed, rs + w, z0 - 1, z1 + 1).cut(dots(signed, rs, z0 - 2, z1 + 2)).intersect(inside))
     open_ = pocket.cut(left)
+    c.plain = shell                 # the face with no mark: for one colour
     shell = shell.cut(open_)
     c.hatch = (len(ys), pitch, pitch - w)
     # the three bodies: a slab of colour behind the pocket's floor, the rest black; and each colour on from its
@@ -138,7 +139,10 @@ def mark_picture(c, shell):
 def bodies(c):
     """The shell's three bodies, each face down in the shell's own place, so a slicer puts them together: an STL
     each, and the three in one 3MF. Checks that they add up to the shell with its pocket filled, and that the
-    black one is the shell less the colour behind the pocket."""
+    black one is the shell less the colour behind the pocket. And the shell with no mark, one STL: the same as
+    the three bodies together."""
+    assert abs(c.plain.val().Volume() - c.filled.val().Volume()) < 0.01, "the plain shell isn't the shell with its pocket filled"
+    S.stl(S.flip(c.plain), os.path.join(OUT, "mono_ind_shell_plain.stl"))
     whole = c.filled.val().Volume()
     parts = sum(s.val().Volume() for _, s in c.bodies)
     assert abs(whole - parts) < 0.01, "the shell's bodies add up to %.2f mm3, the filled shell %.2f" % (parts, whole)
