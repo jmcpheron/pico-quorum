@@ -36,3 +36,9 @@ Step 7: the chip prepared, on the board, by the person at the bench (the arm and
 console-rp's image again, build daaa14e, release f24d·22db, loaded with swdload.py --no-micropython and no secrets.py: the whole filesystem is new, so the bench's ALLOW_LOCK file is gone from the board. Every piece went on the first try. What the screen shows is not yet written here.
 
 - repository at `91aaa81`
+
+## 2026-11-18 22:37
+
+The link at the console's rate, 460800, read through the USB-C: a hi and a status ask, four asks, four answers. The status: image console-rp, version 2026.11.3, profile quorum-v1, state C4, mode key, serial 012338eb2797f690ee, counter 0, ok true; the link up, 94064 bytes free, no garbage, timeouts or drops. Asked by a few lines using relay.py's open_serial, with no network; relay.py itself was not run. CHIP_ID still reads 30004927 through the soldered wires. This is the first time a Mono's link answered at 460800. Not seen by anyone yet: what the screen shows.
+
+- repository at `c7da2a5`

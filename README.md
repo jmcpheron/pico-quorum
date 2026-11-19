@@ -64,7 +64,9 @@ reference standard for a console. Mono is a working name.
   secure element soldered on. It has no radio at all. Its USB-C reaches a serial chip and nothing
   else: a computer passes on Safe's queue, and has no say in what gets signed.
 - **Where it stands.** A design, written by a script and checked by KiCad and against JLCPCB's limits
-  ([hardware/mono](hardware/mono/README.md)). Not ordered, and nothing is built. The board it comes
+  ([hardware/mono](hardware/mono/README.md)), and 20 boards at the bench. The first was brought up on
+  2026-11-17 and runs console-rp's image; it has not made a key or signed yet
+  ([the boards](hardware/mono/bench/BOARDS.md)). The board it comes
   from, [console-rp](hardware/console-rp/README.md), is on the bench: five boards, four running
   the console's own image (in review, pull request #113) and one broken
   ([the boards](hardware/console-rp/README.md#the-boards-and-the-firmware)). The firmware also

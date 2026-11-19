@@ -69,8 +69,9 @@ sizes are the usual strip's: plastic 2.54 mm square, 3.0 mm of pin below it and 
 
 Printed once, 2026-11-17, from the first drawing, which left the bump's bar across the window: it was
 cut out by hand. The drawing here has the window cut through and has not been printed. On one board the
-clip's pins, and the same pins held by hand, got no answer over SWD, and the cause isn't known; board 1
-was loaded through soldered wires. So the clip has not yet worked on a board. Three stiff pins on three pads: if one doesn't touch, push
+clip's pins got no answer over SWD: 0 of 20 reads on the last try. The same pins held by hand on that
+board answer a read, so it is the contact, but they drop during a load. Board 1 was loaded through
+soldered wires. So the clip has not yet worked on a board. Three stiff pins on three pads: if one doesn't touch, push
 the pins level in their plastic against a table. Check each with a meter before a load.
 
 ## A jig for the nine pads

@@ -2,8 +2,11 @@
 
 *Design, 2026-11-06. Written by a script, [gen_mono.py](gen_mono.py), and read back by KiCad 10: the
 schematic (netlist and ERC) and the board, routed (DRC, with schematic parity). The fab files for
-JLCPCB are in [mono/fab/](mono/fab/) and pass `tools/keypcb jlc mono`. Not ordered, nothing built,
-and no panel folded against it yet.*
+JLCPCB are in [mono/fab/](mono/fab/) and pass `tools/keypcb jlc mono`.*
+
+*Built: 20 boards are at the bench. Board 1 was brought up on 2026-11-17, runs console-rp's image, and
+has its chip prepared; [bench/BOARDS.md](bench/BOARDS.md) has each board's row and where it stands, and
+[Open](#open) what is not yet checked on a board.*
 
 ![Mono from above: the 1.14-inch screen across the top, D0, D1 and D2 in a row under it, an M2 hole either side; below them the second key's site on the left and the key that signs on the right, the RP2350 in the middle, and the USB-C on the bottom end, left of centre](renders/mono-top.jpg)
 
@@ -320,7 +323,7 @@ No warnings are left. Worth reading in its output:
 Not checked:
 - the Trust M's land pattern (KiCad's Microchip USON-10) against Infineon's package drawing;
 - the SOT-223's height (1.8 mm assumed) and the 3D fit's other guessed sizes;
-- anything on a real board.
+- on a real board, more than [bench/BOARDS.md](bench/BOARDS.md) and [the boards' logs](boards/) say.
 
 ## Steps to a board
 
@@ -328,14 +331,21 @@ Not checked:
 2. Check L1's stock, and the new parts' tiers.
 3. `tools/keypcb jlc mono`, then upload `mono/fab/mono-gerbers.zip`, `bom.csv` and `cpl.csv`:
    Economic, one side. Check the placement preview, U9, U2, U10 and D1 above all.
-4. Bring the boards up over SWD, through the pads: [bench/BRINGUP.md](bench/BRINGUP.md) has the
-   plan for the first batch, written before they came. A bench script first, then console-rp's
-   image, then the chip prepared. Each board's row goes in [bench/BOARDS.md](bench/BOARDS.md).
+4. Bring the boards up over SWD, through the pads: [bench/BRINGUP.md](bench/BRINGUP.md), which
+   board 1 went through on 2026-11-17. A bench script first, then console-rp's image, then the chip
+   prepared. Each board's row goes in [bench/BOARDS.md](bench/BOARDS.md), and what is done to it
+   after in its own log, [boards/](boards/).
 
 ## Open
 
-- [ ] The panel's fold and the ZIF's depth, measured.
-- [ ] L1's stock.
+- [ ] The panel's fold and the ZIF's depth, measured. A panel is in board 1's J2 and shows the
+  picture upright and whole; nothing was measured.
+- [ ] On a board, still: a key made and replaced, a Safe, a signature; the current at the USB-C and
+  the regulator's warmth; the footer's caps over the buttons
+  ([board 1's log](boards/01/LOG.md)).
+- [ ] A way to hold pins on the SWD pads for a whole load. Board 1 has soldered wires. Pins held by
+  hand answer a read and drop during a load, and the printed clip has not made contact
+  ([cad/mono](../../cad/mono/README.md)).
 - [ ] The jig: a pogo fixture for the nine pads. Drawn, located by the board's outline, not
   printed ([bench/JIG.md](bench/JIG.md)). It powers the board through the USB-C; TP5 only measures.
 - [ ] The RP2350's own USB on TP7 and TP8, unproven, as on console-rp.

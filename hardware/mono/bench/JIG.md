@@ -11,8 +11,8 @@ build it.
 
 ![The jig with a board in it: the board face up in its pocket, a latch over each long edge near the USB-C's end, a header in each rim](../../../cad/mono/out/mono_jig.png)
 
-Board 1 got no answer through a header held on three pads, and was loaded through soldered wires
-([BOARDS.md](BOARDS.md)). The jig is meant to give what the wires gave: every pin pressed by its own
+Board 1 was loaded through soldered wires ([BOARDS.md](BOARDS.md)). On a second board, a header
+held on the three pads by hand answers single reads, but a load has not got through it. The jig is meant to give what the wires gave: every pin pressed by its own
 spring, with the board held still for the three minutes a load takes.
 
 ## What it does
