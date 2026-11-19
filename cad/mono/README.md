@@ -119,43 +119,54 @@ Not printed.
 
 ## A cradle with a header, until the probes come
 
-[`cradle.py`](cradle.py) draws the jig's bottom end alone: the same pocket, the same opening for the
-USB-C's plug and the same latches, with a 3-pin strip of 2.54 mm header under TP1, TP2 and TP3 (SWCLK,
-GND, SWDIO). The short pins stand out of the deck, where the pads come down on them, and the long pins
-hang underneath for jumper wires.
+[`cradle.py`](cradle.py) draws the jig's bottom end alone, shallow: the same pocket, the same opening
+for the USB-C's plug and the same latches, with a 3-pin strip of right-angle 2.54 mm header under TP1,
+TP2 and TP3 (SWCLK, GND, SWDIO). The straight pins stand out of the deck, where the pads come down on
+them. The bent legs lie under the deck, pointing up the board, and the jumper wires come in from the
+top end.
 
 ![The cradle under the board's bottom end, a latch over each edge, the rest of the board standing out past it](out/mono_cradle.png)
-![The cradle empty: the three short pins' tips in their pocket in the deck, the latches turned off the pocket](out/mono_cradle_empty.png)
-![The cradle from underneath: the room under the pads' row, open to the left side, the long pins hanging in it](out/mono_cradle_under.png)
+![The cradle empty: the header's pocket in the deck with three slots running up from it, the three pins' tips in it, the latches turned off the pocket](out/mono_cradle_empty.png)
+![The cradle from underneath: a channel from the legs out of the top end, the three legs lying in it](out/mono_cradle_under.png)
 
 ```sh
 uv run --python 3.11 --with cadquery --with matplotlib python cad/mono/cradle.py
 ```
 
-It writes `out/mono_cradle.stl`, 60 × 40 × 30.6 mm, as it prints, no support: the room's roof is a
-12 mm bridge. The latches are the jig's: `mono_jig_latch.stl`, two.
+It writes `out/mono_cradle.stl`, 60 × 40 × 12.3 mm, as it prints, no support: the channel's roof is an
+8.5 mm bridge. The latches are the jig's: `mono_jig_latch.stl`, two.
 
 To build one:
-1. **Break three pins off a strip** and push them level in their plastic against a table.
-2. **Drop the strip into the pocket in the deck,** long pins first. Its plastic sits on a ledge,
-   5.24 mm down, and the short pins' tips stand 0.3 mm over the deck. The pocket is 7.92 × 2.84 mm;
-   a file opens it if the print is tight. No glue: the board holds the strip down.
-3. **The wires:** a jumper's socket on each long pin, from underneath, out of the left side. From the
-   left edge in, the pins are SWCLK, GND, SWDIO.
+1. **Break three pins off a right-angle strip** and push the straight pins level in their plastic
+   against a table.
+2. **Drop the strip into the deck from above,** the bent legs first, each down its own slot and
+   pointing at the cradle's top end. The plastic sits in the square pocket, on the ribs between the
+   slots, 5.24 mm down, and the straight pins' tips stand 0.3 mm over the deck. The pocket is
+   7.92 × 2.84 mm and each slot 1.1 mm wide; a file or a knife opens them if the print is tight. No
+   glue: the board holds the strip down.
+3. **The wires:** slide a jumper's socket onto each leg from the top end, along the channel
+   underneath. From the left edge in, the pins are SWCLK, GND, SWDIO.
 4. **The latches:** an M3 × 8 screw and a washer each, straight into the printed holes, which the
    screw threads. With no screws, a rubber band round the cradle and the board, lying in the two
    landings, holds the board down.
-5. **Meter it** with a board in and the latches shut: each long pin to its pad's net (GND to the
-   USB-C's shell), and no pin to the next.
+5. **Meter it** with a board in and the latches shut: each leg to its pad's net (GND to the USB-C's
+   shell), and no leg to the next.
 
 If a pin doesn't touch, the strip is low or not level: a slip of paper under its plastic raises it,
-and a bit of rubber band there lets it give and rock. The header's sizes are the usual strip's
-(3.0 mm of pin over 2.54 mm of plastic); measure yours and set `HEADER` or `PROUD`.
+and a bit of rubber band there lets it give and rock.
+
+The header's sizes are the usual right-angle strip's, not measured: 3.0 mm of straight pin over
+2.54 mm of plastic, the legs' middle 1.5 mm from the plastic, their tips 8.5 mm from the pins' line.
+Measure yours and set `HEADER` or `PROUD`. The slots take a leg up to 9.5 mm long, and the channel a
+leg from 1.6 to 2.9 mm from the plastic.
 
 The board stands 53.5 mm out past the cradle, with nothing under the screen or the buttons: put a
 finger under it before pressing one.
 
-The first drawing had three 1.9 mm holes for jumper wires, their stripped ends spread over the holes'
-mouths. It was printed on 2026-11-19 and the wires didn't make contact. This drawing isn't printed.
-Three stiff pins in a row touch on the tallest two, as on the clip above, so it may be no better
-without the paper or the rubber.
+Before this drawing:
+- three 1.9 mm holes for jumper wires, their stripped ends spread over the holes' mouths. Printed on
+  2026-11-19; the wires didn't make contact.
+- a straight header, its long pins hanging into a 20 mm room underneath: 30.6 mm tall. Not printed.
+
+This drawing isn't printed. Three stiff pins in a row touch on the tallest two, as on the clip above,
+so it may be no better without the paper or the rubber.
