@@ -9,3 +9,4 @@ unless its status says so.
 | [safe-global/safe-wallet-monorepo](https://github.com/safe-global/safe-wallet-monorepo) | [GS021 when a confirmation is a contract signature](safe-wallet-gs021/) | Submitted 2026-09-25: issue [#8808](https://github.com/safe-global/safe-wallet-monorepo/issues/8808), PR [#8809](https://github.com/safe-global/safe-wallet-monorepo/pull/8809); waiting on CI approval and review |
 
 For picowallet (the upstream this repo grew from), see [../UPSTREAM-TRACKING.md](../UPSTREAM-TRACKING.md).
+wedgie, which carries picowallet on, points its users at #8808 too: [../WEDGIE.md](../WEDGIE.md).
