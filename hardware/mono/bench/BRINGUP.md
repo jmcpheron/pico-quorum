@@ -220,8 +220,22 @@ On board 1, 2026-11-17 and 18 ([its log](../boards/01/LOG.md)):
 - step 6: a red Not prepared, then after step 7 the link answered at 460800 with the chip's serial;
 - step 7's bench half: C1 to C3 and P4 passed, and the config CRC matched the snapshot's.
 
+On board 1, 2026-11-20, under console-rp d3821ed, release cec2·b7ac, read from the console's log
+over the link and from two dumps over SWD:
+- 18 keys made at one start, each replacing the last, and the 18th sealed: C5 to C10 ok in about
+  20 s, then pinned;
+- a Safe sent with `relay.py --safes` and accepted on the board; the watchdog came on at that start,
+  not before: a console with no Safe doesn't start it;
+- one signature, posted through the relay (201). The counter went up by one for it, and by one for
+  each start;
+- three starts by power after the seal (the USB-C out and in), each back pinned. `relay.py` ends
+  with a traceback when the port goes, and one plug-in left a stray byte that the link dropped as
+  garbage;
+- a dump read one piece twice through the soldered wires, and went on.
+
 Not checked:
-- step 5's figures, the footer's caps, and a key made and replaced, on any board;
+- step 5's figures and the footer's caps, on any board;
+- what board 1's key, Safe and review pages looked like: nobody wrote it down;
 - which kind of panel is in board 1's J2;
 - a whole load through pins that aren't soldered: held by hand on a second board they answer reads
   and drop during the load.

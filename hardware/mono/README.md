@@ -4,9 +4,10 @@
 schematic (netlist and ERC) and the board, routed (DRC, with schematic parity). The fab files for
 JLCPCB are in [mono/fab/](mono/fab/) and pass `tools/keypcb jlc mono`.*
 
-*Built: 20 boards are at the bench. Board 1 was brought up on 2026-11-17, runs console-rp's image, and
-has its chip prepared; [bench/BOARDS.md](bench/BOARDS.md) has each board's row and where it stands, and
-[Open](#open) what is not yet checked on a board.*
+*Built: 20 boards are at the bench. Board 1 was brought up on 2026-11-17 and runs console-rp's image.
+Its owner's key was made and sealed on it on 2026-11-20, and it has signed once for a Safe.
+[bench/BOARDS.md](bench/BOARDS.md) has each board's row and where it stands, and [Open](#open) what
+is not yet checked on a board.*
 
 ![Mono from above: the 1.14-inch screen across the top, D0, D1 and D2 in a row under it, an M2 hole either side; below them the second key's site on the left and the key that signs on the right, the RP2350 in the middle, and the USB-C on the bottom end, left of centre](renders/mono-top.jpg)
 
@@ -340,9 +341,10 @@ Not checked:
 
 - [ ] The panel's fold and the ZIF's depth, measured. A panel is in board 1's J2 and shows the
   picture upright and whole; nothing was measured.
-- [ ] On a board, still: a key made and replaced, a Safe, a signature; the current at the USB-C and
-  the regulator's warmth; the footer's caps over the buttons
-  ([board 1's log](boards/01/LOG.md)).
+- [ ] On a board, still: the current at the USB-C and the regulator's warmth; the footer's caps
+  over the buttons. Board 1 made, replaced and sealed a key, took a Safe and signed once on
+  2026-11-20, read from the console's log over the link; nobody has written down what its screens
+  showed ([board 1's log](boards/01/LOG.md)).
 - [ ] A way to hold pins on the SWD pads for a whole load. Board 1 has soldered wires. Pins held by
   hand answer a read and drop during a load, and the printed clip has not made contact
   ([cad/mono](../../cad/mono/README.md)).
