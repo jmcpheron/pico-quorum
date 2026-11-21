@@ -597,6 +597,17 @@ def case_three():
     def pub(sim):
         return tuple(p256.pubkey(sim.keys[0])) if 0 in sim.keys else None
 
+    def pics(ui, K):
+        """The seeds of the blockies on the page that is up now."""
+        got, real = [], K.blockies.draw
+        K.blockies.draw = lambda d_, seed, *a, **k: (got.append(seed), real(d_, seed, *a, **k))[1]
+        try:
+            ui.dirty = True
+            ui.draw()
+        finally:
+            K.blockies.draw = real
+        return set(got)
+
     def walk_keys(ui, K, sim, make, test, label, sealed=0xFC):
         check(ui.kind(ui.c.step()) == "make" and 0 not in sim.keys, "%s: Make your key, slot 0 empty" % label)
         press(ui, K, "D2")
@@ -611,11 +622,14 @@ def case_three():
         check(sim.counters[0] == 0, "%s: five keys made, counter 0 still 0 (counted %d)" % (label, sim.counters[0]))
         a = ui.addr()
         check(a.startswith("0x") and len(a) == 42 and a.lower() == ui.c.owner(), "%s: the owner address, checksummed: %s" % (label, a))
+        seeds = [pics(ui, K)]
         press(ui, K, "D1")
         check(ui.page == "full", "%s: D1 shows the address in full" % label)
+        seeds.append(pics(ui, K))
         press(ui, K, "D1")
         press(ui, K, "D0")
         check(ui.page == "keep" and not ui.c.slot0["locked"], "%s: Choose (D0, top) opens the red Keep page, nothing sealed" % label)
+        seeds.append(pics(ui, K))
         hold(ui, K, 3100, "D2")
         check(not ui.c.slot0["locked"] and ui.c.key == seen[-1], "%s: D2 held 3 s on the red page seals nothing" % label)
         hold(ui, K, 2000, "D0")
@@ -627,6 +641,9 @@ def case_three():
         check(ui.c.slot0["locked"] and ui.done and pub(sim) == seen[-1] and ui.result is None,
               "%s: Keep held 3 s: tested and sealed, the key on the screen (counter 0 %d)" % (label, sim.counters[0]))
         check(sim.cfg[88] == sealed, "%s: slot 0 sealed (%02X)" % (label, sim.cfg[88]))
+        seeds.append(pics(ui, K))
+        check(len(seeds) == 4 and all(got == {ui.c.owner()} for got in seeds),
+              "%s: Pick, Full, Keep and Done draw the key's blockie from its owner address in lower case, as the Safe app does" % label)
         press(ui, K, "D2")
         check(not ui.done and ui.kind(ui.c.step()) is None, "%s: D2 on Your key is ready: back to the steps (%s)" % (label, ui.c.step()))
 

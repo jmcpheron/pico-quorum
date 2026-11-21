@@ -386,7 +386,7 @@ class UI(keypick_s.UI):
         d.fill(B.c("bg"))
         Q.header(d, "Your key", "" if spinning else "made in the chip")
         side = 96
-        blockies.draw(d, a, M, HEAD + 3, side // 8)
+        blockies.draw(d, a.lower(), M, HEAD + 3, side // 8)     # the seed in lower case (keypick_s.addr)
         x = M + side + 10
         if spinning:
             B.txt(d, "…", x, HEAD + 10, "mono13", "faint")
@@ -406,7 +406,7 @@ class UI(keypick_s.UI):
         for line in Q.addr_lines(a):
             B.txt(d, line, M, y, "mono13")
             y += 17
-        blockies.draw(d, a, R - 32, FOOT - 36, 4)
+        blockies.draw(d, a.lower(), R - 32, FOOT - 36, 4)
         B.para(d, "A signer, not a wallet: never send funds to it.", M, y + 4, TW - 40, "sans12", "warn", "bg", 14, FOOT - 2)
         self.foot((None if why else ("Replace",) + ROLL, ("Pic", "raised", "text"), ("Seal", "ok", "on_ok")))
         self.show()
@@ -415,7 +415,7 @@ class UI(keypick_s.UI):
         d, a, why = self.d, self.addr(), self.need("keep")
         d.fill(B.c("bad_bg"))
         Q.header(d, "Seal this key?", "for good", "bad_head", "on_bad", "bad_text")
-        blockies.draw(d, a, R - 48, HEAD + 6, 6)
+        blockies.draw(d, a.lower(), R - 48, HEAD + 6, 6)
         B.txt(d, a[:6] + "…" + a[-4:], M, HEAD + 6, "mono13", "bad_text", "bad_bg")
         B.para(d, "It's sealed in the chip, then the chip locks: it can never be changed.", M, HEAD + 26, TW - 58,
                "sans12", "bad_text", "bad_bg", 14, FOOT - 20)
@@ -457,7 +457,7 @@ class UI(keypick_s.UI):
         Q.header(d, "Your key", "pinned")
         B.mark(d, True, M + 9, HEAD + 14, 9)
         B.txt(d, "Sealed", M + 24, HEAD + 4, "bold18")
-        blockies.draw(d, a, M, HEAD + 30, 8)
+        blockies.draw(d, a.lower(), M, HEAD + 30, 8)
         x = M + 64 + 10
         keypick_s.ends(d, a, x, HEAD + 32)
         B.para(d, "A signer, not a wallet.", x, HEAD + 70, R - x, "sans12", "warn", "bg", 14, FOOT - 2)
