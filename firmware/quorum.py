@@ -1956,7 +1956,7 @@ def start():
         now = time.ticks_ms()
         marks.append("%s %d" % (what, time.ticks_diff(now, last[0])))
         last[0] = now
-    splash.TITLE = "picoquorum"
+    splash.TITLE = "Picoquorum"
     qlog.write("boot %s %s %s reset cause %d" % (image.IMAGE, image.VERSION or "-", image.BUILD, machine.reset_cause()))
     U.use(getattr(secrets, "QUORUM_THEME", "dark") if secrets else "dark")
     # Every font now, while the heap is whole. They are loaded on first use otherwise, and bold26
@@ -1969,17 +1969,18 @@ def start():
     mark("fonts")
     d = splash.begin()
     keys = L.Keys()
-    splash.step("chip", "probing i2c...", L.GREY)
+    splash.step("chip", "Checking the key\u2026", L.GREY)
     probe_chip()
     gc.collect()                # the Trust M's certificate checks leave the heap in pieces: tidy before the next frame
     load_recent()
     mark("probe")
     if state == "nochip":
-        splash.step("chip", "none on i2c", L.RED)
+        splash.step("chip", "No chip found", L.RED)
     else:
-        pinned = " \u00b7 pinned" if EXPECT and pin_ok else (" \u00b7 PIN FAIL" if not pin_ok else "")
+        # the key as the Device screen names it; the chip's own name is on the row above (splash.chip)
+        pinned = " \u00b7 pinned" if EXPECT and pin_ok else (" \u00b7 not pinned" if not pin_ok else "")
         name = (chip["name"] + " \u00b7 ") if chip else ""
-        splash.step("chip", "%s%s%s" % (name, fingerprint() or "no key", pinned), L.RED if not qx or not pin_ok else L.GREEN)
+        splash.step("chip", "Key %s%s" % (fingerprint(), pinned) if qx else "No key yet", L.RED if not qx or not pin_ok else L.GREEN)
         if me:      # its owner's blockie on the boot screen: the picture T5, Owners and approvals show
             splash.chip(me, "%s%s\u2026%s" % (name, me[:6], me[-4:]), pin_ok)
         check_counter()
@@ -1987,11 +1988,10 @@ def start():
     w = network.WLAN(network.STA_IF)
     if net.networks() and not w.isconnected() and not net.tried:
         try:
-            skip = " press skips" if KNOB else " any button skips"
-            net.connect(progress=lambda ms: splash.spin("wifi", ("join " + net.ssid())[:12] + skip) or bool(keys.pressed()))
+            net.connect(progress=lambda ms: splash.wifi_wait() or bool(keys.pressed()))
         except Exception as e:
             print("wifi:", e)
-    splash.wifi_row(w, net.ssid())
+    splash.wifi_row(w, net.ssid(), net.asked())
     mark("wifi")
     marks.append("up %d" % (time.ticks_ms() if w.isconnected() else 0))   # WiFi joined, ms since reset
     served = [x for x in WATCH if x["base"]]
@@ -1999,8 +1999,8 @@ def start():
     if len(WATCH) > 1:
         what = "%d Safes · %d chains" % (len(WATCH), len(set(x["chain"] for x in WATCH)))
     else:
-        what = "safe svc " + (BASE or "").replace("http://", "").replace("https://", "").rstrip("/")
-    splash.step("app", what[:24] if first else "no service", L.GREY if first and len(served) == len(WATCH) else L.RED)
+        what = "Service: " + (BASE or "").replace("http://", "").replace("https://", "").split("/")[0]
+    splash.step("app", what if first else "No service", L.GREY if first and len(served) == len(WATCH) else L.RED)
     if SAFES_WHY:
         qlog.write("secrets.py: " + SAFES_WHY)
     if UNCONFIGURED:
@@ -2010,7 +2010,7 @@ def start():
         svc = txservice.Service(first["base"], txservice.checksum(first["addr"]), API_KEY, verify=verify, floor=image.DATE)
     mark("service")
     if state == "boot":
-        splash.step("app", "Starting console", L.GREY)
+        splash.step("app", "Starting the console\u2026", L.GREY)
     splash.finish(keys, wait=state == "boot")
     mark("finish")
     splash_until = time.ticks_add(time.ticks_ms(), 1500)

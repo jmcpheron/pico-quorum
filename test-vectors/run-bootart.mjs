@@ -24,7 +24,7 @@ d = Capture()
 `);
   mkdirSync('emu/shots/boot-native', {recursive:true});
   for (const i of [12, 64, 110, 150, 186, 214, 256, 300, 340]) {
-    dev.mp.runPython(`bootart.render(d, ${i}, 'Starting console', (152,160,172))\nbootart.render(ref, ${i}, 'Starting console', (152,160,172))\nassert full == refbuf, 'strip seam'\nassert bootart.d is None\n_hex = binascii.hexlify(full).decode()`);
+    dev.mp.runPython(`bootart.render(d, ${i}, 'Starting the console…', (152,160,172))\nbootart.render(ref, ${i}, 'Starting the console…', (152,160,172))\nassert full == refbuf, 'strip seam'\nassert bootart.d is None\n_hex = binascii.hexlify(full).decode()`);
     const bytes = Buffer.from(dev.mp.globals.get('_hex'), 'hex');
     writeFileSync(`emu/shots/boot-native/${i}.png`, encodePNG(320,240,frameToRGBA(bytes)));
   }

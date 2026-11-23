@@ -15,9 +15,9 @@ mkdirSync(OUT, { recursive: true });
 const STEP = 30;          // ms between frames: the pace draw() sees during the WiFi join and the hold
 const END = 4500;
 // Real boot status lines, changing at roughly the points the console's start() reaches them.
-const STATUS = [[0, 'screen: ok'], [400, 'chip: probing i2c...'], [700, 'chip: ATECC608 · 3f9a…c21 · pinned'],
-  [900, 'wifi: join emulator any button skips'], [2600, 'wifi: 192.168.1.40'], [3000, 'app: safe svc api.safe.global'],
-  [3400, 'app: Starting console']];
+const STATUS = [[0, 'Starting up…'], [400, 'Checking the key…'], [700, 'Key 3f9ac21e · pinned'],
+  [900, 'Joining Wi-Fi… any button skips'], [2600, 'Wi-Fi: emulator'], [3000, 'Service: api.safe.global'],
+  [3400, 'Starting the console…']];
 
 const PANELS = [
   { name: 'waveshare', secrets: '', w: 240, h: 240, real: true },
@@ -96,11 +96,11 @@ if real:
     dev.mp.runPython(`
 still = Panel()
 m = bootmark.Mark(still, TAG)
-m.frame(bootmark.STILL, 'app: Starting console')
+m.frame(bootmark.STILL, 'Starting the console…')
 _one = m.sent
-m.frame(bootmark.STILL, 'app: Starting console')
+m.frame(bootmark.STILL, 'Starting the console…')
 assert m.sent == _one, 'a still frame with nothing new sent something'
-m.frame(bootmark.STILL, 'wifi: 192.168.1.40')
+m.frame(bootmark.STILL, 'Wi-Fi: emulator')
 _status = m.sent - _one
 _hex = binascii.hexlify(still.ram).decode()
 import json
@@ -137,8 +137,22 @@ splash.pause(); splash._tick(None)
 assert splash._frame == n, 'a paused timer draws nothing'
 splash.pause(False); splash._tick(None)
 assert splash._frame == n + 1, 'a tick draws a frame'
-splash.step('app', 'Starting console')
-assert splash._frame == n + 1 and splash._status == 'app: Starting console', 'with the timer, step() leaves the frame to it'
+splash.step('app', 'Starting the console…')
+assert splash._frame == n + 1 and splash._status == 'Starting the console…', 'with the timer, step() leaves the frame to it'
+# Wi-Fi is named only where the console joined a network or has none: never for a link it did not ask for
+import net
+class Wlan:
+    def __init__(self, up): self.up = up
+    def isconnected(self): return self.up
+assert not net.asked(), 'the emulator: the link is up and nobody asked the radio'
+splash.wifi_row(Wlan(True), net.ssid(), net.asked())
+assert splash._status == 'Starting the console…' and not [r for r in splash.rows if r[0] == 'wifi'], 'no Wi-Fi line for a link nobody asked for'
+splash.wifi_row(Wlan(True), 'home', True)
+assert splash._status == 'Wi-Fi: home'
+splash.wifi_row(Wlan(False), 'home', True)
+assert splash._status == 'Wi-Fi not joined, retrying' and splash._status_color == (255, 92, 84)
+splash.wifi_row(Wlan(False), '', False)
+assert splash._status == 'No Wi-Fi saved'
 splash.finish(wait=False)
 assert splash._timer is None, 'finish() stops the timer'
 assert splash._art is None and 'bootmark' not in sys.modules and 'bootart' not in sys.modules
@@ -149,7 +163,7 @@ assert not wide, 'too wide for the 240x240: %r' % wide
 assert taglines.pool() == taglines.SERIOUS and taglines.pick() in taglines.SERIOUS
 assert sorted(taglines.cycle()) == sorted(taglines.SERIOUS)
 `);
-    console.log('bootmark: splash picks the mark by default, 4.0 s hold, released at finish; the diamond lands on the logo; the timer draws, pauses and stops; ' +
+    console.log('bootmark: splash picks the mark by default, 4.0 s hold, released at finish; the diamond lands on the logo; the timer draws, pauses and stops; Wi-Fi is named only for a network the console asked for, or none saved; ' +
       'every tagline fits 220 px, serious by default');
   } catch (e) { console.error(`bootmark splash: ${String(e)}`); failed = true; } finally { dev.dispose(); }
 }

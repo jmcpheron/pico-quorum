@@ -254,7 +254,7 @@ def start_timer():
 
 def start():
     global d, keys, sig, last_key
-    splash.TITLE = "ceremony"
+    splash.TITLE = "Ceremony"
     d = splash.begin()
     keys = L.Keys()
     splash.finish(keys, wait=False)     # the boot art's code out of RAM before the ceremony's screens

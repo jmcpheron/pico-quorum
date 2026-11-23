@@ -74,10 +74,9 @@ def _normal_boot():
         import lcd
         splash.begin()
         _keys = lcd.Keys()
-        _ssid = net.ssid()
 
         def _spin(ms):
-            splash.spin("wifi", ("join " + _ssid)[:12] + (" press skips" if lcd.KNOB else " any button skips") if _ssid else "no Wi-Fi saved")
+            splash.wifi_wait()
             return bool(_keys.pressed())
     except Exception as e:
         print("boot screen:", e)
@@ -91,7 +90,7 @@ def _normal_boot():
         return
     wlan = net.start(progress=_spin)
     if splash:
-        splash.wifi_row(wlan, _ssid)
+        splash.wifi_row(wlan, net.ssid(), net.asked())
         splash.wifi_at = time.ticks_ms()    # for quorum's "boot ms" line in log.txt
 
 if board.MAINTENANCE:

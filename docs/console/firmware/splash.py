@@ -1,5 +1,8 @@
 # Boot display: a short black lead-in, then the Picoquorum mark with the real boot status on its
-# last line. secrets.BOOT_ART picks the art: "mark" (the default, bootmark.py: flat vectors, only
+# last line: what the console is doing now or what it found, in plain words (step). A step still
+# going ends in an ellipsis (docs/BRAND.md). Wi-Fi is named only where the console joined a
+# network, or has none to join (wifi_row).
+# secrets.BOOT_ART picks the art: "mark" (the default, bootmark.py: flat vectors, only
 # what changed is sent to the panel, runs on every panel), "still" (the finished mark at once) or
 # "orbit" (bootart.py: the full orbit, the whole panel every frame, ~8-10 fps on the Pico; strip-
 # buffered 240-row panels only, others get the mark) or "checklist" (the chip and a row per step,
@@ -12,8 +15,8 @@ import theme as T
 import icons as I
 
 lcd = None
-TITLE = "picoquorum"   # the app that boots sets its own name (quorum.py: "picoquorum", chipapp.py: "ceremony")
-rows = []           # [key, text, color], drawn in ORDER
+TITLE = "Picoquorum"   # the checklist's heading: the app that boots sets its own (chipapp.py: "Ceremony")
+rows = []           # [key, text, color], drawn in ORDER; text stands alone, the key only orders it
 ORDER = ("screen", "wifi", "chip", "app")
 ICON = {"screen": "screen", "wifi": "wifi", "chip": "chip", "app": "app"}
 BLACK_LEAD_MS = 4000    # the orbit's; the mark sets its own (begin)
@@ -25,7 +28,7 @@ _art = None
 _still = False
 _gap = 120          # spin redraws at most this often (ms): the orbit is a whole frame, the mark is not
 _finished = False
-_status = "Starting up"
+_status = "Starting up\u2026"
 _status_color = (152, 160, 172)
 _waiting = None     # the row that is spinning, if any
 _timer = None       # run(): the art draws itself on a soft timer while the console starts
@@ -98,14 +101,14 @@ def begin():
             BLACK_LEAD_MS = bootmark.LEAD_MS
             ANIMATION_MS = 0 if _still else bootmark.DURATION_MS
         _t0 = time.ticks_ms()
-        step("screen", "ok", L.GREEN)
+        step("screen", "Starting up\u2026", L.GREEN)
     return lcd
 
 
 def step(key, text, color=L.WHITE):
     """Set a row (rows appear in ORDER as they are first set) and redraw."""
     global _waiting, _status, _status_color
-    _status = key + ": " + text
+    _status = text
     _status_color = (255, 92, 84) if color == L.RED else (152, 160, 172)
     for r in rows:
         if r[0] == key:
@@ -140,11 +143,19 @@ def spin(key, text):
     step(key, text, L.GREY)
 
 
-def wifi_row(wlan, ssid):
-    if wlan.isconnected():
-        step("wifi", wlan.ifconfig()[0], L.GREEN)
-    else:
-        step("wifi", "not found, retrying" if ssid else "no Wi-Fi saved", L.RED)
+def wifi_wait():
+    """The row while Wi-Fi joins (net.connect's progress)."""
+    spin("wifi", "Joining Wi-Fi\u2026 %s skips" % ("press" if L.KNOB else "any button"))
+
+
+def wifi_row(wlan, ssid, asked=True):
+    """Wi-Fi once the wait is over. ssid: the network (net.ssid()), "" with none saved. asked: this
+    boot asked the radio to join it (net.asked()). A link that was up without asking gets no row:
+    the browser's, where there is no radio and nothing was joined."""
+    if not wlan.isconnected():
+        step("wifi", "Wi-Fi not joined, retrying" if ssid else "No Wi-Fi saved", L.RED)
+    elif asked:
+        step("wifi", "Wi-Fi: " + ssid, L.GREEN)
 
 
 def draw():
@@ -190,6 +201,11 @@ def _skipped():
     gc.collect()
 
 
+def _plain(s):
+    """A row for the checklist: framebuf's 8 px font is ASCII, and drew a middle dot as a block."""
+    return s.replace("\u00b7", "-").replace("\u2026", "...")
+
+
 def _black():
     lcd.fill(L.BLACK)
     lcd.show()
@@ -223,14 +239,14 @@ def _draw():
         y = 82
         for key, text, color in rows:
             d.fill_rect(4, y + 2, 4, 4, color if color != L.GREY else T.C["config"])
-            d.text((key + " " + text)[:(L.W - 14) // 8], 12, y, color)
+            d.text(_plain(text)[:(L.W - 14) // 8], 12, y, color)
             y += 11
         d.show()
         return
     y, ox = 110, (L.W - 240) // 2
     for key, text, color in rows:
         I.draw(d, ICON.get(key, "chip"), ox + 20, y - 4, color if color != L.GREY else T.C["config"])
-        d.text(text[:24], ox + 44, y, color)
+        d.text(_plain(text)[:24], ox + 44, y, color)
         y += 20
     d.text("%.1fs" % (time.ticks_diff(time.ticks_ms(), _t0) / 1000), 4, L.H - 12, T.C["dim"])
     d.show()

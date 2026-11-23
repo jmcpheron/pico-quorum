@@ -93,6 +93,36 @@ The tag says who cut a release. The project Safe says the project stands behind 
 - the console signs it, and it executes;
 - `isValidSignature` holds, and still holds after the console's owner is removed.
 
+## 2026.11.4 (2026-11-23)
+
+**The boot screen's last line is in plain words, and names Wi-Fi only where the console joined it.**
+What the console signs, shows and refuses is unchanged.
+
+- **every image:** the line was the old checklist's row with its key in front (`screen: ok`,
+  `chip: probing i2c...`, `wifi: 192.168.1.40`, `app: safe svc api.safe.global`). It now says what
+  the console is doing or what it found:
+
+  | Step | The line |
+  |---|---|
+  | the screen is up | Starting up… |
+  | the key | Checking the key…, then `Key 3f9ac21e · pinned` (the Device screen's name for it) |
+  | the key, when it stops the console (red) | No chip found · No key yet · `Key 3f9ac21e · not pinned` |
+  | Wi-Fi, while it waits | Joining Wi-Fi… any button skips (on a knob: press skips) |
+  | Wi-Fi, joined | `Wi-Fi: <network>`; the address is no longer shown |
+  | Wi-Fi, not joined (red) | Wi-Fi not joined, retrying · No Wi-Fi saved |
+  | Safe's service | `Service: api.safe.global`, or `3 Safes · 2 chains`; No service (red) |
+  | the last | Starting the console… |
+
+- **Wi-Fi** is named only when this boot asked the radio to join a network (`net.asked`), or has
+  none saved. In the browser the link is up and nothing was joined, so the line never mentions
+  Wi-Fi there; it used to say `wifi: 127.0.0.1`.
+- A step still going ends in an ellipsis, as the brand guide asks ([BRAND.md](BRAND.md)).
+- **The checklist** (`BOOT_ART = "checklist"`) shows the same lines as its rows. Its 8 px font is
+  ASCII and drew a middle dot as a grey block: a row now gets a dash, and three dots for the
+  ellipsis. Its heading is Picoquorum (the ceremony's: Ceremony), with the capital.
+- `node test-vectors/run-bootmark.mjs` checks when Wi-Fi is named, and every frame of the mark with
+  these lines on three panels.
+
 ## 2026.11.3 (2026-11-04)
 
 **The owner picks their own key on a three-button board** (PicoquorumKey), by its blockie. The

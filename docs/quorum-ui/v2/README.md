@@ -21,6 +21,41 @@ there is where this one starts.
    the home screen, the approvals row, and the moment of signing.
 5. **Every screen, redone,** with before/after pairs like the v1 walkthrough.
 
+## The boot status in plain words (2026-11-23, firmware 2026.11.4)
+
+You asked for a look over the boot screen: some of its text mentioned WiFi.
+
+**The firmware's last line** was still the old checklist's row with its key in front. It now says
+what the console is doing, or what it found:
+
+| It said | It says |
+|---|---|
+| `screen: ok` | Starting up… |
+| `chip: probing i2c...` | Checking the key… |
+| `chip: chip 2 · 3f9ac21e · pinned` | Key 3f9ac21e · pinned (the chip's name is on the row above it) |
+| `chip: none on i2c` · `no key` · `PIN FAIL` | No chip found · No key yet · Key 3f9ac21e · not pinned |
+| `wifi: join HomeNet any button skips` | Joining Wi-Fi… any button skips |
+| `wifi: 192.168.1.40` | Wi-Fi: HomeNet |
+| `wifi: not found, retrying` · `no Wi-Fi saved` | Wi-Fi not joined, retrying · No Wi-Fi saved |
+| `app: safe svc api.safe.global` · `no service` | Service: api.safe.global · No service |
+| `app: Starting console` | Starting the console… |
+
+<img src="boot/status-lines.png">
+
+- **Wi-Fi** is named only when this boot asked the radio to join a network, or has none saved. A
+  console in the browser has no radio: its line said `wifi: 127.0.0.1`, and now says nothing about
+  Wi-Fi.
+- **A step still going** ends in an ellipsis, as [the brand guide](../../BRAND.md) asks. The key
+  and the service are named as the Device screen names them.
+- **The checklist** (`BOOT_ART = "checklist"`) gets the same lines. Its 8 px font drew a middle dot
+  as a grey block; it now draws a dash. Its heading is Picoquorum, with the capital.
+- These are drawn by the real firmware in the emulator, with a test passkey as the key; "emulator"
+  is the emulator's network. `node test-vectors/run-bootmark.mjs` checks when Wi-Fi is named.
+
+**Not changed, for you to decide:** two of the serious taglines are about a chip: "Keys born in
+silicon" and "The key never leaves the chip". In the browser the key is a passkey, which may be
+synced, so they aren't true there.
+
 ## Home as a status screen, and a screensaver (2026-10-05)
 
 You asked for a home that fits how Picoquorum works now: requests pop up, and when there's
