@@ -23,7 +23,7 @@ there is where this one starts.
 
 ## The boot status in plain words (2026-11-23, firmware 2026.11.4)
 
-You asked for a look over the boot screen: some of its text mentioned WiFi.
+You asked for a look over the boot screen: some of its text mentioned WiFi. Two things did.
 
 **The firmware's last line** was still the old checklist's row with its key in front. It now says
 what the console is doing, or what it found:
@@ -51,6 +51,12 @@ what the console is doing, or what it found:
   as a grey block; it now draws a dash. Its heading is Picoquorum, with the capital.
 - These are drawn by the real firmware in the emulator, with a test passkey as the key; "emulator"
   is the emulator's network. `node test-vectors/run-bootmark.mjs` checks when Wi-Fi is named.
+
+**The orbit's demo line** (the GIF on the README and the brand guide, and the brand page's live
+one) said "Joining WiFi… · WiFi connected". Mono has no radio, so it now reads: Starting up ·
+Checking the chip · Chip verified · Checking the key · Key pinned · Finding the Safe · Family Safe ·
+3 of 5 · Loading the queue · Ready. Only the frames before the Safe is found changed: the stills
+below came out byte for byte the same, and iteration 4's pictures are left as they were.
 
 **Not changed, for you to decide:** two of the serious taglines are about a chip: "Keys born in
 silicon" and "The key never leaves the chip". In the browser the key is a passkey, which may be

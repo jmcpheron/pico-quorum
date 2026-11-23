@@ -485,7 +485,7 @@ footer { padding-top: 40px; color: var(--muted); font-size: 14px; display: grid;
       </div>
 
       <ul class="voice-rules">
-        <li><div class="ex"><span class="right">Joining Wi-Fi…</span><span class="right">Chip verified</span></div><p class="why">A step in progress ends in an ellipsis and sits in slate beside a spinner. When it's done, the ellipsis goes, the text turns white and a green check appears.</p></li>
+        <li><div class="ex"><span class="right">Checking the chip…</span><span class="right">Chip verified</span></div><p class="why">A step in progress ends in an ellipsis and sits in slate beside a spinner. When it's done, the ellipsis goes, the text turns white and a green check appears.</p></li>
         <li><div class="ex"><span><span class="right">3 of 5</span> &nbsp;<span class="wrong">3/5</span></span></div><p class="why">Write counts out. "3 of 5" reads the same aloud as it does on screen.</p></li>
         <li><div class="ex"><span class="right">Family Safe · 3 of 5</span></div><p class="why">A middle dot separates facts on one line. No pipes, no slashes.</p></li>
         <li><div class="ex"><span><span class="right">Ready</span> &nbsp;<span class="wrong">Ready!</span></span></div><p class="why">Sentence case, no exclamation marks. Money is moving; the device stays even-tempered.</p></li>
@@ -540,9 +540,9 @@ footer { padding-top: 40px; color: var(--muted); font-size: 14px; display: grid;
   const BACK0 = 100, BACK1 = 128, TAG0 = 134, TAG_EACH = 38, V_BACK = 1.2;
   const TAGS = ["Your keys, your quorum", "Nothing signs unseen", "Hardware approvals for Safe", "Every hash checked here"];
   const READY = TURN + (BACK0 - 58);
-  const STATUS = [[0, "Starting up", false], [22, "Joining WiFi", false],
-    [AT_TOP, "WiFi connected", true], [AT_TOP + 12, "Checking the chip", false],
-    [AT_LEFT, "Chip verified", true], [AT_LEFT + 12, "Finding the Safe", false],
+  const STATUS = [[0, "Starting up", false], [22, "Checking the chip", false],
+    [AT_TOP, "Chip verified", true], [AT_TOP + 12, "Checking the key", false],
+    [AT_LEFT, "Key pinned", true], [AT_LEFT + 12, "Finding the Safe", false],
     [AT_RIGHT, "Family Safe · 3 of 5", true], [TURN + 4, "Loading the queue", false],
     [READY, "Ready", true]];
   const SLIDE = 6, FRAMES = 402, MS = 30;

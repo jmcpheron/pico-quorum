@@ -401,9 +401,9 @@ def yaw_orbit(m):
 # The bottom line: (from frame, text, done). On the device each is a real step, and a signature
 # lands when its step does (see docs/quorum-ui/v2/README.md, "On the device").
 READY = TURN + (BACK0 - 58)
-STATUS = ((0, "Starting up", False), (22, "Joining WiFi", False),
-          (AT_TOP, "WiFi connected", True), (AT_TOP + 12, "Checking the chip", False),
-          (AT_LEFT, "Chip verified", True), (AT_LEFT + 12, "Finding the Safe", False),
+STATUS = ((0, "Starting up", False), (22, "Checking the chip", False),
+          (AT_TOP, "Chip verified", True), (AT_TOP + 12, "Checking the key", False),
+          (AT_LEFT, "Key pinned", True), (AT_LEFT + 12, "Finding the Safe", False),
           (AT_RIGHT, "Family Safe \u00b7 3 of 5", True), (TURN + 4, "Loading the queue", False),
           (READY, "Ready", True))
 SLIDE = 6                           # frames a line takes to slide in (and the old one out)
