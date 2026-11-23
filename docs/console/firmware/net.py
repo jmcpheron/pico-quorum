@@ -38,12 +38,6 @@ def ssid():
     return n[0]
 
 
-def asked():
-    """Whether this boot asked the radio to join a network. False where the link was up already:
-    the browser has no radio, so there is no join for the boot screen to report (splash.wifi_row)."""
-    return _cur is not None
-
-
 def _hostname():
     return getattr(secrets, "HOSTNAME", "picoquorum") if secrets else "picoquorum"
 

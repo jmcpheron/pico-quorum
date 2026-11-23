@@ -380,8 +380,8 @@ def render(screen, i, status, status_color):
         else:
             draw_orbit_out(i)
         # Only real boot status, supplied by splash; never the demo's invented Safe or checks.
-        while F.width(status, "sans14") > L.W - 20:
-            status = status[:-1]
+        while F.width(status, "sans14") > L.W - 20:      # the last fact goes whole, then letters (bootmark.py)
+            status = status.rsplit(" \u00b7 ", 1)[0] if " \u00b7 " in status else status[:-1]
         center(status, L.H - 26, "sans14", status_color)
         screen.frames(d.replay, screen)
     finally:

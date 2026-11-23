@@ -95,33 +95,35 @@ The tag says who cut a release. The project Safe says the project stands behind 
 
 ## 2026.11.4 (2026-11-23)
 
-**The boot screen's last line is in plain words, and names Wi-Fi only where the console joined it.**
-What the console signs, shows and refuses is unchanged.
+**The boot screen's last line says more, in plain words, and never names Wi-Fi.** What the console
+signs, shows and refuses is unchanged, and it asks the chip nothing it did not already ask at boot.
 
 - **every image:** the line was the old checklist's row with its key in front (`screen: ok`,
-  `chip: probing i2c...`, `wifi: 192.168.1.40`, `app: safe svc api.safe.global`). It now says what
-  the console is doing or what it found:
+  `chip: probing i2c...`, `wifi: 192.168.1.40`, `app: safe svc api.safe.global`). It now reads:
 
   | Step | The line |
   |---|---|
-  | the screen is up | Starting up… |
-  | the key | Checking the key…, then `Key 3f9ac21e · pinned` (the Device screen's name for it) |
-  | the key, when it stops the console (red) | No chip found · No key yet · `Key 3f9ac21e · not pinned` |
-  | Wi-Fi, while it waits | Joining Wi-Fi… any button skips (on a knob: press skips) |
-  | Wi-Fi, joined | `Wi-Fi: <network>`; the address is no longer shown |
-  | Wi-Fi, not joined (red) | Wi-Fi not joined, retrying · No Wi-Fi saved |
-  | Safe's service | `Service: api.safe.global`, or `3 Safes · 2 chains`; No service (red) |
+  | the screen is up | `Release 4c86·c754 · 2026.11.4`: the release fingerprint and version this board runs, as the Device screen names them. Starting up… on a board with no `build.py` |
+  | the key | Checking the key…, then `ATECC608B · key sealed · pinned`: the chip's model, whether its key's slot is sealed, whether it is the pinned one. `Passkey · browser` in the browser |
+  | the key, when it stops the console (red) | No chip found · No key yet · `ATECC608B · not pinned` |
+  | the network, only while the boot waits for it | Going online… any button skips (on a knob: press skips) |
+  | the network, not there (red) | Offline · still trying · Offline · no network saved |
+  | the Safe | `Family Safe · Base`, or `3 Safes · 2 chains`; No service or No Safe (red) |
   | the last | Starting the console… |
 
-- **Wi-Fi** is named only when this boot asked the radio to join a network (`net.asked`), or has
-  none saved. In the browser the link is up and nothing was joined, so the line never mentions
-  Wi-Fi there; it used to say `wifi: 127.0.0.1`.
-- A step still going ends in an ellipsis, as the brand guide asks ([BRAND.md](BRAND.md)).
+- **Wi-Fi is not named.** How a console gets online is the board's business: the dev console's
+  radio today, a computer on USB for Mono. Online, the line says nothing; the address and the
+  network's name are no longer shown.
+- **Nothing new is asked of the chip.** The model and the seal come from what the boot already
+  read (`quorum.chip_facts`); the release is `build.py`'s; the Safe and chain are the console's own
+  list.
+- A step still going ends in an ellipsis, as the brand guide asks ([BRAND.md](BRAND.md)). A line
+  too wide for the panel loses its last fact whole, not half a word.
 - **The checklist** (`BOOT_ART = "checklist"`) shows the same lines as its rows. Its 8 px font is
   ASCII and drew a middle dot as a grey block: a row now gets a dash, and three dots for the
   ellipsis. Its heading is Picoquorum (the ceremony's: Ceremony), with the capital.
-- `node test-vectors/run-bootmark.mjs` checks when Wi-Fi is named, and every frame of the mark with
-  these lines on three panels.
+- `node test-vectors/run-bootmark.mjs` checks the release line, that no row names Wi-Fi, the
+  whole-fact cut, and every frame of the mark with these lines on three panels.
 
 ## 2026.11.3 (2026-11-04)
 

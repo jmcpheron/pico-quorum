@@ -1977,10 +1977,17 @@ def start():
     if state == "nochip":
         splash.step("chip", "No chip found", L.RED)
     else:
-        # the key as the Device screen names it; the chip's own name is on the row above (splash.chip)
-        pinned = " \u00b7 pinned" if EXPECT and pin_ok else (" \u00b7 not pinned" if not pin_ok else "")
+        # What holds the key, from what probe_chip read: a chip's model, whether its key is sealed
+        # (chip_facts) and whether it is the pinned one; else the Device screen's name for it. A
+        # key that is not the pinned one says only that. Whose key it is, is the row above (splash.chip).
+        import quorum_ui        # loaded already: U, or what the small screens' U draws with
         name = (chip["name"] + " \u00b7 ") if chip else ""
-        splash.step("chip", "Key %s%s" % (fingerprint(), pinned) if qx else "No key yet", L.RED if not qx or not pin_ok else L.GREEN)
+        what = facts["model"] if facts else quorum_ui.key_kind(sys.modules[__name__])
+        if not pin_ok:
+            what += " \u00b7 not pinned"
+        elif facts:
+            what += (" \u00b7 key sealed" if facts["keySealed"] else " \u00b7 key not sealed") + (" \u00b7 pinned" if EXPECT else "")
+        splash.step("chip", what if qx else "No key yet", L.RED if not qx or not pin_ok else L.GREEN)
         if me:      # its owner's blockie on the boot screen: the picture T5, Owners and approvals show
             splash.chip(me, "%s%s\u2026%s" % (name, me[:6], me[-4:]), pin_ok)
         check_counter()
@@ -1988,10 +1995,10 @@ def start():
     w = network.WLAN(network.STA_IF)
     if net.networks() and not w.isconnected() and not net.tried:
         try:
-            net.connect(progress=lambda ms: splash.wifi_wait() or bool(keys.pressed()))
+            net.connect(progress=lambda ms: splash.net_wait() or bool(keys.pressed()))
         except Exception as e:
             print("wifi:", e)
-    splash.wifi_row(w, net.ssid(), net.asked())
+    splash.net_row(w, net.ssid())
     mark("wifi")
     marks.append("up %d" % (time.ticks_ms() if w.isconnected() else 0))   # WiFi joined, ms since reset
     served = [x for x in WATCH if x["base"]]
@@ -1999,8 +2006,11 @@ def start():
     if len(WATCH) > 1:
         what = "%d Safes · %d chains" % (len(WATCH), len(set(x["chain"] for x in WATCH)))
     else:
-        what = "Service: " + (BASE or "").replace("http://", "").replace("https://", "").split("/")[0]
-    splash.step("app", what if first else "No service", L.GREY if first and len(served) == len(WATCH) else L.RED)
+        what = "%s \u00b7 %s" % (W["name"], CFG["chains"].get(str(CHAIN), "chain %d" % CHAIN))    # the Safe it signs for
+    if UNCONFIGURED:
+        splash.step("app", "No Safe", L.RED)        # WATCH is the bench's Safe here, and nothing is signed for it
+    else:
+        splash.step("app", what if first else "No service", L.GREY if first and len(served) == len(WATCH) else L.RED)
     if SAFES_WHY:
         qlog.write("secrets.py: " + SAFES_WHY)
     if UNCONFIGURED:

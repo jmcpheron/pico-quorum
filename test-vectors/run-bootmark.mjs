@@ -8,15 +8,15 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { loadMicroPython } from '../emu/node_modules/@micropython/micropython-webassembly-pyscript/micropython.mjs';
 import { createDevice, frameToRGBA } from '../emu/core/runtime.mjs';
 import { encodePNG } from '../emu/core/png.mjs';
-import { readWorkspace, readShims } from '../emu/core/workspace.mjs';
+import { readWorkspace, readShims, emuBuild } from '../emu/core/workspace.mjs';
 
 const OUT = 'emu/shots/bootmark';
 mkdirSync(OUT, { recursive: true });
 const STEP = 30;          // ms between frames: the pace draw() sees during the WiFi join and the hold
 const END = 4500;
 // Real boot status lines, changing at roughly the points the console's start() reaches them.
-const STATUS = [[0, 'Starting up…'], [400, 'Checking the key…'], [700, 'Key 3f9ac21e · pinned'],
-  [900, 'Joining Wi-Fi… any button skips'], [2600, 'Wi-Fi: emulator'], [3000, 'Service: api.safe.global'],
+const STATUS = [[0, 'Release 4c86·c754 · 2026.11.4'], [400, 'Checking the key…'], [700, 'ATECC608B · key sealed · pinned'],
+  [900, 'Going online… any button skips'], [2600, 'Offline · still trying'], [3000, 'Family Safe · Base'],
   [3400, 'Starting the console…']];
 
 const PANELS = [
@@ -100,7 +100,7 @@ m.frame(bootmark.STILL, 'Starting the console…')
 _one = m.sent
 m.frame(bootmark.STILL, 'Starting the console…')
 assert m.sent == _one, 'a still frame with nothing new sent something'
-m.frame(bootmark.STILL, 'Wi-Fi: emulator')
+m.frame(bootmark.STILL, 'Family Safe · Base')
 _status = m.sent - _one
 _hex = binascii.hexlify(still.ram).decode()
 import json
@@ -118,7 +118,8 @@ _stats = json.dumps([sum(sent), max(sent[1:]), len([s for s in sent if s == 0]),
 
 // splash with the default art: the mark, a 0.3 s lead-in, the hold, and both art modules released.
 {
-  const dev = await createDevice({ loadMicroPython, keys: new Int32Array(16), files: readWorkspace(),
+  const files = readWorkspace();       // with the emulator's build.py: a version and a release fingerprint
+  const dev = await createDevice({ loadMicroPython, keys: new Int32Array(16), files: { ...files, 'build.py': emuBuild(files).py },
     shims: readShims(), heapsize: 2 * 1024 * 1024, secrets: '', onStdout: console.log });
   try {
     dev.mp.runPython(`
@@ -139,20 +140,28 @@ splash.pause(False); splash._tick(None)
 assert splash._frame == n + 1, 'a tick draws a frame'
 splash.step('app', 'Starting the console…')
 assert splash._frame == n + 1 and splash._status == 'Starting the console…', 'with the timer, step() leaves the frame to it'
-# Wi-Fi is named only where the console joined a network or has none: never for a link it did not ask for
-import net
+# the network: a line only while the boot waits for it or when it is not there, and never by name
 class Wlan:
     def __init__(self, up): self.up = up
     def isconnected(self): return self.up
-assert not net.asked(), 'the emulator: the link is up and nobody asked the radio'
-splash.wifi_row(Wlan(True), net.ssid(), net.asked())
-assert splash._status == 'Starting the console…' and not [r for r in splash.rows if r[0] == 'wifi'], 'no Wi-Fi line for a link nobody asked for'
-splash.wifi_row(Wlan(True), 'home', True)
-assert splash._status == 'Wi-Fi: home'
-splash.wifi_row(Wlan(False), 'home', True)
-assert splash._status == 'Wi-Fi not joined, retrying' and splash._status_color == (255, 92, 84)
-splash.wifi_row(Wlan(False), '', False)
-assert splash._status == 'No Wi-Fi saved'
+splash.net_row(Wlan(True), 'home')
+assert splash._status == 'Starting the console…' and not [r for r in splash.rows if r[0] == 'wifi'], 'online: no line'
+splash.net_row(Wlan(False), 'home')
+assert splash._status == 'Offline · still trying' and splash._status_color == (255, 92, 84)
+splash.net_row(Wlan(False), '')
+assert splash._status == 'Offline · no network saved'
+splash._last = 0; splash.net_wait()
+assert splash._status == 'Going online… any button skips'
+assert not [r for r in splash.rows if 'wi-fi' in r[1].lower() or 'wifi' in r[1].lower()], 'no row names Wi-Fi'
+# the first line is the release the board runs (the emulator's build.py), as the Device screen names it
+import image
+assert image.SHORT and splash.rows[0][1] == 'Release %s · %s' % (image.SHORT, image.VERSION), splash.rows[0]
+# a line too wide loses its last fact whole: the mark's on the 240 px panel, the checklist's 24 characters
+m = B.Mark(splash.lcd, '')
+m.frame(B.STILL, 'ATECC608B · key not sealed · pinned')
+assert m.status[0] == 'ATECC608B · key not sealed', m.status
+assert splash._plain('ATECC608B · key sealed · pinned', 24) == 'ATECC608B - key sealed'
+assert splash._plain('Checking the key…', 24) == 'Checking the key...'
 splash.finish(wait=False)
 assert splash._timer is None, 'finish() stops the timer'
 assert splash._art is None and 'bootmark' not in sys.modules and 'bootart' not in sys.modules
@@ -163,7 +172,7 @@ assert not wide, 'too wide for the 240x240: %r' % wide
 assert taglines.pool() == taglines.SERIOUS and taglines.pick() in taglines.SERIOUS
 assert sorted(taglines.cycle()) == sorted(taglines.SERIOUS)
 `);
-    console.log('bootmark: splash picks the mark by default, 4.0 s hold, released at finish; the diamond lands on the logo; the timer draws, pauses and stops; Wi-Fi is named only for a network the console asked for, or none saved; ' +
+    console.log('bootmark: splash picks the mark by default, 4.0 s hold, released at finish; the diamond lands on the logo; the timer draws, pauses and stops; the first line is the release, the network is never named, a wide line loses whole facts; ' +
       'every tagline fits 220 px, serious by default');
   } catch (e) { console.error(`bootmark splash: ${String(e)}`); failed = true; } finally { dev.dispose(); }
 }

@@ -434,8 +434,8 @@ class Mark:
 
     def frame(self, t, status=None, status_rgb=MUTED):
         if status is not None and status != self.status[0]:
-            while F.width(status, STATUS_FONT) > L.W - 20:
-                status = status[:-1]
+            while F.width(status, STATUS_FONT) > L.W - 20:      # too wide: the last fact goes whole, then letters
+                status = status.rsplit(" \u00b7 ", 1)[0] if " \u00b7 " in status else status[:-1]
             self.status = (status, status_rgb, F.width(status, STATUS_FONT))
         elif status is not None:
             self.status = (status, status_rgb, self.status[2])

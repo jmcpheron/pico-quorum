@@ -23,34 +23,39 @@ there is where this one starts.
 
 ## The boot status in plain words (2026-11-23, firmware 2026.11.4)
 
-You asked for a look over the boot screen: some of its text mentioned WiFi. Two things did.
+You asked for a look over the boot screen: some of its text mentioned WiFi. Then: take Wi-Fi out
+for sure, make the text more interesting and informative, and nothing that messes with the chip.
 
 **The firmware's last line** was still the old checklist's row with its key in front. It now says
-what the console is doing, or what it found:
+what this console is, from what the boot already knows:
 
 | It said | It says |
 |---|---|
-| `screen: ok` | Starting up… |
+| `screen: ok` | Release 4c86·c754 · 2026.11.4 |
 | `chip: probing i2c...` | Checking the key… |
-| `chip: chip 2 · 3f9ac21e · pinned` | Key 3f9ac21e · pinned (the chip's name is on the row above it) |
-| `chip: none on i2c` · `no key` · `PIN FAIL` | No chip found · No key yet · Key 3f9ac21e · not pinned |
-| `wifi: join HomeNet any button skips` | Joining Wi-Fi… any button skips |
-| `wifi: 192.168.1.40` | Wi-Fi: HomeNet |
-| `wifi: not found, retrying` · `no Wi-Fi saved` | Wi-Fi not joined, retrying · No Wi-Fi saved |
-| `app: safe svc api.safe.global` · `no service` | Service: api.safe.global · No service |
+| `chip: chip 2 · 3f9ac21e · pinned` | ATECC608B · key sealed · pinned (whose key it is, is the row above it) |
+| `chip: none on i2c` · `no key` · `PIN FAIL` | No chip found · No key yet · ATECC608B · not pinned |
+| `wifi: join HomeNet any button skips` | Going online… any button skips |
+| `wifi: 192.168.1.40` | nothing: the next line follows |
+| `wifi: not found, retrying` · `no Wi-Fi saved` | Offline · still trying · Offline · no network saved |
+| `app: safe svc api.safe.global` · `no service` | Family Safe · Base · No service |
 | `app: Starting console` | Starting the console… |
 
 <img src="boot/status-lines.png">
 
-- **Wi-Fi** is named only when this boot asked the radio to join a network, or has none saved. A
-  console in the browser has no radio: its line said `wifi: 127.0.0.1`, and now says nothing about
-  Wi-Fi.
-- **A step still going** ends in an ellipsis, as [the brand guide](../../BRAND.md) asks. The key
-  and the service are named as the Device screen names them.
+- **The release** is the first line, and the one that stays up longest while the console loads:
+  the same eight digits as the Device screen, the README's badge and the app's Releases page.
+- **The key's line** is the chip's model, whether the key's slot is sealed, and whether it is the
+  pinned one. All three come from reads the boot already made; nothing new is asked of the chip.
+- **The Safe's line** is its name and chain, not the service's address.
+- **Wi-Fi is not named.** The line only says the console is going online, or is offline. Mono will
+  get there through a computer on USB, and the browser has no radio.
+- **A step still going** ends in an ellipsis, as [the brand guide](../../BRAND.md) asks. A line too
+  wide for the panel loses its last fact whole.
 - **The checklist** (`BOOT_ART = "checklist"`) gets the same lines. Its 8 px font drew a middle dot
   as a grey block; it now draws a dash. Its heading is Picoquorum, with the capital.
-- These are drawn by the real firmware in the emulator, with a test passkey as the key; "emulator"
-  is the emulator's network. `node test-vectors/run-bootmark.mjs` checks when Wi-Fi is named.
+- These are drawn by the real firmware in the emulator with its virtual Trust M, sealed; "Local"
+  is the emulator's chain. `node test-vectors/run-bootmark.mjs` checks that no row names Wi-Fi.
 
 **The orbit's demo line** (the GIF on the README and the brand guide, and the brand page's live
 one) said "Joining WiFi… · WiFi connected". Mono has no radio, so it now reads: Starting up ·

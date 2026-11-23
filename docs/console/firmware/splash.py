@@ -1,7 +1,7 @@
 # Boot display: a short black lead-in, then the Picoquorum mark with the real boot status on its
 # last line: what the console is doing now or what it found, in plain words (step). A step still
-# going ends in an ellipsis (docs/BRAND.md). Wi-Fi is named only where the console joined a
-# network, or has none to join (wifi_row).
+# going ends in an ellipsis (docs/BRAND.md). The first line is the release it runs. The network
+# gets a line only while the boot waits for it, or when it is not there (net_wait, net_row).
 # secrets.BOOT_ART picks the art: "mark" (the default, bootmark.py: flat vectors, only
 # what changed is sent to the panel, runs on every panel), "still" (the finished mark at once) or
 # "orbit" (bootart.py: the full orbit, the whole panel every frame, ~8-10 fps on the Pico; strip-
@@ -10,6 +10,7 @@
 # timer/watchdog, releasing the art's code before normal transaction-service polling.
 import time
 import board
+import image
 import lcd as L
 import theme as T
 import icons as I
@@ -28,7 +29,7 @@ _art = None
 _still = False
 _gap = 120          # spin redraws at most this often (ms): the orbit is a whole frame, the mark is not
 _finished = False
-_status = "Starting up\u2026"
+_status = ""
 _status_color = (152, 160, 172)
 _waiting = None     # the row that is spinning, if any
 _timer = None       # run(): the art draws itself on a soft timer while the console starts
@@ -101,7 +102,9 @@ def begin():
             BLACK_LEAD_MS = bootmark.LEAD_MS
             ANIMATION_MS = 0 if _still else bootmark.DURATION_MS
         _t0 = time.ticks_ms()
-        step("screen", "Starting up\u2026", L.GREEN)
+        # the release this board runs, as the Device screen names it; a board with no build.py only starts
+        step("screen", " \u00b7 ".join(x for x in ("Release " + image.SHORT, image.VERSION) if x) if image.SHORT
+             else "Starting up\u2026", L.GREEN)
     return lcd
 
 
@@ -143,19 +146,16 @@ def spin(key, text):
     step(key, text, L.GREY)
 
 
-def wifi_wait():
-    """The row while Wi-Fi joins (net.connect's progress)."""
-    spin("wifi", "Joining Wi-Fi\u2026 %s skips" % ("press" if L.KNOB else "any button"))
+def net_wait():
+    """The row while the boot waits for the network (net.connect's progress)."""
+    spin("wifi", "Going online\u2026 %s skips" % ("press" if L.KNOB else "any button"))
 
 
-def wifi_row(wlan, ssid, asked=True):
-    """Wi-Fi once the wait is over. ssid: the network (net.ssid()), "" with none saved. asked: this
-    boot asked the radio to join it (net.asked()). A link that was up without asking gets no row:
-    the browser's, where there is no radio and nothing was joined."""
+def net_row(wlan, saved):
+    """The network once the wait is over: a row only when it is not there. saved: a network is saved
+    (net.ssid()). How the console gets online is the board's business, so the row does not name it."""
     if not wlan.isconnected():
-        step("wifi", "Wi-Fi not joined, retrying" if ssid else "No Wi-Fi saved", L.RED)
-    elif asked:
-        step("wifi", "Wi-Fi: " + ssid, L.GREEN)
+        step("wifi", "Offline \u00b7 still trying" if saved else "Offline \u00b7 no network saved", L.RED)
 
 
 def draw():
@@ -201,9 +201,13 @@ def _skipped():
     gc.collect()
 
 
-def _plain(s):
-    """A row for the checklist: framebuf's 8 px font is ASCII, and drew a middle dot as a block."""
-    return s.replace("\u00b7", "-").replace("\u2026", "...")
+def _plain(s, n):
+    """A row for the checklist, n characters: framebuf's 8 px font is ASCII, and drew a middle dot
+    as a block. Too long, it loses its last fact whole, as the mark's line does, then letters."""
+    s = s.replace("\u00b7", "-").replace("\u2026", "...")
+    while len(s) > n and " - " in s:
+        s = s.rsplit(" - ", 1)[0]
+    return s[:n]
 
 
 def _black():
@@ -239,14 +243,14 @@ def _draw():
         y = 82
         for key, text, color in rows:
             d.fill_rect(4, y + 2, 4, 4, color if color != L.GREY else T.C["config"])
-            d.text(_plain(text)[:(L.W - 14) // 8], 12, y, color)
+            d.text(_plain(text, (L.W - 14) // 8), 12, y, color)
             y += 11
         d.show()
         return
     y, ox = 110, (L.W - 240) // 2
     for key, text, color in rows:
         I.draw(d, ICON.get(key, "chip"), ox + 20, y - 4, color if color != L.GREY else T.C["config"])
-        d.text(_plain(text)[:24], ox + 44, y, color)
+        d.text(_plain(text, 24), ox + 44, y, color)
         y += 20
     d.text("%.1fs" % (time.ticks_diff(time.ticks_ms(), _t0) / 1000), 4, L.H - 12, T.C["dim"])
     d.show()
