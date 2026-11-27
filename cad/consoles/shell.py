@@ -340,6 +340,8 @@ class Case:
     def lug_slot(self, t):
         b = self.b
         side, lug = b["lug"]
+        if not b.get("lug_hole", True):         # a lug with no slot: the end is solid
+            return t
         if side == "right":
             return t.cut(slot(b["W"] + CLEAR + WALL + lug / 2 - 0.3, b.get("lug_at", b["H"] / 2), LUG_HOLE[0], LUG_HOLE[1],
                               self.z0 - 1, self.zt + 1, along_x=False))
@@ -502,11 +504,12 @@ class Case:
         if self.layout == "plate":
             return [("tub", self.tub(), TUB_C, lambda s: s), ("plate", self.plate(), PLATE_C, flip)] + \
                 [(n, s, col, lambda s: s) for n, s, col in caps]
+        b = self.b
         front, back, extra = self.front(), self.back(), []
         if self.b.get("decor"):     # the board's own touches: (shell, back) -> (shell, back, [(name, shape, colour, lie)])
             front, back, extra = self.b["decor"](self, front, back)
         extra = extra + [("back " + n, s, col, None) for n, col, s in self.inlays]    # for the pictures
-        return [("shell", front, TUB_C, flip), ("back", back, PLATE_C, lambda s: s)] + \
+        return [("shell", front, b.get("shell_colour", TUB_C), flip), ("back", back, b.get("back_colour", PLATE_C), lambda s: s)] + \
             [(n, s, col, lambda s: s) for n, s, col in caps] + extra
 
     def usb_hole(self):

@@ -59,6 +59,29 @@ COLOUR = dict(thick=0.6, rim=0.6)
 BLACK, GREEN, ORANGE = S.BLACK, S.GREEN, RP.ORANGE   # the pictures': the face, Sign green, the waiting dots
 
 
+def kept(c, pts, signed, rs, z0, z1, union, tri, dots):
+    """The face's plastic left in the mark's pocket: the lines across the triangle, and a ring round each signed dot
+    inside it. Leaves how many lines, their pitch and the gap between them in c.hatch."""
+    cx, r = c.b["mark"][0], c.b["mark"][2]
+    w, n = HATCH["line"], HATCH["pitches"]
+    # the lines: one at the waiting dots' height, the rest a pitch apart, down to a gap over the base and up to the
+    # top dot
+    base, yw, top = pts[2][1], pts[1][1], pts[0][1] - rs
+    pitch = (yw - base + w / 2) / n
+    assert pitch - w >= HATCH_GAP, "the lines are %.2f mm apart" % (pitch - w)
+    ys = [yw + pitch * k for k in range(1 - n, n) if yw + pitch * k - w / 2 < top]
+    # under the top dot's ring a line joins the ring, or leaves a whole gap under it: the ring's lowest point, and
+    # where it meets the triangle's sides (18 degrees off)
+    ring, sides = pts[0][1] - (rs + w), pts[0][1] - (rs + w) * math.cos(math.radians(18))
+    for y in ys:
+        assert y + w / 2 >= sides or ring - (y + w / 2) >= HATCH_GAP, "a line is %.2f mm under the top dot's ring" % (ring - (y + w / 2))
+    strip = lambda y: S.box(cx - 2 * r, cx + 2 * r, y - w / 2, y + w / 2, z0 - 1, z1 + 1)
+    inside = tri(z0 - 1, z1 + 1)
+    left = union([strip(y) for y in ys]).intersect(inside).cut(dots(signed, rs, z0 - 2, z1 + 2))
+    c.hatch = (len(ys), pitch, pitch - w)
+    return left.union(dots(signed, rs + w, z0 - 1, z1 + 1).cut(dots(signed, rs, z0 - 2, z1 + 2)).intersect(inside))
+
+
 def decor(c, shell, back):
     """The mark printed in the face: a pocket HATCH's depth deep, the five dots open, lines left across the
     triangle. No name over it, and no badge: nothing more to print or glue. Leaves the shell's three bodies in
@@ -74,25 +97,10 @@ def decor(c, shell, back):
     tri = lambda a, e: cq.Workplane("XY").workplane(offset=a).polyline([pts[k] for k in signed]).close().extrude(e - a)
     dots = lambda ks, rad, a, e: union([S.cyl(*pts[k], rad, a, e) for k in ks])
     pocket = tri(z0, z1).union(dots(signed, rs, z0, z1)).union(dots(waiting, rw, z0, z1))
-    # the lines: one at the waiting dots' height, the rest a pitch apart, down to a gap over the base and up to the
-    # top dot
-    base, yw, top = pts[2][1], pts[1][1], pts[0][1] - rs
-    pitch = (yw - base + w / 2) / n
-    assert pitch - w >= HATCH_GAP, "the lines are %.2f mm apart" % (pitch - w)
-    ys = [yw + pitch * k for k in range(1 - n, n) if yw + pitch * k - w / 2 < top]
-    # under the top dot's ring a line joins the ring, or leaves a whole gap under it: the ring's lowest point, and
-    # where it meets the triangle's sides (18 degrees off)
-    ring, sides = pts[0][1] - (rs + w), pts[0][1] - (rs + w) * math.cos(math.radians(18))
-    for y in ys:
-        assert y + w / 2 >= sides or ring - (y + w / 2) >= HATCH_GAP, "a line is %.2f mm under the top dot's ring" % (ring - (y + w / 2))
-    strip = lambda y: S.box(cx - 2 * r, cx + 2 * r, y - w / 2, y + w / 2, z0 - 1, z1 + 1)
-    inside = tri(z0 - 1, z1 + 1)
-    left = union([strip(y) for y in ys]).intersect(inside).cut(dots(signed, rs, z0 - 2, z1 + 2))
-    left = left.union(dots(signed, rs + w, z0 - 1, z1 + 1).cut(dots(signed, rs, z0 - 2, z1 + 2)).intersect(inside))
+    left = kept(c, pts, signed, rs, z0, z1, union, tri, dots)
     open_ = pocket.cut(left)
     c.plain = shell                 # the face with no mark: for one colour
     shell = shell.cut(open_)
-    c.hatch = (len(ys), pitch, pitch - w)
     # the three bodies: a slab of colour behind the pocket's floor, the rest black; and each colour on from its
     # slab through the pocket's openings to the face, flush with it. The black body is the shell less the slabs,
     # so it is the same with the pocket filled or not. The one-body shell keeps its pocket open

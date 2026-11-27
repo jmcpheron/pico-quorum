@@ -5,7 +5,7 @@ runs and what it writes; `tools/case build <name>` rebuilds one.
 
 | folder | what | build |
 |---|---|---|
-| **[consoles/](consoles/README.md)** | **Mono's case** ([`mono.py`](consoles/mono.py)) and **its industrial variant** ([`mono_ind.py`](consoles/mono_ind.py)); console-rp's case, the slate; and the two early prototypes' cases, the stick and the badge. One script, `shell.py`, makes them all | `tools/case build mono-industrial` (or `mono`, `rp`, `stick`, `badge`) |
+| **[consoles/](consoles/README.md)** | **Mono's case** ([`mono.py`](consoles/mono.py)) **its industrial variant** ([`mono_ind.py`](consoles/mono_ind.py)) and **the monolith**, for two colours ([`mono_lith.py`](consoles/mono_lith.py)); console-rp's case, the slate; and the two early prototypes' cases, the stick and the badge. One script, `shell.py`, makes them all | `tools/case build mono-industrial` (or `mono`, `mono-monolith`, `rp`, `stick`, `badge`) |
 | [mono/](mono/README.md) | Mono's board as a print, to hold: not a case | `uv run … python cad/mono/board.py` |
 | [key/](key/README.md) | a snap-lid case for the ATECC608 breakout | `tools/case build key-tray` |
 | [fonts/](fonts/README.md) | the typeface the console cases' letters are cut from: Atkinson Hyperlegible Next, two TTF files | |

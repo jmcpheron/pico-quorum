@@ -8,6 +8,7 @@ ones being worked on.**
 |---|---|---|---|---|
 | **[Mono's](#mono)** | [Mono](../../hardware/mono/README.md) | [`mono.py`](mono.py) | `tools/case build mono` | a first draft, not printed |
 | **[Mono's, industrial](#mono-industrial)** | Mono | [`mono_ind.py`](mono_ind.py) | `tools/case build mono-industrial` | a variant of the first draft, not printed |
+| **[Mono's, monolith](#mono-monolith)** | Mono | [`mono_lith.py`](mono_lith.py) | `tools/case build mono-monolith` | the industrial case with no lanyard slot, its face for two colours; not printed |
 | [the slate](#the-slate-console-rp) | [console-rp](../../hardware/console-rp/README.md) | [`rp.py`](rp.py) | `tools/case build rp` | a first draft |
 | [the stick](#the-stick-console-s3) | [console-s3](../../hardware/prototypes/console-s3/DESIGN.md), an early prototype | [`stick.py`](stick.py) | `tools/case build stick` | a first draft, not fitted to its board |
 | [the badge](#the-badge-picoquorumkey-rev-b) | [PicoquorumKey rev B](../../hardware/prototypes/picoquorum-key/README.md), an early prototype | [`badge.py`](badge.py) | `tools/case build badge` | a first draft; the rev A plate was printed once |
@@ -22,6 +23,8 @@ changed, so a case is up to date when it lists nothing.
   its fab files (`hardware/mono/`), so the case follows the board.
 - [`mono_ind.py`](mono_ind.py) holds the industrial variant's: `CORNER_CUT`, `GROOVES`, and its own
   mark, printed in the face: `MARK_R`, `HATCH`, `COLOUR` and `decor`.
+- [`mono_lith.py`](mono_lith.py) holds the monolith's: `SKIN`, the depth of the first colour; `FRAME`, the line
+  round the window; `RING`, the waiting dots' rings; and `decor`.
 - [`rp.py`](rp.py) draws the badge (`decor`) and the name (`name`). A change there changes the slate too.
 - [`shell.py`](shell.py) holds what every case shares: the walls, the posts, the caps' fit, the dock
   and the checks. A change there changes every case here.
@@ -176,6 +179,52 @@ the lines and the letters hold on the bed are not known.
 ![Mono's case, industrial](out/mono_ind/mono_ind_front.png)
 
 ![Mono's case, industrial, apart](out/mono_ind/mono_ind_apart.png)
+
+## Mono, monolith
+
+[`mono_lith.py`](mono_lith.py): the industrial case with no lanyard slot, and a face made to print in two
+colours by one filament change. **Not printed.** Inside, it is Mono's case, and the back panel, the caps
+and the dock are Mono's: a back or a cap already printed fits. The outline is the industrial case's, cut
+corners and grooves, and it closes at the same 44.6 × 100.1 × 10.9 mm. What changes in the front shell:
+- **No slot through the top end.** It is solid, and the 8 mm cuts across its corners stay. The two slots
+  inside for the back's tabs are where they were.
+- **The face's edge is a 0.6 mm chamfer,** not a 1.5 mm round. The shell prints face down, and a round
+  starts nearly flat on the bed. The chamfer ends where the first colour does, so the colours meet on
+  its lower edge, all the way round. The back's edge is still rounded 0.8 mm. The grooves on the sides
+  are 0.9 mm longer toward the face: they stop 0.8 mm short of the chamfer.
+- **The face is a skin, 0.6 mm thick:** the first three 0.2 mm layers (`SKIN`). Two things are cut
+  through it, to its back and no deeper:
+  - **the mark,** 12 mm in radius, at the industrial case's centre: the triangle between 11 lines of
+    the skin, 0.5 mm wide, and the three signed dots open, 6 mm across. The two waiting dots are rings,
+    4 mm across and 0.8 mm wide, each round a disc of the skin 2.4 mm across. In two colours the
+    waiting dots can't be orange, and [the mark is never five dots alike](../../docs/BRAND.md#dont):
+    the rings keep them unlike the three that signed.
+  - **a line round the window,** 0.8 mm wide, 0.9 mm outside the window's chamfer: 1.05 mm over the
+    caps' holes, 3.79 mm from the face's chamfer.
+- **In one colour** those are cut in, 0.6 mm deep. **In two colours,** the first three layers in one and
+  the rest in another ([Printing](#printing)): the second colour shows in the mark and the window's
+  line, down the screws' and the caps' holes, and it is the walls, so the face is a plate of the first
+  colour on a body of the second.
+- **The back is Mono's, its words cut 0.6 mm in,** as deep as the skin. Printed with the same change at
+  the same height, its outside is the first colour and `picoquorum.app` the second.
+- **Or a plain face:** `mono_lith_shell_plain.stl` is the same shell with nothing cut in its face.
+
+The script checks, and stops otherwise: that 0.8 mm of the face is whole behind every cut (`BEHIND`),
+so no pocket or hole comes up under one; that no cut goes deeper than the skin; that the two bodies add
+up to the shell; that each waiting dot's disc is 1.5 mm across at the least; and the window's line's
+distances above. The build finds no overlap. The skin is four pieces on the bed: the face, the strip
+between the window and its line, 0.9 mm wide there, and the two discs.
+
+**Not opened in a slicer, not sliced, and not printed.** How the 0.5 mm lines, the 0.9 mm strip and the
+two discs hold on the bed, and how the second colour bridges the 6 mm dots, are not known. The
+industrial case's mark has the same lines and dots, in a pocket 0.4 mm deep.
+The pictures show black over green; the colours are whatever two filaments are loaded.
+
+![Mono's case, monolith](out/mono_lith/mono_lith_front.png)
+
+![The monolith's face, as its two colours print](out/mono_lith/mono_lith_mark.png)
+
+![Mono's case, monolith, apart](out/mono_lith/mono_lith_apart.png)
 
 ## The slate (console-rp)
 
@@ -376,6 +425,16 @@ Every part prints without supports, judging by the shapes. They haven't been sli
     the slicer loads it as one part, split it to parts; if it asks about filaments, give each part
     its own. For two colours, not three, give green and orange the same filament. The colours are in
     layers 1 to 3 (to 0.6 mm), flush with the back. The rest is black.
+- **The monolith** (`mono_lith_shell.stl`, `mono_lith_back.stl`): the shell face down, the back outside
+  down, at 0.2 mm layers, the first layer 0.2 mm too. Both can go on one bed.
+  - **two colours, one change:** start in the face's colour, and change filament at 0.6 mm, the start
+    of layer 4 (a pause or a filament change at that height in the slicer). The rest is the second
+    colour. Check the preview as for the industrial shell's lines, below.
+  - **a printer that changes filament itself:** `mono_lith_shell.3mf`, one object of two parts, face
+    and body; and `mono_lith_back.3mf`, the back with its words filled flush.
+  - **one colour:** the same files with no change, or `mono_lith_shell_plain.stl`.
+  - A light colour over a dark one may show it through three layers. Then print the face dark, or
+    give `SKIN` another layer and rebuild.
 - **The industrial shell with no mark** (`mono_ind_shell_plain.stl`): face down, one colour, as Mono's.
 - **The industrial shell's mark** has no badge. Slice at 0.2 mm, the first layer 0.2 mm too. In the
   slicer's preview, look for the lines in layers 1 and 2, each one pass 0.5 mm wide. A slicer that

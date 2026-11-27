@@ -74,6 +74,11 @@ DESIGNS = {
         scripts=["cad/consoles/mono_ind.py"],
         outputs=["cad/consoles/out/mono_ind/*"],
         pages=["cad/consoles/README.md"]),
+    "mono-monolith": dict(
+        about="Mono's case with cut corners and no lanyard slot, its face made for two colours by one filament change: the mark and a line round the window cut through the first three layers; the shell also with a plain face, and as two bodies in a 3MF",
+        scripts=["cad/consoles/mono_lith.py"],
+        outputs=["cad/consoles/out/mono_lith/*"],
+        pages=["cad/consoles/README.md"]),
     "key-tray": dict(
         about="the snap-lid case for the ATECC608 breakout, v2 and v3",
         scripts=["cad/key/tray.py"],
