@@ -123,18 +123,18 @@ Not printed.
 for the USB-C's plug and the same latches, with a 3-pin strip of right-angle 2.54 mm header under TP1,
 TP2 and TP3 (SWCLK, GND, SWDIO). The straight pins stand out of the deck, where the pads come down on
 them. The bent legs lie under the deck, pointing up the board, and the jumper wires come in from the
-top end.
+top end. A tray on the left holds the probe, a Pico 2 W.
 
-![The cradle under the board's bottom end, a latch over each edge, the rest of the board standing out past it](out/mono_cradle.png)
-![The cradle empty: the header's pocket in the deck with three slots running up from it, the three pins' tips in it, the latches turned off the pocket](out/mono_cradle_empty.png)
+![The cradle under the board's bottom end, a latch over each edge, the rest of the board standing out past it; on the left the Pico in its tray, three pins standing up from it](out/mono_cradle.png)
+![The cradle empty: the header's pocket in the deck with three slots running up from it, the deck cut away past them at the top end; the tray with a groove down each side and four screw holes](out/mono_cradle_empty.png)
 ![The cradle from underneath: a channel from the legs out of the top end, the three legs lying in it](out/mono_cradle_under.png)
 
 ```sh
 uv run --python 3.11 --with cadquery --with matplotlib python cad/mono/cradle.py
 ```
 
-It writes `out/mono_cradle.stl`, 60 × 40 × 12.3 mm, as it prints, no support: the channel's roof is an
-8.5 mm bridge. The latches are the jig's: `mono_jig_latch.stl`, two.
+It writes `out/mono_cradle.stl`, 89.9 × 53.7 × 17.8 mm, as it prints, no support: the channel's roof
+is an 8.5 mm bridge, 9.9 mm wide. The latches are the jig's: `mono_jig_latch.stl`, two.
 
 To build one:
 1. **Break three pins off a right-angle strip** and push the straight pins level in their plastic
@@ -144,21 +144,37 @@ To build one:
    slots, 5.24 mm down, and the straight pins' tips stand 0.3 mm over the deck. The pocket is
    7.92 × 2.84 mm and each slot 1.1 mm wide; a file or a knife opens them if the print is tight. No
    glue: the board holds the strip down.
-3. **The wires:** slide a jumper's socket onto each leg from the top end, along the channel
-   underneath. From the left edge in, the pins are SWCLK, GND, SWDIO.
-4. **The latches:** an M3 × 8 screw and a washer each, straight into the printed holes, which the
+3. **The probe:** a Pico 2 W with the debugprobe firmware. Solder a 3-pin straight strip into its
+   pins 3, 4 and 5 (GND, GP2, GP3) **with the long pins up**, on the side the chips are on. A whole
+   row fitted that way does as well. A Pico with its pins pointing down won't lie in the tray.
+   Lay it in the tray, its USB at the open end, beside the board's USB-C: pins 3 to 5 are then in the
+   row nearest the cradle, the third to fifth from the USB's end. Two M2 screws in opposite corners
+   hold it; the screws thread the print.
+4. **The wires:** three jumpers, socket to socket. Slide one onto each leg from the top end, along
+   the channel underneath, and bring them round to the Pico. The channel is 13.2 mm high, the legs
+   8.5 mm over the table, and past the legs' tips the deck over it is cut away.
+
+   | cradle's leg, from the left edge in | pad | Pico's pin, from the USB's end |
+   |---|---|---|
+   | 1st | SWCLK | 4th, GP2 |
+   | 2nd | GND | 3rd, GND |
+   | 3rd | SWDIO | 5th, GP3 |
+
+   The first two cross.
+5. **The latches:** an M3 × 8 screw and a washer each, straight into the printed holes, which the
    screw threads. With no screws, a rubber band round the cradle and the board, lying in the two
    landings, holds the board down.
-5. **Meter it** with a board in and the latches shut: each leg to its pad's net (GND to the USB-C's
-   shell), and no leg to the next.
+6. **Meter it** with a board in and the latches shut: each of the Pico's three pins to its pad's net
+   (GND to the USB-C's shell), and none to the next.
 
 If a pin doesn't touch, the strip is low or not level: a slip of paper under its plastic raises it,
 and a bit of rubber band there lets it give and rock.
 
 The header's sizes are the usual right-angle strip's, not measured: 3.0 mm of straight pin over
 2.54 mm of plastic, the legs' middle 1.5 mm from the plastic, their tips 8.5 mm from the pins' line.
-Measure yours and set `HEADER` or `PROUD`. The slots take a leg up to 9.5 mm long, and the channel a
-leg from 1.6 to 2.9 mm from the plastic.
+Measure yours and set `HEADER` or `PROUD`. The slots take a leg up to 9.5 mm long. The Pico's sizes
+are Raspberry Pi's drawing's: 51 × 21 mm, the M2 holes 11.4 × 47 mm apart. The grooves in the tray's
+floor are 2.4 mm deep, for 2 mm of soldered pin.
 
 The board stands 53.5 mm out past the cradle, with nothing under the screen or the buttons: put a
 finger under it before pressing one.
@@ -167,6 +183,8 @@ Before this drawing:
 - three 1.9 mm holes for jumper wires, their stripped ends spread over the holes' mouths. Printed on
   2026-11-19; the wires didn't make contact.
 - a straight header, its long pins hanging into a 20 mm room underneath: 30.6 mm tall. Not printed.
+- the right-angle header in a block 12.3 mm tall, with no tray. Printed; the jumpers' sockets and
+  their wires stood out of the bottom. So this one is 5.5 mm deeper.
 
 This drawing isn't printed. Three stiff pins in a row touch on the tallest two, as on the clip above,
 so it may be no better without the paper or the rubber.

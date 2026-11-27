@@ -15,7 +15,11 @@ How it works:
   PROUD of the deck, where the pads come down on them. The board pushes the strip onto the ribs, so
   nothing has to hold it.
 - Under the deck a channel, open at the bottom, runs from the legs out of the top end: the jumpers'
-  sockets slide in there, under the board, onto the legs.
+  sockets slide in there, under the board, onto the legs. Past the legs' tips the deck over it is cut
+  away, so the wires can leave upward too.
+- A tray on the left holds the probe, a Pico 2 W, its USB at the same end as the board's USB-C. It lies
+  flat, its header's pins up: GND, GP2 and GP3 (pins 3, 4 and 5) are in the row nearest the cradle.
+  Grooves in the floor take the header's soldered ends, and four holes take M2 screws.
 - The latches' screws cut their own thread in a printed hole: no inserts. A rubber band round the cradle
   and the board, lying in the latches' landings, does the same job.
 
@@ -42,12 +46,27 @@ HEADER = dict(pitch=2.54, body=2.54, short=3.0, pin=0.64, drop=1.5, reach=8.5)
 HFIT = 0.15                          # room round the header's plastic, each side
 PROUD = 0.3                          # the straight pins' tips, over the deck
 SLOT = 1.1                           # each leg's slot through the deck
-UNDER = 4.5                          # the plastic under the ledge: a socket on a leg, and some to spare
+UNDER = 10.0                         # the plastic under the ledge: a socket on a leg, and its wire's bend under it
 ROOF = 2.0                           # the deck over the sockets' channel
 SOCKET = 2.6                         # a jumper's socket, square
 START = 2.0                          # the channel starts this far up from the pins' line: the ribs under the plastic end there
 PILOT = dict(d=2.8, depth=6.5)       # an M3 screw cuts its thread in this
 TOP = J.SWING + 5.0                  # the cradle ends this far above the pads' row
+SIDE = 1.0                           # the channel, wider than the header's pocket by this each side
+OPEN = 2.0                           # the deck is cut away over the channel from this far past the legs' tips
+# The probe: a Pico 2 W, 51 x 21 x 1 mm, its two rows of holes 17.78 mm apart, its four M2 holes 11.4 x 47 mm
+# apart (Raspberry Pi's drawing). `tail` is how far a header's soldered ends stand out of the far face.
+PICO = dict(w=21.0, l=51.0, t=1.0, rows=17.78, holes=(11.4, 47.0), pin1=1.37, tail=2.0)
+PFIT = 0.2                           # room round the Pico, each side
+WALL = 2.5                           # the tray's walls
+SUNK = 1.2                           # the tray's floor, under the rim's top
+GROOVE = dict(w=2.8, d=2.4)          # under each row, for the soldered ends
+M2 = dict(d=1.7, depth=5.0)          # an M2 screw cuts its thread in this
+PX1 = J.XL - J.LATCH["tail"] - J.LATCH["r"] - 3.0    # the tray's pocket's right side: 3 mm clear of a turned latch
+PX0 = PX1 - PICO["w"] - 2 * PFIT
+PY0 = -J.END                         # the Pico's USB end, level with the cradle's bottom end
+PY1 = PY0 + PICO["l"] + PFIT
+Z_TRAY = J.LIP - SUNK
 
 ZD = J.ZD
 Z_LEDGE = ZD + PROUD - HEADER["short"] - HEADER["body"]     # where the plastic sits
@@ -72,9 +91,39 @@ def header(xs, yp):
     return s
 
 
+def rows():
+    """The two rows' x, the far one first."""
+    xc = (PX0 + PX1) / 2
+    return xc - PICO["rows"] / 2, xc + PICO["rows"] / 2
+
+
+def pico():
+    """The Pico in its tray, a 3-pin strip on pins 3 to 5, pins up: for the pictures and the checks."""
+    x0, x1, y0 = PX0 + PFIT, PX1 - PFIT, PY0
+    s = box(x0, x1, y0, y0 + PICO["l"], Z_TRAY, Z_TRAY + PICO["t"])
+    s = s.union(box((x0 + x1) / 2 - 4, (x0 + x1) / 2 + 4, y0 - 1.3, y0 + 4.5, Z_TRAY + PICO["t"], Z_TRAY + PICO["t"] + 2.8))   # the USB
+    xr, p = rows()[1], HEADER["pin"] / 2
+    ya = y0 + PICO["pin1"] + 2 * HEADER["pitch"]             # pin 3
+    strip = box(xr - 1.27, xr + 1.27, ya - 1.27, ya + 2 * HEADER["pitch"] + 1.27, Z_TRAY + PICO["t"], Z_TRAY + PICO["t"] + HEADER["body"])
+    for i in range(3):
+        y = ya + i * HEADER["pitch"]
+        strip = strip.union(box(xr - p, xr + p, y - p, y + p, Z_TRAY - PICO["tail"], Z_TRAY + PICO["t"] + HEADER["body"] + 6.0))
+    return s, strip
+
+
 def cradle(xs, yp, j1):
     y_top = yp + TOP
     body = box(-J.RIM, G.W + J.RIM, -J.END, y_top, Z_BOT, J.LIP).edges("|Z").fillet(3.0)
+    # the probe's tray, on the left: a pocket open at the USB's end, a groove under each row, four screw holes
+    body = body.union(box(PX0 - WALL, -J.RIM + 3.5, -J.END, PY1 + WALL, Z_BOT, J.LIP).edges("|Z").fillet(3.0))
+    body = body.cut(box(PX0, PX1, PY0 - 1, PY1, Z_TRAY, J.LIP + 1))
+    for xr in rows():
+        body = body.cut(box(xr - GROOVE["w"] / 2, xr + GROOVE["w"] / 2, PY0 - 1, PY1, Z_TRAY - GROOVE["d"], Z_TRAY + 1))
+    xc, (hx, hy) = (PX0 + PX1) / 2, PICO["holes"]
+    for x in (xc - hx / 2, xc + hx / 2):
+        for y in (PY0 + (PICO["l"] - hy) / 2, PY0 + (PICO["l"] + hy) / 2):
+            body = body.cut(rod(x, y, M2["d"], Z_TRAY - M2["depth"], Z_TRAY + 1))
+    body = body.cut(box(xc - 5, xc + 5, PY1 - 1, PY1 + WALL + 1, Z_TRAY - 2.0, J.LIP + 1))      # a notch at the far end, for a nail under the Pico
     # the board's pocket, open at the top end where the board runs on
     pocket = box(-J.FIT, G.W + J.FIT, -J.FIT, y_top + 10, ZD, J.LIP + 1).edges("|Z").fillet(G.CORNER + J.FIT)
     body = body.cut(pocket)
@@ -87,9 +136,10 @@ def cradle(xs, yp, j1):
     body = body.cut(box(x0, x1, yp - b, yp + b, Z_LEDGE, ZD + 1))
     for p in PADS:
         body = body.cut(box(xs[p] - SLOT / 2, xs[p] + SLOT / 2, yp - SLOT / 2, yp + HEADER["reach"] + 1.0, Z_BOT - 1, ZD + 1))
-    body = body.cut(box(x0 - 0.3, x1 + 0.3, yp + START, y_top + 1, Z_BOT - 1, ZD - ROOF))
+    body = body.cut(box(x0 - SIDE, x1 + SIDE, yp + START, y_top + 1, Z_BOT - 1, ZD - ROOF))
+    body = body.cut(box(x0 - SIDE, x1 + SIDE, yp + HEADER["reach"] + OPEN, y_top + 1, Z_BOT - 1, ZD + 1))
     # the latches' landings and their screws' holes
-    for x0, x1, x in ((-J.RIM - 1, -J.FIT, J.XL), (G.W + J.FIT, G.W + J.RIM + 1, J.XR)):
+    for x0, x1, x in ((PX1 + 2.0, -J.FIT, J.XL), (G.W + J.FIT, G.W + J.RIM + 1, J.XR)):
         body = body.cut(box(x0, x1, yp - J.SWING, yp + J.SWING, J.LAND, J.LIP + 1))
         body = body.cut(rod(x, yp, PILOT["d"], J.LAND - PILOT["depth"], J.LAND + 1))
     return body
@@ -107,15 +157,23 @@ def main():
     assert START > HEADER["body"] / 2 + HFIT + 0.4, "the channel is under the plastic: nothing holds the strip up"
     zl = Z_LEDGE - HEADER["drop"]
     assert zl + SOCKET / 2 + 0.3 <= ZD - ROOF and zl - SOCKET / 2 - 0.3 >= Z_BOT, "a socket on a leg doesn't fit the channel"
-    assert yp + HEADER["reach"] + 1.0 < yp + TOP - 2, "a leg's slot comes out of the top end"
+    assert OPEN >= 1.8, "the strip of deck past the slots' ends is under 0.8 mm"
+    assert span(xs)[0] - SIDE > J.XL + PILOT["d"] / 2 + 2, "the channel is under a latch's screw"
+    assert GROOVE["d"] > PICO["tail"] and Z_TRAY - max(GROOVE["d"], M2["depth"]) > Z_BOT + 2, "the tray's floor"
     body = cradle(xs, yp, J.usbc(fps))
     assert len(body.val().Solids()) == 1, "the cradle is not one solid"
     pcb, bits, glass = B.board(fps), B.parts(fps), B.panel()
     for name, s in (("the board", pcb), ("its parts", bits), ("the glass", glass)):
         assert body.intersect(s).val().Volume() < 1e-6, f"the cradle cuts into {name}"
     shut = J.latch(J.XL, yp).union(J.latch(J.XR, yp, 180))
-    for name, s in (("the cradle", body), ("the board's parts", bits)):
+    wide = J.latch(J.XL, yp, 90).union(J.latch(J.XR, yp, 90))
+    probe, strip = pico()
+    for name, s in (("the cradle", body), ("the board's parts", bits), ("the Pico", probe.union(strip))):
         assert shut.intersect(s).val().Volume() < 1e-6, f"a shut latch cuts into {name}"
+        assert name == "the board's parts" or wide.intersect(s).val().Volume() < 1e-6, f"an open latch cuts into {name}"
+    assert body.intersect(probe.union(strip)).val().Volume() < 1e-6, "the Pico doesn't fit its tray"
+    assert body.intersect(probe.union(strip).translate((0, 0, 6))).val().Volume() < 1e-6, "something is in the Pico's way in"
+    assert probe.union(strip).intersect(pcb).val().Volume() < 1e-6, "the Pico is under the board"
     pins = header(xs, yp)
     assert body.intersect(pins).val().Volume() < 1e-6, "the header doesn't fit its pocket"
     assert body.intersect(pins.translate((0, 0, 8))).val().Volume() < 1e-6, "something is in the header's way in"
@@ -125,9 +183,8 @@ def main():
     import cadquery as cq
     cq.exporters.export(body.translate((0, 0, -Z_BOT)), os.path.join(OUT, "mono_cradle.stl"), tolerance=0.01, angularTolerance=0.1)
     orange, dark = (0.95, 0.55, 0.15), (0.1, 0.1, 0.1)
-    wide = J.latch(J.XL, yp, 90).union(J.latch(J.XR, yp, 90))
     B.picture([(body, orange), (wide, dark), (pins, dark)], os.path.join(OUT, "mono_cradle_empty.png"), size=1100)
-    B.picture([(body, orange), (shut, dark), (pcb, (0.18, 0.42, 0.25)), (bits, (0.75, 0.75, 0.72)), (glass, (0.12, 0.13, 0.16))],
+    B.picture([(body, orange), (shut, dark), (probe, (0.1, 0.45, 0.3)), (strip, dark), (pcb, (0.18, 0.42, 0.25)), (bits, (0.75, 0.75, 0.72)), (glass, (0.12, 0.13, 0.16))],
               os.path.join(OUT, "mono_cradle.png"), size=1100)
     turn = lambda s: s.rotate((G.W / 2, 0, 0), (G.W / 2, 1, 0), 180)          # the bottom toward the eye
     B.picture([(turn(body), orange), (turn(pins), dark)], os.path.join(OUT, "mono_cradle_under.png"), size=1100)
@@ -135,6 +192,8 @@ def main():
     bb = body.val().BoundingBox()
     print(f"wrote {os.path.relpath(OUT, B.REPO)}/: mono_cradle.stl, mono_cradle.png, mono_cradle_empty.png, mono_cradle_under.png; "
           f"{bb.xlen:.1f} x {bb.ylen:.1f} x {bb.zlen:.1f} mm")
+    print(f"  the Pico's tray {PX1 - PX0:.1f} x {PY1 - PY0:.1f} mm, its floor {Z_TRAY - Z_BOT:.1f} mm up; "
+          f"pins 3 to 5 in the row {J.XL - rows()[1]:.1f} mm left of the left latch's screw")
     x0, x1, b = span(xs)
     print(f"  the pocket {x1 - x0:.2f} x {2 * b:.2f} mm, {ZD - Z_LEDGE:.2f} mm deep, {yp:g} mm up from the bottom edge; pins on "
           + ", ".join(f"{p} {xs[p]:g}" for p in PADS) + " mm from the left edge")
