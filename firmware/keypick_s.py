@@ -177,7 +177,9 @@ class UI(setup_s.UI):
         return " and ".join(off) + " off on the board" if off else ""
 
     def addr(self):
-        """The owner address of the key in slot 0, worked out once a key (two keccaks, ~0.7 s)."""
+        """The owner address of the key in slot 0, worked out once a key (two keccaks, ~0.7 s). EIP-55
+        for its text. Its blockie's seed is the address in lower case, as on every other screen and in
+        the Safe app: a seed in mixed case draws another picture."""
         k = self.c.key
         if self._addr[0] != k:
             self._addr = (k, checksum(self.c.owner()) if k else "")
@@ -367,7 +369,7 @@ class UI(setup_s.UI):
         d, why = self.d, self.need("make")
         d.fill(U.c("bg"))
         side = 96
-        blockies.draw(d, a, M, 33, side // 8)               # 96 px, under the Choose bar
+        blockies.draw(d, a.lower(), M, 33, side // 8)       # 96 px, under the Choose bar
         x = M + side + 8
         cw = W - 5 - x
         U.txt(d, U.fit("Your key", cw, "bold14"), x, 34, "bold14")     # no number: each key is new, not one of a list
@@ -388,7 +390,7 @@ class UI(setup_s.UI):
         for line in groups(a):
             U.txt(d, line, M, y, "mono13")
             y += 17
-        blockies.draw(d, a, W - 5 - 32, 98, 4)
+        blockies.draw(d, a.lower(), W - 5 - 32, 98, 4)
         U.para(d, "A signer, not a wallet: never send funds to it.", M, y + 4, TW - 38, "sans12", "warn", "bg", 14, 134)
         rail(d, (None, ("Pic", "raised", "text"), None))
         choose_bar(d, W - 5)
@@ -398,7 +400,7 @@ class UI(setup_s.UI):
         d, a, why = self.d, self.addr(), self.need("keep")
         d.fill(U.c("bad_bg"))
         U.txt(d, U.fit("Keep this key?", TW - 40, "bold18"), M, 2, "bold18", "bad_text", "bad_bg")
-        blockies.draw(d, a, W - 5 - 32, 4, 4)
+        blockies.draw(d, a.lower(), W - 5 - 32, 4, 4)
         U.txt(d, a[:6] + "\u2026" + a[-4:], M, 28, "mono13", "bad_text", "bad_bg")
         y = U.para(d, "It's sealed in the chip for good: it can never be changed.", M, 50, TW, "sans12", "bad_text", "bad_bg", 14, 96)
         if why:
@@ -413,7 +415,7 @@ class UI(setup_s.UI):
         d.fill(U.c("bg"))
         U.mark(d, True, M + 9, 12, 9)
         U.txt(d, U.fit("Your key is ready", TW - 24, "bold18"), M + 24, 1, "bold18")
-        blockies.draw(d, a, M, 30, 8)                       # 64 px
+        blockies.draw(d, a.lower(), M, 30, 8)               # 64 px
         x = M + 64 + 8
         cw = W - 5 - x
         U.txt(d, U.fit(a[:6], cw, "mono13"), x, 32, "mono13")

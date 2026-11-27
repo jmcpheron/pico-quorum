@@ -854,19 +854,30 @@ def case_own_key():
 
     import fonts
     said, text0 = [], fonts.text
+    pics, draw0 = [], keypick_rp.blockies.draw
+    seeds = {}                              # each of the key's pages: its blockies' seeds, and the owner address then
 
     def text(d, t, *a):
         said.append(t)
         return text0(d, t, *a)
 
-    def shown():
+    def draw(d, seed, *a, **k):
+        pics.append(seed)
+        return draw0(d, seed, *a, **k)
+
+    def shown(page=None):
         """Every string the page draws now, in order: a paragraph's lines join back with spaces, so a
-        cut one (quorum_ui.para stops at its bottom with no sign) is missing its end."""
+        cut one (quorum_ui.para stops at its bottom with no sign) is missing its end. page: keep the
+        seeds of the blockies it draws under that name."""
         said[:] = []
+        pics[:] = []
         ui.dirty = True
         ui.draw()
+        if page:
+            seeds[page] = (set(pics), c.owner())
         return said[:]
     fonts.text = text
+    keypick_rp.blockies.draw = draw
 
     check(c.step() == "K0", "first: K0, read only")
     tick()
@@ -885,20 +896,20 @@ def case_own_key():
     tick("D0")
     k1 = sim.keys.get(0)
     check(k1 not in (None, planted) and c.step() == "C5" and ui.tries == 1, "Make (D0): GenKey replaced the key that was there")
-    on = shown()
+    on = shown("pick")
     check("Like it? Seal it in your signer. Or replace it." in " ".join(on) and "Replace" in on and "Seal" in on
           and "New" not in on, "the pick page whole: Seal (D2), or Replace (D0), not New")
     tick("D0")
     check(sim.keys.get(0) not in (None, k1, planted) and ui.tries == 2, "Replace (D0): another key in its place")
     tick("D1")
     full = ui.page
-    on = shown()
+    on = shown("full")
     tick("D1")
     check(full == "full" and ui.page == "pic" and "Replace" in on and "Seal" in on, "Full (D1), the same Replace and Seal, and back")
     keys.down.add("D2")
     tick("D2")
     check(ui.page == "keep", "Seal (D2): the red page")
-    on = shown()
+    on = shown("keep")
     fonts.text = text0
     check("Seal this key?" in on and "Hold Seal 3 s" in on and "Seal" in on and "Keep" not in " ".join(on),
           "the red page says Seal: its title, the hold and D2")
@@ -955,6 +966,10 @@ def case_own_key():
           "the chip's frame: on the noise strip's memory, the light on leg 5 at frame 5")
     check(not sim.cfg[88] & 1 and sim.cfg[86] == 0x00 and c.step() == "done" and ui.result is None,
           "Keep held 3 s: test signatures, the seal, the record and the data lock, then the pin")
+    shown("done")
+    keypick_rp.blockies.draw = draw0
+    check(sorted(seeds) == ["done", "full", "keep", "pick"] and all(got == {own} and own == own.lower() for got, own in seeds.values()),
+          "Pick, Full, Seal and Done draw the key's blockie from its owner address in lower case, as the Safe app does")
     import policy, chipcfg
     pin = policy.pin_file()
     x, y = p256.pubkey(sim.keys[0])
@@ -972,6 +987,7 @@ def case_own_key():
     import console_test as CT
     Q = CT.fresh(expect=None)
     check(Q.pin_ok and Q.state == "home" and Q.EXPECT and Q.EXPECT["owner"] == pin["owner"], "the console starts on the pin the key flow wrote")
+    check(seeds["done"][0] == {Q.me}, "the picture on Done is the one the console draws for this key from then on (quorum.me)")
     with open("pin.json", "w") as f:
         f.write('{"serial": "0123ffffffffffffff", "slot": 0, "owner": "%s", "locked": true}' % pin["owner"])
     Q = CT.fresh(expect=None, keep=True)
